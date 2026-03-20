@@ -4,7 +4,6 @@ import { dirname as _dirname, resolve } from 'path';
 dotenv.config({ path: resolve(_dirname(_fileURLToPath(import.meta.url)), '../../.env') });
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -20,10 +19,6 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(cookieParser());
-
-if (process.env.NODE_ENV !== 'production') {
-  app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
-}
 
 // API routes
 app.use('/api/auth', authRoutes);
