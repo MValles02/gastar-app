@@ -29,7 +29,7 @@ function ForgotPassword() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
       <div className="w-full max-w-sm">
         <h1 className="mb-2 text-center text-2xl font-bold text-accent-600">Gastar</h1>
-        <p className="mb-8 text-center text-sm text-gray-500 dark:text-gray-400">Recupera tu contrasena</p>
+        <p className="mb-8 text-center text-sm text-gray-500 dark:text-gray-400">Recuperá tu contraseña</p>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           {sent ? (
@@ -41,7 +41,7 @@ function ForgotPassword() {
                 Revisa tu correo
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Si el correo existe, te enviamos un enlace para restablecer tu contrasena.
+                Si el correo existe, te enviamos un enlace para restablecer tu contraseña.
               </p>
             </div>
           ) : (
@@ -52,7 +52,7 @@ function ForgotPassword() {
                 </div>
               )}
               <Input
-                label="Correo electronico"
+                label="Correo electrónico"
                 type="email"
                 icon={Mail}
                 value={email}
@@ -61,7 +61,7 @@ function ForgotPassword() {
                 required
               />
               <Button type="submit" loading={loading} className="w-full">
-                Enviar enlace de recuperacion
+                Enviar enlace de recuperación
               </Button>
             </form>
           )}
@@ -70,7 +70,7 @@ function ForgotPassword() {
         <p className="mt-4 text-center">
           <Link to="/login" className="inline-flex items-center gap-1 text-sm text-accent-600 hover:underline">
             <ArrowLeft className="h-4 w-4" />
-            Volver al inicio de sesion
+            Volver al inicio de sesión
           </Link>
         </p>
       </div>

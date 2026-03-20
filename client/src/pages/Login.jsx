@@ -19,7 +19,7 @@ function Login() {
     try {
       await login(email, password);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al iniciar sesion');
+      setError(err.response?.data?.error || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
@@ -29,7 +29,7 @@ function Login() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
       <div className="w-full max-w-sm">
         <h1 className="mb-2 text-center text-2xl font-bold text-accent-600">Gastar</h1>
-        <p className="mb-8 text-center text-sm text-gray-500 dark:text-gray-400">Inicia sesion en tu cuenta</p>
+        <p className="mb-8 text-center text-sm text-gray-500 dark:text-gray-400">Iniciá sesión en tu cuenta</p>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -39,7 +39,7 @@ function Login() {
               </div>
             )}
             <Input
-              label="Correo electronico"
+              label="Correo electrónico"
               type="email"
               icon={Mail}
               value={email}
@@ -48,7 +48,7 @@ function Login() {
               required
             />
             <Input
-              label="Contrasena"
+              label="Contraseña"
               type="password"
               icon={Lock}
               value={password}
@@ -58,11 +58,11 @@ function Login() {
             />
             <div className="text-right">
               <Link to="/forgot-password" className="text-sm text-accent-600 hover:underline">
-                Olvidaste tu contrasena?
+                ¿Olvidaste tu contraseña?
               </Link>
             </div>
             <Button type="submit" loading={loading} className="w-full">
-              Iniciar sesion
+              Iniciar sesión
             </Button>
           </form>
         </div>

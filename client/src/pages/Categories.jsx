@@ -35,7 +35,7 @@ function Categories() {
   };
 
   const handleDelete = async (category) => {
-    if (!confirm(`Eliminar la categoria "${category.name}"?`)) return;
+    if (!confirm(`¿Eliminar la categoría "${category.name}"?`)) return;
     try {
       await deleteCategory(category.id);
       await load();
@@ -58,7 +58,7 @@ function Categories() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Categorias</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Categorías</h1>
         <Button onClick={handleCreate} size="sm">
           <Plus className="h-4 w-4" />
           Agregar
@@ -68,9 +68,9 @@ function Categories() {
       {categories.length === 0 ? (
         <EmptyState
           icon={Tag}
-          title="Sin categorias"
-          description="Crea tu primera categoria para organizar tus transacciones."
-          actionLabel="Agregar categoria"
+          title="Sin categorías"
+          description="Creá tu primera categoría para organizar tus transacciones."
+          actionLabel="Agregar categoría"
           onAction={handleCreate}
         />
       ) : (

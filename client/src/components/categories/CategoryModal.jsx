@@ -38,14 +38,14 @@ export default function CategoryModal({ isOpen, onClose, onSubmit, category }) {
       await onSubmit({ name, type, icon: icon || undefined });
       onClose();
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al guardar la categoria');
+      setError(err.response?.data?.error || 'Error al guardar la categoría');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? 'Editar categoria' : 'Nueva categoria'}>
+    <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? 'Editar categoría' : 'Nueva categoría'}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">

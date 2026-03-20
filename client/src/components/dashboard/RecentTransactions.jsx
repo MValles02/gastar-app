@@ -8,7 +8,7 @@ export default function RecentTransactions({ transactions }) {
   if (!transactions || transactions.length === 0) {
     return (
       <Card>
-        <h3 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">Ultimas transacciones</h3>
+        <h3 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">Últimas transacciones</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">No hay transacciones recientes.</p>
       </Card>
     );
@@ -29,7 +29,7 @@ export default function RecentTransactions({ transactions }) {
   return (
     <Card>
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900 dark:text-gray-100">Ultimas transacciones</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100">Últimas transacciones</h3>
         <Link to="/transactions" className="inline-flex items-center gap-1 text-sm text-accent-600 hover:underline">
           Ver todas <ArrowRightIcon className="h-3 w-3" />
         </Link>

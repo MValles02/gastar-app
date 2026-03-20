@@ -12,7 +12,7 @@ const tabs = [
   { to: '/', icon: LayoutDashboard, label: 'Panel' },
   { to: '/transactions', icon: ArrowLeftRight, label: 'Movimientos' },
   { to: '/accounts', icon: Wallet, label: 'Cuentas' },
-  { to: '/categories', icon: Tag, label: 'Categorias' },
+  { to: '/categories', icon: Tag, label: 'Categorías' },
   { to: '/reports', icon: BarChart3, label: 'Reportes' },
 ];
 

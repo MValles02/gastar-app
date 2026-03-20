@@ -115,7 +115,7 @@ router.put('/:id', async (req, res, next) => {
       where: { id: req.params.id, account: { userId: req.userId } },
     });
     if (!existing) {
-      return res.status(404).json({ error: 'Transaccion no encontrada' });
+      return res.status(404).json({ error: 'Transacción no encontrada' });
     }
 
     const transaction = await prisma.$transaction(async (tx) => {
@@ -152,7 +152,7 @@ router.delete('/:id', async (req, res, next) => {
       where: { id: req.params.id, account: { userId: req.userId } },
     });
     if (!existing) {
-      return res.status(404).json({ error: 'Transaccion no encontrada' });
+      return res.status(404).json({ error: 'Transacción no encontrada' });
     }
 
     await prisma.$transaction(async (tx) => {
@@ -160,7 +160,7 @@ router.delete('/:id', async (req, res, next) => {
       await tx.transaction.delete({ where: { id: req.params.id } });
     });
 
-    res.json({ data: { message: 'Transaccion eliminada' } });
+    res.json({ data: { message: 'Transacción eliminada' } });
   } catch (err) {
     next(err);
   }

@@ -20,16 +20,16 @@ function ResetPassword() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Las contrasenas no coinciden');
+      setError('Las contraseñas no coinciden');
       return;
     }
 
     setLoading(true);
     try {
       await api.post('/auth/reset-password', { token, password });
-      navigate('/login', { state: { message: 'Contrasena actualizada. Inicia sesion.' } });
+      navigate('/login', { state: { message: 'Contraseña actualizada. Iniciá sesión.' } });
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al restablecer la contrasena');
+      setError(err.response?.data?.error || 'Error al restablecer la contraseña');
     } finally {
       setLoading(false);
     }
@@ -39,9 +39,9 @@ function ResetPassword() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
         <div className="text-center">
-          <p className="text-gray-500 dark:text-gray-400">Enlace invalido.</p>
+          <p className="text-gray-500 dark:text-gray-400">Enlace inválido.</p>
           <Link to="/login" className="mt-2 inline-block text-sm text-accent-600 hover:underline">
-            Volver al inicio de sesion
+            Volver al inicio de sesión
           </Link>
         </div>
       </div>
@@ -52,7 +52,7 @@ function ResetPassword() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
       <div className="w-full max-w-sm">
         <h1 className="mb-2 text-center text-2xl font-bold text-accent-600">Gastar</h1>
-        <p className="mb-8 text-center text-sm text-gray-500 dark:text-gray-400">Crea una nueva contrasena</p>
+        <p className="mb-8 text-center text-sm text-gray-500 dark:text-gray-400">Creá una nueva contraseña</p>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -62,25 +62,25 @@ function ResetPassword() {
               </div>
             )}
             <Input
-              label="Nueva contrasena"
+              label="Nueva contraseña"
               type="password"
               icon={Lock}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimo 6 caracteres"
+              placeholder="Mínimo 6 caracteres"
               required
             />
             <Input
-              label="Confirmar contrasena"
+              label="Confirmar contraseña"
               type="password"
               icon={Lock}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Repeti tu contrasena"
+              placeholder="Repetí tu contraseña"
               required
             />
             <Button type="submit" loading={loading} className="w-full">
-              Restablecer contrasena
+              Restablecer contraseña
             </Button>
           </form>
         </div>
@@ -88,7 +88,7 @@ function ResetPassword() {
         <p className="mt-4 text-center">
           <Link to="/login" className="inline-flex items-center gap-1 text-sm text-accent-600 hover:underline">
             <ArrowLeft className="h-4 w-4" />
-            Volver al inicio de sesion
+            Volver al inicio de sesión
           </Link>
         </p>
       </div>

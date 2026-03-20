@@ -44,7 +44,7 @@ router.put('/:id', async (req, res, next) => {
       where: { id: req.params.id, userId: req.userId },
     });
     if (!existing) {
-      return res.status(404).json({ error: 'Categoria no encontrada' });
+      return res.status(404).json({ error: 'Categoría no encontrada' });
     }
     const category = await prisma.category.update({
       where: { id: req.params.id },
@@ -66,16 +66,16 @@ router.delete('/:id', async (req, res, next) => {
       where: { id: req.params.id, userId: req.userId },
     });
     if (!existing) {
-      return res.status(404).json({ error: 'Categoria no encontrada' });
+      return res.status(404).json({ error: 'Categoría no encontrada' });
     }
     const txCount = await prisma.transaction.count({
       where: { categoryId: req.params.id },
     });
     if (txCount > 0) {
-      return res.status(400).json({ error: 'No se puede eliminar una categoria con transacciones asociadas' });
+      return res.status(400).json({ error: 'No se puede eliminar una categoría con transacciones asociadas' });
     }
     await prisma.category.delete({ where: { id: req.params.id } });
-    res.json({ data: { message: 'Categoria eliminada' } });
+    res.json({ data: { message: 'Categoría eliminada' } });
   } catch (err) {
     next(err);
   }

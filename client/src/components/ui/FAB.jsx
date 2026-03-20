@@ -11,7 +11,7 @@ export default function FAB({ onClick, className }) {
         'bottom-24 right-6 md:bottom-8 md:right-8',
         className
       )}
-      aria-label="Agregar transaccion"
+      aria-label="Agregar transacción"
     >
       <Plus className="h-6 w-6" />
     </button>

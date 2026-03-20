@@ -19,7 +19,7 @@ function Register() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Las contrasenas no coinciden');
+      setError('Las contraseñas no coinciden');
       return;
     }
 
@@ -56,7 +56,7 @@ function Register() {
               required
             />
             <Input
-              label="Correo electronico"
+              label="Correo electrónico"
               type="email"
               icon={Mail}
               value={email}
@@ -65,21 +65,21 @@ function Register() {
               required
             />
             <Input
-              label="Contrasena"
+              label="Contraseña"
               type="password"
               icon={Lock}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimo 6 caracteres"
+              placeholder="Mínimo 6 caracteres"
               required
             />
             <Input
-              label="Confirmar contrasena"
+              label="Confirmar contraseña"
               type="password"
               icon={Lock}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Repeti tu contrasena"
+              placeholder="Repetí tu contraseña"
               required
             />
             <Button type="submit" loading={loading} className="w-full">
@@ -91,7 +91,7 @@ function Register() {
         <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
           Ya tenes cuenta?{' '}
           <Link to="/login" className="text-accent-600 hover:underline">
-            Inicia sesion
+            Iniciá sesión
           </Link>
         </p>
       </div>

@@ -87,14 +87,14 @@ export default function TransactionModal() {
       closeModal();
       if (onSuccess) onSuccess();
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al guardar la transaccion');
+      setError(err.response?.data?.error || 'Error al guardar la transacción');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={closeModal} title={isEdit ? 'Editar transaccion' : 'Nueva transaccion'}>
+    <Modal isOpen={isOpen} onClose={closeModal} title={isEdit ? 'Editar transacción' : 'Nueva transacción'}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
@@ -152,10 +152,10 @@ export default function TransactionModal() {
         )}
 
         <Select
-          label="Categoria"
+          label="Categoría"
           value={categoryId}
           onChange={(e) => setCategoryId(e.target.value)}
-          placeholder="Seleccionar categoria"
+          placeholder="Seleccionar categoría"
           options={filteredCategories.map(c => ({ value: c.id, label: c.name }))}
           required
         />
@@ -169,10 +169,10 @@ export default function TransactionModal() {
         />
 
         <Input
-          label="Descripcion (opcional)"
+          label="Descripción (opcional)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Detalle de la transaccion"
+          placeholder="Detalle de la transacción"
         />
 
         <div className="flex justify-end gap-2 pt-2">

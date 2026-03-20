@@ -7,9 +7,9 @@ import Button from '../ui/Button.jsx';
 const typeOptions = [
   { value: 'checking', label: 'Cuenta corriente' },
   { value: 'savings', label: 'Caja de ahorro' },
-  { value: 'credit_card', label: 'Tarjeta de credito' },
+  { value: 'credit_card', label: 'Tarjeta de crédito' },
   { value: 'cash', label: 'Efectivo' },
-  { value: 'investment', label: 'Inversion' },
+  { value: 'investment', label: 'Inversión' },
 ];
 
 export default function AccountModal({ isOpen, onClose, onSubmit, account }) {

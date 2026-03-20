@@ -1,14 +1,14 @@
 import { z } from 'zod';
 
 export const createTransactionSchema = z.object({
-  accountId: z.string().uuid('ID de cuenta invalido'),
-  categoryId: z.string().uuid('ID de categoria invalido'),
-  type: z.enum(['income', 'expense', 'transfer'], { message: 'Tipo de transaccion invalido' }),
+  accountId: z.string().uuid('ID de cuenta inválido'),
+  categoryId: z.string().uuid('ID de categoría inválido'),
+  type: z.enum(['income', 'expense', 'transfer'], { message: 'Tipo de transacción inválido' }),
   amount: z.union([z.string(), z.number()])
     .transform(Number)
     .pipe(z.number().positive('El monto debe ser mayor a 0')),
   description: z.string().max(200).optional(),
-  date: z.string().refine(val => !isNaN(Date.parse(val)), 'Fecha invalida'),
+  date: z.string().refine(val => !isNaN(Date.parse(val)), 'Fecha inválida'),
   transferTo: z.string().uuid().optional(),
 }).refine(
   data => data.type !== 'transfer' || data.transferTo,
@@ -27,7 +27,7 @@ export const updateTransactionSchema = z.object({
     .pipe(z.number().positive('El monto debe ser mayor a 0'))
     .optional(),
   description: z.string().max(200).optional(),
-  date: z.string().refine(val => !isNaN(Date.parse(val)), 'Fecha invalida').optional(),
+  date: z.string().refine(val => !isNaN(Date.parse(val)), 'Fecha inválida').optional(),
   transferTo: z.string().uuid().nullable().optional(),
 });
 

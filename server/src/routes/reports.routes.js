@@ -106,7 +106,7 @@ router.get('/by-category', async (req, res, next) => {
 
     const mapGroups = (groups) => groups.map(g => ({
       categoryId: g.categoryId,
-      categoryName: categoriesMap[g.categoryId]?.name || 'Sin categoria',
+      categoryName: categoriesMap[g.categoryId]?.name || 'Sin categoría',
       categoryIcon: categoriesMap[g.categoryId]?.icon || null,
       total: parseFloat(g._sum.amount || 0),
     }));

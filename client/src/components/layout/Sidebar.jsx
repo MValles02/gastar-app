@@ -20,7 +20,7 @@ const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Panel' },
   { to: '/transactions', icon: ArrowLeftRight, label: 'Transacciones' },
   { to: '/accounts', icon: Wallet, label: 'Cuentas' },
-  { to: '/categories', icon: Tag, label: 'Categorias' },
+  { to: '/categories', icon: Tag, label: 'Categorías' },
   { to: '/reports', icon: BarChart3, label: 'Reportes' },
 ];
 
@@ -104,7 +104,7 @@ export default function Sidebar() {
           )}
         >
           <LogOut className="h-5 w-5" />
-          {!collapsed && <span>Cerrar sesion</span>}
+          {!collapsed && <span>Cerrar sesión</span>}
         </button>
       </div>
     </aside>

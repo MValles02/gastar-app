@@ -11,7 +11,7 @@ export default function SpendingByCategory({ expenses }) {
   if (!expenses || expenses.length === 0) {
     return (
       <Card>
-        <h3 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">Gastos por categoria</h3>
+        <h3 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">Gastos por categoría</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">No hay gastos en este periodo.</p>
       </Card>
     );
@@ -36,7 +36,7 @@ export default function SpendingByCategory({ expenses }) {
 
   return (
     <Card>
-      <h3 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">Gastos por categoria</h3>
+      <h3 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">Gastos por categoría</h3>
       <ResponsiveContainer width="100%" height={250}>
         <PieChart>
           <Pie

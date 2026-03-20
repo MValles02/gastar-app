@@ -41,7 +41,7 @@ function Transactions() {
   };
 
   const handleDelete = async (tx) => {
-    if (!confirm('Eliminar esta transaccion?')) return;
+    if (!confirm('¿Eliminar esta transacción?')) return;
     try {
       await deleteTransaction(tx.id);
       await load();
@@ -69,7 +69,7 @@ function Transactions() {
         <EmptyState
           icon={ArrowLeftRight}
           title="Sin transacciones"
-          description="Usa el boton + para registrar tu primera transaccion."
+          description="Usá el botón + para registrar tu primera transacción."
         />
       ) : (
         <>
@@ -89,7 +89,7 @@ function Transactions() {
                 Anterior
               </Button>
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                Pagina {data.page} de {data.totalPages}
+                Página {data.page} de {data.totalPages}
               </span>
               <Button
                 variant="secondary"

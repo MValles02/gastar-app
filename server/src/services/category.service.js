@@ -10,7 +10,7 @@ const defaultCategories = [
   { name: 'Alquiler', type: 'expense', icon: 'home' },
   { name: 'Entretenimiento', type: 'expense', icon: 'gamepad-2' },
   { name: 'Salud', type: 'expense', icon: 'heart-pulse' },
-  { name: 'Educacion', type: 'expense', icon: 'graduation-cap' },
+  { name: 'Educación', type: 'expense', icon: 'graduation-cap' },
   { name: 'Ropa', type: 'expense', icon: 'shirt' },
   { name: 'Servicios', type: 'expense', icon: 'zap' },
   { name: 'Otros gastos', type: 'expense', icon: 'minus-circle' },

@@ -27,9 +27,9 @@ export function formatDateShort(dateString) {
 const accountTypeLabels = {
   checking: 'Cuenta corriente',
   savings: 'Caja de ahorro',
-  credit_card: 'Tarjeta de credito',
+  credit_card: 'Tarjeta de crédito',
   cash: 'Efectivo',
-  investment: 'Inversion',
+  investment: 'Inversión',
 };
 
 export function getAccountTypeLabel(type) {
