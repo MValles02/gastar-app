@@ -14,14 +14,19 @@ RUN npm --prefix client install
 COPY client/ ./client/
 RUN npm --prefix client run build
 
-# Install server dependencies
+# Install server dependencies (production only)
 COPY server/package.json ./server/
 RUN npm --prefix server install --omit=dev
 
 COPY server/ ./server/
 
+# Generate Prisma client for production
+RUN npm --prefix server run db:generate
+
 # Stage 2: Production image
 FROM node:20-alpine AS production
+
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
@@ -35,4 +40,4 @@ ENV NODE_ENV=production
 
 EXPOSE 3000
 
-CMD ["node", "server/src/index.js"]
+CMD ["sh", "-c", "server/node_modules/.bin/prisma migrate deploy --schema server/prisma/schema.prisma && node server/src/index.js"]

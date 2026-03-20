@@ -35,7 +35,7 @@ app.use('/api/reports', reportRoutes);
 // Serve React build in production
 if (process.env.NODE_ENV === 'production') {
   const __dirname = dirname(fileURLToPath(import.meta.url));
-  const clientDist = join(__dirname, '../../../client/dist');
+  const clientDist = join(__dirname, '../../client/dist');
 
   app.use(express.static(clientDist));
 
