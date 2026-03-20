@@ -1,0 +1,19 @@
+import { Plus } from 'lucide-react';
+import clsx from 'clsx';
+
+export default function FAB({ onClick, className }) {
+  return (
+    <button
+      onClick={onClick}
+      className={clsx(
+        'fixed z-40 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95',
+        'bg-accent-600 text-white hover:bg-accent-700',
+        'bottom-24 right-6 md:bottom-8 md:right-8',
+        className
+      )}
+      aria-label="Agregar transaccion"
+    >
+      <Plus className="h-6 w-6" />
+    </button>
+  );
+}
