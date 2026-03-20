@@ -65,7 +65,6 @@ Four core tables with these relationships:
 - `id` — UUID, primary key
 - `user_id` — UUID, foreign key → users.id
 - `name` — String (e.g., "Food", "Rent", "Salary")
-- `type` — String (income or expense)
 - `icon` — String, optional
 
 ### transactions
@@ -85,7 +84,7 @@ Four core tables with these relationships:
 2. **Password reset** — Forgot password flow with email via Resend (token-based, 1-hour expiry)
 3. **Account management** — CRUD for financial accounts (bank, cash, credit card)
 4. **Transaction management** — Create, read, update, delete incomes, expenses, and transfers with atomic balance updates
-5. **Categories** — CRUD for transaction categories with type (income/expense); 13 default Spanish categories seeded on registration
+5. **Categories** — CRUD for transaction categories (any category can be used with any transaction type); 13 default Spanish categories seeded on registration
 6. **Reports & charts** — Visual summaries of spending by category, income vs expenses over time
 7. **Dashboard** — Balance overview, spending pie chart, recent transactions
 
@@ -147,6 +146,9 @@ gastar-app/
 │   ├── index.html
 │   ├── tailwind.config.js
 │   └── vite.config.js
+├── client/public/
+│   ├── manifest.json         # PWA manifest (standalone, Add to Home Screen)
+│   └── icons/                # PWA app icons (192x192, 512x512)
 ├── server/
 │   ├── prisma/
 │   │   ├── schema.prisma    # Database schema
@@ -162,9 +164,7 @@ gastar-app/
 ├── .env.example             # Template for environment variables
 ├── .gitignore
 ├── package.json             # Root package.json (scripts to run both)
-├── Dockerfile               # Multi-stage build for Dokploy
-├── docker-compose.yml       # Local dev database (PostgreSQL)
-├── nixpacks.toml            # Alternative deployment config
+├── nixpacks.toml            # Deployment config (Dokploy/nixpacks)
 ├── CLAUDE.md                # This file
 └── README.md
 ```
@@ -172,20 +172,15 @@ gastar-app/
 ## Environment variables (.env)
 
 ```
-DATABASE_URL=postgresql://user:password@localhost:5433/gastar-app
+DATABASE_URL=postgresql://user:password@localhost:5432/gastar-app
 JWT_SECRET=your-secret-key-here
 PORT=3000
 NODE_ENV=development
 
 # Email (Resend)
 RESEND_API_KEY=your-resend-api-key
-APP_URL=https://your-domain.com
+APP_URL=https://gastar.app
 EMAIL_FROM=Gastar <noreply@gastar.app>
-
-# Docker Compose (local dev DB)
-POSTGRES_USER=gastar_admin
-POSTGRES_PASSWORD=your-db-password
-POSTGRES_DB=gastar-app
 ```
 
 ## Key scripts (root package.json)
@@ -197,13 +192,6 @@ POSTGRES_DB=gastar-app
 - `npm run db:migrate` — Runs Prisma migrations
 - `npm run db:studio` — Opens Prisma Studio (database GUI)
 
-## Dockerfile strategy
-
-Multi-stage build:
-1. Stage 1: Install dependencies and build the React frontend
-2. Stage 2: Copy built frontend + server code, install production dependencies only
-3. Express serves the React build as static files and handles API routes
-
 ## Important notes
 
 - All monetary amounts use Decimal type (never floating point) to avoid rounding errors
@@ -212,3 +200,4 @@ Multi-stage build:
 - The frontend uses React Router for client-side navigation
 - Vite dev server proxies `/api` requests to Express during development
 - In production, Express serves everything from a single port
+- PWA manifest enables "Add to Home Screen" with standalone display (no service worker / no offline support)

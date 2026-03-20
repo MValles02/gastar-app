@@ -30,13 +30,7 @@ cp .env.example .env
 
 ### 3. Start the database
 
-Using Docker Compose (recommended):
-
-```bash
-docker compose up -d db
-```
-
-Or use an existing PostgreSQL instance and update `DATABASE_URL` in `.env`.
+Use an existing PostgreSQL instance and update `DATABASE_URL` in `.env`.
 
 ### 4. Run database migrations
 
@@ -63,7 +57,7 @@ In production, Express serves both the built React app and the API from a single
 
 ## Deployment
 
-Deployed on a Hostinger VPS running Dokploy. One app container (React + Express) and one PostgreSQL container. Dokploy auto-deploys on push to the GitHub repo.
+Deployed on a Hostinger VPS running Dokploy with nixpacks. One app container (React + Express) and one PostgreSQL container. Dokploy auto-deploys on push to the GitHub repo. Migrations run automatically on startup.
 
 ## Environment Variables
 
@@ -74,7 +68,7 @@ Deployed on a Hostinger VPS running Dokploy. One app container (React + Express)
 | `PORT` | Server port | `3000` |
 | `NODE_ENV` | Environment (`development` / `production`) | `development` |
 | `RESEND_API_KEY` | Resend API key for sending emails | — |
-| `APP_URL` | App URL for email links | `http://localhost:5174` |
+| `APP_URL` | App URL for email links | `https://gastar.app` |
 | `EMAIL_FROM` | Sender address for emails | `Gastar <noreply@gastar.app>` |
 
 ## Scripts
