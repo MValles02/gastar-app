@@ -39,7 +39,7 @@ export default function Sidebar() {
   return (
     <aside
       className={clsx(
-        'hidden md:flex flex-col h-screen sticky top-0 border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950 transition-all duration-200',
+        'hidden md:flex flex-col h-dvh sticky top-0 border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950 transition-all duration-200',
         collapsed ? 'w-16' : 'w-60'
       )}
     >

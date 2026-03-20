@@ -33,6 +33,10 @@
     --color-accent-950: #1e1b4b;
   }
 
+  html, body, #root {
+    @apply h-dvh overflow-hidden;
+  }
+
   body {
     @apply bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 transition-colors duration-200;
   }
