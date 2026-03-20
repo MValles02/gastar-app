@@ -14,7 +14,7 @@ function getResend() {
 
 export async function sendPasswordResetEmail(email, resetToken) {
   const client = getResend();
-  const resetUrl = `${process.env.APP_URL || 'http://localhost:5174'}/reset-password?token=${resetToken}`;
+  const resetUrl = `${process.env.APP_URL || 'https://gastar.app'}/reset-password?token=${resetToken}`;
 
   await client.emails.send({
     from: process.env.EMAIL_FROM || 'Gastar <noreply@gastar.app>',
