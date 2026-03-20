@@ -41,7 +41,6 @@ model Category {
   id     String  @id @default(uuid())
   userId String  @map("user_id")
   name   String
-  type   String
   icon   String?
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)

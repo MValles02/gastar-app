@@ -36,15 +36,6 @@ export function getAccountTypeLabel(type) {
   return accountTypeLabels[type] || type;
 }
 
-const categoryTypeLabels = {
-  income: 'Ingreso',
-  expense: 'Gasto',
-};
-
-export function getCategoryTypeLabel(type) {
-  return categoryTypeLabels[type] || type;
-}
-
 const transactionTypeLabels = {
   income: 'Ingreso',
   expense: 'Gasto',

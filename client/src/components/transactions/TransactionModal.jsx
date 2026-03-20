@@ -61,10 +61,6 @@ export default function TransactionModal() {
     setError('');
   }, [editData, isOpen]);
 
-  const filteredCategories = categories.filter(c =>
-    type === 'transfer' ? true : c.type === type
-  );
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -156,7 +152,7 @@ export default function TransactionModal() {
           value={categoryId}
           onChange={(e) => setCategoryId(e.target.value)}
           placeholder="Seleccionar categoría"
-          options={filteredCategories.map(c => ({ value: c.id, label: c.name }))}
+          options={categories.map(c => ({ value: c.id, label: c.name }))}
           required
         />
 

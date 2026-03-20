@@ -28,7 +28,7 @@ router.get('/', async (req, res, next) => {
       prisma.transaction.findMany({
         where,
         include: {
-          category: { select: { id: true, name: true, icon: true, type: true } },
+          category: { select: { id: true, name: true, icon: true } },
           account: { select: { id: true, name: true } },
           transferToAccount: { select: { id: true, name: true } },
         },
@@ -88,7 +88,7 @@ router.post('/', async (req, res, next) => {
           transferTo: data.transferTo || null,
         },
         include: {
-          category: { select: { id: true, name: true, icon: true, type: true } },
+          category: { select: { id: true, name: true, icon: true } },
           account: { select: { id: true, name: true } },
           transferToAccount: { select: { id: true, name: true } },
         },
@@ -127,7 +127,7 @@ router.put('/:id', async (req, res, next) => {
           date: data.date ? new Date(data.date) : undefined,
         },
         include: {
-          category: { select: { id: true, name: true, icon: true, type: true } },
+          category: { select: { id: true, name: true, icon: true } },
           account: { select: { id: true, name: true } },
           transferToAccount: { select: { id: true, name: true } },
         },
