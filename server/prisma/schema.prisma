@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  accounts     Account[]
+  categories   Category[]
+
+  @@map("users")
+}
+
+model Account {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String
+  type      String
+  balance   Decimal  @default(0)
+  currency  String   @default("ARS")
+
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions      Transaction[] @relation("AccountTransactions")
+  transfersReceived Transaction[] @relation("TransferToAccount")
+
+  @@map("accounts")
+}
+
+model Category {
+  id     String  @id @default(uuid())
+  userId String  @map("user_id")
+  name   String
+  type   String
+  icon   String?
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("categories")
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  accountId   String   @map("account_id")
+  categoryId  String   @map("category_id")
+  type        String
+  amount      Decimal
+  description String?
+  date        DateTime @db.Date
+  transferTo  String?  @map("transfer_to")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  account            Account  @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+  category           Category @relation(fields: [categoryId], references: [id])
+  transferToAccount  Account? @relation("TransferToAccount", fields: [transferTo], references: [id])
+
+  @@map("transactions")
+}
