@@ -1,13 +1,14 @@
-# Gastar App
+# Gastar
 
-Personal finance tracker for managing incomes, expenses, and transfers between accounts. Provides visual reports to answer "where does my money go?"
+Personal finance tracker for managing incomes, expenses, and transfers between accounts. Provides visual reports and summaries to answer "where does my money go?" Built for a Spanish-speaking (Argentine) audience.
 
 ## Tech Stack
 
-- **Frontend:** React 18 + Vite, Tailwind CSS, Recharts, React Router
-- **Backend:** Node.js + Express
+- **Frontend:** React 18 + Vite, Tailwind CSS, Recharts, Lucide React, React Router
+- **Backend:** Node.js + Express, Zod validation
 - **ORM:** Prisma
-- **Auth:** JWT + bcrypt
+- **Auth:** JWT (HTTP-only cookies) + bcrypt
+- **Email:** Resend (password reset)
 - **Database:** PostgreSQL
 
 ## Setup
@@ -27,13 +28,23 @@ cp .env.example .env
 # Edit .env with your actual values
 ```
 
-### 3. Run database migrations
+### 3. Start the database
+
+Using Docker Compose (recommended):
+
+```bash
+docker compose up -d db
+```
+
+Or use an existing PostgreSQL instance and update `DATABASE_URL` in `.env`.
+
+### 4. Run database migrations
 
 ```bash
 npm run db:migrate
 ```
 
-### 4. Start development
+### 5. Start development
 
 ```bash
 npm run dev
@@ -47,3 +58,32 @@ The React dev server runs on `http://localhost:5173` and proxies `/api` requests
 npm run build   # Build React frontend
 npm start       # Serve everything from Express on PORT
 ```
+
+In production, Express serves both the built React app and the API from a single port.
+
+## Deployment
+
+Deployed on a Hostinger VPS running Dokploy. One app container (React + Express) and one PostgreSQL container. Dokploy auto-deploys on push to the GitHub repo.
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | — |
+| `JWT_SECRET` | Secret for signing JWT tokens | — |
+| `PORT` | Server port | `3000` |
+| `NODE_ENV` | Environment (`development` / `production`) | `development` |
+| `RESEND_API_KEY` | Resend API key for sending emails | — |
+| `APP_URL` | App URL for email links | `http://localhost:5174` |
+| `EMAIL_FROM` | Sender address for emails | `Gastar <noreply@gastar.app>` |
+
+## Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run install:all` | Install all dependencies (root, client, server) |
+| `npm run dev` | Start client + server concurrently |
+| `npm run build` | Build React frontend for production |
+| `npm start` | Start production server |
+| `npm run db:migrate` | Run Prisma migrations |
+| `npm run db:studio` | Open Prisma Studio GUI |
