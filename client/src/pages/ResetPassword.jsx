@@ -4,6 +4,7 @@ import { Lock, ArrowLeft } from 'lucide-react';
 import api from '../services/api.js';
 import Input from '../components/ui/Input.jsx';
 import Button from '../components/ui/Button.jsx';
+import ThemeToggle from '../components/ui/ThemeToggle.jsx';
 
 function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -37,7 +38,8 @@ function ResetPassword() {
 
   if (!token) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
+      <div className="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
+        <ThemeToggle className="absolute top-4 right-4" />
         <div className="text-center">
           <p className="text-gray-500 dark:text-gray-400">Enlace inválido.</p>
           <Link to="/login" className="mt-2 inline-block text-sm text-accent-600 hover:underline">
@@ -49,7 +51,8 @@ function ResetPassword() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
+    <div className="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
+      <ThemeToggle className="absolute top-4 right-4" />
       <div className="w-full max-w-sm">
         <h1 className="mb-2 text-center text-2xl font-bold text-accent-600">Gastar</h1>
         <p className="mb-8 text-center text-sm text-gray-500 dark:text-gray-400">Creá una nueva contraseña</p>
