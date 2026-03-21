@@ -11,10 +11,13 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     const root = document.documentElement;
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (theme === 'dark') {
       root.classList.add('dark');
+      metaThemeColor?.setAttribute('content', '#030712');
     } else {
       root.classList.remove('dark');
+      metaThemeColor?.setAttribute('content', '#059669');
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
