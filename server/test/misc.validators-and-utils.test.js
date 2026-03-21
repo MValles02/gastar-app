@@ -1,0 +1,101 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createAccountSchema, updateAccountSchema } from '../src/validators/account.validators.js';
+import { createCategorySchema, updateCategorySchema } from '../src/validators/category.validators.js';
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  registerSchema,
+  resetPasswordSchema,
+} from '../src/validators/auth.validators.js';
+import { clearTestEmails, getTestEmails, sendPasswordResetEmail } from '../src/services/email.service.js';
+import { generateToken, setTokenCookie } from '../src/utils/token.js';
+
+test('account schemas parse valid input and reject invalid types', () => {
+  const account = createAccountSchema.parse({
+    name: 'Caja',
+    type: 'checking',
+    currency: 'ARS',
+    balance: '12.5',
+  });
+
+  assert.equal(account.balance, 12.5);
+
+  assert.throws(
+    () => createAccountSchema.parse({ name: 'Caja', type: 'invalid' }),
+    /tipo de cuenta/i
+  );
+
+  const update = updateAccountSchema.parse({ name: 'Banco', currency: 'USD' });
+  assert.equal(update.currency, 'USD');
+});
+
+test('category schemas validate required fields and partial updates', () => {
+  const category = createCategorySchema.parse({ name: 'Comida', icon: 'pizza' });
+  assert.equal(category.icon, 'pizza');
+
+  assert.throws(
+    () => createCategorySchema.parse({ name: '' }),
+    /nombre/i
+  );
+
+  const update = updateCategorySchema.parse({ icon: 'wallet' });
+  assert.equal(update.icon, 'wallet');
+});
+
+test('auth schemas validate expected fields', () => {
+  assert.equal(registerSchema.parse({
+    name: 'Mateo Valles',
+    email: 'mateo@example.com',
+    password: 'secret123',
+  }).email, 'mateo@example.com');
+
+  assert.equal(loginSchema.parse({
+    email: 'mateo@example.com',
+    password: 'x',
+  }).password, 'x');
+
+  assert.equal(forgotPasswordSchema.parse({
+    email: 'mateo@example.com',
+  }).email, 'mateo@example.com');
+
+  assert.equal(resetPasswordSchema.parse({
+    token: 'raw-token',
+    password: 'secret123',
+  }).token, 'raw-token');
+});
+
+test('sendPasswordResetEmail stores test emails in NODE_ENV=test', async () => {
+  clearTestEmails();
+  process.env.NODE_ENV = 'test';
+  process.env.APP_URL = 'https://example.test';
+
+  await sendPasswordResetEmail('user@example.com', 'raw-token');
+
+  const emails = getTestEmails();
+  assert.equal(emails.length, 1);
+  assert.equal(emails[0].email, 'user@example.com');
+  assert.match(emails[0].resetUrl, /raw-token/);
+});
+
+test('token helpers sign JWTs and configure auth cookies', () => {
+  process.env.JWT_SECRET = 'unit-test-secret';
+
+  const token = generateToken('user-123');
+  assert.equal(typeof token, 'string');
+
+  const cookies = [];
+  setTokenCookie(
+    {
+      cookie: (name, value, options) => {
+        cookies.push({ name, value, options });
+      },
+    },
+    token
+  );
+
+  assert.equal(cookies.length, 1);
+  assert.equal(cookies[0].name, 'token');
+  assert.equal(cookies[0].value, token);
+  assert.equal(cookies[0].options.httpOnly, true);
+});
