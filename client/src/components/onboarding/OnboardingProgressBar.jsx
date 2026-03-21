@@ -5,14 +5,14 @@ const steps = ['Bienvenida', 'Cuentas', 'Categorías', 'Tutorial'];
 
 export default function OnboardingProgressBar({ currentStep }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-start">
       {steps.map((label, index) => {
         const isPast = index < currentStep;
         const isCurrent = index === currentStep;
 
         return (
-          <div key={label} className="flex flex-1 items-center">
-            <div className="flex flex-col items-center gap-1">
+          <div key={label} className="flex flex-1 items-start">
+            <div className="flex flex-col items-center gap-1 flex-1">
               <div
                 className={clsx(
                   'flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors text-sm font-semibold',
@@ -25,7 +25,7 @@ export default function OnboardingProgressBar({ currentStep }) {
               </div>
               <span
                 className={clsx(
-                  'text-xs font-medium hidden sm:block',
+                  'text-xs font-medium hidden sm:block text-center',
                   isCurrent ? 'text-accent-600' : 'text-gray-400 dark:text-gray-500'
                 )}
               >
@@ -35,7 +35,7 @@ export default function OnboardingProgressBar({ currentStep }) {
             {index < steps.length - 1 && (
               <div
                 className={clsx(
-                  'flex-1 h-0.5 mx-2 mb-5',
+                  'h-0.5 mt-4 flex-1',
                   index < currentStep ? 'bg-accent-600' : 'bg-gray-200 dark:bg-gray-700'
                 )}
               />

@@ -103,7 +103,7 @@ export default function CategoriesStep() {
           onClick={() => setChoice('defaults')}
           className={`w-full rounded-xl border-2 p-4 text-left transition-colors ${
             choice === 'defaults'
-              ? 'border-accent-600 bg-accent-50 dark:bg-accent-950/40'
+              ? 'border-accent-600 bg-accent-50 dark:bg-gray-800'
               : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600'
           }`}
         >
@@ -146,7 +146,7 @@ export default function CategoriesStep() {
           onClick={() => setChoice('custom')}
           className={`w-full rounded-xl border-2 p-4 text-left transition-colors ${
             choice === 'custom'
-              ? 'border-accent-600 bg-accent-50 dark:bg-accent-950/40'
+              ? 'border-accent-600 bg-accent-50 dark:bg-gray-800'
               : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600'
           }`}
         >
