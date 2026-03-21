@@ -55,7 +55,8 @@ export default function TransactionModal() {
       setAccountId('');
       setCategoryId('');
       setTransferTo('');
-      setDate(new Date().toISOString().split('T')[0]);
+      const today = new Date();
+      setDate(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
       setDescription('');
     }
     setError('');

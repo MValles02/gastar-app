@@ -8,7 +8,8 @@ export function formatCurrency(amount, currency = 'ARS') {
 }
 
 export function formatDate(dateString) {
-  const date = new Date(dateString);
+  const [year, month, day] = dateString.split('T')[0].split('-').map(Number);
+  const date = new Date(year, month - 1, day);
   return new Intl.DateTimeFormat('es-AR', {
     day: 'numeric',
     month: 'short',
@@ -17,7 +18,8 @@ export function formatDate(dateString) {
 }
 
 export function formatDateShort(dateString) {
-  const date = new Date(dateString);
+  const [year, month, day] = dateString.split('T')[0].split('-').map(Number);
+  const date = new Date(year, month - 1, day);
   return new Intl.DateTimeFormat('es-AR', {
     day: 'numeric',
     month: 'short',
