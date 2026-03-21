@@ -15,7 +15,7 @@ export default function OnboardingProgressBar({ currentStep }) {
             <div className="flex flex-col items-center gap-1 flex-1">
               <div
                 className={clsx(
-                  'flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors text-sm font-semibold',
+                  'flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors text-sm font-semibold leading-none',
                   isPast && 'border-accent-600 bg-accent-600 text-white',
                   isCurrent && 'border-accent-600 bg-white text-accent-600 dark:bg-gray-950',
                   !isPast && !isCurrent && 'border-gray-300 bg-white text-gray-400 dark:border-gray-700 dark:bg-gray-950'
