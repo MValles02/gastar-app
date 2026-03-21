@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import Input from '../components/ui/Input.jsx';
 import Button from '../components/ui/Button.jsx';
 import ThemeToggle from '../components/ui/ThemeToggle.jsx';
+import GastarLogo from '../components/ui/GastarLogo.jsx';
 
 function Register() {
   const { register } = useAuth();
@@ -38,7 +39,10 @@ function Register() {
     <div className="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
       <ThemeToggle className="absolute top-4 right-4" />
       <div className="w-full max-w-sm">
-        <h1 className="mb-2 text-center text-2xl font-bold text-accent-600">Gastar</h1>
+        <div className="mb-2 flex flex-col items-center gap-2">
+          <GastarLogo className="h-10 w-10" />
+          <h1 className="text-2xl font-bold text-accent-600">Gastar</h1>
+        </div>
         <p className="mb-8 text-center text-sm text-gray-500 dark:text-gray-400">Crea tu cuenta</p>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">

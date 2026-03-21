@@ -1,12 +1,16 @@
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import ThemeToggle from '../ui/ThemeToggle.jsx';
+import GastarLogo from '../ui/GastarLogo.jsx';
 
 export default function Header({ title }) {
   const { logout } = useAuth();
   return (
     <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-950 md:hidden">
-      <h1 className="text-lg font-bold text-accent-600">{title || 'Gastar'}</h1>
+      <div className="flex items-center gap-2">
+        <GastarLogo className="h-6 w-6" />
+        <h1 className="text-lg font-bold text-accent-600">{title || 'Gastar'}</h1>
+      </div>
       <div className="flex items-center gap-2">
         <ThemeToggle />
         <button

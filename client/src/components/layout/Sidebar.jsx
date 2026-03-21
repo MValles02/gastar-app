@@ -14,6 +14,7 @@ import clsx from 'clsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import ThemeToggle from '../ui/ThemeToggle.jsx';
+import GastarLogo from '../ui/GastarLogo.jsx';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Panel' },
@@ -45,7 +46,10 @@ export default function Sidebar() {
     >
       <div className={clsx('flex items-center gap-2 border-b border-gray-200 dark:border-gray-800 p-4', collapsed && 'justify-center')}>
         {!collapsed && (
-          <span className="text-lg font-bold text-accent-600">Gastar</span>
+          <>
+            <GastarLogo className="h-6 w-6 flex-shrink-0" />
+            <span className="text-lg font-bold text-accent-600">Gastar</span>
+          </>
         )}
         <button
           onClick={toggle}
