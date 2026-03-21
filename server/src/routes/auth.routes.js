@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import prisma from '../utils/prisma.js';
 import { generateToken, setTokenCookie } from '../utils/token.js';
+import { hashResetToken } from '../utils/reset-token.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../validators/auth.validators.js';
 import { sendPasswordResetEmail } from '../services/email.service.js';
@@ -98,7 +98,7 @@ router.post('/forgot-password', async (req, res, next) => {
 
       await prisma.user.update({
         where: { id: user.id },
-        data: { resetToken, resetTokenExpiry },
+        data: { resetToken: hashResetToken(resetToken), resetTokenExpiry },
       });
 
       await sendPasswordResetEmail(email, resetToken);
@@ -117,10 +117,11 @@ router.post('/forgot-password', async (req, res, next) => {
 router.post('/reset-password', async (req, res, next) => {
   try {
     const { token, password } = resetPasswordSchema.parse(req.body);
+    const hashedToken = hashResetToken(token);
 
     const user = await prisma.user.findFirst({
       where: {
-        resetToken: token,
+        resetToken: hashedToken,
         resetTokenExpiry: { gt: new Date() },
       },
     });

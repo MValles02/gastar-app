@@ -3,10 +3,58 @@ import { authenticate } from '../middleware/auth.middleware.js';
 import prisma from '../utils/prisma.js';
 import { createTransactionSchema, updateTransactionSchema, transactionQuerySchema } from '../validators/transaction.validators.js';
 import { applyTransactionBalances, reverseTransactionBalances } from '../services/transaction.service.js';
+import { getEffectiveTransaction } from '../services/transaction-rules.js';
 
 const router = Router();
 
 router.use(authenticate);
+
+async function assertOwnedAccount(accountId, userId, errorMessage) {
+  const account = await prisma.account.findFirst({
+    where: { id: accountId, userId },
+    select: { id: true },
+  });
+
+  if (!account) {
+    const error = new Error(errorMessage);
+    error.status = 404;
+    throw error;
+  }
+}
+
+async function assertOwnedCategory(categoryId, userId) {
+  const category = await prisma.category.findFirst({
+    where: { id: categoryId, userId },
+    select: { id: true },
+  });
+
+  if (!category) {
+    const error = new Error('Categoria no encontrada');
+    error.status = 404;
+    throw error;
+  }
+}
+
+async function validateTransactionReferences(data, userId) {
+  await assertOwnedAccount(data.accountId, userId, 'Cuenta no encontrada');
+  await assertOwnedCategory(data.categoryId, userId);
+
+  if (data.type === 'transfer') {
+    if (!data.transferTo) {
+      const error = new Error('La cuenta destino es requerida para transferencias');
+      error.status = 400;
+      throw error;
+    }
+
+    if (data.transferTo === data.accountId) {
+      const error = new Error('La cuenta destino debe ser diferente a la cuenta origen');
+      error.status = 400;
+      throw error;
+    }
+
+    await assertOwnedAccount(data.transferTo, userId, 'Cuenta destino no encontrada');
+  }
+}
 
 // GET /api/transactions
 router.get('/', async (req, res, next) => {
@@ -59,22 +107,7 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const data = createTransactionSchema.parse(req.body);
-
-    const account = await prisma.account.findFirst({
-      where: { id: data.accountId, userId: req.userId },
-    });
-    if (!account) {
-      return res.status(404).json({ error: 'Cuenta no encontrada' });
-    }
-
-    if (data.transferTo) {
-      const destAccount = await prisma.account.findFirst({
-        where: { id: data.transferTo, userId: req.userId },
-      });
-      if (!destAccount) {
-        return res.status(404).json({ error: 'Cuenta destino no encontrada' });
-      }
-    }
+    await validateTransactionReferences(data, req.userId);
 
     const transaction = await prisma.$transaction(async (tx) => {
       const created = await tx.transaction.create({
@@ -85,7 +118,7 @@ router.post('/', async (req, res, next) => {
           amount: data.amount,
           description: data.description || null,
           date: new Date(data.date),
-          transferTo: data.transferTo || null,
+          transferTo: data.type === 'transfer' ? data.transferTo : null,
         },
         include: {
           category: { select: { id: true, name: true, icon: true } },
@@ -115,16 +148,24 @@ router.put('/:id', async (req, res, next) => {
       where: { id: req.params.id, account: { userId: req.userId } },
     });
     if (!existing) {
-      return res.status(404).json({ error: 'Transacción no encontrada' });
+      return res.status(404).json({ error: 'Transaccion no encontrada' });
     }
+
+    const effectiveData = getEffectiveTransaction(existing, data);
+    await validateTransactionReferences(effectiveData, req.userId);
 
     const transaction = await prisma.$transaction(async (tx) => {
       await reverseTransactionBalances(tx, existing);
       const updated = await tx.transaction.update({
         where: { id: req.params.id },
         data: {
-          ...data,
+          accountId: effectiveData.accountId,
+          categoryId: effectiveData.categoryId,
+          type: effectiveData.type,
+          amount: effectiveData.amount,
+          description: effectiveData.description,
           date: data.date ? new Date(data.date) : undefined,
+          transferTo: effectiveData.transferTo,
         },
         include: {
           category: { select: { id: true, name: true, icon: true } },
@@ -152,7 +193,7 @@ router.delete('/:id', async (req, res, next) => {
       where: { id: req.params.id, account: { userId: req.userId } },
     });
     if (!existing) {
-      return res.status(404).json({ error: 'Transacción no encontrada' });
+      return res.status(404).json({ error: 'Transaccion no encontrada' });
     }
 
     await prisma.$transaction(async (tx) => {
@@ -160,7 +201,7 @@ router.delete('/:id', async (req, res, next) => {
       await tx.transaction.delete({ where: { id: req.params.id } });
     });
 
-    res.json({ data: { message: 'Transacción eliminada' } });
+    res.json({ data: { message: 'Transaccion eliminada' } });
   } catch (err) {
     next(err);
   }
