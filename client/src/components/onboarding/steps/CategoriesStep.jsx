@@ -7,7 +7,7 @@ import Input from '../../ui/Input.jsx';
 import Button from '../../ui/Button.jsx';
 import IconPicker from '../../ui/IconPicker.jsx';
 import { useOnboarding } from '../../../context/OnboardingContext.jsx';
-import { createCategory } from '../../../services/categories.js';
+import { createCategory, getCategories } from '../../../services/categories.js';
 
 const DEFAULT_CATEGORIES = [
   { name: 'Salario', icon: 'banknote' },
@@ -73,11 +73,16 @@ export default function CategoriesStep() {
     setError('');
     setLoading(true);
     try {
+      const existing = await getCategories();
+      const existingNames = new Set(existing.map(c => c.name));
+
       if (choice === 'defaults') {
-        await Promise.all(DEFAULT_CATEGORIES.map(c => createCategory(c)));
-        await Promise.all(extraCategories.map(c => createCategory(c)));
+        const newDefaults = DEFAULT_CATEGORIES.filter(c => !existingNames.has(c.name));
+        const newExtras = extraCategories.filter(c => !existingNames.has(c.name));
+        await Promise.all([...newDefaults, ...newExtras].map(c => createCategory(c)));
       } else {
-        await Promise.all(pendingCategories.map(c => createCategory(c)));
+        const newCustom = pendingCategories.filter(c => !existingNames.has(c.name));
+        await Promise.all(newCustom.map(c => createCategory(c)));
       }
       goToNextStep();
     } catch {
