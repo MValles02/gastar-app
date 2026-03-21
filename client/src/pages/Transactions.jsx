@@ -11,7 +11,7 @@ import Spinner from '../components/ui/Spinner.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 
 function Transactions() {
-  const { openModal } = useTransactionModal();
+  const { openModal, refreshKey } = useTransactionModal();
   const [data, setData] = useState({ transactions: [], total: 0, page: 1, totalPages: 0 });
   const [filters, setFilters] = useState({ page: 1, limit: 20 });
   const [accounts, setAccounts] = useState([]);
@@ -34,10 +34,10 @@ function Transactions() {
     });
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, refreshKey]);
 
   const handleEdit = (tx) => {
-    openModal(tx, load);
+    openModal(tx);
   };
 
   const handleDelete = async (tx) => {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Wallet, Plus } from 'lucide-react';
 import { getAccounts, createAccount, updateAccount, deleteAccount } from '../services/accounts.js';
+import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import AccountCard from '../components/accounts/AccountCard.jsx';
 import AccountModal from '../components/accounts/AccountModal.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -8,6 +9,7 @@ import Spinner from '../components/ui/Spinner.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 
 function Accounts() {
+  const { triggerRefresh } = useTransactionModal();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -39,6 +41,7 @@ function Accounts() {
     try {
       await deleteAccount(account.id);
       await load();
+      triggerRefresh();
     } catch (err) {
       alert(err.response?.data?.error || 'Error al eliminar');
     }
@@ -51,6 +54,7 @@ function Accounts() {
       await createAccount(data);
     }
     await load();
+    triggerRefresh();
   };
 
   if (loading) return <Spinner className="py-12" />;

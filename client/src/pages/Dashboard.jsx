@@ -5,12 +5,14 @@ import BalanceOverview from '../components/dashboard/BalanceOverview.jsx';
 import RecentTransactions from '../components/dashboard/RecentTransactions.jsx';
 import SpendingByCategory from '../components/dashboard/SpendingByCategory.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
+import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 
 function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [categoryData, setCategoryData] = useState(null);
   const [recentTx, setRecentTx] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { refreshKey } = useTransactionModal();
 
   useEffect(() => {
     const now = new Date();
@@ -26,7 +28,7 @@ function Dashboard() {
       setCategoryData(byCat);
       setRecentTx(txData.transactions);
     }).finally(() => setLoading(false));
-  }, []);
+  }, [refreshKey]);
 
   if (loading) return <Spinner className="py-12" />;
 

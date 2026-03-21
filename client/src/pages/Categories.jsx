@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Tag, Plus } from 'lucide-react';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../services/categories.js';
+import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import CategoryList from '../components/categories/CategoryList.jsx';
 import CategoryModal from '../components/categories/CategoryModal.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -8,6 +9,7 @@ import Spinner from '../components/ui/Spinner.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 
 function Categories() {
+  const { triggerRefresh } = useTransactionModal();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -39,6 +41,7 @@ function Categories() {
     try {
       await deleteCategory(category.id);
       await load();
+      triggerRefresh();
     } catch (err) {
       alert(err.response?.data?.error || 'Error al eliminar');
     }
@@ -51,6 +54,7 @@ function Categories() {
       await createCategory(data);
     }
     await load();
+    triggerRefresh();
   };
 
   if (loading) return <Spinner className="py-12" />;

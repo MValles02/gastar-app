@@ -5,11 +5,12 @@ const TransactionModalContext = createContext(null);
 export function TransactionModalProvider({ children }) {
   const [isOpen, setIsOpen] = useState(false);
   const [editData, setEditData] = useState(null);
-  const [onSuccess, setOnSuccess] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const openModal = (transaction = null, successCallback = null) => {
+  const triggerRefresh = () => setRefreshKey(k => k + 1);
+
+  const openModal = (transaction = null) => {
     setEditData(transaction);
-    setOnSuccess(() => successCallback);
     setIsOpen(true);
   };
 
@@ -19,7 +20,7 @@ export function TransactionModalProvider({ children }) {
   };
 
   return (
-    <TransactionModalContext.Provider value={{ isOpen, editData, onSuccess, openModal, closeModal }}>
+    <TransactionModalContext.Provider value={{ isOpen, editData, refreshKey, triggerRefresh, openModal, closeModal }}>
       {children}
     </TransactionModalContext.Provider>
   );

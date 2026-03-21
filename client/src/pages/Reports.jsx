@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import { getSummary, getByCategory } from '../services/reports.js';
 import SpendingByCategory from '../components/dashboard/SpendingByCategory.jsx';
 import Card from '../components/ui/Card.jsx';
@@ -6,6 +7,7 @@ import Spinner from '../components/ui/Spinner.jsx';
 import { formatCurrency } from '../utils/formatters.js';
 
 function Reports() {
+  const { refreshKey } = useTransactionModal();
   const now = new Date();
   const [from, setFrom] = useState(
     new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
@@ -24,7 +26,7 @@ function Reports() {
       setSummary(sum);
       setCategoryData(byCat);
     }).finally(() => setLoading(false));
-  }, [from, to]);
+  }, [from, to, refreshKey]);
 
   return (
     <div>

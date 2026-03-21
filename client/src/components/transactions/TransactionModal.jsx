@@ -16,7 +16,7 @@ const typeLabels = [
 ];
 
 export default function TransactionModal() {
-  const { isOpen, editData, onSuccess, closeModal } = useTransactionModal();
+  const { isOpen, editData, triggerRefresh, closeModal } = useTransactionModal();
   const isEdit = !!editData;
 
   const [type, setType] = useState('expense');
@@ -81,7 +81,7 @@ export default function TransactionModal() {
         await createTransaction(data);
       }
       closeModal();
-      if (onSuccess) onSuccess();
+      triggerRefresh();
     } catch (err) {
       setError(err.response?.data?.error || 'Error al guardar la transacción');
     } finally {
