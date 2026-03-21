@@ -3,7 +3,6 @@ import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import { getSummary, getByCategory } from '../services/reports.js';
 import { Page, PageHeader } from '../components/layout/Page.jsx';
 import SpendingByCategory from '../components/dashboard/SpendingByCategory.jsx';
-import Card from '../components/ui/Card.jsx';
 import Input from '../components/ui/Input.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
 import PageErrorState from '../components/ui/PageErrorState.jsx';
@@ -46,70 +45,70 @@ function Reports() {
   }, [load, refreshKey]);
 
   const netFlowTone = summary?.netFlow >= 0 ? getAmountTone('income') : getAmountTone('expense');
-  let content;
-
-  if (loading) {
-    content = <Spinner className="py-12" />;
-  } else if (error) {
-    content = <PageErrorState title="No pudimos cargar los reportes" message={error} onAction={load} />;
-  } else {
-    content = (
-      <div className="space-y-6">
-        {summary && (
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card className="text-center !p-5">
-              <p className="text-sm text-app-muted">Ingresos</p>
-              <p className={`text-2xl font-semibold ${getAmountTone('income')}`}>
-                {formatCurrency(summary.totalIncome)}
-              </p>
-            </Card>
-            <Card className="text-center !p-5">
-              <p className="text-sm text-app-muted">Gastos</p>
-              <p className={`text-2xl font-semibold ${getAmountTone('expense')}`}>
-                {formatCurrency(summary.totalExpenses)}
-              </p>
-            </Card>
-            <Card className="text-center !p-5">
-              <p className="text-sm text-app-muted">Balance neto</p>
-              <p className={`text-2xl font-semibold ${netFlowTone}`}>
-                {formatCurrency(summary.netFlow)}
-              </p>
-            </Card>
-          </div>
-        )}
-
-        <SpendingByCategory expenses={categoryData?.expenses} />
-      </div>
-    );
-  }
 
   return (
     <Page>
       <PageHeader
+        eyebrow="Análisis"
         title="Reportes"
         description="Compará ingresos, gastos y balance neto dentro del período que elijas."
       />
 
-      <div className="panel flex flex-wrap items-end gap-3 p-4">
-        <div className="min-w-[11rem] flex-1">
-          <Input
-            label="Desde"
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-          />
-        </div>
-        <div className="min-w-[11rem] flex-1">
-          <Input
-            label="Hasta"
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-          />
-        </div>
-      </div>
+      <div className="space-y-6">
+        <section className="list-surface p-4 md:p-5">
+          <div className="section-heading pb-4">
+            <div>
+              <h2 className="section-title">Período</h2>
+              <p className="section-description">Ajustá el rango para recalcular el resumen financiero.</p>
+            </div>
+          </div>
 
-      {content}
+          <div className="grid gap-3 md:grid-cols-2">
+            <Input
+              label="Desde"
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+            />
+            <Input
+              label="Hasta"
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+            />
+          </div>
+        </section>
+
+        {loading ? <Spinner className="py-12" /> : null}
+        {error ? <PageErrorState title="No pudimos cargar los reportes" message={error} onAction={load} /> : null}
+
+        {!loading && !error && summary ? (
+          <div className="space-y-8">
+            <div className="metric-strip">
+              <div className="metric-card">
+                <p className="metric-label">Ingresos</p>
+                <p className={`mt-2 text-2xl font-semibold ${getAmountTone('income')}`}>
+                  {formatCurrency(summary.totalIncome)}
+                </p>
+              </div>
+              <div className="metric-card">
+                <p className="metric-label">Gastos</p>
+                <p className={`mt-2 text-2xl font-semibold ${getAmountTone('expense')}`}>
+                  {formatCurrency(summary.totalExpenses)}
+                </p>
+              </div>
+              <div className="metric-card">
+                <p className="metric-label">Balance neto</p>
+                <p className={`mt-2 text-2xl font-semibold ${netFlowTone}`}>
+                  {formatCurrency(summary.netFlow)}
+                </p>
+              </div>
+            </div>
+
+            <SpendingByCategory expenses={categoryData?.expenses} />
+          </div>
+        ) : null}
+      </div>
     </Page>
   );
 }

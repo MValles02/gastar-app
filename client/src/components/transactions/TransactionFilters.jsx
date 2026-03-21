@@ -22,8 +22,20 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
   const hasFilters = filters.accountId || filters.categoryId || filters.type || filters.from || filters.to;
 
   return (
-    <div className="panel mb-5 flex flex-wrap items-end gap-3 p-4">
-      <div className="min-w-[11rem] flex-1">
+    <section className="list-surface p-4 md:p-5">
+      <div className="section-heading pb-4">
+        <div>
+          <h2 className="section-title">Filtro operativo</h2>
+          <p className="section-description">Acotá la lista por cuenta, categoría, tipo o rango de fechas.</p>
+        </div>
+        {hasFilters ? (
+          <Button variant="ghost" size="sm" onClick={clear}>
+            Limpiar filtros
+          </Button>
+        ) : null}
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <Select
           label="Cuenta"
           placeholder="Todas"
@@ -31,8 +43,6 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
           onChange={(e) => update('accountId', e.target.value || undefined)}
           options={accounts.map(a => ({ value: a.id, label: a.name }))}
         />
-      </div>
-      <div className="min-w-[11rem] flex-1">
         <Select
           label="Categoría"
           placeholder="Todas"
@@ -40,8 +50,6 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
           onChange={(e) => update('categoryId', e.target.value || undefined)}
           options={categories.map(c => ({ value: c.id, label: c.name }))}
         />
-      </div>
-      <div className="min-w-[10rem] flex-1">
         <Select
           label="Tipo"
           placeholder="Todos"
@@ -49,16 +57,12 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
           onChange={(e) => update('type', e.target.value || undefined)}
           options={typeOptions}
         />
-      </div>
-      <div className="min-w-[10rem] flex-1">
         <Input
           label="Desde"
           type="date"
           value={filters.from || ''}
           onChange={(e) => update('from', e.target.value || undefined)}
         />
-      </div>
-      <div className="min-w-[10rem] flex-1">
         <Input
           label="Hasta"
           type="date"
@@ -66,12 +70,7 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
           onChange={(e) => update('to', e.target.value || undefined)}
         />
       </div>
-      {hasFilters && (
-        <Button variant="ghost" size="sm" onClick={clear}>
-          Limpiar filtros
-        </Button>
-      )}
-    </div>
+    </section>
   );
 }
 

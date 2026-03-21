@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Wallet } from 'lucide-react';
 import { getAccounts, createAccount, updateAccount, deleteAccount } from '../services/accounts.js';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
@@ -10,6 +10,7 @@ import Button from '../components/ui/Button.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import PageErrorState from '../components/ui/PageErrorState.jsx';
+import { formatCurrency } from '../utils/formatters.js';
 import { getErrorMessage } from '../utils/errors.js';
 
 function Accounts() {
@@ -38,6 +39,11 @@ function Accounts() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const summary = useMemo(() => {
+    const totalBalance = accounts.reduce((total, account) => total + Number.parseFloat(account.balance), 0);
+    return { totalBalance, count: accounts.length };
+  }, [accounts]);
 
   const handleCreate = () => {
     setEditing(null);
@@ -89,8 +95,9 @@ function Accounts() {
   return (
     <Page>
       <PageHeader
+        eyebrow="Patrimonio"
         title="Cuentas"
-        description="Administrá los saldos que alimentan tus movimientos y reportes."
+        description="Administrá los saldos que alimentan tus movimientos y reportes sin perder de vista el total disponible."
         actions={(
           <Button onClick={handleCreate} size="sm">
             <Plus className="h-4 w-4" />
@@ -108,15 +115,28 @@ function Accounts() {
           onAction={handleCreate}
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {accounts.map(account => (
-            <AccountCard
-              key={account.id}
-              account={account}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          ))}
+        <div className="space-y-6">
+          <div className="metric-strip">
+            <div className="metric-card">
+              <p className="metric-label">Cuentas activas</p>
+              <p className="mt-2 text-2xl font-semibold text-app">{summary.count}</p>
+            </div>
+            <div className="metric-card md:col-span-2">
+              <p className="metric-label">Balance consolidado</p>
+              <p className="mt-2 text-2xl font-semibold text-app">{formatCurrency(summary.totalBalance)}</p>
+            </div>
+          </div>
+
+          <div className="list-surface">
+            {accounts.map(account => (
+              <AccountCard
+                key={account.id}
+                account={account}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
         </div>
       )}
 

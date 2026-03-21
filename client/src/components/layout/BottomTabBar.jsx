@@ -18,8 +18,11 @@ const tabs = [
 
 export default function BottomTabBar() {
   return (
-    <nav style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} className="fixed bottom-0 left-0 right-0 z-30 border-t border-border-default bg-canvas-elevated/95 backdrop-blur md:hidden">
-      <div className="flex items-center justify-around">
+    <nav
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="fixed bottom-0 left-0 right-0 z-30 border-t border-border-default/80 bg-canvas-elevated/92 backdrop-blur md:hidden"
+    >
+      <div className="mx-auto flex max-w-3xl items-center justify-around px-2 py-1.5">
         {tabs.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
@@ -27,9 +30,9 @@ export default function BottomTabBar() {
             end={to === '/'}
             className={({ isActive }) =>
               clsx(
-                'flex flex-col items-center gap-0.5 px-2 py-2 text-xs transition-colors',
+                'flex min-w-[4.2rem] flex-col items-center gap-1 rounded-soft px-2 py-2 text-[0.72rem] font-medium transition-colors',
                 isActive
-                  ? 'text-accent-600'
+                  ? 'bg-surface text-app shadow-panel-sm'
                   : 'text-app-soft'
               )
             }

@@ -1,7 +1,13 @@
 import { Pencil, Trash2, ArrowRight } from 'lucide-react';
 import PropTypes from 'prop-types';
 import Badge from '../ui/Badge.jsx';
-import { formatCurrency, formatDate, getAmountTone, getTransactionTypeLabel, getTransactionTypeColor } from '../../utils/formatters.js';
+import {
+  formatCurrency,
+  formatDate,
+  getAmountTone,
+  getTransactionTypeLabel,
+  getTransactionTypeColor,
+} from '../../utils/formatters.js';
 import { transactionShape } from '../../utils/propTypes.js';
 
 export default function TransactionList({ transactions, onEdit, onDelete }) {
@@ -19,18 +25,19 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {Object.entries(grouped).map(([dateKey, items]) => (
-        <div key={dateKey} className="space-y-2">
-          <h3 className="text-sm font-medium text-app-muted">
-            {formatDate(dateKey)}
-          </h3>
-          <div className="space-y-2">
+        <section key={dateKey} className="section-block">
+          <div className="section-heading">
+            <div>
+              <h3 className="section-title">{formatDate(dateKey)}</h3>
+              <p className="section-description">{items.length} movimientos registrados</p>
+            </div>
+          </div>
+
+          <div className="list-surface">
             {items.map(tx => (
-              <div
-                key={tx.id}
-                className="panel flex items-center justify-between p-3"
-              >
+              <div key={tx.id} className="list-row">
                 <div className="min-w-0 flex items-center gap-3">
                   <Badge color={getTransactionTypeColor(tx.type)}>
                     {getTransactionTypeLabel(tx.type)}
@@ -41,18 +48,19 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
                     </p>
                     <p className="truncate text-xs text-app-muted">
                       {tx.account?.name}
-                      {tx.type === 'transfer' && tx.transferToAccount && (
+                      {tx.type === 'transfer' && tx.transferToAccount ? (
                         <>
-                          {' '}<ArrowRight className="inline h-3 w-3" />{' '}
-                          {tx.transferToAccount.name}
+                          {' '}<ArrowRight className="inline h-3 w-3" /> {tx.transferToAccount.name}
                         </>
-                      )}
+                      ) : null}
                     </p>
                   </div>
                 </div>
+
                 <div className="flex items-center gap-2">
                   <span className={`whitespace-nowrap text-sm font-semibold ${getAmountTone(tx.type)}`}>
-                    {amountPrefix(tx.type)}{formatCurrency(Number.parseFloat(tx.amount))}
+                    {amountPrefix(tx.type)}
+                    {formatCurrency(Number.parseFloat(tx.amount))}
                   </span>
                   <button
                     onClick={() => onEdit(tx)}
@@ -70,7 +78,7 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
               </div>
             ))}
           </div>
-        </div>
+        </section>
       ))}
     </div>
   );

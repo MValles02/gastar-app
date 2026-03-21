@@ -99,27 +99,103 @@
 
 @layer components {
   .page-shell {
-    @apply min-h-full space-y-6;
+    @apply mx-auto min-h-full w-full max-w-6xl space-y-8;
   }
 
   .page-header {
-    @apply flex flex-col gap-4 md:flex-row md:items-end md:justify-between;
+    @apply flex flex-col gap-5 border-b border-border-default pb-6 md:flex-row md:items-end md:justify-between;
   }
 
   .page-title {
-    @apply text-3xl font-semibold tracking-tight text-app md:text-[2rem];
+    @apply text-3xl font-semibold tracking-tight text-app md:text-[2.35rem];
   }
 
   .page-description {
-    @apply max-w-2xl text-sm text-app-muted md:text-[0.95rem];
+    @apply max-w-2xl text-sm leading-6 text-app-muted md:text-[0.98rem];
+  }
+
+  .page-kicker {
+    @apply text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-app-soft;
   }
 
   .panel {
-    @apply rounded-panel border border-border-default bg-surface shadow-panel-sm;
+    @apply rounded-panel border border-border-default shadow-panel-sm;
+    background-color: color-mix(in srgb, var(--color-surface) 92%, transparent);
   }
 
   .panel-muted {
-    @apply rounded-panel border border-border-default bg-surface-muted;
+    @apply rounded-panel border border-border-default;
+    background-color: color-mix(in srgb, var(--color-surface-muted) 88%, transparent);
+  }
+
+  .workspace-shell {
+    background:
+      radial-gradient(circle at top left, rgba(22, 165, 127, 0.08), transparent 22rem),
+      radial-gradient(circle at top right, rgba(193, 132, 31, 0.07), transparent 18rem),
+      linear-gradient(180deg, var(--color-bg-elevated), var(--color-bg));
+  }
+
+  .workspace-main {
+    @apply relative flex-1 overflow-y-auto;
+  }
+
+  .workspace-main::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 20rem;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 76%, transparent), transparent);
+    pointer-events: none;
+  }
+
+  .section-block {
+    @apply space-y-4;
+  }
+
+  .section-heading {
+    @apply flex items-center justify-between gap-3;
+  }
+
+  .section-title {
+    @apply text-lg font-semibold tracking-tight text-app;
+  }
+
+  .section-description {
+    @apply text-sm text-app-muted;
+  }
+
+  .metric-strip {
+    @apply grid gap-3 md:grid-cols-3;
+  }
+
+  .metric-card {
+    @apply rounded-panel border border-border-default p-4 backdrop-blur-sm;
+    background-color: color-mix(in srgb, var(--color-surface) 72%, transparent);
+  }
+
+  .metric-label {
+    @apply text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-app-soft;
+  }
+
+  .list-surface {
+    @apply overflow-hidden rounded-hero border border-border-default shadow-panel-sm backdrop-blur-sm;
+    background-color: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  }
+
+  .list-row {
+    @apply flex items-center justify-between gap-4 px-4 py-4 transition-colors duration-200;
+  }
+
+  .list-row + .list-row {
+    @apply border-t border-border-default;
+  }
+
+  .editorial-rule {
+    @apply h-px w-full bg-border-default;
+  }
+
+  .list-row:hover {
+    background-color: color-mix(in srgb, var(--color-surface-muted) 55%, transparent);
   }
 
   .interactive-subtle {

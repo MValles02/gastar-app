@@ -53,13 +53,15 @@ function Dashboard() {
   return (
     <Page>
       <PageHeader
+        eyebrow="Vista general"
         title="Panel de control"
-        description="Seguimiento rápido de balances, últimas transacciones y distribución de gastos."
+        description="Balances, distribución del gasto y últimos movimientos en una sola superficie de lectura rápida."
       />
-      <Section className="space-y-6">
+
+      <Section className="space-y-8">
         <BalanceOverview summary={summary} />
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
           <SpendingByCategory expenses={categoryData?.expenses} />
           <RecentTransactions transactions={recentTx} />
         </div>

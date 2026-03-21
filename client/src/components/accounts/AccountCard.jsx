@@ -1,6 +1,5 @@
 import { Pencil, Trash2, Wallet, Landmark, CreditCard, Banknote, TrendingUp } from 'lucide-react';
 import PropTypes from 'prop-types';
-import Card from '../ui/Card.jsx';
 import { formatCurrency, getAccountTypeLabel, getBalanceTone } from '../../utils/formatters.js';
 import { accountShape } from '../../utils/propTypes.js';
 
@@ -17,20 +16,21 @@ export default function AccountCard({ account, onEdit, onDelete }) {
   const balance = Number.parseFloat(account.balance);
 
   return (
-    <Card className="flex items-start justify-between">
-      <div className="flex items-start gap-3">
-        <div className="rounded-soft bg-accent-50 p-2.5 dark:bg-accent-950">
-          <Icon className="h-5 w-5 text-accent-600" />
+    <div className="list-row">
+      <div className="flex min-w-0 items-center gap-4">
+        <div className="flex h-11 w-11 items-center justify-center rounded-panel bg-surface-muted text-accent-600">
+          <Icon className="h-5 w-5" />
         </div>
-        <div>
-          <h3 className="font-medium text-app">{account.name}</h3>
-          <p className="text-xs text-app-muted">{getAccountTypeLabel(account.type)}</p>
-          <p className={`mt-1 text-lg font-semibold ${getBalanceTone(balance)}`}>
-            {formatCurrency(balance, account.currency)}
-          </p>
+        <div className="min-w-0">
+          <h3 className="truncate text-sm font-medium text-app">{account.name}</h3>
+          <p className="truncate text-xs text-app-muted">{getAccountTypeLabel(account.type)}</p>
         </div>
       </div>
-      <div className="flex gap-1">
+
+      <div className="flex items-center gap-3">
+        <p className={`whitespace-nowrap text-sm font-semibold ${getBalanceTone(balance)}`}>
+          {formatCurrency(balance, account.currency)}
+        </p>
         <button
           onClick={() => onEdit(account)}
           className="interactive-subtle p-1.5"
@@ -44,7 +44,7 @@ export default function AccountCard({ account, onEdit, onDelete }) {
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
-    </Card>
+    </div>
   );
 }
 

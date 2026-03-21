@@ -89,8 +89,9 @@ function Categories() {
   return (
     <Page>
       <PageHeader
+        eyebrow="Estructura"
         title="Categorías"
-        description="Definí la estructura que organiza ingresos, gastos y comparativas."
+        description="Definí la taxonomía que ordena ingresos, gastos y comparativas para leer mejor cada movimiento."
         actions={(
           <Button onClick={handleCreate} size="sm">
             <Plus className="h-4 w-4" />
@@ -108,11 +109,20 @@ function Categories() {
           onAction={handleCreate}
         />
       ) : (
-        <CategoryList
-          categories={categories}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+        <div className="space-y-6">
+          <div className="metric-card">
+            <p className="metric-label">Categorías activas</p>
+            <p className="mt-2 text-2xl font-semibold text-app">{categories.length}</p>
+            <p className="mt-1 text-sm text-app-muted">
+              Mantené una estructura corta y clara para que reportes y filtros sigan siendo legibles.
+            </p>
+          </div>
+          <CategoryList
+            categories={categories}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        </div>
       )}
 
       <CategoryModal

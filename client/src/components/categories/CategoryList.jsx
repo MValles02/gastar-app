@@ -4,12 +4,9 @@ import { categoryShape } from '../../utils/propTypes.js';
 
 export default function CategoryList({ categories, onEdit, onDelete }) {
   return (
-    <div className="space-y-2">
+    <div className="list-surface">
       {categories.map(category => (
-        <div
-          key={category.id}
-          className="panel flex items-center justify-between p-3"
-        >
+        <div key={category.id} className="list-row">
           <span className="text-sm font-medium text-app">
             {category.name}
           </span>

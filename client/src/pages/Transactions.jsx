@@ -81,55 +81,58 @@ function Transactions() {
   return (
     <Page>
       <PageHeader
+        eyebrow="Operaciones"
         title="Transacciones"
         description="Filtrá, revisá y corregí cada movimiento desde una sola lista operativa."
       />
 
-      <TransactionFilters
-        filters={filters}
-        onChange={setFilters}
-        accounts={accounts}
-        categories={categories}
-      />
-
-      {data.transactions.length === 0 ? (
-        <EmptyState
-          icon={ArrowLeftRight}
-          title="Sin transacciones"
-          description="Usá el botón + para registrar tu primera transacción."
+      <div className="space-y-6">
+        <TransactionFilters
+          filters={filters}
+          onChange={setFilters}
+          accounts={accounts}
+          categories={categories}
         />
-      ) : (
-        <>
-          <TransactionList
-            transactions={data.transactions}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
+
+        {data.transactions.length === 0 ? (
+          <EmptyState
+            icon={ArrowLeftRight}
+            title="Sin transacciones"
+            description="Usá el botón + para registrar tu primera transacción."
           />
-          {data.totalPages > 1 && (
-            <div className="mt-5 flex items-center justify-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={data.page <= 1}
-                onClick={() => setFilters(f => ({ ...f, page: f.page - 1 }))}
-              >
-                Anterior
-              </Button>
-              <span className="text-sm text-app-muted">
-                Página {data.page} de {data.totalPages}
-              </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={data.page >= data.totalPages}
-                onClick={() => setFilters(f => ({ ...f, page: f.page + 1 }))}
-              >
-                Siguiente
-              </Button>
-            </div>
-          )}
-        </>
-      )}
+        ) : (
+          <>
+            <TransactionList
+              transactions={data.transactions}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+            {data.totalPages > 1 ? (
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={data.page <= 1}
+                  onClick={() => setFilters(f => ({ ...f, page: f.page - 1 }))}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm text-app-muted">
+                  Página {data.page} de {data.totalPages}
+                </span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={data.page >= data.totalPages}
+                  onClick={() => setFilters(f => ({ ...f, page: f.page + 1 }))}
+                >
+                  Siguiente
+                </Button>
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
     </Page>
   );
 }
