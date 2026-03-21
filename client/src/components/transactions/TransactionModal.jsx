@@ -151,7 +151,7 @@ export default function TransactionModal() {
         <div className="panel-muted space-y-4 p-4">
           <div className="space-y-1">
             <p className="text-xs font-medium text-app-muted">Tipo</p>
-            <div className="flex flex-col overflow-hidden rounded-soft border border-border-default sm:flex-row">
+            <div className="flex overflow-hidden rounded-soft border border-border-default">
               {typeLabels.map((option) => {
                 const Icon = option.icon;
                 const active = type === option.value;
@@ -162,7 +162,7 @@ export default function TransactionModal() {
                     type="button"
                     onClick={() => setType(option.value)}
                     className={clsx(
-                      'flex w-full items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors sm:flex-1',
+                      'flex flex-1 items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium transition-colors',
                       active
                         ? 'bg-accent-600 text-white'
                         : 'bg-surface-muted text-app-muted hover:bg-surface-strong hover:text-app'

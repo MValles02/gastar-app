@@ -29,7 +29,7 @@ export default function TutorialStep() {
       <div className="panel mt-5 space-y-4 p-5">
         <div className="space-y-1">
           <p className="text-xs font-medium text-app-muted">Tipo</p>
-          <div className="overflow-hidden rounded-soft border border-border-default">
+          <div className="flex overflow-hidden rounded-soft border border-border-default">
             {[
               { label: 'Gasto', icon: ArrowDownCircle, active: true, color: 'text-danger' },
               { label: 'Ingreso', icon: ArrowUpCircle, active: false, color: 'text-success' },
@@ -37,7 +37,7 @@ export default function TutorialStep() {
             ].map(({ label, icon: Icon, active, color }) => (
               <div
                 key={label}
-                className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-medium ${
+                className={`flex flex-1 items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium ${
                   active
                     ? 'bg-accent-600 text-white'
                     : 'bg-surface-muted text-app-muted'
