@@ -13,7 +13,7 @@ export default function OnboardingProgressBar({ currentStep }) {
 
         return (
           <Fragment key={label}>
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-1 w-8">
               <div
                 className={clsx(
                   'flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors text-sm font-semibold leading-none',
