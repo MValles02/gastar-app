@@ -80,6 +80,36 @@ Deployed on a Hostinger VPS running Dokploy with nixpacks. One app container (Re
 | `npm run install:all` | Install all dependencies (root, client, server) |
 | `npm run dev` | Start client + server concurrently |
 | `npm run build` | Build React frontend for production |
+| `npm run sonar` | Run SonarQube analysis from the repo root |
 | `npm start` | Start production server |
 | `npm run db:migrate` | Run Prisma migrations |
 | `npm run db:studio` | Open Prisma Studio GUI |
+
+## SonarQube Analysis
+
+This repo is configured for root-level analysis with `@sonar/scan`.
+
+Set the required runtime variables before running the scan:
+
+```bash
+SONAR_HOST_URL=<your-sonarqube-url>
+SONAR_TOKEN=<your-sonar-token>
+```
+
+If you use SonarCloud, also set:
+
+```bash
+SONAR_ORGANIZATION=<your-org-key>
+```
+
+Then run:
+
+```bash
+npm run sonar
+```
+
+Override the default project key temporarily if needed:
+
+```bash
+npm run sonar -- -Dsonar.projectKey=<your-project-key>
+```

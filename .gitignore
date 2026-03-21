@@ -140,3 +140,8 @@ vite.config.ts.timestamp-*
 
 # claude
 .claude/
+
+# SonarQube scanner caches
+.scannerwork/
+.sonar/
+sonar-project.properties
