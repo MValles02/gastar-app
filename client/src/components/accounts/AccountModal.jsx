@@ -13,7 +13,7 @@ const typeOptions = [
   { value: 'savings', label: 'Caja de ahorro' },
   { value: 'credit_card', label: 'Tarjeta de crédito' },
   { value: 'cash', label: 'Efectivo' },
-  { value: 'investment', label: 'Inversion' },
+  { value: 'investment', label: 'Inversión' },
 ];
 
 export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
@@ -88,7 +88,7 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
           label="Nombre"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Ej: Banco Nacion, Efectivo"
+          placeholder="Ej: Banco Nación, Efectivo"
           error={errors.name}
         />
         <Select

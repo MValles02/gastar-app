@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import clsx from 'clsx';
 import {
   ArrowDownCircle,
   ArrowLeftRight,
@@ -13,22 +12,22 @@ import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
 import Button from '../ui/Button.jsx';
 import MessageBanner from '../ui/MessageBanner.jsx';
+import {
+  ComposerHintLine,
+  TransactionComposerPanel,
+  TransactionTypeSwitch,
+} from './TransactionComposerUI.jsx';
 import { createTransaction, updateTransaction } from '../../services/transactions.js';
 import { getAccounts } from '../../services/accounts.js';
 import { getCategories } from '../../services/categories.js';
 import { useTransactionModal } from '../../context/TransactionModalContext.jsx';
 import { getErrorMessage } from '../../utils/errors.js';
-import { childrenPropType } from '../../utils/propTypes.js';
 
-const typeLabels = [
+const typeOptions = [
   { value: 'expense', label: 'Gasto', icon: ArrowDownCircle, tone: 'text-danger' },
   { value: 'income', label: 'Ingreso', icon: ArrowUpCircle, tone: 'text-success' },
   { value: 'transfer', label: 'Transferencia', icon: ArrowLeftRight, tone: 'text-accent-600 dark:text-accent-300' },
 ];
-
-function FieldHint({ children }) {
-  return <p className="text-xs text-accent-600">{children}</p>;
-}
 
 export default function TransactionModal() {
   const { isOpen, editData, triggerRefresh, closeModal } = useTransactionModal();
@@ -44,7 +43,6 @@ export default function TransactionModal() {
   const [error, setError] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-
   const [accounts, setAccounts] = useState([]);
   const [categories, setCategories] = useState([]);
 
@@ -91,7 +89,6 @@ export default function TransactionModal() {
     setError('');
 
     const nextErrors = {};
-
     const parsedAmount = Number.parseFloat(amount);
 
     if (!amount || parsedAmount <= 0 || Number.isNaN(parsedAmount)) {
@@ -118,7 +115,7 @@ export default function TransactionModal() {
     try {
       const data = {
         type,
-        amount: Number.parseFloat(amount),
+        amount: parsedAmount,
         accountId,
         categoryId,
         date,
@@ -151,33 +148,11 @@ export default function TransactionModal() {
       <form onSubmit={handleSubmit} className="space-y-5">
         <MessageBanner message={error} />
 
-        <div className="panel-muted space-y-4 p-4">
+        <TransactionComposerPanel>
           <div className="space-y-1">
             <p className="text-xs font-medium text-app-muted">Tipo</p>
-            <div className="flex overflow-hidden rounded-soft border border-border-default">
-              {typeLabels.map((option) => {
-                const Icon = option.icon;
-                const active = type === option.value;
-
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setType(option.value)}
-                    className={clsx(
-                      'flex flex-1 items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium transition-colors',
-                      active
-                        ? 'bg-accent-600 text-white'
-                        : 'bg-surface-muted text-app-muted hover:bg-surface-strong hover:text-app'
-                    )}
-                  >
-                    <Icon className={clsx('h-3.5 w-3.5', active ? 'text-white' : option.tone)} />
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-            <FieldHint>Elegí entre gasto, ingreso o transferencia entre cuentas</FieldHint>
+            <TransactionTypeSwitch options={typeOptions} value={type} onChange={setType} />
+            <ComposerHintLine>Elegí entre gasto, ingreso o transferencia entre cuentas</ComposerHintLine>
           </div>
 
           <Input
@@ -201,12 +176,7 @@ export default function TransactionModal() {
               options={accounts.map(account => ({ value: account.id, label: account.name }))}
               error={errors.accountId}
             />
-            <FieldHint>
-              <span className="inline-flex items-center gap-1">
-                <Wallet className="h-3.5 w-3.5" />
-                Seleccioná la cuenta afectada
-              </span>
-            </FieldHint>
+            <ComposerHintLine icon={Wallet}>Seleccioná la cuenta afectada</ComposerHintLine>
           </div>
 
           {type === 'transfer' && (
@@ -229,12 +199,7 @@ export default function TransactionModal() {
               options={categories.map(category => ({ value: category.id, label: category.name }))}
               error={errors.categoryId}
             />
-            <FieldHint>
-              <span className="inline-flex items-center gap-1">
-                <Tag className="h-3.5 w-3.5" />
-                Elegí la categoría del movimiento
-              </span>
-            </FieldHint>
+            <ComposerHintLine icon={Tag}>Elegí la categoría del movimiento</ComposerHintLine>
           </div>
 
           <div className="space-y-1">
@@ -245,12 +210,7 @@ export default function TransactionModal() {
               onChange={(e) => setDate(e.target.value)}
               required
             />
-            <FieldHint>
-              <span className="inline-flex items-center gap-1">
-                <CalendarDays className="h-3.5 w-3.5" />
-                Definí cuándo impactó el movimiento
-              </span>
-            </FieldHint>
+            <ComposerHintLine icon={CalendarDays}>Definí cuándo impactó el movimiento</ComposerHintLine>
           </div>
 
           <Input
@@ -259,7 +219,7 @@ export default function TransactionModal() {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Detalle de la transacción"
           />
-        </div>
+        </TransactionComposerPanel>
 
         <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="secondary" onClick={closeModal}>
@@ -273,7 +233,3 @@ export default function TransactionModal() {
     </Modal>
   );
 }
-
-FieldHint.propTypes = {
-  children: childrenPropType,
-};
