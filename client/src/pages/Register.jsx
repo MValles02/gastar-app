@@ -64,6 +64,7 @@ function Register() {
             <Input
               label="Correo electrónico"
               type="email"
+              inputMode="email"
               icon={Mail}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -77,6 +78,7 @@ function Register() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Mínimo 6 caracteres"
+              minLength={6}
               required
             />
             <Input
@@ -86,6 +88,7 @@ function Register() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Repetí tu contraseña"
+              minLength={6}
               required
             />
             <Button type="submit" loading={loading} className="w-full">

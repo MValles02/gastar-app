@@ -22,7 +22,7 @@ export default function Input({
         )}
         <input
           className={clsx(
-            'block w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors',
+            'block w-full rounded-lg border bg-white px-3 py-2 text-base transition-colors',
             'dark:bg-gray-900 dark:text-gray-100',
             'focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent',
             error

@@ -27,6 +27,7 @@ export default function TransactionModal() {
   const [date, setDate] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const [accounts, setAccounts] = useState([]);
@@ -60,11 +61,31 @@ export default function TransactionModal() {
       setDescription('');
     }
     setError('');
+    setErrors({});
   }, [editData, isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    const newErrors = {};
+    if (!amount || parseFloat(amount) <= 0 || isNaN(parseFloat(amount))) {
+      newErrors.amount = 'Ingresá un monto válido mayor a 0';
+    }
+    if (!accountId) {
+      newErrors.accountId = 'Seleccioná una cuenta';
+    }
+    if (!categoryId) {
+      newErrors.categoryId = 'Seleccioná una categoría';
+    }
+    if (type === 'transfer' && !transferTo) {
+      newErrors.transferTo = 'Seleccioná la cuenta destino';
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
     setLoading(true);
     try {
       const data = {
@@ -120,12 +141,13 @@ export default function TransactionModal() {
         <Input
           label="Monto"
           type="number"
+          inputMode="decimal"
           step="0.01"
           min="0.01"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="0.00"
-          required
+          error={errors.amount}
         />
 
         <Select
@@ -134,7 +156,7 @@ export default function TransactionModal() {
           onChange={(e) => setAccountId(e.target.value)}
           placeholder="Seleccionar cuenta"
           options={accounts.map(a => ({ value: a.id, label: a.name }))}
-          required
+          error={errors.accountId}
         />
 
         {type === 'transfer' && (
@@ -144,7 +166,7 @@ export default function TransactionModal() {
             onChange={(e) => setTransferTo(e.target.value)}
             placeholder="Seleccionar cuenta destino"
             options={accounts.filter(a => a.id !== accountId).map(a => ({ value: a.id, label: a.name }))}
-            required
+            error={errors.transferTo}
           />
         )}
 
@@ -154,7 +176,7 @@ export default function TransactionModal() {
           onChange={(e) => setCategoryId(e.target.value)}
           placeholder="Seleccionar categoría"
           options={categories.map(c => ({ value: c.id, label: c.name }))}
-          required
+          error={errors.categoryId}
         />
 
         <Input

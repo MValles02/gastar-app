@@ -9,6 +9,7 @@ export default function CategoryModal({ isOpen, onClose, onSubmit, category }) {
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -20,11 +21,22 @@ export default function CategoryModal({ isOpen, onClose, onSubmit, category }) {
       setIcon('');
     }
     setError('');
+    setErrors({});
   }, [category, isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    const newErrors = {};
+    if (!name.trim()) {
+      newErrors.name = 'Ingresá un nombre para la categoría';
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
     setLoading(true);
     try {
       await onSubmit({ name, icon: icon || undefined });
@@ -49,7 +61,7 @@ export default function CategoryModal({ isOpen, onClose, onSubmit, category }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Ej: Comida, Salario"
-          required
+          error={errors.name}
         />
         <IconPicker value={icon} onChange={setIcon} />
         <div className="flex justify-end gap-2 pt-2">

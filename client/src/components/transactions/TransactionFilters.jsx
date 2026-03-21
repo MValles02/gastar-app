@@ -48,7 +48,7 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
           type="date"
           value={filters.from || ''}
           onChange={(e) => update('from', e.target.value || undefined)}
-          className="block rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-accent-500"
+          className="block rounded-lg border border-gray-300 bg-white px-3 py-2 text-base dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-accent-500"
         />
       </div>
       <div className="space-y-1">
@@ -57,7 +57,7 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
           type="date"
           value={filters.to || ''}
           onChange={(e) => update('to', e.target.value || undefined)}
-          className="block rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-accent-500"
+          className="block rounded-lg border border-gray-300 bg-white px-3 py-2 text-base dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-accent-500"
         />
       </div>
       {hasFilters && (

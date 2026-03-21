@@ -19,6 +19,7 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
   const [currency, setCurrency] = useState('ARS');
   const [balance, setBalance] = useState('0');
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -34,11 +35,25 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
       setBalance('0');
     }
     setError('');
+    setErrors({});
   }, [account, isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    const newErrors = {};
+    if (!name.trim()) {
+      newErrors.name = 'Ingresá un nombre para la cuenta';
+    }
+    if (!isEdit && balance !== '' && (isNaN(parseFloat(balance)) || parseFloat(balance) < 0)) {
+      newErrors.balance = 'El saldo debe ser un número mayor o igual a 0';
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
     setLoading(true);
     try {
       const data = isEdit
@@ -66,7 +81,7 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Ej: Banco Nacion, Efectivo"
-          required
+          error={errors.name}
         />
         <Select
           label="Tipo"
@@ -74,20 +89,26 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
           onChange={(e) => setType(e.target.value)}
           options={typeOptions}
         />
-        <Input
+        <Select
           label="Moneda"
           value={currency}
           onChange={(e) => setCurrency(e.target.value)}
-          placeholder="ARS"
+          options={[
+            { value: 'ARS', label: 'ARS — Peso argentino' },
+            { value: 'USD', label: 'USD — Dólar estadounidense' },
+            { value: 'EUR', label: 'EUR — Euro' },
+          ]}
         />
         {!isEdit && (
           <Input
             label="Saldo inicial"
             type="number"
+            inputMode="decimal"
             step="0.01"
             value={balance}
             onChange={(e) => setBalance(e.target.value)}
             placeholder="0.00"
+            error={errors.balance}
           />
         )}
         <div className="flex justify-end gap-2 pt-2">

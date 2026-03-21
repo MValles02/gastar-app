@@ -71,6 +71,7 @@ function ResetPassword() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Mínimo 6 caracteres"
+              minLength={6}
               required
             />
             <Input
@@ -80,6 +81,7 @@ function ResetPassword() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Repetí tu contraseña"
+              minLength={6}
               required
             />
             <Button type="submit" loading={loading} className="w-full">

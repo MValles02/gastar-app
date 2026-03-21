@@ -47,6 +47,7 @@ function Login() {
             <Input
               label="Correo electrónico"
               type="email"
+              inputMode="email"
               icon={Mail}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
