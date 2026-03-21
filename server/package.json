@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "test": "node --test",
+    "test": "node scripts/run-unit-tests.js",
+    "test:integration": "node scripts/run-integration-tests.js",
     "db:migrate": "dotenv -e ../.env -- prisma migrate dev",
     "db:studio": "dotenv -e ../.env -- prisma studio",
     "db:generate": "prisma generate"
