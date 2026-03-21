@@ -1,4 +1,6 @@
 import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import { classNamePropType, iconPropType } from '../../utils/propTypes.js';
 
 export default function Input({
   label,
@@ -38,3 +40,10 @@ export default function Input({
     </div>
   );
 }
+
+Input.propTypes = {
+  label: PropTypes.string,
+  error: PropTypes.string,
+  icon: iconPropType,
+  className: classNamePropType,
+};

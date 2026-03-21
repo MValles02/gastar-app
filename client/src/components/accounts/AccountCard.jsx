@@ -1,6 +1,8 @@
 import { Pencil, Trash2, Wallet, Landmark, CreditCard, Banknote, TrendingUp } from 'lucide-react';
+import PropTypes from 'prop-types';
 import Card from '../ui/Card.jsx';
 import { formatCurrency, getAccountTypeLabel, getBalanceTone } from '../../utils/formatters.js';
+import { accountShape } from '../../utils/propTypes.js';
 
 const typeIcons = {
   checking: Landmark,
@@ -12,7 +14,7 @@ const typeIcons = {
 
 export default function AccountCard({ account, onEdit, onDelete }) {
   const Icon = typeIcons[account.type] || Wallet;
-  const balance = parseFloat(account.balance);
+  const balance = Number.parseFloat(account.balance);
 
   return (
     <Card className="flex items-start justify-between">
@@ -45,3 +47,9 @@ export default function AccountCard({ account, onEdit, onDelete }) {
     </Card>
   );
 }
+
+AccountCard.propTypes = {
+  account: accountShape.isRequired,
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+};

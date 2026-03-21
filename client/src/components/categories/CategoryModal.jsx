@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import Modal from '../ui/Modal.jsx';
 import Input from '../ui/Input.jsx';
 import Button from '../ui/Button.jsx';
 import IconPicker from '../ui/IconPicker.jsx';
 import MessageBanner from '../ui/MessageBanner.jsx';
 import { getErrorMessage } from '../../utils/errors.js';
+import { categoryShape } from '../../utils/propTypes.js';
 
 export default function CategoryModal({ isOpen, onClose, onSubmit, category }) {
   const isEdit = Boolean(category);
@@ -79,3 +81,10 @@ export default function CategoryModal({ isOpen, onClose, onSubmit, category }) {
     </Modal>
   );
 }
+
+CategoryModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  category: categoryShape,
+};

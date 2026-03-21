@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 import Modal from '../components/ui/Modal.jsx';
 import Button from '../components/ui/Button.jsx';
 import MessageBanner from '../components/ui/MessageBanner.jsx';
+import { childrenPropType } from '../utils/propTypes.js';
 
 const DialogContext = createContext(null);
 
@@ -90,3 +91,7 @@ export function DialogProvider({ children }) {
 export function useDialog() {
   return useContext(DialogContext);
 }
+
+DialogProvider.propTypes = {
+  children: childrenPropType,
+};

@@ -1,5 +1,5 @@
 export function formatCurrency(amount, currency = 'ARS') {
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  const num = typeof amount === 'string' ? Number.parseFloat(amount) : amount;
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency,

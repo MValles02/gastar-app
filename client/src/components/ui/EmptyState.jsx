@@ -1,4 +1,6 @@
 import Button from './Button.jsx';
+import PropTypes from 'prop-types';
+import { iconPropType } from '../../utils/propTypes.js';
 
 export default function EmptyState({ icon: Icon, title, description, actionLabel, onAction }) {
   return (
@@ -24,3 +26,11 @@ export default function EmptyState({ icon: Icon, title, description, actionLabel
     </div>
   );
 }
+
+EmptyState.propTypes = {
+  icon: iconPropType,
+  title: PropTypes.string.isRequired,
+  description: PropTypes.string,
+  actionLabel: PropTypes.string,
+  onAction: PropTypes.func,
+};

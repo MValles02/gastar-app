@@ -61,7 +61,9 @@ export default function AccountsStep() {
 
     const nextErrors = {};
     if (!form.name.trim()) nextErrors.name = 'Ingresá un nombre para la cuenta';
-    if (Number.isNaN(parseFloat(form.balance)) || parseFloat(form.balance) < 0) {
+    const parsedBalance = Number.parseFloat(form.balance);
+
+    if (Number.isNaN(parsedBalance) || parsedBalance < 0) {
       nextErrors.balance = 'El saldo debe ser un número mayor o igual a 0';
     }
 
@@ -78,7 +80,7 @@ export default function AccountsStep() {
         name: form.name.trim(),
         type: form.type,
         currency: form.currency,
-        balance: parseFloat(form.balance) || 0,
+        balance: Number.parseFloat(form.balance) || 0,
       });
       addCreatedAccount(account);
       setForm(resetForm());

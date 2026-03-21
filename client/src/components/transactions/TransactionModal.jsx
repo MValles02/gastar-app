@@ -18,6 +18,7 @@ import { getAccounts } from '../../services/accounts.js';
 import { getCategories } from '../../services/categories.js';
 import { useTransactionModal } from '../../context/TransactionModalContext.jsx';
 import { getErrorMessage } from '../../utils/errors.js';
+import { childrenPropType } from '../../utils/propTypes.js';
 
 const typeLabels = [
   { value: 'expense', label: 'Gasto', icon: ArrowDownCircle, tone: 'text-danger' },
@@ -91,7 +92,9 @@ export default function TransactionModal() {
 
     const nextErrors = {};
 
-    if (!amount || parseFloat(amount) <= 0 || Number.isNaN(parseFloat(amount))) {
+    const parsedAmount = Number.parseFloat(amount);
+
+    if (!amount || parsedAmount <= 0 || Number.isNaN(parsedAmount)) {
       nextErrors.amount = 'Ingresá un monto válido mayor a 0';
     }
     if (!accountId) {
@@ -115,7 +118,7 @@ export default function TransactionModal() {
     try {
       const data = {
         type,
-        amount: parseFloat(amount),
+        amount: Number.parseFloat(amount),
         accountId,
         categoryId,
         date,
@@ -270,3 +273,7 @@ export default function TransactionModal() {
     </Modal>
   );
 }
+
+FieldHint.propTypes = {
+  children: childrenPropType,
+};

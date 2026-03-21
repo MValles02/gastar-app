@@ -1,5 +1,6 @@
 import Card from '../ui/Card.jsx';
 import { formatCurrency, getAccountTypeLabel, getAmountTone, getBalanceTone } from '../../utils/formatters.js';
+import { summaryShape } from '../../utils/propTypes.js';
 
 export default function BalanceOverview({ summary }) {
   if (!summary) return null;
@@ -33,8 +34,8 @@ export default function BalanceOverview({ summary }) {
             <Card key={account.id} className="!p-4">
               <p className="text-sm font-medium text-app">{account.name}</p>
               <p className="text-xs text-app-muted">{getAccountTypeLabel(account.type)}</p>
-              <p className={`mt-1 text-lg font-semibold ${getBalanceTone(parseFloat(account.balance))}`}>
-                {formatCurrency(parseFloat(account.balance), account.currency)}
+              <p className={`mt-1 text-lg font-semibold ${getBalanceTone(Number.parseFloat(account.balance))}`}>
+                {formatCurrency(Number.parseFloat(account.balance), account.currency)}
               </p>
             </Card>
           ))}
@@ -43,3 +44,7 @@ export default function BalanceOverview({ summary }) {
     </div>
   );
 }
+
+BalanceOverview.propTypes = {
+  summary: summaryShape,
+};

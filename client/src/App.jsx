@@ -5,6 +5,7 @@ import { DialogProvider } from './context/DialogContext.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import Spinner from './components/ui/Spinner.jsx';
 import PageErrorState from './components/ui/PageErrorState.jsx';
+import { childrenPropType } from './utils/propTypes.js';
 
 const Login = lazy(() => import('./pages/Login.jsx'));
 const Register = lazy(() => import('./pages/Register.jsx'));
@@ -72,5 +73,13 @@ function App() {
     </DialogProvider>
   );
 }
+
+PrivateRoute.propTypes = {
+  children: childrenPropType,
+};
+
+GuestRoute.propTypes = {
+  children: childrenPropType,
+};
 
 export default App;

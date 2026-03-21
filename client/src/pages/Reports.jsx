@@ -45,6 +45,44 @@ function Reports() {
     load();
   }, [load, refreshKey]);
 
+  const netFlowTone = summary?.netFlow >= 0 ? getAmountTone('income') : getAmountTone('expense');
+  let content;
+
+  if (loading) {
+    content = <Spinner className="py-12" />;
+  } else if (error) {
+    content = <PageErrorState title="No pudimos cargar los reportes" message={error} onAction={load} />;
+  } else {
+    content = (
+      <div className="space-y-6">
+        {summary && (
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Card className="text-center !p-5">
+              <p className="text-sm text-app-muted">Ingresos</p>
+              <p className={`text-2xl font-semibold ${getAmountTone('income')}`}>
+                {formatCurrency(summary.totalIncome)}
+              </p>
+            </Card>
+            <Card className="text-center !p-5">
+              <p className="text-sm text-app-muted">Gastos</p>
+              <p className={`text-2xl font-semibold ${getAmountTone('expense')}`}>
+                {formatCurrency(summary.totalExpenses)}
+              </p>
+            </Card>
+            <Card className="text-center !p-5">
+              <p className="text-sm text-app-muted">Balance neto</p>
+              <p className={`text-2xl font-semibold ${netFlowTone}`}>
+                {formatCurrency(summary.netFlow)}
+              </p>
+            </Card>
+          </div>
+        )}
+
+        <SpendingByCategory expenses={categoryData?.expenses} />
+      </div>
+    );
+  }
+
   return (
     <Page>
       <PageHeader
@@ -71,38 +109,7 @@ function Reports() {
         </div>
       </div>
 
-      {loading ? (
-        <Spinner className="py-12" />
-      ) : error ? (
-        <PageErrorState title="No pudimos cargar los reportes" message={error} onAction={load} />
-      ) : (
-        <div className="space-y-6">
-          {summary && (
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Card className="text-center !p-5">
-                <p className="text-sm text-app-muted">Ingresos</p>
-                <p className={`text-2xl font-semibold ${getAmountTone('income')}`}>
-                  {formatCurrency(summary.totalIncome)}
-                </p>
-              </Card>
-              <Card className="text-center !p-5">
-                <p className="text-sm text-app-muted">Gastos</p>
-                <p className={`text-2xl font-semibold ${getAmountTone('expense')}`}>
-                  {formatCurrency(summary.totalExpenses)}
-                </p>
-              </Card>
-              <Card className="text-center !p-5">
-                <p className="text-sm text-app-muted">Balance neto</p>
-                <p className={`text-2xl font-semibold ${summary.netFlow >= 0 ? getAmountTone('income') : getAmountTone('expense')}`}>
-                  {formatCurrency(summary.netFlow)}
-                </p>
-              </Card>
-            </div>
-          )}
-
-          <SpendingByCategory expenses={categoryData?.expenses} />
-        </div>
-      )}
+      {content}
     </Page>
   );
 }

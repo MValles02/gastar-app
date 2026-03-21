@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { fileURLToPath } from 'url';
-import { dirname, join, resolve } from 'path';
+import { fileURLToPath } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
 
 import authRoutes from './routes/auth.routes.js';
 import accountRoutes from './routes/accounts.routes.js';

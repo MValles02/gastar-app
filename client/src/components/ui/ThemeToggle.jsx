@@ -1,6 +1,7 @@
 import { Sun, Moon } from 'lucide-react';
 import clsx from 'clsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
+import { classNamePropType } from '../../utils/propTypes.js';
 
 export default function ThemeToggle({ className }) {
   const { theme, toggleTheme } = useTheme();
@@ -17,3 +18,7 @@ export default function ThemeToggle({ className }) {
     </button>
   );
 }
+
+ThemeToggle.propTypes = {
+  className: classNamePropType,
+};

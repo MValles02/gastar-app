@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { Check } from 'lucide-react';
 import clsx from 'clsx';
+import PropTypes from 'prop-types';
 
 const steps = ['Bienvenida', 'Cuentas', 'Categorías', 'Tutorial'];
 
@@ -47,3 +48,7 @@ export default function OnboardingProgressBar({ currentStep }) {
     </div>
   );
 }
+
+OnboardingProgressBar.propTypes = {
+  currentStep: PropTypes.number.isRequired,
+};

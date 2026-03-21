@@ -1,3 +1,4 @@
+import { mkdirSync, rmSync } from 'fs';
 import { spawnSync } from 'child_process';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
@@ -20,6 +21,9 @@ const env = {
   DATABASE_URL: process.env.DATABASE_URL_TEST,
 };
 
+const shouldCollectCoverage = process.argv.includes('--coverage');
+const coverageDir = resolve(serverDir, 'coverage');
+
 function run(command, args) {
   const result = spawnSync(command, args, {
     cwd: serverDir,
@@ -34,4 +38,22 @@ function run(command, args) {
 }
 
 run('npx', ['prisma', 'migrate', 'deploy']);
-run(process.execPath, ['--test', 'test/integration']);
+
+if (shouldCollectCoverage) {
+  mkdirSync(coverageDir, { recursive: true });
+  rmSync(resolve(coverageDir, 'integration.lcov.info'), { force: true });
+}
+
+const testArgs = ['--test'];
+
+if (shouldCollectCoverage) {
+  testArgs.push(
+    '--experimental-test-coverage',
+    '--test-reporter=lcov',
+    `--test-reporter-destination=${resolve(coverageDir, 'integration.lcov.info')}`
+  );
+}
+
+testArgs.push('test/integration');
+
+run(process.execPath, testArgs);

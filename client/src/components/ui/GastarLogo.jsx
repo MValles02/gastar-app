@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+
 export default function GastarLogo({ className = 'h-6 w-6' }) {
   return (
     <svg
@@ -13,3 +15,7 @@ export default function GastarLogo({ className = 'h-6 w-6' }) {
     </svg>
   );
 }
+
+GastarLogo.propTypes = {
+  className: PropTypes.string,
+};

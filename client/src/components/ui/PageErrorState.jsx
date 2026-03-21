@@ -1,4 +1,5 @@
 import { AlertTriangle } from 'lucide-react';
+import PropTypes from 'prop-types';
 import Button from './Button.jsx';
 import MessageBanner from './MessageBanner.jsx';
 
@@ -27,3 +28,10 @@ export default function PageErrorState({
     </div>
   );
 }
+
+PageErrorState.propTypes = {
+  title: PropTypes.string,
+  message: PropTypes.string,
+  actionLabel: PropTypes.string,
+  onAction: PropTypes.func,
+};

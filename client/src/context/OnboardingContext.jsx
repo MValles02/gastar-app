@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useAuth } from './AuthContext.jsx';
 import { useTransactionModal } from './TransactionModalContext.jsx';
 import { getAccounts } from '../services/accounts.js';
+import { childrenPropType } from '../utils/propTypes.js';
 
 const OnboardingContext = createContext(null);
 
@@ -53,8 +54,8 @@ export function OnboardingProvider({ children }) {
     triggerRefresh();
   };
 
-  return (
-    <OnboardingContext.Provider value={{
+  const value = useMemo(
+    () => ({
       isOpen,
       currentStep,
       createdAccounts,
@@ -63,7 +64,12 @@ export function OnboardingProvider({ children }) {
       goToPrevStep,
       addCreatedAccount,
       markComplete,
-    }}>
+    }),
+    [isOpen, currentStep, createdAccounts]
+  );
+
+  return (
+    <OnboardingContext.Provider value={value}>
       {children}
     </OnboardingContext.Provider>
   );
@@ -72,3 +78,7 @@ export function OnboardingProvider({ children }) {
 export function useOnboarding() {
   return useContext(OnboardingContext);
 }
+
+OnboardingProvider.propTypes = {
+  children: childrenPropType,
+};

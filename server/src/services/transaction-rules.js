@@ -6,12 +6,12 @@ export function getEffectiveTransaction(existing, data) {
     amount: data.amount ?? existing.amount,
     description: data.description ?? existing.description,
     date: data.date ?? existing.date,
-    transferTo: data.transferTo !== undefined ? data.transferTo : existing.transferTo,
+    transferTo: data.transferTo === undefined ? existing.transferTo : data.transferTo,
   };
 
-  if (effective.type !== 'transfer') {
-    effective.transferTo = null;
-  }
+  if (effective.type === 'transfer') return effective;
+
+  effective.transferTo = null;
 
   return effective;
 }

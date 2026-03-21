@@ -1,4 +1,5 @@
 import { LogOut, HelpCircle } from 'lucide-react';
+import PropTypes from 'prop-types';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useOnboarding } from '../../context/OnboardingContext.jsx';
 import ThemeToggle from '../ui/ThemeToggle.jsx';
@@ -31,3 +32,7 @@ export default function Header({ title }) {
     </header>
   );
 }
+
+Header.propTypes = {
+  title: PropTypes.string,
+};

@@ -8,6 +8,7 @@ import {
   Store, Scissors, Paintbrush, Camera, Globe, Landmark, Leaf,
   Sun, Umbrella, Star, Package,
 } from 'lucide-react';
+import PropTypes from 'prop-types';
 
 const ICONS = [
   { name: 'banknote', Icon: Banknote },
@@ -99,3 +100,8 @@ export default function IconPicker({ value, onChange }) {
     </div>
   );
 }
+
+IconPicker.propTypes = {
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+};

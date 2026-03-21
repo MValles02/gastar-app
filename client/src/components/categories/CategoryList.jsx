@@ -1,4 +1,6 @@
 import { Pencil, Trash2 } from 'lucide-react';
+import PropTypes from 'prop-types';
+import { categoryShape } from '../../utils/propTypes.js';
 
 export default function CategoryList({ categories, onEdit, onDelete }) {
   return (
@@ -30,3 +32,9 @@ export default function CategoryList({ categories, onEdit, onDelete }) {
     </div>
   );
 }
+
+CategoryList.propTypes = {
+  categories: PropTypes.arrayOf(categoryShape).isRequired,
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+};

@@ -1,4 +1,6 @@
 import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import { childrenPropType, classNamePropType } from '../../utils/propTypes.js';
 
 const colorMap = {
   green: 'bg-success-soft text-success',
@@ -20,3 +22,9 @@ export default function Badge({ children, color = 'gray', className }) {
     </span>
   );
 }
+
+Badge.propTypes = {
+  children: childrenPropType,
+  color: PropTypes.oneOf(Object.keys(colorMap)),
+  className: classNamePropType,
+};

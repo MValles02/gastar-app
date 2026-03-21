@@ -1,6 +1,8 @@
 import { Pencil, Trash2, ArrowRight } from 'lucide-react';
+import PropTypes from 'prop-types';
 import Badge from '../ui/Badge.jsx';
 import { formatCurrency, formatDate, getAmountTone, getTransactionTypeLabel, getTransactionTypeColor } from '../../utils/formatters.js';
+import { transactionShape } from '../../utils/propTypes.js';
 
 export default function TransactionList({ transactions, onEdit, onDelete }) {
   const grouped = {};
@@ -50,7 +52,7 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`whitespace-nowrap text-sm font-semibold ${getAmountTone(tx.type)}`}>
-                    {amountPrefix(tx.type)}{formatCurrency(parseFloat(tx.amount))}
+                    {amountPrefix(tx.type)}{formatCurrency(Number.parseFloat(tx.amount))}
                   </span>
                   <button
                     onClick={() => onEdit(tx)}
@@ -73,3 +75,9 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
     </div>
   );
 }
+
+TransactionList.propTypes = {
+  transactions: PropTypes.arrayOf(transactionShape).isRequired,
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+};

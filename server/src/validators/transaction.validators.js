@@ -8,7 +8,7 @@ export const createTransactionSchema = z.object({
     .transform(Number)
     .pipe(z.number().positive('El monto debe ser mayor a 0')),
   description: z.string().max(200).optional(),
-  date: z.string().refine(val => !isNaN(Date.parse(val)), 'Fecha invalida'),
+  date: z.string().refine(val => !Number.isNaN(Date.parse(val)), 'Fecha invalida'),
   transferTo: z.string().uuid().optional(),
 }).refine(
   data => data.type !== 'transfer' || data.transferTo,
@@ -27,7 +27,7 @@ export const updateTransactionSchema = z.object({
     .pipe(z.number().positive('El monto debe ser mayor a 0'))
     .optional(),
   description: z.string().max(200).optional(),
-  date: z.string().refine(val => !isNaN(Date.parse(val)), 'Fecha invalida').optional(),
+  date: z.string().refine(val => !Number.isNaN(Date.parse(val)), 'Fecha invalida').optional(),
   transferTo: z.string().uuid().nullable().optional(),
 }).refine(
   data => data.type !== 'transfer' || data.transferTo !== undefined,

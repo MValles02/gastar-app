@@ -1,4 +1,5 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
+import { childrenPropType } from '../utils/propTypes.js';
 
 const TransactionModalContext = createContext(null);
 
@@ -19,8 +20,13 @@ export function TransactionModalProvider({ children }) {
     setEditData(null);
   };
 
+  const value = useMemo(
+    () => ({ isOpen, editData, refreshKey, triggerRefresh, openModal, closeModal }),
+    [isOpen, editData, refreshKey]
+  );
+
   return (
-    <TransactionModalContext.Provider value={{ isOpen, editData, refreshKey, triggerRefresh, openModal, closeModal }}>
+    <TransactionModalContext.Provider value={value}>
       {children}
     </TransactionModalContext.Provider>
   );
@@ -29,3 +35,7 @@ export function TransactionModalProvider({ children }) {
 export function useTransactionModal() {
   return useContext(TransactionModalContext);
 }
+
+TransactionModalProvider.propTypes = {
+  children: childrenPropType,
+};

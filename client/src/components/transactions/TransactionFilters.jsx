@@ -1,6 +1,8 @@
 import Select from '../ui/Select.jsx';
 import Input from '../ui/Input.jsx';
 import Button from '../ui/Button.jsx';
+import PropTypes from 'prop-types';
+import { accountShape, categoryShape, filtersShape } from '../../utils/propTypes.js';
 
 const typeOptions = [
   { value: 'income', label: 'Ingreso' },
@@ -72,3 +74,10 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
     </div>
   );
 }
+
+TransactionFilters.propTypes = {
+  filters: filtersShape.isRequired,
+  onChange: PropTypes.func.isRequired,
+  accounts: PropTypes.arrayOf(accountShape).isRequired,
+  categories: PropTypes.arrayOf(categoryShape).isRequired,
+};

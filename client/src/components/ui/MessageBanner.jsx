@@ -1,5 +1,7 @@
 import clsx from 'clsx';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import PropTypes from 'prop-types';
+import { classNamePropType } from '../../utils/propTypes.js';
 
 const variants = {
   error: {
@@ -31,3 +33,9 @@ export default function MessageBanner({ message, variant = 'error', className })
     </div>
   );
 }
+
+MessageBanner.propTypes = {
+  message: PropTypes.string,
+  variant: PropTypes.oneOf(Object.keys(variants)),
+  className: classNamePropType,
+};

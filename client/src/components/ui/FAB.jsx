@@ -1,5 +1,7 @@
 import { Plus } from 'lucide-react';
 import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import { classNamePropType } from '../../utils/propTypes.js';
 
 export default function FAB({ onClick, className }) {
   return (
@@ -17,3 +19,8 @@ export default function FAB({ onClick, className }) {
     </button>
   );
 }
+
+FAB.propTypes = {
+  onClick: PropTypes.func.isRequired,
+  className: classNamePropType,
+};

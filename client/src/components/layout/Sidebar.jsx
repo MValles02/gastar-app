@@ -30,7 +30,7 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem('sidebar-collapsed') === 'true';
   });
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const { user, logout } = useAuth();
   const { openOnboarding } = useOnboarding();
 

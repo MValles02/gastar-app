@@ -1,5 +1,3 @@
-import prisma from '../utils/prisma.js';
-
 export function getBalanceDelta(type, amount) {
   switch (type) {
     case 'income': return amount;
@@ -17,7 +15,7 @@ export async function adjustBalance(tx, accountId, delta) {
 }
 
 export async function applyTransactionBalances(tx, transaction) {
-  const amount = parseFloat(transaction.amount);
+  const amount = Number.parseFloat(transaction.amount);
   const delta = getBalanceDelta(transaction.type, amount);
   await adjustBalance(tx, transaction.accountId, delta);
   if (transaction.type === 'transfer' && transaction.transferTo) {
@@ -26,7 +24,7 @@ export async function applyTransactionBalances(tx, transaction) {
 }
 
 export async function reverseTransactionBalances(tx, transaction) {
-  const amount = parseFloat(transaction.amount);
+  const amount = Number.parseFloat(transaction.amount);
   const delta = getBalanceDelta(transaction.type, amount);
   await adjustBalance(tx, transaction.accountId, -delta);
   if (transaction.type === 'transfer' && transaction.transferTo) {

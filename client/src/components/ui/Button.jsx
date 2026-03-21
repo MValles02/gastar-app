@@ -1,5 +1,7 @@
 import clsx from 'clsx';
 import { Loader2 } from 'lucide-react';
+import PropTypes from 'prop-types';
+import { childrenPropType, classNamePropType } from '../../utils/propTypes.js';
 
 const variants = {
   primary: 'bg-accent-600 text-white shadow-panel-sm hover:bg-accent-700 focus:ring-accent-400/70',
@@ -39,3 +41,12 @@ export default function Button({
     </button>
   );
 }
+
+Button.propTypes = {
+  children: childrenPropType,
+  variant: PropTypes.oneOf(Object.keys(variants)),
+  size: PropTypes.oneOf(Object.keys(sizes)),
+  loading: PropTypes.bool,
+  disabled: PropTypes.bool,
+  className: classNamePropType,
+};

@@ -1,4 +1,6 @@
 import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import { childrenPropType, classNamePropType } from '../../utils/propTypes.js';
 
 export default function OptionTile({
   selected = false,
@@ -43,3 +45,12 @@ export default function OptionTile({
     </button>
   );
 }
+
+OptionTile.propTypes = {
+  selected: PropTypes.bool,
+  onClick: PropTypes.func.isRequired,
+  title: PropTypes.string.isRequired,
+  description: PropTypes.string,
+  children: childrenPropType,
+  className: classNamePropType,
+};

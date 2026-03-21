@@ -7,6 +7,7 @@
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "test": "node scripts/run-unit-tests.js",
+    "test:coverage": "node scripts/run-unit-tests.js --coverage && node scripts/run-integration-tests.js --coverage",
     "test:integration": "node scripts/run-integration-tests.js",
     "db:migrate": "dotenv -e ../.env -- prisma migrate dev",
     "db:studio": "dotenv -e ../.env -- prisma studio",

@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import api from '../services/api.js';
 import { normalizeError } from '../utils/errors.js';
+import { childrenPropType } from '../utils/propTypes.js';
 
 const AuthContext = createContext(null);
 
@@ -58,8 +59,13 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const value = useMemo(
+    () => ({ user, loading, authError, loadSession, login, register, logout }),
+    [user, loading, authError]
+  );
+
   return (
-    <AuthContext.Provider value={{ user, loading, authError, loadSession, login, register, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
@@ -68,3 +74,7 @@ export function AuthProvider({ children }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
+
+AuthProvider.propTypes = {
+  children: childrenPropType,
+};

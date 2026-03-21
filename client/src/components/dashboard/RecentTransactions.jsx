@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight as ArrowRightIcon } from 'lucide-react';
+import PropTypes from 'prop-types';
 import Card from '../ui/Card.jsx';
 import Badge from '../ui/Badge.jsx';
 import { formatCurrency, formatDateShort, getAmountTone, getTransactionTypeColor, getTransactionTypeLabel } from '../../utils/formatters.js';
+import { transactionShape } from '../../utils/propTypes.js';
 
 export default function RecentTransactions({ transactions }) {
   if (!transactions || transactions.length === 0) {
@@ -45,7 +47,7 @@ export default function RecentTransactions({ transactions }) {
               </div>
             </div>
             <span className={`whitespace-nowrap text-sm font-medium ${getAmountTone(tx.type)}`}>
-              {amountPrefix(tx.type)}{formatCurrency(parseFloat(tx.amount))}
+              {amountPrefix(tx.type)}{formatCurrency(Number.parseFloat(tx.amount))}
             </span>
           </div>
         ))}
@@ -53,3 +55,7 @@ export default function RecentTransactions({ transactions }) {
     </Card>
   );
 }
+
+RecentTransactions.propTypes = {
+  transactions: PropTypes.arrayOf(transactionShape),
+};

@@ -1,4 +1,4 @@
-import { readdirSync } from 'fs';
+import { mkdirSync, readdirSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
@@ -11,7 +11,20 @@ const unitTestFiles = readdirSync(testDir)
   .filter((file) => file.endsWith('.test.js'))
   .map((file) => resolve(testDir, file));
 
-const result = spawnSync(process.execPath, ['--test', ...unitTestFiles], {
+const shouldCollectCoverage = process.argv.includes('--coverage');
+const coverageDir = resolve(serverDir, 'coverage');
+const args = ['--test'];
+
+if (shouldCollectCoverage) {
+  mkdirSync(coverageDir, { recursive: true });
+  args.push(
+    '--experimental-test-coverage',
+    '--test-reporter=lcov',
+    `--test-reporter-destination=${resolve(coverageDir, 'unit.lcov.info')}`
+  );
+}
+
+const result = spawnSync(process.execPath, [...args, ...unitTestFiles], {
   cwd: serverDir,
   env: process.env,
   stdio: 'inherit',

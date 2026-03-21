@@ -26,7 +26,7 @@ router.get('/summary', async (req, res, next) => {
       orderBy: { name: 'asc' },
     });
 
-    const totalBalance = accounts.reduce((sum, a) => sum + parseFloat(a.balance), 0);
+    const totalBalance = accounts.reduce((sum, a) => sum + Number.parseFloat(a.balance), 0);
 
     const txWhere = {
       account: { userId: req.userId },
@@ -44,8 +44,8 @@ router.get('/summary', async (req, res, next) => {
       }),
     ]);
 
-    const totalIncome = parseFloat(incomeAgg._sum.amount || 0);
-    const totalExpenses = parseFloat(expenseAgg._sum.amount || 0);
+    const totalIncome = Number.parseFloat(incomeAgg._sum.amount || 0);
+    const totalExpenses = Number.parseFloat(expenseAgg._sum.amount || 0);
 
     res.json({
       data: {
@@ -108,7 +108,7 @@ router.get('/by-category', async (req, res, next) => {
       categoryId: g.categoryId,
       categoryName: categoriesMap[g.categoryId]?.name || 'Sin categoría',
       categoryIcon: categoriesMap[g.categoryId]?.icon || null,
-      total: parseFloat(g._sum.amount || 0),
+      total: Number.parseFloat(g._sum.amount || 0),
     }));
 
     res.json({

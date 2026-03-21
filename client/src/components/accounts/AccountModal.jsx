@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import Modal from '../ui/Modal.jsx';
 import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
 import Button from '../ui/Button.jsx';
 import MessageBanner from '../ui/MessageBanner.jsx';
 import { getErrorMessage } from '../../utils/errors.js';
+import { accountShape } from '../../utils/propTypes.js';
 
 const typeOptions = [
   { value: 'checking', label: 'Cuenta corriente' },
@@ -46,12 +48,13 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
     setError('');
 
     const nextErrors = {};
+    const parsedBalance = Number.parseFloat(balance);
 
     if (!name.trim()) {
       nextErrors.name = 'Ingresá un nombre para la cuenta';
     }
 
-    if (!isEdit && balance !== '' && (Number.isNaN(parseFloat(balance)) || parseFloat(balance) < 0)) {
+    if (!isEdit && balance !== '' && (Number.isNaN(parsedBalance) || parsedBalance < 0)) {
       nextErrors.balance = 'El saldo debe ser un número mayor o igual a 0';
     }
 
@@ -66,7 +69,7 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
     try {
       const data = isEdit
         ? { name, type, currency }
-        : { name, type, currency, balance: parseFloat(balance) || 0 };
+        : { name, type, currency, balance: Number.parseFloat(balance) || 0 };
 
       await onSubmit(data);
       onClose();
@@ -128,3 +131,10 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
     </Modal>
   );
 }
+
+AccountModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  account: accountShape,
+};

@@ -1,4 +1,6 @@
 import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import { classNamePropType, optionShape } from '../../utils/propTypes.js';
 
 export default function Select({
   label,
@@ -40,3 +42,11 @@ export default function Select({
     </div>
   );
 }
+
+Select.propTypes = {
+  label: PropTypes.string,
+  error: PropTypes.string,
+  options: PropTypes.arrayOf(optionShape),
+  placeholder: PropTypes.string,
+  className: classNamePropType,
+};

@@ -40,7 +40,7 @@
     --radius-lg: 1.5rem;
   }
 
-  .dark {
+  html.dark {
     --color-accent-50: #effaf7;
     --color-accent-100: #d4f4ea;
     --color-accent-200: #afe8d5;
@@ -72,6 +72,7 @@
     --shadow-sm: 0 12px 28px rgba(0, 0, 0, 0.22);
     --shadow-md: 0 22px 48px rgba(0, 0, 0, 0.28);
     --shadow-lg: 0 34px 72px rgba(0, 0, 0, 0.34);
+    color-scheme: dark;
   }
 
   html, body, #root {
@@ -80,10 +81,6 @@
 
   html {
     color-scheme: light;
-  }
-
-  .dark {
-    color-scheme: dark;
   }
 
   body {

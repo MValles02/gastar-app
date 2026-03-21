@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import { childrenPropType, classNamePropType } from '../../utils/propTypes.js';
 
 export default function Card({ children, className, ...props }) {
   return (
@@ -13,3 +14,8 @@ export default function Card({ children, className, ...props }) {
     </div>
   );
 }
+
+Card.propTypes = {
+  children: childrenPropType,
+  className: classNamePropType,
+};

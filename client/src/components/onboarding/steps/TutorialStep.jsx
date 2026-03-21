@@ -1,6 +1,8 @@
 import { Plus, ArrowDownCircle, ArrowUpCircle, ArrowLeftRight, CalendarDays, Tag, Wallet } from 'lucide-react';
+import PropTypes from 'prop-types';
 import Button from '../../ui/Button.jsx';
 import { useOnboarding } from '../../../context/OnboardingContext.jsx';
+import { iconPropType } from '../../../utils/propTypes.js';
 
 function MockField({ label, value, icon: Icon }) {
   return (
@@ -13,6 +15,12 @@ function MockField({ label, value, icon: Icon }) {
     </div>
   );
 }
+
+MockField.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired,
+  icon: iconPropType,
+};
 
 export default function TutorialStep() {
   const { goToPrevStep, markComplete } = useOnboarding();

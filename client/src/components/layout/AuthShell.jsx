@@ -1,7 +1,9 @@
 import clsx from 'clsx';
+import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import GastarLogo from '../ui/GastarLogo.jsx';
 import ThemeToggle from '../ui/ThemeToggle.jsx';
+import { backLinkShape, childrenPropType, classNamePropType } from '../../utils/propTypes.js';
 
 export default function AuthShell({
   title,
@@ -46,3 +48,12 @@ export default function AuthShell({
     </div>
   );
 }
+
+AuthShell.propTypes = {
+  title: PropTypes.string.isRequired,
+  subtitle: PropTypes.string,
+  children: childrenPropType,
+  footer: PropTypes.node,
+  backLink: backLinkShape,
+  className: classNamePropType,
+};

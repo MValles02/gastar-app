@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import { childrenPropType, classNamePropType } from '../../utils/propTypes.js';
 
 export default function Modal({ isOpen, onClose, title, children, className }) {
   useEffect(() => {
@@ -21,9 +23,11 @@ export default function Modal({ isOpen, onClose, title, children, className }) {
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
+      <button
+        type="button"
         className="fixed inset-0 bg-black/45 backdrop-blur-sm transition-opacity"
         onClick={onClose}
+        aria-label="Cerrar modal"
       />
       <div
         className={clsx(
@@ -48,3 +52,11 @@ export default function Modal({ isOpen, onClose, title, children, className }) {
     document.body
   );
 }
+
+Modal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  title: PropTypes.string,
+  children: childrenPropType,
+  className: classNamePropType,
+};

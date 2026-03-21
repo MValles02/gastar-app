@@ -1,5 +1,7 @@
 import { Loader2 } from 'lucide-react';
 import clsx from 'clsx';
+import PropTypes from 'prop-types';
+import { classNamePropType } from '../../utils/propTypes.js';
 
 export default function Spinner({ size = 'md', className }) {
   const sizeClass = {
@@ -14,3 +16,8 @@ export default function Spinner({ size = 'md', className }) {
     </div>
   );
 }
+
+Spinner.propTypes = {
+  size: PropTypes.oneOf(['sm', 'md', 'lg']),
+  className: classNamePropType,
+};
