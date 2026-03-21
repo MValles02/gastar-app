@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { Check } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -11,8 +12,8 @@ export default function OnboardingProgressBar({ currentStep }) {
         const isCurrent = index === currentStep;
 
         return (
-          <div key={label} className="flex flex-1 items-start">
-            <div className="flex flex-col items-center gap-1 flex-1">
+          <Fragment key={label}>
+            <div className="flex flex-col items-center gap-1">
               <div
                 className={clsx(
                   'flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors text-sm font-semibold leading-none',
@@ -40,7 +41,7 @@ export default function OnboardingProgressBar({ currentStep }) {
                 )}
               />
             )}
-          </div>
+          </Fragment>
         );
       })}
     </div>
