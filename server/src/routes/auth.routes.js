@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
+import crypto from 'node:crypto';
 import prisma from '../utils/prisma.js';
 import { generateToken, setTokenCookie } from '../utils/token.js';
 import { hashResetToken } from '../utils/reset-token.js';
