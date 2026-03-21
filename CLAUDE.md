@@ -82,11 +82,12 @@ Four core tables with these relationships:
 
 1. **Authentication** — Register, login, logout with JWT tokens stored in HTTP-only cookies
 2. **Password reset** — Forgot password flow with email via Resend (token-based, 1-hour expiry)
-3. **Account management** — CRUD for financial accounts (bank, cash, credit card)
-4. **Transaction management** — Create, read, update, delete incomes, expenses, and transfers with atomic balance updates
-5. **Categories** — CRUD for transaction categories (any category can be used with any transaction type); 13 default Spanish categories seeded on registration
-6. **Reports & charts** — Visual summaries of spending by category, income vs expenses over time
-7. **Dashboard** — Balance overview, spending pie chart, recent transactions
+3. **Onboarding** — Multi-step wizard for new users to set up initial accounts and categories
+4. **Account management** — CRUD for financial accounts (bank, cash, credit card)
+5. **Transaction management** — Create, read, update, delete incomes, expenses, and transfers with atomic balance updates
+6. **Categories** — CRUD for transaction categories (any category can be used with any transaction type); 13 default Spanish categories seeded on registration
+7. **Reports & charts** — Visual summaries of spending by category, income vs expenses over time
+8. **Dashboard** — Balance overview, spending pie chart, recent transactions
 
 ## API route conventions
 
@@ -136,11 +137,12 @@ gastar-app/
 ├── client/                  # React frontend (Vite)
 │   ├── public/
 │   ├── src/
-│   │   ├── components/      # Reusable UI components (ui/, accounts/, categories/, dashboard/, transactions/, layout/)
+│   │   ├── components/      # Reusable UI components (ui/, accounts/, categories/, dashboard/, transactions/, layout/, onboarding/)
 │   │   ├── pages/           # Page-level components (routes)
-│   │   ├── context/         # React context providers (auth, theme, transaction modal)
+│   │   ├── context/         # React context providers (auth, theme, transaction modal, onboarding)
+│   │   ├── hooks/           # Custom React hooks (reserved for future use)
 │   │   ├── services/        # API call functions (Axios)
-│   │   ├── utils/           # Helper functions (formatting, etc.)
+│   │   ├── utils/           # Helper functions (formatters, date utilities, etc.)
 │   │   ├── App.jsx
 │   │   └── main.jsx
 │   ├── index.html

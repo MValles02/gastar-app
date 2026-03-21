@@ -2,6 +2,8 @@
 
 Personal finance tracker for managing incomes, expenses, and transfers between accounts. Provides visual reports and summaries to answer "where does my money go?" Built for a Spanish-speaking (Argentine) audience.
 
+**Features:** User authentication, onboarding wizard, account management, transaction tracking, category management, spending reports, and financial dashboard.
+
 ## Tech Stack
 
 - **Frontend:** React 18 + Vite, Tailwind CSS, Recharts, Lucide React, React Router
