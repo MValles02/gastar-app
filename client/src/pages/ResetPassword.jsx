@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Lock, ArrowLeft } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Lock } from 'lucide-react';
 import api from '../services/api.js';
 import Input from '../components/ui/Input.jsx';
 import Button from '../components/ui/Button.jsx';
 import ThemeToggle from '../components/ui/ThemeToggle.jsx';
+import MessageBanner from '../components/ui/MessageBanner.jsx';
+import { getErrorMessage } from '../utils/errors.js';
 
 function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -30,7 +32,7 @@ function ResetPassword() {
       await api.post('/auth/reset-password', { token, password });
       navigate('/login', { state: { message: 'Contraseña actualizada. Iniciá sesión.' } });
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al restablecer la contraseña');
+      setError(getErrorMessage(err, 'Error al restablecer la contraseña'));
     } finally {
       setLoading(false);
     }
@@ -39,7 +41,7 @@ function ResetPassword() {
   if (!token) {
     return (
       <div className="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
-        <ThemeToggle className="absolute top-4 right-4" />
+        <ThemeToggle className="absolute right-4 top-4" />
         <div className="text-center">
           <p className="text-gray-500 dark:text-gray-400">Enlace inválido.</p>
           <Link to="/login" className="mt-2 inline-block text-sm text-accent-600 hover:underline">
@@ -52,18 +54,14 @@ function ResetPassword() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
-      <ThemeToggle className="absolute top-4 right-4" />
+      <ThemeToggle className="absolute right-4 top-4" />
       <div className="w-full max-w-sm">
         <h1 className="mb-2 text-center text-2xl font-bold text-accent-600">Gastar</h1>
         <p className="mb-8 text-center text-sm text-gray-500 dark:text-gray-400">Creá una nueva contraseña</p>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
-                {error}
-              </div>
-            )}
+            <MessageBanner message={error} />
             <Input
               label="Nueva contraseña"
               type="password"

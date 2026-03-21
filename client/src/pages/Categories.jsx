@@ -1,30 +1,42 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Tag, Plus } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Plus, Tag } from 'lucide-react';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../services/categories.js';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
+import { useDialog } from '../context/DialogContext.jsx';
 import CategoryList from '../components/categories/CategoryList.jsx';
 import CategoryModal from '../components/categories/CategoryModal.jsx';
 import Button from '../components/ui/Button.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
+import PageErrorState from '../components/ui/PageErrorState.jsx';
+import { getErrorMessage } from '../utils/errors.js';
 
 function Categories() {
   const { triggerRefresh } = useTransactionModal();
+  const { showAlert, showConfirm } = useDialog();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
 
   const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError('');
+
     try {
       const data = await getCategories();
       setCategories(data);
+    } catch (err) {
+      setLoadError(getErrorMessage(err, 'No pudimos cargar las categorías.'));
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleCreate = () => {
     setEditing(null);
@@ -37,13 +49,25 @@ function Categories() {
   };
 
   const handleDelete = async (category) => {
-    if (!confirm(`¿Eliminar la categoría "${category.name}"?`)) return;
+    const confirmed = await showConfirm({
+      title: 'Eliminar categoría',
+      message: `Se eliminará la categoría "${category.name}". Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+      cancelLabel: 'Cancelar',
+      destructive: true,
+    });
+
+    if (!confirmed) return;
+
     try {
       await deleteCategory(category.id);
       await load();
       triggerRefresh();
     } catch (err) {
-      alert(err.response?.data?.error || 'Error al eliminar');
+      await showAlert({
+        title: 'No pudimos eliminar la categoría',
+        message: getErrorMessage(err, 'Error al eliminar la categoría.'),
+      });
     }
   };
 
@@ -53,11 +77,13 @@ function Categories() {
     } else {
       await createCategory(data);
     }
+
     await load();
     triggerRefresh();
   };
 
   if (loading) return <Spinner className="py-12" />;
+  if (loadError) return <PageErrorState title="No pudimos cargar las categorías" message={loadError} onAction={load} />;
 
   return (
     <div>

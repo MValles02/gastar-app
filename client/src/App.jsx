@@ -1,7 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import { DialogProvider } from './context/DialogContext.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import Spinner from './components/ui/Spinner.jsx';
+import PageErrorState from './components/ui/PageErrorState.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
@@ -13,8 +15,24 @@ import Categories from './pages/Categories.jsx';
 import Reports from './pages/Reports.jsx';
 
 function PrivateRoute({ children }) {
-  const { user, loading } = useAuth();
+  const { user, loading, authError, loadSession } = useAuth();
+
   if (loading) return <Spinner className="min-h-screen" />;
+
+  if (authError) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-950 md:p-8">
+        <div className="mx-auto max-w-xl pt-10">
+          <PageErrorState
+            title="No pudimos iniciar la aplicación"
+            message={authError}
+            onAction={loadSession}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return user ? <AppLayout>{children}</AppLayout> : <Navigate to="/login" replace />;
 }
 
@@ -26,22 +44,24 @@ function GuestRoute({ children }) {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
-          <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
-          <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
-          <Route path="/reset-password" element={<GuestRoute><ResetPassword /></GuestRoute>} />
-          <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-          <Route path="/transactions" element={<PrivateRoute><Transactions /></PrivateRoute>} />
-          <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
-          <Route path="/categories" element={<PrivateRoute><Categories /></PrivateRoute>} />
-          <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <DialogProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+            <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+            <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+            <Route path="/reset-password" element={<GuestRoute><ResetPassword /></GuestRoute>} />
+            <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/transactions" element={<PrivateRoute><Transactions /></PrivateRoute>} />
+            <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
+            <Route path="/categories" element={<PrivateRoute><Categories /></PrivateRoute>} />
+            <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </DialogProvider>
   );
 }
 

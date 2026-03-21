@@ -6,6 +6,8 @@ import Input from '../components/ui/Input.jsx';
 import Button from '../components/ui/Button.jsx';
 import ThemeToggle from '../components/ui/ThemeToggle.jsx';
 import GastarLogo from '../components/ui/GastarLogo.jsx';
+import MessageBanner from '../components/ui/MessageBanner.jsx';
+import { getErrorMessage } from '../utils/errors.js';
 
 function Register() {
   const { register } = useAuth();
@@ -29,7 +31,7 @@ function Register() {
     try {
       await register(name, email, password);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al crear la cuenta');
+      setError(getErrorMessage(err, 'Error al crear la cuenta'));
     } finally {
       setLoading(false);
     }
@@ -37,7 +39,7 @@ function Register() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
-      <ThemeToggle className="absolute top-4 right-4" />
+      <ThemeToggle className="absolute right-4 top-4" />
       <div className="w-full max-w-sm">
         <div className="mb-2 flex flex-col items-center gap-2">
           <GastarLogo className="h-10 w-10" />
@@ -47,11 +49,7 @@ function Register() {
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
-                {error}
-              </div>
-            )}
+            <MessageBanner message={error} />
             <Input
               label="Nombre"
               type="text"

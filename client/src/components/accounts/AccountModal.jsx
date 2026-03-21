@@ -1,19 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Modal from '../ui/Modal.jsx';
 import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
 import Button from '../ui/Button.jsx';
+import MessageBanner from '../ui/MessageBanner.jsx';
+import { getErrorMessage } from '../../utils/errors.js';
 
 const typeOptions = [
   { value: 'checking', label: 'Cuenta corriente' },
   { value: 'savings', label: 'Caja de ahorro' },
   { value: 'credit_card', label: 'Tarjeta de crédito' },
   { value: 'cash', label: 'Efectivo' },
-  { value: 'investment', label: 'Inversión' },
+  { value: 'investment', label: 'Inversion' },
 ];
 
 export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
-  const isEdit = !!account;
+  const isEdit = Boolean(account);
   const [name, setName] = useState('');
   const [type, setType] = useState('checking');
   const [currency, setCurrency] = useState('ARS');
@@ -34,6 +36,7 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
       setCurrency('ARS');
       setBalance('0');
     }
+
     setError('');
     setErrors({});
   }, [account, isOpen]);
@@ -42,27 +45,33 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
     e.preventDefault();
     setError('');
 
-    const newErrors = {};
+    const nextErrors = {};
+
     if (!name.trim()) {
-      newErrors.name = 'Ingresá un nombre para la cuenta';
+      nextErrors.name = 'Ingresá un nombre para la cuenta';
     }
-    if (!isEdit && balance !== '' && (isNaN(parseFloat(balance)) || parseFloat(balance) < 0)) {
-      newErrors.balance = 'El saldo debe ser un número mayor o igual a 0';
+
+    if (!isEdit && balance !== '' && (Number.isNaN(parseFloat(balance)) || parseFloat(balance) < 0)) {
+      nextErrors.balance = 'El saldo debe ser un número mayor o igual a 0';
     }
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
       return;
     }
+
     setErrors({});
     setLoading(true);
+
     try {
       const data = isEdit
         ? { name, type, currency }
         : { name, type, currency, balance: parseFloat(balance) || 0 };
+
       await onSubmit(data);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al guardar la cuenta');
+      setError(getErrorMessage(err, 'Error al guardar la cuenta'));
     } finally {
       setLoading(false);
     }
@@ -71,11 +80,7 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? 'Editar cuenta' : 'Nueva cuenta'}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
-            {error}
-          </div>
-        )}
+        <MessageBanner message={error} />
         <Input
           label="Nombre"
           value={name}
@@ -94,9 +99,9 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
           value={currency}
           onChange={(e) => setCurrency(e.target.value)}
           options={[
-            { value: 'ARS', label: 'ARS — Peso argentino' },
-            { value: 'USD', label: 'USD — Dólar estadounidense' },
-            { value: 'EUR', label: 'EUR — Euro' },
+            { value: 'ARS', label: 'ARS - Peso argentino' },
+            { value: 'USD', label: 'USD - Dólar estadounidense' },
+            { value: 'EUR', label: 'EUR - Euro' },
           ]}
         />
         {!isEdit && (

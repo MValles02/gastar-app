@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import clsx from 'clsx';
 import Modal from '../ui/Modal.jsx';
 import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
 import Button from '../ui/Button.jsx';
+import MessageBanner from '../ui/MessageBanner.jsx';
 import { createTransaction, updateTransaction } from '../../services/transactions.js';
 import { getAccounts } from '../../services/accounts.js';
 import { getCategories } from '../../services/categories.js';
 import { useTransactionModal } from '../../context/TransactionModalContext.jsx';
-import clsx from 'clsx';
+import { getErrorMessage } from '../../utils/errors.js';
 
 const typeLabels = [
   { value: 'expense', label: 'Gasto' },
@@ -17,7 +19,7 @@ const typeLabels = [
 
 export default function TransactionModal() {
   const { isOpen, editData, triggerRefresh, closeModal } = useTransactionModal();
-  const isEdit = !!editData;
+  const isEdit = Boolean(editData);
 
   const [type, setType] = useState('expense');
   const [amount, setAmount] = useState('');
@@ -35,10 +37,15 @@ export default function TransactionModal() {
 
   useEffect(() => {
     if (!isOpen) return;
-    Promise.all([getAccounts(), getCategories()]).then(([acc, cat]) => {
-      setAccounts(acc);
-      setCategories(cat);
-    });
+
+    Promise.all([getAccounts(), getCategories()])
+      .then(([accountOptions, categoryOptions]) => {
+        setAccounts(accountOptions);
+        setCategories(categoryOptions);
+      })
+      .catch((err) => {
+        setError(getErrorMessage(err, 'No pudimos cargar las opciones para esta transacción.'));
+      });
   }, [isOpen]);
 
   useEffect(() => {
@@ -56,10 +63,12 @@ export default function TransactionModal() {
       setAccountId('');
       setCategoryId('');
       setTransferTo('');
+
       const today = new Date();
       setDate(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
       setDescription('');
     }
+
     setError('');
     setErrors({});
   }, [editData, isOpen]);
@@ -68,25 +77,29 @@ export default function TransactionModal() {
     e.preventDefault();
     setError('');
 
-    const newErrors = {};
-    if (!amount || parseFloat(amount) <= 0 || isNaN(parseFloat(amount))) {
-      newErrors.amount = 'Ingresá un monto válido mayor a 0';
+    const nextErrors = {};
+
+    if (!amount || parseFloat(amount) <= 0 || Number.isNaN(parseFloat(amount))) {
+      nextErrors.amount = 'Ingresá un monto válido mayor a 0';
     }
     if (!accountId) {
-      newErrors.accountId = 'Seleccioná una cuenta';
+      nextErrors.accountId = 'Seleccioná una cuenta';
     }
     if (!categoryId) {
-      newErrors.categoryId = 'Seleccioná una categoría';
+      nextErrors.categoryId = 'Seleccioná una categoría';
     }
     if (type === 'transfer' && !transferTo) {
-      newErrors.transferTo = 'Seleccioná la cuenta destino';
+      nextErrors.transferTo = 'Seleccioná la cuenta destino';
     }
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
       return;
     }
+
     setErrors({});
     setLoading(true);
+
     try {
       const data = {
         type,
@@ -97,15 +110,17 @@ export default function TransactionModal() {
         description: description || undefined,
         transferTo: type === 'transfer' ? transferTo : undefined,
       };
+
       if (isEdit) {
         await updateTransaction(editData.id, data);
       } else {
         await createTransaction(data);
       }
+
       closeModal();
       triggerRefresh();
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al guardar la transacción');
+      setError(getErrorMessage(err, 'Error al guardar la transacción'));
     } finally {
       setLoading(false);
     }
@@ -114,26 +129,22 @@ export default function TransactionModal() {
   return (
     <Modal isOpen={isOpen} onClose={closeModal} title={isEdit ? 'Editar transacción' : 'Nueva transacción'}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
-            {error}
-          </div>
-        )}
+        <MessageBanner message={error} />
 
-        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          {typeLabels.map(t => (
+        <div className="flex overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+          {typeLabels.map((option) => (
             <button
-              key={t.value}
+              key={option.value}
               type="button"
-              onClick={() => setType(t.value)}
+              onClick={() => setType(option.value)}
               className={clsx(
                 'flex-1 py-2 text-sm font-medium transition-colors',
-                type === t.value
+                type === option.value
                   ? 'bg-accent-600 text-white'
                   : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800'
               )}
             >
-              {t.label}
+              {option.label}
             </button>
           ))}
         </div>
@@ -155,7 +166,7 @@ export default function TransactionModal() {
           value={accountId}
           onChange={(e) => setAccountId(e.target.value)}
           placeholder="Seleccionar cuenta"
-          options={accounts.map(a => ({ value: a.id, label: a.name }))}
+          options={accounts.map(account => ({ value: account.id, label: account.name }))}
           error={errors.accountId}
         />
 
@@ -165,7 +176,7 @@ export default function TransactionModal() {
             value={transferTo}
             onChange={(e) => setTransferTo(e.target.value)}
             placeholder="Seleccionar cuenta destino"
-            options={accounts.filter(a => a.id !== accountId).map(a => ({ value: a.id, label: a.name }))}
+            options={accounts.filter(account => account.id !== accountId).map(account => ({ value: account.id, label: account.name }))}
             error={errors.transferTo}
           />
         )}
@@ -175,7 +186,7 @@ export default function TransactionModal() {
           value={categoryId}
           onChange={(e) => setCategoryId(e.target.value)}
           placeholder="Seleccionar categoría"
-          options={categories.map(c => ({ value: c.id, label: c.name }))}
+          options={categories.map(category => ({ value: category.id, label: category.name }))}
           error={errors.categoryId}
         />
 
@@ -206,3 +217,4 @@ export default function TransactionModal() {
     </Modal>
   );
 }
+

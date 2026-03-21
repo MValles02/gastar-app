@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 import api from '../services/api.js';
 import Input from '../components/ui/Input.jsx';
 import Button from '../components/ui/Button.jsx';
 import ThemeToggle from '../components/ui/ThemeToggle.jsx';
 import GastarLogo from '../components/ui/GastarLogo.jsx';
+import MessageBanner from '../components/ui/MessageBanner.jsx';
+import { getErrorMessage } from '../utils/errors.js';
 
 function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -17,11 +19,12 @@ function ForgotPassword() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
     try {
       await api.post('/auth/forgot-password', { email });
       setSent(true);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al enviar el correo');
+      setError(getErrorMessage(err, 'Error al enviar el correo'));
     } finally {
       setLoading(false);
     }
@@ -29,7 +32,7 @@ function ForgotPassword() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
-      <ThemeToggle className="absolute top-4 right-4" />
+      <ThemeToggle className="absolute right-4 top-4" />
       <div className="w-full max-w-sm">
         <div className="mb-2 flex flex-col items-center gap-2">
           <GastarLogo className="h-10 w-10" />
@@ -43,20 +46,14 @@ function ForgotPassword() {
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-accent-100 dark:bg-accent-900/30">
                 <Mail className="h-6 w-6 text-accent-600" />
               </div>
-              <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Revisa tu correo
-              </h2>
+              <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">Revisa tu correo</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Si el correo existe, te enviamos un enlace para restablecer tu contraseña.
               </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
-                  {error}
-                </div>
-              )}
+              <MessageBanner message={error} />
               <Input
                 label="Correo electrónico"
                 type="email"

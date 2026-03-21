@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Modal from '../ui/Modal.jsx';
 import Input from '../ui/Input.jsx';
 import Button from '../ui/Button.jsx';
 import IconPicker from '../ui/IconPicker.jsx';
+import MessageBanner from '../ui/MessageBanner.jsx';
+import { getErrorMessage } from '../../utils/errors.js';
 
 export default function CategoryModal({ isOpen, onClose, onSubmit, category }) {
-  const isEdit = !!category;
+  const isEdit = Boolean(category);
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
   const [error, setError] = useState('');
@@ -20,6 +22,7 @@ export default function CategoryModal({ isOpen, onClose, onSubmit, category }) {
       setName('');
       setIcon('');
     }
+
     setError('');
     setErrors({});
   }, [category, isOpen]);
@@ -28,21 +31,25 @@ export default function CategoryModal({ isOpen, onClose, onSubmit, category }) {
     e.preventDefault();
     setError('');
 
-    const newErrors = {};
+    const nextErrors = {};
+
     if (!name.trim()) {
-      newErrors.name = 'Ingresá un nombre para la categoría';
+      nextErrors.name = 'Ingresá un nombre para la categoría';
     }
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
       return;
     }
+
     setErrors({});
     setLoading(true);
+
     try {
       await onSubmit({ name, icon: icon || undefined });
       onClose();
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al guardar la categoría');
+      setError(getErrorMessage(err, 'Error al guardar la categoría'));
     } finally {
       setLoading(false);
     }
@@ -51,11 +58,7 @@ export default function CategoryModal({ isOpen, onClose, onSubmit, category }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? 'Editar categoría' : 'Nueva categoría'}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
-            {error}
-          </div>
-        )}
+        <MessageBanner message={error} />
         <Input
           label="Nombre"
           value={name}

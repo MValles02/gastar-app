@@ -1,30 +1,42 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Wallet, Plus } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Plus, Wallet } from 'lucide-react';
 import { getAccounts, createAccount, updateAccount, deleteAccount } from '../services/accounts.js';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
+import { useDialog } from '../context/DialogContext.jsx';
 import AccountCard from '../components/accounts/AccountCard.jsx';
 import AccountModal from '../components/accounts/AccountModal.jsx';
 import Button from '../components/ui/Button.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
+import PageErrorState from '../components/ui/PageErrorState.jsx';
+import { getErrorMessage } from '../utils/errors.js';
 
 function Accounts() {
   const { triggerRefresh } = useTransactionModal();
+  const { showAlert, showConfirm } = useDialog();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
 
   const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError('');
+
     try {
       const data = await getAccounts();
       setAccounts(data);
+    } catch (err) {
+      setLoadError(getErrorMessage(err, 'No pudimos cargar las cuentas.'));
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleCreate = () => {
     setEditing(null);
@@ -37,13 +49,25 @@ function Accounts() {
   };
 
   const handleDelete = async (account) => {
-    if (!confirm(`Eliminar la cuenta "${account.name}"?`)) return;
+    const confirmed = await showConfirm({
+      title: 'Eliminar cuenta',
+      message: `Se eliminará la cuenta "${account.name}". Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+      cancelLabel: 'Cancelar',
+      destructive: true,
+    });
+
+    if (!confirmed) return;
+
     try {
       await deleteAccount(account.id);
       await load();
       triggerRefresh();
     } catch (err) {
-      alert(err.response?.data?.error || 'Error al eliminar');
+      await showAlert({
+        title: 'No pudimos eliminar la cuenta',
+        message: getErrorMessage(err, 'Error al eliminar la cuenta.'),
+      });
     }
   };
 
@@ -53,11 +77,13 @@ function Accounts() {
     } else {
       await createAccount(data);
     }
+
     await load();
     triggerRefresh();
   };
 
   if (loading) return <Spinner className="py-12" />;
+  if (loadError) return <PageErrorState title="No pudimos cargar las cuentas" message={loadError} onAction={load} />;
 
   return (
     <div>
@@ -73,7 +99,7 @@ function Accounts() {
         <EmptyState
           icon={Wallet}
           title="Sin cuentas"
-          description="Agrega tu primera cuenta para empezar a registrar transacciones."
+          description="Agregá tu primera cuenta para empezar a registrar transacciones."
           actionLabel="Agregar cuenta"
           onAction={handleCreate}
         />

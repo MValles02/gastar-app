@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import { getSummary, getByCategory } from '../services/reports.js';
 import SpendingByCategory from '../components/dashboard/SpendingByCategory.jsx';
 import Card from '../components/ui/Card.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
+import PageErrorState from '../components/ui/PageErrorState.jsx';
 import { formatCurrency } from '../utils/formatters.js';
+import { getErrorMessage } from '../utils/errors.js';
 
 function Reports() {
   const { refreshKey } = useTransactionModal();
@@ -16,17 +18,30 @@ function Reports() {
   const [summary, setSummary] = useState(null);
   const [categoryData, setCategoryData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     setLoading(true);
-    Promise.all([
-      getSummary({ from, to }),
-      getByCategory({ from, to }),
-    ]).then(([sum, byCat]) => {
+    setError('');
+
+    try {
+      const [sum, byCat] = await Promise.all([
+        getSummary({ from, to }),
+        getByCategory({ from, to }),
+      ]);
+
       setSummary(sum);
       setCategoryData(byCat);
-    }).finally(() => setLoading(false));
-  }, [from, to, refreshKey]);
+    } catch (err) {
+      setError(getErrorMessage(err, 'No pudimos cargar los reportes.'));
+    } finally {
+      setLoading(false);
+    }
+  }, [from, to]);
+
+  useEffect(() => {
+    load();
+  }, [load, refreshKey]);
 
   return (
     <div>
@@ -55,6 +70,8 @@ function Reports() {
 
       {loading ? (
         <Spinner className="py-12" />
+      ) : error ? (
+        <PageErrorState title="No pudimos cargar los reportes" message={error} onAction={load} />
       ) : (
         <div className="space-y-6">
           {summary && (

@@ -1,27 +1,41 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Mail, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import Input from '../components/ui/Input.jsx';
 import Button from '../components/ui/Button.jsx';
 import ThemeToggle from '../components/ui/ThemeToggle.jsx';
 import GastarLogo from '../components/ui/GastarLogo.jsx';
+import MessageBanner from '../components/ui/MessageBanner.jsx';
+import { AUTH_REDIRECT_MESSAGE_KEY } from '../services/api.js';
+import { getErrorMessage } from '../utils/errors.js';
 
 function Login() {
   const { login } = useAuth();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const redirectMessage = sessionStorage.getItem(AUTH_REDIRECT_MESSAGE_KEY);
+    const navigationMessage = location.state?.message;
+    setNotice(redirectMessage || navigationMessage || '');
+    sessionStorage.removeItem(AUTH_REDIRECT_MESSAGE_KEY);
+  }, [location.state]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setNotice('');
     setLoading(true);
+
     try {
       await login(email, password);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al iniciar sesión');
+      setError(getErrorMessage(err, 'Error al iniciar sesión'));
     } finally {
       setLoading(false);
     }
@@ -29,7 +43,7 @@ function Login() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
-      <ThemeToggle className="absolute top-4 right-4" />
+      <ThemeToggle className="absolute right-4 top-4" />
       <div className="w-full max-w-sm">
         <div className="mb-2 flex flex-col items-center gap-2">
           <GastarLogo className="h-10 w-10" />
@@ -39,11 +53,8 @@ function Login() {
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
-                {error}
-              </div>
-            )}
+            <MessageBanner message={notice} variant="success" />
+            <MessageBanner message={error} />
             <Input
               label="Correo electrónico"
               type="email"
@@ -60,7 +71,7 @@ function Login() {
               icon={Lock}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••"
+              placeholder="******"
               required
             />
             <div className="text-right">
