@@ -7,6 +7,7 @@ import Input from '../../ui/Input.jsx';
 import Button from '../../ui/Button.jsx';
 import IconPicker from '../../ui/IconPicker.jsx';
 import MessageBanner from '../../ui/MessageBanner.jsx';
+import OptionTile from '../../ui/OptionTile.jsx';
 import { useOnboarding } from '../../../context/OnboardingContext.jsx';
 import { createCategory, getCategories } from '../../../services/categories.js';
 import { getErrorMessage } from '../../../utils/errors.js';
@@ -109,44 +110,30 @@ export default function CategoriesStep() {
   };
 
   const canContinue = choice === 'defaults' || pendingCategories.length > 0;
+  const listed = choice === 'custom' ? pendingCategories : extraCategories;
 
   return (
     <div className="flex flex-col">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Tus categorías</h2>
-      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        Las categorías te ayudan a organizar tus gastos e ingresos.
+      <h2 className="text-xl font-semibold text-app">Tus categorías</h2>
+      <p className="mt-1 text-sm text-app-muted">
+        Las categorías sostienen todo el análisis del resto de la aplicación.
       </p>
 
       <div className="mt-5 space-y-3">
-        <button
-          type="button"
+        <OptionTile
+          selected={choice === 'defaults'}
           onClick={() => setChoice('defaults')}
-          className={`w-full rounded-xl border-2 p-4 text-left transition-colors ${
-            choice === 'defaults'
-              ? 'border-accent-600 bg-accent-50 dark:bg-gray-800'
-              : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600'
-          }`}
+          title="Usar las predeterminadas"
+          description="13 categorías listas para usar en español."
         >
-          <div className="flex items-center gap-3">
-            <div className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border-2 ${
-              choice === 'defaults' ? 'border-accent-600' : 'border-gray-400'
-            }`}>
-              {choice === 'defaults' && <div className="h-2 w-2 rounded-full bg-accent-600" />}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Usar las predeterminadas</p>
-              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">13 categorías listas para usar en español</p>
-            </div>
-          </div>
-
           {choice === 'defaults' && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               {DEFAULT_CATEGORIES.map(category => {
                 const Icon = ICON_COMPONENTS[category.icon];
                 return (
                   <span
                     key={category.name}
-                    className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    className="inline-flex items-center gap-1 rounded-full border border-border-default bg-surface px-2.5 py-1 text-xs font-medium text-app-muted"
                   >
                     {Icon && <Icon className="h-3 w-3" />}
                     {category.name}
@@ -155,53 +142,38 @@ export default function CategoriesStep() {
               })}
             </div>
           )}
-        </button>
+        </OptionTile>
 
-        <button
-          type="button"
+        <OptionTile
+          selected={choice === 'custom'}
           onClick={() => setChoice('custom')}
-          className={`w-full rounded-xl border-2 p-4 text-left transition-colors ${
-            choice === 'custom'
-              ? 'border-accent-600 bg-accent-50 dark:bg-gray-800'
-              : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <div className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border-2 ${
-              choice === 'custom' ? 'border-accent-600' : 'border-gray-400'
-            }`}>
-              {choice === 'custom' && <div className="h-2 w-2 rounded-full bg-accent-600" />}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Empezar desde cero</p>
-              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Creá tus propias categorías personalizadas</p>
-            </div>
-          </div>
-        </button>
+          title="Empezar desde cero"
+          description="Creá tu propia estructura personalizada."
+        />
       </div>
 
       <div className="mt-5">
-        <p className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+        <p className="mb-3 text-sm font-medium text-app-muted">
           {choice === 'defaults' ? 'Agregar categoría adicional (opcional)' : 'Agregar categorías'}
         </p>
 
-        {(choice === 'custom' ? pendingCategories : extraCategories).map((category, index) => {
+        {listed.map((category, index) => {
           const Icon = ICON_COMPONENTS[category.icon];
           const fromExtra = choice === 'defaults';
 
           return (
             <div
               key={`${category.name}-${index}`}
-              className="mb-2 flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-900"
+              className="panel-muted mb-2 flex items-center justify-between px-3 py-2"
             >
-              <span className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
-                {Icon && <Icon className="h-4 w-4 text-gray-500" />}
+              <span className="inline-flex items-center gap-1.5 text-sm text-app">
+                {Icon && <Icon className="h-4 w-4 text-app-soft" />}
                 {category.name}
               </span>
               <button
                 type="button"
                 onClick={() => removeCategory(index, fromExtra)}
-                className="text-xs text-red-400 hover:text-red-600 dark:hover:text-red-400"
+                className="text-xs text-app-soft transition-colors hover:text-danger"
               >
                 Quitar
               </button>
@@ -235,7 +207,7 @@ export default function CategoriesStep() {
         </Button>
       </div>
       {choice === 'custom' && pendingCategories.length === 0 && (
-        <p className="mt-2 text-center text-xs text-gray-400">
+        <p className="mt-2 text-center text-xs text-app-soft">
           Agregá al menos una categoría para continuar
         </p>
       )}

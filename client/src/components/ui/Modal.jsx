@@ -22,23 +22,22 @@ export default function Modal({ isOpen, onClose, title, children, className }) {
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="fixed inset-0 bg-black/50 transition-opacity"
+        className="fixed inset-0 bg-black/45 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
       <div
         className={clsx(
-          'relative z-10 w-full max-w-md rounded-xl bg-white p-6 shadow-xl',
-          'dark:bg-gray-900 dark:border dark:border-gray-800',
+          'panel relative z-10 w-full max-w-md p-6 shadow-hero',
           className
         )}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <h2 className="text-lg font-semibold text-app">
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            className="interactive-subtle p-1"
           >
             <X className="h-5 w-5" />
           </button>

@@ -2,17 +2,17 @@ import Button from './Button.jsx';
 
 export default function EmptyState({ icon: Icon, title, description, actionLabel, onAction }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
+    <div className="panel flex flex-col items-center justify-center px-6 py-12 text-center">
       {Icon && (
-        <div className="mb-4 rounded-full bg-gray-100 p-4 dark:bg-gray-800">
-          <Icon className="h-8 w-8 text-gray-400" />
+        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-accent-50 dark:bg-accent-950">
+          <Icon className="h-8 w-8 text-accent-600" />
         </div>
       )}
-      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+      <h3 className="text-lg font-semibold text-app">
         {title}
       </h3>
       {description && (
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-2 max-w-md text-sm text-app-muted">
           {description}
         </p>
       )}

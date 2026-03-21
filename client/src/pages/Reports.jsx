@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import { getSummary, getByCategory } from '../services/reports.js';
+import { Page, PageHeader } from '../components/layout/Page.jsx';
 import SpendingByCategory from '../components/dashboard/SpendingByCategory.jsx';
 import Card from '../components/ui/Card.jsx';
+import Input from '../components/ui/Input.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
 import PageErrorState from '../components/ui/PageErrorState.jsx';
-import { formatCurrency } from '../utils/formatters.js';
+import { formatCurrency, getAmountTone } from '../utils/formatters.js';
 import { getErrorMessage } from '../utils/errors.js';
 
 function Reports() {
@@ -44,26 +46,27 @@ function Reports() {
   }, [load, refreshKey]);
 
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">Reportes</h1>
+    <Page>
+      <PageHeader
+        title="Reportes"
+        description="Compará ingresos, gastos y balance neto dentro del período que elijas."
+      />
 
-      <div className="mb-6 flex flex-wrap items-end gap-3">
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Desde</label>
-          <input
+      <div className="panel flex flex-wrap items-end gap-3 p-4">
+        <div className="min-w-[11rem] flex-1">
+          <Input
+            label="Desde"
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="block rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-accent-500"
           />
         </div>
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Hasta</label>
-          <input
+        <div className="min-w-[11rem] flex-1">
+          <Input
+            label="Hasta"
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="block rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-accent-500"
           />
         </div>
       </div>
@@ -76,21 +79,21 @@ function Reports() {
         <div className="space-y-6">
           {summary && (
             <div className="grid gap-4 sm:grid-cols-3">
-              <Card className="text-center !p-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Ingresos</p>
-                <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+              <Card className="text-center !p-5">
+                <p className="text-sm text-app-muted">Ingresos</p>
+                <p className={`text-2xl font-semibold ${getAmountTone('income')}`}>
                   {formatCurrency(summary.totalIncome)}
                 </p>
               </Card>
-              <Card className="text-center !p-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Gastos</p>
-                <p className="text-xl font-bold text-red-600 dark:text-red-400">
+              <Card className="text-center !p-5">
+                <p className="text-sm text-app-muted">Gastos</p>
+                <p className={`text-2xl font-semibold ${getAmountTone('expense')}`}>
                   {formatCurrency(summary.totalExpenses)}
                 </p>
               </Card>
-              <Card className="text-center !p-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Balance neto</p>
-                <p className={`text-xl font-bold ${summary.netFlow >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+              <Card className="text-center !p-5">
+                <p className="text-sm text-app-muted">Balance neto</p>
+                <p className={`text-2xl font-semibold ${summary.netFlow >= 0 ? getAmountTone('income') : getAmountTone('expense')}`}>
                   {formatCurrency(summary.netFlow)}
                 </p>
               </Card>
@@ -100,7 +103,7 @@ function Reports() {
           <SpendingByCategory expenses={categoryData?.expenses} />
         </div>
       )}
-    </div>
+    </Page>
   );
 }
 

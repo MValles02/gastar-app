@@ -56,3 +56,14 @@ export function getTransactionTypeColor(type) {
   };
   return colors[type] || 'gray';
 }
+
+export function getAmountTone(type) {
+  if (type === 'income') return 'text-success';
+  if (type === 'expense') return 'text-danger';
+  if (type === 'transfer') return 'text-accent-600 dark:text-accent-300';
+  return 'text-app';
+}
+
+export function getBalanceTone(amount) {
+  return amount >= 0 ? 'text-app' : 'text-danger';
+}

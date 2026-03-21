@@ -3,6 +3,7 @@ import { Plus, Wallet } from 'lucide-react';
 import { getAccounts, createAccount, updateAccount, deleteAccount } from '../services/accounts.js';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import { useDialog } from '../context/DialogContext.jsx';
+import { Page, PageHeader } from '../components/layout/Page.jsx';
 import AccountCard from '../components/accounts/AccountCard.jsx';
 import AccountModal from '../components/accounts/AccountModal.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -86,14 +87,17 @@ function Accounts() {
   if (loadError) return <PageErrorState title="No pudimos cargar las cuentas" message={loadError} onAction={load} />;
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Cuentas</h1>
-        <Button onClick={handleCreate} size="sm">
-          <Plus className="h-4 w-4" />
-          Agregar
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        title="Cuentas"
+        description="Administrá los saldos que alimentan tus movimientos y reportes."
+        actions={(
+          <Button onClick={handleCreate} size="sm">
+            <Plus className="h-4 w-4" />
+            Agregar
+          </Button>
+        )}
+      />
 
       {accounts.length === 0 ? (
         <EmptyState
@@ -122,7 +126,7 @@ function Accounts() {
         onSubmit={handleSubmit}
         account={editing}
       />
-    </div>
+    </Page>
   );
 }
 

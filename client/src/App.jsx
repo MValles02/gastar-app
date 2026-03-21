@@ -27,7 +27,7 @@ function PrivateRoute({ children }) {
 
   if (authError) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-950 md:p-8">
+      <div className="min-h-screen bg-canvas p-4 md:p-8">
         <div className="mx-auto max-w-xl pt-10">
           <PageErrorState
             title="No pudimos iniciar la aplicación"

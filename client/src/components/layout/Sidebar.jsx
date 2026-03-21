@@ -43,20 +43,20 @@ export default function Sidebar() {
   return (
     <aside
       className={clsx(
-        'hidden md:flex flex-col h-dvh sticky top-0 border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950 transition-all duration-200',
+        'hidden md:flex h-dvh sticky top-0 flex-col border-r border-border-default bg-canvas-elevated transition-all duration-200',
         collapsed ? 'w-16' : 'w-60'
       )}
     >
-      <div className={clsx('flex items-center gap-2 border-b border-gray-200 dark:border-gray-800 p-4', collapsed && 'justify-center')}>
+      <div className={clsx('flex items-center gap-2 border-b border-border-default p-4', collapsed && 'justify-center')}>
         {!collapsed && (
           <>
             <GastarLogo className="h-6 w-6 flex-shrink-0" />
-            <span className="text-lg font-bold text-accent-600">Gastar</span>
+            <span className="text-lg font-semibold tracking-tight text-accent-600">Gastar</span>
           </>
         )}
         <button
           onClick={toggle}
-          className={clsx('rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800', !collapsed && 'ml-auto')}
+          className={clsx('interactive-subtle p-1.5', !collapsed && 'ml-auto')}
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
@@ -70,10 +70,10 @@ export default function Sidebar() {
             end={to === '/'}
             className={({ isActive }) =>
               clsx(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'flex items-center gap-3 rounded-soft px-3 py-2.5 text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-accent-50 text-accent-700 dark:bg-accent-950 dark:text-accent-400'
-                  : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800',
+                  ? 'bg-accent-50 text-accent-700 dark:bg-accent-950 dark:text-accent-300'
+                  : 'text-app-muted hover:bg-surface-muted hover:text-app',
                 collapsed && 'justify-center px-2'
               )
             }
@@ -84,18 +84,18 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-gray-200 dark:border-gray-800 p-2 space-y-1">
+      <div className="space-y-1 border-t border-border-default p-2">
         <div className={clsx('flex items-center gap-3', collapsed && 'justify-center')}>
           <ThemeToggle />
           {!collapsed && (
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-sm text-app-muted">
               {theme === 'light' ? 'Modo oscuro' : 'Modo claro'}
             </span>
           )}
         </div>
 
         {!collapsed && user && (
-          <div className="px-3 py-1.5 text-xs text-gray-400 truncate">
+          <div className="truncate px-3 py-1.5 text-xs text-app-soft">
             {user.name}
           </div>
         )}
@@ -103,7 +103,7 @@ export default function Sidebar() {
         <button
           onClick={openOnboarding}
           className={clsx(
-            'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors',
+            'flex w-full items-center gap-3 rounded-soft px-3 py-2 text-sm text-app-muted transition-colors hover:bg-surface-muted hover:text-app',
             collapsed && 'justify-center px-2'
           )}
         >
@@ -114,7 +114,7 @@ export default function Sidebar() {
         <button
           onClick={logout}
           className={clsx(
-            'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-950 dark:hover:text-red-400 transition-colors',
+            'flex w-full items-center gap-3 rounded-soft px-3 py-2 text-sm text-app-muted transition-colors hover:bg-danger-soft hover:text-danger',
             collapsed && 'justify-center px-2'
           )}
         >

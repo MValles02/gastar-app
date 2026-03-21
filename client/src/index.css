@@ -4,40 +4,157 @@
 
 @layer base {
   :root {
-    /* Emerald accent for light theme */
-    --color-accent-50: #ecfdf5;
-    --color-accent-100: #d1fae5;
-    --color-accent-200: #a7f3d0;
-    --color-accent-300: #6ee7b7;
-    --color-accent-400: #34d399;
-    --color-accent-500: #10b981;
-    --color-accent-600: #059669;
-    --color-accent-700: #047857;
-    --color-accent-800: #065f46;
-    --color-accent-900: #064e3b;
-    --color-accent-950: #022c22;
+    --color-accent-50: #f0fdf8;
+    --color-accent-100: #d7f8eb;
+    --color-accent-200: #adefd5;
+    --color-accent-300: #73dfbb;
+    --color-accent-400: #34c79e;
+    --color-accent-500: #16a57f;
+    --color-accent-600: #0f8a6b;
+    --color-accent-700: #0f6e57;
+    --color-accent-800: #115847;
+    --color-accent-900: #11493c;
+    --color-accent-950: #072a22;
+
+    --color-bg: #f6f1e8;
+    --color-bg-elevated: #fbf8f1;
+    --color-surface: #fffdf9;
+    --color-surface-muted: #f0e8dc;
+    --color-surface-strong: #e7dbc9;
+    --color-border: #d9cbb8;
+    --color-border-strong: #bea88d;
+    --color-text: #221c17;
+    --color-text-muted: #6b5d51;
+    --color-text-soft: #8c7e72;
+    --color-success: #167f5c;
+    --color-success-soft: #d8f3e7;
+    --color-danger: #b14a4a;
+    --color-danger-soft: #f8dddd;
+    --color-warning: #c1841f;
+    --color-warning-soft: #f8ebc9;
+    --shadow-sm: 0 10px 24px rgba(34, 28, 23, 0.06);
+    --shadow-md: 0 20px 44px rgba(34, 28, 23, 0.1);
+    --shadow-lg: 0 32px 64px rgba(34, 28, 23, 0.14);
+    --radius-sm: 0.75rem;
+    --radius-md: 1rem;
+    --radius-lg: 1.5rem;
   }
 
   .dark {
-    /* Indigo accent for dark theme */
-    --color-accent-50: #eef2ff;
-    --color-accent-100: #e0e7ff;
-    --color-accent-200: #c7d2fe;
-    --color-accent-300: #a5b4fc;
-    --color-accent-400: #818cf8;
-    --color-accent-500: #6366f1;
-    --color-accent-600: #4f46e5;
-    --color-accent-700: #4338ca;
-    --color-accent-800: #3730a3;
-    --color-accent-900: #312e81;
-    --color-accent-950: #1e1b4b;
+    --color-accent-50: #effaf7;
+    --color-accent-100: #d4f4ea;
+    --color-accent-200: #afe8d5;
+    --color-accent-300: #79d3b7;
+    --color-accent-400: #44b591;
+    --color-accent-500: #2b9677;
+    --color-accent-600: #237e63;
+    --color-accent-700: #1f644f;
+    --color-accent-800: #1b5040;
+    --color-accent-900: #173d31;
+    --color-accent-950: #0b211b;
+
+    --color-bg: #151311;
+    --color-bg-elevated: #1a1715;
+    --color-surface: #201c19;
+    --color-surface-muted: #2a2521;
+    --color-surface-strong: #342d28;
+    --color-border: #3e352e;
+    --color-border-strong: #5a4b40;
+    --color-text: #f4ede3;
+    --color-text-muted: #c4b6a8;
+    --color-text-soft: #9d8f82;
+    --color-success: #69cfa4;
+    --color-success-soft: rgba(34, 95, 70, 0.36);
+    --color-danger: #ef8f8f;
+    --color-danger-soft: rgba(126, 43, 43, 0.34);
+    --color-warning: #f0bb63;
+    --color-warning-soft: rgba(122, 83, 27, 0.34);
+    --shadow-sm: 0 12px 28px rgba(0, 0, 0, 0.22);
+    --shadow-md: 0 22px 48px rgba(0, 0, 0, 0.28);
+    --shadow-lg: 0 34px 72px rgba(0, 0, 0, 0.34);
   }
 
   html, body, #root {
     @apply h-dvh overflow-hidden;
   }
 
+  html {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
   body {
-    @apply bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 transition-colors duration-200;
+    @apply bg-app text-app transition-colors duration-200 antialiased;
+    font-feature-settings: "ss01" 1, "cv03" 1, "cv04" 1;
+  }
+
+  * {
+    @apply border-border-default;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-accent-400) 35%, transparent);
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply min-h-full space-y-6;
+  }
+
+  .page-header {
+    @apply flex flex-col gap-4 md:flex-row md:items-end md:justify-between;
+  }
+
+  .page-title {
+    @apply text-3xl font-semibold tracking-tight text-app md:text-[2rem];
+  }
+
+  .page-description {
+    @apply max-w-2xl text-sm text-app-muted md:text-[0.95rem];
+  }
+
+  .panel {
+    @apply rounded-panel border border-border-default bg-surface shadow-panel-sm;
+  }
+
+  .panel-muted {
+    @apply rounded-panel border border-border-default bg-surface-muted;
+  }
+
+  .interactive-subtle {
+    @apply rounded-soft text-app-muted transition-colors duration-200 hover:bg-surface-muted hover:text-app;
+  }
+
+  .field-base {
+    @apply block w-full rounded-soft border border-border-default bg-surface px-3.5 py-2.5 text-sm text-app transition-[border-color,box-shadow,background-color,color] duration-200 placeholder:text-app-soft focus:border-transparent focus:outline-none focus:ring-2 focus:ring-accent-400;
+  }
+
+  .field-label {
+    @apply block text-sm font-medium text-app-muted;
+  }
+
+  .auth-backdrop {
+    background:
+      radial-gradient(circle at top left, rgba(22, 165, 127, 0.16), transparent 32%),
+      radial-gradient(circle at bottom right, rgba(177, 74, 74, 0.12), transparent 28%),
+      linear-gradient(180deg, var(--color-bg-elevated), var(--color-bg));
+  }
+
+  .auth-shell {
+    @apply panel relative overflow-hidden p-7 sm:p-8;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .auth-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: 0.375rem;
+    background: linear-gradient(90deg, var(--color-accent-400), var(--color-accent-600));
   }
 }

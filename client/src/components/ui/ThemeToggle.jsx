@@ -9,7 +9,7 @@ export default function ThemeToggle({ className }) {
     <button
       onClick={toggleTheme}
       className={clsx(
-        'rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800',
+        'interactive-subtle border border-border-default bg-surface p-2.5 shadow-panel-sm',
         className
       )}
     >

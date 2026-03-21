@@ -1,6 +1,6 @@
 import { Pencil, Trash2, ArrowRight } from 'lucide-react';
 import Badge from '../ui/Badge.jsx';
-import { formatCurrency, formatDate, getTransactionTypeLabel, getTransactionTypeColor } from '../../utils/formatters.js';
+import { formatCurrency, formatDate, getAmountTone, getTransactionTypeLabel, getTransactionTypeColor } from '../../utils/formatters.js';
 
 export default function TransactionList({ transactions, onEdit, onDelete }) {
   const grouped = {};
@@ -9,12 +9,6 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
     if (!grouped[dateKey]) grouped[dateKey] = [];
     grouped[dateKey].push(tx);
   }
-
-  const amountColor = (type) => {
-    if (type === 'income') return 'text-emerald-600 dark:text-emerald-400';
-    if (type === 'expense') return 'text-red-600 dark:text-red-400';
-    return 'text-blue-600 dark:text-blue-400';
-  };
 
   const amountPrefix = (type) => {
     if (type === 'income') return '+';
@@ -25,25 +19,25 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
   return (
     <div className="space-y-6">
       {Object.entries(grouped).map(([dateKey, items]) => (
-        <div key={dateKey}>
-          <h3 className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+        <div key={dateKey} className="space-y-2">
+          <h3 className="text-sm font-medium text-app-muted">
             {formatDate(dateKey)}
           </h3>
           <div className="space-y-2">
             {items.map(tx => (
               <div
                 key={tx.id}
-                className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900"
+                className="panel flex items-center justify-between p-3"
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="min-w-0 flex items-center gap-3">
                   <Badge color={getTransactionTypeColor(tx.type)}>
                     {getTransactionTypeLabel(tx.type)}
                   </Badge>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <p className="truncate text-sm font-medium text-app">
                       {tx.description || tx.category?.name}
                     </p>
-                    <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                    <p className="truncate text-xs text-app-muted">
                       {tx.account?.name}
                       {tx.type === 'transfer' && tx.transferToAccount && (
                         <>
@@ -55,18 +49,18 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-sm font-semibold whitespace-nowrap ${amountColor(tx.type)}`}>
+                  <span className={`whitespace-nowrap text-sm font-semibold ${getAmountTone(tx.type)}`}>
                     {amountPrefix(tx.type)}{formatCurrency(parseFloat(tx.amount))}
                   </span>
                   <button
                     onClick={() => onEdit(tx)}
-                    className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                    className="interactive-subtle p-1.5"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => onDelete(tx)}
-                    className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-400"
+                    className="rounded-soft p-1.5 text-app-soft transition-colors hover:bg-danger-soft hover:text-danger"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

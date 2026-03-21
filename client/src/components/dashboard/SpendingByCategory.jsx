@@ -3,16 +3,16 @@ import Card from '../ui/Card.jsx';
 import { formatCurrency } from '../../utils/formatters.js';
 
 const COLORS = [
-  '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6',
-  '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
+  '#16a57f', '#3a7da8', '#c1841f', '#b14a4a', '#7e5bef',
+  '#d25791', '#2f9b95', '#d27b3c', '#5f70d8', '#7ca32a',
 ];
 
 export default function SpendingByCategory({ expenses }) {
   if (!expenses || expenses.length === 0) {
     return (
       <Card>
-        <h3 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">Gastos por categoría</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400">No hay gastos en este periodo.</p>
+        <h3 className="mb-3 font-semibold text-app">Gastos por categoría</h3>
+        <p className="text-sm text-app-muted">No hay gastos en este período.</p>
       </Card>
     );
   }
@@ -27,16 +27,16 @@ export default function SpendingByCategory({ expenses }) {
     if (!active || !payload?.length) return null;
     const item = payload[0];
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-2 text-sm shadow-lg dark:border-gray-700 dark:bg-gray-900">
-        <p className="font-medium">{item.name}</p>
-        <p className="text-gray-500">{formatCurrency(item.value)}</p>
+      <div className="panel rounded-soft p-3 text-sm shadow-panel">
+        <p className="font-medium text-app">{item.name}</p>
+        <p className="text-app-muted">{formatCurrency(item.value)}</p>
       </div>
     );
   };
 
   return (
     <Card>
-      <h3 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">Gastos por categoría</h3>
+      <h3 className="mb-3 font-semibold text-app">Gastos por categoría</h3>
       <ResponsiveContainer width="100%" height={250}>
         <PieChart>
           <Pie
@@ -55,7 +55,7 @@ export default function SpendingByCategory({ expenses }) {
           <Tooltip content={renderTooltip} />
           <Legend
             formatter={(value) => (
-              <span className="text-xs text-gray-600 dark:text-gray-400">{value}</span>
+              <span className="text-xs text-app-muted">{value}</span>
             )}
           />
         </PieChart>

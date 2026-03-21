@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getSummary, getByCategory } from '../services/reports.js';
 import { getTransactions } from '../services/transactions.js';
+import { Page, PageHeader, Section } from '../components/layout/Page.jsx';
 import BalanceOverview from '../components/dashboard/BalanceOverview.jsx';
 import RecentTransactions from '../components/dashboard/RecentTransactions.jsx';
 import SpendingByCategory from '../components/dashboard/SpendingByCategory.jsx';
@@ -50,18 +51,20 @@ function Dashboard() {
   if (error) return <PageErrorState title="No pudimos cargar el panel" message={error} onAction={load} />;
 
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">Panel de Control</h1>
-
-      <div className="space-y-6">
+    <Page>
+      <PageHeader
+        title="Panel de control"
+        description="Seguimiento rápido de balances, últimas transacciones y distribución de gastos."
+      />
+      <Section className="space-y-6">
         <BalanceOverview summary={summary} />
 
         <div className="grid gap-6 lg:grid-cols-2">
           <SpendingByCategory expenses={categoryData?.expenses} />
           <RecentTransactions transactions={recentTx} />
         </div>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }
 

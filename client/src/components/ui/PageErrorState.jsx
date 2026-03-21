@@ -9,13 +9,13 @@ export default function PageErrorState({
   onAction,
 }) {
   return (
-    <div className="rounded-2xl border border-red-100 bg-white p-6 shadow-sm dark:border-red-950 dark:bg-gray-900">
+    <div className="panel border-danger/20 bg-surface p-6">
       <div className="flex flex-col items-start gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-300">
+        <div className="flex h-12 w-12 items-center justify-center rounded-panel bg-danger-soft text-danger">
           <AlertTriangle className="h-6 w-6" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+          <h2 className="text-lg font-semibold text-app">{title}</h2>
           <MessageBanner message={message} />
         </div>
         {onAction && (

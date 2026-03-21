@@ -3,15 +3,15 @@ import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 const variants = {
   error: {
-    wrapper: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300',
+    wrapper: 'border border-danger/15 bg-danger-soft text-danger',
     icon: AlertCircle,
   },
   success: {
-    wrapper: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+    wrapper: 'border border-success/15 bg-success-soft text-success',
     icon: CheckCircle2,
   },
   info: {
-    wrapper: 'bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300',
+    wrapper: 'border border-accent-200 bg-accent-50 text-accent-700 dark:border-accent-900 dark:bg-accent-950 dark:text-accent-300',
     icon: Info,
   },
 };
@@ -23,7 +23,7 @@ export default function MessageBanner({ message, variant = 'error', className })
   const Icon = config.icon;
 
   return (
-    <div className={clsx('rounded-lg p-3 text-sm', config.wrapper, className)}>
+    <div className={clsx('rounded-soft p-3 text-sm', config.wrapper, className)}>
       <div className="flex items-start gap-2">
         <Icon className="mt-0.5 h-4 w-4 flex-shrink-0" />
         <p>{message}</p>

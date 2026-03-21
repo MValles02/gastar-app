@@ -3,6 +3,7 @@ import { Plus, Tag } from 'lucide-react';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../services/categories.js';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import { useDialog } from '../context/DialogContext.jsx';
+import { Page, PageHeader } from '../components/layout/Page.jsx';
 import CategoryList from '../components/categories/CategoryList.jsx';
 import CategoryModal from '../components/categories/CategoryModal.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -86,14 +87,17 @@ function Categories() {
   if (loadError) return <PageErrorState title="No pudimos cargar las categorías" message={loadError} onAction={load} />;
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Categorías</h1>
-        <Button onClick={handleCreate} size="sm">
-          <Plus className="h-4 w-4" />
-          Agregar
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        title="Categorías"
+        description="Definí la estructura que organiza ingresos, gastos y comparativas."
+        actions={(
+          <Button onClick={handleCreate} size="sm">
+            <Plus className="h-4 w-4" />
+            Agregar
+          </Button>
+        )}
+      />
 
       {categories.length === 0 ? (
         <EmptyState
@@ -117,7 +121,7 @@ function Categories() {
         onSubmit={handleSubmit}
         category={editing}
       />
-    </div>
+    </Page>
   );
 }
 

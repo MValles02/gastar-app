@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Lock } from 'lucide-react';
 import api from '../services/api.js';
+import AuthShell from '../components/layout/AuthShell.jsx';
 import Input from '../components/ui/Input.jsx';
 import Button from '../components/ui/Button.jsx';
-import ThemeToggle from '../components/ui/ThemeToggle.jsx';
 import MessageBanner from '../components/ui/MessageBanner.jsx';
 import { getErrorMessage } from '../utils/errors.js';
 
@@ -40,62 +40,59 @@ function ResetPassword() {
 
   if (!token) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
-        <ThemeToggle className="absolute right-4 top-4" />
-        <div className="text-center">
-          <p className="text-gray-500 dark:text-gray-400">Enlace inválido.</p>
-          <Link to="/login" className="mt-2 inline-block text-sm text-accent-600 hover:underline">
+      <AuthShell
+        title="Enlace inválido"
+        subtitle="Este acceso ya no está disponible o fue abierto sin token."
+        footer={(
+          <Link className="inline-flex items-center gap-1 font-medium text-accent-600 transition-colors hover:text-accent-700" to="/login">
+            <ArrowLeft className="h-4 w-4" />
             Volver al inicio de sesión
           </Link>
-        </div>
-      </div>
+        )}
+      >
+        <p className="text-sm text-app-muted">Pedí un nuevo enlace de recuperación para continuar.</p>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
-      <ThemeToggle className="absolute right-4 top-4" />
-      <div className="w-full max-w-sm">
-        <h1 className="mb-2 text-center text-2xl font-bold text-accent-600">Gastar</h1>
-        <p className="mb-8 text-center text-sm text-gray-500 dark:text-gray-400">Creá una nueva contraseña</p>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <MessageBanner message={error} />
-            <Input
-              label="Nueva contraseña"
-              type="password"
-              icon={Lock}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
-              minLength={6}
-              required
-            />
-            <Input
-              label="Confirmar contraseña"
-              type="password"
-              icon={Lock}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Repetí tu contraseña"
-              minLength={6}
-              required
-            />
-            <Button type="submit" loading={loading} className="w-full">
-              Restablecer contraseña
-            </Button>
-          </form>
-        </div>
-
-        <p className="mt-4 text-center">
-          <Link to="/login" className="inline-flex items-center gap-1 text-sm text-accent-600 hover:underline">
-            <ArrowLeft className="h-4 w-4" />
-            Volver al inicio de sesión
-          </Link>
-        </p>
-      </div>
-    </div>
+    <AuthShell
+      title="Creá una nueva contraseña"
+      subtitle="Elegí una clave nueva para volver a entrar con seguridad."
+      footer={(
+        <Link className="inline-flex items-center gap-1 font-medium text-accent-600 transition-colors hover:text-accent-700" to="/login">
+          <ArrowLeft className="h-4 w-4" />
+          Volver al inicio de sesión
+        </Link>
+      )}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <MessageBanner message={error} />
+        <Input
+          label="Nueva contraseña"
+          type="password"
+          icon={Lock}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Mínimo 6 caracteres"
+          minLength={6}
+          required
+        />
+        <Input
+          label="Confirmar contraseña"
+          type="password"
+          icon={Lock}
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="Repetí tu contraseña"
+          minLength={6}
+          required
+        />
+        <Button type="submit" loading={loading} className="w-full">
+          Restablecer contraseña
+        </Button>
+      </form>
+    </AuthShell>
   );
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Wallet } from 'lucide-react';
 import Input from '../../ui/Input.jsx';
+import Select from '../../ui/Select.jsx';
 import Button from '../../ui/Button.jsx';
 import MessageBanner from '../../ui/MessageBanner.jsx';
 import { useOnboarding } from '../../../context/OnboardingContext.jsx';
@@ -12,7 +13,13 @@ const typeOptions = [
   { value: 'savings', label: 'Caja de ahorro' },
   { value: 'credit_card', label: 'Tarjeta de crédito' },
   { value: 'cash', label: 'Efectivo' },
-  { value: 'investment', label: 'Inversion' },
+  { value: 'investment', label: 'Inversión' },
+];
+
+const currencyOptions = [
+  { value: 'ARS', label: 'ARS - Peso argentino' },
+  { value: 'USD', label: 'USD - Dólar estadounidense' },
+  { value: 'EUR', label: 'EUR - Euro' },
 ];
 
 const typeLabels = Object.fromEntries(typeOptions.map(option => [option.value, option.label]));
@@ -86,9 +93,9 @@ export default function AccountsStep() {
 
   return (
     <div className="flex flex-col">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Tus cuentas</h2>
-      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        Agregá las cuentas que usás: banco, efectivo, tarjeta. Podés añadir más después.
+      <h2 className="text-xl font-semibold text-app">Tus cuentas</h2>
+      <p className="mt-1 text-sm text-app-muted">
+        Agregá las cuentas que usás: banco, efectivo o tarjeta. Podés sumar más después.
       </p>
 
       {createdAccounts.length > 0 && (
@@ -96,12 +103,12 @@ export default function AccountsStep() {
           {createdAccounts.map(account => (
             <div
               key={account.id}
-              className="flex items-center gap-3 rounded-xl border border-green-100 bg-green-50 px-4 py-3 dark:border-green-900 dark:bg-green-950/30"
+              className="panel-muted flex items-center gap-3 px-4 py-3"
             >
-              <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-green-500" />
+              <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-success" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{account.name}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{typeLabels[account.type]} · {account.currency}</p>
+                <p className="truncate text-sm font-medium text-app">{account.name}</p>
+                <p className="text-xs text-app-muted">{typeLabels[account.type]} · {account.currency}</p>
               </div>
             </div>
           ))}
@@ -109,11 +116,11 @@ export default function AccountsStep() {
       )}
 
       {loadingExisting ? (
-        <div className="mt-4 text-sm text-gray-400">Cargando cuentas...</div>
+        <div className="mt-4 text-sm text-app-soft">Cargando cuentas...</div>
       ) : (
         <form onSubmit={handleAdd} className="mt-5 space-y-3">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {createdAccounts.length === 0 ? 'Agrega tu primera cuenta' : 'Agregar otra cuenta'}
+          <p className="text-sm font-medium text-app-muted">
+            {createdAccounts.length === 0 ? 'Agregá tu primera cuenta' : 'Agregar otra cuenta'}
           </p>
 
           <MessageBanner message={error} />
@@ -122,35 +129,23 @@ export default function AccountsStep() {
             label="Nombre"
             value={form.name}
             onChange={set('name')}
-            placeholder="Ej: Banco Nacion, Efectivo"
+            placeholder="Ej: Banco Nación, Efectivo"
             error={errors.name}
           />
 
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tipo</label>
-            <select
-              value={form.type}
-              onChange={set('type')}
-              className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-accent-500"
-            >
-              {typeOptions.map(option => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label="Tipo"
+            value={form.type}
+            onChange={set('type')}
+            options={typeOptions}
+          />
 
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Moneda</label>
-            <select
-              value={form.currency}
-              onChange={set('currency')}
-              className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-accent-500"
-            >
-              <option value="ARS">ARS - Peso argentino</option>
-              <option value="USD">USD - Dólar estadounidense</option>
-              <option value="EUR">EUR - Euro</option>
-            </select>
-          </div>
+          <Select
+            label="Moneda"
+            value={form.currency}
+            onChange={set('currency')}
+            options={currencyOptions}
+          />
 
           <Input
             label="Saldo inicial"
@@ -179,8 +174,8 @@ export default function AccountsStep() {
         </Button>
       </div>
       {!canContinue && (
-        <p className="mt-2 text-center text-xs text-gray-400">
-          Agrega al menos una cuenta para continuar
+        <p className="mt-2 text-center text-xs text-app-soft">
+          Agregá al menos una cuenta para continuar
         </p>
       )}
     </div>

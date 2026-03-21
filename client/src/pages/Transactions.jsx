@@ -3,6 +3,7 @@ import { ArrowLeftRight } from 'lucide-react';
 import { getTransactions, deleteTransaction } from '../services/transactions.js';
 import { getAccounts } from '../services/accounts.js';
 import { getCategories } from '../services/categories.js';
+import { Page, PageHeader } from '../components/layout/Page.jsx';
 import TransactionList from '../components/transactions/TransactionList.jsx';
 import TransactionFilters from '../components/transactions/TransactionFilters.jsx';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
@@ -78,10 +79,11 @@ function Transactions() {
   if (loadError) return <PageErrorState title="No pudimos cargar las transacciones" message={loadError} onAction={load} />;
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Transacciones</h1>
-      </div>
+    <Page>
+      <PageHeader
+        title="Transacciones"
+        description="Filtrá, revisá y corregí cada movimiento desde una sola lista operativa."
+      />
 
       <TransactionFilters
         filters={filters}
@@ -104,7 +106,7 @@ function Transactions() {
             onDelete={handleDelete}
           />
           {data.totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-center gap-2">
+            <div className="mt-5 flex items-center justify-center gap-2">
               <Button
                 variant="secondary"
                 size="sm"
@@ -113,7 +115,7 @@ function Transactions() {
               >
                 Anterior
               </Button>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
+              <span className="text-sm text-app-muted">
                 Página {data.page} de {data.totalPages}
               </span>
               <Button
@@ -128,7 +130,7 @@ function Transactions() {
           )}
         </>
       )}
-    </div>
+    </Page>
   );
 }
 

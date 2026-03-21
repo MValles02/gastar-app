@@ -12,14 +12,18 @@ export default function OnboardingWizard() {
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-white dark:bg-gray-950">
-      <div className="mx-auto w-full max-w-lg flex-1 flex flex-col px-6 pt-8 pb-[calc(2rem+env(safe-area-inset-bottom))]">
-        <OnboardingProgressBar currentStep={currentStep} />
-        <div className="flex-1 mt-10">
-          {currentStep === 0 && <WelcomeStep />}
-          {currentStep === 1 && <AccountsStep />}
-          {currentStep === 2 && <CategoriesStep />}
-          {currentStep === 3 && <TutorialStep />}
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/35 backdrop-blur-sm">
+      <div className="mx-auto flex min-h-full w-full max-w-3xl items-center px-4 py-6 sm:px-6">
+        <div className="panel w-full overflow-hidden shadow-hero">
+          <div className="bg-canvas-elevated px-6 pt-6 pb-5 sm:px-8">
+            <OnboardingProgressBar currentStep={currentStep} />
+          </div>
+          <div className="px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 sm:px-8 sm:pt-8">
+            {currentStep === 0 && <WelcomeStep />}
+            {currentStep === 1 && <AccountsStep />}
+            {currentStep === 2 && <CategoriesStep />}
+            {currentStep === 3 && <TutorialStep />}
+          </div>
         </div>
       </div>
     </div>,

@@ -68,10 +68,10 @@ const ICONS = [
 export default function IconPicker({ value, onChange }) {
   return (
     <div>
-      <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-        Icono <span className="font-normal text-gray-400">(opcional)</span>
+      <p className="mb-2 text-sm font-medium text-app-muted">
+        Icono <span className="font-normal text-app-soft">(opcional)</span>
       </p>
-      <div className="grid grid-cols-8 gap-1.5 rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800/50">
+      <div className="panel-muted grid grid-cols-8 gap-1.5 p-2">
         {ICONS.map(({ name, Icon }) => {
           const isSelected = value === name;
           return (
@@ -80,10 +80,10 @@ export default function IconPicker({ value, onChange }) {
               type="button"
               onClick={() => onChange(isSelected ? '' : name)}
               title={name}
-              className={`flex items-center justify-center rounded-lg p-2 transition-colors ${
+              className={`rounded-soft flex items-center justify-center p-2 transition-colors ${
                 isSelected
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-500 hover:bg-gray-200 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
+                  ? 'bg-accent-600 text-white'
+                  : 'text-app-muted hover:bg-surface hover:text-app'
               }`}
             >
               <Icon className="h-5 w-5" />
@@ -92,8 +92,8 @@ export default function IconPicker({ value, onChange }) {
         })}
       </div>
       {value && (
-        <p className="mt-1.5 text-xs text-gray-400">
-          Seleccionado: <span className="font-medium text-gray-600 dark:text-gray-300">{value}</span>
+        <p className="mt-1.5 text-xs text-app-soft">
+          Seleccionado: <span className="font-medium text-app-muted">{value}</span>
         </p>
       )}
     </div>

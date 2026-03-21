@@ -8,22 +8,22 @@ export default function Header({ title }) {
   const { logout } = useAuth();
   const { openOnboarding } = useOnboarding();
   return (
-    <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-950 md:hidden">
+    <header className="border-b border-border-default bg-canvas-elevated/90 px-4 py-3 backdrop-blur md:hidden">
       <div className="flex items-center gap-2">
         <GastarLogo className="h-6 w-6" />
-        <h1 className="text-lg font-bold text-accent-600">{title || 'Gastar'}</h1>
+        <h1 className="text-lg font-semibold tracking-tight text-accent-600">{title || 'Gastar'}</h1>
       </div>
       <div className="flex items-center gap-2">
         <ThemeToggle />
         <button
           onClick={openOnboarding}
-          className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
+          className="interactive-subtle p-1.5"
         >
           <HelpCircle className="h-5 w-5" />
         </button>
         <button
           onClick={logout}
-          className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
+          className="interactive-subtle p-1.5"
         >
           <LogOut className="h-5 w-5" />
         </button>
