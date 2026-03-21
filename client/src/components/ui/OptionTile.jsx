@@ -15,7 +15,7 @@ export default function OptionTile({
       className={clsx(
         'w-full rounded-panel border p-4 text-left transition-[border-color,background-color,transform,box-shadow] duration-200',
         selected
-          ? 'border-accent-500 bg-accent-50 shadow-panel-sm dark:bg-accent-950/50'
+          ? 'border-accent-500 bg-surface-muted shadow-panel-sm'
           : 'border-border-default bg-surface hover:border-border-strong hover:bg-surface-muted',
         className
       )}

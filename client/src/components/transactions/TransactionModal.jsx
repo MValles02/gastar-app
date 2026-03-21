@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
+import {
+  ArrowDownCircle,
+  ArrowLeftRight,
+  ArrowUpCircle,
+  CalendarDays,
+  Tag,
+  Wallet,
+} from 'lucide-react';
 import Modal from '../ui/Modal.jsx';
 import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
@@ -12,10 +20,14 @@ import { useTransactionModal } from '../../context/TransactionModalContext.jsx';
 import { getErrorMessage } from '../../utils/errors.js';
 
 const typeLabels = [
-  { value: 'expense', label: 'Gasto' },
-  { value: 'income', label: 'Ingreso' },
-  { value: 'transfer', label: 'Transferencia' },
+  { value: 'expense', label: 'Gasto', icon: ArrowDownCircle, tone: 'text-danger' },
+  { value: 'income', label: 'Ingreso', icon: ArrowUpCircle, tone: 'text-success' },
+  { value: 'transfer', label: 'Transferencia', icon: ArrowLeftRight, tone: 'text-accent-600 dark:text-accent-300' },
 ];
+
+function FieldHint({ children }) {
+  return <p className="text-xs text-accent-600">{children}</p>;
+}
 
 export default function TransactionModal() {
   const { isOpen, editData, triggerRefresh, closeModal } = useTransactionModal();
@@ -127,85 +139,126 @@ export default function TransactionModal() {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={closeModal} title={isEdit ? 'Editar transacción' : 'Nueva transacción'}>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal
+      isOpen={isOpen}
+      onClose={closeModal}
+      title={isEdit ? 'Editar transacción' : 'Nueva transacción'}
+      className="max-w-lg"
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
         <MessageBanner message={error} />
 
-        <div className="flex overflow-hidden rounded-soft border border-border-default">
-          {typeLabels.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setType(option.value)}
-              className={clsx(
-                'flex-1 px-3 py-2 text-sm font-medium transition-colors',
-                type === option.value
-                  ? 'bg-accent-600 text-white'
-                  : 'bg-surface-muted text-app-muted hover:bg-surface-strong hover:text-app'
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="panel-muted space-y-4 p-4">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-app-muted">Tipo</p>
+            <div className="flex flex-col overflow-hidden rounded-soft border border-border-default sm:flex-row">
+              {typeLabels.map((option) => {
+                const Icon = option.icon;
+                const active = type === option.value;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setType(option.value)}
+                    className={clsx(
+                      'flex w-full items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors sm:flex-1',
+                      active
+                        ? 'bg-accent-600 text-white'
+                        : 'bg-surface-muted text-app-muted hover:bg-surface-strong hover:text-app'
+                    )}
+                  >
+                    <Icon className={clsx('h-3.5 w-3.5', active ? 'text-white' : option.tone)} />
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            <FieldHint>Elegí entre gasto, ingreso o transferencia entre cuentas</FieldHint>
+          </div>
+
+          <Input
+            label="Monto"
+            type="number"
+            inputMode="decimal"
+            step="0.01"
+            min="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0.00"
+            error={errors.amount}
+          />
+
+          <div className="space-y-1">
+            <Select
+              label="Cuenta"
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              placeholder="Seleccionar cuenta"
+              options={accounts.map(account => ({ value: account.id, label: account.name }))}
+              error={errors.accountId}
+            />
+            <FieldHint>
+              <span className="inline-flex items-center gap-1">
+                <Wallet className="h-3.5 w-3.5" />
+                Seleccioná la cuenta afectada
+              </span>
+            </FieldHint>
+          </div>
+
+          {type === 'transfer' && (
+            <Select
+              label="Cuenta destino"
+              value={transferTo}
+              onChange={(e) => setTransferTo(e.target.value)}
+              placeholder="Seleccionar cuenta destino"
+              options={accounts.filter(account => account.id !== accountId).map(account => ({ value: account.id, label: account.name }))}
+              error={errors.transferTo}
+            />
+          )}
+
+          <div className="space-y-1">
+            <Select
+              label="Categoría"
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              placeholder="Seleccionar categoría"
+              options={categories.map(category => ({ value: category.id, label: category.name }))}
+              error={errors.categoryId}
+            />
+            <FieldHint>
+              <span className="inline-flex items-center gap-1">
+                <Tag className="h-3.5 w-3.5" />
+                Elegí la categoría del movimiento
+              </span>
+            </FieldHint>
+          </div>
+
+          <div className="space-y-1">
+            <Input
+              label="Fecha"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+            <FieldHint>
+              <span className="inline-flex items-center gap-1">
+                <CalendarDays className="h-3.5 w-3.5" />
+                Definí cuándo impactó el movimiento
+              </span>
+            </FieldHint>
+          </div>
+
+          <Input
+            label="Descripción (opcional)"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Detalle de la transacción"
+          />
         </div>
 
-        <Input
-          label="Monto"
-          type="number"
-          inputMode="decimal"
-          step="0.01"
-          min="0.01"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="0.00"
-          error={errors.amount}
-        />
-
-        <Select
-          label="Cuenta"
-          value={accountId}
-          onChange={(e) => setAccountId(e.target.value)}
-          placeholder="Seleccionar cuenta"
-          options={accounts.map(account => ({ value: account.id, label: account.name }))}
-          error={errors.accountId}
-        />
-
-        {type === 'transfer' && (
-          <Select
-            label="Cuenta destino"
-            value={transferTo}
-            onChange={(e) => setTransferTo(e.target.value)}
-            placeholder="Seleccionar cuenta destino"
-            options={accounts.filter(account => account.id !== accountId).map(account => ({ value: account.id, label: account.name }))}
-            error={errors.transferTo}
-          />
-        )}
-
-        <Select
-          label="Categoría"
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
-          placeholder="Seleccionar categoría"
-          options={categories.map(category => ({ value: category.id, label: category.name }))}
-          error={errors.categoryId}
-        />
-
-        <Input
-          label="Fecha"
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          required
-        />
-
-        <Input
-          label="Descripción (opcional)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Detalle de la transacción"
-        />
-
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="secondary" onClick={closeModal}>
             Cancelar
           </Button>
