@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Modal from '../ui/Modal.jsx';
 import Input from '../ui/Input.jsx';
 import Button from '../ui/Button.jsx';
+import IconPicker from '../ui/IconPicker.jsx';
 
 export default function CategoryModal({ isOpen, onClose, onSubmit, category }) {
   const isEdit = !!category;
@@ -50,12 +51,7 @@ export default function CategoryModal({ isOpen, onClose, onSubmit, category }) {
           placeholder="Ej: Comida, Salario"
           required
         />
-        <Input
-          label="Icono (opcional)"
-          value={icon}
-          onChange={(e) => setIcon(e.target.value)}
-          placeholder="Nombre del icono"
-        />
+        <IconPicker value={icon} onChange={setIcon} />
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancelar
