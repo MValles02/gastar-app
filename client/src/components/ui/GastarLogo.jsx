@@ -2,7 +2,7 @@ export default function GastarLogo({ className = 'h-6 w-6' }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 512 580"
+      viewBox="34 147 387 427"
       className={className}
       aria-hidden="true"
     >
