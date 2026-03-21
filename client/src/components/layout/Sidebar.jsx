@@ -9,10 +9,12 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  HelpCircle,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useOnboarding } from '../../context/OnboardingContext.jsx';
 import ThemeToggle from '../ui/ThemeToggle.jsx';
 import GastarLogo from '../ui/GastarLogo.jsx';
 
@@ -30,6 +32,7 @@ export default function Sidebar() {
   });
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  const { openOnboarding } = useOnboarding();
 
   const toggle = () => {
     const next = !collapsed;
@@ -96,6 +99,17 @@ export default function Sidebar() {
             {user.name}
           </div>
         )}
+
+        <button
+          onClick={openOnboarding}
+          className={clsx(
+            'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors',
+            collapsed && 'justify-center px-2'
+          )}
+        >
+          <HelpCircle className="h-5 w-5" />
+          {!collapsed && <span>Repetir tutorial</span>}
+        </button>
 
         <button
           onClick={logout}

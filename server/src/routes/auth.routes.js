@@ -5,7 +5,6 @@ import prisma from '../utils/prisma.js';
 import { generateToken, setTokenCookie } from '../utils/token.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../validators/auth.validators.js';
-import { seedDefaultCategories } from '../services/category.service.js';
 import { sendPasswordResetEmail } from '../services/email.service.js';
 
 const router = Router();
@@ -25,8 +24,6 @@ router.post('/register', async (req, res, next) => {
       data: { name: data.name, email: data.email, passwordHash },
       select: { id: true, email: true, name: true },
     });
-
-    await seedDefaultCategories(user.id);
 
     const token = generateToken(user.id);
     setTokenCookie(res, token);

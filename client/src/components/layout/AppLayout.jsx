@@ -3,7 +3,9 @@ import BottomTabBar from './BottomTabBar.jsx';
 import Header from './Header.jsx';
 import FAB from '../ui/FAB.jsx';
 import TransactionModal from '../transactions/TransactionModal.jsx';
+import OnboardingWizard from '../onboarding/OnboardingWizard.jsx';
 import { TransactionModalProvider, useTransactionModal } from '../../context/TransactionModalContext.jsx';
+import { OnboardingProvider } from '../../context/OnboardingContext.jsx';
 
 function LayoutInner({ children }) {
   const { openModal } = useTransactionModal();
@@ -20,6 +22,7 @@ function LayoutInner({ children }) {
       <BottomTabBar />
       <FAB onClick={() => openModal()} />
       <TransactionModal />
+      <OnboardingWizard />
     </div>
   );
 }
@@ -27,7 +30,9 @@ function LayoutInner({ children }) {
 export default function AppLayout({ children }) {
   return (
     <TransactionModalProvider>
-      <LayoutInner>{children}</LayoutInner>
+      <OnboardingProvider>
+        <LayoutInner>{children}</LayoutInner>
+      </OnboardingProvider>
     </TransactionModalProvider>
   );
 }
