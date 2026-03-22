@@ -159,17 +159,6 @@ export default function MobileDrawer({ isOpen, onClose }) {
           ))}
         </nav>
 
-        {/* Nueva transacción */}
-        <div className="px-3 py-2">
-          <button
-            onClick={handleNewTransaction}
-            className="flex w-full items-center gap-3 rounded-soft bg-accent-600 px-3 py-2.5 text-sm font-medium text-white shadow-panel-sm transition-colors hover:bg-accent-700"
-          >
-            <Plus className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
-            <span>Nueva transacción</span>
-          </button>
-        </div>
-
         {/* Footer */}
         <div className="space-y-1 border-t border-border-default/70 px-3 py-3">
           <button
