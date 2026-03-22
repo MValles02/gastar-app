@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom';
 import GastarLogo from '../components/ui/GastarLogo.jsx';
+import LegalLinks from '../components/layout/LegalLinks.jsx';
 
 export default function Privacy() {
   return (
@@ -14,50 +14,50 @@ export default function Privacy() {
 
         <div className="auth-shell space-y-6 text-sm text-app">
           <div>
-            <h1 className="text-2xl font-semibold text-app">Política de Privacidad</h1>
-            <p className="mt-1 text-app-muted">Última actualización: marzo de 2026</p>
+            <h1 className="text-2xl font-semibold text-app">Politica de Privacidad</h1>
+            <p className="mt-1 text-app-muted">Ultima actualizacion: marzo de 2026</p>
           </div>
 
-          <Section title="1. Información que recopilamos">
-            <p>Al usar Gastar, recopilamos la siguiente información:</p>
+          <Section title="1. Informacion que recopilamos">
+            <p>Al usar Gastar, recopilamos la siguiente informacion:</p>
             <ul className="mt-2 list-inside list-disc space-y-1 text-app-muted">
-              <li>Nombre y dirección de correo electrónico (al registrarte o iniciar sesión con Google)</li>
-              <li>Datos financieros que vos ingresás: cuentas, transacciones y categorías</li>
+              <li>Nombre y direccion de correo electronico al registrarte o iniciar sesion con Google</li>
+              <li>Datos financieros que vos ingresas: cuentas, transacciones y categorias</li>
             </ul>
-            <p className="mt-2">No recopilamos datos bancarios, números de tarjeta ni credenciales de acceso a entidades financieras.</p>
+            <p className="mt-2">No recopilamos datos bancarios, numeros de tarjeta ni credenciales de acceso a entidades financieras.</p>
           </Section>
 
-          <Section title="2. Cómo usamos tu información">
-            <p>Usamos tu información exclusivamente para:</p>
+          <Section title="2. Como usamos tu informacion">
+            <p>Usamos tu informacion exclusivamente para:</p>
             <ul className="mt-2 list-inside list-disc space-y-1 text-app-muted">
-              <li>Identificarte y mantener tu sesión activa</li>
+              <li>Identificarte y mantener tu sesion activa</li>
               <li>Almacenar y mostrarte tus datos financieros personales</li>
-              <li>Enviarte correos de recuperación de contraseña cuando los solicitás</li>
+              <li>Enviarte correos de recuperacion de contraseña cuando los solicitas</li>
             </ul>
-            <p className="mt-2">No vendemos, compartimos ni cedemos tu información a terceros con fines comerciales.</p>
+            <p className="mt-2">No vendemos, compartimos ni cedemos tu informacion a terceros con fines comerciales.</p>
           </Section>
 
-          <Section title="3. Inicio de sesión con Google">
+          <Section title="3. Inicio de sesion con Google">
             <p>
-              Si elegís iniciar sesión con Google, recibimos de Google tu nombre y dirección de correo electrónico verificada.
-              Esta información se usa únicamente para crear o identificar tu cuenta en Gastar.
-              No accedemos a tu cuenta de Google, tus contactos, tu Drive ni ningún otro servicio.
+              Si elegis iniciar sesion con Google, recibimos de Google tu nombre y direccion de correo electronico verificada.
+              Esta informacion se usa unicamente para crear o identificar tu cuenta en Gastar.
+              No accedemos a tu cuenta de Google, tus contactos, tu Drive ni ningun otro servicio.
             </p>
           </Section>
 
           <Section title="4. Almacenamiento y seguridad">
             <p>
-              Tus datos se almacenan en servidores ubicados en Sudamérica a través de proveedores de infraestructura en la nube.
+              Tus datos se almacenan en servidores ubicados en Sudamerica a traves de proveedores de infraestructura en la nube.
               Las contraseñas se almacenan con hash seguro (bcrypt) y nunca en texto plano.
               Las sesiones se gestionan mediante cookies HTTP-only.
             </p>
           </Section>
 
           <Section title="5. Tus derechos">
-            <p>Podés en cualquier momento:</p>
+            <p>Podes en cualquier momento:</p>
             <ul className="mt-2 list-inside list-disc space-y-1 text-app-muted">
-              <li>Eliminar tu cuenta y todos tus datos contactándonos</li>
-              <li>Solicitar una copia de tu información</li>
+              <li>Eliminar tu cuenta y todos tus datos contactandonos</li>
+              <li>Solicitar una copia de tu informacion</li>
             </ul>
             <p className="mt-2">
               Para ejercer estos derechos, escribinos a{' '}
@@ -65,26 +65,22 @@ export default function Privacy() {
             </p>
           </Section>
 
-          <Section title="6. Cambios a esta política">
+          <Section title="6. Cambios a esta politica">
             <p>
-              Podemos actualizar esta política ocasionalmente. Te notificaremos por correo electrónico ante cambios significativos.
-              El uso continuado de la aplicación después de la notificación implica aceptación de los cambios.
+              Podemos actualizar esta politica ocasionalmente. Te notificaremos por correo electronico ante cambios significativos.
+              El uso continuado de la aplicacion despues de la notificacion implica aceptacion de los cambios.
             </p>
           </Section>
 
           <Section title="7. Contacto">
             <p>
-              Si tenés preguntas sobre esta política, contactanos en{' '}
+              Si tenes preguntas sobre esta politica, contactanos en{' '}
               <a href="mailto:hola@gastar.app" className="text-accent-600 hover:underline">hola@gastar.app</a>.
             </p>
           </Section>
         </div>
 
-        <div className="mt-6 text-center text-sm text-app-muted">
-          <Link to="/terms" className="text-accent-600 hover:underline">Términos y condiciones</Link>
-          {' · '}
-          <Link to="/login" className="text-accent-600 hover:underline">Volver al inicio de sesión</Link>
-        </div>
+        <LegalLinks includeBackLink className="mt-6" />
       </div>
     </div>
   );

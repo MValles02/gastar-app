@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import GastarLogo from '../ui/GastarLogo.jsx';
 import ThemeToggle from '../ui/ThemeToggle.jsx';
+import LegalLinks from './LegalLinks.jsx';
 import { backLinkShape, childrenPropType, classNamePropType } from '../../utils/propTypes.js';
 
 export default function AuthShell({
@@ -44,6 +45,8 @@ export default function AuthShell({
             ) : null}
           </div>
         )}
+
+        <LegalLinks className="mt-4" />
       </div>
     </div>
   );

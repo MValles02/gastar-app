@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import GastarLogo from '../components/ui/GastarLogo.jsx';
+import LegalLinks from '../components/layout/LegalLinks.jsx';
 
 export default function Terms() {
   return (
@@ -14,31 +15,31 @@ export default function Terms() {
 
         <div className="auth-shell space-y-6 text-sm text-app">
           <div>
-            <h1 className="text-2xl font-semibold text-app">Términos y Condiciones</h1>
-            <p className="mt-1 text-app-muted">Última actualización: marzo de 2026</p>
+            <h1 className="text-2xl font-semibold text-app">Terminos del Servicio</h1>
+            <p className="mt-1 text-app-muted">Ultima actualizacion: marzo de 2026</p>
           </div>
 
-          <Section title="1. Aceptación de los términos">
+          <Section title="1. Aceptacion de los terminos">
             <p>
-              Al crear una cuenta y usar Gastar, aceptás estos términos y condiciones de uso.
-              Si no estás de acuerdo, no uses la aplicación.
+              Al crear una cuenta y usar Gastar, aceptas estos terminos y condiciones de uso.
+              Si no estas de acuerdo, no uses la aplicacion.
             </p>
           </Section>
 
-          <Section title="2. Descripción del servicio">
+          <Section title="2. Descripcion del servicio">
             <p>
-              Gastar es una aplicación de seguimiento de finanzas personales que te permite registrar ingresos,
-              gastos y transferencias entre tus propias cuentas, y visualizar resúmenes de tu actividad financiera.
+              Gastar es una aplicacion de seguimiento de finanzas personales que te permite registrar ingresos,
+              gastos y transferencias entre tus propias cuentas, y visualizar resumenes de tu actividad financiera.
             </p>
           </Section>
 
           <Section title="3. Uso aceptable">
-            <p>Al usar Gastar, te comprometés a:</p>
+            <p>Al usar Gastar, te comprometes a:</p>
             <ul className="mt-2 list-inside list-disc space-y-1">
-              <li>Usar la aplicación solo para fines personales y lícitos</li>
+              <li>Usar la aplicacion solo para fines personales y licitos</li>
               <li>No intentar acceder a cuentas de otros usuarios</li>
-              <li>No realizar ingeniería inversa ni intentar vulnerar la seguridad del servicio</li>
-              <li>Proveer información veraz al crear tu cuenta</li>
+              <li>No realizar ingenieria inversa ni intentar vulnerar la seguridad del servicio</li>
+              <li>Proveer informacion veraz al crear tu cuenta</li>
             </ul>
           </Section>
 
@@ -51,55 +52,51 @@ export default function Terms() {
 
           <Section title="5. Tus datos">
             <p>
-              Los datos financieros que ingresás en Gastar son tuyos. No los usamos para ningún fin
-              distinto al de mostrártelos a vos. Ver nuestra{' '}
-              <Link to="/privacy" className="text-accent-600 hover:underline">Política de Privacidad</Link>{' '}
-              para más detalles sobre cómo manejamos tu información.
+              Los datos financieros que ingresas en Gastar son tuyos. No los usamos para ningun fin
+              distinto al de mostrartelos a vos. Ver nuestra{' '}
+              <Link to="/privacy" className="text-accent-600 hover:underline">Politica de Privacidad</Link>{' '}
+              para mas detalles sobre como manejamos tu informacion.
             </p>
           </Section>
 
           <Section title="6. Disponibilidad del servicio">
             <p>
-              Gastar se ofrece "tal como está". No garantizamos disponibilidad ininterrumpida ni ausencia de errores.
-              Podemos modificar, suspender o discontinuar el servicio en cualquier momento, notificándote
-              con razonable anticipación cuando sea posible.
+              Gastar se ofrece "tal como esta". No garantizamos disponibilidad ininterrumpida ni ausencia de errores.
+              Podemos modificar, suspender o discontinuar el servicio en cualquier momento, notificandote
+              con razonable anticipacion cuando sea posible.
             </p>
           </Section>
 
-          <Section title="7. Limitación de responsabilidad">
+          <Section title="7. Limitacion de responsabilidad">
             <p>
               Gastar es una herramienta de registro personal. No somos responsables por decisiones financieras
-              tomadas en base a la información mostrada en la aplicación. Los datos son tan precisos como
-              los que vos ingresás.
+              tomadas en base a la informacion mostrada en la aplicacion. Los datos son tan precisos como
+              los que vos ingresas.
             </p>
           </Section>
 
           <Section title="8. Modificaciones">
             <p>
-              Podemos actualizar estos términos. Te notificaremos por correo ante cambios relevantes.
-              El uso continuado implica aceptación de los términos actualizados.
+              Podemos actualizar estos terminos. Te notificaremos por correo ante cambios relevantes.
+              El uso continuado implica aceptacion de los terminos actualizados.
             </p>
           </Section>
 
           <Section title="9. Ley aplicable">
             <p>
-              Estos términos se rigen por las leyes de la República Argentina.
+              Estos terminos se rigen por las leyes de la Republica Argentina.
             </p>
           </Section>
 
           <Section title="10. Contacto">
             <p>
-              Para cualquier consulta sobre estos términos, escribinos a{' '}
+              Para cualquier consulta sobre estos terminos, escribinos a{' '}
               <a href="mailto:hola@gastar.app" className="text-accent-600 hover:underline">hola@gastar.app</a>.
             </p>
           </Section>
         </div>
 
-        <div className="mt-6 text-center text-sm text-app-muted">
-          <Link to="/privacy" className="text-accent-600 hover:underline">Política de privacidad</Link>
-          {' · '}
-          <Link to="/login" className="text-accent-600 hover:underline">Volver al inicio de sesión</Link>
-        </div>
+        <LegalLinks includeBackLink className="mt-6" />
       </div>
     </div>
   );
