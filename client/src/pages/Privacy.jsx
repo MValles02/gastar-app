@@ -62,7 +62,7 @@ export default function Privacy() {
               </ul>
               <p className="mt-2">
                 Para ejercer estos derechos, escribinos a{' '}
-                <a href="mailto:hola@gastar.app" className="text-accent-600 hover:underline">hola@gastar.app</a>.
+                <a href="mailto:hola@gastar.app" className="text-accent-600 hover:underline">mateovalles02@gmail.com</a>.
               </p>
             </Section>
 
