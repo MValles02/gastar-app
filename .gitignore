@@ -145,3 +145,6 @@ vite.config.ts.timestamp-*
 .scannerwork/
 .sonar/
 sonar-project.properties
+
+# vscode
+.vscode/

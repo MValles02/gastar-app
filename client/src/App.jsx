@@ -9,6 +9,8 @@ import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
+import Privacy from './pages/Privacy.jsx';
+import Terms from './pages/Terms.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Transactions from './pages/Transactions.jsx';
 import Accounts from './pages/Accounts.jsx';
@@ -53,6 +55,8 @@ function App() {
             <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
             <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
             <Route path="/reset-password" element={<GuestRoute><ResetPassword /></GuestRoute>} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
             <Route path="/transactions" element={<PrivateRoute><Transactions /></PrivateRoute>} />
             <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
