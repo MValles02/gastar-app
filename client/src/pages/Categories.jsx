@@ -7,7 +7,7 @@ import { Page, PageHeader } from '../components/layout/Page.jsx';
 import CategoryList from '../components/categories/CategoryList.jsx';
 import CategoryModal from '../components/categories/CategoryModal.jsx';
 import Button from '../components/ui/Button.jsx';
-import Spinner from '../components/ui/Spinner.jsx';
+import { ListPageSkeleton } from '../components/ui/PageSkeletons.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import PageErrorState from '../components/ui/PageErrorState.jsx';
 import { getErrorMessage } from '../utils/errors.js';
@@ -83,7 +83,7 @@ function Categories() {
     triggerRefresh();
   };
 
-  if (loading) return <Spinner className="py-12" />;
+  if (loading) return <ListPageSkeleton metricCount={0} />;
   if (loadError) return <PageErrorState title="No pudimos cargar las categorías" message={loadError} onAction={load} />;
 
   return (

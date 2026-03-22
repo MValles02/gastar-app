@@ -119,7 +119,7 @@ export default function CategoriesStep() {
         Las categorías sostienen todo el análisis del resto de la aplicación.
       </p>
 
-      <div className="mt-5 space-y-3">
+      <div className="mt-5 space-y-3" role="radiogroup" aria-label="Tipo de categorías">
         <OptionTile
           selected={choice === 'defaults'}
           onClick={() => setChoice('defaults')}

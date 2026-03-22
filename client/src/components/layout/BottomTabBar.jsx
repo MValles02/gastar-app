@@ -30,15 +30,20 @@ export default function BottomTabBar() {
             end={to === '/'}
             className={({ isActive }) =>
               clsx(
-                'flex min-w-[4.2rem] flex-col items-center gap-1 rounded-soft px-2 py-2 text-[0.72rem] font-medium transition-colors',
+                'flex min-w-[4.2rem] flex-col items-center gap-1 rounded-soft px-2 py-2 text-xs font-medium transition-colors',
                 isActive
                   ? 'bg-surface text-app shadow-panel-sm'
                   : 'text-app-soft'
               )
             }
           >
-            <Icon className="h-5 w-5" />
-            <span>{label}</span>
+            {({ isActive }) => (
+              <>
+                <Icon className="h-5 w-5" aria-hidden="true" />
+                <span>{label}</span>
+                {isActive && <span className="sr-only">(página actual)</span>}
+              </>
+            )}
           </NavLink>
         ))}
       </div>

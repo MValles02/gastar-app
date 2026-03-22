@@ -80,7 +80,8 @@ export default function IconPicker({ value, onChange }) {
               key={name}
               type="button"
               onClick={() => onChange(isSelected ? '' : name)}
-              title={name}
+              aria-label={name}
+              aria-pressed={isSelected}
               className={`rounded-soft flex items-center justify-center p-2 transition-colors ${
                 isSelected
                   ? 'bg-accent-600 text-white'

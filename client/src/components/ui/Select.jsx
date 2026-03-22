@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import { classNamePropType, optionShape } from '../../utils/propTypes.js';
@@ -10,6 +11,8 @@ export default function Select({
   className,
   ...props
 }) {
+  const errorId = useId();
+
   return (
     <div className="space-y-1">
       {label && (
@@ -25,6 +28,8 @@ export default function Select({
             : 'border-border-default',
           className
         )}
+        aria-invalid={error ? 'true' : undefined}
+        aria-describedby={error ? errorId : undefined}
         {...props}
       >
         {placeholder && (
@@ -37,7 +42,7 @@ export default function Select({
         ))}
       </select>
       {error && (
-        <p className="text-sm text-danger">{error}</p>
+        <p id={errorId} className="text-sm text-danger">{error}</p>
       )}
     </div>
   );

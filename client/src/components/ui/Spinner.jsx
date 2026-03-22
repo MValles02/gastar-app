@@ -11,8 +11,9 @@ export default function Spinner({ size = 'md', className }) {
   };
 
   return (
-    <div className={clsx('flex items-center justify-center', className)}>
+    <div role="status" className={clsx('flex items-center justify-center', className)}>
       <Loader2 className={clsx('animate-spin text-accent-600', sizeClass[size])} />
+      <span className="sr-only">Cargando...</span>
     </div>
   );
 }

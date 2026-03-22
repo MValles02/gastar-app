@@ -84,6 +84,34 @@ export default function TransactionModal() {
     setErrors({});
   }, [editData, isOpen]);
 
+  const clearFieldError = (field) => {
+    if (errors[field]) {
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
+
+  const validateField = (field) => {
+    if (field === 'amount') {
+      const parsed = Number.parseFloat(amount);
+      if (!amount || parsed <= 0 || Number.isNaN(parsed)) {
+        setErrors(prev => ({ ...prev, amount: 'Ingresá un monto válido mayor a 0' }));
+      }
+    }
+    if (field === 'accountId' && !accountId) {
+      setErrors(prev => ({ ...prev, accountId: 'Seleccioná una cuenta' }));
+    }
+    if (field === 'categoryId' && !categoryId) {
+      setErrors(prev => ({ ...prev, categoryId: 'Seleccioná una categoría' }));
+    }
+    if (field === 'transferTo' && type === 'transfer' && !transferTo) {
+      setErrors(prev => ({ ...prev, transferTo: 'Seleccioná la cuenta destino' }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -162,7 +190,8 @@ export default function TransactionModal() {
             step="0.01"
             min="0.01"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => { setAmount(e.target.value); clearFieldError('amount'); }}
+            onBlur={() => validateField('amount')}
             placeholder="0.00"
             error={errors.amount}
           />
@@ -171,7 +200,8 @@ export default function TransactionModal() {
             <Select
               label="Cuenta"
               value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
+              onChange={(e) => { setAccountId(e.target.value); clearFieldError('accountId'); }}
+              onBlur={() => validateField('accountId')}
               placeholder="Seleccionar cuenta"
               options={accounts.map(account => ({ value: account.id, label: account.name }))}
               error={errors.accountId}
@@ -183,7 +213,8 @@ export default function TransactionModal() {
             <Select
               label="Cuenta destino"
               value={transferTo}
-              onChange={(e) => setTransferTo(e.target.value)}
+              onChange={(e) => { setTransferTo(e.target.value); clearFieldError('transferTo'); }}
+              onBlur={() => validateField('transferTo')}
               placeholder="Seleccionar cuenta destino"
               options={accounts.filter(account => account.id !== accountId).map(account => ({ value: account.id, label: account.name }))}
               error={errors.transferTo}
@@ -194,7 +225,8 @@ export default function TransactionModal() {
             <Select
               label="Categoría"
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
+              onChange={(e) => { setCategoryId(e.target.value); clearFieldError('categoryId'); }}
+              onBlur={() => validateField('categoryId')}
               placeholder="Seleccionar categoría"
               options={categories.map(category => ({ value: category.id, label: category.name }))}
               error={errors.categoryId}

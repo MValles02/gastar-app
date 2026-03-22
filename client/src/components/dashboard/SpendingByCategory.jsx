@@ -49,7 +49,7 @@ export default function SpendingByCategory({ expenses }) {
 
       <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <div className="list-surface px-4 py-4">
-          <div className="h-[18rem]">
+          <div className="h-[14rem] sm:h-[16rem] lg:h-[18rem]" role="img" aria-label="Gráfico de gastos por categoría">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie

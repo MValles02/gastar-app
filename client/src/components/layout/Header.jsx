@@ -37,13 +37,15 @@ export default function Header() {
           <ThemeToggle />
           <button
             onClick={openOnboarding}
-            className="interactive-subtle p-1.5"
+            aria-label="Repetir tutorial"
+            className="interactive-subtle p-2.5"
           >
             <HelpCircle className="h-5 w-5" />
           </button>
           <button
             onClick={logout}
-            className="interactive-subtle p-1.5"
+            aria-label="Cerrar sesión"
+            className="interactive-subtle p-2.5"
           >
             <LogOut className="h-5 w-5" />
           </button>

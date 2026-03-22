@@ -13,6 +13,8 @@ export default function OptionTile({
   return (
     <button
       type="button"
+      role="radio"
+      aria-checked={selected}
       onClick={onClick}
       className={clsx(
         'w-full rounded-panel border p-4 text-left transition-[border-color,background-color,transform,box-shadow] duration-200',

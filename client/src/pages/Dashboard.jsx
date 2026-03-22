@@ -5,7 +5,7 @@ import { Page, PageHeader, Section } from '../components/layout/Page.jsx';
 import BalanceOverview from '../components/dashboard/BalanceOverview.jsx';
 import RecentTransactions from '../components/dashboard/RecentTransactions.jsx';
 import SpendingByCategory from '../components/dashboard/SpendingByCategory.jsx';
-import Spinner from '../components/ui/Spinner.jsx';
+import { DashboardSkeleton } from '../components/ui/PageSkeletons.jsx';
 import PageErrorState from '../components/ui/PageErrorState.jsx';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import { getErrorMessage } from '../utils/errors.js';
@@ -47,7 +47,7 @@ function Dashboard() {
     load();
   }, [load, refreshKey]);
 
-  if (loading) return <Spinner className="py-12" />;
+  if (loading) return <DashboardSkeleton />;
   if (error) return <PageErrorState title="No pudimos cargar el panel" message={error} onAction={load} />;
 
   return (

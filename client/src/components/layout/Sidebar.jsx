@@ -60,7 +60,8 @@ export default function Sidebar() {
           )}
           <button
             onClick={toggle}
-            className={clsx('interactive-subtle p-1.5', !collapsed && 'ml-auto')}
+            aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+            className={clsx('interactive-subtle p-2.5', !collapsed && 'ml-auto')}
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
@@ -72,6 +73,7 @@ export default function Sidebar() {
               key={to}
               to={to}
               end={to === '/'}
+              aria-label={collapsed ? label : undefined}
               className={({ isActive }) =>
                 clsx(
                   'flex items-center gap-3 rounded-panel px-3 py-3 text-sm font-medium transition-colors',
@@ -82,8 +84,13 @@ export default function Sidebar() {
                 )
               }
             >
-              <Icon className="h-5 w-5 flex-shrink-0" />
-              {!collapsed && <span>{label}</span>}
+              {({ isActive }) => (
+                <>
+                  <Icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                  {!collapsed && <span>{label}</span>}
+                  {isActive && <span className="sr-only">(página actual)</span>}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -106,6 +113,7 @@ export default function Sidebar() {
 
           <button
             onClick={openOnboarding}
+            aria-label={collapsed ? 'Repetir tutorial' : undefined}
             className={clsx(
               'flex w-full items-center gap-3 rounded-soft px-3 py-2 text-sm text-app-muted transition-colors hover:bg-surface-muted hover:text-app',
               collapsed && 'justify-center px-2'
@@ -117,6 +125,7 @@ export default function Sidebar() {
 
           <button
             onClick={logout}
+            aria-label={collapsed ? 'Cerrar sesión' : undefined}
             className={clsx(
               'flex w-full items-center gap-3 rounded-soft px-3 py-2 text-sm text-app-muted transition-colors hover:bg-danger-soft hover:text-danger',
               collapsed && 'justify-center px-2'

@@ -33,13 +33,15 @@ export default function AccountCard({ account, onEdit, onDelete }) {
         </p>
         <button
           onClick={() => onEdit(account)}
-          className="interactive-subtle p-1.5"
+          aria-label="Editar cuenta"
+          className="interactive-subtle p-2.5"
         >
           <Pencil className="h-4 w-4" />
         </button>
         <button
           onClick={() => onDelete(account)}
-          className="rounded-soft p-1.5 text-app-soft transition-colors hover:bg-danger-soft hover:text-danger"
+          aria-label="Eliminar cuenta"
+          className="rounded-soft p-2.5 text-app-soft transition-colors hover:bg-danger-soft hover:text-danger"
         >
           <Trash2 className="h-4 w-4" />
         </button>

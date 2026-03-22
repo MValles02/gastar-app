@@ -4,7 +4,7 @@ import { getSummary, getByCategory } from '../services/reports.js';
 import { Page, PageHeader } from '../components/layout/Page.jsx';
 import SpendingByCategory from '../components/dashboard/SpendingByCategory.jsx';
 import Input from '../components/ui/Input.jsx';
-import Spinner from '../components/ui/Spinner.jsx';
+import { ListPageSkeleton } from '../components/ui/PageSkeletons.jsx';
 import PageErrorState from '../components/ui/PageErrorState.jsx';
 import { formatCurrency, getAmountTone } from '../utils/formatters.js';
 import { getErrorMessage } from '../utils/errors.js';
@@ -79,7 +79,7 @@ function Reports() {
           </div>
         </section>
 
-        {loading ? <Spinner className="py-12" /> : null}
+        {loading ? <ListPageSkeleton metricCount={3} /> : null}
         {error ? <PageErrorState title="No pudimos cargar los reportes" message={error} onAction={load} /> : null}
 
         {!loading && !error && summary ? (

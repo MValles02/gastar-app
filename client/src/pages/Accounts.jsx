@@ -7,7 +7,7 @@ import { Page, PageHeader } from '../components/layout/Page.jsx';
 import AccountCard from '../components/accounts/AccountCard.jsx';
 import AccountModal from '../components/accounts/AccountModal.jsx';
 import Button from '../components/ui/Button.jsx';
-import Spinner from '../components/ui/Spinner.jsx';
+import { ListPageSkeleton } from '../components/ui/PageSkeletons.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import PageErrorState from '../components/ui/PageErrorState.jsx';
 import { formatCurrency } from '../utils/formatters.js';
@@ -89,7 +89,7 @@ function Accounts() {
     triggerRefresh();
   };
 
-  if (loading) return <Spinner className="py-12" />;
+  if (loading) return <ListPageSkeleton />;
   if (loadError) return <PageErrorState title="No pudimos cargar las cuentas" message={loadError} onAction={load} />;
 
   return (

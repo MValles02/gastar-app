@@ -14,10 +14,16 @@ function LayoutInner({ children }) {
 
   return (
     <div className="workspace-shell flex h-dvh overflow-hidden">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-soft focus:bg-accent-600 focus:px-4 focus:py-2 focus:text-white focus:shadow-hero"
+      >
+        Ir al contenido principal
+      </a>
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="workspace-main px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-5 md:px-8 md:pb-10 md:pt-10">
+        <main id="main-content" className="workspace-main px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-5 md:px-8 md:pb-10 md:pt-10">
           <div className="flex min-h-full flex-col">
             <div className="flex-1">{children}</div>
             <LegalLinks

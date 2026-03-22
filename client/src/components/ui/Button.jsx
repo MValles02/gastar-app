@@ -4,10 +4,10 @@ import PropTypes from 'prop-types';
 import { childrenPropType, classNamePropType } from '../../utils/propTypes.js';
 
 const variants = {
-  primary: 'bg-accent-600 text-white shadow-panel-sm hover:bg-accent-700 focus:ring-accent-400/70',
-  secondary: 'border border-border-default bg-surface text-app hover:bg-surface-muted focus:ring-accent-400/70',
-  danger: 'bg-danger text-white shadow-panel-sm hover:brightness-95 focus:ring-danger/40',
-  ghost: 'text-app-muted hover:bg-surface-muted hover:text-app focus:ring-accent-400/70',
+  primary: 'bg-accent-600 text-white shadow-panel-sm hover:bg-accent-700 focus:ring-accent-400',
+  secondary: 'border border-border-default bg-surface text-app hover:bg-surface-muted focus:ring-accent-400',
+  danger: 'bg-danger text-white shadow-panel-sm hover:brightness-95 focus:ring-danger/60',
+  ghost: 'text-app-muted hover:bg-surface-muted hover:text-app focus:ring-accent-400',
 };
 
 const sizes = {
@@ -29,7 +29,7 @@ export default function Button({
     <button
       disabled={disabled || loading}
       className={clsx(
-        'inline-flex items-center justify-center gap-2 rounded-soft font-medium transition-[background-color,color,border-color,box-shadow,transform] duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50',
+        'inline-flex cursor-pointer items-center justify-center gap-2 rounded-soft font-medium transition-[background-color,color,border-color,box-shadow,transform] duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50',
         variants[variant],
         sizes[size],
         className

@@ -9,6 +9,7 @@ export default function ThemeToggle({ className }) {
   return (
     <button
       onClick={toggleTheme}
+      aria-label={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
       className={clsx(
         'interactive-subtle border border-border-default bg-surface p-2.5 shadow-panel-sm',
         className

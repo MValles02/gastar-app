@@ -9,7 +9,7 @@ import TransactionFilters from '../components/transactions/TransactionFilters.js
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import { useDialog } from '../context/DialogContext.jsx';
 import Button from '../components/ui/Button.jsx';
-import Spinner from '../components/ui/Spinner.jsx';
+import { ListPageSkeleton } from '../components/ui/PageSkeletons.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import PageErrorState from '../components/ui/PageErrorState.jsx';
 import { getErrorMessage } from '../utils/errors.js';
@@ -75,7 +75,7 @@ function Transactions() {
     }
   };
 
-  if (loading) return <Spinner className="py-12" />;
+  if (loading) return <ListPageSkeleton metricCount={0} />;
   if (loadError) return <PageErrorState title="No pudimos cargar las transacciones" message={loadError} onAction={load} />;
 
   return (

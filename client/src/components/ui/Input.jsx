@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import { classNamePropType, iconPropType } from '../../utils/propTypes.js';
@@ -9,6 +10,8 @@ export default function Input({
   className,
   ...props
 }) {
+  const errorId = useId();
+
   return (
     <div className="space-y-1">
       {label && (
@@ -31,11 +34,13 @@ export default function Input({
             Icon && 'pl-10',
             className
           )}
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={error ? errorId : undefined}
           {...props}
         />
       </div>
       {error && (
-        <p className="text-sm text-danger">{error}</p>
+        <p id={errorId} className="text-sm text-danger">{error}</p>
       )}
     </div>
   );
