@@ -92,7 +92,7 @@ export default function Terms() {
             <Section title="10. Contacto">
               <p>
                 Para cualquier consulta sobre estos terminos, escribinos a{' '}
-                <a href="mailto:hola@gastar.app" className="text-accent-600 hover:underline">hola@gastar.app</a>.
+                <a href="mailto:mateovalles02@gmail.com" className="text-accent-600 hover:underline">mateovalles02@gmail.com</a>.
               </p>
             </Section>
           </div>

@@ -62,7 +62,7 @@ export default function Privacy() {
               </ul>
               <p className="mt-2">
                 Para ejercer estos derechos, escribinos a{' '}
-                <a href="mailto:hola@gastar.app" className="text-accent-600 hover:underline">mateovalles02@gmail.com</a>.
+                <a href="mailto:mateovalles02@gmail.com" className="text-accent-600 hover:underline">mateovalles02@gmail.com</a>.
               </p>
             </Section>
 
@@ -76,7 +76,7 @@ export default function Privacy() {
             <Section title="7. Contacto">
               <p>
                 Si tenes preguntas sobre esta politica, contactanos en{' '}
-                <a href="mailto:hola@gastar.app" className="text-accent-600 hover:underline">hola@gastar.app</a>.
+                <a href="mailto:mateovalles02@gmail.com" className="text-accent-600 hover:underline">mateovalles02@gmail.com</a>.
               </p>
             </Section>
           </div>
