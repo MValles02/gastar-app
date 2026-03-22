@@ -14,7 +14,6 @@ const routeTitles = {
 
 export default function Header({ onMenuOpen }) {
   const { pathname } = useLocation();
-  const title = routeTitles[pathname] ?? 'Gastar';
 
   return (
     <header className="border-b border-border-default/80 bg-canvas-elevated/88 px-4 py-3 backdrop-blur md:hidden">
