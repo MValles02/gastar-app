@@ -13,8 +13,6 @@ const routeTitles = {
 };
 
 export default function Header({ onMenuOpen }) {
-  const { pathname } = useLocation();
-
   return (
     <header className="border-b border-border-default/80 bg-canvas-elevated/88 px-4 py-3 backdrop-blur md:hidden">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
