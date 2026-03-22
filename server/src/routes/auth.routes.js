@@ -7,6 +7,7 @@ import { hashResetToken } from '../utils/reset-token.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../validators/auth.validators.js';
 import { sendPasswordResetEmail } from '../services/email.service.js';
+import { buildGoogleAuthUrl, exchangeCodeForProfile } from '../services/google-auth.service.js';
 
 const router = Router();
 
@@ -44,7 +45,7 @@ router.post('/login', async (req, res, next) => {
     const data = loginSchema.parse(req.body);
 
     const user = await prisma.user.findUnique({ where: { email: data.email } });
-    if (!user) {
+    if (!user || !user.passwordHash) {
       return res.status(401).json({ error: 'Credenciales invalidas' });
     }
 
@@ -93,7 +94,7 @@ router.post('/forgot-password', async (req, res, next) => {
     const { email } = forgotPasswordSchema.parse(req.body);
 
     const user = await prisma.user.findUnique({ where: { email } });
-    if (user) {
+    if (user && user.passwordHash) {
       const resetToken = crypto.randomBytes(32).toString('hex');
       const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
 
@@ -143,6 +144,53 @@ router.post('/reset-password', async (req, res, next) => {
       return res.status(400).json({ error: err.errors[0].message });
     }
     next(err);
+  }
+});
+
+// GET /api/auth/google
+router.get('/google', (_req, res) => {
+  const url = buildGoogleAuthUrl();
+  res.redirect(url);
+});
+
+// GET /api/auth/google/callback
+router.get('/google/callback', async (req, res) => {
+  const appUrl = process.env.APP_URL || '';
+  const { code, error } = req.query;
+
+  if (error || !code) {
+    return res.redirect(`${appUrl}/login?authError=access_denied`);
+  }
+
+  try {
+    const profile = await exchangeCodeForProfile(code);
+
+    let user = await prisma.user.findUnique({ where: { googleId: profile.googleId } });
+
+    if (!user) {
+      const existing = await prisma.user.findUnique({ where: { email: profile.email } });
+      if (existing) {
+        user = await prisma.user.update({
+          where: { id: existing.id },
+          data: { googleId: profile.googleId },
+        });
+      } else {
+        user = await prisma.user.create({
+          data: {
+            email: profile.email,
+            name: profile.name,
+            googleId: profile.googleId,
+          },
+        });
+      }
+    }
+
+    const token = generateToken(user.id);
+    setTokenCookie(res, token);
+    res.redirect(`${appUrl}/`);
+  } catch (err) {
+    const errorCode = err.code === 'EMAIL_NOT_VERIFIED' ? 'email_not_verified' : 'server_error';
+    res.redirect(`${appUrl}/login?authError=${errorCode}`);
   }
 });
 
