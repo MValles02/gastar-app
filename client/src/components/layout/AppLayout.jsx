@@ -27,8 +27,7 @@ function LayoutInner({ children }) {
           <div className="flex min-h-full flex-col">
             <div className="flex-1">{children}</div>
             <LegalLinks
-              variant="app"
-              className="mt-8 border-t border-border-default/70 pt-4 md:mt-10 md:justify-end"
+              className="mt-8 border-t border-border-default/70 pt-4 md:mt-10"
             />
           </div>
         </main>

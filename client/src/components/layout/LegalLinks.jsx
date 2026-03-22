@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 
 export default function LegalLinks({
-  variant = 'auth',
   includeBackLink = false,
   className,
 }) {
@@ -20,11 +19,6 @@ export default function LegalLinks({
         className
       )}
     >
-      {variant === 'app' ? (
-        <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-app-soft">
-          Legal
-        </span>
-      ) : null}
       <Link className="transition-colors hover:text-accent-600" to="/privacy">
         Politica de privacidad
       </Link>
@@ -45,7 +39,6 @@ export default function LegalLinks({
 }
 
 LegalLinks.propTypes = {
-  variant: PropTypes.oneOf(['auth', 'app']),
   includeBackLink: PropTypes.bool,
   className: PropTypes.string,
 };

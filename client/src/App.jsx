@@ -16,6 +16,7 @@ import Transactions from './pages/Transactions.jsx';
 import Accounts from './pages/Accounts.jsx';
 import Categories from './pages/Categories.jsx';
 import Reports from './pages/Reports.jsx';
+import Profile from './pages/Profile.jsx';
 
 function PrivateRoute({ children }) {
   const { user, loading, authError, loadSession } = useAuth();
@@ -62,6 +63,7 @@ function App() {
             <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
             <Route path="/categories" element={<PrivateRoute><Categories /></PrivateRoute>} />
             <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
+            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

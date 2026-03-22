@@ -10,12 +10,16 @@ import {
   ChevronRight,
   LogOut,
   HelpCircle,
+  Plus,
+  User,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useOnboarding } from '../../context/OnboardingContext.jsx';
-import ThemeToggle from '../ui/ThemeToggle.jsx';
+import { useTransactionModal } from '../../context/TransactionModalContext.jsx';
 import GastarLogo from '../ui/GastarLogo.jsx';
 
 const navItems = [
@@ -28,9 +32,10 @@ const navItems = [
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar-collapsed') === 'true');
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const { openOnboarding } = useOnboarding();
+  const { openModal } = useTransactionModal();
 
   const toggle = () => {
     const next = !collapsed;
@@ -95,20 +100,50 @@ export default function Sidebar() {
           ))}
         </nav>
 
-        <div className="space-y-1 border-t border-border-default/70 px-1 pt-3">
-          <div className={clsx('flex items-center gap-3', collapsed && 'justify-center')}>
-            <ThemeToggle />
-            {!collapsed && (
-              <span className="text-sm text-app-muted">
-                {theme === 'light' ? 'Modo oscuro' : 'Modo claro'}
-              </span>
+        <div className="px-1 pb-2">
+          <button
+            onClick={() => openModal()}
+            aria-label={collapsed ? 'Nueva transacción' : undefined}
+            className={clsx(
+              'flex w-full items-center gap-3 rounded-soft bg-accent-600 px-3 py-2.5 text-sm font-medium text-white shadow-panel-sm transition-colors hover:bg-accent-700',
+              collapsed && 'justify-center px-2'
             )}
-          </div>
+          >
+            <Plus className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+            {!collapsed && <span>Nueva transacción</span>}
+          </button>
+        </div>
 
-          {!collapsed && user ? (
-            <div className="truncate px-3 py-1.5 text-xs text-app-soft">
-              {user.name}
-            </div>
+        <div className="space-y-1 border-t border-border-default/70 px-1 pt-3">
+          <button
+            onClick={toggleTheme}
+            aria-label={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
+            className={clsx(
+              'flex w-full items-center gap-3 rounded-soft px-3 py-2 text-sm text-app-muted transition-colors hover:bg-surface-muted hover:text-app',
+              collapsed && 'justify-center px-2'
+            )}
+          >
+            {theme === 'light' ? <Moon className="h-5 w-5" aria-hidden="true" /> : <Sun className="h-5 w-5" aria-hidden="true" />}
+            {!collapsed && <span>{theme === 'light' ? 'Modo oscuro' : 'Modo claro'}</span>}
+          </button>
+
+          {user ? (
+            <NavLink
+              to="/profile"
+              aria-label={collapsed ? user.name : undefined}
+              className={({ isActive }) =>
+                clsx(
+                  'flex w-full items-center gap-3 rounded-soft px-3 py-2 text-sm transition-colors',
+                  isActive
+                    ? 'bg-surface-muted text-app shadow-panel-sm'
+                    : 'text-app-muted hover:bg-surface-muted hover:text-app',
+                  collapsed && 'justify-center px-2'
+                )
+              }
+            >
+              <User className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+              {!collapsed && <span className="truncate">{user.name}</span>}
+            </NavLink>
           ) : null}
 
           <button

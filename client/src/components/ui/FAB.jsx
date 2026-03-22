@@ -10,7 +10,7 @@ export default function FAB({ onClick, className }) {
       className={clsx(
         'fixed z-40 flex h-14 w-14 items-center justify-center rounded-full shadow-hero transition-transform duration-200 hover:scale-105 active:scale-95',
         'bg-accent-600 text-white ring-4 ring-canvas/80 hover:bg-accent-700',
-        'bottom-24 right-6 md:bottom-8 md:right-8',
+        'bottom-24 left-1/2 -translate-x-1/2 md:hidden',
         className
       )}
       aria-label="Agregar transacción"
