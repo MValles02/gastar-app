@@ -41,8 +41,8 @@ export default function BalanceOverview({ summary }) {
           </div>
           <div className="metric-card">
             <p className="metric-label">Saldo neto</p>
-            <p className={`mt-2 text-2xl font-semibold ${getBalanceTone(summary.totalBalance)}`}>
-              {formatCurrency(summary.totalBalance)}
+            <p className={`mt-2 text-2xl font-semibold ${getBalanceTone(summary.totalIncome - summary.totalExpenses)}`}>
+              {formatCurrency(summary.totalIncome - summary.totalExpenses)}
             </p>
           </div>
         </div>

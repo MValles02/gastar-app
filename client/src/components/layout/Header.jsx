@@ -1,13 +1,24 @@
 import { LogOut, HelpCircle } from 'lucide-react';
-import PropTypes from 'prop-types';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useOnboarding } from '../../context/OnboardingContext.jsx';
+
 import ThemeToggle from '../ui/ThemeToggle.jsx';
 import GastarLogo from '../ui/GastarLogo.jsx';
 
-export default function Header({ title }) {
+const routeTitles = {
+  '/': 'Panel',
+  '/transactions': 'Transacciones',
+  '/accounts': 'Cuentas',
+  '/categories': 'Categorías',
+  '/reports': 'Reportes',
+};
+
+export default function Header() {
   const { logout } = useAuth();
   const { openOnboarding } = useOnboarding();
+  const { pathname } = useLocation();
+  const title = routeTitles[pathname] ?? 'Gastar';
 
   return (
     <header className="border-b border-border-default/80 bg-canvas-elevated/88 px-4 py-3 backdrop-blur md:hidden">
@@ -42,6 +53,3 @@ export default function Header({ title }) {
   );
 }
 
-Header.propTypes = {
-  title: PropTypes.string,
-};
