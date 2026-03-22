@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import Sidebar from './Sidebar.jsx';
-import BottomTabBar from './BottomTabBar.jsx';
 import Header from './Header.jsx';
+import MobileDrawer from './MobileDrawer.jsx';
 import LegalLinks from './LegalLinks.jsx';
 import FloatingActionButton from '../ui/FAB.jsx';
 import TransactionModal from '../transactions/TransactionModal.jsx';
@@ -11,6 +12,7 @@ import { childrenPropType } from '../../utils/propTypes.js';
 
 function LayoutInner({ children }) {
   const { openModal } = useTransactionModal();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
     <div className="workspace-shell flex h-dvh overflow-hidden">
@@ -22,8 +24,8 @@ function LayoutInner({ children }) {
       </a>
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header />
-        <main id="main-content" className="workspace-main px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-5 md:px-8 md:pb-10 md:pt-10">
+        <Header onMenuOpen={() => setDrawerOpen(true)} />
+        <main id="main-content" className="workspace-main px-4 pb-6 pt-5 md:px-8 md:pb-10 md:pt-10">
           <div className="flex min-h-full flex-col">
             <div className="flex-1">{children}</div>
             <LegalLinks
@@ -32,7 +34,7 @@ function LayoutInner({ children }) {
           </div>
         </main>
       </div>
-      <BottomTabBar />
+      <MobileDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <FloatingActionButton onClick={() => openModal()} />
       <TransactionModal />
       <OnboardingWizard />

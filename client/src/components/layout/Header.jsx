@@ -1,9 +1,6 @@
-import { LogOut, HelpCircle } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext.jsx';
-import { useOnboarding } from '../../context/OnboardingContext.jsx';
-
-import ThemeToggle from '../ui/ThemeToggle.jsx';
+import PropTypes from 'prop-types';
 import GastarLogo from '../ui/GastarLogo.jsx';
 
 const routeTitles = {
@@ -12,11 +9,10 @@ const routeTitles = {
   '/accounts': 'Cuentas',
   '/categories': 'Categorías',
   '/reports': 'Reportes',
+  '/profile': 'Mi perfil',
 };
 
-export default function Header() {
-  const { logout } = useAuth();
-  const { openOnboarding } = useOnboarding();
+export default function Header({ onMenuOpen }) {
   const { pathname } = useLocation();
   const title = routeTitles[pathname] ?? 'Gastar';
 
@@ -33,25 +29,18 @@ export default function Header() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <button
-            onClick={openOnboarding}
-            aria-label="Repetir tutorial"
-            className="interactive-subtle p-2.5"
-          >
-            <HelpCircle className="h-5 w-5" />
-          </button>
-          <button
-            onClick={logout}
-            aria-label="Cerrar sesión"
-            className="interactive-subtle p-2.5"
-          >
-            <LogOut className="h-5 w-5" />
-          </button>
-        </div>
+        <button
+          onClick={onMenuOpen}
+          aria-label="Abrir menú"
+          className="interactive-subtle p-2.5"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
       </div>
     </header>
   );
 }
 
+Header.propTypes = {
+  onMenuOpen: PropTypes.func.isRequired,
+};
