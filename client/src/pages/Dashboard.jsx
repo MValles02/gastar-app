@@ -66,7 +66,7 @@ function Dashboard() {
       <Section className="space-y-8">
         <BalanceOverview summary={summary} />
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <ActiveAccounts accounts={summary?.accounts ?? []} />
           <RecentTransactions transactions={recentTx} />
         </div>

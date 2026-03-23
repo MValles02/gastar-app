@@ -21,7 +21,7 @@ export default function RecentTransactions({ transactions }) {
   return (
     <section className="section-block">
       <div className="section-heading">
-        <h3 className="section-title">Últimos movimientos</h3>
+        <h3 className="section-title min-w-0">Últimos movimientos</h3>
         <Link
           to="/transactions"
           className="inline-flex items-center gap-1 text-sm font-medium text-accent-600 transition-colors hover:text-accent-700"
