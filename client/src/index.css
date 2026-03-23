@@ -76,7 +76,7 @@
   }
 
   html, body, #root {
-    @apply h-dvh overflow-hidden;
+    @apply h-dvh;
   }
 
   html {
@@ -95,6 +95,16 @@
 
   input, select, textarea, button {
     touch-action: manipulation;
+  }
+
+  @media (max-width: 767px) {
+    html {
+      font-size: 14px;
+    }
+
+    input, select, textarea {
+      font-size: 16px !important;
+    }
   }
 
   ::selection {
@@ -142,6 +152,12 @@
 
   .workspace-main {
     @apply relative flex-1 overflow-y-auto;
+  }
+
+  @media (max-width: 767px) {
+    .workspace-main {
+      padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+    }
   }
 
   .workspace-main::before {
