@@ -154,12 +154,6 @@
     @apply relative flex-1 overflow-y-auto;
   }
 
-  @media (max-width: 767px) {
-    .workspace-main {
-      padding-bottom: calc(4rem + env(safe-area-inset-bottom));
-    }
-  }
-
   .workspace-main::before {
     content: "";
     position: absolute;
