@@ -2,7 +2,6 @@ import { useState } from 'react';
 import Sidebar from './Sidebar.jsx';
 import Header from './Header.jsx';
 import MobileDrawer from './MobileDrawer.jsx';
-import LegalLinks from './LegalLinks.jsx';
 import FloatingActionButton from '../ui/FAB.jsx';
 import TransactionModal from '../transactions/TransactionModal.jsx';
 import OnboardingWizard from '../onboarding/OnboardingWizard.jsx';
@@ -26,12 +25,7 @@ function LayoutInner({ children }) {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header onMenuOpen={() => setDrawerOpen(true)} />
         <main id="main-content" className="workspace-main px-4 pb-6 pt-5 md:px-8 md:pb-10 md:pt-10">
-          <div className="flex min-h-full flex-col">
-            <div className="flex-1">{children}</div>
-            <LegalLinks
-              className="mt-8 border-t border-border-default/70 pt-4 md:mt-10"
-            />
-          </div>
+          {children}
         </main>
       </div>
       <MobileDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />

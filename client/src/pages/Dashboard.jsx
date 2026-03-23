@@ -3,6 +3,7 @@ import { getSummary, getByCategory } from '../services/reports.js';
 import { getTransactions } from '../services/transactions.js';
 import { Page, PageHeader, Section } from '../components/layout/Page.jsx';
 import BalanceOverview from '../components/dashboard/BalanceOverview.jsx';
+import ActiveAccounts from '../components/dashboard/ActiveAccounts.jsx';
 import RecentTransactions from '../components/dashboard/RecentTransactions.jsx';
 import SpendingByCategory from '../components/dashboard/SpendingByCategory.jsx';
 import { DashboardSkeleton } from '../components/ui/PageSkeletons.jsx';
@@ -71,10 +72,12 @@ function Dashboard() {
       <Section className="space-y-8">
         <BalanceOverview summary={summary} />
 
-        <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
-          <SpendingByCategory data={netByCategory} />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ActiveAccounts accounts={summary?.accounts ?? []} />
           <RecentTransactions transactions={recentTx} />
         </div>
+
+        <SpendingByCategory data={netByCategory} />
       </Section>
     </Page>
   );
