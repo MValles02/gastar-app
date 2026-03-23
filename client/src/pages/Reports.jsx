@@ -46,6 +46,16 @@ function Reports() {
 
   const netFlowTone = summary?.netFlow >= 0 ? getAmountTone('income') : getAmountTone('expense');
 
+  // Compute net amounts per category (expenses minus incomes)
+  const netByCategory = (() => {
+    const expenses = categoryData?.expenses ?? [];
+    const incomes = categoryData?.incomes ?? [];
+    const incomeMap = new Map(incomes.map(i => [i.categoryId, i.total]));
+    return expenses
+      .map(e => ({ ...e, total: e.total - (incomeMap.get(e.categoryId) ?? 0) }))
+      .filter(e => e.total > 0);
+  })();
+
   return (
     <Page>
       <PageHeader
@@ -105,7 +115,7 @@ function Reports() {
               </div>
             </div>
 
-            <SpendingByCategory expenses={categoryData?.expenses} />
+            <SpendingByCategory data={netByCategory} />
           </div>
         ) : null}
       </div>

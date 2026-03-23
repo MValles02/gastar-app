@@ -47,6 +47,16 @@ function Dashboard() {
     load();
   }, [load, refreshKey]);
 
+  // Compute net amounts per category (expenses minus incomes)
+  const netByCategory = (() => {
+    const expenses = categoryData?.expenses ?? [];
+    const incomes = categoryData?.incomes ?? [];
+    const incomeMap = new Map(incomes.map(i => [i.categoryId, i.total]));
+    return expenses
+      .map(e => ({ ...e, total: e.total - (incomeMap.get(e.categoryId) ?? 0) }))
+      .filter(e => e.total > 0);
+  })();
+
   if (loading) return <DashboardSkeleton />;
   if (error) return <PageErrorState title="No pudimos cargar el panel" message={error} onAction={load} />;
 
@@ -62,7 +72,7 @@ function Dashboard() {
         <BalanceOverview summary={summary} />
 
         <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
-          <SpendingByCategory expenses={categoryData?.expenses} />
+          <SpendingByCategory data={netByCategory} />
           <RecentTransactions transactions={recentTx} />
         </div>
       </Section>

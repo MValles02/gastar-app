@@ -19,8 +19,8 @@ function CategoryTooltip({ active, payload }) {
   );
 }
 
-export default function SpendingByCategory({ expenses }) {
-  if (!expenses || expenses.length === 0) {
+export default function SpendingByCategory({ data }) {
+  if (!data || data.length === 0) {
     return (
       <section className="section-block">
         <div>
@@ -34,7 +34,7 @@ export default function SpendingByCategory({ expenses }) {
     );
   }
 
-  const data = expenses.map((item, index) => ({
+  const chartData = data.map((item, index) => ({
     name: item.categoryName,
     value: item.total,
     fill: COLORS[index % COLORS.length],
@@ -53,7 +53,7 @@ export default function SpendingByCategory({ expenses }) {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data}
+                  data={chartData}
                   cx="50%"
                   cy="50%"
                   innerRadius={66}
@@ -61,7 +61,7 @@ export default function SpendingByCategory({ expenses }) {
                   paddingAngle={2}
                   dataKey="value"
                 >
-                  {data.map((entry) => (
+                  {chartData.map((entry) => (
                     <Cell key={entry.name} fill={entry.fill} />
                   ))}
                 </Pie>
@@ -72,7 +72,7 @@ export default function SpendingByCategory({ expenses }) {
         </div>
 
         <div className="list-surface">
-          {data.map(item => (
+          {chartData.map(item => (
             <div key={item.name} className="list-row">
               <div className="flex min-w-0 items-center gap-3">
                 <span
@@ -106,5 +106,5 @@ CategoryTooltip.propTypes = {
 };
 
 SpendingByCategory.propTypes = {
-  expenses: PropTypes.arrayOf(expenseShape),
+  data: PropTypes.arrayOf(expenseShape),
 };
