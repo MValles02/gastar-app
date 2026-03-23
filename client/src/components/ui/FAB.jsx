@@ -8,7 +8,7 @@ export default function FAB({ onClick, className }) {
     <button
       onClick={onClick}
       className={clsx(
-        'fixed z-40 flex h-14 w-14 items-center justify-center rounded-full shadow-hero transition-transform duration-200 hover:scale-105 active:scale-95',
+        'fixed z-40 flex h-14 w-14 items-center justify-center rounded-full shadow-hero transition-transform duration-200 hover:scale-105 active:scale-95 focus:outline-none',
         'bg-accent-600 text-white ring-4 ring-canvas/80 hover:bg-accent-700',
         'bottom-6 right-6 md:hidden',
         className

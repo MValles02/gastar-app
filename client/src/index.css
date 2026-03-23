@@ -97,6 +97,11 @@
     touch-action: manipulation;
   }
 
+  input[type="date"] {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   @media (max-width: 767px) {
     html {
       font-size: 14px;
