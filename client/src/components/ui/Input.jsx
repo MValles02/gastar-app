@@ -19,7 +19,7 @@ export default function Input({
           {label}
         </label>
       )}
-      <div className="relative">
+      <div className="relative flex">
         {Icon && (
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             <Icon className="h-4 w-4 text-app-soft" />
