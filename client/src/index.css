@@ -180,7 +180,7 @@
   }
 
   .workspace-main {
-    @apply relative flex-1 overflow-y-auto;
+    @apply relative flex-1 overflow-x-hidden overflow-y-auto;
   }
 
   .workspace-main::before {
