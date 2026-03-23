@@ -1,10 +1,16 @@
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, Label, ResponsiveContainer, Tooltip } from 'recharts';
 import PropTypes from 'prop-types';
 import { formatCurrency } from '../../utils/formatters.js';
 
 const COLORS = [
-  '#16a57f', '#3a7da8', '#c1841f', '#b14a4a', '#7e5bef',
-  '#d25791', '#2f9b95', '#d27b3c', '#5f70d8', '#7ca32a',
+  'var(--color-chart-1)',
+  'var(--color-chart-2)',
+  'var(--color-chart-3)',
+  'var(--color-chart-4)',
+  'var(--color-chart-5)',
+  'var(--color-chart-6)',
+  'var(--color-chart-7)',
+  'var(--color-chart-8)',
 ];
 
 function CategoryTooltip({ active, payload }) {
@@ -68,10 +74,27 @@ export default function SpendingByCategory({ data }) {
                     outerRadius={96}
                     paddingAngle={2}
                     dataKey="value"
+                    stroke="transparent"
+                    strokeWidth={2}
                   >
                     {chartData.map((entry) => (
                       <Cell key={entry.name} fill={entry.fill} />
                     ))}
+                    <Label
+                      content={({ viewBox }) => {
+                        const { cx, cy } = viewBox;
+                        return (
+                          <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
+                            <tspan x={cx} dy="-0.4em" fontSize="11" fill="var(--color-text-soft)" fontFamily="inherit" letterSpacing="0.08em" fontWeight="600" textTransform="uppercase">
+                              GASTOS
+                            </tspan>
+                            <tspan x={cx} dy="1.6em" fontSize="13" fill="var(--color-text-muted)" fontFamily="inherit" fontWeight="500">
+                              {chartData.length} categ.
+                            </tspan>
+                          </text>
+                        );
+                      }}
+                    />
                   </Pie>
                   <Tooltip content={<CategoryTooltip />} />
                 </PieChart>
