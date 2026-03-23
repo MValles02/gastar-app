@@ -11,9 +11,6 @@ export default function BalanceOverview({ summary }) {
         <h2 className="text-4xl font-semibold tracking-tight text-app md:text-5xl">
           {formatCurrency(summary.totalBalance)}
         </h2>
-        <p className="max-w-xl text-sm leading-6 text-app-muted">
-          Vista consolidada de tus cuentas para entender cuánto margen real tenés antes de cargar o revisar movimientos.
-        </p>
       </div>
 
       <div className="mt-8 grid gap-3 sm:grid-cols-3">

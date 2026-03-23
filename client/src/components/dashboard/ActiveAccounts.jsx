@@ -37,10 +37,7 @@ export default function ActiveAccounts({ accounts }) {
   return (
     <section className="section-block">
       <div className="section-heading">
-        <div>
-          <h3 className="section-title">Cuentas activas</h3>
-          <p className="section-description">Solo cuentas con saldo.</p>
-        </div>
+        <h3 className="section-title">Cuentas activas</h3>
         <select
           value={sort}
           onChange={e => setSort(e.target.value)}

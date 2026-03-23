@@ -37,10 +37,7 @@ export default function SpendingByCategory({ data }) {
 
   return (
     <section className="section-block">
-      <div>
-        <h3 className="section-title">Gastos por categoría</h3>
-        <p className="section-description">Un corte rápido de dónde se concentra la salida de dinero.</p>
-      </div>
+      <h3 className="section-title">Gastos por categoría</h3>
 
       <div className="list-surface divide-y divide-border-default/40">
         {items.map(item => {
