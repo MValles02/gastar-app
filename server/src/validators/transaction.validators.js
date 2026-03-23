@@ -7,6 +7,10 @@ export const createTransactionSchema = z.object({
   amount: z.union([z.string(), z.number()])
     .transform(Number)
     .pipe(z.number().positive('El monto debe ser mayor a 0')),
+  cotizacion: z.union([z.string(), z.number()])
+    .transform(Number)
+    .pipe(z.number().positive('La cotizacion debe ser mayor a 0'))
+    .optional(),
   description: z.string().max(200).optional(),
   date: z.string().refine(val => !Number.isNaN(Date.parse(val)), 'Fecha invalida'),
   transferTo: z.string().uuid().optional(),
@@ -25,6 +29,10 @@ export const updateTransactionSchema = z.object({
   amount: z.union([z.string(), z.number()])
     .transform(Number)
     .pipe(z.number().positive('El monto debe ser mayor a 0'))
+    .optional(),
+  cotizacion: z.union([z.string(), z.number()])
+    .transform(Number)
+    .pipe(z.number().positive('La cotizacion debe ser mayor a 0'))
     .optional(),
   description: z.string().max(200).optional(),
   date: z.string().refine(val => !Number.isNaN(Date.parse(val)), 'Fecha invalida').optional(),

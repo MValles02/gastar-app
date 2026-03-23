@@ -22,11 +22,11 @@ router.get('/summary', async (req, res, next) => {
 
     const accounts = await prisma.account.findMany({
       where: { userId: req.userId },
-      select: { id: true, name: true, type: true, balance: true, currency: true },
+      select: { id: true, name: true, type: true, balance: true, balanceArs: true, currency: true },
       orderBy: { name: 'asc' },
     });
 
-    const totalBalance = accounts.reduce((sum, a) => sum + Number.parseFloat(a.balance), 0);
+    const totalBalance = accounts.reduce((sum, a) => sum + Number.parseFloat(a.balanceArs), 0);
 
     const txWhere = {
       account: { userId: req.userId },
@@ -36,16 +36,16 @@ router.get('/summary', async (req, res, next) => {
     const [incomeAgg, expenseAgg] = await Promise.all([
       prisma.transaction.aggregate({
         where: { ...txWhere, type: 'income' },
-        _sum: { amount: true },
+        _sum: { amountArs: true },
       }),
       prisma.transaction.aggregate({
         where: { ...txWhere, type: 'expense' },
-        _sum: { amount: true },
+        _sum: { amountArs: true },
       }),
     ]);
 
-    const totalIncome = Number.parseFloat(incomeAgg._sum.amount || 0);
-    const totalExpenses = Number.parseFloat(expenseAgg._sum.amount || 0);
+    const totalIncome = Number.parseFloat(incomeAgg._sum.amountArs || 0);
+    const totalExpenses = Number.parseFloat(expenseAgg._sum.amountArs || 0);
 
     res.json({
       data: {
@@ -79,14 +79,14 @@ router.get('/by-category', async (req, res, next) => {
       prisma.transaction.groupBy({
         by: ['categoryId'],
         where: { ...txWhere, type: 'expense' },
-        _sum: { amount: true },
-        orderBy: { _sum: { amount: 'desc' } },
+        _sum: { amountArs: true },
+        orderBy: { _sum: { amountArs: 'desc' } },
       }),
       prisma.transaction.groupBy({
         by: ['categoryId'],
         where: { ...txWhere, type: 'income' },
-        _sum: { amount: true },
-        orderBy: { _sum: { amount: 'desc' } },
+        _sum: { amountArs: true },
+        orderBy: { _sum: { amountArs: 'desc' } },
       }),
     ]);
 
@@ -108,7 +108,7 @@ router.get('/by-category', async (req, res, next) => {
       categoryId: g.categoryId,
       categoryName: categoriesMap[g.categoryId]?.name || 'Sin categoría',
       categoryIcon: categoriesMap[g.categoryId]?.icon || null,
-      total: Number.parseFloat(g._sum.amount || 0),
+      total: Number.parseFloat(g._sum.amountArs || 0),
     }));
 
     res.json({

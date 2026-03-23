@@ -4,6 +4,8 @@ export function getEffectiveTransaction(existing, data) {
     categoryId: data.categoryId ?? existing.categoryId,
     type: data.type ?? existing.type,
     amount: data.amount ?? existing.amount,
+    cotizacion: data.cotizacion ?? existing.cotizacion,
+    amountArs: data.amountArs ?? existing.amountArs,
     description: data.description ?? existing.description,
     date: data.date ?? existing.date,
     transferTo: data.transferTo === undefined ? existing.transferTo : data.transferTo,

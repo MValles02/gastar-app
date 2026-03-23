@@ -22,6 +22,7 @@ import { getAccounts } from '../../services/accounts.js';
 import { getCategories } from '../../services/categories.js';
 import { useTransactionModal } from '../../context/TransactionModalContext.jsx';
 import { getErrorMessage } from '../../utils/errors.js';
+import { formatCurrency } from '../../utils/formatters.js';
 
 const typeOptions = [
   { value: 'expense', label: 'Gasto', icon: ArrowDownCircle, tone: 'text-danger' },
@@ -39,6 +40,7 @@ export default function TransactionModal() {
   const [categoryId, setCategoryId] = useState('');
   const [transferTo, setTransferTo] = useState('');
   const [date, setDate] = useState('');
+  const [cotizacion, setCotizacion] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
   const [errors, setErrors] = useState({});
@@ -68,6 +70,7 @@ export default function TransactionModal() {
       setTransferTo(editData.transferTo || '');
       setDate(editData.date?.split('T')[0] || '');
       setDescription(editData.description || '');
+      setCotizacion(editData.cotizacion ? String(editData.cotizacion) : '');
     } else {
       setType('expense');
       setAmount('');
@@ -78,6 +81,7 @@ export default function TransactionModal() {
       const today = new Date();
       setDate(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
       setDescription('');
+      setCotizacion('');
     }
 
     setError('');
@@ -112,6 +116,8 @@ export default function TransactionModal() {
     }
   };
 
+  const selectedAccount = accounts.find(a => a.id === accountId);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -131,6 +137,12 @@ export default function TransactionModal() {
     if (type === 'transfer' && !transferTo) {
       nextErrors.transferTo = 'Seleccioná la cuenta destino';
     }
+    if (selectedAccount?.currency && selectedAccount.currency !== 'ARS') {
+      const parsedCotizacion = Number.parseFloat(cotizacion);
+      if (!cotizacion || parsedCotizacion <= 0 || Number.isNaN(parsedCotizacion)) {
+        nextErrors.cotizacion = 'Ingresá la cotización del día';
+      }
+    }
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
@@ -149,6 +161,9 @@ export default function TransactionModal() {
         date,
         description: description || undefined,
         transferTo: type === 'transfer' ? transferTo : undefined,
+        cotizacion: selectedAccount?.currency && selectedAccount.currency !== 'ARS'
+          ? Number.parseFloat(cotizacion)
+          : undefined,
       };
 
       if (isEdit) {
@@ -208,6 +223,26 @@ export default function TransactionModal() {
             />
             <ComposerHintLine icon={Wallet}>Seleccioná la cuenta afectada</ComposerHintLine>
           </div>
+
+          {selectedAccount?.currency && selectedAccount.currency !== 'ARS' && (
+            <div>
+              <Input
+                label={`Cotización (1 ${selectedAccount.currency} = ? ARS)`}
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={cotizacion}
+                onChange={(e) => { setCotizacion(e.target.value); clearFieldError('cotizacion'); }}
+                placeholder="Ej: 1200"
+                error={errors.cotizacion}
+              />
+              {cotizacion && amount && Number.parseFloat(cotizacion) > 0 && Number.parseFloat(amount) > 0 && (
+                <p className="mt-1 text-xs text-app-muted">
+                  = {formatCurrency(Number.parseFloat(amount) * Number.parseFloat(cotizacion))}
+                </p>
+              )}
+            </div>
+          )}
 
           {type === 'transfer' && (
             <Select

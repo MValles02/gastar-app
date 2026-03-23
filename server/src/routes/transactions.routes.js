@@ -9,10 +9,10 @@ const router = Router();
 
 router.use(authenticate);
 
-async function assertOwnedAccount(accountId, userId, errorMessage) {
+async function fetchOwnedAccount(accountId, userId, errorMessage) {
   const account = await prisma.account.findFirst({
     where: { id: accountId, userId },
-    select: { id: true },
+    select: { id: true, currency: true },
   });
 
   if (!account) {
@@ -20,6 +20,8 @@ async function assertOwnedAccount(accountId, userId, errorMessage) {
     error.status = 404;
     throw error;
   }
+
+  return account;
 }
 
 async function assertOwnedCategory(categoryId, userId) {
@@ -36,9 +38,10 @@ async function assertOwnedCategory(categoryId, userId) {
 }
 
 async function validateTransactionReferences(data, userId) {
-  await assertOwnedAccount(data.accountId, userId, 'Cuenta no encontrada');
+  const sourceAccount = await fetchOwnedAccount(data.accountId, userId, 'Cuenta no encontrada');
   await assertOwnedCategory(data.categoryId, userId);
 
+  let destAccount = null;
   if (data.type === 'transfer') {
     if (!data.transferTo) {
       const error = new Error('La cuenta destino es requerida para transferencias');
@@ -52,8 +55,10 @@ async function validateTransactionReferences(data, userId) {
       throw error;
     }
 
-    await assertOwnedAccount(data.transferTo, userId, 'Cuenta destino no encontrada');
+    destAccount = await fetchOwnedAccount(data.transferTo, userId, 'Cuenta destino no encontrada');
   }
+
+  return { sourceAccount, destAccount };
 }
 
 // GET /api/transactions
@@ -107,7 +112,13 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const data = createTransactionSchema.parse(req.body);
-    await validateTransactionReferences(data, req.userId);
+    const { sourceAccount, destAccount } = await validateTransactionReferences(data, req.userId);
+
+    if (sourceAccount.currency !== 'ARS' && !data.cotizacion) {
+      return res.status(400).json({ error: 'La cotizacion es requerida para cuentas en moneda extranjera' });
+    }
+    const cotizacion = sourceAccount.currency === 'ARS' ? null : data.cotizacion;
+    const amountArs = cotizacion ? data.amount * cotizacion : data.amount;
 
     const transaction = await prisma.$transaction(async (tx) => {
       const created = await tx.transaction.create({
@@ -116,6 +127,8 @@ router.post('/', async (req, res, next) => {
           categoryId: data.categoryId,
           type: data.type,
           amount: data.amount,
+          cotizacion,
+          amountArs,
           description: data.description || null,
           date: new Date(data.date),
           transferTo: data.type === 'transfer' ? data.transferTo : null,
@@ -126,7 +139,7 @@ router.post('/', async (req, res, next) => {
           transferToAccount: { select: { id: true, name: true } },
         },
       });
-      await applyTransactionBalances(tx, created);
+      await applyTransactionBalances(tx, created, sourceAccount, destAccount);
       return created;
     });
 
@@ -151,11 +164,28 @@ router.put('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Transaccion no encontrada' });
     }
 
+    // Recompute amountArs if amount or cotizacion changed
+    if (data.amount !== undefined || data.cotizacion !== undefined) {
+      const effectiveAmount = data.amount ?? Number.parseFloat(existing.amount);
+      const effectiveCotizacion = data.cotizacion ?? (existing.cotizacion ? Number.parseFloat(existing.cotizacion) : null);
+      data.amountArs = effectiveCotizacion ? effectiveAmount * effectiveCotizacion : effectiveAmount;
+    }
+
     const effectiveData = getEffectiveTransaction(existing, data);
-    await validateTransactionReferences(effectiveData, req.userId);
+    const { sourceAccount, destAccount } = await validateTransactionReferences(effectiveData, req.userId);
+
+    if (sourceAccount.currency !== 'ARS' && !effectiveData.cotizacion) {
+      return res.status(400).json({ error: 'La cotizacion es requerida para cuentas en moneda extranjera' });
+    }
+
+    // Fetch the original source/dest accounts for reversal
+    const existingSourceAccount = await fetchOwnedAccount(existing.accountId, req.userId, 'Cuenta no encontrada');
+    const existingDestAccount = existing.transferTo
+      ? await fetchOwnedAccount(existing.transferTo, req.userId, 'Cuenta destino no encontrada')
+      : null;
 
     const transaction = await prisma.$transaction(async (tx) => {
-      await reverseTransactionBalances(tx, existing);
+      await reverseTransactionBalances(tx, existing, existingSourceAccount, existingDestAccount);
       const updated = await tx.transaction.update({
         where: { id: req.params.id },
         data: {
@@ -163,6 +193,8 @@ router.put('/:id', async (req, res, next) => {
           categoryId: effectiveData.categoryId,
           type: effectiveData.type,
           amount: effectiveData.amount,
+          cotizacion: effectiveData.cotizacion,
+          amountArs: effectiveData.amountArs,
           description: effectiveData.description,
           date: data.date ? new Date(data.date) : undefined,
           transferTo: effectiveData.transferTo,
@@ -173,7 +205,7 @@ router.put('/:id', async (req, res, next) => {
           transferToAccount: { select: { id: true, name: true } },
         },
       });
-      await applyTransactionBalances(tx, updated);
+      await applyTransactionBalances(tx, updated, sourceAccount, destAccount);
       return updated;
     });
 
@@ -196,8 +228,13 @@ router.delete('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Transaccion no encontrada' });
     }
 
+    const sourceAccount = await fetchOwnedAccount(existing.accountId, req.userId, 'Cuenta no encontrada');
+    const destAccount = existing.transferTo
+      ? await fetchOwnedAccount(existing.transferTo, req.userId, 'Cuenta destino no encontrada')
+      : null;
+
     await prisma.$transaction(async (tx) => {
-      await reverseTransactionBalances(tx, existing);
+      await reverseTransactionBalances(tx, existing, sourceAccount, destAccount);
       await tx.transaction.delete({ where: { id: req.params.id } });
     });
 
