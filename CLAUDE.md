@@ -147,7 +147,7 @@ POST   /api/accounts
 PUT    /api/accounts/:id
 DELETE /api/accounts/:id
 
-GET    /api/transactions?account_id=&category_id=&from=&to=
+GET    /api/transactions?accountId=&categoryId=&type=&from=&to=&page=&limit=
 POST   /api/transactions
 PUT    /api/transactions/:id
 DELETE /api/transactions/:id
@@ -158,8 +158,12 @@ PUT    /api/categories/:id
 DELETE /api/categories/:id
 
 GET    /api/reports/summary?from=&to=
-GET    /api/reports/by-category?from=&to=
+GET    /api/reports/by-category?from=&to=&accountId[]=&type[]=&categoryId[]=
+GET    /api/reports/monthly?year=YYYY
+GET    /api/reports/frequency?from=&to=
 ```
+
+GET /api/transactions returns `{ data: { transactions, total, page, totalPages } }`. All report endpoints aggregate `amountArs` so results are always in ARS regardless of account currency.
 
 ## Code conventions
 
@@ -191,6 +195,40 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_CALLBACK_URL=https://gastar.app/api/auth/google/callback
 ```
 
+## Frontend structure
+
+```
+client/src/
+  pages/              # One file per route (Dashboard, Transactions, Accounts, Categories, Reports, Profile, ...)
+  pages/reports/      # Sub-pages: Balances, SpendByCategory, Frequency
+  components/
+    ui/               # Reusable primitives (Button, Input, Modal, Select, MultiSelect, Badge, Spinner, ...)
+    layout/           # AppLayout, Sidebar, Header, MobileDrawer, Page
+    dashboard/        # Dashboard-specific widgets
+    transactions/     # TransactionList, TransactionFilters, TransactionModal, TransactionComposerUI
+    accounts/         # AccountCard, AccountModal
+    categories/       # CategoryList, CategoryModal
+    onboarding/       # OnboardingWizard and step components
+  context/            # React contexts (see below)
+  services/           # API call wrappers (accounts.js, transactions.js, categories.js, reports.js, api.js)
+  utils/
+    formatters.js     # formatCurrency, formatDate, getAccountTypeLabel, getTransactionTypeLabel, getAmountTone, ...
+    errors.js         # normalizeError, getErrorMessage
+    propTypes.js      # shared propType definitions
+```
+
+API calls go through `client/src/services/api.js` — an Axios instance with `baseURL: '/api'` and a response interceptor that redirects to `/login` on 401.
+
+## React contexts
+
+| Context | Purpose |
+|---------|---------|
+| `AuthContext` | Current user, login/register/logout, session loading state |
+| `DialogContext` | Global imperative confirmation dialog |
+| `TransactionModalContext` | Global transaction composer modal; exposes `openModal(transaction?)`, `closeModal()`, `refreshKey` |
+| `OnboardingContext` | Onboarding wizard state (step, completion) |
+| `ThemeContext` | Light/dark theme toggle (persisted to localStorage) |
+
 ## Important notes
 
 - All monetary amounts use Decimal type (never floating point) to avoid rounding errors
@@ -199,5 +237,7 @@ GOOGLE_CALLBACK_URL=https://gastar.app/api/auth/google/callback
 - Vite dev server proxies `/api` requests to Express during development
 - In production, Express serves everything from a single port
 - PWA manifest enables "Add to Home Screen" with standalone display (no service worker / no offline support)
+- `server/src/services/transaction-rules.js` exports `getEffectiveTransaction(existing, incoming)` — merges partial update fields onto the existing record before validation and balance recalculation. Used by `PUT /api/transactions/:id`.
+- Transaction update flow: reverse old balances → apply updated transaction balances (both in a single Prisma `$transaction`)
 - `DialogContext` provides a global imperative confirmation dialog used throughout the app
 - `TransactionModalContext` controls the global transaction composer modal (opened via the FAB or inline edit)
