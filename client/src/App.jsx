@@ -16,6 +16,9 @@ import Transactions from './pages/Transactions.jsx';
 import Accounts from './pages/Accounts.jsx';
 import Categories from './pages/Categories.jsx';
 import Reports from './pages/Reports.jsx';
+import Balances from './pages/reports/Balances.jsx';
+import SpendByCategory from './pages/reports/SpendByCategory.jsx';
+import Frequency from './pages/reports/Frequency.jsx';
 import Profile from './pages/Profile.jsx';
 
 function PrivateRoute({ children }) {
@@ -63,6 +66,9 @@ function App() {
             <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
             <Route path="/categories" element={<PrivateRoute><Categories /></PrivateRoute>} />
             <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
+            <Route path="/reports/balances" element={<PrivateRoute><Balances /></PrivateRoute>} />
+            <Route path="/reports/gastos-por-categoria" element={<PrivateRoute><SpendByCategory /></PrivateRoute>} />
+            <Route path="/reports/frecuencia" element={<PrivateRoute><Frequency /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
