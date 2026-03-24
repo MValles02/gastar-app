@@ -148,11 +148,11 @@ router.get('/monthly', async (req, res, next) => {
     const rows = await prisma.$queryRaw`
       SELECT
         EXTRACT(MONTH FROM t.date)::int AS month,
-        SUM(CASE WHEN t.type = 'income'  THEN t."amountArs" ELSE 0 END)::float AS income,
-        SUM(CASE WHEN t.type = 'expense' THEN t."amountArs" ELSE 0 END)::float AS expenses
+        SUM(CASE WHEN t.type = 'income'  THEN t.amount_ars ELSE 0 END)::float AS income,
+        SUM(CASE WHEN t.type = 'expense' THEN t.amount_ars ELSE 0 END)::float AS expenses
       FROM transactions t
-      JOIN accounts a ON t."accountId" = a.id
-      WHERE a."userId" = ${req.userId}
+      JOIN accounts a ON t.account_id = a.id
+      WHERE a.user_id = ${req.userId}
         AND EXTRACT(YEAR FROM t.date) = ${targetYear}
       GROUP BY month
       ORDER BY month
