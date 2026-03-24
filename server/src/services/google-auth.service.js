@@ -1,26 +1,30 @@
 import { OAuth2Client } from 'google-auth-library';
 
+let client = null;
+
 function getClient() {
-  return new OAuth2Client(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_CALLBACK_URL,
-  );
+  if (!client) {
+    client = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_CALLBACK_URL,
+    );
+  }
+  return client;
 }
 
 export function buildGoogleAuthUrl() {
-  const client = getClient();
-  return client.generateAuthUrl({
+  return getClient().generateAuthUrl({
     access_type: 'online',
     scope: ['email', 'profile'],
   });
 }
 
 export async function exchangeCodeForProfile(code) {
-  const client = getClient();
-  const { tokens } = await client.getToken(code);
+  const oauth = getClient();
+  const { tokens } = await oauth.getToken(code);
 
-  const ticket = await client.verifyIdToken({
+  const ticket = await oauth.verifyIdToken({
     idToken: tokens.id_token,
     audience: process.env.GOOGLE_CLIENT_ID,
   });

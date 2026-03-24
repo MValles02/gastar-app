@@ -31,7 +31,7 @@ async function assertOwnedCategory(categoryId, userId) {
   });
 
   if (!category) {
-    const error = new Error('Categoria no encontrada');
+    const error = new Error('Categoría no encontrada');
     error.status = 404;
     throw error;
   }

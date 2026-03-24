@@ -17,8 +17,10 @@ const authLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Demasiados intentos. Intenta de nuevo mas tarde.' },
+  message: { error: 'Demasiados intentos. Intentá de nuevo más tarde.' },
 });
+
+const userPublicSelect = { id: true, email: true, name: true };
 
 // POST /api/auth/register
 router.post('/register', authLimiter, async (req, res, next) => {
@@ -33,7 +35,7 @@ router.post('/register', authLimiter, async (req, res, next) => {
     const passwordHash = await bcrypt.hash(data.password, 10);
     const user = await prisma.user.create({
       data: { name: data.name, email: data.email, passwordHash },
-      select: { id: true, email: true, name: true },
+      select: userPublicSelect,
     });
 
     const token = generateToken(user.id);
@@ -74,7 +76,7 @@ router.get('/me', authenticate, async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { id: true, email: true, name: true },
+      select: userPublicSelect,
     });
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });

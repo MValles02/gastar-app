@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
-import { childrenPropType, classNamePropType, iconPropType } from '../../utils/propTypes.js';
+import { classNamePropType } from '../../utils/propTypes.js';
 
 export function TransactionComposerPanel({ children, className }) {
   return <div className={clsx('panel-muted space-y-4 p-4', className)}>{children}</div>;
