@@ -1,6 +1,8 @@
+const locale = navigator.language;
+
 export function formatCurrency(amount, currency = 'ARS') {
   const num = typeof amount === 'string' ? Number.parseFloat(amount) : amount;
-  return new Intl.NumberFormat('es-AR', {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -10,7 +12,7 @@ export function formatCurrency(amount, currency = 'ARS') {
 export function formatDate(dateString) {
   const [year, month, day] = dateString.split('T')[0].split('-').map(Number);
   const date = new Date(year, month - 1, day);
-  return new Intl.DateTimeFormat('es-AR', {
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -20,7 +22,7 @@ export function formatDate(dateString) {
 export function formatDateShort(dateString) {
   const [year, month, day] = dateString.split('T')[0].split('-').map(Number);
   const date = new Date(year, month - 1, day);
-  return new Intl.DateTimeFormat('es-AR', {
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
   }).format(date);

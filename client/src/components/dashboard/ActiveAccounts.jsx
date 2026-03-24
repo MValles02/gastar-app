@@ -57,19 +57,25 @@ export default function ActiveAccounts({ accounts }) {
             const balance = Number.parseFloat(account.balance);
 
             return (
-              <div key={account.id} className="list-row">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-panel bg-surface-muted text-accent-600">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-app">{account.name}</p>
-                    <p className="truncate text-xs text-app-muted">{getAccountTypeLabel(account.type)}</p>
-                  </div>
+              <div key={account.id} className="list-row flex-col items-start gap-1.5">
+                {/* Row 1: icon + account name + balance */}
+                <div className="flex items-center gap-3 w-full">
+                  <Icon className="h-4 w-4 shrink-0 text-accent-600" />
+                  <p className="truncate text-sm font-medium text-app flex-1">{account.name}</p>
+                  <p className={`whitespace-nowrap text-sm font-semibold shrink-0 ${getBalanceTone(balance)}`}>
+                    {formatCurrency(balance, account.currency)}
+                  </p>
                 </div>
-                <p className={`whitespace-nowrap text-sm font-semibold ${getBalanceTone(balance)}`}>
-                  {formatCurrency(balance, account.currency)}
-                </p>
+                {/* Row 2: account type + currency (indented to align under name) */}
+                <div className="flex items-center gap-1 w-full pl-7 text-xs text-app-muted">
+                  <span className="font-medium text-app-soft shrink-0">{getAccountTypeLabel(account.type)}</span>
+                  {account.currency !== 'ARS' && (
+                    <>
+                      <span className="shrink-0"> · </span>
+                      <span className="shrink-0">{account.currency}</span>
+                    </>
+                  )}
+                </div>
               </div>
             );
           })
