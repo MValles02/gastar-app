@@ -1,8 +1,13 @@
+import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
+import { ChevronDown } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { optionShape } from '../../utils/propTypes.js';
 
-export default function MultiSelect({ label, options = [], value = [], onChange }) {
+export default function MultiSelect({ label, options = [], value = [], onChange, placeholder = 'Todos' }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
   const toggle = (optValue) => {
     if (value.includes(optValue)) {
       onChange(value.filter(v => v !== optValue));
@@ -11,26 +16,71 @@ export default function MultiSelect({ label, options = [], value = [], onChange 
     }
   };
 
+  useEffect(() => {
+    const handleMouseDown = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const triggerLabel = (() => {
+    if (value.length === 0) return placeholder;
+    if (value.length === 1) {
+      return options.find(o => o.value === value[0])?.label ?? placeholder;
+    }
+    return `${value.length} seleccionados`;
+  })();
+
   return (
-    <div className="space-y-1.5">
+    <div ref={containerRef} className="relative space-y-1">
       {label && <p className="field-label">{label}</p>}
-      <div className="flex flex-wrap gap-1.5">
-        {options.map(opt => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => toggle(opt.value)}
-            className={clsx(
-              'inline-flex cursor-pointer items-center rounded-full px-3 py-1 text-xs font-medium transition-[background-color,color,border-color] duration-200 focus:outline-none focus:ring-2 focus:ring-accent-400 focus:ring-offset-0',
-              value.includes(opt.value)
-                ? 'bg-accent-600 text-white'
-                : 'border border-border-default bg-surface text-app-muted hover:bg-surface-muted hover:text-app'
-            )}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+
+      <button
+        type="button"
+        onClick={() => setIsOpen(prev => !prev)}
+        className={clsx(
+          'field-base flex w-full cursor-pointer items-center justify-between gap-2 text-left',
+          value.length > 0 ? 'text-app' : 'text-app-muted',
+          isOpen ? 'border-accent-600 ring-2 ring-accent-400/30' : 'border-border-default'
+        )}
+      >
+        <span className="truncate text-sm">{triggerLabel}</span>
+        <ChevronDown
+          className={clsx('h-4 w-4 shrink-0 text-app-muted transition-transform duration-200', isOpen && 'rotate-180')}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-soft border border-border-default bg-surface shadow-panel">
+          {options.map(opt => {
+            const checked = value.includes(opt.value);
+            return (
+              <label
+                key={opt.value}
+                className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-surface-muted"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggle(opt.value)}
+                  className="h-4 w-4 cursor-pointer rounded accent-accent-600"
+                />
+                <span className="text-sm text-app">{opt.label}</span>
+              </label>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -40,4 +90,5 @@ MultiSelect.propTypes = {
   options: PropTypes.arrayOf(optionShape),
   value: PropTypes.arrayOf(PropTypes.string),
   onChange: PropTypes.func.isRequired,
+  placeholder: PropTypes.string,
 };

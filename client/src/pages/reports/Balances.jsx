@@ -17,7 +17,7 @@ const MONTH_NAMES = [
 
 const currentYear = new Date().getFullYear();
 const yearOptions = Array.from({ length: 5 }, (_, i) => {
-  const y = currentYear - 3 + i;
+  const y = currentYear - 4 + i;
   return { value: String(y), label: String(y) };
 });
 
