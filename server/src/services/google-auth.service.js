@@ -36,6 +36,6 @@ export async function exchangeCodeForProfile(code) {
   return {
     googleId: payload.sub,
     email: payload.email,
-    name: payload.name || payload.email.split('@')[0],
+    name: payload.given_name || payload.name || payload.email.split('@')[0],
   };
 }

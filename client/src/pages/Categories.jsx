@@ -3,7 +3,7 @@ import { Plus, Tag } from 'lucide-react';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../services/categories.js';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import { useDialog } from '../context/DialogContext.jsx';
-import { Page, PageHeader } from '../components/layout/Page.jsx';
+import { Page } from '../components/layout/Page.jsx';
 import CategoryList from '../components/categories/CategoryList.jsx';
 import CategoryModal from '../components/categories/CategoryModal.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -88,18 +88,6 @@ function Categories() {
 
   return (
     <Page>
-      <PageHeader
-        eyebrow="Estructura"
-        title="Categorías"
-        description="Definí la taxonomía que ordena ingresos, gastos y comparativas para leer mejor cada movimiento."
-        actions={(
-          <Button onClick={handleCreate} size="sm">
-            <Plus className="h-4 w-4" />
-            Agregar
-          </Button>
-        )}
-      />
-
       {categories.length === 0 ? (
         <EmptyState
           icon={Tag}
@@ -117,6 +105,14 @@ function Categories() {
               Mantené una estructura corta y clara para que reportes y filtros sigan siendo legibles.
             </p>
           </div>
+          <div className="section-heading">
+            <h3 className="section-title">Mis categorías</h3>
+            <Button size="sm" onClick={handleCreate}>
+              <Plus className="h-4 w-4" />
+              Agregar
+            </Button>
+          </div>
+
           <CategoryList
             categories={categories}
             onEdit={handleEdit}

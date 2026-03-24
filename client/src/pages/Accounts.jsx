@@ -3,7 +3,7 @@ import { Plus, Wallet } from 'lucide-react';
 import { getAccounts, createAccount, updateAccount, deleteAccount } from '../services/accounts.js';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import { useDialog } from '../context/DialogContext.jsx';
-import { Page, PageHeader } from '../components/layout/Page.jsx';
+import { Page } from '../components/layout/Page.jsx';
 import AccountCard from '../components/accounts/AccountCard.jsx';
 import AccountModal from '../components/accounts/AccountModal.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -94,18 +94,6 @@ function Accounts() {
 
   return (
     <Page>
-      <PageHeader
-        eyebrow="Patrimonio"
-        title="Cuentas"
-        description="Administrá los saldos que alimentan tus movimientos y reportes sin perder de vista el total disponible."
-        actions={(
-          <Button onClick={handleCreate} size="sm">
-            <Plus className="h-4 w-4" />
-            Agregar
-          </Button>
-        )}
-      />
-
       {accounts.length === 0 ? (
         <EmptyState
           icon={Wallet}
@@ -125,6 +113,14 @@ function Accounts() {
               <p className="metric-label">Balance consolidado</p>
               <p className="mt-2 text-2xl font-semibold text-app">{formatCurrency(summary.totalBalance)}</p>
             </div>
+          </div>
+
+          <div className="section-heading">
+            <h3 className="section-title">Mis cuentas</h3>
+            <Button size="sm" onClick={handleCreate}>
+              <Plus className="h-4 w-4" />
+              Agregar
+            </Button>
           </div>
 
           <div className="list-surface">
