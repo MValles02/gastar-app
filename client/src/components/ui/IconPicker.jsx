@@ -66,6 +66,12 @@ const ICONS = [
   { name: 'minus-circle', Icon: MinusCircle },
 ];
 
+const ICON_MAP = new Map(ICONS.map(({ name, Icon }) => [name, Icon]));
+
+export function getCategoryIcon(name) {
+  return ICON_MAP.get(name) ?? null;
+}
+
 export default function IconPicker({ value, onChange }) {
   return (
     <div>

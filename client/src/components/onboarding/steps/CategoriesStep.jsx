@@ -1,11 +1,7 @@
 import { useState } from 'react';
-import {
-  Banknote, Laptop, TrendingUp, PlusCircle, Utensils, Car, Home,
-  Gamepad2, HeartPulse, GraduationCap, Shirt, Zap, MinusCircle,
-} from 'lucide-react';
 import Input from '../../ui/Input.jsx';
 import Button from '../../ui/Button.jsx';
-import IconPicker from '../../ui/IconPicker.jsx';
+import IconPicker, { getCategoryIcon } from '../../ui/IconPicker.jsx';
 import MessageBanner from '../../ui/MessageBanner.jsx';
 import OptionTile from '../../ui/OptionTile.jsx';
 import { useOnboarding } from '../../../context/OnboardingContext.jsx';
@@ -27,22 +23,6 @@ const DEFAULT_CATEGORIES = [
   { name: 'Servicios', icon: 'zap' },
   { name: 'Otros gastos', icon: 'minus-circle' },
 ];
-
-const ICON_COMPONENTS = {
-  banknote: Banknote,
-  laptop: Laptop,
-  'trending-up': TrendingUp,
-  'plus-circle': PlusCircle,
-  utensils: Utensils,
-  car: Car,
-  home: Home,
-  'gamepad-2': Gamepad2,
-  'heart-pulse': HeartPulse,
-  'graduation-cap': GraduationCap,
-  shirt: Shirt,
-  zap: Zap,
-  'minus-circle': MinusCircle,
-};
 
 export default function CategoriesStep() {
   const { goToNextStep, goToPrevStep } = useOnboarding();
@@ -129,7 +109,7 @@ export default function CategoriesStep() {
           {choice === 'defaults' && (
             <div className="flex flex-wrap gap-1.5">
               {DEFAULT_CATEGORIES.map(category => {
-                const Icon = ICON_COMPONENTS[category.icon];
+                const Icon = getCategoryIcon(category.icon);
                 return (
                   <span
                     key={category.name}
@@ -158,7 +138,7 @@ export default function CategoriesStep() {
         </p>
 
         {listed.map((category, index) => {
-          const Icon = ICON_COMPONENTS[category.icon];
+          const Icon = getCategoryIcon(category.icon);
           const fromExtra = choice === 'defaults';
 
           return (
