@@ -1,4 +1,6 @@
+import { Tag } from 'lucide-react';
 import PropTypes from 'prop-types';
+import { getCategoryIcon } from '../ui/IconPicker.jsx';
 import { formatCurrency } from '../../utils/formatters.js';
 
 const COLORS = [
@@ -29,6 +31,7 @@ export default function SpendingByCategory({ data }) {
 
   const items = data.map((item, index) => ({
     name: item.categoryName,
+    icon: item.categoryIcon,
     value: item.total,
     color: COLORS[index % COLORS.length],
   }));
@@ -42,14 +45,12 @@ export default function SpendingByCategory({ data }) {
       <div className="list-surface divide-y divide-border-default/40">
         {items.map(item => {
           const pct = total > 0 ? (item.value / total) * 100 : 0;
+          const Icon = getCategoryIcon(item.icon) || Tag;
           return (
             <div key={item.name} className="px-5 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2">
-                  <span
-                    className="h-2.5 w-2.5 flex-none rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  />
+                  <Icon className="h-4 w-4 shrink-0 text-app-muted" />
                   <p className="truncate text-sm font-medium text-app">{item.name}</p>
                 </div>
                 <div className="flex items-center gap-3 text-right">
@@ -76,6 +77,7 @@ export default function SpendingByCategory({ data }) {
 SpendingByCategory.propTypes = {
   data: PropTypes.arrayOf(PropTypes.shape({
     categoryName: PropTypes.string.isRequired,
+    categoryIcon: PropTypes.string,
     total: PropTypes.number.isRequired,
   })),
 };
