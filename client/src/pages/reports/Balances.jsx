@@ -82,7 +82,8 @@ export default function Balances() {
 
         {!loading && !error && data ? (
           <div className="list-surface divide-y divide-border-default/40">
-            <div className="grid grid-cols-4 gap-2 px-5 py-2.5">
+            {/* Desktop header — hidden on mobile */}
+            <div className="hidden grid-cols-4 gap-2 px-5 py-2.5 md:grid">
               <p className="text-xs font-medium text-app-muted">Mes</p>
               <p className="text-right text-xs font-medium text-app-muted">Ingresos</p>
               <p className="text-right text-xs font-medium text-app-muted">Gastos</p>
@@ -93,35 +94,57 @@ export default function Balances() {
               const balanceTone = row.netFlow >= 0 ? getAmountTone('income') : getAmountTone('expense');
               const hasData = row.income > 0 || row.expenses > 0;
               return (
-                <div
-                  key={row.month}
-                  className={`grid grid-cols-4 gap-2 px-5 py-3 ${!hasData ? 'opacity-40' : ''}`}
-                >
-                  <p className="text-sm text-app">{MONTH_NAMES[row.month - 1]}</p>
-                  <p className={`text-right text-sm ${getAmountTone('income')}`}>
-                    {formatCurrency(row.income)}
-                  </p>
-                  <p className={`text-right text-sm ${getAmountTone('expense')}`}>
-                    {formatCurrency(row.expenses)}
-                  </p>
-                  <p className={`text-right text-sm font-semibold ${balanceTone}`}>
-                    {row.netFlow >= 0 ? '+' : ''}{formatCurrency(row.netFlow)}
-                  </p>
+                <div key={row.month} className={`px-5 py-3 ${!hasData ? 'opacity-40' : ''}`}>
+                  {/* Mobile: stacked 2-row layout */}
+                  <div className="md:hidden">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-app">{MONTH_NAMES[row.month - 1]}</p>
+                      <p className={`text-sm font-semibold ${balanceTone}`}>
+                        {row.netFlow >= 0 ? '+' : ''}{formatCurrency(row.netFlow)}
+                      </p>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between">
+                      <p className={`text-xs ${getAmountTone('income')}`}>{formatCurrency(row.income)}</p>
+                      <p className={`text-xs ${getAmountTone('expense')}`}>{formatCurrency(row.expenses)}</p>
+                    </div>
+                  </div>
+                  {/* Desktop: 4-column grid */}
+                  <div className="hidden grid-cols-4 gap-2 md:grid">
+                    <p className="text-sm text-app">{MONTH_NAMES[row.month - 1]}</p>
+                    <p className={`text-right text-sm ${getAmountTone('income')}`}>{formatCurrency(row.income)}</p>
+                    <p className={`text-right text-sm ${getAmountTone('expense')}`}>{formatCurrency(row.expenses)}</p>
+                    <p className={`text-right text-sm font-semibold ${balanceTone}`}>
+                      {row.netFlow >= 0 ? '+' : ''}{formatCurrency(row.netFlow)}
+                    </p>
+                  </div>
                 </div>
               );
             })}
 
-            <div className="grid grid-cols-4 gap-2 bg-surface-muted px-5 py-3">
-              <p className="text-sm font-semibold text-app">Total {appliedYear}</p>
-              <p className={`text-right text-sm font-semibold ${getAmountTone('income')}`}>
-                {formatCurrency(data.totals.income)}
-              </p>
-              <p className={`text-right text-sm font-semibold ${getAmountTone('expense')}`}>
-                {formatCurrency(data.totals.expenses)}
-              </p>
-              <p className={`text-right text-sm font-bold ${data.totals.netFlow >= 0 ? getAmountTone('income') : getAmountTone('expense')}`}>
-                {data.totals.netFlow >= 0 ? '+' : ''}{formatCurrency(data.totals.netFlow)}
-              </p>
+            {/* Totals row */}
+            <div className="bg-surface-muted px-5 py-3">
+              {/* Mobile */}
+              <div className="md:hidden">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-app">Total {appliedYear}</p>
+                  <p className={`text-sm font-bold ${data.totals.netFlow >= 0 ? getAmountTone('income') : getAmountTone('expense')}`}>
+                    {data.totals.netFlow >= 0 ? '+' : ''}{formatCurrency(data.totals.netFlow)}
+                  </p>
+                </div>
+                <div className="mt-1 flex items-center justify-between">
+                  <p className={`text-xs font-medium ${getAmountTone('income')}`}>{formatCurrency(data.totals.income)}</p>
+                  <p className={`text-xs font-medium ${getAmountTone('expense')}`}>{formatCurrency(data.totals.expenses)}</p>
+                </div>
+              </div>
+              {/* Desktop */}
+              <div className="hidden grid-cols-4 gap-2 md:grid">
+                <p className="text-sm font-semibold text-app">Total {appliedYear}</p>
+                <p className={`text-right text-sm font-semibold ${getAmountTone('income')}`}>{formatCurrency(data.totals.income)}</p>
+                <p className={`text-right text-sm font-semibold ${getAmountTone('expense')}`}>{formatCurrency(data.totals.expenses)}</p>
+                <p className={`text-right text-sm font-bold ${data.totals.netFlow >= 0 ? getAmountTone('income') : getAmountTone('expense')}`}>
+                  {data.totals.netFlow >= 0 ? '+' : ''}{formatCurrency(data.totals.netFlow)}
+                </p>
+              </div>
             </div>
           </div>
         ) : null}
