@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { ChevronDown } from 'lucide-react';
@@ -6,7 +7,9 @@ import { optionShape } from '../../utils/propTypes.js';
 
 export default function MultiSelect({ label, options = [], value = [], onChange, placeholder = 'Todos' }) {
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef(null);
+  const [panelStyle, setPanelStyle] = useState({});
+  const triggerRef = useRef(null);
+  const panelRef = useRef(null);
 
   const toggle = (optValue) => {
     if (value.includes(optValue)) {
@@ -16,9 +19,27 @@ export default function MultiSelect({ label, options = [], value = [], onChange,
     }
   };
 
+  const openPanel = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPanelStyle({
+        position: 'fixed',
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999,
+      });
+    }
+    setIsOpen(prev => !prev);
+  };
+
   useEffect(() => {
+    if (!isOpen) return;
     const handleMouseDown = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target) &&
+        panelRef.current && !panelRef.current.contains(e.target)
+      ) {
         setIsOpen(false);
       }
     };
@@ -31,7 +52,7 @@ export default function MultiSelect({ label, options = [], value = [], onChange,
       document.removeEventListener('mousedown', handleMouseDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [isOpen]);
 
   const triggerLabel = (() => {
     if (value.length === 0) return placeholder;
@@ -42,12 +63,13 @@ export default function MultiSelect({ label, options = [], value = [], onChange,
   })();
 
   return (
-    <div ref={containerRef} className="relative space-y-1">
+    <div className="space-y-1">
       {label && <p className="field-label">{label}</p>}
 
       <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setIsOpen(prev => !prev)}
+        onClick={openPanel}
         className={clsx(
           'field-base flex w-full cursor-pointer items-center justify-between gap-2 text-left',
           value.length > 0 ? 'text-app' : 'text-app-muted',
@@ -60,8 +82,12 @@ export default function MultiSelect({ label, options = [], value = [], onChange,
         />
       </button>
 
-      {isOpen && (
-        <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-soft border border-border-default bg-surface shadow-panel">
+      {isOpen && createPortal(
+        <div
+          ref={panelRef}
+          style={panelStyle}
+          className="max-h-48 overflow-y-auto rounded-soft border border-border-default bg-surface shadow-panel"
+        >
           {options.map(opt => {
             const checked = value.includes(opt.value);
             return (
@@ -79,7 +105,8 @@ export default function MultiSelect({ label, options = [], value = [], onChange,
               </label>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
