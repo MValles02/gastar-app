@@ -68,13 +68,17 @@ router.delete('/:id', async (req, res, next) => {
     if (!existing) {
       return res.status(404).json({ error: 'Categoría no encontrada' });
     }
-    const txCount = await prisma.transaction.count({
-      where: { categoryId: req.params.id },
+    await prisma.$transaction(async (tx) => {
+      const txCount = await tx.transaction.count({
+        where: { categoryId: req.params.id },
+      });
+      if (txCount > 0) {
+        const error = new Error('No se puede eliminar una categoría con transacciones asociadas');
+        error.status = 400;
+        throw error;
+      }
+      await tx.category.delete({ where: { id: req.params.id } });
     });
-    if (txCount > 0) {
-      return res.status(400).json({ error: 'No se puede eliminar una categoría con transacciones asociadas' });
-    }
-    await prisma.category.delete({ where: { id: req.params.id } });
     res.json({ data: { message: 'Categoría eliminada' } });
   } catch (err) {
     next(err);

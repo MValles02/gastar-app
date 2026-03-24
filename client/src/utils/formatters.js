@@ -1,31 +1,43 @@
 const locale = navigator.language;
 
+const currencyFormatters = {};
+function getCurrencyFormatter(currency) {
+  if (!currencyFormatters[currency]) {
+    currencyFormatters[currency] = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+    });
+  }
+  return currencyFormatters[currency];
+}
+
 export function formatCurrency(amount, currency = 'ARS') {
   const num = typeof amount === 'string' ? Number.parseFloat(amount) : amount;
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-  }).format(num);
+  return getCurrencyFormatter(currency).format(num);
 }
+
+const dateFormatter = new Intl.DateTimeFormat(locale, {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
+const dateShortFormatter = new Intl.DateTimeFormat(locale, {
+  day: 'numeric',
+  month: 'short',
+});
 
 export function formatDate(dateString) {
   const [year, month, day] = dateString.split('T')[0].split('-').map(Number);
   const date = new Date(year, month - 1, day);
-  return new Intl.DateTimeFormat(locale, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(date);
+  return dateFormatter.format(date);
 }
 
 export function formatDateShort(dateString) {
   const [year, month, day] = dateString.split('T')[0].split('-').map(Number);
   const date = new Date(year, month - 1, day);
-  return new Intl.DateTimeFormat(locale, {
-    day: 'numeric',
-    month: 'short',
-  }).format(date);
+  return dateShortFormatter.format(date);
 }
 
 const accountTypeLabels = {

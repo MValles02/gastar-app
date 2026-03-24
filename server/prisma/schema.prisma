@@ -7,6 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum AccountType {
+  checking
+  savings
+  credit_card
+  cash
+  investment
+
+  @@map("account_type")
+}
+
+enum TransactionType {
+  income
+  expense
+  transfer
+
+  @@map("transaction_type")
+}
+
 model User {
   id               String    @id @default(uuid())
   email            String    @unique
@@ -24,18 +42,19 @@ model User {
 }
 
 model Account {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
+  id        String      @id @default(uuid())
+  userId    String      @map("user_id")
   name      String
-  type      String
-  balance    Decimal  @default(0)
-  balanceArs Decimal  @default(0) @map("balance_ars")
-  currency   String   @default("ARS")
+  type      AccountType
+  balance    Decimal     @default(0)
+  balanceArs Decimal     @default(0) @map("balance_ars")
+  currency   String      @default("ARS")
 
   user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions      Transaction[] @relation("AccountTransactions")
   transfersReceived Transaction[] @relation("TransferToAccount")
 
+  @@index([userId])
   @@map("accounts")
 }
 
@@ -48,25 +67,30 @@ model Category {
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
 
+  @@index([userId])
   @@map("categories")
 }
 
 model Transaction {
-  id          String   @id @default(uuid())
-  accountId   String   @map("account_id")
-  categoryId  String   @map("category_id")
-  type        String
+  id          String          @id @default(uuid())
+  accountId   String          @map("account_id")
+  categoryId  String          @map("category_id")
+  type        TransactionType
   amount      Decimal
-  cotizacion  Decimal? @map("cotizacion")
-  amountArs   Decimal  @default(0) @map("amount_ars")
+  cotizacion  Decimal?        @map("cotizacion")
+  amountArs   Decimal         @default(0) @map("amount_ars")
   description String?
-  date        DateTime @db.Date
-  transferTo  String?  @map("transfer_to")
-  createdAt   DateTime @default(now()) @map("created_at")
+  date        DateTime        @db.Date
+  transferTo  String?         @map("transfer_to")
+  createdAt   DateTime        @default(now()) @map("created_at")
 
   account            Account  @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
-  category           Category @relation(fields: [categoryId], references: [id])
+  category           Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   transferToAccount  Account? @relation("TransferToAccount", fields: [transferTo], references: [id])
 
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([date])
+  @@index([accountId, date])
   @@map("transactions")
 }

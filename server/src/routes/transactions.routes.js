@@ -166,8 +166,8 @@ router.put('/:id', async (req, res, next) => {
 
     // Recompute amountArs if amount or cotizacion changed
     if (data.amount !== undefined || data.cotizacion !== undefined) {
-      const effectiveAmount = data.amount ?? Number.parseFloat(existing.amount);
-      const effectiveCotizacion = data.cotizacion ?? (existing.cotizacion ? Number.parseFloat(existing.cotizacion) : null);
+      const effectiveAmount = data.amount ?? Number(existing.amount);
+      const effectiveCotizacion = data.cotizacion ?? (existing.cotizacion ? Number(existing.cotizacion) : null);
       data.amountArs = effectiveCotizacion ? effectiveAmount * effectiveCotizacion : effectiveAmount;
     }
 

@@ -18,8 +18,8 @@ export async function adjustBalance(tx, accountId, nativeDelta, arsDelta) {
 }
 
 export async function applyTransactionBalances(tx, transaction, sourceAccount, destAccount = null) {
-  const amount = Number.parseFloat(transaction.amount);
-  const amountArs = Number.parseFloat(transaction.amountArs);
+  const amount = Number(transaction.amount);
+  const amountArs = Number(transaction.amountArs);
   const nativeDelta = getBalanceDelta(transaction.type, amount);
   const arsDelta = getBalanceDelta(transaction.type, amountArs);
 
@@ -33,8 +33,8 @@ export async function applyTransactionBalances(tx, transaction, sourceAccount, d
 }
 
 export async function reverseTransactionBalances(tx, transaction, sourceAccount, destAccount = null) {
-  const amount = Number.parseFloat(transaction.amount);
-  const amountArs = Number.parseFloat(transaction.amountArs);
+  const amount = Number(transaction.amount);
+  const amountArs = Number(transaction.amountArs);
   const nativeDelta = getBalanceDelta(transaction.type, amount);
   const arsDelta = getBalanceDelta(transaction.type, amountArs);
 
