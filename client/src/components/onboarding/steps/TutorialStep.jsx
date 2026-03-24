@@ -1,4 +1,4 @@
-import { Plus, ArrowDownCircle, ArrowUpCircle, ArrowLeftRight, CalendarDays, Tag, Wallet } from 'lucide-react';
+import { Plus, CalendarDays, Tag, Wallet } from 'lucide-react';
 import PropTypes from 'prop-types';
 import Button from '../../ui/Button.jsx';
 import {
@@ -8,12 +8,7 @@ import {
 } from '../../transactions/TransactionComposerUI.jsx';
 import { useOnboarding } from '../../../context/OnboardingContext.jsx';
 import { iconPropType } from '../../../utils/propTypes.js';
-
-const typeOptions = [
-  { value: 'expense', label: 'Gasto', icon: ArrowDownCircle, tone: 'text-danger' },
-  { value: 'income', label: 'Ingreso', icon: ArrowUpCircle, tone: 'text-success' },
-  { value: 'transfer', label: 'Transferencia', icon: ArrowLeftRight, tone: 'text-accent-600 dark:text-accent-300' },
-];
+import { typeOptions } from '../../../constants/transactionTypes.js';
 
 function MockField({ label, value, icon: Icon }) {
   return (

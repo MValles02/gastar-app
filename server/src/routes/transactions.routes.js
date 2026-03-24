@@ -101,9 +101,6 @@ router.get('/', async (req, res, next) => {
       },
     });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
@@ -115,7 +112,7 @@ router.post('/', async (req, res, next) => {
     const { sourceAccount, destAccount } = await validateTransactionReferences(data, req.userId);
 
     if (sourceAccount.currency !== 'ARS' && !data.cotizacion) {
-      return res.status(400).json({ error: 'La cotizacion es requerida para cuentas en moneda extranjera' });
+      return res.status(400).json({ error: 'La cotización es requerida para cuentas en moneda extranjera' });
     }
     const cotizacion = sourceAccount.currency === 'ARS' ? null : data.cotizacion;
     const amountArs = cotizacion ? data.amount * cotizacion : data.amount;
@@ -145,9 +142,6 @@ router.post('/', async (req, res, next) => {
 
     res.status(201).json({ data: transaction });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
@@ -161,7 +155,7 @@ router.put('/:id', async (req, res, next) => {
       where: { id: req.params.id, account: { userId: req.userId } },
     });
     if (!existing) {
-      return res.status(404).json({ error: 'Transaccion no encontrada' });
+      return res.status(404).json({ error: 'Transacción no encontrada' });
     }
 
     // Recompute amountArs if amount or cotizacion changed
@@ -175,7 +169,7 @@ router.put('/:id', async (req, res, next) => {
     const { sourceAccount, destAccount } = await validateTransactionReferences(effectiveData, req.userId);
 
     if (sourceAccount.currency !== 'ARS' && !effectiveData.cotizacion) {
-      return res.status(400).json({ error: 'La cotizacion es requerida para cuentas en moneda extranjera' });
+      return res.status(400).json({ error: 'La cotización es requerida para cuentas en moneda extranjera' });
     }
 
     // Fetch the original source/dest accounts for reversal
@@ -211,9 +205,6 @@ router.put('/:id', async (req, res, next) => {
 
     res.json({ data: transaction });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
@@ -225,7 +216,7 @@ router.delete('/:id', async (req, res, next) => {
       where: { id: req.params.id, account: { userId: req.userId } },
     });
     if (!existing) {
-      return res.status(404).json({ error: 'Transaccion no encontrada' });
+      return res.status(404).json({ error: 'Transacción no encontrada' });
     }
 
     const sourceAccount = await fetchOwnedAccount(existing.accountId, req.userId, 'Cuenta no encontrada');
@@ -238,7 +229,7 @@ router.delete('/:id', async (req, res, next) => {
       await tx.transaction.delete({ where: { id: req.params.id } });
     });
 
-    res.json({ data: { message: 'Transaccion eliminada' } });
+    res.json({ data: { message: 'Transacción eliminada' } });
   } catch (err) {
     next(err);
   }

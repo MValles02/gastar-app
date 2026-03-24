@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight as ArrowRightIcon, ArrowUpCircle, ArrowDownCircle, ArrowLeftRight } from 'lucide-react';
+import { ArrowRight as ArrowRightIcon } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { getCategoryIcon } from '../ui/IconPicker.jsx';
 import {
@@ -8,19 +8,9 @@ import {
   getAmountTone,
 } from '../../utils/formatters.js';
 import { transactionShape } from '../../utils/propTypes.js';
-
-const TYPE_CONFIG = {
-  income:   { Icon: ArrowUpCircle,   tone: 'text-success' },
-  expense:  { Icon: ArrowDownCircle, tone: 'text-danger' },
-  transfer: { Icon: ArrowLeftRight,  tone: 'text-accent-600 dark:text-accent-300' },
-};
+import { TYPE_CONFIG, amountPrefix } from '../../constants/transactionTypes.js';
 
 export default function RecentTransactions({ transactions }) {
-  const amountPrefix = (type) => {
-    if (type === 'income') return '+';
-    if (type === 'expense') return '-';
-    return '';
-  };
 
   return (
     <section className="section-block">

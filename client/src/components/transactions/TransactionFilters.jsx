@@ -4,12 +4,7 @@ import Input from '../ui/Input.jsx';
 import Button from '../ui/Button.jsx';
 import PropTypes from 'prop-types';
 import { accountShape, categoryShape, filtersShape } from '../../utils/propTypes.js';
-
-const typeOptions = [
-  { value: 'income', label: 'Ingreso' },
-  { value: 'expense', label: 'Gasto' },
-  { value: 'transfer', label: 'Transferencia' },
-];
+import { typeFilterOptions } from '../../constants/transactionTypes.js';
 
 export default function TransactionFilters({ filters, onChange, accounts, categories }) {
   const [localFilters, setLocalFilters] = useState({ ...filters });
@@ -61,7 +56,7 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
           placeholder="Todos"
           value={localFilters.type || ''}
           onChange={(e) => update('type', e.target.value || undefined)}
-          options={typeOptions}
+          options={typeFilterOptions}
         />
         <Input
           label="Desde"

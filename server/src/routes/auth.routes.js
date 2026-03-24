@@ -27,7 +27,7 @@ router.post('/register', authLimiter, async (req, res, next) => {
 
     const existing = await prisma.user.findUnique({ where: { email: data.email } });
     if (existing) {
-      return res.status(409).json({ error: 'Ya existe una cuenta con ese correo electronico' });
+      return res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico' });
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);
@@ -41,9 +41,6 @@ router.post('/register', authLimiter, async (req, res, next) => {
 
     res.status(201).json({ data: { user } });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
@@ -55,12 +52,12 @@ router.post('/login', authLimiter, async (req, res, next) => {
 
     const user = await prisma.user.findUnique({ where: { email: data.email } });
     if (!user || !user.passwordHash) {
-      return res.status(401).json({ error: 'Credenciales invalidas' });
+      return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
     const valid = await bcrypt.compare(data.password, user.passwordHash);
     if (!valid) {
-      return res.status(401).json({ error: 'Credenciales invalidas' });
+      return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
     const token = generateToken(user.id);
@@ -68,9 +65,6 @@ router.post('/login', authLimiter, async (req, res, next) => {
 
     res.json({ data: { user: { id: user.id, email: user.email, name: user.name } } });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
@@ -94,7 +88,7 @@ router.get('/me', authenticate, async (req, res, next) => {
 // POST /api/auth/logout
 router.post('/logout', (_req, res) => {
   res.cookie('token', '', { httpOnly: true, maxAge: 0, path: '/' });
-  res.json({ data: { message: 'Sesion cerrada' } });
+  res.json({ data: { message: 'Sesión cerrada' } });
 });
 
 // POST /api/auth/forgot-password
@@ -115,11 +109,8 @@ router.post('/forgot-password', authLimiter, async (req, res, next) => {
       await sendPasswordResetEmail(email, resetToken);
     }
 
-    res.json({ data: { message: 'Si el correo existe, se envio un enlace de recuperacion' } });
+    res.json({ data: { message: 'Si el correo existe, se envió un enlace de recuperación' } });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
@@ -138,7 +129,7 @@ router.post('/reset-password', authLimiter, async (req, res, next) => {
     });
 
     if (!user) {
-      return res.status(400).json({ error: 'Token invalido o expirado' });
+      return res.status(400).json({ error: 'Token inválido o expirado' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -147,11 +138,8 @@ router.post('/reset-password', authLimiter, async (req, res, next) => {
       data: { passwordHash, resetToken: null, resetTokenExpiry: null },
     });
 
-    res.json({ data: { message: 'Contrasena actualizada correctamente' } });
+    res.json({ data: { message: 'Contraseña actualizada correctamente' } });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });

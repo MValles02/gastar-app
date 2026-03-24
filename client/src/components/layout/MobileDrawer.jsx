@@ -1,11 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  ArrowLeftRight,
-  Wallet,
-  Tag,
-  BarChart3,
   LogOut,
   HelpCircle,
   Plus,
@@ -20,14 +15,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useOnboarding } from '../../context/OnboardingContext.jsx';
 import { useTransactionModal } from '../../context/TransactionModalContext.jsx';
 import GastarLogo from '../ui/GastarLogo.jsx';
-
-const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Panel' },
-  { to: '/transactions', icon: ArrowLeftRight, label: 'Transacciones' },
-  { to: '/accounts', icon: Wallet, label: 'Cuentas' },
-  { to: '/categories', icon: Tag, label: 'Categorías' },
-  { to: '/reports', icon: BarChart3, label: 'Reportes' },
-];
+import { navItems } from '../../constants/navigation.js';
 
 export default function MobileDrawer({ isOpen, onClose }) {
   const drawerRef = useRef(null);

@@ -31,9 +31,6 @@ router.post('/', async (req, res, next) => {
     });
     res.status(201).json({ data: account });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
@@ -54,9 +51,6 @@ router.put('/:id', async (req, res, next) => {
     });
     res.json({ data: account });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });

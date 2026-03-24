@@ -7,22 +7,13 @@ import MessageBanner from '../../ui/MessageBanner.jsx';
 import { useOnboarding } from '../../../context/OnboardingContext.jsx';
 import { createAccount, getAccounts } from '../../../services/accounts.js';
 import { getErrorMessage } from '../../../utils/errors.js';
-
-const typeOptions = [
-  { value: 'checking', label: 'Cuenta corriente' },
-  { value: 'savings', label: 'Caja de ahorro' },
-  { value: 'credit_card', label: 'Tarjeta de crédito' },
-  { value: 'cash', label: 'Efectivo' },
-  { value: 'investment', label: 'Inversión' },
-];
+import { accountTypeOptions, accountTypeLabels } from '../../../constants/accountTypes.js';
 
 const currencyOptions = [
   { value: 'ARS', label: 'ARS - Peso argentino' },
   { value: 'USD', label: 'USD - Dólar estadounidense' },
   { value: 'EUR', label: 'EUR - Euro' },
 ];
-
-const typeLabels = Object.fromEntries(typeOptions.map(option => [option.value, option.label]));
 
 function resetForm() {
   return { name: '', type: 'checking', currency: 'ARS', balance: '0' };
@@ -110,7 +101,7 @@ export default function AccountsStep() {
               <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-success" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-app">{account.name}</p>
-                <p className="text-xs text-app-muted">{typeLabels[account.type]} · {account.currency}</p>
+                <p className="text-xs text-app-muted">{accountTypeLabels[account.type]} · {account.currency}</p>
               </div>
             </div>
           ))}
@@ -139,7 +130,7 @@ export default function AccountsStep() {
             label="Tipo"
             value={form.type}
             onChange={set('type')}
-            options={typeOptions}
+            options={accountTypeOptions}
           />
 
           <Select
