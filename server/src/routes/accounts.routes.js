@@ -24,8 +24,10 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const data = createAccountSchema.parse(req.body);
+    const currency = data.currency || 'ARS';
+    const balanceArs = currency === 'ARS' ? data.balance : 0;
     const account = await prisma.account.create({
-      data: { name: data.name, type: data.type, currency: data.currency, balance: data.balance, userId: req.userId },
+      data: { name: data.name, type: data.type, currency, balance: data.balance, balanceArs, userId: req.userId },
     });
     res.status(201).json({ data: account });
   } catch (err) {
