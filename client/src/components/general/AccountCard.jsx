@@ -23,24 +23,6 @@ export default function AccountCard({ account, onEdit, onDelete }) {
         <p className={`shrink-0 whitespace-nowrap text-sm font-semibold ${getBalanceTone(balance)}`}>
           {formatCurrency(balance, account.currency)}
         </p>
-        {onEdit && (
-          <button
-            onClick={() => onEdit(account)}
-            aria-label="Editar cuenta"
-            className="interactive-subtle p-2"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-        )}
-        {onDelete && (
-          <button
-            onClick={() => onDelete(account)}
-            aria-label="Eliminar cuenta"
-            className="rounded-soft p-2 text-app-soft transition-colors hover:bg-danger-soft hover:text-danger"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        )}
       </div>
       <div className="flex w-full items-center gap-1 pl-7 text-xs text-app-muted">
         <span className="shrink-0 font-medium text-app-soft">{getAccountTypeLabel(account.type)}</span>
@@ -49,6 +31,28 @@ export default function AccountCard({ account, onEdit, onDelete }) {
             <span className="shrink-0"> · </span>
             <span className="shrink-0">{account.currency}</span>
           </>
+        )}
+        {(onEdit || onDelete) && (
+          <div className="ml-auto flex items-center gap-1">
+            {onEdit && (
+              <button
+                onClick={() => onEdit(account)}
+                aria-label="Editar cuenta"
+                className="interactive-subtle p-1.5"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={() => onDelete(account)}
+                aria-label="Eliminar cuenta"
+                className="rounded-soft p-1.5 text-app-soft transition-colors hover:bg-danger-soft hover:text-danger"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
