@@ -3,7 +3,7 @@ import { ArrowLeftRight } from 'lucide-react';
 import { getTransactions, deleteTransaction } from '../services/transactions.js';
 import { getAccounts } from '../services/accounts.js';
 import { getCategories } from '../services/categories.js';
-import { Page, PageHeader } from '../components/layout/Page.jsx';
+import { Page } from '../components/layout/Page.jsx';
 import TransactionList from '../components/transactions/TransactionList.jsx';
 import TransactionFilters from '../components/transactions/TransactionFilters.jsx';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
@@ -80,12 +80,6 @@ function Transactions() {
 
   return (
     <Page>
-      <PageHeader
-        eyebrow="Operaciones"
-        title="Transacciones"
-        description="Filtrá, revisá y corregí cada movimiento desde una sola lista operativa."
-      />
-
       <div className="space-y-6">
         <TransactionFilters
           filters={filters}

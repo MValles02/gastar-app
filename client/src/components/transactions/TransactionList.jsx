@@ -44,9 +44,15 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
                   </Badge>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-app">
-                      {tx.description || tx.category?.name}
+                      {tx.description || tx.category?.name || '—'}
                     </p>
                     <p className="truncate text-xs text-app-muted">
+                      {tx.description && tx.category?.name ? (
+                        <span className="font-medium text-app-soft">
+                          {tx.category.icon ? `${tx.category.icon} ` : ''}{tx.category.name}
+                          {tx.account?.name ? ' · ' : ''}
+                        </span>
+                      ) : null}
                       {tx.account?.name}
                       {tx.type === 'transfer' && tx.transferToAccount ? (
                         <>
