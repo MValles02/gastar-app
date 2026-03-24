@@ -32,6 +32,14 @@
     --color-danger-soft: #f8dddd;
     --color-warning: #c1841f;
     --color-warning-soft: #f8ebc9;
+    --color-chart-1: #16a57f;
+    --color-chart-2: #c1841f;
+    --color-chart-3: #b14a4a;
+    --color-chart-4: #5c8e58;
+    --color-chart-5: #4f739e;
+    --color-chart-6: #8164a8;
+    --color-chart-7: #c06238;
+    --color-chart-8: #3e8292;
     --shadow-sm: 0 10px 24px rgba(34, 28, 23, 0.06);
     --shadow-md: 0 20px 44px rgba(34, 28, 23, 0.1);
     --shadow-lg: 0 32px 64px rgba(34, 28, 23, 0.14);
@@ -69,6 +77,14 @@
     --color-danger-soft: rgba(126, 43, 43, 0.34);
     --color-warning: #f0bb63;
     --color-warning-soft: rgba(122, 83, 27, 0.34);
+    --color-chart-1: #3dc9a0;
+    --color-chart-2: #e8a83c;
+    --color-chart-3: #e07272;
+    --color-chart-4: #7dc876;
+    --color-chart-5: #7aaed8;
+    --color-chart-6: #b092dc;
+    --color-chart-7: #e08a60;
+    --color-chart-8: #5abccc;
     --shadow-sm: 0 12px 28px rgba(0, 0, 0, 0.22);
     --shadow-md: 0 22px 48px rgba(0, 0, 0, 0.28);
     --shadow-lg: 0 34px 72px rgba(0, 0, 0, 0.34);
@@ -103,13 +119,21 @@
   }
 
   @media (max-width: 767px) {
-    html {
-      font-size: 14px;
+    html, input, select, textarea {
+      font-size: 16px;
     }
 
-    input, select, textarea {
-      font-size: 16px !important;
+    html, body {
+      overflow-x: hidden;
     }
+  }
+
+  * {
+    scrollbar-width: none; /* Firefox */
+  }
+
+  *::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge */
   }
 
   ::selection {
@@ -156,7 +180,7 @@
   }
 
   .workspace-main {
-    @apply relative flex-1 overflow-y-auto;
+    @apply relative flex-1 overflow-x-hidden overflow-y-auto;
   }
 
   .workspace-main::before {
