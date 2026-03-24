@@ -40,14 +40,13 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
             {items.map(tx => {
               const title = tx.description || tx.category?.name || '—';
               const CategoryIcon = tx.category?.icon ? getCategoryIcon(tx.category.icon) : null;
-              const showCategory = Boolean(tx.description && tx.category?.name);
+              const showCategoryIcon = Boolean(tx.description && CategoryIcon);
 
               const subtitle = (
                 <p className="flex items-center gap-1 truncate text-xs text-app-muted">
-                  {showCategory ? (
-                    <span className="inline-flex items-center gap-1 font-medium text-app-soft shrink-0">
-                      {CategoryIcon && <CategoryIcon className="h-3 w-3" />}
-                      {tx.category.name}
+                  {showCategoryIcon ? (
+                    <span className="inline-flex items-center gap-1 text-app-soft shrink-0">
+                      <CategoryIcon className="h-3 w-3" />
                       {tx.account?.name ? ' · ' : ''}
                     </span>
                   ) : null}
