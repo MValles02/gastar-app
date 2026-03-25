@@ -47,9 +47,22 @@ router.put('/:id', async (req, res, next) => {
     if (!existing) {
       return res.status(404).json({ error: 'Cuenta no encontrada' });
     }
+
+    const { cotizacion, ...updatePayload } = data;
+    const incomingCurrency = updatePayload.currency ?? existing.currency;
+    const currencyChanging = updatePayload.currency && updatePayload.currency !== existing.currency;
+
+    if (currencyChanging) {
+      if (incomingCurrency === 'ARS') {
+        updatePayload.balanceArs = Number(existing.balance);
+      } else {
+        updatePayload.balanceArs = Number(existing.balance) * cotizacion;
+      }
+    }
+
     const account = await prisma.account.update({
       where: { id: req.params.id },
-      data,
+      data: updatePayload,
     });
     res.json({ data: account });
   } catch (err) {

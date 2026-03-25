@@ -4,6 +4,7 @@ import Input from '../../ui/Input.jsx';
 import Select from '../../ui/Select.jsx';
 import Button from '../../ui/Button.jsx';
 import MessageBanner from '../../ui/MessageBanner.jsx';
+import CotizacionInput, { saveCotizacion } from '../../ui/CotizacionInput.jsx';
 import { useOnboarding } from '../../../context/OnboardingContext.jsx';
 import { createAccount, getAccounts } from '../../../services/accounts.js';
 import { getErrorMessage } from '../../../utils/errors.js';
@@ -22,6 +23,7 @@ function resetForm() {
 export default function AccountsStep() {
   const { goToNextStep, goToPrevStep, createdAccounts, addCreatedAccount } = useOnboarding();
   const [form, setForm] = useState(resetForm());
+  const [cotizacion, setCotizacion] = useState('');
   const [errors, setErrors] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -58,6 +60,13 @@ export default function AccountsStep() {
       nextErrors.balance = 'El saldo debe ser un número mayor o igual a 0';
     }
 
+    if (form.currency !== 'ARS' && parsedBalance > 0) {
+      const parsedCotizacion = Number.parseFloat(cotizacion);
+      if (!cotizacion || parsedCotizacion <= 0 || Number.isNaN(parsedCotizacion)) {
+        nextErrors.cotizacion = 'Ingresá la cotización del día';
+      }
+    }
+
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
@@ -67,13 +76,23 @@ export default function AccountsStep() {
     setLoading(true);
 
     try {
+      const cotizacionPayload = form.currency !== 'ARS' && cotizacion
+        ? { cotizacion: Number.parseFloat(cotizacion) }
+        : {};
       const account = await createAccount({
         name: form.name.trim(),
         type: form.type,
         currency: form.currency,
-        balance: Number.parseFloat(form.balance) || 0,
+        balance: parsedBalance || 0,
+        ...cotizacionPayload,
       });
+
+      if (form.currency !== 'ARS' && cotizacion) {
+        saveCotizacion(form.currency, cotizacion);
+      }
+
       addCreatedAccount(account);
+      setCotizacion('');
       setForm(resetForm());
     } catch (err) {
       setError(getErrorMessage(err, 'Error al crear la cuenta'));
@@ -136,7 +155,7 @@ export default function AccountsStep() {
           <Select
             label="Moneda"
             value={form.currency}
-            onChange={set('currency')}
+            onChange={(e) => { set('currency')(e); setCotizacion(''); }}
             options={currencyOptions}
           />
 
@@ -149,6 +168,14 @@ export default function AccountsStep() {
             onChange={set('balance')}
             placeholder="0.00"
             error={errors.balance}
+          />
+
+          <CotizacionInput
+            currency={form.currency}
+            value={cotizacion}
+            onChange={(val) => { setCotizacion(val); setErrors(prev => { const next = { ...prev }; delete next.cotizacion; return next; }); }}
+            amount={form.balance}
+            error={errors.cotizacion}
           />
 
           <Button type="submit" variant="secondary" loading={loading} className="w-full">

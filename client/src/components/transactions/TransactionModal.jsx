@@ -19,8 +19,8 @@ import { getAccounts } from '../../services/accounts.js';
 import { getCategories } from '../../services/categories.js';
 import { useTransactionModal } from '../../context/TransactionModalContext.jsx';
 import { getErrorMessage } from '../../utils/errors.js';
-import { formatCurrency } from '../../utils/formatters.js';
 import { typeOptions } from '../../constants/transactionTypes.js';
+import CotizacionInput, { saveCotizacion } from '../ui/CotizacionInput.jsx';
 
 export default function TransactionModal() {
   const { isOpen, editData, triggerRefresh, closeModal } = useTransactionModal();
@@ -80,6 +80,8 @@ export default function TransactionModal() {
     setErrors({});
   }, [editData, isOpen]);
 
+  const selectedAccount = accounts.find(a => a.id === accountId);
+
   const clearFieldError = (field) => {
     if (errors[field]) {
       setErrors(prev => {
@@ -107,8 +109,6 @@ export default function TransactionModal() {
       setErrors(prev => ({ ...prev, transferTo: 'Seleccioná la cuenta destino' }));
     }
   };
-
-  const selectedAccount = accounts.find(a => a.id === accountId);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -164,6 +164,11 @@ export default function TransactionModal() {
         await createTransaction(data);
       }
 
+      // Save last used cotizacion for fallback
+      if (selectedAccount?.currency && selectedAccount.currency !== 'ARS' && cotizacion) {
+        saveCotizacion(selectedAccount.currency, cotizacion);
+      }
+
       closeModal();
       triggerRefresh();
     } catch (err) {
@@ -216,25 +221,14 @@ export default function TransactionModal() {
             <ComposerHintLine icon={Wallet}>Seleccioná la cuenta afectada</ComposerHintLine>
           </div>
 
-          {selectedAccount?.currency && selectedAccount.currency !== 'ARS' && (
-            <div>
-              <Input
-                label={`Cotización (1 ${selectedAccount.currency} = ? ARS)`}
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                value={cotizacion}
-                onChange={(e) => { setCotizacion(e.target.value); clearFieldError('cotizacion'); }}
-                placeholder="Ej: 1200"
-                error={errors.cotizacion}
-              />
-              {cotizacion && amount && Number.parseFloat(cotizacion) > 0 && Number.parseFloat(amount) > 0 && (
-                <p className="mt-1 text-xs text-app-muted">
-                  = {formatCurrency(Number.parseFloat(amount) * Number.parseFloat(cotizacion))}
-                </p>
-              )}
-            </div>
-          )}
+          <CotizacionInput
+            currency={selectedAccount?.currency}
+            value={cotizacion}
+            onChange={(val) => { setCotizacion(val); clearFieldError('cotizacion'); }}
+            amount={amount}
+            error={errors.cotizacion}
+            skipFetch={isEdit}
+          />
 
           {type === 'transfer' && (
             <Select

@@ -31,9 +31,10 @@ model User {
   passwordHash     String?   @map("password_hash")
   name             String
   googleId         String?   @unique @map("google_id")
-  resetToken       String?   @map("reset_token")
-  resetTokenExpiry DateTime? @map("reset_token_expiry")
-  createdAt        DateTime  @default(now()) @map("created_at")
+  resetToken            String?   @map("reset_token")
+  resetTokenExpiry      DateTime? @map("reset_token_expiry")
+  cotizacionPreference  String    @default("blue") @map("cotizacion_preference")
+  createdAt             DateTime  @default(now()) @map("created_at")
 
   accounts     Account[]
   categories   Category[]

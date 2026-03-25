@@ -5,6 +5,7 @@ import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
 import Button from '../ui/Button.jsx';
 import MessageBanner from '../ui/MessageBanner.jsx';
+import CotizacionInput, { saveCotizacion } from '../ui/CotizacionInput.jsx';
 import { getErrorMessage } from '../../utils/errors.js';
 import { accountShape } from '../../utils/propTypes.js';
 import { accountTypeOptions } from '../../constants/accountTypes.js';
@@ -15,6 +16,7 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
   const [type, setType] = useState('checking');
   const [currency, setCurrency] = useState('ARS');
   const [balance, setBalance] = useState('0');
+  const [cotizacion, setCotizacion] = useState('');
   const [error, setError] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -32,6 +34,7 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
       setBalance('0');
     }
 
+    setCotizacion('');
     setError('');
     setErrors({});
   }, [account, isOpen]);
@@ -51,6 +54,14 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
       nextErrors.balance = 'El saldo debe ser un número mayor o igual a 0';
     }
 
+    if (currency !== 'ARS') {
+      const needsCotizacion = isEdit || parsedBalance > 0;
+      const parsedCotizacion = Number.parseFloat(cotizacion);
+      if (needsCotizacion && (!cotizacion || parsedCotizacion <= 0 || Number.isNaN(parsedCotizacion))) {
+        nextErrors.cotizacion = 'Ingresá la cotización del día';
+      }
+    }
+
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
@@ -60,11 +71,19 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
     setLoading(true);
 
     try {
+      const cotizacionPayload = currency !== 'ARS' && cotizacion
+        ? { cotizacion: Number.parseFloat(cotizacion) }
+        : {};
       const data = isEdit
-        ? { name, type, currency }
-        : { name, type, currency, balance: Number.parseFloat(balance) || 0 };
+        ? { name, type, currency, ...cotizacionPayload }
+        : { name, type, currency, balance: parsedBalance || 0, ...cotizacionPayload };
 
       await onSubmit(data);
+
+      if (currency !== 'ARS' && cotizacion) {
+        saveCotizacion(currency, cotizacion);
+      }
+
       onClose();
     } catch (err) {
       setError(getErrorMessage(err, 'Error al guardar la cuenta'));
@@ -93,7 +112,7 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
         <Select
           label="Moneda"
           value={currency}
-          onChange={(e) => setCurrency(e.target.value)}
+          onChange={(e) => { setCurrency(e.target.value); setCotizacion(''); }}
           options={[
             { value: 'ARS', label: 'ARS - Peso argentino' },
             { value: 'USD', label: 'USD - Dólar estadounidense' },
@@ -112,6 +131,13 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
             error={errors.balance}
           />
         )}
+        <CotizacionInput
+          currency={currency}
+          value={cotizacion}
+          onChange={(val) => { setCotizacion(val); setErrors(prev => { const next = { ...prev }; delete next.cotizacion; return next; }); }}
+          amount={!isEdit ? balance : undefined}
+          error={errors.cotizacion}
+        />
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancelar

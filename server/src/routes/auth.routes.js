@@ -6,7 +6,7 @@ import prisma from '../utils/prisma.js';
 import { generateToken, setTokenCookie } from '../utils/token.js';
 import { hashResetToken } from '../utils/reset-token.js';
 import { authenticate } from '../middleware/auth.middleware.js';
-import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../validators/auth.validators.js';
+import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, updateProfileSchema } from '../validators/auth.validators.js';
 import { sendPasswordResetEmail } from '../services/email.service.js';
 import { buildGoogleAuthUrl, exchangeCodeForProfile } from '../services/google-auth.service.js';
 
@@ -36,7 +36,7 @@ const authLimiter = rateLimit({
   message: { error: 'Demasiados intentos. Intentá de nuevo más tarde.' },
 });
 
-const userPublicSelect = { id: true, email: true, name: true };
+const userPublicSelect = { id: true, email: true, name: true, cotizacionPreference: true };
 
 // POST /api/auth/register
 router.post('/register', authLimiter, async (req, res, next) => {
@@ -85,7 +85,7 @@ router.post('/login', authLimiter, async (req, res, next) => {
     const token = generateToken(user.id);
     setTokenCookie(res, token);
 
-    res.json({ data: { user: { id: user.id, email: user.email, name: user.name } } });
+    res.json({ data: { user: { id: user.id, email: user.email, name: user.name, cotizacionPreference: user.cotizacionPreference } } });
   } catch (err) {
     next(err);
   }
@@ -101,6 +101,21 @@ router.get('/me', authenticate, async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
+    res.json({ data: user });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/auth/me
+router.patch('/me', authenticate, async (req, res, next) => {
+  try {
+    const data = updateProfileSchema.parse(req.body);
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data,
+      select: userPublicSelect,
+    });
     res.json({ data: user });
   } catch (err) {
     next(err);

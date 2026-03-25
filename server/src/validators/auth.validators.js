@@ -19,3 +19,7 @@ export const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Token requerido'),
   password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
 });
+
+export const updateProfileSchema = z.object({
+  cotizacionPreference: z.enum(['blue', 'oficial']),
+});

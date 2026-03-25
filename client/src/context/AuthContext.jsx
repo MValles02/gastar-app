@@ -59,8 +59,14 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateProfile = async (data) => {
+    const res = await api.patch('/auth/me', data);
+    setUser(res.data.data);
+    return res.data.data;
+  };
+
   const value = useMemo(
-    () => ({ user, loading, authError, loadSession, login, register, logout }),
+    () => ({ user, loading, authError, loadSession, login, register, logout, updateProfile }),
     [user, loading, authError]
   );
 
