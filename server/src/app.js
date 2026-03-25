@@ -10,6 +10,8 @@ import accountRoutes from './routes/accounts.routes.js';
 import transactionRoutes from './routes/transactions.routes.js';
 import categoryRoutes from './routes/categories.routes.js';
 import reportRoutes from './routes/reports.routes.js';
+import exchangeRatesRoutes from './routes/exchange-rates.routes.js';
+import { authenticate } from './middleware/auth.middleware.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../.env') });
@@ -38,6 +40,7 @@ export function createApp() {
   app.use('/api/transactions', transactionRoutes);
   app.use('/api/categories', categoryRoutes);
   app.use('/api/reports', reportRoutes);
+  app.use('/api/exchange-rates', authenticate, exchangeRatesRoutes);
 
   if (process.env.NODE_ENV === 'production') {
     const __dirname = dirname(fileURLToPath(import.meta.url));
