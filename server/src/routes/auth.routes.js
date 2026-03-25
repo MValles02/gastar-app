@@ -85,7 +85,7 @@ router.post('/login', authLimiter, async (req, res, next) => {
     const token = generateToken(user.id);
     setTokenCookie(res, token);
 
-    res.json({ data: { user: { id: user.id, email: user.email, name: user.name } } });
+    res.json({ data: { user: { id: user.id, email: user.email, name: user.name, cotizacionPreference: user.cotizacionPreference } } });
   } catch (err) {
     next(err);
   }

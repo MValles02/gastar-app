@@ -41,7 +41,12 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
                     <TypeIcon className={`h-4 w-4 shrink-0 ${typeTone}`} />
                     <p className="truncate text-sm font-medium text-app flex-1">{title}</p>
                     <span className={`whitespace-nowrap text-sm font-semibold shrink-0 ${getAmountTone(tx.type)}`}>
-                      {amountPrefix(tx.type)}{formatCurrency(Number.parseFloat(tx.amount))}
+                      {amountPrefix(tx.type)}{formatCurrency(Number.parseFloat(tx.amount), tx.account?.currency || 'ARS')}
+                      {tx.account?.currency && tx.account.currency !== 'ARS' && (
+                        <span className="ml-1 rounded px-1 py-0.5 text-xs font-medium bg-surface-raised text-app-muted">
+                          {tx.account.currency}
+                        </span>
+                      )}
                     </span>
                   </div>
 
@@ -58,6 +63,9 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
                       <span className="truncate">{tx.account?.name}</span>
                       {tx.type === 'transfer' && tx.transferToAccount ? (
                         <><ArrowRight className="inline h-3 w-3 shrink-0" /> {tx.transferToAccount.name}</>
+                      ) : null}
+                      {tx.account?.currency && tx.account.currency !== 'ARS' && tx.cotizacion ? (
+                        <span className="shrink-0"> · @{formatCurrency(Number.parseFloat(tx.cotizacion))}</span>
                       ) : null}
                     </p>
                     <div className="flex items-center gap-1 shrink-0">

@@ -17,18 +17,13 @@ import {
 import { createTransaction, updateTransaction } from '../../services/transactions.js';
 import { getAccounts } from '../../services/accounts.js';
 import { getCategories } from '../../services/categories.js';
-import { getExchangeRates } from '../../services/exchange-rates.js';
 import { useTransactionModal } from '../../context/TransactionModalContext.jsx';
-import { useAuth } from '../../context/AuthContext.jsx';
 import { getErrorMessage } from '../../utils/errors.js';
-import { formatCurrency } from '../../utils/formatters.js';
 import { typeOptions } from '../../constants/transactionTypes.js';
-
-const LAST_USED_KEY = 'cotizacion_last_used';
+import CotizacionInput, { saveCotizacion } from '../ui/CotizacionInput.jsx';
 
 export default function TransactionModal() {
   const { isOpen, editData, triggerRefresh, closeModal } = useTransactionModal();
-  const { user } = useAuth();
   const isEdit = Boolean(editData);
 
   const [type, setType] = useState('expense');
@@ -44,9 +39,6 @@ export default function TransactionModal() {
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [rates, setRates] = useState(null);
-  const [ratesFetching, setRatesFetching] = useState(false);
-  const [ratesSource, setRatesSource] = useState(null); // 'api' | 'localStorage' | null
 
   useEffect(() => {
     if (!isOpen) return;
@@ -89,43 +81,6 @@ export default function TransactionModal() {
   }, [editData, isOpen]);
 
   const selectedAccount = accounts.find(a => a.id === accountId);
-
-  useEffect(() => {
-    if (!selectedAccount || selectedAccount.currency === 'ARS') {
-      setRates(null);
-      setRatesSource(null);
-      return;
-    }
-
-    // When editing an existing transaction, keep the stored cotizacion as-is
-    if (isEdit) return;
-
-    const currency = selectedAccount.currency;
-    setRatesFetching(true);
-
-    getExchangeRates(currency)
-      .then((fetchedRates) => {
-        setRates(fetchedRates);
-        setRatesSource('api');
-        const preferred = user?.cotizacionPreference === 'oficial'
-          ? fetchedRates.oficial
-          : fetchedRates.blue;
-        setCotizacion(String(preferred));
-      })
-      .catch(() => {
-        // Fallback to last used value from localStorage
-        try {
-          const stored = JSON.parse(localStorage.getItem(LAST_USED_KEY) || '{}');
-          if (stored[currency]) {
-            setCotizacion(String(stored[currency]));
-            setRatesSource('localStorage');
-          }
-        } catch {
-          // ignore parse errors
-        }
-      })
-      .finally(() => setRatesFetching(false));
-  }, [selectedAccount?.id, isEdit]);
 
   const clearFieldError = (field) => {
     if (errors[field]) {
@@ -211,12 +166,7 @@ export default function TransactionModal() {
 
       // Save last used cotizacion for fallback
       if (selectedAccount?.currency && selectedAccount.currency !== 'ARS' && cotizacion) {
-        try {
-          const stored = JSON.parse(localStorage.getItem(LAST_USED_KEY) || '{}');
-          localStorage.setItem(LAST_USED_KEY, JSON.stringify({ ...stored, [selectedAccount.currency]: cotizacion }));
-        } catch {
-          // ignore storage errors
-        }
+        saveCotizacion(selectedAccount.currency, cotizacion);
       }
 
       closeModal();
@@ -271,36 +221,14 @@ export default function TransactionModal() {
             <ComposerHintLine icon={Wallet}>Seleccioná la cuenta afectada</ComposerHintLine>
           </div>
 
-          {selectedAccount?.currency && selectedAccount.currency !== 'ARS' && (
-            <div>
-              <Input
-                label={`Cotización (1 ${selectedAccount.currency} = ? ARS)`}
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                value={cotizacion}
-                onChange={(e) => { setCotizacion(e.target.value); clearFieldError('cotizacion'); }}
-                placeholder={ratesFetching ? 'Obteniendo cotización...' : 'Ej: 1200'}
-                disabled={ratesFetching}
-                error={errors.cotizacion}
-              />
-              {ratesSource === 'api' && rates && (
-                <p className="mt-1 text-xs text-app-muted">
-                  Blue: {formatCurrency(rates.blue)} · Oficial: {formatCurrency(rates.oficial)} · Actualizado automáticamente
-                </p>
-              )}
-              {ratesSource === 'localStorage' && cotizacion && (
-                <p className="mt-1 text-xs text-app-muted">
-                  Último valor usado: {formatCurrency(Number.parseFloat(cotizacion))}
-                </p>
-              )}
-              {cotizacion && amount && Number.parseFloat(cotizacion) > 0 && Number.parseFloat(amount) > 0 && (
-                <p className="mt-1 text-xs text-app-muted">
-                  = {formatCurrency(Number.parseFloat(amount) * Number.parseFloat(cotizacion))}
-                </p>
-              )}
-            </div>
-          )}
+          <CotizacionInput
+            currency={selectedAccount?.currency}
+            value={cotizacion}
+            onChange={(val) => { setCotizacion(val); clearFieldError('cotizacion'); }}
+            amount={amount}
+            error={errors.cotizacion}
+            skipFetch={isEdit}
+          />
 
           {type === 'transfer' && (
             <Select

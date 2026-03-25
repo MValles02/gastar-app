@@ -34,6 +34,7 @@ export const transactionShape = PropTypes.shape({
   id: PropTypes.string,
   type: PropTypes.string.isRequired,
   amount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  cotizacion: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   date: PropTypes.string.isRequired,
   description: PropTypes.string,
   account: accountShape,

@@ -10,8 +10,8 @@ const SORT_OPTIONS = [
 
 function sortAccounts(accounts, sort) {
   return [...accounts].sort((a, b) => {
-    if (sort === 'balance-desc') return Number.parseFloat(b.balance) - Number.parseFloat(a.balance);
-    if (sort === 'balance-asc') return Number.parseFloat(a.balance) - Number.parseFloat(b.balance);
+    if (sort === 'balance-desc') return Number.parseFloat(b.balanceArs) - Number.parseFloat(a.balanceArs);
+    if (sort === 'balance-asc') return Number.parseFloat(a.balanceArs) - Number.parseFloat(b.balanceArs);
     if (sort === 'name-asc') return a.name.localeCompare(b.name);
     return 0;
   });
@@ -21,7 +21,7 @@ export default function ActiveAccounts({ accounts }) {
   const [sort, setSort] = useState('balance-desc');
 
   const visible = sortAccounts(
-    accounts.filter(a => Number.parseFloat(a.balance) !== 0),
+    accounts.filter(a => Number.parseFloat(a.balanceArs) !== 0),
     sort,
   );
 
@@ -62,6 +62,7 @@ ActiveAccounts.propTypes = {
     name: PropTypes.string.isRequired,
     type: PropTypes.string.isRequired,
     balance: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    balanceArs: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     currency: PropTypes.string,
   })),
 };
