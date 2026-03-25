@@ -41,7 +41,7 @@ function Accounts() {
   }, [load]);
 
   const summary = useMemo(() => {
-    const totalBalance = accounts.reduce((total, account) => total + Number.parseFloat(account.balance), 0);
+    const totalBalance = accounts.reduce((total, account) => total + Number.parseFloat(account.balanceArs), 0);
     return { totalBalance, count: accounts.length };
   }, [accounts]);
 
