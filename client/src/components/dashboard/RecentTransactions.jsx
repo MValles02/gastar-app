@@ -11,7 +11,6 @@ import { transactionShape } from '../../utils/propTypes.js';
 import { TYPE_CONFIG, amountPrefix } from '../../constants/transactionTypes.js';
 
 export default function RecentTransactions({ transactions }) {
-
   return (
     <section className="section-block">
       <div className="section-heading">

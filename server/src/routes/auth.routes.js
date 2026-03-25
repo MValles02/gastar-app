@@ -12,6 +12,22 @@ import { buildGoogleAuthUrl, exchangeCodeForProfile } from '../services/google-a
 
 const router = Router();
 
+const DEFAULT_CATEGORIES = [
+  { name: 'Salario', icon: 'banknote' },
+  { name: 'Freelance', icon: 'laptop' },
+  { name: 'Inversiones', icon: 'trending-up' },
+  { name: 'Otros ingresos', icon: 'plus-circle' },
+  { name: 'Comida', icon: 'utensils' },
+  { name: 'Transporte', icon: 'car' },
+  { name: 'Alquiler', icon: 'home' },
+  { name: 'Entretenimiento', icon: 'gamepad-2' },
+  { name: 'Salud', icon: 'heart-pulse' },
+  { name: 'Educación', icon: 'graduation-cap' },
+  { name: 'Ropa', icon: 'shirt' },
+  { name: 'Servicios', icon: 'zap' },
+  { name: 'Otros gastos', icon: 'minus-circle' },
+];
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -36,6 +52,10 @@ router.post('/register', authLimiter, async (req, res, next) => {
     const user = await prisma.user.create({
       data: { name: data.name, email: data.email, passwordHash },
       select: userPublicSelect,
+    });
+
+    await prisma.category.createMany({
+      data: DEFAULT_CATEGORIES.map(c => ({ ...c, userId: user.id })),
     });
 
     const token = generateToken(user.id);
@@ -153,7 +173,7 @@ router.get('/google', (_req, res) => {
 });
 
 // GET /api/auth/google/callback
-router.get('/google/callback', async (req, res) => {
+router.get('/google/callback', authLimiter, async (req, res) => {
   const appUrl = process.env.APP_URL || '';
   const { code, error } = req.query;
 

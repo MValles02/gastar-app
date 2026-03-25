@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Tag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Page } from '../../components/layout/Page.jsx';
@@ -34,6 +34,10 @@ export default function Frequency() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    load(defaultFrom, defaultTo);
+  }, [load]);
 
   const apply = () => {
     setAppliedFilters({ from: localFrom, to: localTo });

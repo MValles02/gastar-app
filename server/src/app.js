@@ -24,7 +24,7 @@ export function createApp() {
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         imgSrc: ["'self'", "data:"],
-        connectSrc: ["'self'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+        connectSrc: ["'self'"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         formAction: ["'self'", "https://accounts.google.com"],
       },
