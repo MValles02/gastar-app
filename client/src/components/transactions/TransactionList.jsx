@@ -1,4 +1,4 @@
-import { Pencil, Trash2, ArrowRight, ArrowUpCircle, ArrowDownCircle, ArrowLeftRight } from 'lucide-react';
+import { Pencil, Trash2, ArrowRight } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { getCategoryIcon } from '../ui/IconPicker.jsx';
 import {
@@ -7,12 +7,7 @@ import {
   getAmountTone,
 } from '../../utils/formatters.js';
 import { transactionShape } from '../../utils/propTypes.js';
-
-const TYPE_CONFIG = {
-  income:   { Icon: ArrowUpCircle,   tone: 'text-success' },
-  expense:  { Icon: ArrowDownCircle, tone: 'text-danger' },
-  transfer: { Icon: ArrowLeftRight,  tone: 'text-accent-600 dark:text-accent-300' },
-};
+import { TYPE_CONFIG, amountPrefix } from '../../constants/transactionTypes.js';
 
 export default function TransactionList({ transactions, onEdit, onDelete }) {
   const grouped = {};
@@ -21,12 +16,6 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
     if (!grouped[dateKey]) grouped[dateKey] = [];
     grouped[dateKey].push(tx);
   }
-
-  const amountPrefix = (type) => {
-    if (type === 'income') return '+';
-    if (type === 'expense') return '-';
-    return '';
-  };
 
   return (
     <div className="space-y-8">

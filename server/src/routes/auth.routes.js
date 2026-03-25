@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcrypt';
 import crypto from 'node:crypto';
 import prisma from '../utils/prisma.js';
@@ -11,20 +12,30 @@ import { buildGoogleAuthUrl, exchangeCodeForProfile } from '../services/google-a
 
 const router = Router();
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos. Intentá de nuevo más tarde.' },
+});
+
+const userPublicSelect = { id: true, email: true, name: true };
+
 // POST /api/auth/register
-router.post('/register', async (req, res, next) => {
+router.post('/register', authLimiter, async (req, res, next) => {
   try {
     const data = registerSchema.parse(req.body);
 
     const existing = await prisma.user.findUnique({ where: { email: data.email } });
     if (existing) {
-      return res.status(409).json({ error: 'Ya existe una cuenta con ese correo electronico' });
+      return res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico' });
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);
     const user = await prisma.user.create({
       data: { name: data.name, email: data.email, passwordHash },
-      select: { id: true, email: true, name: true },
+      select: userPublicSelect,
     });
 
     const token = generateToken(user.id);
@@ -32,26 +43,23 @@ router.post('/register', async (req, res, next) => {
 
     res.status(201).json({ data: { user } });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res, next) => {
+router.post('/login', authLimiter, async (req, res, next) => {
   try {
     const data = loginSchema.parse(req.body);
 
     const user = await prisma.user.findUnique({ where: { email: data.email } });
     if (!user || !user.passwordHash) {
-      return res.status(401).json({ error: 'Credenciales invalidas' });
+      return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
     const valid = await bcrypt.compare(data.password, user.passwordHash);
     if (!valid) {
-      return res.status(401).json({ error: 'Credenciales invalidas' });
+      return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
     const token = generateToken(user.id);
@@ -59,9 +67,6 @@ router.post('/login', async (req, res, next) => {
 
     res.json({ data: { user: { id: user.id, email: user.email, name: user.name } } });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
@@ -71,7 +76,7 @@ router.get('/me', authenticate, async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { id: true, email: true, name: true },
+      select: userPublicSelect,
     });
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -85,11 +90,11 @@ router.get('/me', authenticate, async (req, res, next) => {
 // POST /api/auth/logout
 router.post('/logout', (_req, res) => {
   res.cookie('token', '', { httpOnly: true, maxAge: 0, path: '/' });
-  res.json({ data: { message: 'Sesion cerrada' } });
+  res.json({ data: { message: 'Sesión cerrada' } });
 });
 
 // POST /api/auth/forgot-password
-router.post('/forgot-password', async (req, res, next) => {
+router.post('/forgot-password', authLimiter, async (req, res, next) => {
   try {
     const { email } = forgotPasswordSchema.parse(req.body);
 
@@ -106,17 +111,14 @@ router.post('/forgot-password', async (req, res, next) => {
       await sendPasswordResetEmail(email, resetToken);
     }
 
-    res.json({ data: { message: 'Si el correo existe, se envio un enlace de recuperacion' } });
+    res.json({ data: { message: 'Si el correo existe, se envió un enlace de recuperación' } });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
 
 // POST /api/auth/reset-password
-router.post('/reset-password', async (req, res, next) => {
+router.post('/reset-password', authLimiter, async (req, res, next) => {
   try {
     const { token, password } = resetPasswordSchema.parse(req.body);
     const hashedToken = hashResetToken(token);
@@ -129,7 +131,7 @@ router.post('/reset-password', async (req, res, next) => {
     });
 
     if (!user) {
-      return res.status(400).json({ error: 'Token invalido o expirado' });
+      return res.status(400).json({ error: 'Token inválido o expirado' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -138,11 +140,8 @@ router.post('/reset-password', async (req, res, next) => {
       data: { passwordHash, resetToken: null, resetTokenExpiry: null },
     });
 
-    res.json({ data: { message: 'Contrasena actualizada correctamente' } });
+    res.json({ data: { message: 'Contraseña actualizada correctamente' } });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });

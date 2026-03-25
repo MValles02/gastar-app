@@ -7,6 +7,18 @@ const router = Router();
 
 router.use(authenticate);
 
+async function buildCategoriesMap(categoryIds) {
+  const map = {};
+  if (categoryIds.length > 0) {
+    const cats = await prisma.category.findMany({
+      where: { id: { in: categoryIds } },
+      select: { id: true, name: true, icon: true },
+    });
+    for (const c of cats) map[c.id] = c;
+  }
+  return map;
+}
+
 function buildDateFilter(from, to) {
   const filter = {};
   if (from) filter.gte = new Date(from);
@@ -26,7 +38,7 @@ router.get('/summary', async (req, res, next) => {
       orderBy: { name: 'asc' },
     });
 
-    const totalBalance = accounts.reduce((sum, a) => sum + Number.parseFloat(a.balanceArs), 0);
+    const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balanceArs), 0);
 
     const txWhere = {
       account: { userId: req.userId },
@@ -44,8 +56,8 @@ router.get('/summary', async (req, res, next) => {
       }),
     ]);
 
-    const totalIncome = Number.parseFloat(incomeAgg._sum.amountArs || 0);
-    const totalExpenses = Number.parseFloat(expenseAgg._sum.amountArs || 0);
+    const totalIncome = Number(incomeAgg._sum.amountArs || 0);
+    const totalExpenses = Number(expenseAgg._sum.amountArs || 0);
 
     res.json({
       data: {
@@ -57,9 +69,6 @@ router.get('/summary', async (req, res, next) => {
       },
     });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
@@ -104,25 +113,18 @@ router.get('/by-category', async (req, res, next) => {
         : Promise.resolve([]),
     ]);
 
-    const categoryIds2 = [...new Set([
+    const allCategoryIds = [...new Set([
       ...expenseGroups.map(g => g.categoryId),
       ...incomeGroups.map(g => g.categoryId),
     ])];
 
-    const categoriesMap = {};
-    if (categoryIds2.length > 0) {
-      const cats = await prisma.category.findMany({
-        where: { id: { in: categoryIds2 } },
-        select: { id: true, name: true, icon: true },
-      });
-      for (const c of cats) categoriesMap[c.id] = c;
-    }
+    const categoriesMap = await buildCategoriesMap(allCategoryIds);
 
     const mapGroups = (groups) => groups.map(g => ({
       categoryId: g.categoryId,
       categoryName: categoriesMap[g.categoryId]?.name || 'Sin categoría',
       categoryIcon: categoriesMap[g.categoryId]?.icon || null,
-      total: Number.parseFloat(g._sum.amountArs || 0),
+      total: Number(g._sum.amountArs || 0),
     }));
 
     res.json({
@@ -132,9 +134,6 @@ router.get('/by-category', async (req, res, next) => {
       },
     });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
@@ -178,9 +177,6 @@ router.get('/monthly', async (req, res, next) => {
 
     res.json({ data: { year: targetYear, months, totals } });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
@@ -202,14 +198,7 @@ router.get('/frequency', async (req, res, next) => {
     });
 
     const categoryIds = [...new Set(groups.map(g => g.categoryId))];
-    const categoriesMap = {};
-    if (categoryIds.length > 0) {
-      const cats = await prisma.category.findMany({
-        where: { id: { in: categoryIds } },
-        select: { id: true, name: true, icon: true },
-      });
-      for (const c of cats) categoriesMap[c.id] = c;
-    }
+    const categoriesMap = await buildCategoriesMap(categoryIds);
 
     const data = groups.map(g => ({
       categoryId: g.categoryId,
@@ -220,9 +209,6 @@ router.get('/frequency', async (req, res, next) => {
 
     res.json({ data });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });

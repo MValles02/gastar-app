@@ -6,7 +6,7 @@ export function authenticate(req, res, next) {
     req.headers.authorization?.replace('Bearer ', '');
 
   if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: 'No autorizado' });
   }
 
   try {
@@ -14,6 +14,6 @@ export function authenticate(req, res, next) {
     req.userId = payload.userId;
     next();
   } catch {
-    res.status(401).json({ error: 'Invalid or expired token' });
+    return res.status(401).json({ error: 'Token inválido o expirado' });
   }
 }

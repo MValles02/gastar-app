@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  ArrowDownCircle,
-  ArrowLeftRight,
-  ArrowUpCircle,
   CalendarDays,
   Tag,
   Wallet,
@@ -23,12 +20,7 @@ import { getCategories } from '../../services/categories.js';
 import { useTransactionModal } from '../../context/TransactionModalContext.jsx';
 import { getErrorMessage } from '../../utils/errors.js';
 import { formatCurrency } from '../../utils/formatters.js';
-
-const typeOptions = [
-  { value: 'expense', label: 'Gasto', icon: ArrowDownCircle, tone: 'text-danger' },
-  { value: 'income', label: 'Ingreso', icon: ArrowUpCircle, tone: 'text-success' },
-  { value: 'transfer', label: 'Transferencia', icon: ArrowLeftRight, tone: 'text-accent-600 dark:text-accent-300' },
-];
+import { typeOptions } from '../../constants/transactionTypes.js';
 
 export default function TransactionModal() {
   const { isOpen, editData, triggerRefresh, closeModal } = useTransactionModal();

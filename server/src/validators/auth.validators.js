@@ -2,20 +2,20 @@ import { z } from 'zod';
 
 export const registerSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(100),
-  email: z.string().email('Correo electronico invalido'),
-  password: z.string().min(6, 'La contrasena debe tener al menos 6 caracteres'),
+  email: z.string().email('Correo electrónico inválido'),
+  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
 });
 
 export const loginSchema = z.object({
-  email: z.string().email('Correo electronico invalido'),
-  password: z.string().min(1, 'La contrasena es requerida'),
+  email: z.string().email('Correo electrónico inválido'),
+  password: z.string().min(1, 'La contraseña es requerida'),
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email('Correo electronico invalido'),
+  email: z.string().email('Correo electrónico inválido'),
 });
 
 export const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Token requerido'),
-  password: z.string().min(6, 'La contrasena debe tener al menos 6 caracteres'),
+  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
 });

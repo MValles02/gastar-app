@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const NETWORK_ERROR_MESSAGE = 'No pudimos comunicarnos con el servidor. Intenta de nuevo.';
-const UNKNOWN_ERROR_MESSAGE = 'Ocurrio un error inesperado. Intenta de nuevo.';
+const UNKNOWN_ERROR_MESSAGE = 'Ocurrió un error inesperado. Intentá de nuevo.';
 
 export function normalizeError(error, fallbackMessage = UNKNOWN_ERROR_MESSAGE) {
   if (axios.isAxiosError(error)) {

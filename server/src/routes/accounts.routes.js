@@ -24,14 +24,13 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const data = createAccountSchema.parse(req.body);
+    const currency = data.currency || 'ARS';
+    const balanceArs = currency === 'ARS' ? data.balance : 0;
     const account = await prisma.account.create({
-      data: { name: data.name, type: data.type, currency: data.currency, balance: data.balance, userId: req.userId },
+      data: { name: data.name, type: data.type, currency, balance: data.balance, balanceArs, userId: req.userId },
     });
     res.status(201).json({ data: account });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
@@ -52,9 +51,6 @@ router.put('/:id', async (req, res, next) => {
     });
     res.json({ data: account });
   } catch (err) {
-    if (err.name === 'ZodError') {
-      return res.status(400).json({ error: err.errors[0].message });
-    }
     next(err);
   }
 });
@@ -68,13 +64,17 @@ router.delete('/:id', async (req, res, next) => {
     if (!existing) {
       return res.status(404).json({ error: 'Cuenta no encontrada' });
     }
-    const txCount = await prisma.transaction.count({
-      where: { accountId: req.params.id },
+    await prisma.$transaction(async (tx) => {
+      const txCount = await tx.transaction.count({
+        where: { accountId: req.params.id },
+      });
+      if (txCount > 0) {
+        const error = new Error('No se puede eliminar una cuenta con transacciones asociadas');
+        error.status = 400;
+        throw error;
+      }
+      await tx.account.delete({ where: { id: req.params.id } });
     });
-    if (txCount > 0) {
-      return res.status(400).json({ error: 'No se puede eliminar una cuenta con transacciones asociadas' });
-    }
-    await prisma.account.delete({ where: { id: req.params.id } });
     res.json({ data: { message: 'Cuenta eliminada' } });
   } catch (err) {
     next(err);

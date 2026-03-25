@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Page } from '../../components/layout/Page.jsx';
@@ -40,6 +40,10 @@ export default function Balances() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    load(currentYear);
+  }, [load]);
 
   const apply = () => {
     setAppliedYear(localYear);

@@ -7,14 +7,7 @@ import Button from '../ui/Button.jsx';
 import MessageBanner from '../ui/MessageBanner.jsx';
 import { getErrorMessage } from '../../utils/errors.js';
 import { accountShape } from '../../utils/propTypes.js';
-
-const typeOptions = [
-  { value: 'checking', label: 'Cuenta corriente' },
-  { value: 'savings', label: 'Caja de ahorro' },
-  { value: 'credit_card', label: 'Tarjeta de crédito' },
-  { value: 'cash', label: 'Efectivo' },
-  { value: 'investment', label: 'Inversión' },
-];
+import { accountTypeOptions } from '../../constants/accountTypes.js';
 
 export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
   const isEdit = Boolean(account);
@@ -95,7 +88,7 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
           label="Tipo"
           value={type}
           onChange={(e) => setType(e.target.value)}
-          options={typeOptions}
+          options={accountTypeOptions}
         />
         <Select
           label="Moneda"
