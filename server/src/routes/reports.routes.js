@@ -191,6 +191,7 @@ router.get('/frequency', async (req, res, next) => {
       by: ['categoryId'],
       where: {
         account: { userId: req.userId },
+        type: 'expense',
         ...(dateFilter && { date: dateFilter }),
       },
       _count: { id: true },
