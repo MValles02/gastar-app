@@ -122,6 +122,17 @@ router.patch('/me', authenticate, async (req, res, next) => {
   }
 });
 
+// DELETE /api/auth/me
+router.delete('/me', authenticate, async (req, res, next) => {
+  try {
+    await prisma.user.delete({ where: { id: req.userId } });
+    res.cookie('token', '', { httpOnly: true, maxAge: 0, path: '/' });
+    res.json({ data: { message: 'Cuenta eliminada' } });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/auth/logout
 router.post('/logout', (_req, res) => {
   res.cookie('token', '', { httpOnly: true, maxAge: 0, path: '/' });

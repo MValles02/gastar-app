@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { User, Mail, DollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useDialog } from '../context/DialogContext.jsx';
 import { Page, PageHeader } from '../components/layout/Page.jsx';
 import { getErrorMessage } from '../utils/errors.js';
 
 export default function Profile() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, deleteAccount } = useAuth();
+  const { showConfirm, showAlert } = useDialog();
   const [prefLoading, setPrefLoading] = useState(false);
   const [prefMessage, setPrefMessage] = useState('');
 
@@ -21,6 +23,27 @@ export default function Profile() {
     } finally {
       setPrefLoading(false);
       setTimeout(() => setPrefMessage(''), 3000);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = await showConfirm({
+      title: 'Eliminar cuenta',
+      message: 'Esta acción eliminará tu cuenta y todos tus datos de forma permanente. No se puede deshacer.',
+      confirmLabel: 'Eliminar cuenta',
+      cancelLabel: 'Cancelar',
+      destructive: true,
+    });
+
+    if (!confirmed) return;
+
+    try {
+      await deleteAccount();
+    } catch (err) {
+      await showAlert({
+        title: 'No pudimos eliminar la cuenta',
+        message: getErrorMessage(err, 'Error al eliminar la cuenta.'),
+      });
     }
   };
 
@@ -81,6 +104,19 @@ export default function Profile() {
               <p className="mt-2 text-xs text-app-muted">{prefMessage}</p>
             )}
           </div>
+        </div>
+        <div className="panel p-6 space-y-4 border border-red-200 dark:border-red-900">
+          <p className="text-sm font-medium text-red-600 dark:text-red-400">Zona de peligro</p>
+          <p className="text-sm text-app-muted">
+            Eliminar tu cuenta borrará permanentemente todos tus datos: cuentas, transacciones y categorías.
+          </p>
+          <button
+            type="button"
+            onClick={handleDeleteAccount}
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+          >
+            Eliminar cuenta
+          </button>
         </div>
       </div>
     </Page>

@@ -65,8 +65,14 @@ export function AuthProvider({ children }) {
     return res.data.data;
   };
 
+  const deleteAccount = async () => {
+    await api.delete('/auth/me');
+    setAuthError('');
+    setUser(null);
+  };
+
   const value = useMemo(
-    () => ({ user, loading, authError, loadSession, login, register, logout, updateProfile }),
+    () => ({ user, loading, authError, loadSession, login, register, logout, updateProfile, deleteAccount }),
     [user, loading, authError]
   );
 
