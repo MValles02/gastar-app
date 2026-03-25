@@ -7,6 +7,7 @@ export const createAccountSchema = z.object({
   }),
   currency: z.enum(['ARS', 'USD', 'EUR'], { message: 'Moneda no soportada' }).default('ARS'),
   balance: z.union([z.string(), z.number()]).transform(Number).pipe(z.number()).default(0),
+  cotizacion: z.coerce.number().positive().optional(),
 });
 
 export const updateAccountSchema = z.object({

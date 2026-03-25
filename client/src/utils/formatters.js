@@ -1,3 +1,5 @@
+import { accountTypeLabels } from '../constants/accountTypes.js';
+
 const locale = navigator.language;
 
 const currencyFormatters = {};
@@ -39,14 +41,6 @@ export function formatDateShort(dateString) {
   const date = new Date(year, month - 1, day);
   return dateShortFormatter.format(date);
 }
-
-const accountTypeLabels = {
-  checking: 'Cuenta corriente',
-  savings: 'Caja de ahorro',
-  credit_card: 'Tarjeta de crédito',
-  cash: 'Efectivo',
-  investment: 'Inversión',
-};
 
 export function getAccountTypeLabel(type) {
   return accountTypeLabels[type] || type;
