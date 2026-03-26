@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { User, Mail, DollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useDialog } from '../context/DialogContext.jsx';
-import { Page, PageHeader } from '../components/layout/Page.jsx';
+import { Page } from '../components/layout/Page.jsx';
 import { getErrorMessage } from '../utils/errors.js';
 
 export default function Profile() {
@@ -49,14 +49,8 @@ export default function Profile() {
 
   return (
     <Page>
-      <PageHeader
-        eyebrow="Cuenta"
-        title="Mi perfil"
-        description="Tu información personal y preferencias de la aplicación."
-      />
-
       <div className="space-y-6">
-        <div className="panel p-6">
+        <div className="p-6">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-600 dark:bg-accent-950">
               <User className="h-7 w-7" />
