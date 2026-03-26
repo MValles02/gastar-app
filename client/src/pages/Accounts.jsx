@@ -5,7 +5,7 @@ import { getTransactions } from '../services/transactions.js';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import { useDialog } from '../context/DialogContext.jsx';
 import { Page } from '../components/layout/Page.jsx';
-import AccountCard from '../components/accounts/AccountCard.jsx';
+import AccountCard from '../components/general/AccountCard.jsx';
 import AccountModal from '../components/accounts/AccountModal.jsx';
 import Button from '../components/ui/Button.jsx';
 import { ListPageSkeleton } from '../components/ui/PageSkeletons.jsx';
