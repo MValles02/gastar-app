@@ -335,3 +335,28 @@ test('report routes return filtered summaries and grouped category totals', asyn
 
   assert.equal(invalidDateResponse.status, 400);
 });
+
+test('editing a non-ARS account with a new cotizacion updates balanceArs', async () => {
+  const { user, password } = await createUser();
+  const session = await login(user, password);
+
+  // Create USD account with initial cotizacion 1000 (balance $100 → 100000 ARS)
+  const createResponse = await fetch(`${baseUrl}/api/accounts`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: session.cookie },
+    body: JSON.stringify({ name: 'Dólares', type: 'savings', currency: 'USD', balance: 100, cotizacion: 1000 }),
+  });
+  const created = await createResponse.json();
+  assert.equal(createResponse.status, 201);
+  assert.equal(Number(created.data.balanceArs), 100000);
+
+  // Edit with new cotizacion 1200, same currency — balanceArs must update to 120000
+  const updateResponse = await fetch(`${baseUrl}/api/accounts/${created.data.id}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json', cookie: session.cookie },
+    body: JSON.stringify({ cotizacion: 1200 }),
+  });
+  const updated = await updateResponse.json();
+  assert.equal(updateResponse.status, 200);
+  assert.equal(Number(updated.data.balanceArs), 120000);
+});

@@ -52,7 +52,8 @@ router.put('/:id', async (req, res, next) => {
     const incomingCurrency = updatePayload.currency ?? existing.currency;
     const currencyChanging = updatePayload.currency && updatePayload.currency !== existing.currency;
 
-    if (currencyChanging) {
+    const shouldRecalc = currencyChanging || (cotizacion && incomingCurrency !== 'ARS');
+    if (shouldRecalc) {
       if (incomingCurrency === 'ARS') {
         updatePayload.balanceArs = Number(existing.balance);
       } else {
