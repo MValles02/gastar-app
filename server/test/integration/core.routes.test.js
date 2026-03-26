@@ -360,3 +360,18 @@ test('editing a non-ARS account with a new cotizacion updates balanceArs', async
   assert.equal(updateResponse.status, 200);
   assert.equal(Number(updated.data.balanceArs), 120000);
 });
+
+test('registration does not seed default categories', async () => {
+  const session = await registerAndGetSession(baseUrl, {
+    email: 'no-cats@example.com',
+    password: 'secret123',
+  });
+  assert.equal(session.response.status, 201);
+
+  const categoriesResponse = await fetch(`${baseUrl}/api/categories`, {
+    headers: { cookie: session.cookie },
+  });
+  const categoriesBody = await categoriesResponse.json();
+  assert.equal(categoriesResponse.status, 200);
+  assert.equal(categoriesBody.data.length, 0);
+});
