@@ -94,84 +94,103 @@ test('protected routes reject unauthenticated requests and auth validates creden
   assert.equal(malformedRegisterResponse.status, 400);
 });
 
-test('account routes support CRUD and prevent deleting accounts with transactions', async () => {
+test('account routes support CRUD and allow deleting accounts with transactions (cascade)', async () => {
   const { user, password } = await createUser();
   const session = await login(user, password);
 
   const createResponse = await fetch(`${baseUrl}/api/accounts`, {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      cookie: session.cookie,
-    },
-    body: JSON.stringify({
-      name: 'Banco Principal',
-      type: 'checking',
-      currency: 'ARS',
-      balance: 2500,
-    }),
+    headers: { 'content-type': 'application/json', cookie: session.cookie },
+    body: JSON.stringify({ name: 'Banco Principal', type: 'checking', currency: 'ARS', balance: 2500 }),
   });
-
   const createdAccount = await createResponse.json();
   assert.equal(createResponse.status, 201);
 
   const listResponse = await fetch(`${baseUrl}/api/accounts`, {
     headers: { cookie: session.cookie },
   });
-
   const listBody = await listResponse.json();
   assert.equal(listResponse.status, 200);
   assert.equal(listBody.data.length, 1);
 
   const updateResponse = await fetch(`${baseUrl}/api/accounts/${createdAccount.data.id}`, {
     method: 'PUT',
-    headers: {
-      'content-type': 'application/json',
-      cookie: session.cookie,
-    },
+    headers: { 'content-type': 'application/json', cookie: session.cookie },
     body: JSON.stringify({ name: 'Banco Secundario', currency: 'USD' }),
   });
-
   const updatedBody = await updateResponse.json();
   assert.equal(updateResponse.status, 200);
   assert.equal(updatedBody.data.name, 'Banco Secundario');
 
+  // Add a transaction so account is non-empty
   const category = await createCategory(user.id, { name: 'Comida' });
-  await prisma.transaction.create({
+  const tx = await prisma.transaction.create({
     data: {
       accountId: createdAccount.data.id,
       categoryId: category.id,
       type: 'expense',
       amount: 50,
+      amountArs: 50,
       date: new Date('2026-03-21'),
     },
   });
 
-  const blockedDeleteResponse = await fetch(`${baseUrl}/api/accounts/${createdAccount.data.id}`, {
-    method: 'DELETE',
-    headers: { cookie: session.cookie },
-  });
-
-  assert.equal(blockedDeleteResponse.status, 400);
-
-  await prisma.transaction.deleteMany({ where: { accountId: createdAccount.data.id } });
-
+  // Deletion must succeed even with transactions present (cascade)
   const deleteResponse = await fetch(`${baseUrl}/api/accounts/${createdAccount.data.id}`, {
     method: 'DELETE',
     headers: { cookie: session.cookie },
   });
-
   assert.equal(deleteResponse.status, 200);
 
-  const missingResponse = await fetch(`${baseUrl}/api/accounts/${createdAccount.data.id}`, {
-    method: 'PUT',
-    headers: {
-      'content-type': 'application/json',
-      cookie: session.cookie,
+  // Transaction must have been cascade-deleted
+  const remaining = await prisma.transaction.findUnique({ where: { id: tx.id } });
+  assert.equal(remaining, null);
+
+  // Create a second account as transfer destination, then delete it — transferTo should be nullified
+  const destCreate = await fetch(`${baseUrl}/api/accounts`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: session.cookie },
+    body: JSON.stringify({ name: 'Destino', type: 'savings', currency: 'ARS', balance: 0 }),
+  });
+  const destAccount = await destCreate.json();
+
+  const srcCreate = await fetch(`${baseUrl}/api/accounts`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', cookie: session.cookie },
+    body: JSON.stringify({ name: 'Origen', type: 'checking', currency: 'ARS', balance: 1000 }),
+  });
+  const srcAccount = await srcCreate.json();
+
+  const transfer = await prisma.transaction.create({
+    data: {
+      accountId: srcAccount.data.id,
+      categoryId: category.id,
+      type: 'transfer',
+      amount: 100,
+      amountArs: 100,
+      transferTo: destAccount.data.id,
+      date: new Date('2026-03-21'),
     },
-    body: JSON.stringify({ name: 'No existe' }),
   });
 
+  // Delete the destination account — must succeed, not FK error
+  const destDeleteResponse = await fetch(`${baseUrl}/api/accounts/${destAccount.data.id}`, {
+    method: 'DELETE',
+    headers: { cookie: session.cookie },
+  });
+  assert.equal(destDeleteResponse.status, 200);
+
+  // The transfer transaction still exists but transferTo is now null
+  const updatedTransfer = await prisma.transaction.findUnique({ where: { id: transfer.id } });
+  assert.notEqual(updatedTransfer, null);
+  assert.equal(updatedTransfer.transferTo, null);
+
+  // 404 on missing account
+  const missingResponse = await fetch(`${baseUrl}/api/accounts/${createdAccount.data.id}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json', cookie: session.cookie },
+    body: JSON.stringify({ name: 'No existe' }),
+  });
   assert.equal(missingResponse.status, 404);
 });
 
