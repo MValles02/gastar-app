@@ -1,8 +1,6 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import bcrypt from 'bcrypt';
 import crypto from 'node:crypto';
-import prisma from '../../shared/utils/prisma.js';
 import { generateToken, setTokenCookie } from '../../shared/utils/token.js';
 import { hashResetToken } from '../../shared/utils/reset-token.js';
 import { authenticate } from '../../shared/middleware/auth.middleware.js';
@@ -15,6 +13,18 @@ import {
 } from './auth.validators.js';
 import { sendPasswordResetEmail } from './email.service.js';
 import { buildGoogleAuthUrl, exchangeCodeForProfile } from './google-auth.service.js';
+import {
+  findUserByEmail,
+  findUserById,
+  createUser,
+  validatePassword,
+  updateUser,
+  deleteUser,
+  setResetToken,
+  findUserByResetToken,
+  resetPassword,
+  findOrCreateGoogleUser,
+} from './auth.service.js';
 
 const router = Router();
 
@@ -26,23 +36,17 @@ const authLimiter = rateLimit({
   message: { error: 'Demasiados intentos. Intentá de nuevo más tarde.' },
 });
 
-const userPublicSelect = { id: true, email: true, name: true, cotizacionPreference: true };
-
 // POST /api/auth/register
 router.post('/register', authLimiter, async (req, res, next) => {
   try {
     const data = registerSchema.parse(req.body);
 
-    const existing = await prisma.user.findUnique({ where: { email: data.email } });
+    const existing = await findUserByEmail(data.email);
     if (existing) {
       return res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico' });
     }
 
-    const passwordHash = await bcrypt.hash(data.password, 10);
-    const user = await prisma.user.create({
-      data: { name: data.name, email: data.email, passwordHash },
-      select: userPublicSelect,
-    });
+    const user = await createUser({ name: data.name, email: data.email, password: data.password });
 
     const token = generateToken(user.id);
     setTokenCookie(res, token);
@@ -58,12 +62,12 @@ router.post('/login', authLimiter, async (req, res, next) => {
   try {
     const data = loginSchema.parse(req.body);
 
-    const user = await prisma.user.findUnique({ where: { email: data.email } });
+    const user = await findUserByEmail(data.email);
     if (!user || !user.passwordHash) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    const valid = await bcrypt.compare(data.password, user.passwordHash);
+    const valid = await validatePassword(user, data.password);
     if (!valid) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
@@ -89,10 +93,7 @@ router.post('/login', authLimiter, async (req, res, next) => {
 // GET /api/auth/me
 router.get('/me', authenticate, async (req, res, next) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.userId },
-      select: userPublicSelect,
-    });
+    const user = await findUserById(req.userId);
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
@@ -106,11 +107,7 @@ router.get('/me', authenticate, async (req, res, next) => {
 router.patch('/me', authenticate, async (req, res, next) => {
   try {
     const data = updateProfileSchema.parse(req.body);
-    const user = await prisma.user.update({
-      where: { id: req.userId },
-      data,
-      select: userPublicSelect,
-    });
+    const user = await updateUser(req.userId, data);
     res.json({ data: user });
   } catch (err) {
     next(err);
@@ -120,7 +117,7 @@ router.patch('/me', authenticate, async (req, res, next) => {
 // DELETE /api/auth/me
 router.delete('/me', authenticate, async (req, res, next) => {
   try {
-    await prisma.user.delete({ where: { id: req.userId } });
+    await deleteUser(req.userId);
     res.cookie('token', '', { httpOnly: true, maxAge: 0, path: '/' });
     res.json({ data: { message: 'Cuenta eliminada' } });
   } catch (err) {
@@ -139,15 +136,12 @@ router.post('/forgot-password', authLimiter, async (req, res, next) => {
   try {
     const { email } = forgotPasswordSchema.parse(req.body);
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await findUserByEmail(email);
     if (user && user.passwordHash) {
       const resetToken = crypto.randomBytes(32).toString('hex');
       const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
 
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { resetToken: hashResetToken(resetToken), resetTokenExpiry },
-      });
+      await setResetToken(email, hashResetToken(resetToken), resetTokenExpiry);
 
       await sendPasswordResetEmail(email, resetToken);
     }
@@ -164,22 +158,13 @@ router.post('/reset-password', authLimiter, async (req, res, next) => {
     const { token, password } = resetPasswordSchema.parse(req.body);
     const hashedToken = hashResetToken(token);
 
-    const user = await prisma.user.findFirst({
-      where: {
-        resetToken: hashedToken,
-        resetTokenExpiry: { gt: new Date() },
-      },
-    });
+    const user = await findUserByResetToken(hashedToken);
 
     if (!user) {
       return res.status(400).json({ error: 'Token inválido o expirado' });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash, resetToken: null, resetTokenExpiry: null },
-    });
+    await resetPassword(user.id, password);
 
     res.json({ data: { message: 'Contraseña actualizada correctamente' } });
   } catch (err) {
@@ -205,25 +190,11 @@ router.get('/google/callback', authLimiter, async (req, res) => {
   try {
     const profile = await exchangeCodeForProfile(code);
 
-    let user = await prisma.user.findUnique({ where: { googleId: profile.googleId } });
-
-    if (!user) {
-      const existing = await prisma.user.findUnique({ where: { email: profile.email } });
-      if (existing) {
-        user = await prisma.user.update({
-          where: { id: existing.id },
-          data: { googleId: profile.googleId },
-        });
-      } else {
-        user = await prisma.user.create({
-          data: {
-            email: profile.email,
-            name: profile.name,
-            googleId: profile.googleId,
-          },
-        });
-      }
-    }
+    const user = await findOrCreateGoogleUser({
+      email: profile.email,
+      name: profile.name,
+      googleId: profile.googleId,
+    });
 
     const token = generateToken(user.id);
     setTokenCookie(res, token);
