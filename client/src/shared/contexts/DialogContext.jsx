@@ -4,7 +4,7 @@ import Button from '../components/ui/Button.jsx';
 import MessageBanner from '../components/ui/MessageBanner.jsx';
 import { childrenPropType } from '../utils/propTypes.js';
 
-const DialogContext = createContext(null);
+export const DialogContext = createContext(null);
 
 const INITIAL_STATE = {
   open: false,
