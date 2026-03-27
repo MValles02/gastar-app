@@ -18,6 +18,9 @@
     "lint": "eslint server/src server/test client/src",
     "lint:fix": "eslint server/src server/test client/src --fix",
     "format": "prettier --write \"**/*.{js,jsx,json,css,md}\" --ignore-path .prettierignore",
+    "typecheck": "npm --prefix server run typecheck && npm --prefix client run typecheck",
+    "typecheck:server": "npm --prefix server run typecheck",
+    "typecheck:client": "npm --prefix client run typecheck",
     "format:check": "prettier --check \"**/*.{js,jsx,json,css,md}\" --ignore-path .prettierignore"
   },
   "devDependencies": {
