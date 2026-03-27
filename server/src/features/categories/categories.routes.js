@@ -1,19 +1,15 @@
 import { Router } from 'express';
 import { authenticate } from '../../shared/middleware/auth.middleware.js';
-import prisma from '../../shared/utils/prisma.js';
 import { createCategorySchema, updateCategorySchema } from './categories.validators.js';
+import { getCategoriesByUser, createCategory, updateCategory, deleteCategory } from './categories.service.js';
 
 const router = Router();
-
 router.use(authenticate);
 
 // GET /api/categories
 router.get('/', async (req, res, next) => {
   try {
-    const categories = await prisma.category.findMany({
-      where: { userId: req.userId },
-      orderBy: { name: 'asc' },
-    });
+    const categories = await getCategoriesByUser(req.userId);
     res.json({ data: categories });
   } catch (err) {
     next(err);
@@ -24,9 +20,7 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const data = createCategorySchema.parse(req.body);
-    const category = await prisma.category.create({
-      data: { ...data, userId: req.userId },
-    });
+    const category = await createCategory(req.userId, data);
     res.status(201).json({ data: category });
   } catch (err) {
     next(err);
@@ -37,16 +31,8 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const data = updateCategorySchema.parse(req.body);
-    const existing = await prisma.category.findFirst({
-      where: { id: req.params.id, userId: req.userId },
-    });
-    if (!existing) {
-      return res.status(404).json({ error: 'Categoría no encontrada' });
-    }
-    const category = await prisma.category.update({
-      where: { id: req.params.id },
-      data,
-    });
+    const category = await updateCategory(req.userId, req.params.id, data);
+    if (!category) return res.status(404).json({ error: 'Categoría no encontrada' });
     res.json({ data: category });
   } catch (err) {
     next(err);
@@ -56,23 +42,8 @@ router.put('/:id', async (req, res, next) => {
 // DELETE /api/categories/:id
 router.delete('/:id', async (req, res, next) => {
   try {
-    const existing = await prisma.category.findFirst({
-      where: { id: req.params.id, userId: req.userId },
-    });
-    if (!existing) {
-      return res.status(404).json({ error: 'Categoría no encontrada' });
-    }
-    await prisma.$transaction(async (tx) => {
-      const txCount = await tx.transaction.count({
-        where: { categoryId: req.params.id },
-      });
-      if (txCount > 0) {
-        const error = new Error('No se puede eliminar una categoría con transacciones asociadas');
-        error.status = 400;
-        throw error;
-      }
-      await tx.category.delete({ where: { id: req.params.id } });
-    });
+    const result = await deleteCategory(req.userId, req.params.id);
+    if (!result) return res.status(404).json({ error: 'Categoría no encontrada' });
     res.json({ data: { message: 'Categoría eliminada' } });
   } catch (err) {
     next(err);
