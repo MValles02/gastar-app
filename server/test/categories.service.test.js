@@ -16,8 +16,7 @@ describe('categories.service', () => {
     assert.equal(result[0].name, 'Comida');
   });
 
-  it('throws when deleting a category with transactions', async () => {
-    // This test requires integration setup — skip in unit tests
+  it.skip('throws when deleting a category with transactions', async () => {
     // Covered by integration tests in core.routes.test.js
   });
 });
