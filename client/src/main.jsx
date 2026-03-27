@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { ThemeProvider } from './context/ThemeContext.jsx';
+import { ThemeProvider } from './shared/contexts/ThemeContext.jsx';
 import App from './App.jsx';
 import './index.css';
 
