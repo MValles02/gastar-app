@@ -64,13 +64,6 @@ Key schema invariants:
 - Every route verifies resource ownership against `req.userId`.
 - Auth routes are rate-limited (10 attempts / 15 minutes).
 
-## Known Issues
-
-1. **Account deletion blocked** — Returns 400 if the account has transactions. Should cascade-delete them instead.
-2. **`balanceArs` not recalculated on account edit** — Recalc only triggers on currency changes, not name/type edits.
-3. **Google OAuth users don't get default categories** — Default category seeding only happens on email/password registration.
-4. **Duplicate `AccountCard` component** — Two implementations exist: `components/accounts/` and `components/general/`. Needs consolidation.
-
 ## Testing
 
 - Uses Node.js built-in test runner (`--test`), not Jest or Vitest.
