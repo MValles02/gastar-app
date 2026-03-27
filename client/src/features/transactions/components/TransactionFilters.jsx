@@ -1,15 +1,24 @@
+import { useState } from 'react';
 import PropTypes from 'prop-types';
 import FilterBar from '../../../shared/components/compound/FilterBar.jsx';
+import Button from '../../../shared/components/ui/Button.jsx';
 import { accountShape, categoryShape, filtersShape } from '../../../shared/utils/propTypes.js';
-import { typeFilterOptions } from '../../../shared/constants/transactionTypes.js';
 
 export default function TransactionFilters({ filters, onChange, accounts, categories }) {
+  const [localFilters, setLocalFilters] = useState(filters);
+
   const handleChange = (key, value) => {
-    onChange({ ...filters, [key]: value || undefined, page: 1 });
+    setLocalFilters((prev) => ({ ...prev, [key]: value || undefined }));
+  };
+
+  const handleApply = () => {
+    onChange({ ...localFilters, page: 1 });
   };
 
   const handleReset = () => {
-    onChange({ page: 1, limit: filters.limit ?? 20 });
+    const reset = { page: 1, limit: filters.limit ?? 20 };
+    setLocalFilters(reset);
+    onChange(reset);
   };
 
   const filterConfig = [
@@ -17,19 +26,30 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
       key: 'accountId',
       label: 'Cuenta',
       type: 'select',
-      options: accounts.map((a) => ({ value: a.id, label: a.name })),
+      options: [
+        { value: '', label: 'Todas' },
+        ...accounts.map((a) => ({ value: a.id, label: a.name })),
+      ],
     },
     {
       key: 'categoryId',
       label: 'Categoría',
       type: 'select',
-      options: categories.map((c) => ({ value: c.id, label: c.name })),
+      options: [
+        { value: '', label: 'Todas' },
+        ...categories.map((c) => ({ value: c.id, label: c.name })),
+      ],
     },
     {
       key: 'type',
       label: 'Tipo',
       type: 'select',
-      options: typeFilterOptions,
+      options: [
+        { value: '', label: 'Todos' },
+        { value: 'income', label: 'Ingreso' },
+        { value: 'expense', label: 'Gasto' },
+        { value: 'transfer', label: 'Transferencia' },
+      ],
     },
     { key: 'from', label: 'Desde', type: 'date' },
     { key: 'to', label: 'Hasta', type: 'date' },
@@ -42,10 +62,15 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
       </div>
       <FilterBar
         filters={filterConfig}
-        values={filters}
+        values={localFilters}
         onChange={handleChange}
         onReset={handleReset}
       />
+      <div className="pt-3">
+        <Button type="button" onClick={handleApply}>
+          Aplicar
+        </Button>
+      </div>
     </section>
   );
 }
