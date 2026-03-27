@@ -11,12 +11,12 @@ export default function Profile(): JSX.Element {
   const [prefLoading, setPrefLoading] = useState(false);
   const [prefMessage, setPrefMessage] = useState('');
 
-  const handleCotizacionPreference = async (value: string) => {
-    if (prefLoading || user?.cotizacionPreference === value) return;
+  const handleExchangeRatePreference = async (value: string) => {
+    if (prefLoading || user?.exchangeRatePreference === value) return;
     setPrefLoading(true);
     setPrefMessage('');
     try {
-      await updateProfile({ cotizacionPreference: value });
+      await updateProfile({ exchangeRatePreference: value });
       setPrefMessage('Preferencia guardada');
     } catch (err) {
       setPrefMessage(getErrorMessage(err, 'No se pudo guardar la preferencia'));
@@ -77,15 +77,15 @@ export default function Profile(): JSX.Element {
               Cotización del dólar sugerida al registrar transacciones en USD
             </p>
             <div className="flex gap-2">
-              {(['blue', 'oficial'] as const).map((option) => (
+              {(['blue', 'official'] as const).map((option) => (
                 <button
                   key={option}
                   type="button"
                   disabled={prefLoading}
-                  onClick={() => void handleCotizacionPreference(option)}
+                  onClick={() => void handleExchangeRatePreference(option)}
                   className={[
                     'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                    user?.cotizacionPreference === option
+                    user?.exchangeRatePreference === option
                       ? 'bg-accent-600 text-white'
                       : 'bg-app-subtle text-app hover:bg-app-subtle/80',
                     prefLoading ? 'opacity-50 cursor-not-allowed' : '',

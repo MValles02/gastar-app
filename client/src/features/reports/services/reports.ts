@@ -19,7 +19,7 @@ export interface SummaryData {
     name: string;
     type: string;
     balance: number;
-    balanceArs: number;
+    arsBalance: number;
     currency: string;
   }>;
 }

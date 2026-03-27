@@ -8,7 +8,7 @@ export interface User {
   name: string;
   passwordHash?: string | null;
   googleId?: string | null;
-  cotizacionPreference: string;
+  exchangeRatePreference: string;
   createdAt: Date;
 }
 
@@ -18,7 +18,7 @@ export interface Account {
   name: string;
   type: AccountType;
   balance: number;
-  balanceArs: number;
+  arsBalance: number;
   currency: Currency;
   createdAt: Date;
 }
@@ -36,8 +36,8 @@ export interface Transaction {
   categoryId?: string | null;
   type: TransactionType;
   amount: number;
-  cotizacion?: number | null;
-  amountArs: number;
+  exchangeRate?: number | null;
+  arsAmount: number;
   description?: string | null;
   date: Date;
   transferTo?: string | null;

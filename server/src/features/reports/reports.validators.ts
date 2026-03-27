@@ -3,11 +3,11 @@ import { z } from 'zod';
 export const reportQuerySchema = z.object({
   from: z
     .string()
-    .refine((val) => !Number.isNaN(Date.parse(val)), 'Fecha desde inválida')
+    .refine((val) => !Number.isNaN(Date.parse(val)), 'Invalid start date')
     .optional(),
   to: z
     .string()
-    .refine((val) => !Number.isNaN(Date.parse(val)), 'Fecha hasta inválida')
+    .refine((val) => !Number.isNaN(Date.parse(val)), 'Invalid end date')
     .optional(),
 });
 

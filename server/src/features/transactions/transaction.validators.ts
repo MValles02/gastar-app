@@ -2,28 +2,28 @@ import { z } from 'zod';
 
 export const createTransactionSchema = z
   .object({
-    accountId: z.string().uuid('ID de cuenta inválido'),
-    categoryId: z.string().uuid('ID de categoría inválido'),
-    type: z.enum(['income', 'expense', 'transfer'], { message: 'Tipo de transacción inválido' }),
+    accountId: z.string().uuid('Invalid account ID'),
+    categoryId: z.string().uuid('Invalid category ID'),
+    type: z.enum(['income', 'expense', 'transfer'], { message: 'Invalid transaction type' }),
     amount: z
       .union([z.string(), z.number()])
       .transform(Number)
-      .pipe(z.number().positive('El monto debe ser mayor a 0')),
-    cotizacion: z
+      .pipe(z.number().positive('Amount must be greater than 0')),
+    exchangeRate: z
       .union([z.string(), z.number()])
       .transform(Number)
-      .pipe(z.number().positive('La cotización debe ser mayor a 0'))
+      .pipe(z.number().positive('Exchange rate must be greater than 0'))
       .optional(),
     description: z.string().max(200).optional(),
-    date: z.string().refine((val) => !Number.isNaN(Date.parse(val)), 'Fecha inválida'),
+    date: z.string().refine((val) => !Number.isNaN(Date.parse(val)), 'Invalid date'),
     transferTo: z.string().uuid().optional(),
   })
   .refine((data) => data.type !== 'transfer' || data.transferTo, {
-    message: 'La cuenta destino es requerida para transferencias',
+    message: 'Destination account is required for transfers',
     path: ['transferTo'],
   })
   .refine((data) => data.type !== 'transfer' || data.transferTo !== data.accountId, {
-    message: 'La cuenta destino debe ser diferente a la cuenta origen',
+    message: 'Destination account must be different from source account',
     path: ['transferTo'],
   });
 
@@ -35,31 +35,31 @@ export const updateTransactionSchema = z
     amount: z
       .union([z.string(), z.number()])
       .transform(Number)
-      .pipe(z.number().positive('El monto debe ser mayor a 0'))
+      .pipe(z.number().positive('Amount must be greater than 0'))
       .optional(),
-    cotizacion: z
+    exchangeRate: z
       .union([z.string(), z.number()])
       .transform(Number)
-      .pipe(z.number().positive('La cotización debe ser mayor a 0'))
+      .pipe(z.number().positive('Exchange rate must be greater than 0'))
       .optional(),
     description: z.string().max(200).optional(),
     date: z
       .string()
-      .refine((val) => !Number.isNaN(Date.parse(val)), 'Fecha inválida')
+      .refine((val) => !Number.isNaN(Date.parse(val)), 'Invalid date')
       .optional(),
     transferTo: z.string().uuid().nullable().optional(),
   })
   .refine((data) => data.type !== 'transfer' || data.transferTo !== undefined, {
-    message: 'La cuenta destino es requerida para transferencias',
+    message: 'Destination account is required for transfers',
     path: ['transferTo'],
   })
   .refine((data) => data.type !== 'transfer' || data.transferTo !== null, {
-    message: 'La cuenta destino es requerida para transferencias',
+    message: 'Destination account is required for transfers',
     path: ['transferTo'],
   })
   .refine(
     (data) => data.type !== 'transfer' || !data.accountId || data.transferTo !== data.accountId,
-    { message: 'La cuenta destino debe ser diferente a la cuenta origen', path: ['transferTo'] }
+    { message: 'Destination account must be different from source account', path: ['transferTo'] }
   );
 
 export const transactionQuerySchema = z.object({

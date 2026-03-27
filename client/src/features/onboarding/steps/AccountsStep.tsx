@@ -4,7 +4,7 @@ import Input from '../../../shared/components/ui/Input.js';
 import Select from '../../../shared/components/ui/Select.js';
 import Button from '../../../shared/components/ui/Button.js';
 import MessageBanner from '../../../shared/components/ui/MessageBanner.js';
-import CotizacionInput, { saveCotizacion } from '../../../shared/components/ui/CotizacionInput.js';
+import ExchangeRateInput, { saveExchangeRate } from '../../../shared/components/ui/ExchangeRateInput.js';
 import { useOnboarding } from '../OnboardingContext.js';
 import { createAccount, getAccounts } from '../../accounts/services/accounts.js';
 import { getErrorMessage } from '../../../shared/utils/errors.js';
@@ -31,7 +31,7 @@ function resetForm(): FormState {
 export default function AccountsStep(): JSX.Element {
   const { goToNextStep, goToPrevStep, createdAccounts, addCreatedAccount } = useOnboarding();
   const [form, setForm] = useState<FormState>(resetForm());
-  const [cotizacion, setCotizacion] = useState('');
+  const [exchangeRate, setExchangeRate] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -70,9 +70,9 @@ export default function AccountsStep(): JSX.Element {
     }
 
     if (form.currency !== 'ARS' && parsedBalance > 0) {
-      const parsedCotizacion = Number.parseFloat(cotizacion);
-      if (!cotizacion || parsedCotizacion <= 0 || Number.isNaN(parsedCotizacion)) {
-        nextErrors.cotizacion = 'Ingresá la cotización del día';
+      const parsedExchangeRate = Number.parseFloat(exchangeRate);
+      if (!exchangeRate || parsedExchangeRate <= 0 || Number.isNaN(parsedExchangeRate)) {
+        nextErrors.exchangeRate = 'Ingresá la cotización del día';
       }
     }
 
@@ -85,22 +85,22 @@ export default function AccountsStep(): JSX.Element {
     setLoading(true);
 
     try {
-      const cotizacionPayload =
-        form.currency !== 'ARS' && cotizacion ? { cotizacion: Number.parseFloat(cotizacion) } : {};
+      const exchangeRatePayload =
+        form.currency !== 'ARS' && exchangeRate ? { exchangeRate: Number.parseFloat(exchangeRate) } : {};
       const account = await createAccount({
         name: form.name.trim(),
         type: form.type as AccountType,
         currency: form.currency as Currency,
         balance: parsedBalance || 0,
-        ...cotizacionPayload,
+        ...exchangeRatePayload,
       });
 
-      if (form.currency !== 'ARS' && cotizacion) {
-        saveCotizacion(form.currency, cotizacion);
+      if (form.currency !== 'ARS' && exchangeRate) {
+        saveExchangeRate(form.currency, exchangeRate);
       }
 
       addCreatedAccount(account);
-      setCotizacion('');
+      setExchangeRate('');
       setForm(resetForm());
     } catch (err) {
       setError(getErrorMessage(err, 'Error al crear la cuenta'));
@@ -164,7 +164,7 @@ export default function AccountsStep(): JSX.Element {
             value={form.currency}
             onChange={(e) => {
               set('currency')(e);
-              setCotizacion('');
+              setExchangeRate('');
             }}
             options={currencyOptions}
           />
@@ -180,19 +180,19 @@ export default function AccountsStep(): JSX.Element {
             error={errors.balance}
           />
 
-          <CotizacionInput
+          <ExchangeRateInput
             currency={form.currency}
-            value={cotizacion}
+            value={exchangeRate}
             onChange={(val) => {
-              setCotizacion(val);
+              setExchangeRate(val);
               setErrors((prev) => {
                 const next = { ...prev };
-                delete next.cotizacion;
+                delete next.exchangeRate;
                 return next;
               });
             }}
             amount={form.balance}
-            error={errors.cotizacion}
+            error={errors.exchangeRate}
           />
 
           <Button type="submit" variant="secondary" loading={loading} className="w-full">

@@ -6,7 +6,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  cotizacionPreference: string;
+  exchangeRatePreference: string;
 }
 
 export interface Account {
@@ -15,7 +15,7 @@ export interface Account {
   name: string;
   type: AccountType;
   balance: number;
-  balanceArs: number;
+  arsBalance: number;
   currency: Currency;
   createdAt: string;
 }
@@ -33,8 +33,8 @@ export interface Transaction {
   categoryId?: string | null;
   type: TransactionType;
   amount: number;
-  cotizacion?: number | null;
-  amountArs: number;
+  exchangeRate?: number | null;
+  arsAmount: number;
   description?: string | null;
   date: string;
   transferTo?: string | null;

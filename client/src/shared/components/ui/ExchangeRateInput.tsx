@@ -4,9 +4,9 @@ import { getExchangeRates } from '../../services/exchange-rates.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { formatCurrency } from '../../utils/formatters.js';
 
-const LAST_USED_KEY = 'cotizacion_last_used';
+const LAST_USED_KEY = 'exchange_rate_last_used';
 
-export function saveCotizacion(currency: string, value: string): void {
+export function saveExchangeRate(currency: string, value: string): void {
   try {
     const stored = JSON.parse(localStorage.getItem(LAST_USED_KEY) || '{}') as Record<string, string>;
     localStorage.setItem(LAST_USED_KEY, JSON.stringify({ ...stored, [currency]: value }));
@@ -25,7 +25,7 @@ interface Props {
   skipFetch?: boolean;
 }
 
-export default function CotizacionInput({
+export default function ExchangeRateInput({
   currency,
   value,
   onChange,
@@ -35,7 +35,7 @@ export default function CotizacionInput({
   skipFetch,
 }: Props): JSX.Element | null {
   const { user } = useAuth();
-  const [rates, setRates] = useState<{ blue: number; oficial: number } | null>(null);
+  const [rates, setRates] = useState<{ blue: number; official: number } | null>(null);
   const [ratesFetching, setRatesFetching] = useState(false);
   const [ratesSource, setRatesSource] = useState<'api' | 'localStorage' | null>(null);
 
@@ -53,7 +53,7 @@ export default function CotizacionInput({
         setRates(fetchedRates);
         setRatesSource('api');
         const preferred =
-          user?.cotizacionPreference === 'oficial' ? fetchedRates.oficial : fetchedRates.blue;
+          user?.exchangeRatePreference === 'official' ? fetchedRates.official : fetchedRates.blue;
         onChange(String(preferred));
       })
       .catch(() => {
@@ -73,7 +73,7 @@ export default function CotizacionInput({
 
   if (!currency || currency === 'ARS') return null;
 
-  const parsedCotizacion = Number.parseFloat(value);
+  const parsedExchangeRate = Number.parseFloat(value);
   const parsedAmount = amount != null ? Number.parseFloat(String(amount)) : NaN;
 
   return (
@@ -91,18 +91,18 @@ export default function CotizacionInput({
       />
       {ratesSource === 'api' && rates && (
         <p className="mt-1 text-xs text-app-muted">
-          Blue: {formatCurrency(rates.blue)} · Oficial: {formatCurrency(rates.oficial)} ·
+          Blue: {formatCurrency(rates.blue)} · Oficial: {formatCurrency(rates.official)} ·
           Actualizado automáticamente
         </p>
       )}
       {ratesSource === 'localStorage' && value && (
         <p className="mt-1 text-xs text-app-muted">
-          Último valor usado: {formatCurrency(parsedCotizacion)}
+          Último valor usado: {formatCurrency(parsedExchangeRate)}
         </p>
       )}
-      {value && amount != null && parsedCotizacion > 0 && parsedAmount > 0 && (
+      {value && amount != null && parsedExchangeRate > 0 && parsedAmount > 0 && (
         <p className="mt-1 text-xs text-app-muted">
-          = {formatCurrency(parsedAmount * parsedCotizacion)}
+          = {formatCurrency(parsedAmount * parsedExchangeRate)}
         </p>
       )}
     </div>

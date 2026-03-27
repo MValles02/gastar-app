@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const createCategorySchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido').max(50),
+  name: z.string().min(1, 'Name is required').max(50),
   icon: z.string().max(50).optional(),
 });
 

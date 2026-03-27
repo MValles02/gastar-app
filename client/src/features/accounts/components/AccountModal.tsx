@@ -3,7 +3,7 @@ import ResourceModal from '../../../shared/components/compound/ResourceModal.js'
 import Input from '../../../shared/components/ui/Input.js';
 import Select from '../../../shared/components/ui/Select.js';
 import MessageBanner from '../../../shared/components/ui/MessageBanner.js';
-import CotizacionInput, { saveCotizacion } from '../../../shared/components/ui/CotizacionInput.js';
+import ExchangeRateInput, { saveExchangeRate } from '../../../shared/components/ui/ExchangeRateInput.js';
 import { getErrorMessage } from '../../../shared/utils/errors.js';
 import { accountTypeOptions } from '../../../shared/constants/accountTypes.js';
 import type { Account } from '../../../shared/types/domain.types.js';
@@ -21,7 +21,7 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }: Pro
   const [type, setType] = useState('checking');
   const [currency, setCurrency] = useState('ARS');
   const [balance, setBalance] = useState('0');
-  const [cotizacion, setCotizacion] = useState('');
+  const [exchangeRate, setExchangeRate] = useState('');
   const [error, setError] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -39,7 +39,7 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }: Pro
       setBalance('0');
     }
 
-    setCotizacion('');
+    setExchangeRate('');
     setError('');
     setErrors({});
   }, [account, isOpen]);
@@ -60,13 +60,13 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }: Pro
     }
 
     if (currency !== 'ARS') {
-      const needsCotizacion = isEdit || parsedBalance > 0;
-      const parsedCotizacion = Number.parseFloat(cotizacion);
+      const needsExchangeRate = isEdit || parsedBalance > 0;
+      const parsedExchangeRate = Number.parseFloat(exchangeRate);
       if (
-        needsCotizacion &&
-        (!cotizacion || parsedCotizacion <= 0 || Number.isNaN(parsedCotizacion))
+        needsExchangeRate &&
+        (!exchangeRate || parsedExchangeRate <= 0 || Number.isNaN(parsedExchangeRate))
       ) {
-        nextErrors.cotizacion = 'Ingresá la cotización del día';
+        nextErrors.exchangeRate = 'Ingresá la cotización del día';
       }
     }
 
@@ -79,16 +79,16 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }: Pro
     setLoading(true);
 
     try {
-      const cotizacionPayload =
-        currency !== 'ARS' && cotizacion ? { cotizacion: Number.parseFloat(cotizacion) } : {};
+      const exchangeRatePayload =
+        currency !== 'ARS' && exchangeRate ? { exchangeRate: Number.parseFloat(exchangeRate) } : {};
       const data = isEdit
-        ? { name, type, currency, ...cotizacionPayload }
-        : { name, type, currency, balance: parsedBalance || 0, ...cotizacionPayload };
+        ? { name, type, currency, ...exchangeRatePayload }
+        : { name, type, currency, balance: parsedBalance || 0, ...exchangeRatePayload };
 
       await onSubmit(data);
 
-      if (currency !== 'ARS' && cotizacion) {
-        saveCotizacion(currency, cotizacion);
+      if (currency !== 'ARS' && exchangeRate) {
+        saveExchangeRate(currency, exchangeRate);
       }
 
       onClose();
@@ -127,7 +127,7 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }: Pro
         value={currency}
         onChange={(e) => {
           setCurrency(e.target.value);
-          setCotizacion('');
+          setExchangeRate('');
         }}
         options={[
           { value: 'ARS', label: 'ARS - Peso argentino' },
@@ -147,19 +147,19 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }: Pro
           error={errors.balance}
         />
       )}
-      <CotizacionInput
+      <ExchangeRateInput
         currency={currency}
-        value={cotizacion}
+        value={exchangeRate}
         onChange={(val) => {
-          setCotizacion(val);
+          setExchangeRate(val);
           setErrors((prev) => {
             const next = { ...prev };
-            delete next.cotizacion;
+            delete next.exchangeRate;
             return next;
           });
         }}
         amount={!isEdit ? balance : undefined}
-        error={errors.cotizacion}
+        error={errors.exchangeRate}
       />
     </ResourceModal>
   );

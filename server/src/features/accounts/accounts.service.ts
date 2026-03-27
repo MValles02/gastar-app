@@ -14,10 +14,10 @@ export async function getAccountsByUser(userId: string) {
 
 export async function createAccount(userId: string, data: CreateAccountData) {
   const currency = data.currency ?? 'ARS';
-  const balanceArs =
-    currency === 'ARS' ? data.balance : data.cotizacion ? Number(data.balance) * data.cotizacion : 0;
+  const arsBalance =
+    currency === 'ARS' ? data.balance : data.exchangeRate ? Number(data.balance) * data.exchangeRate : 0;
   return prisma.account.create({
-    data: { name: data.name, type: data.type, currency, balance: data.balance, balanceArs, userId },
+    data: { name: data.name, type: data.type, currency, balance: data.balance, arsBalance, userId },
   });
 }
 
@@ -27,18 +27,18 @@ export async function updateAccount(userId: string, accountId: string, data: Upd
   });
   if (!existing) return null;
 
-  const { cotizacion, ...updatePayload } = data;
+  const { exchangeRate, ...updatePayload } = data;
   const incomingCurrency = updatePayload.currency ?? existing.currency;
   const currencyChanging = updatePayload.currency !== undefined && updatePayload.currency !== existing.currency;
 
-  const shouldRecalc = currencyChanging || (cotizacion !== undefined && incomingCurrency !== 'ARS');
+  const shouldRecalc = currencyChanging || (exchangeRate !== undefined && incomingCurrency !== 'ARS');
   const payload: Record<string, unknown> = { ...updatePayload };
 
   if (shouldRecalc) {
     if (incomingCurrency === 'ARS') {
-      payload.balanceArs = Number(existing.balance);
+      payload.arsBalance = Number(existing.balance);
     } else {
-      payload.balanceArs = Number(existing.balance) * (cotizacion ?? 1);
+      payload.arsBalance = Number(existing.balance) * (exchangeRate ?? 1);
     }
   }
 

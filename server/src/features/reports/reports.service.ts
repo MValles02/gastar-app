@@ -46,17 +46,17 @@ export async function getSummaryReport(userId: string, { from, to }: ReportFilte
   const dateFilter = buildDateFilter(from, to);
   const accounts = await prisma.account.findMany({
     where: { userId },
-    select: { id: true, name: true, type: true, balance: true, balanceArs: true, currency: true },
+    select: { id: true, name: true, type: true, balance: true, arsBalance: true, currency: true },
     orderBy: { name: 'asc' },
   });
-  const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balanceArs), 0);
+  const totalBalance = accounts.reduce((sum, a) => sum + Number(a.arsBalance), 0);
   const txWhere = { account: { userId }, ...(dateFilter && { date: dateFilter }) };
   const [incomeAgg, expenseAgg] = await Promise.all([
-    prisma.transaction.aggregate({ where: { ...txWhere, type: 'income' }, _sum: { amountArs: true } }),
-    prisma.transaction.aggregate({ where: { ...txWhere, type: 'expense' }, _sum: { amountArs: true } }),
+    prisma.transaction.aggregate({ where: { ...txWhere, type: 'income' }, _sum: { arsAmount: true } }),
+    prisma.transaction.aggregate({ where: { ...txWhere, type: 'expense' }, _sum: { arsAmount: true } }),
   ]);
-  const totalIncome = Number(incomeAgg._sum.amountArs ?? 0);
-  const totalExpenses = Number(expenseAgg._sum.amountArs ?? 0);
+  const totalIncome = Number(incomeAgg._sum.arsAmount ?? 0);
+  const totalExpenses = Number(expenseAgg._sum.arsAmount ?? 0);
   return { totalBalance, accounts, totalIncome, totalExpenses, netFlow: totalIncome - totalExpenses };
 }
 
@@ -80,16 +80,16 @@ export async function getByCategoryReport(
       ? prisma.transaction.groupBy({
           by: ['categoryId'],
           where: { ...txWhere, type: 'expense' },
-          _sum: { amountArs: true },
-          orderBy: { _sum: { amountArs: 'desc' } },
+          _sum: { arsAmount: true },
+          orderBy: { _sum: { arsAmount: 'desc' } },
         })
       : Promise.resolve([]),
     showIncomes
       ? prisma.transaction.groupBy({
           by: ['categoryId'],
           where: { ...txWhere, type: 'income' },
-          _sum: { amountArs: true },
-          orderBy: { _sum: { amountArs: 'desc' } },
+          _sum: { arsAmount: true },
+          orderBy: { _sum: { arsAmount: 'desc' } },
         })
       : Promise.resolve([]),
   ]);
@@ -97,12 +97,12 @@ export async function getByCategoryReport(
     ...new Set([...expenseGroups.map((g) => g.categoryId), ...incomeGroups.map((g) => g.categoryId)]),
   ];
   const categoriesMap = await buildCategoriesMap(allCategoryIds);
-  const mapGroups = (groups: Array<{ categoryId: string | null; _sum: { amountArs: unknown } }>) =>
+  const mapGroups = (groups: Array<{ categoryId: string | null; _sum: { arsAmount: unknown } }>) =>
     groups.map((g) => ({
       categoryId: g.categoryId,
       categoryName: (g.categoryId && categoriesMap[g.categoryId]?.name) || 'Sin categoría',
       categoryIcon: (g.categoryId && categoriesMap[g.categoryId]?.icon) || null,
-      total: Number(g._sum.amountArs ?? 0),
+      total: Number(g._sum.arsAmount ?? 0),
     }));
   return { expenses: mapGroups(expenseGroups), incomes: mapGroups(incomeGroups) };
 }

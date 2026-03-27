@@ -7,7 +7,7 @@ interface TransactionLike {
   accountId: string;
   type: string;
   amount: number | Decimal;
-  amountArs: number | Decimal;
+  arsAmount: number | Decimal;
   transferTo: string | null;
 }
 
@@ -39,7 +39,7 @@ export async function adjustBalance(
     where: { id: accountId },
     data: {
       balance: { increment: nativeDelta },
-      balanceArs: { increment: arsDelta },
+      arsBalance: { increment: arsDelta },
     },
   });
 }
@@ -51,15 +51,15 @@ export async function applyTransactionBalances(
   destAccount: AccountLike | null = null
 ): Promise<void> {
   const amount = Number(transaction.amount);
-  const amountArs = Number(transaction.amountArs);
+  const arsAmount = Number(transaction.arsAmount);
   const nativeDelta = getBalanceDelta(transaction.type, amount);
-  const arsDelta = getBalanceDelta(transaction.type, amountArs);
+  const arsDelta = getBalanceDelta(transaction.type, arsAmount);
 
   await adjustBalance(tx, transaction.accountId, nativeDelta, arsDelta);
 
   if (transaction.type === 'transfer' && transaction.transferTo && destAccount) {
-    const destNativeCredit = destAccount.currency === sourceAccount.currency ? amount : amountArs;
-    await adjustBalance(tx, transaction.transferTo, destNativeCredit, amountArs);
+    const destNativeCredit = destAccount.currency === sourceAccount.currency ? amount : arsAmount;
+    await adjustBalance(tx, transaction.transferTo, destNativeCredit, arsAmount);
   }
 }
 
@@ -70,14 +70,14 @@ export async function reverseTransactionBalances(
   destAccount: AccountLike | null = null
 ): Promise<void> {
   const amount = Number(transaction.amount);
-  const amountArs = Number(transaction.amountArs);
+  const arsAmount = Number(transaction.arsAmount);
   const nativeDelta = getBalanceDelta(transaction.type, amount);
-  const arsDelta = getBalanceDelta(transaction.type, amountArs);
+  const arsDelta = getBalanceDelta(transaction.type, arsAmount);
 
   await adjustBalance(tx, transaction.accountId, -nativeDelta, -arsDelta);
 
   if (transaction.type === 'transfer' && transaction.transferTo && destAccount) {
-    const destNativeCredit = destAccount.currency === sourceAccount.currency ? amount : amountArs;
-    await adjustBalance(tx, transaction.transferTo, -destNativeCredit, -amountArs);
+    const destNativeCredit = destAccount.currency === sourceAccount.currency ? amount : arsAmount;
+    await adjustBalance(tx, transaction.transferTo, -destNativeCredit, -arsAmount);
   }
 }

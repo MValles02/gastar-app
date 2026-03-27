@@ -74,10 +74,10 @@ export default function TransactionList({ transactions, onEdit, onDelete }: Prop
                           {tx.transferToAccount.name}
                         </>
                       ) : null}
-                      {tx.account?.currency && tx.account.currency !== 'ARS' && tx.cotizacion ? (
+                      {tx.account?.currency && tx.account.currency !== 'ARS' && tx.exchangeRate ? (
                         <span className="shrink-0">
                           {' '}
-                          · @{formatCurrency(Number.parseFloat(String(tx.cotizacion)))}
+                          · @{formatCurrency(Number.parseFloat(String(tx.exchangeRate)))}
                         </span>
                       ) : null}
                     </p>

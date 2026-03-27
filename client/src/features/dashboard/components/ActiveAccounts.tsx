@@ -17,9 +17,9 @@ const SORT_OPTIONS: Array<{ value: SortKey; label: string }> = [
 function sortAccounts(accounts: Account[], sort: SortKey): Account[] {
   return [...accounts].sort((a, b) => {
     if (sort === 'balance-desc')
-      return Number.parseFloat(String(b.balanceArs)) - Number.parseFloat(String(a.balanceArs));
+      return Number.parseFloat(String(b.arsBalance)) - Number.parseFloat(String(a.arsBalance));
     if (sort === 'balance-asc')
-      return Number.parseFloat(String(a.balanceArs)) - Number.parseFloat(String(b.balanceArs));
+      return Number.parseFloat(String(a.arsBalance)) - Number.parseFloat(String(b.arsBalance));
     if (sort === 'name-asc') return a.name.localeCompare(b.name);
     return 0;
   });
@@ -29,7 +29,7 @@ export default function ActiveAccounts({ accounts = [] }: Props): JSX.Element {
   const [sort, setSort] = useState<SortKey>('balance-desc');
 
   const visible = sortAccounts(
-    accounts.filter((a) => Number.parseFloat(String(a.balanceArs)) !== 0),
+    accounts.filter((a) => Number.parseFloat(String(a.arsBalance)) !== 0),
     sort
   );
 

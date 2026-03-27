@@ -44,7 +44,7 @@ function Accounts(): JSX.Element {
 
   const summary = useMemo(() => {
     const totalBalance = accounts.reduce(
-      (total, account) => total + Number.parseFloat(String(account.balanceArs)),
+      (total, account) => total + Number.parseFloat(String(account.arsBalance)),
       0
     );
     return { totalBalance, count: accounts.length };

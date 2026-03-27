@@ -16,7 +16,7 @@ import { getCategories } from '../../categories/services/categories.js';
 import { useTransactionModal } from '../../../shared/contexts/TransactionModalContext.js';
 import { getErrorMessage } from '../../../shared/utils/errors.js';
 import { typeOptions } from '../../../shared/constants/transactionTypes.js';
-import CotizacionInput, { saveCotizacion } from '../../../shared/components/ui/CotizacionInput.js';
+import ExchangeRateInput, { saveExchangeRate } from '../../../shared/components/ui/ExchangeRateInput.js';
 import type { Account, Category, TransactionType } from '../../../shared/types/domain.types.js';
 
 export default function TransactionModal(): JSX.Element {
@@ -29,7 +29,7 @@ export default function TransactionModal(): JSX.Element {
   const [categoryId, setCategoryId] = useState('');
   const [transferTo, setTransferTo] = useState('');
   const [date, setDate] = useState('');
-  const [cotizacion, setCotizacion] = useState('');
+  const [exchangeRate, setExchangeRate] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -59,7 +59,7 @@ export default function TransactionModal(): JSX.Element {
       setTransferTo(editData.transferTo ?? '');
       setDate(editData.date?.split('T')[0] ?? '');
       setDescription(editData.description ?? '');
-      setCotizacion(editData.cotizacion ? String(editData.cotizacion) : '');
+      setExchangeRate(editData.exchangeRate ? String(editData.exchangeRate) : '');
     } else {
       setType('expense');
       setAmount('');
@@ -72,7 +72,7 @@ export default function TransactionModal(): JSX.Element {
         `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
       );
       setDescription('');
-      setCotizacion('');
+      setExchangeRate('');
     }
 
     setError('');
@@ -129,9 +129,9 @@ export default function TransactionModal(): JSX.Element {
       nextErrors.transferTo = 'Seleccioná la cuenta destino';
     }
     if (selectedAccount?.currency && selectedAccount.currency !== 'ARS') {
-      const parsedCotizacion = Number.parseFloat(cotizacion);
-      if (!cotizacion || parsedCotizacion <= 0 || Number.isNaN(parsedCotizacion)) {
-        nextErrors.cotizacion = 'Ingresá la cotización del día';
+      const parsedExchangeRate = Number.parseFloat(exchangeRate);
+      if (!exchangeRate || parsedExchangeRate <= 0 || Number.isNaN(parsedExchangeRate)) {
+        nextErrors.exchangeRate = 'Ingresá la cotización del día';
       }
     }
 
@@ -152,9 +152,9 @@ export default function TransactionModal(): JSX.Element {
         date,
         description: description || undefined,
         transferTo: type === 'transfer' ? transferTo : undefined,
-        cotizacion:
+        exchangeRate:
           selectedAccount?.currency && selectedAccount.currency !== 'ARS'
-            ? Number.parseFloat(cotizacion)
+            ? Number.parseFloat(exchangeRate)
             : undefined,
       };
 
@@ -164,9 +164,9 @@ export default function TransactionModal(): JSX.Element {
         await createTransaction(data);
       }
 
-      // Save last used cotizacion for fallback
-      if (selectedAccount?.currency && selectedAccount.currency !== 'ARS' && cotizacion) {
-        saveCotizacion(selectedAccount.currency, cotizacion);
+      // Save last used exchange rate for fallback
+      if (selectedAccount?.currency && selectedAccount.currency !== 'ARS' && exchangeRate) {
+        saveExchangeRate(selectedAccount.currency, exchangeRate);
       }
 
       closeModal();
@@ -229,15 +229,15 @@ export default function TransactionModal(): JSX.Element {
             <ComposerHintLine icon={Wallet}>Seleccioná la cuenta afectada</ComposerHintLine>
           </div>
 
-          <CotizacionInput
+          <ExchangeRateInput
             currency={selectedAccount?.currency}
-            value={cotizacion}
+            value={exchangeRate}
             onChange={(val) => {
-              setCotizacion(val);
-              clearFieldError('cotizacion');
+              setExchangeRate(val);
+              clearFieldError('exchangeRate');
             }}
             amount={amount}
-            error={errors.cotizacion}
+            error={errors.exchangeRate}
             skipFetch={isEdit}
           />
 

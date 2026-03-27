@@ -2,9 +2,9 @@ import bcrypt from 'bcrypt';
 import prisma from '../../shared/utils/prisma.js';
 import type { User } from '../../shared/types/domain.types.js';
 
-type UserPublic = Pick<User, 'id' | 'email' | 'name' | 'cotizacionPreference'>;
+type UserPublic = Pick<User, 'id' | 'email' | 'name' | 'exchangeRatePreference'>;
 
-const USER_PUBLIC_SELECT = { id: true, email: true, name: true, cotizacionPreference: true } as const;
+const USER_PUBLIC_SELECT = { id: true, email: true, name: true, exchangeRatePreference: true } as const;
 
 export async function findUserByEmail(email: string) {
   return prisma.user.findUnique({ where: { email } });

@@ -46,7 +46,7 @@ async function assertOwnedCategory(categoryId: string, userId: string): Promise<
   });
 
   if (!category) {
-    const error = Object.assign(new Error('Categoría no encontrada'), { status: 404 });
+    const error = Object.assign(new Error('Category not found'), { status: 404 });
     throw error;
   }
 }
@@ -55,14 +55,14 @@ async function validateTransactionReferences(
   data: { accountId: string; categoryId: string; type: string; transferTo?: string | null },
   userId: string
 ): Promise<{ sourceAccount: OwnedAccount; destAccount: OwnedAccount | null }> {
-  const sourceAccount = await fetchOwnedAccount(data.accountId, userId, 'Cuenta no encontrada');
+  const sourceAccount = await fetchOwnedAccount(data.accountId, userId, 'Account not found');
   await assertOwnedCategory(data.categoryId, userId);
 
   let destAccount: OwnedAccount | null = null;
   if (data.type === 'transfer') {
     if (!data.transferTo) {
       const error = Object.assign(
-        new Error('La cuenta destino es requerida para transferencias'),
+        new Error('Destination account is required for transfers'),
         { status: 400 }
       );
       throw error;
@@ -70,13 +70,13 @@ async function validateTransactionReferences(
 
     if (data.transferTo === data.accountId) {
       const error = Object.assign(
-        new Error('La cuenta destino debe ser diferente a la cuenta origen'),
+        new Error('Destination account must be different from source account'),
         { status: 400 }
       );
       throw error;
     }
 
-    destAccount = await fetchOwnedAccount(data.transferTo, userId, 'Cuenta destino no encontrada');
+    destAccount = await fetchOwnedAccount(data.transferTo, userId, 'Destination account not found');
   }
 
   return { sourceAccount, destAccount };
@@ -133,12 +133,12 @@ router.post('/', async (req, res, next) => {
     const data = createTransactionSchema.parse(req.body);
     const { sourceAccount, destAccount } = await validateTransactionReferences(data, req.userId);
 
-    if (sourceAccount.currency !== 'ARS' && !data.cotizacion) {
-      res.status(400).json({ error: 'La cotización es requerida para cuentas en moneda extranjera' });
+    if (sourceAccount.currency !== 'ARS' && !data.exchangeRate) {
+      res.status(400).json({ error: 'Exchange rate is required for foreign currency accounts' });
       return;
     }
-    const cotizacion = sourceAccount.currency === 'ARS' ? null : data.cotizacion;
-    const amountArs = cotizacion ? data.amount * cotizacion : data.amount;
+    const exchangeRate = sourceAccount.currency === 'ARS' ? null : data.exchangeRate;
+    const arsAmount = exchangeRate ? data.amount * exchangeRate : data.amount;
 
     const transaction = await prisma.$transaction(async (tx) => {
       const created = await tx.transaction.create({
@@ -147,8 +147,8 @@ router.post('/', async (req, res, next) => {
           categoryId: data.categoryId,
           type: data.type,
           amount: data.amount,
-          cotizacion,
-          amountArs,
+          exchangeRate,
+          arsAmount,
           description: data.description ?? null,
           date: new Date(data.date),
           transferTo: data.type === 'transfer' ? data.transferTo : null,
@@ -178,19 +178,19 @@ router.put('/:id', async (req, res, next) => {
       where: { id: req.params.id, account: { userId: req.userId } },
     });
     if (!existing) {
-      res.status(404).json({ error: 'Transacción no encontrada' });
+      res.status(404).json({ error: 'Transaction not found' });
       return;
     }
 
-    const updatePayload: typeof data & { amountArs?: number } = { ...data };
+    const updatePayload: typeof data & { arsAmount?: number } = { ...data };
 
-    // Recompute amountArs if amount or cotizacion changed
-    if (data.amount !== undefined || data.cotizacion !== undefined) {
+    // Recompute arsAmount if amount or exchangeRate changed
+    if (data.amount !== undefined || data.exchangeRate !== undefined) {
       const effectiveAmount = data.amount ?? Number(existing.amount);
-      const effectiveCotizacion =
-        data.cotizacion ?? (existing.cotizacion ? Number(existing.cotizacion) : null);
-      updatePayload.amountArs = effectiveCotizacion
-        ? effectiveAmount * effectiveCotizacion
+      const effectiveExchangeRate =
+        data.exchangeRate ?? (existing.exchangeRate ? Number(existing.exchangeRate) : null);
+      updatePayload.arsAmount = effectiveExchangeRate
+        ? effectiveAmount * effectiveExchangeRate
         : effectiveAmount;
     }
 
@@ -205,18 +205,18 @@ router.put('/:id', async (req, res, next) => {
       req.userId
     );
 
-    if (sourceAccount.currency !== 'ARS' && !effectiveData.cotizacion) {
-      res.status(400).json({ error: 'La cotización es requerida para cuentas en moneda extranjera' });
+    if (sourceAccount.currency !== 'ARS' && !effectiveData.exchangeRate) {
+      res.status(400).json({ error: 'Exchange rate is required for foreign currency accounts' });
       return;
     }
 
     const existingSourceAccount = await fetchOwnedAccount(
       existing.accountId,
       req.userId,
-      'Cuenta no encontrada'
+      'Account not found'
     );
     const existingDestAccount = existing.transferTo
-      ? await fetchOwnedAccount(existing.transferTo, req.userId, 'Cuenta destino no encontrada')
+      ? await fetchOwnedAccount(existing.transferTo, req.userId, 'Destination account not found')
       : null;
 
     const transaction = await prisma.$transaction(async (tx) => {
@@ -228,8 +228,8 @@ router.put('/:id', async (req, res, next) => {
           ...(effectiveData.categoryId !== null && { categoryId: effectiveData.categoryId }),
           type: effectiveData.type as 'income' | 'expense' | 'transfer',
           amount: Number(effectiveData.amount),
-          cotizacion: effectiveData.cotizacion !== null ? Number(effectiveData.cotizacion) : null,
-          amountArs: Number(effectiveData.amountArs),
+          exchangeRate: effectiveData.exchangeRate !== null ? Number(effectiveData.exchangeRate) : null,
+          arsAmount: Number(effectiveData.arsAmount),
           description: effectiveData.description,
           date: data.date ? new Date(data.date) : undefined,
           transferTo: effectiveData.transferTo,
@@ -257,17 +257,17 @@ router.delete('/:id', async (req, res, next) => {
       where: { id: req.params.id, account: { userId: req.userId } },
     });
     if (!existing) {
-      res.status(404).json({ error: 'Transacción no encontrada' });
+      res.status(404).json({ error: 'Transaction not found' });
       return;
     }
 
     const sourceAccount = await fetchOwnedAccount(
       existing.accountId,
       req.userId,
-      'Cuenta no encontrada'
+      'Account not found'
     );
     const destAccount = existing.transferTo
-      ? await fetchOwnedAccount(existing.transferTo, req.userId, 'Cuenta destino no encontrada')
+      ? await fetchOwnedAccount(existing.transferTo, req.userId, 'Destination account not found')
       : null;
 
     await prisma.$transaction(async (tx) => {
@@ -275,7 +275,7 @@ router.delete('/:id', async (req, res, next) => {
       await tx.transaction.delete({ where: { id: req.params.id } });
     });
 
-    res.json({ data: { message: 'Transacción eliminada' } });
+    res.json({ data: { message: 'Transaction deleted' } });
   } catch (err) {
     next(err);
   }

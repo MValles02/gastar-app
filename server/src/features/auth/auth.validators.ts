@@ -1,25 +1,25 @@
 import { z } from 'zod';
 
 export const registerSchema = z.object({
-  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(100),
-  email: z.string().email('Correo electrónico inválido'),
-  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+  name: z.string().min(2, 'Name must have at least 2 characters').max(100),
+  email: z.string().email('Invalid email'),
+  password: z.string().min(8, 'Password must have at least 8 characters'),
 });
 
 export const loginSchema = z.object({
-  email: z.string().email('Correo electrónico inválido'),
-  password: z.string().min(1, 'La contraseña es requerida'),
+  email: z.string().email('Invalid email'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email('Correo electrónico inválido'),
+  email: z.string().email('Invalid email'),
 });
 
 export const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Token requerido'),
-  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+  token: z.string().min(1, 'Token is required'),
+  password: z.string().min(8, 'Password must have at least 8 characters'),
 });
 
 export const updateProfileSchema = z.object({
-  cotizacionPreference: z.enum(['blue', 'oficial']),
+  exchangeRatePreference: z.enum(['blue', 'official']),
 });

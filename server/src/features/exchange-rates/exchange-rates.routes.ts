@@ -13,10 +13,10 @@ router.get('/', async (req, res, next) => {
   try {
     const { currency } = querySchema.parse(req.query);
     const rates = await getExchangeRates(currency);
-    res.json({ data: { currency, blue: rates.blue, oficial: rates.oficial } });
+    res.json({ data: { currency, blue: rates.blue, official: rates.official } });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      res.status(400).json({ error: 'Moneda inválida. Usá USD o EUR.' });
+      res.status(400).json({ error: 'Invalid currency. Use USD or EUR.' });
       return;
     }
     next(err);
