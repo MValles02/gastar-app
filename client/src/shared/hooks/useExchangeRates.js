@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getCurrentRates } from '../services/exchange-rates.js';
+import { getExchangeRates } from '../services/exchange-rates.js';
 import { normalizeError } from '../utils/errors.js';
 
 let cachedRates = null;
@@ -19,9 +19,9 @@ export function useExchangeRates() {
       return;
     }
     setLoading(true);
-    getCurrentRates()
+    getExchangeRates()
       .then((res) => {
-        cachedRates = res.data.data;
+        cachedRates = res;
         cacheTimestamp = Date.now();
         setRates(cachedRates);
       })

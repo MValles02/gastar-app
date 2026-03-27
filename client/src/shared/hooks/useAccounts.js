@@ -12,7 +12,7 @@ export function useAccounts() {
     setError('');
     try {
       const res = await accountsApi.getAccounts();
-      setAccounts(res.data.data);
+      setAccounts(res);
     } catch (err) {
       setError(normalizeError(err).message);
     } finally {
@@ -22,14 +22,14 @@ export function useAccounts() {
 
   const create = async (data) => {
     const res = await accountsApi.createAccount(data);
-    setAccounts((prev) => [...prev, res.data.data].sort((a, b) => a.name.localeCompare(b.name)));
-    return res.data.data;
+    setAccounts((prev) => [...prev, res].sort((a, b) => a.name.localeCompare(b.name)));
+    return res;
   };
 
   const update = async (id, data) => {
     const res = await accountsApi.updateAccount(id, data);
-    setAccounts((prev) => prev.map((a) => (a.id === id ? res.data.data : a)));
-    return res.data.data;
+    setAccounts((prev) => prev.map((a) => (a.id === id ? res : a)));
+    return res;
   };
 
   const remove = async (id) => {

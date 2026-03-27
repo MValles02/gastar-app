@@ -12,7 +12,7 @@ export function useTransactions() {
     setError('');
     try {
       const res = await transactionsApi.getTransactions(filters);
-      setTransactions(res.data.data);
+      setTransactions(res);
     } catch (err) {
       setError(normalizeError(err).message);
     } finally {
@@ -22,13 +22,13 @@ export function useTransactions() {
 
   const create = async (data) => {
     const res = await transactionsApi.createTransaction(data);
-    return res.data.data;
+    return res;
   };
 
   const update = async (id, data) => {
     const res = await transactionsApi.updateTransaction(id, data);
-    setTransactions((prev) => prev.map((t) => (t.id === id ? res.data.data : t)));
-    return res.data.data;
+    setTransactions((prev) => prev.map((t) => (t.id === id ? res : t)));
+    return res;
   };
 
   const remove = async (id) => {

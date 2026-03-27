@@ -12,7 +12,7 @@ export function useCategories() {
     setError('');
     try {
       const res = await categoriesApi.getCategories();
-      setCategories(res.data.data);
+      setCategories(res);
     } catch (err) {
       setError(normalizeError(err).message);
     } finally {
@@ -22,14 +22,14 @@ export function useCategories() {
 
   const create = async (data) => {
     const res = await categoriesApi.createCategory(data);
-    setCategories((prev) => [...prev, res.data.data].sort((a, b) => a.name.localeCompare(b.name)));
-    return res.data.data;
+    setCategories((prev) => [...prev, res].sort((a, b) => a.name.localeCompare(b.name)));
+    return res;
   };
 
   const update = async (id, data) => {
     const res = await categoriesApi.updateCategory(id, data);
-    setCategories((prev) => prev.map((c) => (c.id === id ? res.data.data : c)));
-    return res.data.data;
+    setCategories((prev) => prev.map((c) => (c.id === id ? res : c)));
+    return res;
   };
 
   const remove = async (id) => {
