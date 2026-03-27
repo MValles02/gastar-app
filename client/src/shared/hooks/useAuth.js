@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useAuthState } from '../contexts/AuthContext.jsx';
 import api from '../services/api.js';
 import { normalizeError } from '../utils/errors.js';
@@ -23,10 +23,6 @@ export function useAuth() {
       })
       .finally(() => setLoading(false));
   }, [setUser, setLoading, setAuthError]);
-
-  useEffect(() => {
-    loadSession();
-  }, [loadSession]);
 
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });

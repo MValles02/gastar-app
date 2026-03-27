@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './shared/contexts/AuthContext.jsx';
 import { useAuth } from './shared/hooks/useAuth.js';
@@ -21,6 +22,14 @@ import Reports from './features/reports/pages/Reports.jsx';
 import Balances from './features/reports/pages/Balances.jsx';
 import SpendByCategory from './features/reports/pages/SpendByCategory.jsx';
 import Frequency from './features/reports/pages/Frequency.jsx';
+
+function AppInit({ children }) {
+  const { loadSession } = useAuth();
+  useEffect(() => {
+    loadSession();
+  }, [loadSession]);
+  return children;
+}
 
 function PrivateRoute({ children }) {
   const { user, loading, authError, loadSession } = useAuth();
@@ -55,6 +64,7 @@ function App() {
     <DialogProvider>
       <AuthProvider>
         <BrowserRouter>
+          <AppInit>
           <Routes>
             <Route
               path="/login"
@@ -164,6 +174,7 @@ function App() {
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </AppInit>
         </BrowserRouter>
       </AuthProvider>
     </DialogProvider>
