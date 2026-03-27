@@ -53,6 +53,7 @@ export default [
     rules: {
       ...js.configs.recommended.rules,
       ...reactPlugin.configs.recommended.rules,
+      // Enumerate hooks rules manually — v7's recommended config includes react-compiler rules we don't want
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       'react/react-in-jsx-scope': 'off',
