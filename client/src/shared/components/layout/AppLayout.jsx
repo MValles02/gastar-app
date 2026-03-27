@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Sidebar from './Sidebar.jsx';
 import Header from './Header.jsx';
 import MobileDrawer from './MobileDrawer.jsx';
-import FloatingActionButton from '../ui/FAB.jsx';
+import FloatingActionButton from './FloatingActionButton.jsx';
 import TransactionModal from '../../../features/transactions/components/TransactionModal.jsx';
 import OnboardingWizard from '../../../features/onboarding/components/OnboardingWizard.jsx';
 import {

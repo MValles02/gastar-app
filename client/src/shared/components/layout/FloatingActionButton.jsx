@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import { classNamePropType } from '../../utils/propTypes.js';
 
-export default function FAB({ onClick, className }) {
+export default function FloatingActionButton({ onClick, className }) {
   return (
     <button
       onClick={onClick}
@@ -20,7 +20,7 @@ export default function FAB({ onClick, className }) {
   );
 }
 
-FAB.propTypes = {
+FloatingActionButton.propTypes = {
   onClick: PropTypes.func.isRequired,
   className: classNamePropType,
 };
