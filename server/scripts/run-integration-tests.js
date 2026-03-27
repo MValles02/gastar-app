@@ -44,7 +44,7 @@ if (shouldCollectCoverage) {
   rmSync(resolve(coverageDir, 'integration.lcov.info'), { force: true });
 }
 
-const testArgs = ['--test'];
+const testArgs = ['--import=tsx/esm', '--test'];
 
 if (shouldCollectCoverage) {
   testArgs.push(

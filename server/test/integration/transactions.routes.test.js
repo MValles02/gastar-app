@@ -34,9 +34,9 @@ async function login(user, password) {
 
 test('POST /api/transactions creates a transfer and updates both account balances', async () => {
   const { user, password } = await createUser();
-  const source = await createAccount(user.id, { name: 'Caja', balance: 1000 });
-  const destination = await createAccount(user.id, { name: 'Banco', balance: 250 });
-  const category = await createCategory(user.id, { name: 'Transferencias' });
+  const source = await createAccount(user.id, { name: 'Cash', balance: 1000 });
+  const destination = await createAccount(user.id, { name: 'Bank', balance: 250 });
+  const category = await createCategory(user.id, { name: 'Transfers' });
   const session = await login(user, password);
 
   assert.equal(session.response.status, 200);
@@ -112,7 +112,7 @@ test('PUT /api/transactions rejects categories owned by another user', async () 
 
   const updateBody = await updateResponse.json();
   assert.equal(updateResponse.status, 404);
-  assert.match(updateBody.error, /categoria no encontrada/i);
+  assert.match(updateBody.error, /category not found/i);
 
   const refreshedAccount = await prisma.account.findUnique({ where: { id: account.id } });
   assert.equal(Number(refreshedAccount.balance), 400);
@@ -129,7 +129,7 @@ test('POST /api/auth/forgot-password stores a hashed reset token and emails the 
 
   const body = await response.json();
   assert.equal(response.status, 200);
-  assert.match(body.data.message, /si el correo existe/i);
+  assert.match(body.data.message, /if the email exists/i);
 
   const updatedUser = await prisma.user.findUnique({ where: { id: user.id } });
   const sentEmails = getTestEmails();
@@ -162,7 +162,7 @@ test('POST /api/auth/reset-password accepts the raw emailed token and clears res
 
   const body = await response.json();
   assert.equal(response.status, 200);
-  assert.match(body.data.message, /contrasena actualizada/i);
+  assert.match(body.data.message, /password updated/i);
 
   const updatedUser = await prisma.user.findUnique({ where: { id: user.id } });
   assert.equal(updatedUser.resetToken, null);

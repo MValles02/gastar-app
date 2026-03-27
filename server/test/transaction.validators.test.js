@@ -33,7 +33,7 @@ test('createTransactionSchema rejects transfer without destination account', () 
         amount: 100,
         date: '2026-03-21',
       }),
-    /cuenta destino/i
+    /destination account/i
   );
 });
 
@@ -44,7 +44,7 @@ test('updateTransactionSchema rejects transfer when transferTo is missing', () =
         type: 'transfer',
         amount: 100,
       }),
-    /cuenta destino/i
+    /destination account/i
   );
 });
 
@@ -56,7 +56,7 @@ test('updateTransactionSchema rejects same-account transfer updates', () => {
         type: 'transfer',
         transferTo: accountId,
       }),
-    /diferente a la cuenta origen/i
+    /different from source/i
   );
 });
 

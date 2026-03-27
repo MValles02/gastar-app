@@ -152,7 +152,7 @@ function App(): JSX.Element {
                 }
               />
               <Route
-                path="/reports/gastos-por-categoria"
+                path="/reports/spend-by-category"
                 element={
                   <PrivateRoute>
                     <SpendByCategory />
@@ -160,7 +160,7 @@ function App(): JSX.Element {
                 }
               />
               <Route
-                path="/reports/frecuencia"
+                path="/reports/frequency"
                 element={
                   <PrivateRoute>
                     <Frequency />

@@ -20,7 +20,7 @@ import { generateToken, setTokenCookie } from '../src/shared/utils/token.js';
 
 test('account schemas parse valid input and reject invalid types', () => {
   const account = createAccountSchema.parse({
-    name: 'Caja',
+    name: 'Cash',
     type: 'checking',
     currency: 'ARS',
     balance: '12.5',
@@ -29,19 +29,19 @@ test('account schemas parse valid input and reject invalid types', () => {
   assert.equal(account.balance, 12.5);
 
   assert.throws(
-    () => createAccountSchema.parse({ name: 'Caja', type: 'invalid' }),
-    /tipo de cuenta/i
+    () => createAccountSchema.parse({ name: 'Cash', type: 'invalid' }),
+    /invalid account type/i
   );
 
-  const update = updateAccountSchema.parse({ name: 'Banco', currency: 'USD' });
+  const update = updateAccountSchema.parse({ name: 'Bank', currency: 'USD' });
   assert.equal(update.currency, 'USD');
 });
 
 test('category schemas validate required fields and partial updates', () => {
-  const category = createCategorySchema.parse({ name: 'Comida', icon: 'pizza' });
+  const category = createCategorySchema.parse({ name: 'Food', icon: 'pizza' });
   assert.equal(category.icon, 'pizza');
 
-  assert.throws(() => createCategorySchema.parse({ name: '' }), /nombre/i);
+  assert.throws(() => createCategorySchema.parse({ name: '' }), /name is required/i);
 
   const update = updateCategorySchema.parse({ icon: 'wallet' });
   assert.equal(update.icon, 'wallet');

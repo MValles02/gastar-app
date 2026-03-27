@@ -38,7 +38,7 @@ router.put('/:id', async (req, res, next) => {
     const data = updateCategorySchema.parse(req.body);
     const category = await updateCategory(req.userId, req.params.id, data);
     if (!category) {
-      res.status(404).json({ error: 'Categoría no encontrada' });
+      res.status(404).json({ error: 'Category not found' });
       return;
     }
     res.json({ data: category });
@@ -52,10 +52,10 @@ router.delete('/:id', async (req, res, next) => {
   try {
     const result = await deleteCategory(req.userId, req.params.id);
     if (!result) {
-      res.status(404).json({ error: 'Categoría no encontrada' });
+      res.status(404).json({ error: 'Category not found' });
       return;
     }
-    res.json({ data: { message: 'Categoría eliminada' } });
+    res.json({ data: { message: 'Category deleted' } });
   } catch (err) {
     next(err);
   }

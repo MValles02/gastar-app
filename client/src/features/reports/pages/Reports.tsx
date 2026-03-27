@@ -16,13 +16,13 @@ function Reports(): JSX.Element {
           icon={PieChart}
           title="Gastos por categoría"
           description="Distribución de gastos entre categorías en el período que elijas"
-          to="/reports/gastos-por-categoria"
+          to="/reports/spend-by-category"
         />
         <ReportCard
           icon={Hash}
           title="Frecuencia de gastos"
           description="Las categorías con mayor cantidad de transacciones"
-          to="/reports/frecuencia"
+          to="/reports/frequency"
         />
       </section>
     </Page>

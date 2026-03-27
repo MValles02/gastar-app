@@ -13,7 +13,7 @@ const unitTestFiles = readdirSync(testDir)
 
 const shouldCollectCoverage = process.argv.includes('--coverage');
 const coverageDir = resolve(serverDir, 'coverage');
-const args = ['--test'];
+const args = ['--import=tsx/esm', '--test'];
 
 if (shouldCollectCoverage) {
   mkdirSync(coverageDir, { recursive: true });

@@ -13,5 +13,5 @@ test('reportQuerySchema accepts valid ISO-like dates', () => {
 });
 
 test('reportQuerySchema rejects invalid date strings', () => {
-  assert.throws(() => reportQuerySchema.parse({ from: 'not-a-date' }), /fecha desde inv[aá]lida/i);
+  assert.throws(() => reportQuerySchema.parse({ from: 'not-a-date' }), /invalid start date/i);
 });

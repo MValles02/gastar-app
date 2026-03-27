@@ -33,7 +33,7 @@ model User {
   googleId         String?   @unique @map("google_id")
   resetToken            String?   @map("reset_token")
   resetTokenExpiry      DateTime? @map("reset_token_expiry")
-  exchangeRatePreference  String    @default("blue") @map("cotizacion_preference")
+  exchangeRatePreference  String    @default("blue") @map("exchange_rate_preference")
   createdAt             DateTime  @default(now()) @map("created_at")
 
   accounts     Account[]
@@ -78,7 +78,7 @@ model Transaction {
   categoryId  String          @map("category_id")
   type        TransactionType
   amount      Decimal
-  exchangeRate  Decimal?        @map("cotizacion")
+  exchangeRate  Decimal?        @map("exchange_rate")
   arsAmount     Decimal         @default(0) @map("amount_ars")
   description String?
   date        DateTime        @db.Date

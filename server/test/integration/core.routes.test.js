@@ -128,7 +128,7 @@ test('account routes support CRUD and allow deleting accounts with transactions 
   assert.equal(updatedBody.data.name, 'Banco Secundario');
 
   // Add a transaction so account is non-empty
-  const category = await createCategory(user.id, { name: 'Comida' });
+  const category = await createCategory(user.id, { name: 'Food' });
   const tx = await prisma.transaction.create({
     data: {
       accountId: createdAccount.data.id,
@@ -281,10 +281,10 @@ test('category routes support CRUD and prevent deleting categories with transact
 test('report routes return filtered summaries and grouped category totals', async () => {
   const { user, password } = await createUser();
   const [cashAccount, bankAccount, foodCategory, salaryCategory] = await Promise.all([
-    createAccount(user.id, { name: 'Caja', balance: 1200 }),
-    createAccount(user.id, { name: 'Banco', balance: 800 }),
-    createCategory(user.id, { name: 'Comida' }),
-    createCategory(user.id, { name: 'Salario' }),
+    createAccount(user.id, { name: 'Cash', balance: 1200 }),
+    createAccount(user.id, { name: 'Bank', balance: 800 }),
+    createCategory(user.id, { name: 'Food' }),
+    createCategory(user.id, { name: 'Salary' }),
   ]);
 
   await prisma.transaction.createMany({
@@ -339,9 +339,9 @@ test('report routes return filtered summaries and grouped category totals', asyn
   const byCategoryBody = await byCategoryResponse.json();
   assert.equal(byCategoryResponse.status, 200);
   assert.equal(byCategoryBody.data.expenses.length, 1);
-  assert.equal(byCategoryBody.data.expenses[0].categoryName, 'Comida');
+  assert.equal(byCategoryBody.data.expenses[0].categoryName, 'Food');
   assert.equal(byCategoryBody.data.expenses[0].total, 50);
-  assert.equal(byCategoryBody.data.incomes[0].categoryName, 'Salario');
+  assert.equal(byCategoryBody.data.incomes[0].categoryName, 'Salary');
 
   const invalidDateResponse = await fetch(`${baseUrl}/api/reports/summary?from=bad-date`, {
     headers: { cookie: session.cookie },
