@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync } from 'fs';
+import { mkdirSync, rmSync, readdirSync } from 'fs';
 import { spawnSync } from 'child_process';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(__dirname, '../..');
 const serverDir = resolve(__dirname, '..');
+const integrationTestDir = resolve(serverDir, 'test/integration');
 
 dotenv.config({ path: resolve(rootDir, '.env') });
 
@@ -24,7 +25,7 @@ const env = {
 const shouldCollectCoverage = process.argv.includes('--coverage');
 const coverageDir = resolve(serverDir, 'coverage');
 
-function run(command, args) {
+function run(command: string, args: string[]) {
   const result = spawnSync(command, args, {
     cwd: serverDir,
     env,
@@ -44,6 +45,10 @@ if (shouldCollectCoverage) {
   rmSync(resolve(coverageDir, 'integration.lcov.info'), { force: true });
 }
 
+const integrationTestFiles = readdirSync(integrationTestDir)
+  .filter((file) => file.endsWith('.test.ts'))
+  .map((file) => resolve(integrationTestDir, file));
+
 const testArgs = ['--import=tsx/esm', '--test'];
 
 if (shouldCollectCoverage) {
@@ -54,6 +59,4 @@ if (shouldCollectCoverage) {
   );
 }
 
-testArgs.push('test/integration');
-
-run(process.execPath, testArgs);
+run(process.execPath, [...testArgs, ...integrationTestFiles]);

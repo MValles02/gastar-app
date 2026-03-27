@@ -8,7 +8,7 @@ const serverDir = resolve(__dirname, '..');
 const testDir = resolve(serverDir, 'test');
 
 const unitTestFiles = readdirSync(testDir)
-  .filter((file) => file.endsWith('.test.js'))
+  .filter((file) => file.endsWith('.test.ts'))
   .map((file) => resolve(testDir, file));
 
 const shouldCollectCoverage = process.argv.includes('--coverage');

@@ -17,6 +17,6 @@ describe('categories.service', () => {
   });
 
   it.skip('throws when deleting a category with transactions', async () => {
-    // Covered by integration tests in core.routes.test.js
+    // Covered by integration tests in core.routes.test.ts
   });
 });

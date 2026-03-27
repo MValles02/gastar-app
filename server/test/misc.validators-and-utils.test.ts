@@ -100,13 +100,13 @@ test('token helpers sign JWTs and configure auth cookies', () => {
   const token = generateToken('user-123');
   assert.equal(typeof token, 'string');
 
-  const cookies = [];
+  const cookies: { name: string; value: string; options: Record<string, unknown> }[] = [];
   setTokenCookie(
     {
-      cookie: (name, value, options) => {
+      cookie: (name: string, value: string, options: Record<string, unknown>) => {
         cookies.push({ name, value, options });
       },
-    },
+    } as never,
     token
   );
 

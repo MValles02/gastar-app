@@ -16,7 +16,7 @@ beforeEach(async () => {
   await resetDb();
 });
 
-async function login(user, password) {
+async function login(user: { email: string }, password: string) {
   const response = await fetch(`${baseUrl}/api/auth/login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -37,10 +37,10 @@ test('auth flow supports register, me, logout and rejects duplicate register', a
   });
 
   assert.equal(session.response.status, 201);
-  assert.match(session.cookie, /token=/);
+  assert.match(session.cookie!, /token=/);
 
   const meResponse = await fetch(`${baseUrl}/api/auth/me`, {
-    headers: { cookie: session.cookie },
+    headers: { cookie: session.cookie! },
   });
 
   const meBody = await meResponse.json();
@@ -61,7 +61,7 @@ test('auth flow supports register, me, logout and rejects duplicate register', a
 
   const logoutResponse = await fetch(`${baseUrl}/api/auth/logout`, {
     method: 'POST',
-    headers: { cookie: session.cookie },
+    headers: { cookie: session.cookie! },
   });
 
   assert.equal(logoutResponse.status, 200);
@@ -100,7 +100,7 @@ test('account routes support CRUD and allow deleting accounts with transactions 
 
   const createResponse = await fetch(`${baseUrl}/api/accounts`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', cookie: session.cookie },
+    headers: { 'content-type': 'application/json', cookie: session.cookie! },
     body: JSON.stringify({
       name: 'Banco Principal',
       type: 'checking',
@@ -112,7 +112,7 @@ test('account routes support CRUD and allow deleting accounts with transactions 
   assert.equal(createResponse.status, 201);
 
   const listResponse = await fetch(`${baseUrl}/api/accounts`, {
-    headers: { cookie: session.cookie },
+    headers: { cookie: session.cookie! },
   });
   const listBody = await listResponse.json();
   assert.equal(listResponse.status, 200);
@@ -120,7 +120,7 @@ test('account routes support CRUD and allow deleting accounts with transactions 
 
   const updateResponse = await fetch(`${baseUrl}/api/accounts/${createdAccount.data.id}`, {
     method: 'PUT',
-    headers: { 'content-type': 'application/json', cookie: session.cookie },
+    headers: { 'content-type': 'application/json', cookie: session.cookie! },
     body: JSON.stringify({ name: 'Banco Secundario', currency: 'USD' }),
   });
   const updatedBody = await updateResponse.json();
@@ -143,7 +143,7 @@ test('account routes support CRUD and allow deleting accounts with transactions 
   // Deletion must succeed even with transactions present (cascade)
   const deleteResponse = await fetch(`${baseUrl}/api/accounts/${createdAccount.data.id}`, {
     method: 'DELETE',
-    headers: { cookie: session.cookie },
+    headers: { cookie: session.cookie! },
   });
   assert.equal(deleteResponse.status, 200);
 
@@ -154,14 +154,14 @@ test('account routes support CRUD and allow deleting accounts with transactions 
   // Create a second account as transfer destination, then delete it — transferTo should be nullified
   const destCreate = await fetch(`${baseUrl}/api/accounts`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', cookie: session.cookie },
+    headers: { 'content-type': 'application/json', cookie: session.cookie! },
     body: JSON.stringify({ name: 'Destino', type: 'savings', currency: 'ARS', balance: 0 }),
   });
   const destAccount = await destCreate.json();
 
   const srcCreate = await fetch(`${baseUrl}/api/accounts`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', cookie: session.cookie },
+    headers: { 'content-type': 'application/json', cookie: session.cookie! },
     body: JSON.stringify({ name: 'Origen', type: 'checking', currency: 'ARS', balance: 1000 }),
   });
   const srcAccount = await srcCreate.json();
@@ -181,19 +181,19 @@ test('account routes support CRUD and allow deleting accounts with transactions 
   // Delete the destination account — must succeed, not FK error
   const destDeleteResponse = await fetch(`${baseUrl}/api/accounts/${destAccount.data.id}`, {
     method: 'DELETE',
-    headers: { cookie: session.cookie },
+    headers: { cookie: session.cookie! },
   });
   assert.equal(destDeleteResponse.status, 200);
 
   // The transfer transaction still exists but transferTo is now null
   const updatedTransfer = await prisma.transaction.findUnique({ where: { id: transfer.id } });
   assert.notEqual(updatedTransfer, null);
-  assert.equal(updatedTransfer.transferTo, null);
+  assert.equal(updatedTransfer!.transferTo, null);
 
   // 404 on missing account
   const missingResponse = await fetch(`${baseUrl}/api/accounts/${createdAccount.data.id}`, {
     method: 'PUT',
-    headers: { 'content-type': 'application/json', cookie: session.cookie },
+    headers: { 'content-type': 'application/json', cookie: session.cookie! },
     body: JSON.stringify({ name: 'No existe' }),
   });
   assert.equal(missingResponse.status, 404);
@@ -208,7 +208,7 @@ test('category routes support CRUD and prevent deleting categories with transact
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      cookie: session.cookie,
+      cookie: session.cookie!,
     },
     body: JSON.stringify({ name: 'Servicios', icon: 'wifi' }),
   });
@@ -217,7 +217,7 @@ test('category routes support CRUD and prevent deleting categories with transact
   assert.equal(createResponse.status, 201);
 
   const listResponse = await fetch(`${baseUrl}/api/categories`, {
-    headers: { cookie: session.cookie },
+    headers: { cookie: session.cookie! },
   });
 
   const listBody = await listResponse.json();
@@ -228,7 +228,7 @@ test('category routes support CRUD and prevent deleting categories with transact
     method: 'PUT',
     headers: {
       'content-type': 'application/json',
-      cookie: session.cookie,
+      cookie: session.cookie!,
     },
     body: JSON.stringify({ name: 'Servicios del hogar' }),
   });
@@ -251,7 +251,7 @@ test('category routes support CRUD and prevent deleting categories with transact
     `${baseUrl}/api/categories/${createdCategory.data.id}`,
     {
       method: 'DELETE',
-      headers: { cookie: session.cookie },
+      headers: { cookie: session.cookie! },
     }
   );
 
@@ -261,7 +261,7 @@ test('category routes support CRUD and prevent deleting categories with transact
 
   const deleteResponse = await fetch(`${baseUrl}/api/categories/${createdCategory.data.id}`, {
     method: 'DELETE',
-    headers: { cookie: session.cookie },
+    headers: { cookie: session.cookie! },
   });
 
   assert.equal(deleteResponse.status, 200);
@@ -270,7 +270,7 @@ test('category routes support CRUD and prevent deleting categories with transact
     method: 'PUT',
     headers: {
       'content-type': 'application/json',
-      cookie: session.cookie,
+      cookie: session.cookie!,
     },
     body: JSON.stringify({ name: 'No existe' }),
   });
@@ -318,7 +318,7 @@ test('report routes return filtered summaries and grouped category totals', asyn
   const summaryResponse = await fetch(
     `${baseUrl}/api/reports/summary?from=2026-03-01&to=2026-03-31`,
     {
-      headers: { cookie: session.cookie },
+      headers: { cookie: session.cookie! },
     }
   );
 
@@ -332,7 +332,7 @@ test('report routes return filtered summaries and grouped category totals', asyn
   const byCategoryResponse = await fetch(
     `${baseUrl}/api/reports/by-category?from=2026-03-01&to=2026-03-31`,
     {
-      headers: { cookie: session.cookie },
+      headers: { cookie: session.cookie! },
     }
   );
 
@@ -344,7 +344,7 @@ test('report routes return filtered summaries and grouped category totals', asyn
   assert.equal(byCategoryBody.data.incomes[0].categoryName, 'Salary');
 
   const invalidDateResponse = await fetch(`${baseUrl}/api/reports/summary?from=bad-date`, {
-    headers: { cookie: session.cookie },
+    headers: { cookie: session.cookie! },
   });
 
   assert.equal(invalidDateResponse.status, 400);
@@ -357,7 +357,7 @@ test('editing a non-ARS account with a new cotizacion updates balanceArs', async
   // Create USD account with initial cotizacion 1000 (balance $100 → 100000 ARS)
   const createResponse = await fetch(`${baseUrl}/api/accounts`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', cookie: session.cookie },
+    headers: { 'content-type': 'application/json', cookie: session.cookie! },
     body: JSON.stringify({
       name: 'Dólares',
       type: 'savings',
@@ -373,7 +373,7 @@ test('editing a non-ARS account with a new cotizacion updates balanceArs', async
   // Edit with new cotizacion 1200, same currency — balanceArs must update to 120000
   const updateResponse = await fetch(`${baseUrl}/api/accounts/${created.data.id}`, {
     method: 'PUT',
-    headers: { 'content-type': 'application/json', cookie: session.cookie },
+    headers: { 'content-type': 'application/json', cookie: session.cookie! },
     body: JSON.stringify({ cotizacion: 1200 }),
   });
   const updated = await updateResponse.json();
@@ -389,7 +389,7 @@ test('registration does not seed default categories', async () => {
   assert.equal(session.response.status, 201);
 
   const categoriesResponse = await fetch(`${baseUrl}/api/categories`, {
-    headers: { cookie: session.cookie },
+    headers: { cookie: session.cookie! },
   });
   const categoriesBody = await categoriesResponse.json();
   assert.equal(categoriesResponse.status, 200);

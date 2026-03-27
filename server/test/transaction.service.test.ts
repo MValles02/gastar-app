@@ -6,6 +6,9 @@ import {
   getBalanceDelta,
 } from '../src/features/transactions/transaction.service.js';
 
+type MockUpdate = (args: { where: { id: string }; data: { balance: { increment: number } } }) => Promise<void>;
+type MockTx = { account: { update: MockUpdate } };
+
 test('getBalanceDelta maps transaction types to expected account deltas', () => {
   assert.equal(getBalanceDelta('income', 50), 50);
   assert.equal(getBalanceDelta('expense', 50), -50);
@@ -13,8 +16,8 @@ test('getBalanceDelta maps transaction types to expected account deltas', () => 
 });
 
 test('applyTransactionBalances updates both sides of a transfer', async () => {
-  const calls = [];
-  const tx = {
+  const calls: { id: string; delta: number }[] = [];
+  const tx: MockTx = {
     account: {
       update: async ({ where, data }) => {
         calls.push({ id: where.id, delta: data.balance.increment });
@@ -26,7 +29,7 @@ test('applyTransactionBalances updates both sides of a transfer', async () => {
   const destAccount = { id: 'destination-account', currency: 'ARS' };
 
   await applyTransactionBalances(
-    tx,
+    tx as never,
     {
       accountId: 'source-account',
       type: 'transfer',
@@ -45,8 +48,8 @@ test('applyTransactionBalances updates both sides of a transfer', async () => {
 });
 
 test('reverseTransactionBalances undoes an expense', async () => {
-  const calls = [];
-  const tx = {
+  const calls: { id: string; delta: number }[] = [];
+  const tx: MockTx = {
     account: {
       update: async ({ where, data }) => {
         calls.push({ id: where.id, delta: data.balance.increment });
@@ -55,7 +58,7 @@ test('reverseTransactionBalances undoes an expense', async () => {
   };
 
   await reverseTransactionBalances(
-    tx,
+    tx as never,
     {
       accountId: 'expense-account',
       type: 'expense',

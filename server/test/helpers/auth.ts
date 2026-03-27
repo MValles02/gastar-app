@@ -1,4 +1,4 @@
-export async function registerAndGetSession(baseUrl, overrides = {}) {
+export async function registerAndGetSession(baseUrl: string, overrides: Record<string, string> = {}) {
   const payload = {
     name: overrides.name ?? 'Integration User',
     email: overrides.email ?? `integration-${Date.now()}@example.com`,
