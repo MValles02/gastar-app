@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Wallet } from 'lucide-react';
 import { getAccounts, createAccount, updateAccount, deleteAccount } from '../services/accounts.js';
+import { getTransactions } from '../services/transactions.js';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import { useDialog } from '../context/DialogContext.jsx';
 import { Page } from '../components/layout/Page.jsx';
-import AccountCard from '../components/accounts/AccountCard.jsx';
+import AccountCard from '../components/general/AccountCard.jsx';
 import AccountModal from '../components/accounts/AccountModal.jsx';
 import Button from '../components/ui/Button.jsx';
 import { ListPageSkeleton } from '../components/ui/PageSkeletons.jsx';
@@ -56,9 +57,15 @@ function Accounts() {
   };
 
   const handleDelete = async (account) => {
+    const { total } = await getTransactions({ accountId: account.id, limit: 1 });
+
+    const message = total > 0
+      ? `Esta cuenta tiene ${total} transacción${total === 1 ? '' : 'es'}. Al eliminarla, se eliminarán también de forma permanente. ¿Confirmar?`
+      : `Se eliminará la cuenta "${account.name}". Esta acción no se puede deshacer.`;
+
     const confirmed = await showConfirm({
       title: 'Eliminar cuenta',
-      message: `Se eliminará la cuenta "${account.name}". Esta acción no se puede deshacer.`,
+      message,
       confirmLabel: 'Eliminar',
       cancelLabel: 'Cancelar',
       destructive: true,

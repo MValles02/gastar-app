@@ -87,7 +87,7 @@ model Transaction {
 
   account            Account  @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
   category           Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  transferToAccount  Account? @relation("TransferToAccount", fields: [transferTo], references: [id])
+  transferToAccount  Account? @relation("TransferToAccount", fields: [transferTo], references: [id], onDelete: SetNull)
 
   @@index([accountId])
   @@index([categoryId])

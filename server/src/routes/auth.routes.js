@@ -12,21 +12,6 @@ import { buildGoogleAuthUrl, exchangeCodeForProfile } from '../services/google-a
 
 const router = Router();
 
-const DEFAULT_CATEGORIES = [
-  { name: 'Salario', icon: 'banknote' },
-  { name: 'Freelance', icon: 'laptop' },
-  { name: 'Inversiones', icon: 'trending-up' },
-  { name: 'Otros ingresos', icon: 'plus-circle' },
-  { name: 'Comida', icon: 'utensils' },
-  { name: 'Transporte', icon: 'car' },
-  { name: 'Alquiler', icon: 'home' },
-  { name: 'Entretenimiento', icon: 'gamepad-2' },
-  { name: 'Salud', icon: 'heart-pulse' },
-  { name: 'Educación', icon: 'graduation-cap' },
-  { name: 'Ropa', icon: 'shirt' },
-  { name: 'Servicios', icon: 'zap' },
-  { name: 'Otros gastos', icon: 'minus-circle' },
-];
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -54,9 +39,6 @@ router.post('/register', authLimiter, async (req, res, next) => {
       select: userPublicSelect,
     });
 
-    await prisma.category.createMany({
-      data: DEFAULT_CATEGORIES.map(c => ({ ...c, userId: user.id })),
-    });
 
     const token = generateToken(user.id);
     setTokenCookie(res, token);

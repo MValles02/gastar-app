@@ -52,7 +52,8 @@ router.put('/:id', async (req, res, next) => {
     const incomingCurrency = updatePayload.currency ?? existing.currency;
     const currencyChanging = updatePayload.currency && updatePayload.currency !== existing.currency;
 
-    if (currencyChanging) {
+    const shouldRecalc = currencyChanging || (cotizacion && incomingCurrency !== 'ARS');
+    if (shouldRecalc) {
       if (incomingCurrency === 'ARS') {
         updatePayload.balanceArs = Number(existing.balance);
       } else {
@@ -79,17 +80,7 @@ router.delete('/:id', async (req, res, next) => {
     if (!existing) {
       return res.status(404).json({ error: 'Cuenta no encontrada' });
     }
-    await prisma.$transaction(async (tx) => {
-      const txCount = await tx.transaction.count({
-        where: { accountId: req.params.id },
-      });
-      if (txCount > 0) {
-        const error = new Error('No se puede eliminar una cuenta con transacciones asociadas');
-        error.status = 400;
-        throw error;
-      }
-      await tx.account.delete({ where: { id: req.params.id } });
-    });
+    await prisma.account.delete({ where: { id: req.params.id } });
     res.json({ data: { message: 'Cuenta eliminada' } });
   } catch (err) {
     next(err);
