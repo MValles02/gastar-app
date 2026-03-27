@@ -11,7 +11,9 @@
     "test:integration": "node scripts/run-integration-tests.js",
     "db:migrate": "dotenv -e ../.env -- prisma migrate dev",
     "db:studio": "dotenv -e ../.env -- prisma studio",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "lint": "eslint src test scripts",
+    "lint:fix": "eslint src test scripts --fix"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

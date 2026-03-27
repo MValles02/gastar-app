@@ -14,7 +14,11 @@
     "test:integration": "npm --prefix server run test:integration",
     "db:migrate": "npm --prefix server run db:migrate",
     "db:studio": "npm --prefix server run db:studio",
-    "install:all": "npm install && npm --prefix client install && npm --prefix server install"
+    "install:all": "npm install && npm --prefix client install && npm --prefix server install",
+    "lint": "eslint server/src server/test client/src",
+    "lint:fix": "eslint server/src server/test client/src --fix",
+    "format": "prettier --write \"**/*.{js,jsx,json,css,md}\" --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{js,jsx,json,css,md}\" --ignore-path .prettierignore"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
