@@ -1,17 +1,29 @@
 import prisma from '../../shared/utils/prisma.js';
 
-function buildDateFilter(from, to) {
-  const filter = {};
+interface DateFilter {
+  gte?: Date;
+  lte?: Date;
+}
+
+function buildDateFilter(from?: string, to?: string): DateFilter | undefined {
+  const filter: DateFilter = {};
   if (from) filter.gte = new Date(from);
   if (to) filter.lte = new Date(to);
   return Object.keys(filter).length ? filter : undefined;
 }
 
-async function buildCategoriesMap(categoryIds) {
-  const map = {};
-  if (categoryIds.length > 0) {
+interface CategoryInfo {
+  id: string;
+  name: string;
+  icon: string | null;
+}
+
+async function buildCategoriesMap(categoryIds: (string | null)[]): Promise<Record<string, CategoryInfo>> {
+  const map: Record<string, CategoryInfo> = {};
+  const validIds = categoryIds.filter((id): id is string => id !== null);
+  if (validIds.length > 0) {
     const cats = await prisma.category.findMany({
-      where: { id: { in: categoryIds } },
+      where: { id: { in: validIds } },
       select: { id: true, name: true, icon: true },
     });
     for (const c of cats) map[c.id] = c;
@@ -19,7 +31,18 @@ async function buildCategoriesMap(categoryIds) {
   return map;
 }
 
-export async function getSummaryReport(userId, { from, to }) {
+interface ReportFilters {
+  from?: string;
+  to?: string;
+}
+
+interface ByCategoryFilters extends ReportFilters {
+  accountId?: string[];
+  type?: string[];
+  categoryId?: string[];
+}
+
+export async function getSummaryReport(userId: string, { from, to }: ReportFilters) {
   const dateFilter = buildDateFilter(from, to);
   const accounts = await prisma.account.findMany({
     where: { userId },
@@ -32,12 +55,15 @@ export async function getSummaryReport(userId, { from, to }) {
     prisma.transaction.aggregate({ where: { ...txWhere, type: 'income' }, _sum: { amountArs: true } }),
     prisma.transaction.aggregate({ where: { ...txWhere, type: 'expense' }, _sum: { amountArs: true } }),
   ]);
-  const totalIncome = Number(incomeAgg._sum.amountArs || 0);
-  const totalExpenses = Number(expenseAgg._sum.amountArs || 0);
+  const totalIncome = Number(incomeAgg._sum.amountArs ?? 0);
+  const totalExpenses = Number(expenseAgg._sum.amountArs ?? 0);
   return { totalBalance, accounts, totalIncome, totalExpenses, netFlow: totalIncome - totalExpenses };
 }
 
-export async function getByCategoryReport(userId, { from, to, accountId, type, categoryId }) {
+export async function getByCategoryReport(
+  userId: string,
+  { from, to, accountId, type, categoryId }: ByCategoryFilters
+) {
   const dateFilter = buildDateFilter(from, to);
   const accountIds = accountId ?? [];
   const types = type ?? [];
@@ -67,21 +93,29 @@ export async function getByCategoryReport(userId, { from, to, accountId, type, c
         })
       : Promise.resolve([]),
   ]);
-  const allCategoryIds = [...new Set([...expenseGroups.map((g) => g.categoryId), ...incomeGroups.map((g) => g.categoryId)])];
+  const allCategoryIds = [
+    ...new Set([...expenseGroups.map((g) => g.categoryId), ...incomeGroups.map((g) => g.categoryId)]),
+  ];
   const categoriesMap = await buildCategoriesMap(allCategoryIds);
-  const mapGroups = (groups) =>
+  const mapGroups = (groups: Array<{ categoryId: string | null; _sum: { amountArs: unknown } }>) =>
     groups.map((g) => ({
       categoryId: g.categoryId,
-      categoryName: categoriesMap[g.categoryId]?.name || 'Sin categoría',
-      categoryIcon: categoriesMap[g.categoryId]?.icon || null,
-      total: Number(g._sum.amountArs || 0),
+      categoryName: (g.categoryId && categoriesMap[g.categoryId]?.name) || 'Sin categoría',
+      categoryIcon: (g.categoryId && categoriesMap[g.categoryId]?.icon) || null,
+      total: Number(g._sum.amountArs ?? 0),
     }));
   return { expenses: mapGroups(expenseGroups), incomes: mapGroups(incomeGroups) };
 }
 
-export async function getMonthlyReport(userId, { year }) {
-  const targetYear = year || new Date().getFullYear();
-  const rows = await prisma.$queryRaw`
+interface MonthlyRow {
+  month: number;
+  income: number;
+  expenses: number;
+}
+
+export async function getMonthlyReport(userId: string, { year }: { year?: number }) {
+  const targetYear = year ?? new Date().getFullYear();
+  const rows = await prisma.$queryRaw<MonthlyRow[]>`
     SELECT
       EXTRACT(MONTH FROM t.date)::int AS month,
       SUM(CASE WHEN t.type = 'income'  THEN t.amount_ars ELSE 0 END)::float AS income,
@@ -102,13 +136,17 @@ export async function getMonthlyReport(userId, { year }) {
     return { month, income, expenses, netFlow: income - expenses };
   });
   const totals = months.reduce(
-    (acc, m) => ({ income: acc.income + m.income, expenses: acc.expenses + m.expenses, netFlow: acc.netFlow + m.netFlow }),
+    (acc, m) => ({
+      income: acc.income + m.income,
+      expenses: acc.expenses + m.expenses,
+      netFlow: acc.netFlow + m.netFlow,
+    }),
     { income: 0, expenses: 0, netFlow: 0 }
   );
   return { year: targetYear, months, totals };
 }
 
-export async function getFrequencyReport(userId, { from, to }) {
+export async function getFrequencyReport(userId: string, { from, to }: ReportFilters) {
   const dateFilter = buildDateFilter(from, to);
   const groups = await prisma.transaction.groupBy({
     by: ['categoryId'],
@@ -120,8 +158,8 @@ export async function getFrequencyReport(userId, { from, to }) {
   const categoriesMap = await buildCategoriesMap(categoryIds);
   return groups.map((g) => ({
     categoryId: g.categoryId,
-    categoryName: categoriesMap[g.categoryId]?.name || 'Sin categoría',
-    categoryIcon: categoriesMap[g.categoryId]?.icon || null,
+    categoryName: (g.categoryId && categoriesMap[g.categoryId]?.name) || 'Sin categoría',
+    categoryIcon: (g.categoryId && categoriesMap[g.categoryId]?.icon) || null,
     count: g._count.id,
   }));
 }

@@ -1,9 +1,9 @@
 import { Resend } from 'resend';
 
-let resend = null;
-const testEmails = [];
+let resend: Resend | null = null;
+const testEmails: Array<{ email: string; resetToken: string; resetUrl: string }> = [];
 
-function getResend() {
+function getResend(): Resend {
   if (!resend) {
     if (!process.env.RESEND_API_KEY) {
       throw new Error('RESEND_API_KEY env var is required for password reset');
@@ -13,15 +13,15 @@ function getResend() {
   return resend;
 }
 
-export function getTestEmails() {
+export function getTestEmails(): typeof testEmails {
   return testEmails;
 }
 
-export function clearTestEmails() {
+export function clearTestEmails(): void {
   testEmails.length = 0;
 }
 
-export async function sendPasswordResetEmail(email, resetToken) {
+export async function sendPasswordResetEmail(email: string, resetToken: string): Promise<void> {
   const resetUrl = `${process.env.APP_URL || 'https://gastar.app'}/reset-password?token=${resetToken}`;
 
   if (process.env.NODE_ENV === 'test') {

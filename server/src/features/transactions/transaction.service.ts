@@ -1,4 +1,22 @@
-export function getBalanceDelta(type, amount) {
+import type { Prisma } from '@prisma/client';
+import type { Decimal } from '@prisma/client/runtime/library';
+
+type TransactionType = 'income' | 'expense' | 'transfer';
+
+interface TransactionLike {
+  accountId: string;
+  type: string;
+  amount: number | Decimal;
+  amountArs: number | Decimal;
+  transferTo: string | null;
+}
+
+interface AccountLike {
+  id: string;
+  currency: string;
+}
+
+export function getBalanceDelta(type: TransactionType | string, amount: number): number {
   switch (type) {
     case 'income':
       return amount;
@@ -11,7 +29,12 @@ export function getBalanceDelta(type, amount) {
   }
 }
 
-export async function adjustBalance(tx, accountId, nativeDelta, arsDelta) {
+export async function adjustBalance(
+  tx: Prisma.TransactionClient,
+  accountId: string,
+  nativeDelta: number,
+  arsDelta: number
+): Promise<void> {
   await tx.account.update({
     where: { id: accountId },
     data: {
@@ -21,7 +44,12 @@ export async function adjustBalance(tx, accountId, nativeDelta, arsDelta) {
   });
 }
 
-export async function applyTransactionBalances(tx, transaction, sourceAccount, destAccount = null) {
+export async function applyTransactionBalances(
+  tx: Prisma.TransactionClient,
+  transaction: TransactionLike,
+  sourceAccount: AccountLike,
+  destAccount: AccountLike | null = null
+): Promise<void> {
   const amount = Number(transaction.amount);
   const amountArs = Number(transaction.amountArs);
   const nativeDelta = getBalanceDelta(transaction.type, amount);
@@ -30,18 +58,17 @@ export async function applyTransactionBalances(tx, transaction, sourceAccount, d
   await adjustBalance(tx, transaction.accountId, nativeDelta, arsDelta);
 
   if (transaction.type === 'transfer' && transaction.transferTo && destAccount) {
-    // Credit destination in its native units: same amount if same currency, ARS equivalent if cross-currency
     const destNativeCredit = destAccount.currency === sourceAccount.currency ? amount : amountArs;
     await adjustBalance(tx, transaction.transferTo, destNativeCredit, amountArs);
   }
 }
 
 export async function reverseTransactionBalances(
-  tx,
-  transaction,
-  sourceAccount,
-  destAccount = null
-) {
+  tx: Prisma.TransactionClient,
+  transaction: TransactionLike,
+  sourceAccount: AccountLike,
+  destAccount: AccountLike | null = null
+): Promise<void> {
   const amount = Number(transaction.amount);
   const amountArs = Number(transaction.amountArs);
   const nativeDelta = getBalanceDelta(transaction.type, amount);

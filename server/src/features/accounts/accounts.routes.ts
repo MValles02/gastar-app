@@ -38,7 +38,10 @@ router.put('/:id', async (req, res, next) => {
   try {
     const data = updateAccountSchema.parse(req.body);
     const account = await updateAccount(req.userId, req.params.id, data);
-    if (!account) return res.status(404).json({ error: 'Cuenta no encontrada' });
+    if (!account) {
+      res.status(404).json({ error: 'Cuenta no encontrada' });
+      return;
+    }
     res.json({ data: account });
   } catch (err) {
     next(err);
@@ -50,10 +53,14 @@ router.delete('/:id', async (req, res, next) => {
   try {
     const txCount = await getTransactionCountForAccount(req.params.id);
     if (txCount > 0) {
-      return res.status(400).json({ error: `Esta cuenta tiene ${txCount} transacciones asociadas.` });
+      res.status(400).json({ error: `Esta cuenta tiene ${txCount} transacciones asociadas.` });
+      return;
     }
     const result = await deleteAccount(req.userId, req.params.id);
-    if (!result) return res.status(404).json({ error: 'Cuenta no encontrada' });
+    if (!result) {
+      res.status(404).json({ error: 'Cuenta no encontrada' });
+      return;
+    }
     res.json({ data: { message: 'Cuenta eliminada' } });
   } catch (err) {
     next(err);

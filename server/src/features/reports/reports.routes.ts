@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import { authenticate } from '../../shared/middleware/auth.middleware.js';
 import { reportQuerySchema, monthlyQuerySchema, byCategoryQuerySchema } from './reports.validators.js';
-import { getSummaryReport, getByCategoryReport, getMonthlyReport, getFrequencyReport } from './reports.service.js';
+import {
+  getSummaryReport,
+  getByCategoryReport,
+  getMonthlyReport,
+  getFrequencyReport,
+} from './reports.service.js';
 
 const router = Router();
 router.use(authenticate);

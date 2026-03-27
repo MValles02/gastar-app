@@ -43,7 +43,8 @@ router.post('/register', authLimiter, async (req, res, next) => {
 
     const existing = await findUserByEmail(data.email);
     if (existing) {
-      return res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico' });
+      res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico' });
+      return;
     }
 
     const user = await createUser({ name: data.name, email: data.email, password: data.password });
@@ -64,12 +65,14 @@ router.post('/login', authLimiter, async (req, res, next) => {
 
     const user = await findUserByEmail(data.email);
     if (!user || !user.passwordHash) {
-      return res.status(401).json({ error: 'Credenciales inválidas' });
+      res.status(401).json({ error: 'Credenciales inválidas' });
+      return;
     }
 
     const valid = await validatePassword(user, data.password);
     if (!valid) {
-      return res.status(401).json({ error: 'Credenciales inválidas' });
+      res.status(401).json({ error: 'Credenciales inválidas' });
+      return;
     }
 
     const token = generateToken(user.id);
@@ -95,7 +98,8 @@ router.get('/me', authenticate, async (req, res, next) => {
   try {
     const user = await findUserById(req.userId);
     if (!user) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      res.status(404).json({ error: 'Usuario no encontrado' });
+      return;
     }
     res.json({ data: user });
   } catch (err) {
@@ -142,7 +146,6 @@ router.post('/forgot-password', authLimiter, async (req, res, next) => {
       const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
 
       await setResetToken(email, hashResetToken(resetToken), resetTokenExpiry);
-
       await sendPasswordResetEmail(email, resetToken);
     }
 
@@ -159,9 +162,9 @@ router.post('/reset-password', authLimiter, async (req, res, next) => {
     const hashedToken = hashResetToken(token);
 
     const user = await findUserByResetToken(hashedToken);
-
     if (!user) {
-      return res.status(400).json({ error: 'Token inválido o expirado' });
+      res.status(400).json({ error: 'Token inválido o expirado' });
+      return;
     }
 
     await resetPassword(user.id, password);
@@ -184,11 +187,12 @@ router.get('/google/callback', authLimiter, async (req, res) => {
   const { code, error } = req.query;
 
   if (error || !code) {
-    return res.redirect(`${appUrl}/login?authError=access_denied`);
+    res.redirect(`${appUrl}/login?authError=access_denied`);
+    return;
   }
 
   try {
-    const profile = await exchangeCodeForProfile(code);
+    const profile = await exchangeCodeForProfile(code as string);
 
     const user = await findOrCreateGoogleUser({
       email: profile.email,
@@ -200,7 +204,10 @@ router.get('/google/callback', authLimiter, async (req, res) => {
     setTokenCookie(res, token);
     res.redirect(`${appUrl}/`);
   } catch (err) {
-    const errorCode = err.code === 'EMAIL_NOT_VERIFIED' ? 'email_not_verified' : 'server_error';
+    const errorCode =
+      err instanceof Error && (err as Error & { code?: string }).code === 'EMAIL_NOT_VERIFIED'
+        ? 'email_not_verified'
+        : 'server_error';
     res.redirect(`${appUrl}/login?authError=${errorCode}`);
   }
 });

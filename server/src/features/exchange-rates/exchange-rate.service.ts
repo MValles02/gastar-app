@@ -1,6 +1,12 @@
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-const cache = new Map();
+interface CachedRates {
+  blue: number;
+  oficial: number;
+  fetchedAt: number;
+}
+
+const cache = new Map<string, CachedRates>();
 
 const DOLAR_API_BASE = 'https://dolarapi.com/v1';
 
@@ -14,15 +20,20 @@ const ENDPOINTS = {
   },
 };
 
-async function fetchJson(url) {
+async function fetchJson(url: string): Promise<Record<string, unknown>> {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`dolarapi.com responded with ${response.status}`);
   }
-  return response.json();
+  return response.json() as Promise<Record<string, unknown>>;
 }
 
-async function fetchRates(currency) {
+interface Rates {
+  blue: number;
+  oficial: number;
+}
+
+async function fetchRates(currency: 'USD' | 'EUR'): Promise<Rates> {
   if (currency === 'USD') {
     const [blueData, oficialData] = await Promise.all([
       fetchJson(ENDPOINTS.USD.blue),
@@ -43,7 +54,7 @@ async function fetchRates(currency) {
   throw new Error(`Currency not supported: ${currency}`);
 }
 
-export async function getExchangeRates(currency) {
+export async function getExchangeRates(currency: 'USD' | 'EUR'): Promise<Rates> {
   const cached = cache.get(currency);
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL) {
     return { blue: cached.blue, oficial: cached.oficial };

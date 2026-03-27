@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import { authenticate } from '../../shared/middleware/auth.middleware.js';
 import { createCategorySchema, updateCategorySchema } from './categories.validators.js';
-import { getCategoriesByUser, createCategory, updateCategory, deleteCategory } from './categories.service.js';
+import {
+  getCategoriesByUser,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from './categories.service.js';
 
 const router = Router();
 router.use(authenticate);
@@ -32,7 +37,10 @@ router.put('/:id', async (req, res, next) => {
   try {
     const data = updateCategorySchema.parse(req.body);
     const category = await updateCategory(req.userId, req.params.id, data);
-    if (!category) return res.status(404).json({ error: 'Categoría no encontrada' });
+    if (!category) {
+      res.status(404).json({ error: 'Categoría no encontrada' });
+      return;
+    }
     res.json({ data: category });
   } catch (err) {
     next(err);
@@ -43,7 +51,10 @@ router.put('/:id', async (req, res, next) => {
 router.delete('/:id', async (req, res, next) => {
   try {
     const result = await deleteCategory(req.userId, req.params.id);
-    if (!result) return res.status(404).json({ error: 'Categoría no encontrada' });
+    if (!result) {
+      res.status(404).json({ error: 'Categoría no encontrada' });
+      return;
+    }
     res.json({ data: { message: 'Categoría eliminada' } });
   } catch (err) {
     next(err);

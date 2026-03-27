@@ -16,49 +16,63 @@ const router = Router();
 
 router.use(authenticate);
 
-async function fetchOwnedAccount(accountId, userId, errorMessage) {
+interface OwnedAccount {
+  id: string;
+  currency: string;
+}
+
+async function fetchOwnedAccount(
+  accountId: string,
+  userId: string,
+  errorMessage: string
+): Promise<OwnedAccount> {
   const account = await prisma.account.findFirst({
     where: { id: accountId, userId },
     select: { id: true, currency: true },
   });
 
   if (!account) {
-    const error = new Error(errorMessage);
-    error.status = 404;
+    const error = Object.assign(new Error(errorMessage), { status: 404 });
     throw error;
   }
 
   return account;
 }
 
-async function assertOwnedCategory(categoryId, userId) {
+async function assertOwnedCategory(categoryId: string, userId: string): Promise<void> {
   const category = await prisma.category.findFirst({
     where: { id: categoryId, userId },
     select: { id: true },
   });
 
   if (!category) {
-    const error = new Error('Categoría no encontrada');
-    error.status = 404;
+    const error = Object.assign(new Error('Categoría no encontrada'), { status: 404 });
     throw error;
   }
 }
 
-async function validateTransactionReferences(data, userId) {
+async function validateTransactionReferences(
+  data: { accountId: string; categoryId: string; type: string; transferTo?: string | null },
+  userId: string
+): Promise<{ sourceAccount: OwnedAccount; destAccount: OwnedAccount | null }> {
   const sourceAccount = await fetchOwnedAccount(data.accountId, userId, 'Cuenta no encontrada');
   await assertOwnedCategory(data.categoryId, userId);
 
-  let destAccount = null;
+  let destAccount: OwnedAccount | null = null;
   if (data.type === 'transfer') {
     if (!data.transferTo) {
-      const error = new Error('La cuenta destino es requerida para transferencias');
-      error.status = 400;
+      const error = Object.assign(
+        new Error('La cuenta destino es requerida para transferencias'),
+        { status: 400 }
+      );
       throw error;
     }
 
     if (data.transferTo === data.accountId) {
-      const error = new Error('La cuenta destino debe ser diferente a la cuenta origen');
-      error.status = 400;
+      const error = Object.assign(
+        new Error('La cuenta destino debe ser diferente a la cuenta origen'),
+        { status: 400 }
+      );
       throw error;
     }
 
@@ -72,16 +86,17 @@ async function validateTransactionReferences(data, userId) {
 router.get('/', async (req, res, next) => {
   try {
     const query = transactionQuerySchema.parse(req.query);
-    const where = {
+    const where: Record<string, unknown> = {
       account: { userId: req.userId },
     };
     if (query.accountId) where.accountId = query.accountId;
     if (query.categoryId) where.categoryId = query.categoryId;
     if (query.type) where.type = query.type;
     if (query.from || query.to) {
-      where.date = {};
-      if (query.from) where.date.gte = new Date(query.from);
-      if (query.to) where.date.lte = new Date(query.to);
+      const dateFilter: Record<string, Date> = {};
+      if (query.from) dateFilter.gte = new Date(query.from);
+      if (query.to) dateFilter.lte = new Date(query.to);
+      where.date = dateFilter;
     }
 
     const [transactions, total] = await Promise.all([
@@ -119,9 +134,8 @@ router.post('/', async (req, res, next) => {
     const { sourceAccount, destAccount } = await validateTransactionReferences(data, req.userId);
 
     if (sourceAccount.currency !== 'ARS' && !data.cotizacion) {
-      return res
-        .status(400)
-        .json({ error: 'La cotización es requerida para cuentas en moneda extranjera' });
+      res.status(400).json({ error: 'La cotización es requerida para cuentas en moneda extranjera' });
+      return;
     }
     const cotizacion = sourceAccount.currency === 'ARS' ? null : data.cotizacion;
     const amountArs = cotizacion ? data.amount * cotizacion : data.amount;
@@ -135,7 +149,7 @@ router.post('/', async (req, res, next) => {
           amount: data.amount,
           cotizacion,
           amountArs,
-          description: data.description || null,
+          description: data.description ?? null,
           date: new Date(data.date),
           transferTo: data.type === 'transfer' ? data.transferTo : null,
         },
@@ -164,32 +178,38 @@ router.put('/:id', async (req, res, next) => {
       where: { id: req.params.id, account: { userId: req.userId } },
     });
     if (!existing) {
-      return res.status(404).json({ error: 'Transacción no encontrada' });
+      res.status(404).json({ error: 'Transacción no encontrada' });
+      return;
     }
+
+    const updatePayload: typeof data & { amountArs?: number } = { ...data };
 
     // Recompute amountArs if amount or cotizacion changed
     if (data.amount !== undefined || data.cotizacion !== undefined) {
       const effectiveAmount = data.amount ?? Number(existing.amount);
       const effectiveCotizacion =
         data.cotizacion ?? (existing.cotizacion ? Number(existing.cotizacion) : null);
-      data.amountArs = effectiveCotizacion
+      updatePayload.amountArs = effectiveCotizacion
         ? effectiveAmount * effectiveCotizacion
         : effectiveAmount;
     }
 
-    const effectiveData = getEffectiveTransaction(existing, data);
+    const effectiveData = getEffectiveTransaction(existing, updatePayload);
     const { sourceAccount, destAccount } = await validateTransactionReferences(
-      effectiveData,
+      {
+        accountId: effectiveData.accountId,
+        categoryId: (effectiveData.categoryId ?? existing.categoryId) as string,
+        type: effectiveData.type,
+        transferTo: effectiveData.transferTo,
+      },
       req.userId
     );
 
     if (sourceAccount.currency !== 'ARS' && !effectiveData.cotizacion) {
-      return res
-        .status(400)
-        .json({ error: 'La cotización es requerida para cuentas en moneda extranjera' });
+      res.status(400).json({ error: 'La cotización es requerida para cuentas en moneda extranjera' });
+      return;
     }
 
-    // Fetch the original source/dest accounts for reversal
     const existingSourceAccount = await fetchOwnedAccount(
       existing.accountId,
       req.userId,
@@ -205,11 +225,11 @@ router.put('/:id', async (req, res, next) => {
         where: { id: req.params.id },
         data: {
           accountId: effectiveData.accountId,
-          categoryId: effectiveData.categoryId,
-          type: effectiveData.type,
-          amount: effectiveData.amount,
-          cotizacion: effectiveData.cotizacion,
-          amountArs: effectiveData.amountArs,
+          ...(effectiveData.categoryId !== null && { categoryId: effectiveData.categoryId }),
+          type: effectiveData.type as 'income' | 'expense' | 'transfer',
+          amount: Number(effectiveData.amount),
+          cotizacion: effectiveData.cotizacion !== null ? Number(effectiveData.cotizacion) : null,
+          amountArs: Number(effectiveData.amountArs),
           description: effectiveData.description,
           date: data.date ? new Date(data.date) : undefined,
           transferTo: effectiveData.transferTo,
@@ -237,7 +257,8 @@ router.delete('/:id', async (req, res, next) => {
       where: { id: req.params.id, account: { userId: req.userId } },
     });
     if (!existing) {
-      return res.status(404).json({ error: 'Transacción no encontrada' });
+      res.status(404).json({ error: 'Transacción no encontrada' });
+      return;
     }
 
     const sourceAccount = await fetchOwnedAccount(

@@ -16,7 +16,8 @@ router.get('/', async (req, res, next) => {
     res.json({ data: { currency, blue: rates.blue, oficial: rates.oficial } });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Moneda inválida. Usá USD o EUR.' });
+      res.status(400).json({ error: 'Moneda inválida. Usá USD o EUR.' });
+      return;
     }
     next(err);
   }
