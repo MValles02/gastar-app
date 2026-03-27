@@ -1,19 +1,21 @@
 import { Router } from 'express';
 import { authenticate } from '../../shared/middleware/auth.middleware.js';
-import prisma from '../../shared/utils/prisma.js';
 import { createAccountSchema, updateAccountSchema } from './accounts.validators.js';
+import {
+  getAccountsByUser,
+  createAccount,
+  updateAccount,
+  deleteAccount,
+  getTransactionCountForAccount,
+} from './accounts.service.js';
 
 const router = Router();
-
 router.use(authenticate);
 
 // GET /api/accounts
 router.get('/', async (req, res, next) => {
   try {
-    const accounts = await prisma.account.findMany({
-      where: { userId: req.userId },
-      orderBy: { name: 'asc' },
-    });
+    const accounts = await getAccountsByUser(req.userId);
     res.json({ data: accounts });
   } catch (err) {
     next(err);
@@ -24,23 +26,7 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const data = createAccountSchema.parse(req.body);
-    const currency = data.currency || 'ARS';
-    const balanceArs =
-      currency === 'ARS'
-        ? data.balance
-        : data.cotizacion
-          ? Number(data.balance) * data.cotizacion
-          : 0;
-    const account = await prisma.account.create({
-      data: {
-        name: data.name,
-        type: data.type,
-        currency,
-        balance: data.balance,
-        balanceArs,
-        userId: req.userId,
-      },
-    });
+    const account = await createAccount(req.userId, data);
     res.status(201).json({ data: account });
   } catch (err) {
     next(err);
@@ -51,30 +37,8 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const data = updateAccountSchema.parse(req.body);
-    const existing = await prisma.account.findFirst({
-      where: { id: req.params.id, userId: req.userId },
-    });
-    if (!existing) {
-      return res.status(404).json({ error: 'Cuenta no encontrada' });
-    }
-
-    const { cotizacion, ...updatePayload } = data;
-    const incomingCurrency = updatePayload.currency ?? existing.currency;
-    const currencyChanging = updatePayload.currency && updatePayload.currency !== existing.currency;
-
-    const shouldRecalc = currencyChanging || (cotizacion && incomingCurrency !== 'ARS');
-    if (shouldRecalc) {
-      if (incomingCurrency === 'ARS') {
-        updatePayload.balanceArs = Number(existing.balance);
-      } else {
-        updatePayload.balanceArs = Number(existing.balance) * cotizacion;
-      }
-    }
-
-    const account = await prisma.account.update({
-      where: { id: req.params.id },
-      data: updatePayload,
-    });
+    const account = await updateAccount(req.userId, req.params.id, data);
+    if (!account) return res.status(404).json({ error: 'Cuenta no encontrada' });
     res.json({ data: account });
   } catch (err) {
     next(err);
@@ -84,13 +48,12 @@ router.put('/:id', async (req, res, next) => {
 // DELETE /api/accounts/:id
 router.delete('/:id', async (req, res, next) => {
   try {
-    const existing = await prisma.account.findFirst({
-      where: { id: req.params.id, userId: req.userId },
-    });
-    if (!existing) {
-      return res.status(404).json({ error: 'Cuenta no encontrada' });
+    const txCount = await getTransactionCountForAccount(req.params.id);
+    if (txCount > 0) {
+      return res.status(400).json({ error: `Esta cuenta tiene ${txCount} transacciones asociadas.` });
     }
-    await prisma.account.delete({ where: { id: req.params.id } });
+    const result = await deleteAccount(req.userId, req.params.id);
+    if (!result) return res.status(404).json({ error: 'Cuenta no encontrada' });
     res.json({ data: { message: 'Cuenta eliminada' } });
   } catch (err) {
     next(err);
