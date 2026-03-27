@@ -1,8 +1,8 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { resetDb, disconnectDb } from '../helpers/db.js';
-import { createUser } from '../helpers/factories.js';
-import { getAccountsByUser, createAccount } from '../../src/features/accounts/accounts.service.js';
+import { resetDb, disconnectDb } from './helpers/db.js';
+import { createUser } from './helpers/factories.js';
+import { getAccountsByUser, createAccount } from '../src/features/accounts/accounts.service.js';
 
 describe('accounts.service', () => {
   before(resetDb);
