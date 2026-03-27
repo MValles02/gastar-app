@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { AuthProvider, useAuth } from './shared/contexts/AuthContext.jsx';
+import { AuthProvider } from './shared/contexts/AuthContext.jsx';
+import { useAuth } from './shared/hooks/useAuth.js';
 import { DialogProvider } from './shared/contexts/DialogContext.jsx';
 import AppLayout from './shared/components/layout/AppLayout.jsx';
 import Spinner from './shared/components/ui/Spinner.jsx';

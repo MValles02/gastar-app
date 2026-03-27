@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../../shared/contexts/AuthContext.jsx';
+import { useAuth } from '../../shared/hooks/useAuth.js';
 import { useTransactionModal } from '../../shared/contexts/TransactionModalContext.jsx';
 import { getAccounts } from '../accounts/services/accounts.js';
 import { childrenPropType } from '../../shared/utils/propTypes.js';

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Mail, Lock } from 'lucide-react';
-import { useAuth } from '../../../shared/contexts/AuthContext.jsx';
+import { useAuth } from '../../../shared/hooks/useAuth.js';
 import AuthShell from '../components/AuthShell.jsx';
 import Input from '../../../shared/components/ui/Input.jsx';
 import Button from '../../../shared/components/ui/Button.jsx';

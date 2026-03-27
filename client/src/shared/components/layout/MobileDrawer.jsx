@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { LogOut, HelpCircle, User, Sun, Moon, X } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
-import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useAuth } from '../../hooks/useAuth.js';
 import { useOnboarding } from '../../../features/onboarding/OnboardingContext.jsx';
 import GastarLogo from '../ui/GastarLogo.jsx';
 import { navItems } from '../../constants/navigation.js';

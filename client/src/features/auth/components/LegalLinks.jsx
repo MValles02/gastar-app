@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../../shared/contexts/AuthContext.jsx';
+import { useAuth } from '../../../shared/hooks/useAuth.js';
 
 export default function LegalLinks({ includeBackLink = false, className }) {
   const { user } = useAuth();

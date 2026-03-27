@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import Input from './Input.jsx';
 import { getExchangeRates } from '../../services/exchange-rates.js';
-import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useAuth } from '../../hooks/useAuth.js';
 import { formatCurrency } from '../../utils/formatters.js';
 
 const LAST_USED_KEY = 'cotizacion_last_used';

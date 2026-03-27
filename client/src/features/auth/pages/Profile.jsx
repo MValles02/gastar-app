@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { User, Mail, DollarSign } from 'lucide-react';
-import { useAuth } from '../../../shared/contexts/AuthContext.jsx';
+import { useAuth } from '../../../shared/hooks/useAuth.js';
 import { useDialog } from '../../../shared/contexts/DialogContext.jsx';
 import { Page } from '../../../shared/components/layout/Page.jsx';
 import { getErrorMessage } from '../../../shared/utils/errors.js';

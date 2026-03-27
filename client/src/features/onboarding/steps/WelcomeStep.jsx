@@ -2,7 +2,7 @@ import { Wallet, Tag, ArrowLeftRight } from 'lucide-react';
 import Button from '../../../shared/components/ui/Button.jsx';
 import GastarLogo from '../../../shared/components/ui/GastarLogo.jsx';
 import { useOnboarding } from '../OnboardingContext.jsx';
-import { useAuth } from '../../../shared/contexts/AuthContext.jsx';
+import { useAuth } from '../../../shared/hooks/useAuth.js';
 
 const features = [
   { icon: Wallet, text: 'Crear tus cuentas principales: banco, efectivo o tarjeta.' },
