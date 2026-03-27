@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { useOnboarding } from '../../../shared/contexts/OnboardingContext.jsx';
+import { useOnboarding } from '../OnboardingContext.jsx';
 import OnboardingProgressBar from './OnboardingProgressBar.jsx';
 import WelcomeStep from '../steps/WelcomeStep.jsx';
 import AccountsStep from '../steps/AccountsStep.jsx';

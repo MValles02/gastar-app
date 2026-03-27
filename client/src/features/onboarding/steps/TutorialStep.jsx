@@ -6,7 +6,7 @@ import {
   TransactionComposerPanel,
   TransactionTypeSwitch,
 } from '../../transactions/components/TransactionComposerUI.jsx';
-import { useOnboarding } from '../../../shared/contexts/OnboardingContext.jsx';
+import { useOnboarding } from '../OnboardingContext.jsx';
 import { iconPropType } from '../../../shared/utils/propTypes.js';
 import { typeOptions } from '../../../shared/constants/transactionTypes.js';
 

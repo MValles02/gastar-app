@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { useAuth } from './AuthContext.jsx';
-import { useTransactionModal } from './TransactionModalContext.jsx';
-import { getAccounts } from '../../features/accounts/services/accounts.js';
-import { childrenPropType } from '../utils/propTypes.js';
+import { useAuth } from '../../shared/contexts/AuthContext.jsx';
+import { useTransactionModal } from '../../shared/contexts/TransactionModalContext.jsx';
+import { getAccounts } from '../accounts/services/accounts.js';
+import { childrenPropType } from '../../shared/utils/propTypes.js';
 
 const OnboardingContext = createContext(null);
 

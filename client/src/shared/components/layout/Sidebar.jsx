@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, LogOut, HelpCircle, Plus, User, Sun, Moon } 
 import clsx from 'clsx';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
-import { useOnboarding } from '../../contexts/OnboardingContext.jsx';
+import { useOnboarding } from '../../../features/onboarding/OnboardingContext.jsx';
 import { useTransactionModal } from '../../contexts/TransactionModalContext.jsx';
 import GastarLogo from '../ui/GastarLogo.jsx';
 import { navItems } from '../../constants/navigation.js';

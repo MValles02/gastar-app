@@ -1,7 +1,7 @@
 import { Wallet, Tag, ArrowLeftRight } from 'lucide-react';
 import Button from '../../../shared/components/ui/Button.jsx';
 import GastarLogo from '../../../shared/components/ui/GastarLogo.jsx';
-import { useOnboarding } from '../../../shared/contexts/OnboardingContext.jsx';
+import { useOnboarding } from '../OnboardingContext.jsx';
 import { useAuth } from '../../../shared/contexts/AuthContext.jsx';
 
 const features = [

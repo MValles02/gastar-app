@@ -5,7 +5,7 @@ import Select from '../../../shared/components/ui/Select.jsx';
 import Button from '../../../shared/components/ui/Button.jsx';
 import MessageBanner from '../../../shared/components/ui/MessageBanner.jsx';
 import CotizacionInput, { saveCotizacion } from '../../../shared/components/ui/CotizacionInput.jsx';
-import { useOnboarding } from '../../../shared/contexts/OnboardingContext.jsx';
+import { useOnboarding } from '../OnboardingContext.jsx';
 import { createAccount, getAccounts } from '../../accounts/services/accounts.js';
 import { getErrorMessage } from '../../../shared/utils/errors.js';
 import { accountTypeOptions, accountTypeLabels } from '../../../shared/constants/accountTypes.js';

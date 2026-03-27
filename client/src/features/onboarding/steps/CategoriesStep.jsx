@@ -4,7 +4,7 @@ import Button from '../../../shared/components/ui/Button.jsx';
 import IconPicker, { getCategoryIcon } from '../../../shared/components/ui/IconPicker.jsx';
 import MessageBanner from '../../../shared/components/ui/MessageBanner.jsx';
 import OptionTile from '../../../shared/components/ui/OptionTile.jsx';
-import { useOnboarding } from '../../../shared/contexts/OnboardingContext.jsx';
+import { useOnboarding } from '../OnboardingContext.jsx';
 import { createCategory, getCategories } from '../../categories/services/categories.js';
 import { getErrorMessage } from '../../../shared/utils/errors.js';
 

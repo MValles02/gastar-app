@@ -9,7 +9,7 @@ import {
   TransactionModalProvider,
   useTransactionModal,
 } from '../../contexts/TransactionModalContext.jsx';
-import { OnboardingProvider } from '../../contexts/OnboardingContext.jsx';
+import { OnboardingProvider } from '../../../features/onboarding/OnboardingContext.jsx';
 import { childrenPropType } from '../../utils/propTypes.js';
 
 function LayoutInner({ children }) {
