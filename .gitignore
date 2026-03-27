@@ -151,3 +151,7 @@ sonar-project.properties
 
 # vscode
 .vscode/
+
+# gentleman
+.atl/
+.engram/
