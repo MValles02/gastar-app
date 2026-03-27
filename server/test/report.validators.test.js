@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { reportQuerySchema } from '../src/validators/report.validators.js';
+import { reportQuerySchema } from '../src/features/reports/reports.validators.js';
 
 test('reportQuerySchema accepts valid ISO-like dates', () => {
   const parsed = reportQuerySchema.parse({

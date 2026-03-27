@@ -1,22 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createAccountSchema, updateAccountSchema } from '../src/validators/account.validators.js';
+import { createAccountSchema, updateAccountSchema } from '../src/features/accounts/accounts.validators.js';
 import {
   createCategorySchema,
   updateCategorySchema,
-} from '../src/validators/category.validators.js';
+} from '../src/features/categories/categories.validators.js';
 import {
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
   resetPasswordSchema,
-} from '../src/validators/auth.validators.js';
+} from '../src/features/auth/auth.validators.js';
 import {
   clearTestEmails,
   getTestEmails,
   sendPasswordResetEmail,
-} from '../src/services/email.service.js';
-import { generateToken, setTokenCookie } from '../src/utils/token.js';
+} from '../src/features/auth/email.service.js';
+import { generateToken, setTokenCookie } from '../src/shared/utils/token.js';
 
 test('account schemas parse valid input and reject invalid types', () => {
   const account = createAccountSchema.parse({

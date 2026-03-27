@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getExchangeRates } from '../services/exchange-rate.service.js';
+import { getExchangeRates } from './exchange-rate.service.js';
 
 const router = Router();
 

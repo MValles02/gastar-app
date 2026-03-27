@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { startTestServer } from '../helpers/server.js';
 import { createAccount, createCategory, createUser } from '../helpers/factories.js';
 import { disconnectDb, prisma, resetDb } from '../helpers/db.js';
-import { hashResetToken } from '../../src/utils/reset-token.js';
-import { clearTestEmails, getTestEmails } from '../../src/services/email.service.js';
+import { hashResetToken } from '../../src/shared/utils/reset-token.js';
+import { clearTestEmails, getTestEmails } from '../../src/features/auth/email.service.js';
 
 const { baseUrl, close } = await startTestServer();
 

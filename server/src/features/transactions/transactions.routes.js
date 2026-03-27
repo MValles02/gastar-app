@@ -1,16 +1,16 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth.middleware.js';
-import prisma from '../utils/prisma.js';
+import { authenticate } from '../../shared/middleware/auth.middleware.js';
+import prisma from '../../shared/utils/prisma.js';
 import {
   createTransactionSchema,
   updateTransactionSchema,
   transactionQuerySchema,
-} from '../validators/transaction.validators.js';
+} from './transaction.validators.js';
 import {
   applyTransactionBalances,
   reverseTransactionBalances,
-} from '../services/transaction.service.js';
-import { getEffectiveTransaction } from '../services/transaction-rules.js';
+} from './transaction.service.js';
+import { getEffectiveTransaction } from './transaction-rules.js';
 
 const router = Router();
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getEffectiveTransaction } from '../src/services/transaction-rules.js';
+import { getEffectiveTransaction } from '../src/features/transactions/transaction-rules.js';
 
 test('getEffectiveTransaction preserves existing transfer destination when omitted', () => {
   const existing = {

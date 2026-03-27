@@ -4,7 +4,7 @@ import {
   applyTransactionBalances,
   reverseTransactionBalances,
   getBalanceDelta,
-} from '../src/services/transaction.service.js';
+} from '../src/features/transactions/transaction.service.js';
 
 test('getBalanceDelta maps transaction types to expected account deltas', () => {
   assert.equal(getBalanceDelta('income', 50), 50);

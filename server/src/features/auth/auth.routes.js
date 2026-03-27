@@ -2,19 +2,19 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcrypt';
 import crypto from 'node:crypto';
-import prisma from '../utils/prisma.js';
-import { generateToken, setTokenCookie } from '../utils/token.js';
-import { hashResetToken } from '../utils/reset-token.js';
-import { authenticate } from '../middleware/auth.middleware.js';
+import prisma from '../../shared/utils/prisma.js';
+import { generateToken, setTokenCookie } from '../../shared/utils/token.js';
+import { hashResetToken } from '../../shared/utils/reset-token.js';
+import { authenticate } from '../../shared/middleware/auth.middleware.js';
 import {
   registerSchema,
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   updateProfileSchema,
-} from '../validators/auth.validators.js';
-import { sendPasswordResetEmail } from '../services/email.service.js';
-import { buildGoogleAuthUrl, exchangeCodeForProfile } from '../services/google-auth.service.js';
+} from './auth.validators.js';
+import { sendPasswordResetEmail } from './email.service.js';
+import { buildGoogleAuthUrl, exchangeCodeForProfile } from './google-auth.service.js';
 
 const router = Router();
 

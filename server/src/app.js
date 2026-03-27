@@ -5,14 +5,14 @@ import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 
-import authRoutes from './routes/auth.routes.js';
-import accountRoutes from './routes/accounts.routes.js';
-import transactionRoutes from './routes/transactions.routes.js';
-import categoryRoutes from './routes/categories.routes.js';
-import reportRoutes from './routes/reports.routes.js';
-import exchangeRatesRoutes from './routes/exchange-rates.routes.js';
-import { authenticate } from './middleware/auth.middleware.js';
-import { errorHandler } from './middleware/errorHandler.js';
+import authRoutes from './features/auth/auth.routes.js';
+import accountRoutes from './features/accounts/accounts.routes.js';
+import transactionRoutes from './features/transactions/transactions.routes.js';
+import categoryRoutes from './features/categories/categories.routes.js';
+import reportRoutes from './features/reports/reports.routes.js';
+import exchangeRatesRoutes from './features/exchange-rates/exchange-rates.routes.js';
+import { authenticate } from './shared/middleware/auth.middleware.js';
+import { errorHandler } from './shared/middleware/errorHandler.js';
 
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../.env') });
 

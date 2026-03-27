@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth.middleware.js';
-import prisma from '../utils/prisma.js';
+import { authenticate } from '../../shared/middleware/auth.middleware.js';
+import prisma from '../../shared/utils/prisma.js';
 import {
   reportQuerySchema,
   monthlyQuerySchema,
   byCategoryQuerySchema,
-} from '../validators/report.validators.js';
+} from './reports.validators.js';
 
 const router = Router();
 

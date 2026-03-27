@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth.middleware.js';
-import prisma from '../utils/prisma.js';
-import { createCategorySchema, updateCategorySchema } from '../validators/category.validators.js';
+import { authenticate } from '../../shared/middleware/auth.middleware.js';
+import prisma from '../../shared/utils/prisma.js';
+import { createCategorySchema, updateCategorySchema } from './categories.validators.js';
 
 const router = Router();
 
