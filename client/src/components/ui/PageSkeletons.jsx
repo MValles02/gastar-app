@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Skeleton } from './Skeleton.jsx';
 
 export function DashboardSkeleton() {
@@ -69,3 +70,7 @@ export function ListPageSkeleton({ metricCount = 2 }) {
     </div>
   );
 }
+
+ListPageSkeleton.propTypes = {
+  metricCount: PropTypes.number,
+};

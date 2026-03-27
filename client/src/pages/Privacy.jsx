@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import GastarLogo from '../components/ui/GastarLogo.jsx';
 import LegalLinks from '../components/layout/LegalLinks.jsx';
 
@@ -96,3 +97,8 @@ function Section({ title, children }) {
     </div>
   );
 }
+
+Section.propTypes = {
+  title: PropTypes.string.isRequired,
+  children: PropTypes.node.isRequired,
+};

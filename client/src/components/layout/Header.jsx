@@ -1,16 +1,6 @@
 import { Menu } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import GastarLogo from '../ui/GastarLogo.jsx';
-
-const routeTitles = {
-  '/': 'Panel',
-  '/transactions': 'Transacciones',
-  '/accounts': 'Cuentas',
-  '/categories': 'Categorías',
-  '/reports': 'Reportes',
-  '/profile': 'Mi perfil',
-};
 
 export default function Header({ onMenuOpen }) {
   return (

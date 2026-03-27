@@ -1,5 +1,4 @@
 import clsx from 'clsx';
-import PropTypes from 'prop-types';
 import { childrenPropType, classNamePropType } from '../../utils/propTypes.js';
 
 export function Page({ children, className }) {

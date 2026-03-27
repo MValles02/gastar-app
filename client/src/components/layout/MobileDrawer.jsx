@@ -3,7 +3,6 @@ import { NavLink } from 'react-router-dom';
 import {
   LogOut,
   HelpCircle,
-  Plus,
   User,
   Sun,
   Moon,
@@ -13,7 +12,6 @@ import PropTypes from 'prop-types';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useOnboarding } from '../../context/OnboardingContext.jsx';
-import { useTransactionModal } from '../../context/TransactionModalContext.jsx';
 import GastarLogo from '../ui/GastarLogo.jsx';
 import { navItems } from '../../constants/navigation.js';
 
@@ -23,8 +21,6 @@ export default function MobileDrawer({ isOpen, onClose }) {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const { openOnboarding } = useOnboarding();
-  const { openModal } = useTransactionModal();
-
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Escape') {
       onClose();
@@ -67,11 +63,6 @@ export default function MobileDrawer({ isOpen, onClose }) {
       if (triggerRef.current?.focus) triggerRef.current.focus();
     };
   }, [isOpen, handleKeyDown]);
-
-  const handleNewTransaction = () => {
-    openModal();
-    onClose();
-  };
 
   const footerButtonClass =
     'flex w-full items-center gap-3 rounded-soft px-3 py-2 text-sm text-app-muted transition-colors hover:bg-surface-muted hover:text-app';

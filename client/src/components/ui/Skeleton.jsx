@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import PropTypes from 'prop-types';
 import { classNamePropType } from '../../utils/propTypes.js';
 
 export function Skeleton({ className }) {
@@ -27,5 +28,6 @@ Skeleton.propTypes = {
 };
 
 SkeletonText.propTypes = {
+  lines: PropTypes.number,
   className: classNamePropType,
 };

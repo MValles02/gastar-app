@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import GastarLogo from '../components/ui/GastarLogo.jsx';
 import LegalLinks from '../components/layout/LegalLinks.jsx';
@@ -62,7 +63,7 @@ export default function Terms() {
 
             <Section title="6. Disponibilidad del servicio">
               <p>
-                Gastar se ofrece "tal como esta". No garantizamos disponibilidad ininterrumpida ni ausencia de errores.
+                Gastar se ofrece &ldquo;tal como esta&rdquo;. No garantizamos disponibilidad ininterrumpida ni ausencia de errores.
                 Podemos modificar, suspender o discontinuar el servicio en cualquier momento, notificandote
                 con razonable anticipacion cuando sea posible.
               </p>
@@ -112,3 +113,8 @@ function Section({ title, children }) {
     </div>
   );
 }
+
+Section.propTypes = {
+  title: PropTypes.string.isRequired,
+  children: PropTypes.node.isRequired,
+};
