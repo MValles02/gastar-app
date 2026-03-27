@@ -141,6 +141,9 @@ vite.config.ts.timestamp-*
 # claude
 .claude/
 
+# git worktrees
+.worktrees/
+
 # SonarQube scanner caches
 .scannerwork/
 .sonar/
