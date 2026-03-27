@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import Modal from '../../../shared/components/ui/Modal.jsx';
+import ResourceModal from '../../../shared/components/compound/ResourceModal.jsx';
 import Input from '../../../shared/components/ui/Input.jsx';
 import Select from '../../../shared/components/ui/Select.jsx';
-import Button from '../../../shared/components/ui/Button.jsx';
 import MessageBanner from '../../../shared/components/ui/MessageBanner.jsx';
 import CotizacionInput, { saveCotizacion } from '../../../shared/components/ui/CotizacionInput.jsx';
 import { getErrorMessage } from '../../../shared/utils/errors.js';
@@ -95,71 +94,68 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? 'Editar cuenta' : 'Nueva cuenta'}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <MessageBanner message={error} />
+    <ResourceModal
+      title={isEdit ? 'Editar cuenta' : 'Nueva cuenta'}
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      loading={loading}
+      submitLabel={isEdit ? 'Guardar' : 'Crear'}
+    >
+      <MessageBanner message={error} />
+      <Input
+        label="Nombre"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Ej: Banco Nación, Efectivo"
+        error={errors.name}
+      />
+      <Select
+        label="Tipo"
+        value={type}
+        onChange={(e) => setType(e.target.value)}
+        options={accountTypeOptions}
+      />
+      <Select
+        label="Moneda"
+        value={currency}
+        onChange={(e) => {
+          setCurrency(e.target.value);
+          setCotizacion('');
+        }}
+        options={[
+          { value: 'ARS', label: 'ARS - Peso argentino' },
+          { value: 'USD', label: 'USD - Dólar estadounidense' },
+          { value: 'EUR', label: 'EUR - Euro' },
+        ]}
+      />
+      {!isEdit && (
         <Input
-          label="Nombre"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Ej: Banco Nación, Efectivo"
-          error={errors.name}
+          label="Saldo inicial"
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          value={balance}
+          onChange={(e) => setBalance(e.target.value)}
+          placeholder="0.00"
+          error={errors.balance}
         />
-        <Select
-          label="Tipo"
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          options={accountTypeOptions}
-        />
-        <Select
-          label="Moneda"
-          value={currency}
-          onChange={(e) => {
-            setCurrency(e.target.value);
-            setCotizacion('');
-          }}
-          options={[
-            { value: 'ARS', label: 'ARS - Peso argentino' },
-            { value: 'USD', label: 'USD - Dólar estadounidense' },
-            { value: 'EUR', label: 'EUR - Euro' },
-          ]}
-        />
-        {!isEdit && (
-          <Input
-            label="Saldo inicial"
-            type="number"
-            inputMode="decimal"
-            step="0.01"
-            value={balance}
-            onChange={(e) => setBalance(e.target.value)}
-            placeholder="0.00"
-            error={errors.balance}
-          />
-        )}
-        <CotizacionInput
-          currency={currency}
-          value={cotizacion}
-          onChange={(val) => {
-            setCotizacion(val);
-            setErrors((prev) => {
-              const next = { ...prev };
-              delete next.cotizacion;
-              return next;
-            });
-          }}
-          amount={!isEdit ? balance : undefined}
-          error={errors.cotizacion}
-        />
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button type="submit" loading={loading}>
-            {isEdit ? 'Guardar' : 'Crear'}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      )}
+      <CotizacionInput
+        currency={currency}
+        value={cotizacion}
+        onChange={(val) => {
+          setCotizacion(val);
+          setErrors((prev) => {
+            const next = { ...prev };
+            delete next.cotizacion;
+            return next;
+          });
+        }}
+        amount={!isEdit ? balance : undefined}
+        error={errors.cotizacion}
+      />
+    </ResourceModal>
   );
 }
 

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import Modal from '../../../shared/components/ui/Modal.jsx';
+import ResourceModal from '../../../shared/components/compound/ResourceModal.jsx';
 import Input from '../../../shared/components/ui/Input.jsx';
-import Button from '../../../shared/components/ui/Button.jsx';
 import IconPicker from '../../../shared/components/ui/IconPicker.jsx';
 import MessageBanner from '../../../shared/components/ui/MessageBanner.jsx';
 import { getErrorMessage } from '../../../shared/utils/errors.js';
@@ -58,31 +57,24 @@ export default function CategoryModal({ isOpen, onClose, onSubmit, category }) {
   };
 
   return (
-    <Modal
+    <ResourceModal
+      title={isEdit ? 'Editar categoría' : 'Nueva categoría'}
       isOpen={isOpen}
       onClose={onClose}
-      title={isEdit ? 'Editar categoría' : 'Nueva categoría'}
+      onSubmit={handleSubmit}
+      loading={loading}
+      submitLabel={isEdit ? 'Guardar' : 'Crear'}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <MessageBanner message={error} />
-        <Input
-          label="Nombre"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Ej: Comida, Salario"
-          error={errors.name}
-        />
-        <IconPicker value={icon} onChange={setIcon} />
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button type="submit" loading={loading}>
-            {isEdit ? 'Guardar' : 'Crear'}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <MessageBanner message={error} />
+      <Input
+        label="Nombre"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Ej: Comida, Salario"
+        error={errors.name}
+      />
+      <IconPicker value={icon} onChange={setIcon} />
+    </ResourceModal>
   );
 }
 
