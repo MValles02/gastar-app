@@ -3,10 +3,7 @@ import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 
-export default function LegalLinks({
-  includeBackLink = false,
-  className,
-}) {
+export default function LegalLinks({ includeBackLink = false, className }) {
   const { user } = useAuth();
   const backLink = user
     ? { to: '/', label: 'Volver a la app' }
@@ -22,13 +19,17 @@ export default function LegalLinks({
       <Link className="transition-colors hover:text-accent-600" to="/privacy">
         Politica de privacidad
       </Link>
-      <span aria-hidden="true" className="text-app-soft">·</span>
+      <span aria-hidden="true" className="text-app-soft">
+        ·
+      </span>
       <Link className="transition-colors hover:text-accent-600" to="/terms">
         Terminos del servicio
       </Link>
       {includeBackLink ? (
         <>
-          <span aria-hidden="true" className="text-app-soft">·</span>
+          <span aria-hidden="true" className="text-app-soft">
+            ·
+          </span>
           <Link className="transition-colors hover:text-accent-600" to={backLink.to}>
             {backLink.label}
           </Link>

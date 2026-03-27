@@ -6,7 +6,7 @@ import { categoryShape } from '../../utils/propTypes.js';
 export default function CategoryList({ categories, onEdit, onDelete }) {
   return (
     <div className="list-surface">
-      {categories.map(category => {
+      {categories.map((category) => {
         const Icon = getCategoryIcon(category.icon) || Tag;
         return (
           <div key={category.id} className="list-row">

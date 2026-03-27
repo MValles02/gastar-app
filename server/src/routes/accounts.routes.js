@@ -25,11 +25,21 @@ router.post('/', async (req, res, next) => {
   try {
     const data = createAccountSchema.parse(req.body);
     const currency = data.currency || 'ARS';
-    const balanceArs = currency === 'ARS'
-      ? data.balance
-      : data.cotizacion ? Number(data.balance) * data.cotizacion : 0;
+    const balanceArs =
+      currency === 'ARS'
+        ? data.balance
+        : data.cotizacion
+          ? Number(data.balance) * data.cotizacion
+          : 0;
     const account = await prisma.account.create({
-      data: { name: data.name, type: data.type, currency, balance: data.balance, balanceArs, userId: req.userId },
+      data: {
+        name: data.name,
+        type: data.type,
+        currency,
+        balance: data.balance,
+        balanceArs,
+        userId: req.userId,
+      },
     });
     res.status(201).json({ data: account });
   } catch (err) {

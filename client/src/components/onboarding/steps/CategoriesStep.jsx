@@ -47,9 +47,9 @@ export default function CategoriesStep() {
     const category = { name: miniName.trim(), icon: miniIcon };
 
     if (choice === 'defaults') {
-      setExtraCategories(current => [...current, category]);
+      setExtraCategories((current) => [...current, category]);
     } else {
-      setPendingCategories(current => [...current, category]);
+      setPendingCategories((current) => [...current, category]);
     }
 
     setMiniName('');
@@ -58,9 +58,11 @@ export default function CategoriesStep() {
 
   const removeCategory = (index, fromExtra) => {
     if (fromExtra) {
-      setExtraCategories(current => current.filter((_, currentIndex) => currentIndex !== index));
+      setExtraCategories((current) => current.filter((_, currentIndex) => currentIndex !== index));
     } else {
-      setPendingCategories(current => current.filter((_, currentIndex) => currentIndex !== index));
+      setPendingCategories((current) =>
+        current.filter((_, currentIndex) => currentIndex !== index)
+      );
     }
   };
 
@@ -70,15 +72,19 @@ export default function CategoriesStep() {
 
     try {
       const existing = await getCategories();
-      const existingNames = new Set(existing.map(category => category.name));
+      const existingNames = new Set(existing.map((category) => category.name));
 
       if (choice === 'defaults') {
-        const newDefaults = DEFAULT_CATEGORIES.filter(category => !existingNames.has(category.name));
-        const newExtras = extraCategories.filter(category => !existingNames.has(category.name));
-        await Promise.all([...newDefaults, ...newExtras].map(category => createCategory(category)));
+        const newDefaults = DEFAULT_CATEGORIES.filter(
+          (category) => !existingNames.has(category.name)
+        );
+        const newExtras = extraCategories.filter((category) => !existingNames.has(category.name));
+        await Promise.all(
+          [...newDefaults, ...newExtras].map((category) => createCategory(category))
+        );
       } else {
-        const newCustom = pendingCategories.filter(category => !existingNames.has(category.name));
-        await Promise.all(newCustom.map(category => createCategory(category)));
+        const newCustom = pendingCategories.filter((category) => !existingNames.has(category.name));
+        await Promise.all(newCustom.map((category) => createCategory(category)));
       }
 
       goToNextStep();
@@ -108,7 +114,7 @@ export default function CategoriesStep() {
         >
           {choice === 'defaults' && (
             <div className="flex flex-wrap gap-1.5">
-              {DEFAULT_CATEGORIES.map(category => {
+              {DEFAULT_CATEGORIES.map((category) => {
                 const Icon = getCategoryIcon(category.icon);
                 return (
                   <span

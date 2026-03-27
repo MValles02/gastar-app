@@ -43,14 +43,19 @@ function ResetPassword() {
       <AuthShell
         title="Enlace inválido"
         subtitle="Este acceso ya no está disponible o fue abierto sin token."
-        footer={(
-          <Link className="inline-flex items-center gap-1 font-medium text-accent-600 transition-colors hover:text-accent-700" to="/login">
+        footer={
+          <Link
+            className="inline-flex items-center gap-1 font-medium text-accent-600 transition-colors hover:text-accent-700"
+            to="/login"
+          >
             <ArrowLeft className="h-4 w-4" />
             Volver al inicio de sesión
           </Link>
-        )}
+        }
       >
-        <p className="text-sm text-app-muted">Pedí un nuevo enlace de recuperación para continuar.</p>
+        <p className="text-sm text-app-muted">
+          Pedí un nuevo enlace de recuperación para continuar.
+        </p>
       </AuthShell>
     );
   }
@@ -59,12 +64,15 @@ function ResetPassword() {
     <AuthShell
       title="Creá una nueva contraseña"
       subtitle="Elegí una clave nueva para volver a entrar con seguridad."
-      footer={(
-        <Link className="inline-flex items-center gap-1 font-medium text-accent-600 transition-colors hover:text-accent-700" to="/login">
+      footer={
+        <Link
+          className="inline-flex items-center gap-1 font-medium text-accent-600 transition-colors hover:text-accent-700"
+          to="/login"
+        >
           <ArrowLeft className="h-4 w-4" />
           Volver al inicio de sesión
         </Link>
-      )}
+      }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <MessageBanner message={error} />

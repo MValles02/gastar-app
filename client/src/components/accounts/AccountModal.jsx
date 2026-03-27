@@ -57,7 +57,10 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
     if (currency !== 'ARS') {
       const needsCotizacion = isEdit || parsedBalance > 0;
       const parsedCotizacion = Number.parseFloat(cotizacion);
-      if (needsCotizacion && (!cotizacion || parsedCotizacion <= 0 || Number.isNaN(parsedCotizacion))) {
+      if (
+        needsCotizacion &&
+        (!cotizacion || parsedCotizacion <= 0 || Number.isNaN(parsedCotizacion))
+      ) {
         nextErrors.cotizacion = 'Ingresá la cotización del día';
       }
     }
@@ -71,9 +74,8 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
     setLoading(true);
 
     try {
-      const cotizacionPayload = currency !== 'ARS' && cotizacion
-        ? { cotizacion: Number.parseFloat(cotizacion) }
-        : {};
+      const cotizacionPayload =
+        currency !== 'ARS' && cotizacion ? { cotizacion: Number.parseFloat(cotizacion) } : {};
       const data = isEdit
         ? { name, type, currency, ...cotizacionPayload }
         : { name, type, currency, balance: parsedBalance || 0, ...cotizacionPayload };
@@ -112,7 +114,10 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
         <Select
           label="Moneda"
           value={currency}
-          onChange={(e) => { setCurrency(e.target.value); setCotizacion(''); }}
+          onChange={(e) => {
+            setCurrency(e.target.value);
+            setCotizacion('');
+          }}
           options={[
             { value: 'ARS', label: 'ARS - Peso argentino' },
             { value: 'USD', label: 'USD - Dólar estadounidense' },
@@ -134,7 +139,14 @@ export default function AccountModal({ isOpen, onClose, onSubmit, account }) {
         <CotizacionInput
           currency={currency}
           value={cotizacion}
-          onChange={(val) => { setCotizacion(val); setErrors(prev => { const next = { ...prev }; delete next.cotizacion; return next; }); }}
+          onChange={(val) => {
+            setCotizacion(val);
+            setErrors((prev) => {
+              const next = { ...prev };
+              delete next.cotizacion;
+              return next;
+            });
+          }}
           amount={!isEdit ? balance : undefined}
           error={errors.cotizacion}
         />

@@ -20,12 +20,16 @@ export default function AccountCard({ account, onEdit, onDelete }) {
       <div className="flex w-full items-center gap-3">
         <Icon className="h-4 w-4 shrink-0 text-accent-600" />
         <p className="flex-1 truncate text-sm font-medium text-app">{account.name}</p>
-        <p className={`shrink-0 whitespace-nowrap text-sm font-semibold ${getBalanceTone(balance)}`}>
+        <p
+          className={`shrink-0 whitespace-nowrap text-sm font-semibold ${getBalanceTone(balance)}`}
+        >
           {formatCurrency(balance, account.currency)}
         </p>
       </div>
       <div className="flex w-full items-center gap-1 pl-7 text-xs text-app-muted">
-        <span className="shrink-0 font-medium text-app-soft">{getAccountTypeLabel(account.type)}</span>
+        <span className="shrink-0 font-medium text-app-soft">
+          {getAccountTypeLabel(account.type)}
+        </span>
         {account.currency !== 'ARS' && (
           <>
             <span className="shrink-0"> · </span>

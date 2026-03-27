@@ -9,10 +9,12 @@ const api = axios.create({
 export const AUTH_REDIRECT_MESSAGE_KEY = 'gastar.auth.redirect.message';
 
 api.interceptors.response.use(
-  response => response,
-  error => {
+  (response) => response,
+  (error) => {
     const isAuthCheck = error.config?.url === '/auth/me';
-    const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(globalThis.location.pathname);
+    const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(
+      globalThis.location.pathname
+    );
 
     if (error.response?.status === 401 && !isAuthCheck && !isAuthPage) {
       sessionStorage.setItem(

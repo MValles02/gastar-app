@@ -21,16 +21,18 @@ export function OnboardingProvider({ children }) {
     const done = localStorage.getItem(key);
     if (done === 'true') return;
 
-    getAccounts().then(accounts => {
-      if (accounts.length > 0) {
-        // Existing user with data: silently mark complete, don't show wizard
-        localStorage.setItem(key, 'true');
-      } else {
-        setIsOpen(true);
-      }
-    }).catch(() => {
-      // If the check fails, don't show the wizard to avoid blocking the app
-    });
+    getAccounts()
+      .then((accounts) => {
+        if (accounts.length > 0) {
+          // Existing user with data: silently mark complete, don't show wizard
+          localStorage.setItem(key, 'true');
+        } else {
+          setIsOpen(true);
+        }
+      })
+      .catch(() => {
+        // If the check fails, don't show the wizard to avoid blocking the app
+      });
   }, [user]);
 
   const openOnboarding = () => {
@@ -39,11 +41,11 @@ export function OnboardingProvider({ children }) {
     setIsOpen(true);
   };
 
-  const goToNextStep = () => setCurrentStep(s => s + 1);
-  const goToPrevStep = () => setCurrentStep(s => s - 1);
+  const goToNextStep = () => setCurrentStep((s) => s + 1);
+  const goToPrevStep = () => setCurrentStep((s) => s - 1);
 
   const addCreatedAccount = (account) => {
-    setCreatedAccounts(prev => [...prev, account]);
+    setCreatedAccounts((prev) => [...prev, account]);
   };
 
   const markComplete = () => {
@@ -68,11 +70,7 @@ export function OnboardingProvider({ children }) {
     [isOpen, currentStep, createdAccounts]
   );
 
-  return (
-    <OnboardingContext.Provider value={value}>
-      {children}
-    </OnboardingContext.Provider>
-  );
+  return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;
 }
 
 export function useOnboarding() {

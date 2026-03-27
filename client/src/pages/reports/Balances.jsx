@@ -11,8 +11,18 @@ import { formatCurrency, getAmountTone } from '../../utils/formatters.js';
 import { getErrorMessage } from '../../utils/errors.js';
 
 const MONTH_NAMES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
 ];
 
 const currentYear = new Date().getFullYear();
@@ -81,20 +91,29 @@ export default function Balances() {
 
         {loading ? <ListPageSkeleton metricCount={3} /> : null}
         {error ? (
-          <PageErrorState title="No pudimos cargar los balances" message={error} onAction={() => load(appliedYear)} />
+          <PageErrorState
+            title="No pudimos cargar los balances"
+            message={error}
+            onAction={() => load(appliedYear)}
+          />
         ) : null}
 
         {!loading && !error && data ? (
           <div className="list-surface divide-y divide-border-default/40">
             <div className="grid grid-cols-2 gap-2 px-5 py-2.5 md:grid-cols-4">
               <p className="text-xs font-medium text-app-muted">Mes</p>
-              <p className="hidden text-right text-xs font-medium text-app-muted md:block">Ingresos</p>
-              <p className="hidden text-right text-xs font-medium text-app-muted md:block">Gastos</p>
+              <p className="hidden text-right text-xs font-medium text-app-muted md:block">
+                Ingresos
+              </p>
+              <p className="hidden text-right text-xs font-medium text-app-muted md:block">
+                Gastos
+              </p>
               <p className="text-right text-xs font-medium text-app-muted">Balance</p>
             </div>
 
             {data.months.map((row) => {
-              const balanceTone = row.netFlow >= 0 ? getAmountTone('income') : getAmountTone('expense');
+              const balanceTone =
+                row.netFlow >= 0 ? getAmountTone('income') : getAmountTone('expense');
               const hasData = row.income > 0 || row.expenses > 0;
               return (
                 <div
@@ -109,7 +128,8 @@ export default function Balances() {
                     {formatCurrency(row.expenses)}
                   </p>
                   <p className={`text-right text-sm font-semibold ${balanceTone}`}>
-                    {row.netFlow >= 0 ? '+' : ''}{formatCurrency(row.netFlow)}
+                    {row.netFlow >= 0 ? '+' : ''}
+                    {formatCurrency(row.netFlow)}
                   </p>
                 </div>
               );
@@ -117,14 +137,21 @@ export default function Balances() {
 
             <div className="grid grid-cols-2 gap-2 bg-surface-muted px-5 py-3 md:grid-cols-4">
               <p className="text-sm font-semibold text-app">Total {appliedYear}</p>
-              <p className={`hidden text-right text-sm font-semibold md:block ${getAmountTone('income')}`}>
+              <p
+                className={`hidden text-right text-sm font-semibold md:block ${getAmountTone('income')}`}
+              >
                 {formatCurrency(data.totals.income)}
               </p>
-              <p className={`hidden text-right text-sm font-semibold md:block ${getAmountTone('expense')}`}>
+              <p
+                className={`hidden text-right text-sm font-semibold md:block ${getAmountTone('expense')}`}
+              >
                 {formatCurrency(data.totals.expenses)}
               </p>
-              <p className={`text-right text-sm font-bold ${data.totals.netFlow >= 0 ? getAmountTone('income') : getAmountTone('expense')}`}>
-                {data.totals.netFlow >= 0 ? '+' : ''}{formatCurrency(data.totals.netFlow)}
+              <p
+                className={`text-right text-sm font-bold ${data.totals.netFlow >= 0 ? getAmountTone('income') : getAmountTone('expense')}`}
+              >
+                {data.totals.netFlow >= 0 ? '+' : ''}
+                {formatCurrency(data.totals.netFlow)}
               </p>
             </div>
           </div>

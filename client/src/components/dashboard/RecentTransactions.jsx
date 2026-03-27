@@ -2,11 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight as ArrowRightIcon } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { getCategoryIcon } from '../ui/IconPicker.jsx';
-import {
-  formatCurrency,
-  formatDateShort,
-  getAmountTone,
-} from '../../utils/formatters.js';
+import { formatCurrency, formatDateShort, getAmountTone } from '../../utils/formatters.js';
 import { transactionShape } from '../../utils/propTypes.js';
 import { TYPE_CONFIG, amountPrefix } from '../../constants/transactionTypes.js';
 
@@ -25,7 +21,7 @@ export default function RecentTransactions({ transactions }) {
 
       <div className="list-surface">
         {transactions && transactions.length > 0 ? (
-          transactions.map(tx => {
+          transactions.map((tx) => {
             const title = tx.description || tx.category?.name || '—';
             const CategoryIcon = tx.category?.icon ? getCategoryIcon(tx.category.icon) : null;
             const { Icon: TypeIcon, tone: typeTone } = TYPE_CONFIG[tx.type] ?? TYPE_CONFIG.expense;
@@ -36,8 +32,11 @@ export default function RecentTransactions({ transactions }) {
                 <div className="flex items-center gap-3 w-full">
                   <TypeIcon className={`h-4 w-4 shrink-0 ${typeTone}`} />
                   <p className="truncate text-sm font-medium text-app flex-1">{title}</p>
-                  <span className={`whitespace-nowrap text-sm font-semibold shrink-0 ${getAmountTone(tx.type)}`}>
-                    {amountPrefix(tx.type)}{formatCurrency(Number.parseFloat(tx.amount))}
+                  <span
+                    className={`whitespace-nowrap text-sm font-semibold shrink-0 ${getAmountTone(tx.type)}`}
+                  >
+                    {amountPrefix(tx.type)}
+                    {formatCurrency(Number.parseFloat(tx.amount))}
                   </span>
                 </div>
 
@@ -47,9 +46,7 @@ export default function RecentTransactions({ transactions }) {
                   {tx.category?.name ? (
                     <span className="font-medium text-app-soft shrink-0">{tx.category.name}</span>
                   ) : null}
-                  {(CategoryIcon || tx.category?.name) ? (
-                    <span className="shrink-0"> · </span>
-                  ) : null}
+                  {CategoryIcon || tx.category?.name ? <span className="shrink-0"> · </span> : null}
                   <span className="truncate">{tx.account?.name}</span>
                   <span className="shrink-0"> · {formatDateShort(tx.date)}</span>
                 </div>
@@ -57,9 +54,7 @@ export default function RecentTransactions({ transactions }) {
             );
           })
         ) : (
-          <div className="px-5 py-6 text-sm text-app-muted">
-            No hay transacciones recientes.
-          </div>
+          <div className="px-5 py-6 text-sm text-app-muted">No hay transacciones recientes.</div>
         )}
       </div>
     </section>

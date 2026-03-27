@@ -52,14 +52,15 @@ function Dashboard() {
   const netByCategory = (() => {
     const expenses = categoryData?.expenses ?? [];
     const incomes = categoryData?.incomes ?? [];
-    const incomeMap = new Map(incomes.map(i => [i.categoryId, i.total]));
+    const incomeMap = new Map(incomes.map((i) => [i.categoryId, i.total]));
     return expenses
-      .map(e => ({ ...e, total: e.total - (incomeMap.get(e.categoryId) ?? 0) }))
-      .filter(e => e.total > 0);
+      .map((e) => ({ ...e, total: e.total - (incomeMap.get(e.categoryId) ?? 0) }))
+      .filter((e) => e.total > 0);
   })();
 
   if (loading) return <DashboardSkeleton />;
-  if (error) return <PageErrorState title="No pudimos cargar el panel" message={error} onAction={load} />;
+  if (error)
+    return <PageErrorState title="No pudimos cargar el panel" message={error} onAction={load} />;
 
   return (
     <Page>

@@ -11,16 +11,14 @@ export default function Header({ onMenuOpen }) {
             <GastarLogo className="h-5 w-5" />
           </div>
           <div className="space-y-0.5">
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-app-soft">Workspace</p>
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-app-soft">
+              Workspace
+            </p>
             <h1 className="text-base font-semibold tracking-tight text-app">Gastar</h1>
           </div>
         </div>
 
-        <button
-          onClick={onMenuOpen}
-          aria-label="Abrir menú"
-          className="interactive-subtle p-2.5"
-        >
+        <button onClick={onMenuOpen} aria-label="Abrir menú" className="interactive-subtle p-2.5">
           <Menu className="h-5 w-5" />
         </button>
       </div>

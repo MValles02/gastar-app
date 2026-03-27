@@ -15,20 +15,28 @@ export default function BalanceOverview({ summary }) {
 
       <div className="mt-8 grid gap-3 sm:grid-cols-3">
         <div className="metric-card">
-          <p className="metric-label">Ingresos <span className="font-normal text-app-soft">(este mes)</span></p>
+          <p className="metric-label">
+            Ingresos <span className="font-normal text-app-soft">(este mes)</span>
+          </p>
           <p className={`mt-2 text-2xl font-semibold ${getAmountTone('income')}`}>
             {formatCurrency(summary.totalIncome)}
           </p>
         </div>
         <div className="metric-card">
-          <p className="metric-label">Gastos <span className="font-normal text-app-soft">(este mes)</span></p>
+          <p className="metric-label">
+            Gastos <span className="font-normal text-app-soft">(este mes)</span>
+          </p>
           <p className={`mt-2 text-2xl font-semibold ${getAmountTone('expense')}`}>
             {formatCurrency(summary.totalExpenses)}
           </p>
         </div>
         <div className="metric-card">
-          <p className="metric-label">Saldo neto <span className="font-normal text-app-soft">(este mes)</span></p>
-          <p className={`mt-2 text-2xl font-semibold ${getBalanceTone(summary.totalIncome - summary.totalExpenses)}`}>
+          <p className="metric-label">
+            Saldo neto <span className="font-normal text-app-soft">(este mes)</span>
+          </p>
+          <p
+            className={`mt-2 text-2xl font-semibold ${getBalanceTone(summary.totalIncome - summary.totalExpenses)}`}
+          >
             {formatCurrency(summary.totalIncome - summary.totalExpenses)}
           </p>
         </div>

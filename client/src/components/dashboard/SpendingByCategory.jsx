@@ -43,7 +43,7 @@ export default function SpendingByCategory({ data }) {
       <h3 className="section-title">Gastos por categoría</h3>
 
       <div className="list-surface divide-y divide-border-default/40">
-        {items.map(item => {
+        {items.map((item) => {
           const pct = total > 0 ? (item.value / total) * 100 : 0;
           const Icon = getCategoryIcon(item.icon) || Tag;
           return (
@@ -75,9 +75,11 @@ export default function SpendingByCategory({ data }) {
 }
 
 SpendingByCategory.propTypes = {
-  data: PropTypes.arrayOf(PropTypes.shape({
-    categoryName: PropTypes.string.isRequired,
-    categoryIcon: PropTypes.string,
-    total: PropTypes.number.isRequired,
-  })),
+  data: PropTypes.arrayOf(
+    PropTypes.shape({
+      categoryName: PropTypes.string.isRequired,
+      categoryIcon: PropTypes.string,
+      total: PropTypes.number.isRequired,
+    })
+  ),
 };

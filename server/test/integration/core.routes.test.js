@@ -101,7 +101,12 @@ test('account routes support CRUD and allow deleting accounts with transactions 
   const createResponse = await fetch(`${baseUrl}/api/accounts`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', cookie: session.cookie },
-    body: JSON.stringify({ name: 'Banco Principal', type: 'checking', currency: 'ARS', balance: 2500 }),
+    body: JSON.stringify({
+      name: 'Banco Principal',
+      type: 'checking',
+      currency: 'ARS',
+      balance: 2500,
+    }),
   });
   const createdAccount = await createResponse.json();
   assert.equal(createResponse.status, 201);
@@ -242,10 +247,13 @@ test('category routes support CRUD and prevent deleting categories with transact
     },
   });
 
-  const blockedDeleteResponse = await fetch(`${baseUrl}/api/categories/${createdCategory.data.id}`, {
-    method: 'DELETE',
-    headers: { cookie: session.cookie },
-  });
+  const blockedDeleteResponse = await fetch(
+    `${baseUrl}/api/categories/${createdCategory.data.id}`,
+    {
+      method: 'DELETE',
+      headers: { cookie: session.cookie },
+    }
+  );
 
   assert.equal(blockedDeleteResponse.status, 400);
 
@@ -307,9 +315,12 @@ test('report routes return filtered summaries and grouped category totals', asyn
 
   const session = await login(user, password);
 
-  const summaryResponse = await fetch(`${baseUrl}/api/reports/summary?from=2026-03-01&to=2026-03-31`, {
-    headers: { cookie: session.cookie },
-  });
+  const summaryResponse = await fetch(
+    `${baseUrl}/api/reports/summary?from=2026-03-01&to=2026-03-31`,
+    {
+      headers: { cookie: session.cookie },
+    }
+  );
 
   const summaryBody = await summaryResponse.json();
   assert.equal(summaryResponse.status, 200);
@@ -318,9 +329,12 @@ test('report routes return filtered summaries and grouped category totals', asyn
   assert.equal(summaryBody.data.totalExpenses, 50);
   assert.equal(summaryBody.data.netFlow, 250);
 
-  const byCategoryResponse = await fetch(`${baseUrl}/api/reports/by-category?from=2026-03-01&to=2026-03-31`, {
-    headers: { cookie: session.cookie },
-  });
+  const byCategoryResponse = await fetch(
+    `${baseUrl}/api/reports/by-category?from=2026-03-01&to=2026-03-31`,
+    {
+      headers: { cookie: session.cookie },
+    }
+  );
 
   const byCategoryBody = await byCategoryResponse.json();
   assert.equal(byCategoryResponse.status, 200);
@@ -344,7 +358,13 @@ test('editing a non-ARS account with a new cotizacion updates balanceArs', async
   const createResponse = await fetch(`${baseUrl}/api/accounts`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', cookie: session.cookie },
-    body: JSON.stringify({ name: 'Dólares', type: 'savings', currency: 'USD', balance: 100, cotizacion: 1000 }),
+    body: JSON.stringify({
+      name: 'Dólares',
+      type: 'savings',
+      currency: 'USD',
+      balance: 100,
+      cotizacion: 1000,
+    }),
   });
   const created = await createResponse.json();
   assert.equal(createResponse.status, 201);

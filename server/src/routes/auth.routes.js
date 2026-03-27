@@ -6,12 +6,17 @@ import prisma from '../utils/prisma.js';
 import { generateToken, setTokenCookie } from '../utils/token.js';
 import { hashResetToken } from '../utils/reset-token.js';
 import { authenticate } from '../middleware/auth.middleware.js';
-import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, updateProfileSchema } from '../validators/auth.validators.js';
+import {
+  registerSchema,
+  loginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  updateProfileSchema,
+} from '../validators/auth.validators.js';
 import { sendPasswordResetEmail } from '../services/email.service.js';
 import { buildGoogleAuthUrl, exchangeCodeForProfile } from '../services/google-auth.service.js';
 
 const router = Router();
-
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -38,7 +43,6 @@ router.post('/register', authLimiter, async (req, res, next) => {
       data: { name: data.name, email: data.email, passwordHash },
       select: userPublicSelect,
     });
-
 
     const token = generateToken(user.id);
     setTokenCookie(res, token);
@@ -67,7 +71,16 @@ router.post('/login', authLimiter, async (req, res, next) => {
     const token = generateToken(user.id);
     setTokenCookie(res, token);
 
-    res.json({ data: { user: { id: user.id, email: user.email, name: user.name, cotizacionPreference: user.cotizacionPreference } } });
+    res.json({
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          cotizacionPreference: user.cotizacionPreference,
+        },
+      },
+    });
   } catch (err) {
     next(err);
   }

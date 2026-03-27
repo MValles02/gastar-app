@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Plus, Tag } from 'lucide-react';
-import { getCategories, createCategory, updateCategory, deleteCategory } from '../services/categories.js';
+import {
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from '../services/categories.js';
 import { useTransactionModal } from '../context/TransactionModalContext.jsx';
 import { useDialog } from '../context/DialogContext.jsx';
 import { Page } from '../components/layout/Page.jsx';
@@ -84,7 +89,14 @@ function Categories() {
   };
 
   if (loading) return <ListPageSkeleton metricCount={0} />;
-  if (loadError) return <PageErrorState title="No pudimos cargar las categorías" message={loadError} onAction={load} />;
+  if (loadError)
+    return (
+      <PageErrorState
+        title="No pudimos cargar las categorías"
+        message={loadError}
+        onAction={load}
+      />
+    );
 
   return (
     <Page>
@@ -102,7 +114,8 @@ function Categories() {
             <p className="metric-label">Categorías activas</p>
             <p className="mt-2 text-2xl font-semibold text-app">{categories.length}</p>
             <p className="mt-1 text-sm text-app-muted">
-              Mantené una estructura corta y clara para que reportes y filtros sigan siendo legibles.
+              Mantené una estructura corta y clara para que reportes y filtros sigan siendo
+              legibles.
             </p>
           </div>
           <div className="section-heading">
@@ -113,11 +126,7 @@ function Categories() {
             </Button>
           </div>
 
-          <CategoryList
-            categories={categories}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
+          <CategoryList categories={categories} onEdit={handleEdit} onDelete={handleDelete} />
         </div>
       )}
 

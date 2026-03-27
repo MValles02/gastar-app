@@ -55,21 +55,112 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
-            <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
-            <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
-            <Route path="/reset-password" element={<GuestRoute><ResetPassword /></GuestRoute>} />
+            <Route
+              path="/login"
+              element={
+                <GuestRoute>
+                  <Login />
+                </GuestRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <GuestRoute>
+                  <Register />
+                </GuestRoute>
+              }
+            />
+            <Route
+              path="/forgot-password"
+              element={
+                <GuestRoute>
+                  <ForgotPassword />
+                </GuestRoute>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <GuestRoute>
+                  <ResetPassword />
+                </GuestRoute>
+              }
+            />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
-            <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-            <Route path="/transactions" element={<PrivateRoute><Transactions /></PrivateRoute>} />
-            <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
-            <Route path="/categories" element={<PrivateRoute><Categories /></PrivateRoute>} />
-            <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
-            <Route path="/reports/balances" element={<PrivateRoute><Balances /></PrivateRoute>} />
-            <Route path="/reports/gastos-por-categoria" element={<PrivateRoute><SpendByCategory /></PrivateRoute>} />
-            <Route path="/reports/frecuencia" element={<PrivateRoute><Frequency /></PrivateRoute>} />
-            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <Dashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/transactions"
+              element={
+                <PrivateRoute>
+                  <Transactions />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/accounts"
+              element={
+                <PrivateRoute>
+                  <Accounts />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/categories"
+              element={
+                <PrivateRoute>
+                  <Categories />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <PrivateRoute>
+                  <Reports />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/reports/balances"
+              element={
+                <PrivateRoute>
+                  <Balances />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/reports/gastos-por-categoria"
+              element={
+                <PrivateRoute>
+                  <SpendByCategory />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/reports/frecuencia"
+              element={
+                <PrivateRoute>
+                  <Frequency />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <PrivateRoute>
+                  <Profile />
+                </PrivateRoute>
+              }
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

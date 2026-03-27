@@ -12,7 +12,9 @@ export function TransactionComposerHint({ children }) {
 
 export function TransactionTypeSwitch({ options, value, onChange, className }) {
   return (
-    <div className={clsx('flex overflow-hidden rounded-soft border border-border-default', className)}>
+    <div
+      className={clsx('flex overflow-hidden rounded-soft border border-border-default', className)}
+    >
       {options.map((option) => {
         const Icon = option.icon;
         const active = option.value === value;
@@ -62,12 +64,14 @@ TransactionComposerHint.propTypes = {
 };
 
 TransactionTypeSwitch.propTypes = {
-  options: PropTypes.arrayOf(PropTypes.shape({
-    value: PropTypes.string.isRequired,
-    label: PropTypes.string.isRequired,
-    icon: iconPropType,
-    tone: PropTypes.string,
-  })).isRequired,
+  options: PropTypes.arrayOf(
+    PropTypes.shape({
+      value: PropTypes.string.isRequired,
+      label: PropTypes.string.isRequired,
+      icon: iconPropType,
+      tone: PropTypes.string,
+    })
+  ).isRequired,
   value: PropTypes.string.isRequired,
   onChange: PropTypes.func,
   className: classNamePropType,

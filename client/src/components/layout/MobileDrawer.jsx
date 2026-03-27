@@ -1,13 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { NavLink } from 'react-router-dom';
-import {
-  LogOut,
-  HelpCircle,
-  User,
-  Sun,
-  Moon,
-  X,
-} from 'lucide-react';
+import { LogOut, HelpCircle, User, Sun, Moon, X } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -21,27 +14,36 @@ export default function MobileDrawer({ isOpen, onClose }) {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const { openOnboarding } = useOnboarding();
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Escape') {
-      onClose();
-      return;
-    }
-
-    if (e.key === 'Tab' && drawerRef.current) {
-      const focusable = drawerRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-
-      if (e.shiftKey) {
-        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-      } else {
-        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
       }
-    }
-  }, [onClose]);
+
+      if (e.key === 'Tab' && drawerRef.current) {
+        const focusable = drawerRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    },
+    [onClose]
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -99,7 +101,9 @@ export default function MobileDrawer({ isOpen, onClose }) {
             <GastarLogo className="h-5 w-5 flex-shrink-0" />
           </div>
           <div className="space-y-0.5">
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-app-soft">Workspace</p>
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-app-soft">
+              Workspace
+            </p>
             <span className="text-base font-semibold tracking-tight text-app">Gastar</span>
           </div>
           <button
@@ -145,9 +149,11 @@ export default function MobileDrawer({ isOpen, onClose }) {
             aria-label={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
             className={footerButtonClass}
           >
-            {theme === 'light'
-              ? <Moon className="h-5 w-5" aria-hidden="true" />
-              : <Sun className="h-5 w-5" aria-hidden="true" />}
+            {theme === 'light' ? (
+              <Moon className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <Sun className="h-5 w-5" aria-hidden="true" />
+            )}
             <span>{theme === 'light' ? 'Modo oscuro' : 'Modo claro'}</span>
           </button>
 
@@ -169,7 +175,10 @@ export default function MobileDrawer({ isOpen, onClose }) {
           ) : null}
 
           <button
-            onClick={() => { openOnboarding(); onClose(); }}
+            onClick={() => {
+              openOnboarding();
+              onClose();
+            }}
             className={footerButtonClass}
           >
             <HelpCircle className="h-5 w-5" aria-hidden="true" />
@@ -177,7 +186,10 @@ export default function MobileDrawer({ isOpen, onClose }) {
           </button>
 
           <button
-            onClick={() => { logout(); onClose(); }}
+            onClick={() => {
+              logout();
+              onClose();
+            }}
             className="flex w-full items-center gap-3 rounded-soft px-3 py-2 text-sm text-app-muted transition-colors hover:bg-danger-soft hover:text-danger"
           >
             <LogOut className="h-5 w-5" aria-hidden="true" />

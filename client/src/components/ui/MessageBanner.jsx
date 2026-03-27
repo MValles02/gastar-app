@@ -13,7 +13,8 @@ const variants = {
     icon: CheckCircle2,
   },
   info: {
-    wrapper: 'border border-accent-200 bg-accent-50 text-accent-700 dark:border-accent-900 dark:bg-accent-950 dark:text-accent-300',
+    wrapper:
+      'border border-accent-200 bg-accent-50 text-accent-700 dark:border-accent-900 dark:bg-accent-950 dark:text-accent-300',
     icon: Info,
   },
 };

@@ -1,14 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAccountSchema, updateAccountSchema } from '../src/validators/account.validators.js';
-import { createCategorySchema, updateCategorySchema } from '../src/validators/category.validators.js';
+import {
+  createCategorySchema,
+  updateCategorySchema,
+} from '../src/validators/category.validators.js';
 import {
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
   resetPasswordSchema,
 } from '../src/validators/auth.validators.js';
-import { clearTestEmails, getTestEmails, sendPasswordResetEmail } from '../src/services/email.service.js';
+import {
+  clearTestEmails,
+  getTestEmails,
+  sendPasswordResetEmail,
+} from '../src/services/email.service.js';
 import { generateToken, setTokenCookie } from '../src/utils/token.js';
 
 test('account schemas parse valid input and reject invalid types', () => {
@@ -34,35 +41,44 @@ test('category schemas validate required fields and partial updates', () => {
   const category = createCategorySchema.parse({ name: 'Comida', icon: 'pizza' });
   assert.equal(category.icon, 'pizza');
 
-  assert.throws(
-    () => createCategorySchema.parse({ name: '' }),
-    /nombre/i
-  );
+  assert.throws(() => createCategorySchema.parse({ name: '' }), /nombre/i);
 
   const update = updateCategorySchema.parse({ icon: 'wallet' });
   assert.equal(update.icon, 'wallet');
 });
 
 test('auth schemas validate expected fields', () => {
-  assert.equal(registerSchema.parse({
-    name: 'Mateo Valles',
-    email: 'mateo@example.com',
-    password: 'secret123',
-  }).email, 'mateo@example.com');
+  assert.equal(
+    registerSchema.parse({
+      name: 'Mateo Valles',
+      email: 'mateo@example.com',
+      password: 'secret123',
+    }).email,
+    'mateo@example.com'
+  );
 
-  assert.equal(loginSchema.parse({
-    email: 'mateo@example.com',
-    password: 'x',
-  }).password, 'x');
+  assert.equal(
+    loginSchema.parse({
+      email: 'mateo@example.com',
+      password: 'x',
+    }).password,
+    'x'
+  );
 
-  assert.equal(forgotPasswordSchema.parse({
-    email: 'mateo@example.com',
-  }).email, 'mateo@example.com');
+  assert.equal(
+    forgotPasswordSchema.parse({
+      email: 'mateo@example.com',
+    }).email,
+    'mateo@example.com'
+  );
 
-  assert.equal(resetPasswordSchema.parse({
-    token: 'raw-token',
-    password: 'secret123',
-  }).token, 'raw-token');
+  assert.equal(
+    resetPasswordSchema.parse({
+      token: 'raw-token',
+      password: 'secret123',
+    }).token,
+    'raw-token'
+  );
 });
 
 test('sendPasswordResetEmail stores test emails in NODE_ENV=test', async () => {

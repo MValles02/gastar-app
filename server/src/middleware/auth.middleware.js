@@ -1,9 +1,7 @@
 import jwt from 'jsonwebtoken';
 
 export function authenticate(req, res, next) {
-  const token =
-    req.cookies?.token ||
-    req.headers.authorization?.replace('Bearer ', '');
+  const token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '');
 
   if (!token) {
     return res.status(401).json({ error: 'No autorizado' });

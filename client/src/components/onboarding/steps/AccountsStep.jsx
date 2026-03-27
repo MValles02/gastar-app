@@ -36,17 +36,17 @@ export default function AccountsStep() {
     }
 
     getAccounts()
-      .then(accounts => {
-        accounts.forEach(account => addCreatedAccount(account));
+      .then((accounts) => {
+        accounts.forEach((account) => addCreatedAccount(account));
       })
       .catch((err) => {
         setError(getErrorMessage(err, 'No pudimos cargar tus cuentas actuales.'));
       })
       .finally(() => setLoadingExisting(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const set = (field) => (e) => setForm(current => ({ ...current, [field]: e.target.value }));
+  const set = (field) => (e) => setForm((current) => ({ ...current, [field]: e.target.value }));
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -76,9 +76,8 @@ export default function AccountsStep() {
     setLoading(true);
 
     try {
-      const cotizacionPayload = form.currency !== 'ARS' && cotizacion
-        ? { cotizacion: Number.parseFloat(cotizacion) }
-        : {};
+      const cotizacionPayload =
+        form.currency !== 'ARS' && cotizacion ? { cotizacion: Number.parseFloat(cotizacion) } : {};
       const account = await createAccount({
         name: form.name.trim(),
         type: form.type,
@@ -112,15 +111,14 @@ export default function AccountsStep() {
 
       {createdAccounts.length > 0 && (
         <div className="mt-4 space-y-2">
-          {createdAccounts.map(account => (
-            <div
-              key={account.id}
-              className="panel-muted flex items-center gap-3 px-4 py-3"
-            >
+          {createdAccounts.map((account) => (
+            <div key={account.id} className="panel-muted flex items-center gap-3 px-4 py-3">
               <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-success" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-app">{account.name}</p>
-                <p className="text-xs text-app-muted">{accountTypeLabels[account.type]} · {account.currency}</p>
+                <p className="text-xs text-app-muted">
+                  {accountTypeLabels[account.type]} · {account.currency}
+                </p>
               </div>
             </div>
           ))}
@@ -155,7 +153,10 @@ export default function AccountsStep() {
           <Select
             label="Moneda"
             value={form.currency}
-            onChange={(e) => { set('currency')(e); setCotizacion(''); }}
+            onChange={(e) => {
+              set('currency')(e);
+              setCotizacion('');
+            }}
             options={currencyOptions}
           />
 
@@ -173,7 +174,14 @@ export default function AccountsStep() {
           <CotizacionInput
             currency={form.currency}
             value={cotizacion}
-            onChange={(val) => { setCotizacion(val); setErrors(prev => { const next = { ...prev }; delete next.cotizacion; return next; }); }}
+            onChange={(val) => {
+              setCotizacion(val);
+              setErrors((prev) => {
+                const next = { ...prev };
+                delete next.cotizacion;
+                return next;
+              });
+            }}
             amount={form.balance}
             error={errors.cotizacion}
           />

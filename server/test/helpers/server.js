@@ -10,11 +10,12 @@ export async function startTestServer() {
 
   return {
     baseUrl,
-    close: () => new Promise((resolve, reject) => {
-      server.close((err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    }),
+    close: () =>
+      new Promise((resolve, reject) => {
+        server.close((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      }),
   };
 }

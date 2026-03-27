@@ -7,5 +7,5 @@ export const accountTypeOptions = [
 ];
 
 export const accountTypeLabels = Object.fromEntries(
-  accountTypeOptions.map(option => [option.value, option.label])
+  accountTypeOptions.map((option) => [option.value, option.label])
 );

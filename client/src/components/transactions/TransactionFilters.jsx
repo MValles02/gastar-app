@@ -10,7 +10,7 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
   const [localFilters, setLocalFilters] = useState({ ...filters });
 
   const update = (key, value) => {
-    setLocalFilters(prev => ({ ...prev, [key]: value }));
+    setLocalFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   const apply = () => {
@@ -23,7 +23,12 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
     onChange(reset);
   };
 
-  const hasLocalFilters = localFilters.accountId || localFilters.categoryId || localFilters.type || localFilters.from || localFilters.to;
+  const hasLocalFilters =
+    localFilters.accountId ||
+    localFilters.categoryId ||
+    localFilters.type ||
+    localFilters.from ||
+    localFilters.to;
 
   return (
     <section className="list-surface p-4 md:p-5">
@@ -42,14 +47,14 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
           placeholder="Todas"
           value={localFilters.accountId || ''}
           onChange={(e) => update('accountId', e.target.value || undefined)}
-          options={accounts.map(a => ({ value: a.id, label: a.name }))}
+          options={accounts.map((a) => ({ value: a.id, label: a.name }))}
         />
         <Select
           label="Categoría"
           placeholder="Todas"
           value={localFilters.categoryId || ''}
           onChange={(e) => update('categoryId', e.target.value || undefined)}
-          options={categories.map(c => ({ value: c.id, label: c.name }))}
+          options={categories.map((c) => ({ value: c.id, label: c.name }))}
         />
         <Select
           label="Tipo"

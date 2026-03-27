@@ -23,10 +23,16 @@ export default function Privacy() {
             <Section title="1. Informacion que recopilamos">
               <p>Al usar Gastar, recopilamos la siguiente informacion:</p>
               <ul className="mt-2 list-inside list-disc space-y-1 text-app-muted">
-                <li>Nombre y direccion de correo electronico al registrarte o iniciar sesion con Google</li>
+                <li>
+                  Nombre y direccion de correo electronico al registrarte o iniciar sesion con
+                  Google
+                </li>
                 <li>Datos financieros que vos ingresas: cuentas, transacciones y categorias</li>
               </ul>
-              <p className="mt-2">No recopilamos datos bancarios, numeros de tarjeta ni credenciales de acceso a entidades financieras.</p>
+              <p className="mt-2">
+                No recopilamos datos bancarios, numeros de tarjeta ni credenciales de acceso a
+                entidades financieras.
+              </p>
             </Section>
 
             <Section title="2. Como usamos tu informacion">
@@ -36,22 +42,25 @@ export default function Privacy() {
                 <li>Almacenar y mostrarte tus datos financieros personales</li>
                 <li>Enviarte correos de recuperacion de contraseña cuando los solicitas</li>
               </ul>
-              <p className="mt-2">No vendemos, compartimos ni cedemos tu informacion a terceros con fines comerciales.</p>
+              <p className="mt-2">
+                No vendemos, compartimos ni cedemos tu informacion a terceros con fines comerciales.
+              </p>
             </Section>
 
             <Section title="3. Inicio de sesion con Google">
               <p>
-                Si elegis iniciar sesion con Google, recibimos de Google tu nombre y direccion de correo electronico verificada.
-                Esta informacion se usa unicamente para crear o identificar tu cuenta en Gastar.
-                No accedemos a tu cuenta de Google, tus contactos, tu Drive ni ningun otro servicio.
+                Si elegis iniciar sesion con Google, recibimos de Google tu nombre y direccion de
+                correo electronico verificada. Esta informacion se usa unicamente para crear o
+                identificar tu cuenta en Gastar. No accedemos a tu cuenta de Google, tus contactos,
+                tu Drive ni ningun otro servicio.
               </p>
             </Section>
 
             <Section title="4. Almacenamiento y seguridad">
               <p>
-                Tus datos se almacenan en servidores ubicados en Sudamerica a traves de proveedores de infraestructura en la nube.
-                Las contraseñas se almacenan con hash seguro (bcrypt) y nunca en texto plano.
-                Las sesiones se gestionan mediante cookies HTTP-only.
+                Tus datos se almacenan en servidores ubicados en Sudamerica a traves de proveedores
+                de infraestructura en la nube. Las contraseñas se almacenan con hash seguro (bcrypt)
+                y nunca en texto plano. Las sesiones se gestionan mediante cookies HTTP-only.
               </p>
             </Section>
 
@@ -63,21 +72,34 @@ export default function Privacy() {
               </ul>
               <p className="mt-2">
                 Para ejercer estos derechos, escribinos a{' '}
-                <a href="mailto:mateovalles02@gmail.com" className="text-accent-600 hover:underline">mateovalles02@gmail.com</a>.
+                <a
+                  href="mailto:mateovalles02@gmail.com"
+                  className="text-accent-600 hover:underline"
+                >
+                  mateovalles02@gmail.com
+                </a>
+                .
               </p>
             </Section>
 
             <Section title="6. Cambios a esta politica">
               <p>
-                Podemos actualizar esta politica ocasionalmente. Te notificaremos por correo electronico ante cambios significativos.
-                El uso continuado de la aplicacion despues de la notificacion implica aceptacion de los cambios.
+                Podemos actualizar esta politica ocasionalmente. Te notificaremos por correo
+                electronico ante cambios significativos. El uso continuado de la aplicacion despues
+                de la notificacion implica aceptacion de los cambios.
               </p>
             </Section>
 
             <Section title="7. Contacto">
               <p>
                 Si tenes preguntas sobre esta politica, contactanos en{' '}
-                <a href="mailto:mateovalles02@gmail.com" className="text-accent-600 hover:underline">mateovalles02@gmail.com</a>.
+                <a
+                  href="mailto:mateovalles02@gmail.com"
+                  className="text-accent-600 hover:underline"
+                >
+                  mateovalles02@gmail.com
+                </a>
+                .
               </p>
             </Section>
           </div>

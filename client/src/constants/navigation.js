@@ -1,10 +1,4 @@
-import {
-  LayoutDashboard,
-  ArrowLeftRight,
-  Wallet,
-  Tag,
-  BarChart3,
-} from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, Tag, BarChart3 } from 'lucide-react';
 
 export const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Panel' },

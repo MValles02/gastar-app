@@ -1,9 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  CalendarDays,
-  Tag,
-  Wallet,
-} from 'lucide-react';
+import { CalendarDays, Tag, Wallet } from 'lucide-react';
 import Modal from '../ui/Modal.jsx';
 import Input from '../ui/Input.jsx';
 import Select from '../ui/Select.jsx';
@@ -71,7 +67,9 @@ export default function TransactionModal() {
       setTransferTo('');
 
       const today = new Date();
-      setDate(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
+      setDate(
+        `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+      );
       setDescription('');
       setCotizacion('');
     }
@@ -80,11 +78,11 @@ export default function TransactionModal() {
     setErrors({});
   }, [editData, isOpen]);
 
-  const selectedAccount = accounts.find(a => a.id === accountId);
+  const selectedAccount = accounts.find((a) => a.id === accountId);
 
   const clearFieldError = (field) => {
     if (errors[field]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const next = { ...prev };
         delete next[field];
         return next;
@@ -96,17 +94,17 @@ export default function TransactionModal() {
     if (field === 'amount') {
       const parsed = Number.parseFloat(amount);
       if (!amount || parsed <= 0 || Number.isNaN(parsed)) {
-        setErrors(prev => ({ ...prev, amount: 'Ingresá un monto válido mayor a 0' }));
+        setErrors((prev) => ({ ...prev, amount: 'Ingresá un monto válido mayor a 0' }));
       }
     }
     if (field === 'accountId' && !accountId) {
-      setErrors(prev => ({ ...prev, accountId: 'Seleccioná una cuenta' }));
+      setErrors((prev) => ({ ...prev, accountId: 'Seleccioná una cuenta' }));
     }
     if (field === 'categoryId' && !categoryId) {
-      setErrors(prev => ({ ...prev, categoryId: 'Seleccioná una categoría' }));
+      setErrors((prev) => ({ ...prev, categoryId: 'Seleccioná una categoría' }));
     }
     if (field === 'transferTo' && type === 'transfer' && !transferTo) {
-      setErrors(prev => ({ ...prev, transferTo: 'Seleccioná la cuenta destino' }));
+      setErrors((prev) => ({ ...prev, transferTo: 'Seleccioná la cuenta destino' }));
     }
   };
 
@@ -153,9 +151,10 @@ export default function TransactionModal() {
         date,
         description: description || undefined,
         transferTo: type === 'transfer' ? transferTo : undefined,
-        cotizacion: selectedAccount?.currency && selectedAccount.currency !== 'ARS'
-          ? Number.parseFloat(cotizacion)
-          : undefined,
+        cotizacion:
+          selectedAccount?.currency && selectedAccount.currency !== 'ARS'
+            ? Number.parseFloat(cotizacion)
+            : undefined,
       };
 
       if (isEdit) {
@@ -192,7 +191,9 @@ export default function TransactionModal() {
           <div className="space-y-1">
             <p className="text-xs font-medium text-app-muted">Tipo</p>
             <TransactionTypeSwitch options={typeOptions} value={type} onChange={setType} />
-            <ComposerHintLine>Elegí entre gasto, ingreso o transferencia entre cuentas</ComposerHintLine>
+            <ComposerHintLine>
+              Elegí entre gasto, ingreso o transferencia entre cuentas
+            </ComposerHintLine>
           </div>
 
           <Input
@@ -202,7 +203,10 @@ export default function TransactionModal() {
             step="0.01"
             min="0.01"
             value={amount}
-            onChange={(e) => { setAmount(e.target.value); clearFieldError('amount'); }}
+            onChange={(e) => {
+              setAmount(e.target.value);
+              clearFieldError('amount');
+            }}
             onBlur={() => validateField('amount')}
             placeholder="0.00"
             error={errors.amount}
@@ -212,10 +216,13 @@ export default function TransactionModal() {
             <Select
               label="Cuenta"
               value={accountId}
-              onChange={(e) => { setAccountId(e.target.value); clearFieldError('accountId'); }}
+              onChange={(e) => {
+                setAccountId(e.target.value);
+                clearFieldError('accountId');
+              }}
               onBlur={() => validateField('accountId')}
               placeholder="Seleccionar cuenta"
-              options={accounts.map(account => ({ value: account.id, label: account.name }))}
+              options={accounts.map((account) => ({ value: account.id, label: account.name }))}
               error={errors.accountId}
             />
             <ComposerHintLine icon={Wallet}>Seleccioná la cuenta afectada</ComposerHintLine>
@@ -224,7 +231,10 @@ export default function TransactionModal() {
           <CotizacionInput
             currency={selectedAccount?.currency}
             value={cotizacion}
-            onChange={(val) => { setCotizacion(val); clearFieldError('cotizacion'); }}
+            onChange={(val) => {
+              setCotizacion(val);
+              clearFieldError('cotizacion');
+            }}
             amount={amount}
             error={errors.cotizacion}
             skipFetch={isEdit}
@@ -234,10 +244,15 @@ export default function TransactionModal() {
             <Select
               label="Cuenta destino"
               value={transferTo}
-              onChange={(e) => { setTransferTo(e.target.value); clearFieldError('transferTo'); }}
+              onChange={(e) => {
+                setTransferTo(e.target.value);
+                clearFieldError('transferTo');
+              }}
               onBlur={() => validateField('transferTo')}
               placeholder="Seleccionar cuenta destino"
-              options={accounts.filter(account => account.id !== accountId).map(account => ({ value: account.id, label: account.name }))}
+              options={accounts
+                .filter((account) => account.id !== accountId)
+                .map((account) => ({ value: account.id, label: account.name }))}
               error={errors.transferTo}
             />
           )}
@@ -246,10 +261,13 @@ export default function TransactionModal() {
             <Select
               label="Categoría"
               value={categoryId}
-              onChange={(e) => { setCategoryId(e.target.value); clearFieldError('categoryId'); }}
+              onChange={(e) => {
+                setCategoryId(e.target.value);
+                clearFieldError('categoryId');
+              }}
               onBlur={() => validateField('categoryId')}
               placeholder="Seleccionar categoría"
-              options={categories.map(category => ({ value: category.id, label: category.name }))}
+              options={categories.map((category) => ({ value: category.id, label: category.name }))}
               error={errors.categoryId}
             />
             <ComposerHintLine icon={Tag}>Elegí la categoría del movimiento</ComposerHintLine>
@@ -263,7 +281,9 @@ export default function TransactionModal() {
               onChange={(e) => setDate(e.target.value)}
               required
             />
-            <ComposerHintLine icon={CalendarDays}>Definí cuándo impactó el movimiento</ComposerHintLine>
+            <ComposerHintLine icon={CalendarDays}>
+              Definí cuándo impactó el movimiento
+            </ComposerHintLine>
           </div>
 
           <Input

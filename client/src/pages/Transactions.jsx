@@ -76,7 +76,14 @@ function Transactions() {
   };
 
   if (loading) return <ListPageSkeleton metricCount={0} />;
-  if (loadError) return <PageErrorState title="No pudimos cargar las transacciones" message={loadError} onAction={load} />;
+  if (loadError)
+    return (
+      <PageErrorState
+        title="No pudimos cargar las transacciones"
+        message={loadError}
+        onAction={load}
+      />
+    );
 
   return (
     <Page>
@@ -107,7 +114,7 @@ function Transactions() {
                   variant="secondary"
                   size="sm"
                   disabled={data.page <= 1}
-                  onClick={() => setFilters(f => ({ ...f, page: f.page - 1 }))}
+                  onClick={() => setFilters((f) => ({ ...f, page: f.page - 1 }))}
                 >
                   Anterior
                 </Button>
@@ -118,7 +125,7 @@ function Transactions() {
                   variant="secondary"
                   size="sm"
                   disabled={data.page >= data.totalPages}
-                  onClick={() => setFilters(f => ({ ...f, page: f.page + 1 }))}
+                  onClick={() => setFilters((f) => ({ ...f, page: f.page + 1 }))}
                 >
                   Siguiente
                 </Button>

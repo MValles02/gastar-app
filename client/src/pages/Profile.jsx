@@ -29,7 +29,8 @@ export default function Profile() {
   const handleDeleteAccount = async () => {
     const confirmed = await showConfirm({
       title: 'Eliminar cuenta',
-      message: 'Esta acción eliminará tu cuenta y todos tus datos de forma permanente. No se puede deshacer.',
+      message:
+        'Esta acción eliminará tu cuenta y todos tus datos de forma permanente. No se puede deshacer.',
       confirmLabel: 'Eliminar cuenta',
       cancelLabel: 'Cancelar',
       destructive: true,
@@ -94,15 +95,14 @@ export default function Profile() {
                 </button>
               ))}
             </div>
-            {prefMessage && (
-              <p className="mt-2 text-xs text-app-muted">{prefMessage}</p>
-            )}
+            {prefMessage && <p className="mt-2 text-xs text-app-muted">{prefMessage}</p>}
           </div>
         </div>
         <div className="panel p-6 space-y-4 border border-red-200 dark:border-red-900">
           <p className="text-sm font-medium text-red-600 dark:text-red-400">Zona de peligro</p>
           <p className="text-sm text-app-muted">
-            Eliminar tu cuenta borrará permanentemente todos tus datos: cuentas, transacciones y categorías.
+            Eliminar tu cuenta borrará permanentemente todos tus datos: cuentas, transacciones y
+            categorías.
           </p>
           <button
             type="button"

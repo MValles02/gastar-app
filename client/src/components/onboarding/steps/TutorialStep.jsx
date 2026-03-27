@@ -33,9 +33,7 @@ export default function TutorialStep() {
 
   return (
     <div className="flex flex-col">
-      <h2 className="text-xl font-semibold text-app">
-        Cómo registrar un movimiento
-      </h2>
+      <h2 className="text-xl font-semibold text-app">Cómo registrar un movimiento</h2>
       <p className="mt-1 text-sm text-app-muted">
         Así se ve el formulario para agregar un nuevo movimiento.
       </p>
@@ -44,7 +42,9 @@ export default function TutorialStep() {
         <div className="space-y-1">
           <p className="text-xs font-medium text-app-muted">Tipo</p>
           <TransactionTypeSwitch options={typeOptions} value="expense" />
-          <ComposerHintLine>Elegí entre gasto, ingreso o transferencia entre cuentas</ComposerHintLine>
+          <ComposerHintLine>
+            Elegí entre gasto, ingreso o transferencia entre cuentas
+          </ComposerHintLine>
         </div>
 
         <MockField label="Monto" value="$ 1.500,00" />
@@ -61,7 +61,9 @@ export default function TutorialStep() {
 
         <div className="space-y-1">
           <MockField label="Fecha" value="21 de marzo de 2026" icon={CalendarDays} />
-          <ComposerHintLine icon={CalendarDays}>Definí cuándo impactó el movimiento</ComposerHintLine>
+          <ComposerHintLine icon={CalendarDays}>
+            Definí cuándo impactó el movimiento
+          </ComposerHintLine>
         </div>
       </TransactionComposerPanel>
 
@@ -70,7 +72,8 @@ export default function TutorialStep() {
           <Plus className="h-6 w-6 text-white" />
         </div>
         <p className="text-sm text-app-muted">
-          Para agregar un movimiento, tocá el botón <strong className="text-app">+</strong> que aparece en la esquina de la pantalla en cualquier momento.
+          Para agregar un movimiento, tocá el botón <strong className="text-app">+</strong> que
+          aparece en la esquina de la pantalla en cualquier momento.
         </p>
       </div>
 

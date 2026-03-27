@@ -8,7 +8,7 @@ export function TransactionModalProvider({ children }) {
   const [editData, setEditData] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const triggerRefresh = () => setRefreshKey(k => k + 1);
+  const triggerRefresh = () => setRefreshKey((k) => k + 1);
 
   const openModal = (transaction = null) => {
     setEditData(transaction);
@@ -26,9 +26,7 @@ export function TransactionModalProvider({ children }) {
   );
 
   return (
-    <TransactionModalContext.Provider value={value}>
-      {children}
-    </TransactionModalContext.Provider>
+    <TransactionModalContext.Provider value={value}>{children}</TransactionModalContext.Provider>
   );
 }
 

@@ -42,7 +42,10 @@ function Accounts() {
   }, [load]);
 
   const summary = useMemo(() => {
-    const totalBalance = accounts.reduce((total, account) => total + Number.parseFloat(account.balanceArs), 0);
+    const totalBalance = accounts.reduce(
+      (total, account) => total + Number.parseFloat(account.balanceArs),
+      0
+    );
     return { totalBalance, count: accounts.length };
   }, [accounts]);
 
@@ -59,9 +62,10 @@ function Accounts() {
   const handleDelete = async (account) => {
     const { total } = await getTransactions({ accountId: account.id, limit: 1 });
 
-    const message = total > 0
-      ? `Esta cuenta tiene ${total} transacción${total === 1 ? '' : 'es'}. Al eliminarla, se eliminarán también de forma permanente. ¿Confirmar?`
-      : `Se eliminará la cuenta "${account.name}". Esta acción no se puede deshacer.`;
+    const message =
+      total > 0
+        ? `Esta cuenta tiene ${total} transacción${total === 1 ? '' : 'es'}. Al eliminarla, se eliminarán también de forma permanente. ¿Confirmar?`
+        : `Se eliminará la cuenta "${account.name}". Esta acción no se puede deshacer.`;
 
     const confirmed = await showConfirm({
       title: 'Eliminar cuenta',
@@ -97,7 +101,10 @@ function Accounts() {
   };
 
   if (loading) return <ListPageSkeleton />;
-  if (loadError) return <PageErrorState title="No pudimos cargar las cuentas" message={loadError} onAction={load} />;
+  if (loadError)
+    return (
+      <PageErrorState title="No pudimos cargar las cuentas" message={loadError} onAction={load} />
+    );
 
   return (
     <Page>
@@ -118,7 +125,9 @@ function Accounts() {
             </div>
             <div className="metric-card md:col-span-2">
               <p className="metric-label">Balance consolidado</p>
-              <p className="mt-2 text-2xl font-semibold text-app">{formatCurrency(summary.totalBalance)}</p>
+              <p className="mt-2 text-2xl font-semibold text-app">
+                {formatCurrency(summary.totalBalance)}
+              </p>
             </div>
           </div>
 
@@ -131,7 +140,7 @@ function Accounts() {
           </div>
 
           <div className="list-surface">
-            {accounts.map(account => (
+            {accounts.map((account) => (
               <AccountCard
                 key={account.id}
                 account={account}

@@ -14,8 +14,9 @@ export function AuthProvider({ children }) {
     setLoading(true);
     setAuthError('');
 
-    api.get('/auth/me')
-      .then(res => setUser(res.data.data))
+    api
+      .get('/auth/me')
+      .then((res) => setUser(res.data.data))
       .catch((error) => {
         const normalized = normalizeError(error, 'No pudimos validar tu sesión.');
 
@@ -72,15 +73,21 @@ export function AuthProvider({ children }) {
   };
 
   const value = useMemo(
-    () => ({ user, loading, authError, loadSession, login, register, logout, updateProfile, deleteAccount }),
+    () => ({
+      user,
+      loading,
+      authError,
+      loadSession,
+      login,
+      register,
+      logout,
+      updateProfile,
+      deleteAccount,
+    }),
     [user, loading, authError]
   );
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

@@ -5,7 +5,10 @@ import MobileDrawer from './MobileDrawer.jsx';
 import FloatingActionButton from '../ui/FAB.jsx';
 import TransactionModal from '../transactions/TransactionModal.jsx';
 import OnboardingWizard from '../onboarding/OnboardingWizard.jsx';
-import { TransactionModalProvider, useTransactionModal } from '../../context/TransactionModalContext.jsx';
+import {
+  TransactionModalProvider,
+  useTransactionModal,
+} from '../../context/TransactionModalContext.jsx';
 import { OnboardingProvider } from '../../context/OnboardingContext.jsx';
 import { childrenPropType } from '../../utils/propTypes.js';
 

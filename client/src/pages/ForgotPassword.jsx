@@ -33,12 +33,15 @@ function ForgotPassword() {
     <AuthShell
       title="Recuperá tu contraseña"
       subtitle="Te enviamos un enlace seguro para volver a entrar a tu cuenta."
-      footer={(
-        <Link className="inline-flex items-center gap-1 font-medium text-accent-600 transition-colors hover:text-accent-700" to="/login">
+      footer={
+        <Link
+          className="inline-flex items-center gap-1 font-medium text-accent-600 transition-colors hover:text-accent-700"
+          to="/login"
+        >
           <ArrowLeft className="h-4 w-4" />
           Volver al inicio de sesión
         </Link>
-      )}
+      }
     >
       {sent ? (
         <div className="space-y-4 text-center">

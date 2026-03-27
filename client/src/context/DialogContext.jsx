@@ -62,7 +62,12 @@ export function DialogProvider({ children }) {
   return (
     <DialogContext.Provider value={value}>
       {children}
-      <Modal isOpen={dialog.open} onClose={() => closeDialog(false)} title={dialog.title} className="max-w-sm">
+      <Modal
+        isOpen={dialog.open}
+        onClose={() => closeDialog(false)}
+        title={dialog.title}
+        className="max-w-sm"
+      >
         <div className="space-y-5">
           <MessageBanner
             message={dialog.message}

@@ -72,10 +72,7 @@ test('POST /api/transactions creates a transfer and updates both account balance
 });
 
 test('PUT /api/transactions rejects categories owned by another user', async () => {
-  const [{ user, password }, ownerTwo] = await Promise.all([
-    createUser(),
-    createUser(),
-  ]);
+  const [{ user, password }, ownerTwo] = await Promise.all([createUser(), createUser()]);
 
   const [account, ownCategory, foreignCategory] = await Promise.all([
     createAccount(user.id, { balance: 500 }),

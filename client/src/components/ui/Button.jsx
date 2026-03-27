@@ -5,7 +5,8 @@ import { childrenPropType, classNamePropType } from '../../utils/propTypes.js';
 
 const variants = {
   primary: 'bg-accent-600 text-white shadow-panel-sm hover:bg-accent-700 focus:ring-accent-400',
-  secondary: 'border border-border-default bg-surface text-app hover:bg-surface-muted focus:ring-accent-400',
+  secondary:
+    'border border-border-default bg-surface text-app hover:bg-surface-muted focus:ring-accent-400',
   danger: 'bg-danger text-white shadow-panel-sm hover:brightness-95 focus:ring-danger/60',
   ghost: 'text-app-muted hover:bg-surface-muted hover:text-app focus:ring-accent-400',
 };

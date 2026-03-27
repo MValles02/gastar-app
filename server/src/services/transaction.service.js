@@ -1,9 +1,13 @@
 export function getBalanceDelta(type, amount) {
   switch (type) {
-    case 'income': return amount;
-    case 'expense': return -amount;
-    case 'transfer': return -amount;
-    default: return 0;
+    case 'income':
+      return amount;
+    case 'expense':
+      return -amount;
+    case 'transfer':
+      return -amount;
+    default:
+      return 0;
   }
 }
 
@@ -32,7 +36,12 @@ export async function applyTransactionBalances(tx, transaction, sourceAccount, d
   }
 }
 
-export async function reverseTransactionBalances(tx, transaction, sourceAccount, destAccount = null) {
+export async function reverseTransactionBalances(
+  tx,
+  transaction,
+  sourceAccount,
+  destAccount = null
+) {
   const amount = Number(transaction.amount);
   const amountArs = Number(transaction.amountArs);
   const nativeDelta = getBalanceDelta(transaction.type, amount);

@@ -26,10 +26,10 @@ const defaultTo = now.toISOString().split('T')[0];
 function computeNetByCategory(categoryData) {
   const expenses = categoryData?.expenses ?? [];
   const incomes = categoryData?.incomes ?? [];
-  const incomeMap = new Map(incomes.map(i => [i.categoryId, i.total]));
+  const incomeMap = new Map(incomes.map((i) => [i.categoryId, i.total]));
   return expenses
-    .map(e => ({ ...e, total: e.total - (incomeMap.get(e.categoryId) ?? 0) }))
-    .filter(e => e.total > 0);
+    .map((e) => ({ ...e, total: e.total - (incomeMap.get(e.categoryId) ?? 0) }))
+    .filter((e) => e.total > 0);
 }
 
 export default function SpendByCategory() {
@@ -55,7 +55,7 @@ export default function SpendByCategory() {
     });
   }, []);
 
-  const update = (key, value) => setLocalFilters(prev => ({ ...prev, [key]: value }));
+  const update = (key, value) => setLocalFilters((prev) => ({ ...prev, [key]: value }));
 
   const load = useCallback(async (filters) => {
     setLoading(true);
@@ -114,7 +114,7 @@ export default function SpendByCategory() {
             {accounts.length > 0 && (
               <MultiSelect
                 label="Cuentas"
-                options={accounts.map(a => ({ value: a.id, label: a.name }))}
+                options={accounts.map((a) => ({ value: a.id, label: a.name }))}
                 value={localFilters.accountIds}
                 onChange={(v) => update('accountIds', v)}
               />
@@ -130,7 +130,7 @@ export default function SpendByCategory() {
             {categories.length > 0 && (
               <MultiSelect
                 label="Categorías"
-                options={categories.map(c => ({ value: c.id, label: c.name }))}
+                options={categories.map((c) => ({ value: c.id, label: c.name }))}
                 value={localFilters.categoryIds}
                 onChange={(v) => update('categoryIds', v)}
               />
@@ -146,16 +146,10 @@ export default function SpendByCategory() {
 
         {loading ? <ListPageSkeleton metricCount={3} /> : null}
         {error ? (
-          <PageErrorState
-            title="No pudimos cargar los gastos"
-            message={error}
-            onAction={apply}
-          />
+          <PageErrorState title="No pudimos cargar los gastos" message={error} onAction={apply} />
         ) : null}
 
-        {!loading && !error && categoryData ? (
-          <SpendingByCategory data={netByCategory} />
-        ) : null}
+        {!loading && !error && categoryData ? <SpendingByCategory data={netByCategory} /> : null}
       </div>
     </Page>
   );

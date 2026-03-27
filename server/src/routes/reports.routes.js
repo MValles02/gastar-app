@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.middleware.js';
 import prisma from '../utils/prisma.js';
-import { reportQuerySchema, monthlyQuerySchema, byCategoryQuerySchema } from '../validators/report.validators.js';
+import {
+  reportQuerySchema,
+  monthlyQuerySchema,
+  byCategoryQuerySchema,
+} from '../validators/report.validators.js';
 
 const router = Router();
 
@@ -113,19 +117,22 @@ router.get('/by-category', async (req, res, next) => {
         : Promise.resolve([]),
     ]);
 
-    const allCategoryIds = [...new Set([
-      ...expenseGroups.map(g => g.categoryId),
-      ...incomeGroups.map(g => g.categoryId),
-    ])];
+    const allCategoryIds = [
+      ...new Set([
+        ...expenseGroups.map((g) => g.categoryId),
+        ...incomeGroups.map((g) => g.categoryId),
+      ]),
+    ];
 
     const categoriesMap = await buildCategoriesMap(allCategoryIds);
 
-    const mapGroups = (groups) => groups.map(g => ({
-      categoryId: g.categoryId,
-      categoryName: categoriesMap[g.categoryId]?.name || 'Sin categoría',
-      categoryIcon: categoriesMap[g.categoryId]?.icon || null,
-      total: Number(g._sum.amountArs || 0),
-    }));
+    const mapGroups = (groups) =>
+      groups.map((g) => ({
+        categoryId: g.categoryId,
+        categoryName: categoriesMap[g.categoryId]?.name || 'Sin categoría',
+        categoryIcon: categoriesMap[g.categoryId]?.icon || null,
+        total: Number(g._sum.amountArs || 0),
+      }));
 
     res.json({
       data: {
@@ -157,7 +164,7 @@ router.get('/monthly', async (req, res, next) => {
       ORDER BY month
     `;
 
-    const dataMap = new Map(rows.map(r => [r.month, r]));
+    const dataMap = new Map(rows.map((r) => [r.month, r]));
     const months = Array.from({ length: 12 }, (_, i) => {
       const month = i + 1;
       const row = dataMap.get(month);
@@ -198,10 +205,10 @@ router.get('/frequency', async (req, res, next) => {
       orderBy: { _count: { id: 'desc' } },
     });
 
-    const categoryIds = [...new Set(groups.map(g => g.categoryId))];
+    const categoryIds = [...new Set(groups.map((g) => g.categoryId))];
     const categoriesMap = await buildCategoriesMap(categoryIds);
 
-    const data = groups.map(g => ({
+    const data = groups.map((g) => ({
       categoryId: g.categoryId,
       categoryName: categoriesMap[g.categoryId]?.name || 'Sin categoría',
       categoryIcon: categoriesMap[g.categoryId]?.icon || null,

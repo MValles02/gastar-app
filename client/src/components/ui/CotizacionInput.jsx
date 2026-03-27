@@ -16,7 +16,15 @@ export function saveCotizacion(currency, value) {
   }
 }
 
-export default function CotizacionInput({ currency, value, onChange, amount, error, disabled, skipFetch }) {
+export default function CotizacionInput({
+  currency,
+  value,
+  onChange,
+  amount,
+  error,
+  disabled,
+  skipFetch,
+}) {
   const { user } = useAuth();
   const [rates, setRates] = useState(null);
   const [ratesFetching, setRatesFetching] = useState(false);
@@ -35,9 +43,8 @@ export default function CotizacionInput({ currency, value, onChange, amount, err
       .then((fetchedRates) => {
         setRates(fetchedRates);
         setRatesSource('api');
-        const preferred = user?.cotizacionPreference === 'oficial'
-          ? fetchedRates.oficial
-          : fetchedRates.blue;
+        const preferred =
+          user?.cotizacionPreference === 'oficial' ? fetchedRates.oficial : fetchedRates.blue;
         onChange(String(preferred));
       })
       .catch(() => {
@@ -52,7 +59,7 @@ export default function CotizacionInput({ currency, value, onChange, amount, err
         }
       })
       .finally(() => setRatesFetching(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currency, skipFetch]);
 
   if (!currency || currency === 'ARS') return null;
@@ -75,7 +82,8 @@ export default function CotizacionInput({ currency, value, onChange, amount, err
       />
       {ratesSource === 'api' && rates && (
         <p className="mt-1 text-xs text-app-muted">
-          Blue: {formatCurrency(rates.blue)} · Oficial: {formatCurrency(rates.oficial)} · Actualizado automáticamente
+          Blue: {formatCurrency(rates.blue)} · Oficial: {formatCurrency(rates.oficial)} ·
+          Actualizado automáticamente
         </p>
       )}
       {ratesSource === 'localStorage' && value && (

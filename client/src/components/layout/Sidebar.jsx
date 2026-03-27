@@ -1,15 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useState } from 'react';
-import {
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
-  HelpCircle,
-  Plus,
-  User,
-  Sun,
-  Moon,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, LogOut, HelpCircle, Plus, User, Sun, Moon } from 'lucide-react';
 import clsx from 'clsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -19,7 +10,9 @@ import GastarLogo from '../ui/GastarLogo.jsx';
 import { navItems } from '../../constants/navigation.js';
 
 export default function Sidebar() {
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar-collapsed') === 'true');
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem('sidebar-collapsed') === 'true'
+  );
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const { openOnboarding } = useOnboarding();
@@ -32,12 +25,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside
-      className={clsx(
-        'hidden h-dvh shrink-0 p-4 pr-0 md:flex',
-        collapsed ? 'w-24' : 'w-72'
-      )}
-    >
+    <aside className={clsx('hidden h-dvh shrink-0 p-4 pr-0 md:flex', collapsed ? 'w-24' : 'w-72')}>
       <div className="flex h-full flex-1 flex-col rounded-r-hero border border-border-default/80 bg-surface/72 p-3 shadow-panel-sm backdrop-blur-sm">
         <div className={clsx('flex items-center gap-2 px-2 py-2', collapsed && 'justify-center')}>
           {!collapsed && (
@@ -46,7 +34,9 @@ export default function Sidebar() {
                 <GastarLogo className="h-6 w-6 flex-shrink-0" />
               </div>
               <div className="space-y-0.5">
-                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-app-soft">Workspace</p>
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-app-soft">
+                  Workspace
+                </p>
                 <span className="text-lg font-semibold tracking-tight text-app">Gastar</span>
               </div>
             </>
@@ -111,7 +101,11 @@ export default function Sidebar() {
               collapsed && 'justify-center px-2'
             )}
           >
-            {theme === 'light' ? <Moon className="h-5 w-5" aria-hidden="true" /> : <Sun className="h-5 w-5" aria-hidden="true" />}
+            {theme === 'light' ? (
+              <Moon className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <Sun className="h-5 w-5" aria-hidden="true" />
+            )}
             {!collapsed && <span>{theme === 'light' ? 'Modo oscuro' : 'Modo claro'}</span>}
           </button>
 

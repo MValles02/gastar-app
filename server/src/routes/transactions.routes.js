@@ -1,8 +1,15 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.middleware.js';
 import prisma from '../utils/prisma.js';
-import { createTransactionSchema, updateTransactionSchema, transactionQuerySchema } from '../validators/transaction.validators.js';
-import { applyTransactionBalances, reverseTransactionBalances } from '../services/transaction.service.js';
+import {
+  createTransactionSchema,
+  updateTransactionSchema,
+  transactionQuerySchema,
+} from '../validators/transaction.validators.js';
+import {
+  applyTransactionBalances,
+  reverseTransactionBalances,
+} from '../services/transaction.service.js';
 import { getEffectiveTransaction } from '../services/transaction-rules.js';
 
 const router = Router();
@@ -112,7 +119,9 @@ router.post('/', async (req, res, next) => {
     const { sourceAccount, destAccount } = await validateTransactionReferences(data, req.userId);
 
     if (sourceAccount.currency !== 'ARS' && !data.cotizacion) {
-      return res.status(400).json({ error: 'La cotización es requerida para cuentas en moneda extranjera' });
+      return res
+        .status(400)
+        .json({ error: 'La cotización es requerida para cuentas en moneda extranjera' });
     }
     const cotizacion = sourceAccount.currency === 'ARS' ? null : data.cotizacion;
     const amountArs = cotizacion ? data.amount * cotizacion : data.amount;
@@ -161,19 +170,31 @@ router.put('/:id', async (req, res, next) => {
     // Recompute amountArs if amount or cotizacion changed
     if (data.amount !== undefined || data.cotizacion !== undefined) {
       const effectiveAmount = data.amount ?? Number(existing.amount);
-      const effectiveCotizacion = data.cotizacion ?? (existing.cotizacion ? Number(existing.cotizacion) : null);
-      data.amountArs = effectiveCotizacion ? effectiveAmount * effectiveCotizacion : effectiveAmount;
+      const effectiveCotizacion =
+        data.cotizacion ?? (existing.cotizacion ? Number(existing.cotizacion) : null);
+      data.amountArs = effectiveCotizacion
+        ? effectiveAmount * effectiveCotizacion
+        : effectiveAmount;
     }
 
     const effectiveData = getEffectiveTransaction(existing, data);
-    const { sourceAccount, destAccount } = await validateTransactionReferences(effectiveData, req.userId);
+    const { sourceAccount, destAccount } = await validateTransactionReferences(
+      effectiveData,
+      req.userId
+    );
 
     if (sourceAccount.currency !== 'ARS' && !effectiveData.cotizacion) {
-      return res.status(400).json({ error: 'La cotización es requerida para cuentas en moneda extranjera' });
+      return res
+        .status(400)
+        .json({ error: 'La cotización es requerida para cuentas en moneda extranjera' });
     }
 
     // Fetch the original source/dest accounts for reversal
-    const existingSourceAccount = await fetchOwnedAccount(existing.accountId, req.userId, 'Cuenta no encontrada');
+    const existingSourceAccount = await fetchOwnedAccount(
+      existing.accountId,
+      req.userId,
+      'Cuenta no encontrada'
+    );
     const existingDestAccount = existing.transferTo
       ? await fetchOwnedAccount(existing.transferTo, req.userId, 'Cuenta destino no encontrada')
       : null;
@@ -219,7 +240,11 @@ router.delete('/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Transacción no encontrada' });
     }
 
-    const sourceAccount = await fetchOwnedAccount(existing.accountId, req.userId, 'Cuenta no encontrada');
+    const sourceAccount = await fetchOwnedAccount(
+      existing.accountId,
+      req.userId,
+      'Cuenta no encontrada'
+    );
     const destAccount = existing.transferTo
       ? await fetchOwnedAccount(existing.transferTo, req.userId, 'Cuenta destino no encontrada')
       : null;

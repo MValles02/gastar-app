@@ -58,7 +58,11 @@ export default function CategoryModal({ isOpen, onClose, onSubmit, category }) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? 'Editar categoría' : 'Nueva categoría'}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEdit ? 'Editar categoría' : 'Nueva categoría'}
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <MessageBanner message={error} />
         <Input

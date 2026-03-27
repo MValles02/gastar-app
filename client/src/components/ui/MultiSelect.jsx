@@ -5,7 +5,13 @@ import { ChevronDown } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { optionShape } from '../../utils/propTypes.js';
 
-export default function MultiSelect({ label, options = [], value = [], onChange, placeholder = 'Todos' }) {
+export default function MultiSelect({
+  label,
+  options = [],
+  value = [],
+  onChange,
+  placeholder = 'Todos',
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [panelStyle, setPanelStyle] = useState({});
   const triggerRef = useRef(null);
@@ -13,7 +19,7 @@ export default function MultiSelect({ label, options = [], value = [], onChange,
 
   const toggle = (optValue) => {
     if (value.includes(optValue)) {
-      onChange(value.filter(v => v !== optValue));
+      onChange(value.filter((v) => v !== optValue));
     } else {
       onChange([...value, optValue]);
     }
@@ -30,15 +36,17 @@ export default function MultiSelect({ label, options = [], value = [], onChange,
         zIndex: 9999,
       });
     }
-    setIsOpen(prev => !prev);
+    setIsOpen((prev) => !prev);
   };
 
   useEffect(() => {
     if (!isOpen) return;
     const handleMouseDown = (e) => {
       if (
-        triggerRef.current && !triggerRef.current.contains(e.target) &&
-        panelRef.current && !panelRef.current.contains(e.target)
+        triggerRef.current &&
+        !triggerRef.current.contains(e.target) &&
+        panelRef.current &&
+        !panelRef.current.contains(e.target)
       ) {
         setIsOpen(false);
       }
@@ -57,7 +65,7 @@ export default function MultiSelect({ label, options = [], value = [], onChange,
   const triggerLabel = (() => {
     if (value.length === 0) return placeholder;
     if (value.length === 1) {
-      return options.find(o => o.value === value[0])?.label ?? placeholder;
+      return options.find((o) => o.value === value[0])?.label ?? placeholder;
     }
     return `${value.length} seleccionados`;
   })();
@@ -78,36 +86,40 @@ export default function MultiSelect({ label, options = [], value = [], onChange,
       >
         <span className="truncate text-sm">{triggerLabel}</span>
         <ChevronDown
-          className={clsx('h-4 w-4 shrink-0 text-app-muted transition-transform duration-200', isOpen && 'rotate-180')}
+          className={clsx(
+            'h-4 w-4 shrink-0 text-app-muted transition-transform duration-200',
+            isOpen && 'rotate-180'
+          )}
         />
       </button>
 
-      {isOpen && createPortal(
-        <div
-          ref={panelRef}
-          style={panelStyle}
-          className="max-h-48 overflow-y-auto rounded-soft border border-border-default bg-surface shadow-panel"
-        >
-          {options.map(opt => {
-            const checked = value.includes(opt.value);
-            return (
-              <label
-                key={opt.value}
-                className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-surface-muted"
-              >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => toggle(opt.value)}
-                  className="h-4 w-4 cursor-pointer rounded accent-accent-600"
-                />
-                <span className="text-sm text-app">{opt.label}</span>
-              </label>
-            );
-          })}
-        </div>,
-        document.body
-      )}
+      {isOpen &&
+        createPortal(
+          <div
+            ref={panelRef}
+            style={panelStyle}
+            className="max-h-48 overflow-y-auto rounded-soft border border-border-default bg-surface shadow-panel"
+          >
+            {options.map((opt) => {
+              const checked = value.includes(opt.value);
+              return (
+                <label
+                  key={opt.value}
+                  className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-surface-muted"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggle(opt.value)}
+                    className="h-4 w-4 cursor-pointer rounded accent-accent-600"
+                  />
+                  <span className="text-sm text-app">{opt.label}</span>
+                </label>
+              );
+            })}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

@@ -6,14 +6,7 @@ import ThemeToggle from '../ui/ThemeToggle.jsx';
 import LegalLinks from './LegalLinks.jsx';
 import { backLinkShape, childrenPropType, classNamePropType } from '../../utils/propTypes.js';
 
-export default function AuthShell({
-  title,
-  subtitle,
-  children,
-  footer,
-  backLink,
-  className,
-}) {
+export default function AuthShell({ title, subtitle, children, footer, backLink, className }) {
   return (
     <div className="auth-backdrop relative flex min-h-screen items-center justify-center px-4 py-10">
       <ThemeToggle className="absolute right-4 top-4 sm:right-6 sm:top-6" />
@@ -39,7 +32,10 @@ export default function AuthShell({
           <div className="mt-5 text-center text-sm text-app-muted">
             {footer}
             {!footer && backLink ? (
-              <Link className="font-medium text-accent-600 transition-colors hover:text-accent-700" to={backLink.to}>
+              <Link
+                className="font-medium text-accent-600 transition-colors hover:text-accent-700"
+                to={backLink.to}
+              >
                 {backLink.label}
               </Link>
             ) : null}

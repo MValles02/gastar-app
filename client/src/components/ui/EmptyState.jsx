@@ -10,14 +10,8 @@ export default function EmptyState({ icon: Icon, title, description, actionLabel
           <Icon className="h-8 w-8 text-accent-600" />
         </div>
       )}
-      <h3 className="text-lg font-semibold text-app">
-        {title}
-      </h3>
-      {description && (
-        <p className="mt-2 max-w-md text-sm text-app-muted">
-          {description}
-        </p>
-      )}
+      <h3 className="text-lg font-semibold text-app">{title}</h3>
+      {description && <p className="mt-2 max-w-md text-sm text-app-muted">{description}</p>}
       {actionLabel && onAction && (
         <Button onClick={onAction} className="mt-4">
           {actionLabel}
