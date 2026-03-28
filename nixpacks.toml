@@ -12,7 +12,7 @@ cmds = [
 [phases.build]
 cmds = [
   "npm --prefix client run build",
-  "npm --prefix server run db:generate",
+  "npx prisma generate --schema server/prisma/schema.prisma",
   "npm --prefix server run build"
 ]
 
