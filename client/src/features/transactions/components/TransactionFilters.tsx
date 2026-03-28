@@ -72,9 +72,11 @@ export default function TransactionFilters({ filters, onChange, accounts, catego
         filters={filterConfig}
         values={localFilters as Record<string, string | string[] | number | undefined>}
         onChange={handleChange}
-        onReset={handleReset}
       />
-      <div className="pt-3">
+      <div className="flex justify-end gap-2 pt-3">
+        <Button type="button" variant="ghost" onClick={handleReset}>
+          Limpiar filtros
+        </Button>
         <Button type="button" onClick={handleApply}>
           Aplicar
         </Button>

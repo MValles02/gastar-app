@@ -17,7 +17,7 @@ interface Props {
   filters: FilterConfig[];
   values: Record<string, string | string[] | number | undefined>;
   onChange: (key: string, value: string | string[]) => void;
-  onReset: () => void;
+  onReset?: () => void;
 }
 
 export default function FilterBar({ filters, values, onChange, onReset }: Props): JSX.Element {
@@ -60,9 +60,11 @@ export default function FilterBar({ filters, values, onChange, onReset }: Props)
         }
         return null;
       })}
-      <Button type="button" variant="ghost" onClick={onReset}>
-        Limpiar
-      </Button>
+      {onReset && (
+        <Button type="button" variant="ghost" onClick={onReset}>
+          Limpiar
+        </Button>
+      )}
     </div>
   );
 }
