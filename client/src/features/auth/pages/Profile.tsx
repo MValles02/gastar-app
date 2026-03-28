@@ -87,7 +87,7 @@ export default function Profile(): JSX.Element {
                     'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
                     user?.exchangeRatePreference === option
                       ? 'bg-accent-600 text-white'
-                      : 'bg-app-subtle text-app hover:bg-app-subtle/80',
+                      : 'bg-surface-muted text-app hover:bg-surface-muted/80',
                     prefLoading ? 'opacity-50 cursor-not-allowed' : '',
                   ].join(' ')}
                 >

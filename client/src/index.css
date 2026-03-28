@@ -200,7 +200,6 @@
     position: absolute;
     inset: 0 0 auto;
     height: 20rem;
-    z-index: -1;
     background: linear-gradient(
       180deg,
       color-mix(in srgb, var(--color-surface) 76%, transparent),
