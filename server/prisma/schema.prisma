@@ -25,6 +25,21 @@ enum TransactionType {
   @@map("transaction_type")
 }
 
+enum Currency {
+  ARS
+  USD
+  EUR
+
+  @@map("currency")
+}
+
+enum ExchangeRatePreference {
+  blue
+  official
+
+  @@map("exchange_rate_preference")
+}
+
 model User {
   id               String    @id @default(uuid())
   email            String    @unique
@@ -33,7 +48,7 @@ model User {
   googleId         String?   @unique @map("google_id")
   resetToken            String?   @map("reset_token")
   resetTokenExpiry      DateTime? @map("reset_token_expiry")
-  exchangeRatePreference  String    @default("blue") @map("exchange_rate_preference")
+  exchangeRatePreference  ExchangeRatePreference    @default(blue) @map("exchange_rate_preference")
   createdAt             DateTime  @default(now()) @map("created_at")
 
   accounts     Account[]
@@ -50,7 +65,7 @@ model Account {
   type      AccountType
   balance    Decimal     @default(0)
   arsBalance Decimal     @default(0) @map("balance_ars")
-  currency   String      @default("ARS")
+  currency   Currency    @default(ARS)
 
   user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions      Transaction[] @relation("AccountTransactions")
