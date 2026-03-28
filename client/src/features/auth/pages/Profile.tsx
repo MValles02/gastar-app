@@ -51,7 +51,7 @@ export default function Profile(): JSX.Element {
   return (
     <Page>
       <div className="space-y-6">
-        <div className="panel p-6">
+        <div className="panel p-6 bg-surface">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-600 dark:bg-accent-950">
               <User className="h-7 w-7" />
