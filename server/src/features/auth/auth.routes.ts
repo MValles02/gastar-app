@@ -176,7 +176,7 @@ router.post('/reset-password', authLimiter, async (req, res, next) => {
 });
 
 // GET /api/auth/google
-router.get('/google', (_req, res) => {
+router.get('/google', authLimiter, (_req, res) => {
   const url = buildGoogleAuthUrl();
   res.redirect(url);
 });

@@ -11,12 +11,25 @@ const USER_PUBLIC_SELECT = {
   exchangeRatePreference: true,
 } as const;
 
+// Prisma returns `string` for exchangeRatePreference until the pending migration
+// generates an enum-typed client. This cast is safe because the DB column and
+// default value constrain the field to 'blue' | 'official'.
+function toUserPublic(raw: {
+  id: string;
+  email: string;
+  name: string;
+  exchangeRatePreference: string;
+}): UserPublic {
+  return raw as unknown as UserPublic;
+}
+
 export async function findUserByEmail(email: string) {
   return prisma.user.findUnique({ where: { email } });
 }
 
 export async function findUserById(userId: string): Promise<UserPublic | null> {
-  return prisma.user.findUnique({ where: { id: userId }, select: USER_PUBLIC_SELECT });
+  const raw = await prisma.user.findUnique({ where: { id: userId }, select: USER_PUBLIC_SELECT });
+  return raw ? toUserPublic(raw) : null;
 }
 
 export async function createUser({
@@ -29,10 +42,11 @@ export async function createUser({
   password: string;
 }): Promise<UserPublic> {
   const passwordHash = await bcrypt.hash(password, 10);
-  return prisma.user.create({
+  const raw = await prisma.user.create({
     data: { name, email, passwordHash },
     select: USER_PUBLIC_SELECT,
   });
+  return toUserPublic(raw);
 }
 
 export async function validatePassword(
@@ -46,11 +60,12 @@ export async function validatePassword(
 type UpdateUserData = Pick<User, 'exchangeRatePreference'>;
 
 export async function updateUser(userId: string, data: UpdateUserData): Promise<UserPublic> {
-  return prisma.user.update({
+  const raw = await prisma.user.update({
     where: { id: userId },
     data,
     select: USER_PUBLIC_SELECT,
   });
+  return toUserPublic(raw);
 }
 
 export async function deleteUser(userId: string): Promise<void> {
@@ -76,11 +91,12 @@ export async function findUserByResetToken(hashedToken: string) {
 
 export async function resetPassword(userId: string, newPassword: string): Promise<UserPublic> {
   const passwordHash = await bcrypt.hash(newPassword, 10);
-  return prisma.user.update({
+  const raw = await prisma.user.update({
     where: { id: userId },
     data: { passwordHash, resetToken: null, resetTokenExpiry: null },
     select: USER_PUBLIC_SELECT,
   });
+  return toUserPublic(raw);
 }
 
 export async function findOrCreateGoogleUser({
@@ -92,19 +108,14 @@ export async function findOrCreateGoogleUser({
   name: string;
   googleId: string;
 }): Promise<UserPublic> {
-  const existing = await prisma.user.findFirst({
-    where: { OR: [{ googleId }, { email }] },
-    select: { ...USER_PUBLIC_SELECT, googleId: true },
-  });
-  if (existing) {
-    if (!existing.googleId) {
-      await prisma.user.update({ where: { id: existing.id }, data: { googleId } });
-    }
-    const { googleId: _gid, ...userPublic } = existing;
-    return userPublic;
-  }
-  return prisma.user.create({
-    data: { email, name, googleId },
+  // Use upsert to atomically find-or-create, avoiding TOCTOU race conditions.
+  // We match on email (unique) so that a pre-existing email account gets its
+  // googleId linked on first OAuth login. If no record exists, we create one.
+  const raw = await prisma.user.upsert({
+    where: { email },
+    create: { email, name, googleId },
+    update: { googleId },
     select: USER_PUBLIC_SELECT,
   });
+  return toUserPublic(raw);
 }

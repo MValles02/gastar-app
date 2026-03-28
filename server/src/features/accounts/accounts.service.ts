@@ -66,3 +66,27 @@ export async function getTransactionCountForAccount(
 ): Promise<number> {
   return prisma.transaction.count({ where: { accountId, account: { userId } } });
 }
+
+/**
+ * Atomically checks that an account has no transactions, then deletes it.
+ * Returns null if the account was not found (or doesn't belong to userId).
+ * Returns { txCount } if the account has transactions (caller should reject).
+ * Returns true on success.
+ */
+export async function deleteAccountAtomic(
+  userId: string,
+  accountId: string
+): Promise<true | { txCount: number } | null> {
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.account.findFirst({ where: { id: accountId, userId } });
+    if (!existing) return null;
+
+    const txCount = await tx.transaction.count({
+      where: { accountId, account: { userId } },
+    });
+    if (txCount > 0) return { txCount };
+
+    await tx.account.delete({ where: { id: accountId } });
+    return true;
+  });
+}

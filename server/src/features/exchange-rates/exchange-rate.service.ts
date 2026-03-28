@@ -21,11 +21,17 @@ const ENDPOINTS = {
 };
 
 async function fetchJson(url: string): Promise<Record<string, unknown>> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`dolarapi.com responded with ${response.status}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`dolarapi.com responded with ${response.status}`);
+    }
+    return response.json() as Promise<Record<string, unknown>>;
+  } finally {
+    clearTimeout(timeout);
   }
-  return response.json() as Promise<Record<string, unknown>>;
 }
 
 interface Rates {

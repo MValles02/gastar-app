@@ -1,9 +1,8 @@
-import dotenv from 'dotenv';
 import express from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import authRoutes from './features/auth/auth.routes.js';
 import accountRoutes from './features/accounts/accounts.routes.js';
@@ -13,8 +12,6 @@ import reportRoutes from './features/reports/reports.routes.js';
 import exchangeRatesRoutes from './features/exchange-rates/exchange-rates.routes.js';
 import { authenticate } from './shared/middleware/auth.middleware.js';
 import { errorHandler } from './shared/middleware/errorHandler.js';
-
-dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../.env') });
 
 export function createApp() {
   const app = express();

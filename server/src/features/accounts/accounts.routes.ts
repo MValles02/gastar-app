@@ -5,8 +5,7 @@ import {
   getAccountsByUser,
   createAccount,
   updateAccount,
-  deleteAccount,
-  getTransactionCountForAccount,
+  deleteAccountAtomic,
 } from './accounts.service.js';
 
 const router = Router();
@@ -51,14 +50,15 @@ router.put('/:id', async (req, res, next) => {
 // DELETE /api/accounts/:id
 router.delete('/:id', async (req, res, next) => {
   try {
-    const txCount = await getTransactionCountForAccount(req.params.id, req.userId);
-    if (txCount > 0) {
-      res.status(400).json({ error: `This account has ${txCount} associated transactions.` });
+    const result = await deleteAccountAtomic(req.userId, req.params.id);
+    if (result === null) {
+      res.status(404).json({ error: 'Account not found' });
       return;
     }
-    const result = await deleteAccount(req.userId, req.params.id);
-    if (!result) {
-      res.status(404).json({ error: 'Account not found' });
+    if (result !== true) {
+      res
+        .status(400)
+        .json({ error: `This account has ${result.txCount} associated transactions.` });
       return;
     }
     res.json({ data: { message: 'Account deleted' } });

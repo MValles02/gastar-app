@@ -17,8 +17,13 @@ export const monthlyQuerySchema = z.object({
 
 const arrayOrString = z.union([z.string(), z.array(z.string())]).transform((v) => [v].flat());
 
+const transactionTypeEnum = z.enum(['income', 'expense', 'transfer']);
+const arrayOrStringEnum = z
+  .union([transactionTypeEnum, z.array(transactionTypeEnum)])
+  .transform((v) => [v].flat());
+
 export const byCategoryQuerySchema = reportQuerySchema.extend({
   accountId: arrayOrString.optional(),
-  type: arrayOrString.optional(),
+  type: arrayOrStringEnum.optional(),
   categoryId: arrayOrString.optional(),
 });

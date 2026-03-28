@@ -18,7 +18,9 @@ interface CategoryInfo {
   icon: string | null;
 }
 
-async function buildCategoriesMap(categoryIds: (string | null)[]): Promise<Record<string, CategoryInfo>> {
+async function buildCategoriesMap(
+  categoryIds: (string | null)[]
+): Promise<Record<string, CategoryInfo>> {
   const map: Record<string, CategoryInfo> = {};
   const validIds = categoryIds.filter((id): id is string => id !== null);
   if (validIds.length > 0) {
@@ -52,12 +54,24 @@ export async function getSummaryReport(userId: string, { from, to }: ReportFilte
   const totalBalance = accounts.reduce((sum, a) => sum + Number(a.arsBalance), 0);
   const txWhere = { account: { userId }, ...(dateFilter && { date: dateFilter }) };
   const [incomeAgg, expenseAgg] = await Promise.all([
-    prisma.transaction.aggregate({ where: { ...txWhere, type: 'income' }, _sum: { arsAmount: true } }),
-    prisma.transaction.aggregate({ where: { ...txWhere, type: 'expense' }, _sum: { arsAmount: true } }),
+    prisma.transaction.aggregate({
+      where: { ...txWhere, type: 'income' },
+      _sum: { arsAmount: true },
+    }),
+    prisma.transaction.aggregate({
+      where: { ...txWhere, type: 'expense' },
+      _sum: { arsAmount: true },
+    }),
   ]);
   const totalIncome = Number(incomeAgg._sum.arsAmount ?? 0);
   const totalExpenses = Number(expenseAgg._sum.arsAmount ?? 0);
-  return { totalBalance, accounts, totalIncome, totalExpenses, netFlow: totalIncome - totalExpenses };
+  return {
+    totalBalance,
+    accounts,
+    totalIncome,
+    totalExpenses,
+    netFlow: totalIncome - totalExpenses,
+  };
 }
 
 export async function getByCategoryReport(
@@ -94,7 +108,10 @@ export async function getByCategoryReport(
       : Promise.resolve([]),
   ]);
   const allCategoryIds = [
-    ...new Set([...expenseGroups.map((g) => g.categoryId), ...incomeGroups.map((g) => g.categoryId)]),
+    ...new Set([
+      ...expenseGroups.map((g) => g.categoryId),
+      ...incomeGroups.map((g) => g.categoryId),
+    ]),
   ];
   const categoriesMap = await buildCategoriesMap(allCategoryIds);
   const mapGroups = (groups: Array<{ categoryId: string | null; _sum: { arsAmount: unknown } }>) =>
@@ -109,8 +126,8 @@ export async function getByCategoryReport(
 
 interface MonthlyRow {
   month: number;
-  income: number;
-  expenses: number;
+  income: unknown;
+  expenses: unknown;
 }
 
 export async function getMonthlyReport(userId: string, { year }: { year?: number }) {
@@ -118,8 +135,8 @@ export async function getMonthlyReport(userId: string, { year }: { year?: number
   const rows = await prisma.$queryRaw<MonthlyRow[]>`
     SELECT
       EXTRACT(MONTH FROM t.date)::int AS month,
-      SUM(CASE WHEN t.type = 'income'  THEN t.amount_ars ELSE 0 END)::float AS income,
-      SUM(CASE WHEN t.type = 'expense' THEN t.amount_ars ELSE 0 END)::float AS expenses
+      SUM(CASE WHEN t.type = 'income'  THEN t.amount_ars ELSE 0 END)::numeric AS income,
+      SUM(CASE WHEN t.type = 'expense' THEN t.amount_ars ELSE 0 END)::numeric AS expenses
     FROM transactions t
     JOIN accounts a ON t.account_id = a.id
     WHERE a.user_id = ${userId}

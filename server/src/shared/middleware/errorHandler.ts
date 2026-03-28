@@ -1,9 +1,19 @@
 import { ZodError } from 'zod';
 import type { Request, Response, NextFunction } from 'express';
 
-export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction): void {
+export function errorHandler(
+  err: unknown,
+  _req: Request,
+  res: Response,
+  _next: NextFunction
+): void {
   if (err instanceof ZodError) {
-    res.status(400).json({ error: err.errors[0]?.message || 'Datos inválidos' });
+    res.status(400).json({
+      errors: err.errors.map((e) => ({
+        field: e.path.join('.'),
+        message: e.message,
+      })),
+    });
     return;
   }
 

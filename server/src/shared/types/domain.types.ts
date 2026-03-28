@@ -1,6 +1,7 @@
 export type AccountType = 'checking' | 'savings' | 'credit_card' | 'cash' | 'investment';
 export type TransactionType = 'income' | 'expense' | 'transfer';
 export type Currency = 'ARS' | 'USD' | 'EUR';
+export type ExchangeRatePreference = 'blue' | 'official';
 
 export interface User {
   id: string;
@@ -8,7 +9,7 @@ export interface User {
   name: string;
   passwordHash?: string | null;
   googleId?: string | null;
-  exchangeRatePreference: string;
+  exchangeRatePreference: ExchangeRatePreference;
   createdAt: Date;
 }
 
