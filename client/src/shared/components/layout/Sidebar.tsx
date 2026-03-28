@@ -57,7 +57,7 @@ export default function Sidebar(): JSX.Element {
               to={to}
               end={to === '/'}
               aria-label={collapsed ? label : undefined}
-              className={({ isActive }) =>
+              className={({ isActive }: { isActive: boolean }) =>
                 clsx(
                   'flex items-center gap-3 rounded-panel px-3 py-3 text-sm font-medium transition-colors',
                   isActive
@@ -67,7 +67,7 @@ export default function Sidebar(): JSX.Element {
                 )
               }
             >
-              {({ isActive }) => (
+              {({ isActive }: { isActive: boolean }) => (
                 <>
                   <Icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
                   {!collapsed && <span>{label}</span>}
@@ -113,7 +113,7 @@ export default function Sidebar(): JSX.Element {
             <NavLink
               to="/profile"
               aria-label={collapsed ? user.name : undefined}
-              className={({ isActive }) =>
+              className={({ isActive }: { isActive: boolean }) =>
                 clsx(
                   'flex w-full items-center gap-3 rounded-soft px-3 py-2 text-sm transition-colors',
                   isActive

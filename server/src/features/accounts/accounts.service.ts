@@ -15,7 +15,11 @@ export async function getAccountsByUser(userId: string) {
 export async function createAccount(userId: string, data: CreateAccountData) {
   const currency = data.currency ?? 'ARS';
   const arsBalance =
-    currency === 'ARS' ? data.balance : data.exchangeRate ? Number(data.balance) * data.exchangeRate : 0;
+    currency === 'ARS'
+      ? data.balance
+      : data.exchangeRate
+        ? Number(data.balance) * data.exchangeRate
+        : 0;
   return prisma.account.create({
     data: { name: data.name, type: data.type, currency, balance: data.balance, arsBalance, userId },
   });
@@ -29,9 +33,11 @@ export async function updateAccount(userId: string, accountId: string, data: Upd
 
   const { exchangeRate, ...updatePayload } = data;
   const incomingCurrency = updatePayload.currency ?? existing.currency;
-  const currencyChanging = updatePayload.currency !== undefined && updatePayload.currency !== existing.currency;
+  const currencyChanging =
+    updatePayload.currency !== undefined && updatePayload.currency !== existing.currency;
 
-  const shouldRecalc = currencyChanging || (exchangeRate !== undefined && incomingCurrency !== 'ARS');
+  const shouldRecalc =
+    currencyChanging || (exchangeRate !== undefined && incomingCurrency !== 'ARS');
   const payload: Record<string, unknown> = { ...updatePayload };
 
   if (shouldRecalc) {
@@ -54,6 +60,9 @@ export async function deleteAccount(userId: string, accountId: string): Promise<
   return true;
 }
 
-export async function getTransactionCountForAccount(accountId: string): Promise<number> {
-  return prisma.transaction.count({ where: { accountId } });
+export async function getTransactionCountForAccount(
+  accountId: string,
+  userId: string
+): Promise<number> {
+  return prisma.transaction.count({ where: { accountId, account: { userId } } });
 }

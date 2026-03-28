@@ -1,11 +1,9 @@
 import jwt from 'jsonwebtoken';
 import type { Request, Response, NextFunction } from 'express';
 
-declare global {
-  namespace Express {
-    interface Request {
-      userId: string;
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    userId: string;
   }
 }
 

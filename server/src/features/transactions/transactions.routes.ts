@@ -1,15 +1,13 @@
 import { Router } from 'express';
 import { authenticate } from '../../shared/middleware/auth.middleware.js';
 import prisma from '../../shared/utils/prisma.js';
+import type { Prisma } from '@prisma/client';
 import {
   createTransactionSchema,
   updateTransactionSchema,
   transactionQuerySchema,
 } from './transaction.validators.js';
-import {
-  applyTransactionBalances,
-  reverseTransactionBalances,
-} from './transaction.service.js';
+import { applyTransactionBalances, reverseTransactionBalances } from './transaction.service.js';
 import { getEffectiveTransaction } from './transaction-rules.js';
 
 const router = Router();
@@ -61,10 +59,9 @@ async function validateTransactionReferences(
   let destAccount: OwnedAccount | null = null;
   if (data.type === 'transfer') {
     if (!data.transferTo) {
-      const error = Object.assign(
-        new Error('Destination account is required for transfers'),
-        { status: 400 }
-      );
+      const error = Object.assign(new Error('Destination account is required for transfers'), {
+        status: 400,
+      });
       throw error;
     }
 
@@ -140,7 +137,7 @@ router.post('/', async (req, res, next) => {
     const exchangeRate = sourceAccount.currency === 'ARS' ? null : data.exchangeRate;
     const arsAmount = exchangeRate ? data.amount * exchangeRate : data.amount;
 
-    const transaction = await prisma.$transaction(async (tx) => {
+    const transaction = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const created = await tx.transaction.create({
         data: {
           accountId: data.accountId,
@@ -219,7 +216,7 @@ router.put('/:id', async (req, res, next) => {
       ? await fetchOwnedAccount(existing.transferTo, req.userId, 'Destination account not found')
       : null;
 
-    const transaction = await prisma.$transaction(async (tx) => {
+    const transaction = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await reverseTransactionBalances(tx, existing, existingSourceAccount, existingDestAccount);
       const updated = await tx.transaction.update({
         where: { id: req.params.id },
@@ -228,7 +225,8 @@ router.put('/:id', async (req, res, next) => {
           ...(effectiveData.categoryId !== null && { categoryId: effectiveData.categoryId }),
           type: effectiveData.type as 'income' | 'expense' | 'transfer',
           amount: Number(effectiveData.amount),
-          exchangeRate: effectiveData.exchangeRate !== null ? Number(effectiveData.exchangeRate) : null,
+          exchangeRate:
+            effectiveData.exchangeRate !== null ? Number(effectiveData.exchangeRate) : null,
           arsAmount: Number(effectiveData.arsAmount),
           description: effectiveData.description,
           date: data.date ? new Date(data.date) : undefined,
@@ -270,7 +268,7 @@ router.delete('/:id', async (req, res, next) => {
       ? await fetchOwnedAccount(existing.transferTo, req.userId, 'Destination account not found')
       : null;
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await reverseTransactionBalances(tx, existing, sourceAccount, destAccount);
       await tx.transaction.delete({ where: { id: req.params.id } });
     });

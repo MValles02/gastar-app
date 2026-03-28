@@ -1,4 +1,5 @@
 import prisma from '../../shared/utils/prisma.js';
+import type { Prisma } from '@prisma/client';
 import type { z } from 'zod';
 import type { createCategorySchema, updateCategorySchema } from './categories.validators.js';
 
@@ -32,7 +33,7 @@ export async function deleteCategory(userId: string, categoryId: string) {
   });
   if (!existing) return null;
 
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const txCount = await tx.transaction.count({ where: { categoryId } });
     if (txCount > 0) {
       const error = Object.assign(

@@ -135,7 +135,7 @@ test('account routes support CRUD and allow deleting accounts with transactions 
       categoryId: category.id,
       type: 'expense',
       amount: 50,
-      amountArs: 50,
+      arsAmount: 50,
       date: new Date('2026-03-21'),
     },
   });
@@ -172,7 +172,7 @@ test('account routes support CRUD and allow deleting accounts with transactions 
       categoryId: category.id,
       type: 'transfer',
       amount: 100,
-      amountArs: 100,
+      arsAmount: 100,
       transferTo: destAccount.data.id,
       date: new Date('2026-03-21'),
     },

@@ -1,40 +1,62 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import prettierConfig from 'eslint-config-prettier';
 
-export default [
+export default tseslint.config(
   // Global ignores
   {
-    ignores: [
-      '**/dist/**',
-      '**/node_modules/**',
-      '**/coverage/**',
-      'server/prisma/migrations/**',
-    ],
+    ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', 'server/prisma/migrations/**'],
   },
 
-  // Server — Node.js ESM
+  // Server — src/ and scripts/ (TypeScript, type-aware)
   {
-    files: ['server/src/**/*.js', 'server/test/**/*.js', 'server/scripts/**/*.js'],
-    ...js.configs.recommended,
+    files: ['server/src/**/*.ts', 'server/scripts/**/*.ts'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    languageOptions: {
+      globals: { ...globals.node },
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      parserOptions: {
+        project: './server/tsconfig.json',
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      'no-console': 'warn',
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+    },
+  },
+
+  // Server — test/ (TypeScript, no type-aware rules — excluded from server tsconfig)
+  {
+    files: ['server/test/**/*.ts'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
     languageOptions: {
       globals: { ...globals.node },
       ecmaVersion: 2022,
       sourceType: 'module',
     },
     rules: {
-      ...js.configs.recommended.rules,
       'no-console': 'warn',
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
     },
   },
 
-  // Client — Browser + React
+  // Client — React + TypeScript
   {
-    files: ['client/src/**/*.{js,jsx}'],
-    ...js.configs.recommended,
+    files: ['client/src/**/*.{ts,tsx}'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
     plugins: {
       react: reactPlugin,
       'react-hooks': reactHooksPlugin,
@@ -44,6 +66,8 @@ export default [
       ecmaVersion: 2022,
       sourceType: 'module',
       parserOptions: {
+        project: './client/tsconfig.json',
+        tsconfigRootDir: import.meta.dirname,
         ecmaFeatures: { jsx: true },
       },
     },
@@ -51,17 +75,20 @@ export default [
       react: { version: 'detect' },
     },
     rules: {
-      ...js.configs.recommended.rules,
       ...reactPlugin.configs.recommended.rules,
       // Enumerate hooks rules manually — v7's recommended config includes react-compiler rules we don't want
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/exhaustive-deps': 'error',
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'error',
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
     },
   },
 
-  // Prettier — must be last to disable conflicting rules
-  prettierConfig,
-];
+  // Prettier — must be last to disable conflicting formatting rules
+  prettierConfig
+);

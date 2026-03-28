@@ -6,7 +6,10 @@ import {
   getBalanceDelta,
 } from '../src/features/transactions/transaction.service.js';
 
-type MockUpdate = (args: { where: { id: string }; data: { balance: { increment: number } } }) => Promise<void>;
+type MockUpdate = (args: {
+  where: { id: string };
+  data: { balance: { increment: number } };
+}) => Promise<void>;
 type MockTx = { account: { update: MockUpdate } };
 
 test('getBalanceDelta maps transaction types to expected account deltas', () => {
@@ -33,8 +36,8 @@ test('applyTransactionBalances updates both sides of a transfer', async () => {
     {
       accountId: 'source-account',
       type: 'transfer',
-      amount: '250.75',
-      amountArs: '250.75',
+      amount: 250.75,
+      arsAmount: 250.75,
       transferTo: 'destination-account',
     },
     sourceAccount,
@@ -62,8 +65,8 @@ test('reverseTransactionBalances undoes an expense', async () => {
     {
       accountId: 'expense-account',
       type: 'expense',
-      amount: '99.99',
-      amountArs: '99.99',
+      amount: 99.99,
+      arsAmount: 99.99,
       transferTo: null,
     },
     { id: 'expense-account', currency: 'ARS' }

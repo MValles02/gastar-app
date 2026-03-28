@@ -4,7 +4,12 @@ import type { User } from '../../shared/types/domain.types.js';
 
 type UserPublic = Pick<User, 'id' | 'email' | 'name' | 'exchangeRatePreference'>;
 
-const USER_PUBLIC_SELECT = { id: true, email: true, name: true, exchangeRatePreference: true } as const;
+const USER_PUBLIC_SELECT = {
+  id: true,
+  email: true,
+  name: true,
+  exchangeRatePreference: true,
+} as const;
 
 export async function findUserByEmail(email: string) {
   return prisma.user.findUnique({ where: { email } });
@@ -38,7 +43,9 @@ export async function validatePassword(
   return bcrypt.compare(password, user.passwordHash);
 }
 
-export async function updateUser(userId: string, data: Record<string, unknown>): Promise<UserPublic> {
+type UpdateUserData = Pick<User, 'exchangeRatePreference'>;
+
+export async function updateUser(userId: string, data: UpdateUserData): Promise<UserPublic> {
   return prisma.user.update({
     where: { id: userId },
     data,
@@ -50,7 +57,11 @@ export async function deleteUser(userId: string): Promise<void> {
   await prisma.user.delete({ where: { id: userId } });
 }
 
-export async function setResetToken(email: string, hashedToken: string, expiry: Date): Promise<void> {
+export async function setResetToken(
+  email: string,
+  hashedToken: string,
+  expiry: Date
+): Promise<void> {
   await prisma.user.update({
     where: { email },
     data: { resetToken: hashedToken, resetTokenExpiry: expiry },
@@ -60,13 +71,6 @@ export async function setResetToken(email: string, hashedToken: string, expiry: 
 export async function findUserByResetToken(hashedToken: string) {
   return prisma.user.findFirst({
     where: { resetToken: hashedToken, resetTokenExpiry: { gt: new Date() } },
-  });
-}
-
-export async function clearResetToken(userId: string): Promise<void> {
-  await prisma.user.update({
-    where: { id: userId },
-    data: { resetToken: null, resetTokenExpiry: null },
   });
 }
 
@@ -96,7 +100,6 @@ export async function findOrCreateGoogleUser({
     if (!existing.googleId) {
       await prisma.user.update({ where: { id: existing.id }, data: { googleId } });
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { googleId: _gid, ...userPublic } = existing;
     return userPublic;
   }

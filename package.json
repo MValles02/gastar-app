@@ -20,20 +20,22 @@
     "db:studio": "npm --prefix server run db:studio",
     "lint": "eslint server/src server/test client/src",
     "lint:fix": "eslint server/src server/test client/src --fix",
-    "format": "prettier --write \"**/*.{js,jsx,json,css,md}\" --ignore-path .prettierignore",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\" --ignore-path .prettierignore",
     "typecheck": "npm --prefix server run typecheck && npm --prefix client run typecheck",
     "typecheck:server": "npm --prefix server run typecheck",
     "typecheck:client": "npm --prefix client run typecheck",
-    "format:check": "prettier --check \"**/*.{js,jsx,json,css,md}\" --ignore-path .prettierignore"
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,md}\" --ignore-path .prettierignore"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@types/express": "^4.17.25",
     "concurrently": "^9.0.0",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "globals": "^17.4.0",
-    "prettier": "^3.8.1"
+    "prettier": "^3.8.1",
+    "typescript-eslint": "^8.57.2"
   }
 }

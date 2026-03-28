@@ -51,7 +51,7 @@ router.put('/:id', async (req, res, next) => {
 // DELETE /api/accounts/:id
 router.delete('/:id', async (req, res, next) => {
   try {
-    const txCount = await getTransactionCountForAccount(req.params.id);
+    const txCount = await getTransactionCountForAccount(req.params.id, req.userId);
     if (txCount > 0) {
       res.status(400).json({ error: `This account has ${txCount} associated transactions.` });
       return;

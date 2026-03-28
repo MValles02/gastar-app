@@ -129,7 +129,7 @@ export default function MobileDrawer({ isOpen, onClose }: Props): JSX.Element {
               to={to}
               end={to === '/'}
               onClick={onClose}
-              className={({ isActive }) =>
+              className={({ isActive }: { isActive: boolean }) =>
                 `flex items-center gap-3 rounded-panel px-3 py-3 text-sm font-medium transition-colors ${
                   isActive
                     ? 'bg-surface-muted text-app shadow-panel-sm'
@@ -137,7 +137,7 @@ export default function MobileDrawer({ isOpen, onClose }: Props): JSX.Element {
                 }`
               }
             >
-              {({ isActive }) => (
+              {({ isActive }: { isActive: boolean }) => (
                 <>
                   <Icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
                   <span>{label}</span>
@@ -167,7 +167,7 @@ export default function MobileDrawer({ isOpen, onClose }: Props): JSX.Element {
             <NavLink
               to="/profile"
               onClick={onClose}
-              className={({ isActive }) =>
+              className={({ isActive }: { isActive: boolean }) =>
                 `flex w-full items-center gap-3 rounded-soft px-3 py-2 text-sm transition-colors ${
                   isActive
                     ? 'bg-surface-muted text-app shadow-panel-sm'

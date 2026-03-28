@@ -39,6 +39,7 @@ model User {
   accounts     Account[]
   categories   Category[]
 
+  @@index([resetToken])
   @@map("users")
 }
 

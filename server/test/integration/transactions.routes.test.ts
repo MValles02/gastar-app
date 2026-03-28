@@ -18,7 +18,7 @@ beforeEach(async () => {
   await resetDb();
 });
 
-async function login(user, password) {
+async function login(user: { email: string }, password: string) {
   const response = await fetch(`${baseUrl}/api/auth/login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -45,7 +45,7 @@ test('POST /api/transactions creates a transfer and updates both account balance
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      cookie: session.cookie,
+      cookie: session.cookie!,
     },
     body: JSON.stringify({
       accountId: source.id,
@@ -67,8 +67,8 @@ test('POST /api/transactions creates a transfer and updates both account balance
     prisma.account.findUnique({ where: { id: destination.id } }),
   ]);
 
-  assert.equal(Number(updatedSource.balance), 850);
-  assert.equal(Number(updatedDestination.balance), 400);
+  assert.equal(Number(updatedSource!.balance), 850);
+  assert.equal(Number(updatedDestination!.balance), 400);
 });
 
 test('PUT /api/transactions rejects categories owned by another user', async () => {
@@ -85,7 +85,7 @@ test('PUT /api/transactions rejects categories owned by another user', async () 
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      cookie: session.cookie,
+      cookie: session.cookie!,
     },
     body: JSON.stringify({
       accountId: account.id,
@@ -103,7 +103,7 @@ test('PUT /api/transactions rejects categories owned by another user', async () 
     method: 'PUT',
     headers: {
       'content-type': 'application/json',
-      cookie: session.cookie,
+      cookie: session.cookie!,
     },
     body: JSON.stringify({
       categoryId: foreignCategory.id,
@@ -115,7 +115,7 @@ test('PUT /api/transactions rejects categories owned by another user', async () 
   assert.match(updateBody.error, /category not found/i);
 
   const refreshedAccount = await prisma.account.findUnique({ where: { id: account.id } });
-  assert.equal(Number(refreshedAccount.balance), 400);
+  assert.equal(Number(refreshedAccount!.balance), 400);
 });
 
 test('POST /api/auth/forgot-password stores a hashed reset token and emails the raw token', async () => {
@@ -136,8 +136,8 @@ test('POST /api/auth/forgot-password stores a hashed reset token and emails the 
 
   assert.equal(sentEmails.length, 1);
   assert.equal(sentEmails[0].email, user.email);
-  assert.ok(updatedUser.resetToken);
-  assert.equal(updatedUser.resetToken, hashResetToken(sentEmails[0].resetToken));
+  assert.ok(updatedUser!.resetToken);
+  assert.equal(updatedUser!.resetToken, hashResetToken(sentEmails[0].resetToken));
 });
 
 test('POST /api/auth/reset-password accepts the raw emailed token and clears reset fields', async () => {
@@ -165,6 +165,6 @@ test('POST /api/auth/reset-password accepts the raw emailed token and clears res
   assert.match(body.data.message, /password updated/i);
 
   const updatedUser = await prisma.user.findUnique({ where: { id: user.id } });
-  assert.equal(updatedUser.resetToken, null);
-  assert.equal(updatedUser.resetTokenExpiry, null);
+  assert.equal(updatedUser!.resetToken, null);
+  assert.equal(updatedUser!.resetTokenExpiry, null);
 });
