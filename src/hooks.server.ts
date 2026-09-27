@@ -29,5 +29,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return new Response('Unauthorized', { status: 401 });
 	}
 
-	return resolve(event);
+	const theme = event.cookies.get('theme');
+	const themeAttr =
+		theme === 'light' ? 'data-theme="light"' : theme === 'dark' ? 'data-theme="dark"' : '';
+
+	return resolve(event, {
+		transformPageChunk: ({ html }) => html.replace('%theme-attr%', themeAttr)
+	});
 };

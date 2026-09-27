@@ -3,7 +3,10 @@
 </svelte:head>
 
 <h1>Inicio</h1>
+<p class="muted">Próximamente.</p>
 
-<form method="POST" action="/logout">
-	<button type="submit">Cerrar sesión</button>
-</form>
+<style>
+	.muted {
+		color: var(--text-muted);
+	}
+</style>
