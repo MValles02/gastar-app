@@ -28,13 +28,14 @@ On push to `main` (or manual `workflow_dispatch`):
 2. `publish` — builds the Docker image and pushes it to GHCR as
    `ghcr.io/mvalles02/gastar-app:latest` and
    `ghcr.io/mvalles02/gastar-app:sha-<full sha>`.
-3. `deploy` — calls the Dokploy API to redeploy the application.
+3. `deploy` — calls the Dokploy deploy webhook to redeploy the application.
 
 Required GitHub secrets:
 
-- `DOKPLOY_URL`
-- `DOKPLOY_API_KEY`
-- `DOKPLOY_APPLICATION_ID`
+- `DOKPLOY_DEPLOY_WEBHOOK` — the app's deploy webhook URL (Dokploy → app →
+  Deployments → Webhook URL); it can only redeploy this app, and you can
+  regenerate it there if it leaks. The app must have Auto Deploy enabled for
+  the webhook to be accepted.
 
 (`GITHUB_TOKEN` is provided automatically and used to push to GHCR.)
 
