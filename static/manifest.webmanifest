@@ -1,0 +1,20 @@
+{
+	"name": "Gastar",
+	"short_name": "Gastar",
+	"lang": "es",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"theme_color": "#00301c",
+	"background_color": "#f4ece6",
+	"icons": [
+		{ "src": "/pwa-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+		{ "src": "/pwa-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+		{
+			"src": "/maskable-icon-512x512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	]
+}
