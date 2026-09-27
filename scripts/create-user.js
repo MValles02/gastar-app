@@ -5,8 +5,9 @@ import postgres from 'postgres';
 
 const MIN_PASSWORD_LENGTH = 8;
 
-const [, , rawEmail, name] = process.argv;
+const [, , rawEmail, rawName] = process.argv;
 const email = rawEmail?.trim().toLowerCase();
+const name = rawName?.trim();
 
 if (!email || !name) {
 	console.error('Usage: node scripts/create-user.js <email> <name>');

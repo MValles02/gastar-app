@@ -21,3 +21,12 @@ Env vars required at runtime:
 Migrations run automatically on container start and must be backward-compatible
 with the previously running version (rolling deploys may briefly run old and
 new code against the same schema).
+
+### Creating users
+
+Signup is disabled; users are created from inside the running container
+(e.g. via the Dokploy container terminal):
+
+```sh
+docker exec -it <container> node scripts/create-user.js <email> "<name>"
+```

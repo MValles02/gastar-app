@@ -123,7 +123,10 @@ export const financialAccounts = pgTable('financial_accounts', {
 	color: text('color'),
 	archivedAt: timestamp('archived_at', { withTimezone: true }),
 	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-	updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+	updatedAt: timestamp('updated_at', { withTimezone: true })
+		.defaultNow()
+		.$onUpdate(() => new Date())
+		.notNull()
 });
 
 export const categories = pgTable(
@@ -137,7 +140,10 @@ export const categories = pgTable(
 		color: text('color'),
 		archivedAt: timestamp('archived_at', { withTimezone: true }),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-		updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+		updatedAt: timestamp('updated_at', { withTimezone: true })
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull()
 	},
 	(table) => [uniqueIndex('categories_user_id_name_idx').on(table.userId, table.name)]
 );
@@ -163,7 +169,10 @@ export const movements = pgTable(
 		destinationAmount: bigint('destination_amount', { mode: 'number' }),
 		exchangeRate: bigint('exchange_rate', { mode: 'number' }),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-		updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+		updatedAt: timestamp('updated_at', { withTimezone: true })
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull()
 	},
 	(table) => [
 		index('movements_account_id_occurred_at_idx').on(table.accountId, table.occurredAt),

@@ -5,6 +5,8 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions: {}
+
 concurrency:
   group: deploy
   cancel-in-progress: false
@@ -17,6 +19,7 @@ jobs:
 
   publish:
     needs: checks
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -47,6 +50,7 @@ jobs:
 
   deploy:
     needs: publish
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
