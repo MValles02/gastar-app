@@ -1,4 +1,9 @@
 <script lang="ts">
+	import '@fontsource/dm-sans/300.css';
+	import '@fontsource/dm-sans/400.css';
+	import '@fontsource/dm-sans/500.css';
+	import '@fontsource/dm-sans/600.css';
+	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 
 	let { children } = $props();
