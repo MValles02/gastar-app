@@ -25,6 +25,8 @@ COPY package.json ./
 COPY drizzle ./drizzle
 COPY scripts/migrate.js ./scripts/migrate.js
 COPY scripts/create-user.js ./scripts/create-user.js
+ARG GIT_SHA
+ENV GIT_SHA=$GIT_SHA
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
