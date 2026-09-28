@@ -65,12 +65,19 @@ jobs:
       - name: Trigger Dokploy deploy
         env:
           WEBHOOK: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
-          if [ -z "$WEBHOOK" ]; then
-            echo "::error::DOKPLOY_WEBHOOK_URL is not configured."
-            exit 1
-          fi
-          curl -fsS -X POST "$WEBHOOK"
+          for v in WEBHOOK CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Secret for $v is not configured."
+              exit 1
+            fi
+          done
+          curl -fsS -X POST "$WEBHOOK" \
+            -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
+            -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET"
+          echo "Redeployment webhook sent."
 
       - name: Wait for new version
         env:
