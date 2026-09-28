@@ -3,6 +3,8 @@ name: Deploy
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**.md"
   workflow_dispatch:
 
 permissions: {}
@@ -18,7 +20,10 @@ jobs:
       contents: read
 
   publish:
+    name: Build and publish to GHCR
     needs: checks
+    # workflow_dispatch can be run from any branch; restrict to main so a
+    # manual trigger never builds or deploys non-main code to production.
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -42,6 +47,7 @@ jobs:
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -50,20 +56,39 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
+    name: Deploy to Dokploy
     needs: publish
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions: {}
-    env:
-      DOKPLOY_DEPLOY_WEBHOOK: ${{ secrets.DOKPLOY_DEPLOY_WEBHOOK }}
     steps:
       - name: Trigger Dokploy deploy
+        env:
+          WEBHOOK: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
         run: |
-          curl -fsS -X POST "$DOKPLOY_DEPLOY_WEBHOOK"
+          if [ -z "$WEBHOOK" ]; then
+            echo "::error::DOKPLOY_WEBHOOK_URL is not configured."
+            exit 1
+          fi
+          curl -fsS -X POST "$WEBHOOK"
 
-      - name: Verify deploy
-        if: vars.HEALTH_URL != ''
+      - name: Wait for new version
         env:
           HEALTH_URL: ${{ vars.HEALTH_URL }}
         run: |
-          for i in $(seq 30); do curl -fsS -m 10 "$HEALTH_URL" | jq -e --arg s "$GITHUB_SHA" '.status=="ok" and .sha==$s' && exit 0; sleep 10; done; exit 1
+          if [ -z "$HEALTH_URL" ]; then
+            echo "::error::HEALTH_URL is not configured."
+            exit 1
+          fi
+          for i in $(seq 30); do curl -fsS -m 10 "$HEALTH_URL" | jq -e --arg s "$GITHUB_SHA" '.status=="ok" and .sha==$s' && exit 0; sleep 10; done
+          echo "::error::Timed out waiting for the new version to become healthy."
+          exit 1
+
+      - name: Smoke test
+        env:
+          HEALTH_URL: ${{ vars.HEALTH_URL }}
+        run: |
+          BASE=$(printf '%s' "$HEALTH_URL" | cut -d/ -f1-3)
+          curl -fsSL -o /dev/null -m 20 --retry 3 --retry-delay 5 "$BASE/"
+          STATUS=$(curl -fsSL -o /dev/null -w '%{http_code}' -m 20 "$BASE/")
+          echo "Home page responded with HTTP $STATUS"

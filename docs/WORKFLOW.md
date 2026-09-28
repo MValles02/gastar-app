@@ -2,7 +2,8 @@
 
 ## Branching & PRs
 
-- `main` is production; it auto-deploys on every merge.
+- `main` is production; it auto-deploys on every merge (skipped for
+  doc-only changes).
 - All work happens on feature branches, named `feat/`, `fix/`, `chore/`, or
   `docs/` (e.g. `feat/expense-filters`).
 - Branches merge to `main` via pull request, **squash merge only**.
@@ -11,8 +12,9 @@
 
 ## CI gate
 
-GitHub Free can't enforce branch protection rulesets on private repos, so the
-gate is convention plus CI, not a hard block:
+A GitHub ruleset on `main` requires the `checks` and `gitleaks` status checks
+and only allows merges through pull requests (squash), so this is a hard
+block, not just convention:
 
 - `.github/workflows/ci.yml` runs on every pull request: install, lint,
   check, test, build, and a `docker build` (no push).
@@ -32,10 +34,16 @@ On push to `main` (or manual `workflow_dispatch`):
 
 Required GitHub secrets:
 
-- `DOKPLOY_DEPLOY_WEBHOOK` — the app's deploy webhook URL (Dokploy → app →
+- `DOKPLOY_WEBHOOK_URL` — the app's deploy webhook URL (Dokploy → app →
   Deployments → Webhook URL); it can only redeploy this app, and you can
   regenerate it there if it leaks. The app must have Auto Deploy enabled for
   the webhook to be accepted.
+
+Required GitHub variable:
+
+- `HEALTH_URL` — the health check URL the `deploy` job polls after
+  triggering the webhook, waiting for it to report the new commit SHA before
+  smoke-testing the site's home page. The job fails if it is not set.
 
 (`GITHUB_TOKEN` is provided automatically and used to push to GHCR.)
 
