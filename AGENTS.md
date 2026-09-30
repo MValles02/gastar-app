@@ -5,12 +5,12 @@ Invite-only (email + password, no public signup). Deployed as a Docker image via
 
 ## Documentation
 
-| Need                                                | File                |
-| --------------------------------------------------- | ------------------- |
-| Product scope, screens, locale/formatting, rules    | `docs/PRODUCT.md`   |
-| Tables, money representation, invariants            | `docs/DATA_MODEL.md` |
-| Branching, PRs, CI gate, deploy, migrations, rollback | `docs/WORKFLOW.md`  |
-| Production env vars, creating users                 | `README.md`         |
+| Need                                                  | File                 |
+| ----------------------------------------------------- | -------------------- |
+| Product scope, screens, locale/formatting, rules      | `docs/PRODUCT.md`    |
+| Tables, money representation, invariants              | `docs/DATA_MODEL.md` |
+| Branching, PRs, CI gate, deploy, migrations, rollback | `docs/WORKFLOW.md`   |
+| Production env vars, creating users                   | `README.md`          |
 
 ## Stack
 
