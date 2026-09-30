@@ -88,3 +88,11 @@ Required GitHub variable:
    against the current schema — no database rollback needed.
 3. Only restore a database backup if data itself was corrupted, and treat
    that as a separate, deliberate operation.
+
+## Local development
+
+- `pnpm dev` binds to loopback (`127.0.0.1`, Vite default port 5173). To reach
+  it remotely: `ssh -N -L 5173:localhost:5173 mateo@<tailscale-ip>`.
+- `pnpm hooks:install` enables the versioned pre-commit hook
+  (`scripts/git-hooks/pre-commit`), which scans staged changes with gitleaks
+  via docker (skipped with a warning if docker is missing).

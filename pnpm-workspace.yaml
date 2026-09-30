@@ -1,2 +1,7 @@
 allowBuilds:
   esbuild: true
+
+overrides:
+  # Patch GHSA-pxg6-pf52-xh8x (cookie <0.7.0) pulled in via @sveltejs/kit.
+  # Remove once kit requires a patched cookie.
+  cookie: ^0.7.0
