@@ -11,7 +11,22 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 
-			adapter: adapter()
+			adapter: adapter(),
+			csp: {
+				mode: 'auto',
+				// frame-ancestors is ignored in report-only; clickjacking is enforced via X-Frame-Options
+				reportOnly: {
+					'default-src': ['self'],
+					'script-src': ['self'],
+					'style-src': ['self', 'unsafe-inline'],
+					'img-src': ['self', 'data:'],
+					'font-src': ['self'],
+					'connect-src': ['self'],
+					'base-uri': ['self'],
+					'form-action': ['self'],
+					'report-uri': ['/csp-report']
+				}
+			}
 		})
 	],
 	test: {
