@@ -11,5 +11,14 @@ export const auth = betterAuth({
 	emailAndPassword: { enabled: true, disableSignUp: true },
 	secret: env.BETTER_AUTH_SECRET,
 	baseURL: env.BETTER_AUTH_URL,
+	advanced: { ipAddress: { ipAddressHeaders: ['cf-connecting-ip'] } },
+	// ponytail: in-memory, single instance; move to DB/Redis if the app is scaled out
+	rateLimit: {
+		enabled: true,
+		storage: 'memory',
+		window: 60,
+		max: 100,
+		customRules: { '/sign-in/email': { window: 60, max: 5 } }
+	},
 	plugins: [sveltekitCookies(getRequestEvent)]
 });
