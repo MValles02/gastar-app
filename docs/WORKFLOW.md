@@ -10,6 +10,15 @@
 - PR titles follow Conventional Commits (`feat: ...`, `fix: ...`,
   `chore: ...`, `docs: ...`) since the squash commit uses the PR title.
 
+## Design
+
+- UI-affecting PRs reference the design pass (`/impeccable shape` or `craft`
+  for new screens).
+- Run `/impeccable audit` (and `polish`) before opening the PR.
+- Update root `DESIGN.md` when the visual system changes.
+- Fresh clones: run `npx impeccable install` (project scope); the skill
+  binary is gitignored.
+
 ## CI gate
 
 A GitHub ruleset on `main` requires the `checks` and `gitleaks` status checks
