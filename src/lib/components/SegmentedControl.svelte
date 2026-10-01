@@ -1,0 +1,73 @@
+<script lang="ts">
+	let {
+		name,
+		options,
+		value = $bindable(),
+		labelledby,
+		onchange
+	}: {
+		name: string;
+		options: { value: string; label: string }[];
+		value: string;
+		labelledby?: string;
+		onchange?: () => void;
+	} = $props();
+</script>
+
+<div class="track" role="radiogroup" aria-labelledby={labelledby}>
+	{#each options as option (option.value)}
+		<label class="option">
+			<input type="radio" {name} value={option.value} bind:group={value} {onchange} />
+			<span>{option.label}</span>
+		</label>
+	{/each}
+</div>
+
+<style>
+	.track {
+		display: flex;
+		gap: var(--space-1);
+		padding: var(--space-1);
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-pill);
+	}
+
+	.option {
+		position: relative;
+		flex: 1;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		min-height: 2.75rem;
+		border-radius: var(--radius-pill);
+		font-size: var(--font-size-base);
+		font-weight: 500;
+		color: var(--text);
+		cursor: pointer;
+		transition:
+			background-color 0.15s ease,
+			color 0.15s ease;
+	}
+
+	.option input {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		margin: 0;
+		padding: 0;
+		opacity: 0;
+		cursor: pointer;
+	}
+
+	.option:has(input:checked) {
+		background: var(--primary);
+		color: var(--on-primary);
+	}
+
+	.option:has(input:focus-visible) {
+		outline: 2px solid var(--primary);
+		outline-offset: 2px;
+	}
+</style>

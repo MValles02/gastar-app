@@ -1,11 +1,21 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import PageHeader from '$lib/components/PageHeader.svelte';
+	import Card from '$lib/components/Card.svelte';
+	import Button from '$lib/components/Button.svelte';
+	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let selected = $derived(data.theme);
 	let themeForm: HTMLFormElement;
+
+	const themeOptions = [
+		{ value: 'light', label: 'Claro' },
+		{ value: 'dark', label: 'Oscuro' },
+		{ value: 'system', label: 'Sistema' }
+	];
 
 	function applyTheme(value: string) {
 		if (value === 'light' || value === 'dark') {
@@ -20,72 +30,63 @@
 	<title>Perfil · Gastar</title>
 </svelte:head>
 
-<h1>Perfil</h1>
+<PageHeader title="Perfil" />
 
-<section class="user-info">
-	<p class="name">{data.user.name}</p>
-	<p class="email muted">{data.user.email}</p>
-</section>
+<div class="sections">
+	<Card>
+		<section class="user-info">
+			<p class="name">{data.user.name}</p>
+			<p class="muted">{data.user.email}</p>
+		</section>
+	</Card>
 
-<section>
-	<h2>Tema</h2>
+	<Card>
+		<section>
+			<h2 id="theme-heading">Tema</h2>
 
-	<form
-		method="POST"
-		action="?/theme"
-		bind:this={themeForm}
-		use:enhance={() => {
-			return async ({ result, update }) => {
-				if (result.type === 'success') applyTheme(selected);
-				await update({ reset: false });
-			};
-		}}
-		class="theme-form"
-	>
-		<label class="radio">
-			<input
-				type="radio"
-				name="theme"
-				value="light"
-				bind:group={selected}
-				onchange={() => themeForm.requestSubmit()}
-			/>
-			Claro
-		</label>
-		<label class="radio">
-			<input
-				type="radio"
-				name="theme"
-				value="dark"
-				bind:group={selected}
-				onchange={() => themeForm.requestSubmit()}
-			/>
-			Oscuro
-		</label>
-		<label class="radio">
-			<input
-				type="radio"
-				name="theme"
-				value="system"
-				bind:group={selected}
-				onchange={() => themeForm.requestSubmit()}
-			/>
-			Sistema
-		</label>
+			<form
+				method="POST"
+				action="?/theme"
+				bind:this={themeForm}
+				use:enhance={() => {
+					return async ({ result, update }) => {
+						if (result.type === 'success') applyTheme(selected);
+						await update({ reset: false });
+					};
+				}}
+				class="theme-form"
+			>
+				<SegmentedControl
+					name="theme"
+					options={themeOptions}
+					bind:value={selected}
+					labelledby="theme-heading"
+					onchange={() => themeForm.requestSubmit()}
+				/>
 
-		{#if form?.error}
-			<p class="error">{form.error}</p>
-		{/if}
+				{#if form?.error}
+					<p class="error" role="alert">{form.error}</p>
+				{/if}
 
-		<button type="submit" class="btn-secondary">Guardar</button>
-	</form>
-</section>
+				<Button type="submit" variant="secondary">Guardar</Button>
+			</form>
+		</section>
+	</Card>
 
-<form method="POST" action="/logout" class="logout-form">
-	<button type="submit" class="btn-secondary">Cerrar sesión</button>
-</form>
+	<Card>
+		<form method="POST" action="/logout">
+			<Button type="submit" variant="secondary" block>Cerrar sesión</Button>
+		</form>
+	</Card>
+</div>
 
 <style>
+	.sections {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+
 	.muted {
 		color: var(--text-muted);
 	}
@@ -94,7 +95,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
-		margin-bottom: var(--space-6);
 	}
 
 	.name {
@@ -110,19 +110,10 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
-		margin-bottom: var(--space-6);
 	}
 
-	.radio {
-		flex-direction: row;
-		align-items: center;
-		gap: var(--space-2);
-		color: var(--text);
-		font-size: var(--font-size-base);
-	}
-
-	.radio input {
-		width: auto;
+	.theme-form :global(.btn) {
+		align-self: flex-start;
 	}
 
 	.error {

@@ -1,0 +1,86 @@
+<script lang="ts">
+	import type { Snippet } from 'svelte';
+	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements';
+
+	type Props = {
+		variant?: 'primary' | 'secondary';
+		block?: boolean;
+		href?: string;
+		children: Snippet;
+	} & Omit<HTMLButtonAttributes, 'children'> &
+		Omit<HTMLAnchorAttributes, 'children'>;
+
+	let { variant = 'primary', block = false, href, children, ...rest }: Props = $props();
+</script>
+
+{#if href}
+	<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass an already resolved href -->
+	<a {href} class="btn {variant}" class:block {...rest as HTMLAnchorAttributes}>
+		{@render children()}
+	</a>
+{:else}
+	<button class="btn {variant}" class:block {...rest as HTMLButtonAttributes}>
+		{@render children()}
+	</button>
+{/if}
+
+<style>
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-2);
+		font-family: inherit;
+		font-size: var(--font-size-base);
+		font-weight: 500;
+		line-height: 1.5;
+		text-decoration: none;
+		border-radius: var(--radius-pill);
+		border: 1px solid transparent;
+		padding: var(--space-3) var(--space-5);
+		cursor: pointer;
+		transition:
+			opacity 0.15s ease,
+			background-color 0.15s ease;
+	}
+
+	.primary {
+		background: var(--primary);
+		color: var(--on-primary);
+	}
+
+	.primary:hover {
+		opacity: 0.9;
+	}
+
+	.secondary {
+		background: transparent;
+		color: var(--text);
+		border-color: var(--border);
+	}
+
+	.secondary:hover {
+		opacity: 1;
+		background: color-mix(in srgb, var(--primary) 8%, transparent);
+	}
+
+	.block {
+		width: 100%;
+	}
+
+	.btn:disabled,
+	.btn[aria-disabled='true'] {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.btn {
+			transition-property: opacity, background-color, transform;
+		}
+	}
+
+	.btn:active:not(:disabled) {
+		transform: scale(0.98);
+	}
+</style>
