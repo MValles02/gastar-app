@@ -38,6 +38,14 @@ svg {
 	--accent: #f0ff9c;
 	--positive: #1c6b3e;
 	--negative: #7a1f0e;
+	--swatch-green: #2f6b45;
+	--swatch-teal: #1f6a6a;
+	--swatch-blue: #2c5d8a;
+	--swatch-violet: #5b4a8a;
+	--swatch-plum: #7a3d6b;
+	--swatch-red: #9a3b2e;
+	--swatch-orange: #9a5a1f;
+	--swatch-ochre: #7d6a1e;
 
 	--radius: 0.75rem;
 	--radius-pill: 999px;
@@ -70,6 +78,14 @@ svg {
 	--accent: #f0ff9c;
 	--positive: #7ce0a0;
 	--negative: #ff9c85;
+	--swatch-green: #7fc79a;
+	--swatch-teal: #6cc4c0;
+	--swatch-blue: #8db8e6;
+	--swatch-violet: #b3a3e6;
+	--swatch-plum: #d99ac6;
+	--swatch-red: #f0a090;
+	--swatch-orange: #f0b27a;
+	--swatch-ochre: #d9c46e;
 
 	color-scheme: dark;
 }
@@ -86,6 +102,14 @@ svg {
 		--accent: #f0ff9c;
 		--positive: #7ce0a0;
 		--negative: #ff9c85;
+		--swatch-green: #7fc79a;
+		--swatch-teal: #6cc4c0;
+		--swatch-blue: #8db8e6;
+		--swatch-violet: #b3a3e6;
+		--swatch-plum: #d99ac6;
+		--swatch-red: #f0a090;
+		--swatch-orange: #f0b27a;
+		--swatch-ochre: #d9c46e;
 
 		color-scheme: dark;
 	}

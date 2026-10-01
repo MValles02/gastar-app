@@ -8,3 +8,8 @@ export function canAccessAccount(
 ): SQL {
 	return eq(account.ownerId, userId);
 }
+
+/** Insert-side counterpart of canAccessAccount: spread into `values()` to set the owner. */
+export function ownedBy(userId: string) {
+	return { ownerId: userId };
+}

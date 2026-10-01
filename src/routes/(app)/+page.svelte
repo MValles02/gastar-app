@@ -58,7 +58,7 @@
 			Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos.
 		</EmptyState>
 		<div class="empty-action">
-			<Button href={resolve('/accounts')}>Crear cuenta</Button>
+			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 		</div>
 	{:else if !data.hasCurrencyAccount}
 		<EmptyState icon="accounts">No tenés cuentas en {data.currency}.</EmptyState>
