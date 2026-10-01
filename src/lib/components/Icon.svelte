@@ -1,5 +1,13 @@
 <script lang="ts">
-	type IconName = 'home' | 'accounts' | 'plus' | 'movements' | 'categories' | 'profile';
+	type IconName =
+		| 'home'
+		| 'accounts'
+		| 'plus'
+		| 'movements'
+		| 'categories'
+		| 'profile'
+		| 'chevron-left'
+		| 'chevron-right';
 
 	let { name, size = '1.5rem' }: { name: IconName; size?: string } = $props();
 
@@ -12,7 +20,9 @@
 		plus: ['M12 5v14', 'M5 12h14'],
 		movements: ['M9 6h11', 'M9 12h11', 'M9 18h11', 'M4 6h.01', 'M4 12h.01', 'M4 18h.01'],
 		categories: ['M3 4h8l10 10-8 8L3 12z', 'M7.5 8.5h.01'],
-		profile: ['M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8z', 'M4 20c0-4 3.6-6 8-6s8 2 8 6']
+		profile: ['M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8z', 'M4 20c0-4 3.6-6 8-6s8 2 8 6'],
+		'chevron-left': ['m15 18-6-6 6-6'],
+		'chevron-right': ['m9 18 6-6-6-6']
 	};
 </script>
 
