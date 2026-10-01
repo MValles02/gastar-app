@@ -1,12 +1,11 @@
+<script lang="ts">
+	import PageHeader from '$lib/components/PageHeader.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+</script>
+
 <svelte:head>
 	<title>Cuentas · Gastar</title>
 </svelte:head>
 
-<h1>Cuentas</h1>
-<p class="muted">Próximamente.</p>
-
-<style>
-	.muted {
-		color: var(--text-muted);
-	}
-</style>
+<PageHeader title="Cuentas" />
+<EmptyState icon="accounts">Próximamente.</EmptyState>

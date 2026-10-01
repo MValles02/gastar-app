@@ -117,8 +117,7 @@ a {
 }
 
 /* Buttons */
-button,
-.btn {
+button {
 	font-family: inherit;
 	font-size: var(--font-size-base);
 	font-weight: 500;
@@ -137,25 +136,13 @@ button,
 		background-color 0.15s ease;
 }
 
-button:hover,
-.btn:hover {
+button:hover {
 	opacity: 0.9;
 }
 
-button:disabled,
-.btn:disabled {
+button:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
-}
-
-.btn-secondary {
-	background: transparent;
-	color: var(--text);
-	border-color: var(--border);
-}
-
-.btn-block {
-	width: 100%;
 }
 
 /* Form controls */
@@ -169,6 +156,14 @@ select {
 	border-radius: var(--radius);
 	padding: var(--space-3) var(--space-4);
 	width: 100%;
+	min-height: 3rem;
+}
+
+input:focus-visible,
+select:focus-visible {
+	border-color: var(--primary);
+	outline: 2px solid var(--primary);
+	outline-offset: 1px;
 }
 
 label {
