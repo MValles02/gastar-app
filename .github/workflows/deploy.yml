@@ -63,6 +63,8 @@ jobs:
     needs: publish
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    # Secrets live in the "production" environment (main branch only).
+    environment: production
     permissions: {}
     timeout-minutes: 15
     steps:
