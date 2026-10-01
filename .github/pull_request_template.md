@@ -8,6 +8,7 @@
 - [ ] `pnpm check`
 - [ ] `pnpm test`
 - [ ] `pnpm build`
+- [ ] UI changes: `/impeccable audit` run (see docs/WORKFLOW.md)
 
 ## Migration
 

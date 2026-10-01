@@ -26,3 +26,7 @@ vite.config.ts.timestamp-*
 *.pem
 *.key
 .claude/settings.local.json
+
+# Impeccable
+.claude/skills/impeccable/scripts/bin/
+.impeccable/config.local.json

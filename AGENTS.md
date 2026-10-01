@@ -5,20 +5,29 @@ Invite-only (email + password, no public signup). Deployed as a Docker image via
 
 ## Documentation
 
-| Need                                                  | File                 |
-| ----------------------------------------------------- | -------------------- |
-| Product scope, screens, locale/formatting, rules      | `docs/PRODUCT.md`    |
-| Tables, money representation, invariants              | `docs/DATA_MODEL.md` |
-| Branching, PRs, CI gate, deploy, migrations, rollback | `docs/WORKFLOW.md`   |
-| Production env vars, creating users                   | `README.md`          |
+| Need                                                  | File                             |
+| ----------------------------------------------------- | -------------------------------- |
+| Product scope, screens, locale/formatting, rules      | `docs/SCOPE.md`                  |
+| Tables, money representation, invariants              | `docs/DATA_MODEL.md`             |
+| Branching, PRs, CI gate, deploy, migrations, rollback | `docs/WORKFLOW.md`               |
+| Production env vars, creating users                   | `README.md`                      |
+| Product audience/tone (impeccable); visual system     | `PRODUCT.md`, `DESIGN.md` (root) |
 
 ## Stack
 
 SvelteKit 2 + TypeScript, Drizzle ORM + Postgres (`src/lib/server/db/schema.ts`), Better Auth (`src/lib/server/auth.ts`), plain component CSS + `@fontsource/dm-sans`, Vitest, pnpm.
 
+## Design
+
+- UI work starts from the design: read root `PRODUCT.md` and `DESIGN.md` first.
+- Use `/impeccable` commands: `craft`/`shape` for new screens, `audit`/`polish` before the PR.
+- UI text stays Spanish (es-AR) per `docs/SCOPE.md`.
+- The skill binary is not committed; after cloning run `npx impeccable install` (project scope).
+- The design hook is local (`.claude/settings.local.json`, gitignored).
+
 ## Rules
 
-- Language: code, routes, DB schema, identifiers, comments, commits and docs in English; user-facing UI text in Spanish (`docs/PRODUCT.md`).
+- Language: code, routes, DB schema, identifiers, comments, commits and docs in English; user-facing UI text in Spanish (`docs/SCOPE.md`).
 - Money: stored as integer minor units (bigint cents); exchange rate as integer hundredths (`rate x 100`); a movement's currency is derived from its account, never stored (`docs/DATA_MODEL.md`).
 - Balances and category net are computed at read time, never persisted (`docs/DATA_MODEL.md`).
 - All account/movement access checks go through one server-side ownership helper (e.g. `canAccessAccount`); no other code path checks ownership (`docs/DATA_MODEL.md`).
