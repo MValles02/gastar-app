@@ -2,7 +2,7 @@ import { and, desc, eq, gte, lt, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
-import { canAccessAccount } from './access';
+import { canAccessAccount, canAccessCategory } from './access';
 
 type Currency = 'ARS' | 'USD';
 type Range = { start: Date; end: Date };
@@ -62,7 +62,7 @@ export function categorySums(userId: string, cur: Currency, range: Range) {
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.innerJoin(categories, eq(movements.categoryId, categories.id))
+		.innerJoin(categories, and(eq(movements.categoryId, categories.id), canAccessCategory(userId)))
 		.where(
 			and(
 				canAccessAccount(userId),
@@ -94,7 +94,7 @@ export function recentMovements(userId: string, cur: Currency) {
 			dest,
 			and(eq(movements.destinationAccountId, dest.id), canAccessAccount(userId, dest))
 		)
-		.leftJoin(categories, eq(movements.categoryId, categories.id))
+		.leftJoin(categories, and(eq(movements.categoryId, categories.id), canAccessCategory(userId)))
 		.where(
 			and(
 				canAccessAccount(userId),

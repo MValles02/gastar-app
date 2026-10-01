@@ -58,16 +58,32 @@ it('month range filters on occurred_at', () => {
 	expect(sql).toContain('"occurred_at" <');
 });
 
+const userIdRe = new RegExp('\\.user' + 'Id\\b');
+
 it('access.ts is the only src file referencing the owner column', () => {
 	const hits: string[] = [];
 	const walk = (dir: string) => {
 		for (const f of readdirSync(dir)) {
 			const p = join(dir, f);
 			if (statSync(p).isDirectory()) walk(p);
-			else if (/\.(ts|svelte)$/.test(f) && readFileSync(p, 'utf8').includes('owner' + 'Id'))
-				hits.push(p);
+			else if (/\.(ts|svelte)$/.test(f)) {
+				const src = readFileSync(p, 'utf8');
+				if (src.includes('owner' + 'Id') || userIdRe.test(src)) hits.push(p);
+			}
 		}
 	};
 	walk('src');
 	expect(hits.map((h) => h.split('/').pop()).sort()).toEqual(['access.ts', 'schema.ts']);
+});
+
+it('categories joins carry the ownership condition', () => {
+	for (const q of [categorySums('user-a', 'ARS', range), recentMovements('user-a', 'ARS')]) {
+		const { sql, params } = q.toSQL();
+		expect(sql).toContain('"categories"."user_id" = $');
+		expect(params).toContain('user-a');
+		expect(params).not.toContain('user-b');
+	}
+	expect(recentMovements('u', 'ARS').toSQL().sql).toMatch(
+		/left join "categories" on .*"categories"."user_id" = \$/is
+	);
 });
