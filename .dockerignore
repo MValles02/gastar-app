@@ -8,3 +8,12 @@ build
 .claude
 docs
 *.log
+*.pem
+*.key
+.github
+*.md
+.vscode
+.idea
+Dockerfile
+.dockerignore
+compose.yaml

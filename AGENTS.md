@@ -24,13 +24,15 @@ SvelteKit 2 + TypeScript, Drizzle ORM + Postgres (`src/lib/server/db/schema.ts`)
 - All account/movement access checks go through one server-side ownership helper (e.g. `canAccessAccount`); no other code path checks ownership (`docs/DATA_MODEL.md`).
 - Migrations: generate with `pnpm db:generate` and commit the files; never hand-edit or edit an already-applied migration (`docs/WORKFLOW.md`).
 - Migrations run at container start and must be backward-compatible with the previous release; use expand/contract over two deploys for breaking changes (`docs/WORKFLOW.md`).
+- Migrations and rollouts: deploys are start-first (the new container starts while the old one still serves, both on the same DB) and migrations run at container start, so every migration must be backward-compatible with the previous release. Expand/contract: add nullable/defaulted columns first; drop or rename only in a later release, once no running code uses them.
 - Branches: `feat/`, `fix/`, `chore/` or `docs/` prefix; merge to `main` via PR, squash only; PR titles follow Conventional Commits (`docs/WORKFLOW.md`).
 - `main` auto-deploys on merge (`docs/WORKFLOW.md`).
 
 ## Commands
 
 ```sh
-pnpm dev           # vite dev
+pnpm dev           # vite dev --host 127.0.0.1 (loopback only)
+pnpm hooks:install # git config core.hooksPath scripts/git-hooks (gitleaks pre-commit, needs docker)
 pnpm build         # vite build
 pnpm check         # svelte-kit sync && svelte-check
 pnpm lint          # prettier --check . && eslint .
