@@ -32,7 +32,7 @@ On push to `main` (or manual `workflow_dispatch`):
    `ghcr.io/mvalles02/gastar-app:sha-<full sha>`.
 3. `deploy` — calls the Dokploy deploy webhook to redeploy the application.
 
-Required GitHub secrets:
+Required GitHub secrets (in the `production` environment):
 
 - `DOKPLOY_WEBHOOK_URL` — the app's deploy webhook URL (Dokploy → app →
   Deployments → Webhook URL); it can only redeploy this app, and you can
