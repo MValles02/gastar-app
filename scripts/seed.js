@@ -42,30 +42,60 @@ const now = new Date();
 const userId = randomUUID();
 
 const accountDefs = [
-	{ key: 'cash', name: 'Efectivo', currency: 'ARS', initial: 45_000_00, color: '#7a8450' },
-	{ key: 'bank', name: 'Banco Galicia', currency: 'ARS', initial: 650_000_00, color: '#c2552d' },
-	{ key: 'mp', name: 'Mercado Pago', currency: 'ARS', initial: 120_000_00, color: '#3b7ea1' },
-	{ key: 'usd', name: 'Ahorro USD', currency: 'USD', initial: 1_800_00, color: '#4f8a5b' },
+	// color and icon are keys from src/lib/appearance.ts (SWATCHES, ACCOUNT_ICONS), not hex
+	{
+		key: 'cash',
+		name: 'Efectivo',
+		currency: 'ARS',
+		initial: 45_000_00,
+		color: 'ochre',
+		icon: 'cash'
+	},
+	{
+		key: 'bank',
+		name: 'Banco Galicia',
+		currency: 'ARS',
+		initial: 650_000_00,
+		color: 'orange',
+		icon: 'bank'
+	},
+	{
+		key: 'mp',
+		name: 'Mercado Pago',
+		currency: 'ARS',
+		initial: 120_000_00,
+		color: 'blue',
+		icon: 'phone'
+	},
+	{
+		key: 'usd',
+		name: 'Ahorro USD',
+		currency: 'USD',
+		initial: 1_800_00,
+		color: 'green',
+		icon: 'dollar'
+	},
 	{
 		key: 'old',
 		name: 'Cuenta Santander (cerrada)',
 		currency: 'ARS',
 		initial: 0,
-		color: '#8a8a8a',
+		color: 'teal',
+		icon: 'bank',
 		archived: true
 	}
 ];
 const categoryDefs = [
-	{ key: 'super', name: 'Supermercado', color: '#c2552d' },
-	{ key: 'rent', name: 'Alquiler', color: '#7a5c8a' },
-	{ key: 'bills', name: 'Servicios', color: '#3b7ea1' },
-	{ key: 'transport', name: 'Transporte', color: '#b8923a' },
-	{ key: 'out', name: 'Salidas', color: '#a14b6b' },
-	{ key: 'health', name: 'Salud', color: '#4f8a5b' },
-	{ key: 'salary', name: 'Sueldo', color: '#2f6f4f' },
-	{ key: 'freelance', name: 'Freelance', color: '#5a6fa8' },
-	{ key: 'gifts', name: 'Regalos', color: '#d08a5b' },
-	{ key: 'gym', name: 'Gimnasio (viejo)', color: '#8a8a8a', archived: true }
+	{ key: 'super', name: 'Supermercado', color: 'orange' },
+	{ key: 'rent', name: 'Alquiler', color: 'violet' },
+	{ key: 'bills', name: 'Servicios', color: 'blue' },
+	{ key: 'transport', name: 'Transporte', color: 'ochre' },
+	{ key: 'out', name: 'Salidas', color: 'plum' },
+	{ key: 'health', name: 'Salud', color: 'green' },
+	{ key: 'salary', name: 'Sueldo', color: 'teal' },
+	{ key: 'freelance', name: 'Freelance', color: 'blue' },
+	{ key: 'gifts', name: 'Regalos', color: 'red' },
+	{ key: 'gym', name: 'Gimnasio (viejo)', color: 'violet', archived: true }
 ];
 const acc = Object.fromEntries(accountDefs.map((a) => [a.key, { ...a, id: randomUUID() }]));
 const cat = Object.fromEntries(categoryDefs.map((c) => [c.key, { ...c, id: randomUUID() }]));
@@ -237,6 +267,7 @@ try {
 				name: a.name,
 				currency: a.currency,
 				initial_balance: a.initial,
+				icon: a.icon,
 				color: a.color,
 				archived_at: a.archived ? now : null
 			}))
