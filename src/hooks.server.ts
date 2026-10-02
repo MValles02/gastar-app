@@ -4,6 +4,7 @@ import { building } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import { auth } from '$lib/server/auth';
 import { checkEnv } from '$lib/server/env-check';
+import { themeColors } from '$lib/theme';
 
 if (!building && process.env.NODE_ENV === 'production') checkEnv(env);
 
@@ -59,7 +60,13 @@ const handleRequest: Handle = async ({ event, resolve }) => {
 	const themeAttr =
 		theme === 'light' ? 'data-theme="light"' : theme === 'dark' ? 'data-theme="dark"' : '';
 
+	const colors = themeColors(theme);
+
 	return resolve(event, {
-		transformPageChunk: ({ html }) => html.replace('%theme-attr%', themeAttr)
+		transformPageChunk: ({ html }) =>
+			html
+				.replace('%theme-attr%', themeAttr)
+				.replace('%theme-color-light%', colors.light)
+				.replace('%theme-color-dark%', colors.dark)
 	});
 };

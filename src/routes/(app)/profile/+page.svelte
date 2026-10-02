@@ -4,6 +4,7 @@
 	import Card from '$lib/components/Card.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import { themeColors } from '$lib/theme';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -23,6 +24,13 @@
 		} else {
 			delete document.documentElement.dataset.theme;
 		}
+		const colors = themeColors(value);
+		document
+			.querySelector('meta[name="theme-color"][media*="light"]')
+			?.setAttribute('content', colors.light);
+		document
+			.querySelector('meta[name="theme-color"][media*="dark"]')
+			?.setAttribute('content', colors.dark);
 	}
 </script>
 
