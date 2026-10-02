@@ -112,8 +112,7 @@
 				<ul class="list">
 					{#each data.recent as m (m.id)}
 						<li>
-							<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the movement detail route is not built yet -->
-							<a class="row" href={`/movements/${m.id}`}>
+							<a class="row" href={resolve(`/movements/${m.id}`)}>
 								<span class="row-main">
 									<span class="ellipsis">{m.description}</span>
 									<span class="muted small ellipsis">

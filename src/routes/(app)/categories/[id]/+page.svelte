@@ -89,6 +89,7 @@
 		{/if}
 	</div>
 
+	<a class="back" href={resolve(`/movements?category=${c.id}`)}>Ver movimientos</a>
 	<a class="back" href={resolve('/categories')}>Volver a categorías</a>
 </div>
 
