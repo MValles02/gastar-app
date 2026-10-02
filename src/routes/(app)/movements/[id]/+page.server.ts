@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { isUuid } from '$lib/server/accounts';
+import { isUuid } from '$lib/server/db/util';
 import { dateTimeLabel } from '$lib/server/month';
 import { deleteMovement, getMovement } from '$lib/server/movements-queries';
 

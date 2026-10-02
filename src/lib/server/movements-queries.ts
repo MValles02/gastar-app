@@ -3,7 +3,7 @@ import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
 import { canAccessAccount, canAccessCategory, canAccessMovement, movementOwnedBy } from './access';
-import { escapeLike } from './accounts';
+import { escapeLike } from './db/util';
 import { dayStart } from './month';
 import type { MovementFilterQuery, MovementRow } from './movements';
 

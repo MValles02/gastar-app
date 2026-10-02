@@ -2,7 +2,7 @@ import { and, asc, eq, gte, ilike, inArray, isNull, lt, ne, sql } from 'drizzle-
 import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
 import { canAccessAccount, canAccessCategory, categoryOwnedBy } from './access';
-import { escapeLike } from './accounts';
+import { escapeLike } from './db/util';
 import type { CategoryData } from './categories';
 
 export function listCategories(userId: string, opts: { q?: string; archived?: boolean } = {}) {

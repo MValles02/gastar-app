@@ -1,4 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { pgErrorCode } from '$lib/server/db/errors';
 import { dev } from '$app/environment';
 import type { Actions, PageServerLoad } from './$types';
 import { toIconKey, toSwatchKey } from '$lib/appearance';
@@ -72,9 +73,8 @@ export const actions: Actions = {
 		try {
 			await createMovement(userId, resolved.row);
 		} catch (e) {
-			const code = (e as { code?: string })?.code;
-			const causeCode = (e as { cause?: { code?: string } })?.cause?.code;
-			if (code === '23503' || causeCode === '23503')
+			const code = pgErrorCode(e);
+			if (code === '23503')
 				return fail(400, { values, errors: { accountId: UNAVAILABLE_MESSAGE } });
 			throw e;
 		}

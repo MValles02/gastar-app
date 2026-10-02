@@ -1,6 +1,8 @@
 import { error, fail, redirect } from '@sveltejs/kit';
+import { pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
-import { accountActions, isUuid } from '$lib/server/accounts';
+import { accountActions } from '$lib/server/accounts';
+import { isUuid } from '$lib/server/db/util';
 import { DELETE_REFERENCED_MESSAGE, toCurrencyNets } from '$lib/server/categories';
 import {
 	categoryMonthNet,
@@ -56,10 +58,8 @@ export const actions: Actions = {
 		try {
 			rows = await deleteCategory(userId, params.id);
 		} catch (e) {
-			const code = (e as { code?: string })?.code;
-			const causeCode = (e as { cause?: { code?: string } })?.cause?.code;
-			if (code === '23503' || causeCode === '23503')
-				return fail(409, { error: DELETE_REFERENCED_MESSAGE });
+			const code = pgErrorCode(e);
+			if (code === '23503') return fail(409, { error: DELETE_REFERENCED_MESSAGE });
 			throw e;
 		}
 		if (rows.length === 0) notFound();

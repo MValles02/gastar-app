@@ -68,7 +68,7 @@
 					<p class="error" role="alert">{form.error}</p>
 				{/if}
 
-				<Button type="submit" variant="secondary">Guardar</Button>
+				<noscript><Button type="submit" variant="secondary">Guardar</Button></noscript>
 			</form>
 		</section>
 	</Card>
