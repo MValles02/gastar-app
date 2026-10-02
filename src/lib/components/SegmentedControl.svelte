@@ -4,20 +4,22 @@
 		options,
 		value = $bindable(),
 		labelledby,
-		onchange
+		onchange,
+		disabled = false
 	}: {
 		name: string;
 		options: { value: string; label: string }[];
 		value: string;
 		labelledby?: string;
 		onchange?: () => void;
+		disabled?: boolean;
 	} = $props();
 </script>
 
 <div class="track" role="radiogroup" aria-labelledby={labelledby}>
 	{#each options as option (option.value)}
 		<label class="option">
-			<input type="radio" {name} value={option.value} bind:group={value} {onchange} />
+			<input type="radio" {name} value={option.value} bind:group={value} {onchange} {disabled} />
 			<span>{option.label}</span>
 		</label>
 	{/each}
@@ -59,6 +61,15 @@
 		padding: 0;
 		opacity: 0;
 		cursor: pointer;
+	}
+
+	.option:has(input:disabled) {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.option input:disabled {
+		cursor: not-allowed;
 	}
 
 	.option:has(input:checked) {

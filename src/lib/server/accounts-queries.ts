@@ -1,0 +1,123 @@
+import { and, asc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
+import { db } from './db';
+import { financialAccounts, movements } from './db/schema';
+import { canAccessAccount, ownedBy } from './access';
+import { alias } from 'drizzle-orm/pg-core';
+import { escapeLike, type AccountData } from './accounts';
+
+const dest = alias(financialAccounts, 'dest');
+const total = (col: unknown) => sql<number>`coalesce(sum(${col}), 0)`.mapWith(Number);
+
+export function listAccounts(
+	userId: string,
+	opts: { q?: string; currency?: 'ARS' | 'USD'; archived?: boolean } = {}
+) {
+	return db
+		.select()
+		.from(financialAccounts)
+		.where(
+			and(
+				canAccessAccount(userId),
+				opts.archived ? undefined : isNull(financialAccounts.archivedAt),
+				opts.currency ? eq(financialAccounts.currency, opts.currency) : undefined,
+				opts.q ? ilike(financialAccounts.name, `%${escapeLike(opts.q)}%`) : undefined
+			)
+		)
+		.orderBy(asc(financialAccounts.name));
+}
+
+export function getAccount(userId: string, id: string) {
+	return db
+		.select()
+		.from(financialAccounts)
+		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId)))
+		.limit(1);
+}
+
+export function accountOriginSums(userId: string, id?: string) {
+	return db
+		.select({
+			accountId: movements.accountId,
+			type: movements.type,
+			amount: total(movements.amount)
+		})
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.where(and(canAccessAccount(userId), id ? eq(movements.accountId, id) : undefined))
+		.groupBy(movements.accountId, movements.type);
+}
+
+export function accountTransfersIn(userId: string, id?: string) {
+	return db
+		.select({
+			accountId: movements.destinationAccountId,
+			amount: total(movements.destinationAmount)
+		})
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.innerJoin(dest, eq(movements.destinationAccountId, dest.id))
+		.where(
+			and(
+				canAccessAccount(userId),
+				canAccessAccount(userId, dest),
+				id ? eq(movements.destinationAccountId, id) : undefined
+			)
+		)
+		.groupBy(movements.destinationAccountId);
+}
+
+export function accountReferenced(userId: string, id: string) {
+	return db
+		.select({ id: movements.id })
+		.from(movements)
+		.innerJoin(
+			financialAccounts,
+			or(
+				eq(movements.accountId, financialAccounts.id),
+				eq(movements.destinationAccountId, financialAccounts.id)
+			)
+		)
+		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId)))
+		.limit(1);
+}
+
+export function createAccount(userId: string, data: AccountData & { currency: 'ARS' | 'USD' }) {
+	return db
+		.insert(financialAccounts)
+		.values({ ...data, ...ownedBy(userId) })
+		.returning({ id: financialAccounts.id });
+}
+
+/**
+ * When `data.currency` differs from the stored one, the UPDATE only matches if no movement
+ * references the account, so a concurrent movement insert cannot slip past the lock.
+ * 0 returned rows means not found, not owned, or currency locked.
+ */
+export function updateAccount(userId: string, id: string, data: AccountData) {
+	const lock = data.currency
+		? or(
+				eq(financialAccounts.currency, data.currency),
+				sql`not exists (select 1 from ${movements} where ${movements.accountId} = "financial_accounts"."id" or ${movements.destinationAccountId} = "financial_accounts"."id")`
+			)
+		: undefined;
+	return db
+		.update(financialAccounts)
+		.set(data)
+		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId), lock))
+		.returning({ id: financialAccounts.id });
+}
+
+export function deleteAccount(userId: string, id: string) {
+	return db
+		.delete(financialAccounts)
+		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId)))
+		.returning({ id: financialAccounts.id });
+}
+
+export function setArchived(userId: string, id: string, at: Date | null) {
+	return db
+		.update(financialAccounts)
+		.set({ archivedAt: at })
+		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId)))
+		.returning({ id: financialAccounts.id });
+}
