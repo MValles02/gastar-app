@@ -130,7 +130,7 @@
 						</li>
 					{/each}
 				</ul>
-				<a class="all" href={resolve('/movements')}>Ver todos</a>
+				<a class="all" href={resolve(`/movements?currency=${data.currency}`)}>Ver todos</a>
 			{/if}
 		</section>
 	{/if}

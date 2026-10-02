@@ -15,6 +15,7 @@ html {
 
 body {
 	min-height: 100vh;
+	min-height: 100dvh;
 	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
 }
@@ -58,15 +59,19 @@ svg {
 	--space-6: 2rem;
 	--space-8: 3rem;
 
+	--font-size-xs: 0.75rem;
 	--font-size-sm: 0.875rem;
 	--font-size-base: 1rem;
 	--font-size-lg: 1.25rem;
 	--font-size-xl: 1.75rem;
 	--font-size-hero: 2.25rem;
 
+	--shadow-lift: 0 4px 12px rgb(0 0 0 / 0.2);
+
 	color-scheme: light;
 }
 
+/* Dark palette: keep in sync with the prefers-color-scheme block below. */
 :root[data-theme='dark'] {
 	--bg: #06120c;
 	--surface: #0c2318;
@@ -86,10 +91,12 @@ svg {
 	--swatch-red: #f0a090;
 	--swatch-orange: #f0b27a;
 	--swatch-ochre: #d9c46e;
+	--shadow-lift: 0 0 0 1px var(--border), 0 6px 16px rgb(0 0 0 / 0.6);
 
 	color-scheme: dark;
 }
 
+/* Dark palette: keep in sync with the [data-theme='dark'] block above. */
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme='light']) {
 		--bg: #06120c;
@@ -110,6 +117,7 @@ svg {
 		--swatch-red: #f0a090;
 		--swatch-orange: #f0b27a;
 		--swatch-ochre: #d9c46e;
+		--shadow-lift: 0 0 0 1px var(--border), 0 6px 16px rgb(0 0 0 / 0.6);
 
 		color-scheme: dark;
 	}
@@ -183,7 +191,7 @@ button:disabled {
 }
 
 /* Form controls */
-input,
+input:not([type='radio'], [type='checkbox']),
 select {
 	font-family: inherit;
 	font-size: var(--font-size-base);
@@ -196,7 +204,7 @@ select {
 	min-height: 3rem;
 }
 
-input:focus-visible,
+input:not([type='radio'], [type='checkbox']):focus-visible,
 select:focus-visible {
 	border-color: var(--primary);
 	outline: 2px solid var(--primary);

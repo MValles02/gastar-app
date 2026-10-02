@@ -172,9 +172,9 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 ## Typography
 
 **Display Font:** none
-**Body Font:** DM Sans (with system-ui, -apple-system, sans-serif), weights 300, 400, 500, 600 loaded via @fontsource/dm-sans.
+**Body Font:** DM Sans (with system-ui, -apple-system, sans-serif), weights 400, 500, 600 loaded via @fontsource/dm-sans.
 
-**Character:** A single clean humanist sans. Hierarchy comes from weight and a short size scale (0.875rem, 1rem, 1.25rem, 1.75rem) rather than a second family.
+**Character:** A single clean humanist sans. Hierarchy comes from weight and a short size scale (0.75rem `--font-size-xs`, 0.875rem, 1rem, 1.25rem, 1.75rem, plus the 2.25rem hero step) rather than a second family.
 
 ### Hierarchy
 
@@ -183,7 +183,8 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 - **Page title** (500, 1.75rem, 1.2): The `PageHeader` h1 on every screen.
 - **Body** (400, 1rem, 1.5): Default text, fields and buttons (buttons at weight 500).
 - **Label** (400, 0.875rem): Form labels in muted taupe, and error text in the negative color.
-- **Nav label** (400, 0.75rem; 0.6875rem under 22rem wide): Bottom navigation labels.
+- **Hero** (`--font-size-hero`, 2.25rem): The large balance or amount figure on the dashboard, account detail and movement detail, sized `clamp(1.5rem, 9vw, var(--font-size-hero))` so it shrinks on narrow screens.
+- **Nav label** (400, 0.75rem via `--font-size-xs`; 0.6875rem under 22rem wide): Bottom navigation labels. The 0.6875rem size is a deliberate off-scale exception so "Movimientos" fits in the five-slot nav at 320px.
 
 ### Named Rules
 
@@ -199,7 +200,7 @@ Essentially flat. Depth comes from tonal layering (Warm Paper page, Page White b
 
 ### Shadow Vocabulary
 
-- **FAB lift** (`box-shadow: 0 4px 12px rgb(0 0 0 / 0.2)`): The center "+" FAB only.
+- **FAB lift** (`--shadow-lift`, per theme: light `0 4px 12px rgb(0 0 0 / 0.2)`; dark a stronger shadow plus a 1px border-token edge): The center "+" FAB only.
 
 ### Named Rules
 
@@ -243,8 +244,24 @@ A pill track (background color, 1px border, `space-1` padding) of radio options,
 
 ### Icon and Wordmark
 
-- **Icon:** Inline SVG, 24px by default, 24-unit viewBox, `currentColor` 1.75 stroke with round caps and joins, `aria-hidden`. Names: home, accounts, plus, movements, categories, profile.
+- **Icon:** Inline SVG, 24px by default, 24-unit viewBox, `currentColor` 1.75 stroke with round caps and joins, `aria-hidden`. Names: home, accounts, plus, movements, categories, profile, search, chevron-left, chevron-right, plus the account icons (bank, wallet, cash, card, piggy-bank, dollar, coins, safe, briefcase, phone).
 - **Wordmark:** A rounded-square ledger mark (two horizontal strokes) plus "Gastar" in title type. Mark fill is primary and strokes are on-primary, so it flips in dark; the text is primary.
+
+### Sheet
+
+A modal bottom sheet built on `<dialog>` (`showModal`): full width up to 35rem, max height 85dvh, surface fill, 1px border, top corners rounded 0.75rem, bottom safe-area padding. The backdrop is the text color at 40%. A header holds an h2 title (1.25rem) and a secondary "Cerrar" button; clicking the backdrop or pressing Escape closes it.
+
+### Option Picker
+
+A field that opens a Sheet of radio rows. The trigger looks like an input (3rem minimum height, 1px border, 0.75rem radius) showing the selected row or a muted placeholder. Each row is an icon badge, a name (weight 500, truncated) and optional muted meta text (such as " · Archivada"), at least 2.75rem tall with a hairline divider. Hover tints the row; the selected row has a 2px primary outline; focus-visible a 2px primary outline at 2px offset. Choosing a row closes the sheet and returns focus to the trigger. Without JavaScript the rows render inline as a plain radio group.
+
+### Date and Time Picker
+
+A fieldset with quick chips (Hoy, Ayer, and "Otra fecha" showing the picked date), at least 2.75rem tall; a pressed chip is primary-filled. In datetime mode, two numeric text inputs (Hora, Minutos) follow. "Otra fecha" opens a Sheet with a month calendar: a seven-column grid starting on Monday, previous and next month buttons, 2.75rem day buttons, the picked day primary-filled, today outlined in primary, and arrow keys moving by day and week. In date-only mode there is a single chip and a "Quitar" button. Without JavaScript it is a single text field with a format hint.
+
+### Icon and Color Pickers
+
+Radio groups of round swatches (the icon picker shows the ten account icons in IconBadge, the color picker the eight swatches at 2.75rem). The checked option has a 2px primary ring at 2px offset; focus-visible moves the ring to 4px offset.
 
 ### Navigation
 
@@ -272,4 +289,4 @@ A 3.5rem primary pill circle with a 24px plus icon, centered in the bottom nav a
 - **Don't** hardcode hex values in components.
 - **Don't** use Signal Lime as text on Warm Paper; it is illegible there.
 - **Don't** add new shadows, or hover, press and disabled treatments beyond those described in Components (0.9 hover opacity, tints, press scale, 0.5 disabled).
-- **Don't** treat these known gaps (documented, not decided) as settled: there is no transfer color token, the FAB shadow is hardcoded black, z-indices are not tokenized, and the tint percentages (8% and 10% `color-mix`) and the 0.96 and 0.98 press scales are repeated literals rather than tokens.
+- **Don't** treat these known gaps (documented, not decided) as settled: there is no transfer color token, z-indices are not tokenized, and the tint percentages (8% and 10% `color-mix`) and the 0.96 and 0.98 press scales are repeated literals rather than tokens.

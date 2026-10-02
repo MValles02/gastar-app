@@ -3,9 +3,9 @@ import type { Actions, PageServerLoad } from './$types';
 import {
 	CURRENCY_LOCKED_MESSAGE,
 	currencyChangeAllowed,
-	isUuid,
 	parseAccountForm
 } from '$lib/server/accounts';
+import { isUuid } from '$lib/server/db/util';
 import { accountReferenced, getAccount, updateAccount } from '$lib/server/accounts-queries';
 import { formatAmountInput } from '$lib/money';
 

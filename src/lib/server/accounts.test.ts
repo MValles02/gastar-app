@@ -1,12 +1,6 @@
 import { expect, it } from 'vitest';
-import {
-	accountActions,
-	currencyChangeAllowed,
-	escapeLike,
-	isUuid,
-	parseAccountForm,
-	withBalances
-} from './accounts';
+import { accountActions, currencyChangeAllowed, parseAccountForm, withBalances } from './accounts';
+import { escapeLike, isUuid } from './db/util';
 import { totalBalance } from './dashboard';
 
 const form = (o: Record<string, string>) => {

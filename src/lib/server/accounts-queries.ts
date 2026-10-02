@@ -3,7 +3,8 @@ import { db } from './db';
 import { financialAccounts, movements } from './db/schema';
 import { canAccessAccount, ownedBy } from './access';
 import { alias } from 'drizzle-orm/pg-core';
-import { escapeLike, type AccountData } from './accounts';
+import { type AccountData } from './accounts';
+import { escapeLike } from './db/util';
 
 const dest = alias(financialAccounts, 'dest');
 const total = (col: unknown) => sql<number>`coalesce(sum(${col}), 0)`.mapWith(Number);

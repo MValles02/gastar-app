@@ -1,5 +1,5 @@
 import { convertAmount, parseAmount } from '../money';
-import { isUuid } from './accounts';
+import { isUuid } from './db/util';
 import type { Currency, MovementType } from './dashboard';
 import { dayStart, parseLocalDateTime } from './month';
 

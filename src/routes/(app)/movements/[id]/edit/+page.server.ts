@@ -1,8 +1,9 @@
 import { error, fail, redirect } from '@sveltejs/kit';
+import { pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
 import { toIconKey, toSwatchKey } from '$lib/appearance';
 import { formatAmountInput } from '$lib/money';
-import { isUuid } from '$lib/server/accounts';
+import { isUuid } from '$lib/server/db/util';
 import { getAccount, listAccounts } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
 import { toLocalInput } from '$lib/server/month';
@@ -94,9 +95,8 @@ export const actions: Actions = {
 		try {
 			rows = await updateMovement(userId, params.id, resolved.row);
 		} catch (e) {
-			const code = (e as { code?: string })?.code;
-			const causeCode = (e as { cause?: { code?: string } })?.cause?.code;
-			if (code === '23503' || causeCode === '23503')
+			const code = pgErrorCode(e);
+			if (code === '23503')
 				return fail(400, { values, errors: { accountId: UNAVAILABLE_MESSAGE } });
 			throw e;
 		}

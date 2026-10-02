@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 	import { enhance } from '$app/forms';
 	import Button from './Button.svelte';
 
@@ -21,28 +21,42 @@
 
 	let dialog: HTMLDialogElement | null = $state(null);
 	const titleId = $props.id();
+	let mounted = $state(false);
+	onMount(() => (mounted = true));
 </script>
 
-<Button type="button" variant={triggerVariant} onclick={() => dialog?.showModal()}>
-	{triggerLabel}
-</Button>
+{#if mounted}
+	<Button type="button" variant={triggerVariant} onclick={() => dialog?.showModal()}>
+		{triggerLabel}
+	</Button>
 
-<dialog bind:this={dialog} aria-labelledby={titleId}>
-	<h2 id={titleId}>{title}</h2>
-	{#if children}<div class="body">{@render children()}</div>{/if}
-	<form
-		method="POST"
-		{action}
-		use:enhance={() =>
-			async ({ result, update }) => {
-				if (result.type !== 'failure' && result.type !== 'error') dialog?.close();
-				await update();
-			}}
-	>
-		<Button type="button" variant="secondary" onclick={() => dialog?.close()}>Cancelar</Button>
-		<Button type="submit">{confirmLabel}</Button>
-	</form>
-</dialog>
+	<dialog bind:this={dialog} aria-labelledby={titleId}>
+		<h2 id={titleId}>{title}</h2>
+		{#if children}<div class="body">{@render children()}</div>{/if}
+		<form
+			method="POST"
+			{action}
+			use:enhance={() =>
+				async ({ result, update }) => {
+					if (result.type !== 'failure' && result.type !== 'error') dialog?.close();
+					await update();
+				}}
+		>
+			<Button type="button" variant="secondary" onclick={() => dialog?.close()}>Cancelar</Button>
+			<Button type="submit">{confirmLabel}</Button>
+		</form>
+	</dialog>
+{:else}
+	<!-- No-JS fallback: a plain details/summary confirm step that posts the same action. -->
+	<details class="fallback">
+		<summary>{triggerLabel}</summary>
+		<p class="title">{title}</p>
+		{#if children}<div class="body">{@render children()}</div>{/if}
+		<form method="POST" {action}>
+			<Button type="submit">{confirmLabel}</Button>
+		</form>
+	</details>
+{/if}
 
 <style>
 	dialog {
@@ -57,6 +71,16 @@
 
 	dialog::backdrop {
 		background: color-mix(in srgb, var(--text) 40%, transparent);
+	}
+
+	.fallback summary {
+		cursor: pointer;
+		font-weight: 600;
+	}
+
+	.title {
+		margin-top: var(--space-3);
+		font-weight: 600;
 	}
 
 	h2 {

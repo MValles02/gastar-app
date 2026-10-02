@@ -36,7 +36,12 @@
 <div class="shell">
 	<header class="topbar">
 		<Wordmark />
-		<a href={profileHref} class="profile-link" aria-label="Perfil">
+		<a
+			href={profileHref}
+			class="profile-link"
+			aria-label="Perfil"
+			aria-current={isActive('/profile') ? 'page' : undefined}
+		>
 			<Icon name="profile" />
 		</a>
 	</header>
@@ -74,6 +79,7 @@
 <style>
 	.shell {
 		min-height: 100vh;
+		min-height: 100dvh;
 		display: flex;
 		flex-direction: column;
 	}
@@ -105,6 +111,10 @@
 	}
 
 	.profile-link:hover {
+		background: color-mix(in srgb, var(--primary) 10%, transparent);
+	}
+
+	.profile-link[aria-current='page'] {
 		background: color-mix(in srgb, var(--primary) 10%, transparent);
 	}
 
@@ -142,7 +152,7 @@
 		flex-direction: column;
 		align-items: center;
 		gap: var(--space-1);
-		font-size: 0.75rem;
+		font-size: var(--font-size-xs);
 		text-decoration: none;
 		color: var(--text-muted);
 		padding: var(--space-1) 0;
@@ -187,7 +197,7 @@
 		background: var(--primary);
 		color: var(--on-primary);
 		margin-top: -1.5rem;
-		box-shadow: 0 4px 12px rgb(0 0 0 / 0.2);
+		box-shadow: var(--shadow-lift);
 		transition: opacity 0.15s ease;
 	}
 

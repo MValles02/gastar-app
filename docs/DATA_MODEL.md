@@ -81,7 +81,7 @@ Constraints: `UNIQUE (user_id, name)`.
 
 - `exchange_rate IS NOT NULL` **iff** `account.currency <> destination_account.currency` for a transfer.
 - If the two accounts share a currency, `destination_amount = amount`.
-- A movement cannot be created (nor edited to reference) an archived account or an archived category.
+- A movement cannot be created with an archived account or category, and new selections while editing exclude archived ones. Exception: editing a movement keeps an archived account or category it already references (`resolveMovement`'s `keep` argument in `src/lib/server/movements.ts`).
 
 #### Foreign keys
 
@@ -118,10 +118,22 @@ category_net = sum(outcomes.amount) - sum(incomes.amount)   -- within that categ
 - `percentage = category_net / sum(all positive category_net values in period & currency)`.
 - Categories with `category_net <= 0` are excluded.
 
+## Ownership helpers
+
+All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`), not per-row predicates, so list, aggregate and detail queries all use the same rule by putting the condition in `where`. A detail route checks a single row by querying with `where(and(eq(id), canAccess...(userId)))` and treating no row as not found; there is no separate per-row function.
+
+- `canAccessAccount(userId, account = financialAccounts)`: `account.owner_id = userId`. Accepts an alias.
+- `ownedBy(userId)`: insert-side counterpart, sets `owner_id`.
+- `canAccessMovement(userId, origin = financialAccounts)`: `movements.user_id = userId` AND `canAccessAccount(userId, origin)`. The caller must inner-join the origin account.
+- `movementOwnedBy(userId)`: insert-side counterpart, sets `movements.user_id`.
+- `canAccessCategory(userId, cat = categories)` and `categoryOwnedBy(userId)`: the same pair for `categories.user_id`.
+
+`movements.user_id` is the movement's own owner column; reads, updates and deletes go through `canAccessMovement`, inserts through `movementOwnedBy`.
+
 ## Shared-accounts extension path (future)
 
 - Not implemented in MVP. Ownership today is a single `owner_id` column on `financial_accounts`.
-- **All** access checks (read/write to an account or its movements) must go through one server-side helper, e.g. `canAccessAccount(user, account)`. No other code path may check ownership directly.
+- **All** access checks (read/write to an account or its movements) must go through one server-side ownership rule, implemented in `src/lib/server/access.ts` (see Ownership helpers). No other code path may check ownership directly.
 - Future extension: add an `account_members(account_id, user_id, role)` table and change only that helper's implementation — no schema change to `movements` or `categories` should be required.
 - Decision: a shared account's environment owns its own, separate set of categories — not the owner's or any member's personal categories. Movements on a shared account may only use that shared environment's categories; personal categories remain personal. Tables for this are not designed now.
 
@@ -136,7 +148,7 @@ category_net = sum(outcomes.amount) - sum(incomes.amount)   -- within that categ
 7. `transfer.exchange_rate` is non-null if and only if origin and destination accounts have different currencies.
 8. `transfer.destination_amount = transfer.amount` when origin and destination accounts share a currency.
 9. `financial_accounts.currency` cannot change once the account is referenced by ≥1 movement.
-10. No movement may reference an archived `financial_accounts` or `categories` row at creation or edit time; movements created before archiving keep their reference.
+10. No movement may select an archived `financial_accounts` or `categories` row at creation or edit time; movements created before archiving keep their reference, and editing such a movement may keep the archived account or category it already references (new selections still exclude archived ones).
 11. `financial_accounts` and `categories` rows referenced by any movement cannot be deleted (enforced by `ON DELETE RESTRICT`); only archiving is available for them.
 12. Unreferenced `financial_accounts` and `categories` rows may be hard-deleted.
 13. `movements` rows are always hard-deletable (no restriction).
