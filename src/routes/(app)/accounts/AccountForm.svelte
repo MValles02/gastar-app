@@ -27,6 +27,8 @@
 		cancelHref: string;
 	} = $props();
 
+	let name = $state(untrack(() => initial.name ?? ''));
+	let initialBalance = $state(untrack(() => initial.initialBalance ?? ''));
 	let currency = $state(untrack(() => initial.currency || 'ARS'));
 	let icon = $state(untrack(() => (initial.icon ?? 'wallet') as AccountIconKey));
 	let color = $state(untrack(() => (initial.color ?? 'green') as SwatchKey));
@@ -45,7 +47,7 @@
 			maxlength="40"
 			required
 			autocomplete="off"
-			value={initial.name ?? ''}
+			bind:value={name}
 			aria-invalid={errors.name ? 'true' : undefined}
 			aria-describedby={errors.name ? 'name-error' : undefined}
 		/>
@@ -75,7 +77,7 @@
 			inputmode="decimal"
 			placeholder="0,00"
 			autocomplete="off"
-			value={initial.initialBalance ?? ''}
+			bind:value={initialBalance}
 			aria-invalid={errors.initialBalance ? 'true' : undefined}
 			aria-describedby={errors.initialBalance ? 'balance-error' : undefined}
 		/>

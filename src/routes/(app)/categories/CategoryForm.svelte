@@ -21,6 +21,7 @@
 		cancelHref: string;
 	} = $props();
 
+	let name = $state(untrack(() => initial.name ?? ''));
 	let color = $state(untrack(() => (initial.color ?? 'green') as SwatchKey));
 </script>
 
@@ -32,7 +33,7 @@
 			maxlength="40"
 			required
 			autocomplete="off"
-			value={initial.name ?? ''}
+			bind:value={name}
 			aria-invalid={errors.name ? 'true' : undefined}
 			aria-describedby={errors.name ? 'name-error' : undefined}
 		/>
