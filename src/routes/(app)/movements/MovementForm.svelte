@@ -53,6 +53,7 @@
 	let categoryId = $state(untrack(() => initial.categoryId));
 	let occurredAt = $state(untrack(() => initial.occurredAt || now));
 	let amount = $state(untrack(() => initial.amount));
+	let description = $state(untrack(() => initial.description));
 	let rate = $state(untrack(() => initial.exchangeRate));
 
 	const isTransfer = $derived(type === 'transfer');
@@ -106,7 +107,7 @@
 			maxlength="60"
 			required
 			autocomplete="off"
-			value={initial.description}
+			bind:value={description}
 			aria-invalid={errors.description ? 'true' : undefined}
 			aria-describedby={errors.description ? 'description-error' : undefined}
 		/>
