@@ -19,6 +19,7 @@
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "vitest run --passWithNoTests",
+		"test:e2e": "playwright test",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "node --env-file-if-exists=.env scripts/migrate.js",
 		"db:seed": "node --env-file-if-exists=.env scripts/seed.js",
@@ -27,6 +28,7 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
+		"@playwright/test": "^1.63.0",
 		"@sveltejs/adapter-node": "^5.5.7",
 		"@sveltejs/kit": "^2.63.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",

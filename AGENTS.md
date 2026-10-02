@@ -47,6 +47,7 @@ pnpm check         # svelte-kit sync && svelte-check
 pnpm lint          # prettier --check . && eslint .
 pnpm format        # prettier --write .
 pnpm test          # vitest run --passWithNoTests
+pnpm test:e2e      # playwright test (Chromium; reuses a running `pnpm dev`, needs a migrated + seeded DB)
 pnpm db:generate   # drizzle-kit generate
 pnpm db:migrate    # node scripts/migrate.js (loads .env if present)
 pnpm db:studio     # drizzle-kit studio
