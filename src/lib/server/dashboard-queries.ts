@@ -1,0 +1,109 @@
+import { and, desc, eq, gte, lt, or, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
+import { db } from './db';
+import { categories, financialAccounts, movements } from './db/schema';
+import { canAccessAccount } from './access';
+
+type Currency = 'ARS' | 'USD';
+type Range = { start: Date; end: Date };
+
+const dest = alias(financialAccounts, 'dest');
+const total = (col: unknown) => sql<number>`coalesce(sum(${col}), 0)`.mapWith(Number);
+
+const inRange = (range?: Range) =>
+	range
+		? and(gte(movements.occurredAt, range.start), lt(movements.occurredAt, range.end))
+		: undefined;
+
+// No archived filter: archived accounts still count toward the total balance.
+export function accountSummary(userId: string) {
+	return db
+		.select({
+			currency: financialAccounts.currency,
+			count: sql<number>`count(*)`.mapWith(Number),
+			initial: total(financialAccounts.initialBalance)
+		})
+		.from(financialAccounts)
+		.where(canAccessAccount(userId))
+		.groupBy(financialAccounts.currency);
+}
+
+export function originTypeSums(userId: string, cur: Currency, range?: Range) {
+	return db
+		.select({ type: movements.type, amount: total(movements.amount) })
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.where(and(canAccessAccount(userId), eq(financialAccounts.currency, cur), inRange(range)))
+		.groupBy(movements.type);
+}
+
+export function transfersInSum(userId: string, cur: Currency) {
+	return db
+		.select({ amount: total(movements.destinationAmount) })
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.innerJoin(dest, eq(movements.destinationAccountId, dest.id))
+		.where(and(canAccessAccount(userId), canAccessAccount(userId, dest), eq(dest.currency, cur)));
+}
+
+export function categorySums(userId: string, cur: Currency, range: Range) {
+	return db
+		.select({
+			id: categories.id,
+			name: categories.name,
+			outcome:
+				sql<number>`coalesce(sum(${movements.amount}) filter (where ${movements.type} = 'outcome'), 0)`.mapWith(
+					Number
+				),
+			income:
+				sql<number>`coalesce(sum(${movements.amount}) filter (where ${movements.type} = 'income'), 0)`.mapWith(
+					Number
+				)
+		})
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.innerJoin(categories, eq(movements.categoryId, categories.id))
+		.where(
+			and(
+				canAccessAccount(userId),
+				eq(financialAccounts.currency, cur),
+				or(eq(movements.type, 'income'), eq(movements.type, 'outcome')),
+				inRange(range)
+			)
+		)
+		.groupBy(categories.id, categories.name);
+}
+
+export function recentMovements(userId: string, cur: Currency) {
+	return db
+		.select({
+			id: movements.id,
+			type: movements.type,
+			description: movements.description,
+			occurredAt: movements.occurredAt,
+			amount: movements.amount,
+			destinationAmount: movements.destinationAmount,
+			accountName: financialAccounts.name,
+			accountCurrency: financialAccounts.currency,
+			destinationAccountName: dest.name,
+			categoryName: categories.name
+		})
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.leftJoin(
+			dest,
+			and(eq(movements.destinationAccountId, dest.id), canAccessAccount(userId, dest))
+		)
+		.leftJoin(categories, eq(movements.categoryId, categories.id))
+		.where(
+			and(
+				canAccessAccount(userId),
+				or(
+					eq(financialAccounts.currency, cur),
+					and(eq(movements.type, 'transfer'), eq(dest.currency, cur))
+				)
+			)
+		)
+		.orderBy(desc(movements.occurredAt), desc(movements.createdAt), desc(movements.id))
+		.limit(10);
+}
