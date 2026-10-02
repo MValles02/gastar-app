@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { formatAmountInput, formatMoney, parseAmount } from './money';
+import { convertAmount, formatAmountInput, formatMoney, parseAmount } from './money';
 
 const NB = ' ';
 
@@ -49,4 +49,15 @@ it('formatAmountInput round-trips with parseAmount', () => {
 	expect(formatAmountInput(-123456)).toBe('-1234,56');
 	for (const c of [0, 5, 100, -5, 123456, -123450, 999999999999900])
 		expect(parseAmount(formatAmountInput(c))).toBe(c);
+});
+
+it('convertAmount converts with half-up rounding', () => {
+	expect(convertAmount(10000, 150000, 'USD', 'ARS')).toBe(15000000);
+	expect(convertAmount(15000000, 150000, 'ARS', 'USD')).toBe(10000);
+	expect(convertAmount(1, 150, 'USD', 'ARS')).toBe(2);
+	expect(convertAmount(1, 149, 'USD', 'ARS')).toBe(1);
+	expect(convertAmount(1, 200, 'ARS', 'USD')).toBe(1);
+	expect(convertAmount(1, 201, 'ARS', 'USD')).toBe(0);
+	expect(convertAmount(123, 999, 'ARS', 'ARS')).toBe(123);
+	expect(convertAmount(Number.MAX_SAFE_INTEGER, 100000, 'USD', 'ARS')).toBeNull();
 });

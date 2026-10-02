@@ -14,7 +14,7 @@ export function currentMonth(now: Date): string {
 
 export function parseMonth(raw: string | null, now: Date): string {
 	const current = currentMonth(now);
-	return raw !== null && MONTH_RE.test(raw) && raw <= current ? raw : current;
+	return raw !== null && MONTH_RE.test(raw) ? raw : current;
 }
 
 /** UTC offset of TZ at the start of the given month, e.g. "-03:00". */
@@ -24,6 +24,31 @@ function offsetAt(ym: string): string {
 		.formatToParts(probe)
 		.find((p) => p.type === 'timeZoneName')!.value;
 	return name === 'GMT' ? '+00:00' : name.slice(3);
+}
+
+/** Date to "YYYY-MM-DDTHH:mm" in TZ (datetime-local format). */
+export function toLocalInput(d: Date): string {
+	const parts = new Intl.DateTimeFormat('en-CA', {
+		timeZone: TZ,
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+		hour: '2-digit',
+		minute: '2-digit',
+		hourCycle: 'h23'
+	}).formatToParts(d);
+	const get = (t: string) => parts.find((p) => p.type === t)!.value;
+	return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
+}
+
+const LOCAL_RE = /^(\d{4}-(?:0[1-9]|1[0-2]))-\d{2}T\d{2}:\d{2}$/;
+
+/** Parses "YYYY-MM-DDTHH:mm" as TZ wall time; null on bad syntax or impossible dates. */
+export function parseLocalDateTime(raw: string): Date | null {
+	const m = LOCAL_RE.exec(raw);
+	if (!m) return null;
+	const d = new Date(`${raw}:00${offsetAt(m[1])}`);
+	return Number.isNaN(d.getTime()) || toLocalInput(d) !== raw ? null : d;
 }
 
 export function shiftMonth(ym: string, delta: 1 | -1): string {

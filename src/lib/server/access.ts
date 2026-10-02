@@ -23,3 +23,8 @@ export function canAccessCategory(userId: string, cat: { userId: AnyColumn } = c
 export function categoryOwnedBy(userId: string) {
 	return { userId };
 }
+
+/** Insert-side counterpart of canAccessAccount for movements: spread into `values()` to set the owner. */
+export function movementOwnedBy(userId: string) {
+	return { userId };
+}

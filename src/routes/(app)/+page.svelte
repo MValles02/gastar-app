@@ -74,15 +74,9 @@
 					<Icon name="chevron-left" />
 				</a>
 				<p class="month-label">{data.month.label}</p>
-				{#if data.month.next}
-					<a class="arrow" href={resolve(`/?month=${data.month.next}`)} aria-label="Mes siguiente">
-						<Icon name="chevron-right" />
-					</a>
-				{:else}
-					<span class="arrow disabled" role="link" aria-disabled="true" aria-label="Mes siguiente">
-						<Icon name="chevron-right" />
-					</span>
-				{/if}
+				<a class="arrow" href={resolve(`/?month=${data.month.next}`)} aria-label="Mes siguiente">
+					<Icon name="chevron-right" />
+				</a>
 			</div>
 			<p class="label">Balance del mes</p>
 			<p class="amount net {tone(data.monthNet)}">{formatMoney(data.monthNet, data.currency)}</p>
@@ -205,11 +199,6 @@
 
 	a.arrow:hover {
 		background: color-mix(in srgb, var(--primary) 8%, transparent);
-	}
-
-	.arrow.disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
 	}
 
 	.error {
