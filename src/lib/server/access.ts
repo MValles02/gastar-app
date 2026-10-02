@@ -1,5 +1,5 @@
-import { eq, type AnyColumn, type SQL } from 'drizzle-orm';
-import { categories, financialAccounts } from './db/schema';
+import { and, eq, type AnyColumn, type SQL } from 'drizzle-orm';
+import { categories, financialAccounts, movements } from './db/schema';
 
 /** The single ownership check for accounts (and, through them, movements). Accepts an alias. */
 export function canAccessAccount(
@@ -27,4 +27,12 @@ export function categoryOwnedBy(userId: string) {
 /** Insert-side counterpart of canAccessAccount for movements: spread into `values()` to set the owner. */
 export function movementOwnedBy(userId: string) {
 	return { userId };
+}
+
+/** The single ownership check for movements: the movement and its origin account (inner-joined by the caller) must both be the user's. */
+export function canAccessMovement(
+	userId: string,
+	origin: { ownerId: AnyColumn } = financialAccounts
+): SQL {
+	return and(eq(movements.userId, userId), canAccessAccount(userId, origin))!;
 }

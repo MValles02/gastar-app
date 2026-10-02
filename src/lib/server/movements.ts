@@ -1,7 +1,7 @@
 import { convertAmount, parseAmount } from '../money';
 import { isUuid } from './accounts';
 import type { Currency, MovementType } from './dashboard';
-import { parseLocalDateTime } from './month';
+import { dayStart, parseLocalDateTime } from './month';
 
 export type MovementData = {
 	type: MovementType;
@@ -34,6 +34,8 @@ export type MovementRow = Omit<MovementData, 'exchangeRate'> & {
 };
 export type MovementResolveResult =
 	{ ok: true; row: MovementRow } | { ok: false; errors: MovementFormErrors };
+
+export const UNAVAILABLE_MESSAGE = 'La cuenta o la categoría ya no está disponible.';
 
 const MSG = {
 	type: 'Elegí un tipo de movimiento.',
@@ -124,18 +126,22 @@ export function resolveMovement(
 		origin: AccountRef | undefined;
 		destination?: AccountRef | undefined;
 		category?: CategoryRef | undefined;
-	}
+	},
+	// Archived rows already referenced by the movement being edited stay valid.
+	keep: { accountIds: string[]; categoryId: string | null } = { accountIds: [], categoryId: null }
 ): MovementResolveResult {
 	const errors: MovementFormErrors = {};
 	const { origin, destination, category } = rows;
 	const base = { ...data, destinationAccountId: null, categoryId: null, exchangeRate: null };
 
 	if (!origin) errors.accountId = MSG.account;
-	else if (origin.archivedAt) errors.accountId = MSG.archivedAccount;
+	else if (origin.archivedAt && !keep.accountIds.includes(origin.id))
+		errors.accountId = MSG.archivedAccount;
 
 	if (data.type !== 'transfer') {
 		if (!category) errors.categoryId = MSG.category;
-		else if (category.archivedAt) errors.categoryId = MSG.archivedCategory;
+		else if (category.archivedAt && category.id !== keep.categoryId)
+			errors.categoryId = MSG.archivedCategory;
 		if (Object.keys(errors).length > 0) return { ok: false, errors };
 		return {
 			ok: true,
@@ -145,7 +151,8 @@ export function resolveMovement(
 
 	if (!destination) errors.destinationAccountId = MSG.destination;
 	else if (origin && destination.id === origin.id) errors.destinationAccountId = MSG.sameAccount;
-	else if (destination.archivedAt) errors.destinationAccountId = MSG.archivedAccount;
+	else if (destination.archivedAt && !keep.accountIds.includes(destination.id))
+		errors.destinationAccountId = MSG.archivedAccount;
 	if (Object.keys(errors).length > 0) return { ok: false, errors };
 
 	const o = origin!;
@@ -170,4 +177,44 @@ export function resolveMovement(
 			exchangeRate: data.exchangeRate
 		}
 	};
+}
+
+const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
+const CURRENCIES: Currency[] = ['ARS', 'USD'];
+
+export type MovementFilterQuery = {
+	q: string;
+	from: string;
+	to: string;
+	type: MovementType | '';
+	account: string;
+	category: string;
+	currency: Currency | '';
+};
+
+// Year 9999 is rejected so the day after `to` is always representable.
+const validDay = (s: string) => YMD_RE.test(s) && s < '9999' && dayStart(s) !== null;
+
+/** Pure: normalises URL search params; any invalid value becomes empty/default. */
+export function parseMovementFilters(sp: URLSearchParams) {
+	const get = (k: string) => sp.get(k) ?? '';
+	const day = (k: string) => (validDay(get(k)) ? get(k) : '');
+	const uuid = (k: string) => (isUuid(get(k)) ? get(k) : '');
+	let from = day('from');
+	let to = day('to');
+	if (from && to && from > to) [from, to] = [to, from];
+	const q = get('q').trim();
+	const query: MovementFilterQuery = {
+		q: q.length > 60 ? '' : q,
+		from,
+		to,
+		type: TYPES.find((t) => t === get('type')) ?? '',
+		account: uuid('account'),
+		category: uuid('category'),
+		currency: CURRENCIES.find((c) => c === get('currency')) ?? ''
+	};
+	const n = Number(get('page'));
+	const page = Number.isSafeInteger(n) && n >= 1 && n <= 10000 ? n : 1;
+	const activeCount = Object.values(query).filter(Boolean).length;
+	return { values: { ...query } as Record<string, string>, query, page, activeCount };
 }

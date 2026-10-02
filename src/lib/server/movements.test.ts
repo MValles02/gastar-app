@@ -1,5 +1,10 @@
 import { expect, it } from 'vitest';
-import { parseMovementForm, resolveMovement, type MovementData } from './movements';
+import {
+	parseMovementFilters,
+	parseMovementForm,
+	resolveMovement,
+	type MovementData
+} from './movements';
 
 const A = '123e4567-e89b-12d3-a456-426614174000';
 const B = '123e4567-e89b-12d3-a456-426614174001';
@@ -179,4 +184,55 @@ it('resolves transfers by currency', () => {
 			})
 		).amount
 	).toBe('El monto convertido es demasiado grande.');
+});
+
+it('resolveMovement accepts archived rows only when kept', () => {
+	const old = new Date('2026-01-01T00:00:00Z');
+	const acc = (id: string) => ({ id, currency: 'ARS' as const, archivedAt: old });
+	const cat = { id: C, archivedAt: old };
+	const keep = { accountIds: [A, B], categoryId: C };
+	expect(resolveMovement(data(), { origin: acc(A), category: cat }, keep).ok).toBe(true);
+	expect(resolveMovement(data(), { origin: acc(A), category: cat }).ok).toBe(false);
+	expect(
+		resolveMovement(data(), { origin: acc(A), category: cat }, { ...keep, categoryId: null }).ok
+	).toBe(false);
+	const t = data({ type: 'transfer', destinationAccountId: B, categoryId: null });
+	const live = { id: A, currency: 'ARS' as const, archivedAt: null };
+	expect(resolveMovement(t, { origin: live, destination: acc(B) }, keep).ok).toBe(true);
+	expect(resolveMovement(t, { origin: live, destination: acc(B) }).ok).toBe(false);
+	expect(
+		resolveMovement(t, { origin: live, destination: acc(B) }, { ...keep, accountIds: [A] }).ok
+	).toBe(false);
+});
+
+it('parseMovementFilters normalises input', () => {
+	const f = (o: Record<string, string>) => parseMovementFilters(new URLSearchParams(o));
+	const empty = f({});
+	expect(empty).toMatchObject({ page: 1, activeCount: 0 });
+	expect(empty.values.q).toBe('');
+	const bad = f({
+		q: 'x'.repeat(61),
+		from: '2026-02-30',
+		to: 'nope',
+		type: 'x',
+		account: 'z',
+		category: 'z',
+		currency: 'EUR',
+		page: '0'
+	});
+	expect(bad.activeCount).toBe(0);
+	expect(bad.page).toBe(1);
+	expect(f({ page: '2.5' }).page).toBe(1);
+	expect(f({ page: '3' }).page).toBe(3);
+	expect(f({ page: '2' }).page).toBe(2);
+	expect(f({ page: 'abc' }).page).toBe(1);
+	for (const p of ['1e18', '1e300', '99999999999', '10001']) expect(f({ page: p }).page).toBe(1);
+	expect(f({ page: '10000' }).page).toBe(10000);
+	expect(f({ to: '9999-12-31' }).query.to).toBe('');
+	expect(f({ from: '9999-01-01' }).query.from).toBe('');
+	const swapped = f({ from: '2026-10-31', to: '2026-10-01', q: ' café ', type: 'income' });
+	expect(swapped.query).toMatchObject({ from: '2026-10-01', to: '2026-10-31', q: 'café' });
+	expect(swapped.values.type).toBe('income');
+	expect(swapped.activeCount).toBe(4);
+	expect(f({ account: A, category: C, currency: 'USD', page: '4' }).activeCount).toBe(3);
 });

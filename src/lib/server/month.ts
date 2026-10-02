@@ -77,3 +77,39 @@ export function dateLabel(d: Date): string {
 		d
 	);
 }
+
+/** Start (00:00 Buenos Aires) of a "YYYY-MM-DD" day; null for impossible dates. */
+export function dayStart(ymd: string): Date | null {
+	return parseLocalDateTime(`${ymd}T00:00`);
+}
+
+/** "YYYY-MM-DD" of a Date in TZ. */
+export function localDay(d: Date): string {
+	return toLocalInput(d).slice(0, 10);
+}
+
+/** "Hoy", "Ayer" or e.g. "Miércoles 30 de septiembre" (year added when not todayYmd's year). */
+export function dayHeading(ymd: string, todayYmd: string): string {
+	if (ymd === todayYmd) return 'Hoy';
+	const at = (s: string) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), 12);
+	if (at(todayYmd) - at(ymd) === 86_400_000) return 'Ayer';
+	const sameYear = ymd.slice(0, 4) === todayYmd.slice(0, 4);
+	const s = new Intl.DateTimeFormat('es-AR', {
+		weekday: 'long',
+		day: 'numeric',
+		month: 'long',
+		...(sameYear ? {} : { year: 'numeric' }),
+		timeZone: 'UTC'
+	})
+		.format(new Date(at(ymd)))
+		.replace(',', '');
+	return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export function dateTimeLabel(d: Date): string {
+	return new Intl.DateTimeFormat('es-AR', {
+		dateStyle: 'full',
+		timeStyle: 'short',
+		timeZone: TZ
+	}).format(d);
+}

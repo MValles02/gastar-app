@@ -7,8 +7,17 @@
 		name,
 		value = $bindable(),
 		now,
-		error
-	}: { name: string; value: string; now: string; error?: string } = $props();
+		error,
+		mode = 'datetime',
+		label = 'Fecha y hora'
+	}: {
+		name: string;
+		value: string;
+		now: string;
+		error?: string;
+		mode?: 'datetime' | 'date';
+		label?: string;
+	} = $props();
 
 	const VALID = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 	const DAY = 86_400_000;
@@ -35,6 +44,8 @@
 	let focusYmd = $state('');
 	let chip: HTMLButtonElement | null = $state(null);
 	let grid: HTMLElement | null = $state(null);
+	let hiddenInput: HTMLInputElement | null = $state(null);
+	const dateOnly = $derived(mode === 'date');
 	const id = $props.id();
 
 	const today = $derived(now.slice(0, 10));
@@ -46,6 +57,10 @@
 	onMount(() => {
 		// Rule: an invalid value falls back to now only when there is no server error;
 		// with an error the user's value stays visible so the message makes sense.
+		if (dateOnly) {
+			mounted = true;
+			return;
+		}
 		if (!VALID.test(value) && !error) value = now;
 		const ok = VALID.test(value);
 		hour = ok ? value.slice(11, 13) : '';
@@ -58,6 +73,10 @@
 	}
 
 	function setDate(ymd: string) {
+		if (dateOnly) {
+			value = ymd;
+			return;
+		}
 		value = `${ymd}T${norm(hour, 23)}:${norm(minute, 59)}`;
 	}
 
@@ -95,6 +114,14 @@
 		open = false;
 		await tick();
 		chip?.focus();
+		if (dateOnly) hiddenInput?.dispatchEvent(new Event('change', { bubbles: true }));
+	}
+
+	async function clear() {
+		value = '';
+		await tick();
+		chip?.focus();
+		hiddenInput?.dispatchEvent(new Event('change', { bubbles: true }));
 	}
 
 	async function onDayKey(e: KeyboardEvent) {
@@ -122,7 +149,7 @@
 {#if !mounted}
 	<div class="field">
 		<label>
-			Fecha y hora
+			{label}
 			<input
 				type="text"
 				{name}
@@ -130,66 +157,86 @@
 				aria-describedby="{id}-hint{error ? ` ${id}-error` : ''}"
 			/>
 		</label>
-		<p class="hint" id="{id}-hint">Formato: AAAA-MM-DDTHH:mm</p>
+		<p class="hint" id="{id}-hint">
+			{dateOnly ? 'Formato: AAAA-MM-DD' : 'Formato: AAAA-MM-DDTHH:mm'}
+		</p>
 		{#if error}<p class="error" id="{id}-error" role="alert">{error}</p>{/if}
 	</div>
 {:else}
 	<fieldset aria-describedby={error ? `${id}-error` : undefined}>
-		<legend>Fecha y hora</legend>
-		<input type="hidden" {name} {value} />
-		<div class="chips">
-			<button
-				type="button"
-				class="chip"
-				aria-pressed={date === today}
-				onclick={() => setDate(today)}
-			>
-				Hoy
-			</button>
-			<button
-				type="button"
-				class="chip"
-				aria-pressed={date === yesterday}
-				onclick={() => setDate(yesterday)}
-			>
-				Ayer
-			</button>
-			<button
-				type="button"
-				class="chip"
-				aria-pressed={other}
-				aria-haspopup="dialog"
-				bind:this={chip}
-				onclick={openCalendar}
-			>
-				{other && isYmd ? chipFmt.format(msOf(date)) : 'Otra fecha'}
-			</button>
-		</div>
-		<div class="time" role="group" aria-label="Hora del movimiento">
-			<label>
-				Hora
-				<input
-					type="text"
-					inputmode="numeric"
-					maxlength="2"
-					value={hour}
-					oninput={(e) => setTime('h', e.currentTarget.value)}
-					onblur={blurTime}
-				/>
-			</label>
-			<span class="colon" aria-hidden="true">:</span>
-			<label>
-				Minutos
-				<input
-					type="text"
-					inputmode="numeric"
-					maxlength="2"
-					value={minute}
-					oninput={(e) => setTime('m', e.currentTarget.value)}
-					onblur={blurTime}
-				/>
-			</label>
-		</div>
+		<legend>{label}</legend>
+		<input type="hidden" {name} {value} bind:this={hiddenInput} />
+		{#if dateOnly}
+			<div class="chips">
+				<button
+					type="button"
+					class="chip"
+					aria-pressed={isYmd}
+					aria-haspopup="dialog"
+					bind:this={chip}
+					onclick={openCalendar}
+				>
+					{isYmd ? chipFmt.format(msOf(date)) : 'Elegir fecha'}
+				</button>
+				{#if isYmd}
+					<Button type="button" variant="secondary" onclick={clear}>Quitar</Button>
+				{/if}
+			</div>
+		{:else}
+			<div class="chips">
+				<button
+					type="button"
+					class="chip"
+					aria-pressed={date === today}
+					onclick={() => setDate(today)}
+				>
+					Hoy
+				</button>
+				<button
+					type="button"
+					class="chip"
+					aria-pressed={date === yesterday}
+					onclick={() => setDate(yesterday)}
+				>
+					Ayer
+				</button>
+				<button
+					type="button"
+					class="chip"
+					aria-pressed={other}
+					aria-haspopup="dialog"
+					bind:this={chip}
+					onclick={openCalendar}
+				>
+					{other && isYmd ? chipFmt.format(msOf(date)) : 'Otra fecha'}
+				</button>
+			</div>
+			<div class="time" role="group" aria-label="Hora del movimiento">
+				<label>
+					Hora
+					<input
+						type="text"
+						inputmode="numeric"
+						maxlength="2"
+						value={hour}
+						oninput={(e) => setTime('h', e.currentTarget.value)}
+						onblur={blurTime}
+					/>
+				</label>
+				<span class="colon" aria-hidden="true">:</span>
+				<label>
+					Minutos
+					<input
+						type="text"
+						inputmode="numeric"
+						maxlength="2"
+						value={minute}
+						oninput={(e) => setTime('m', e.currentTarget.value)}
+						onblur={blurTime}
+					/>
+				</label>
+			</div>
+		{/if}
 		{#if error}<p class="error" id="{id}-error" role="alert">{error}</p>{/if}
 	</fieldset>
 

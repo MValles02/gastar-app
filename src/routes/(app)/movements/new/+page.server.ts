@@ -5,10 +5,8 @@ import { toIconKey, toSwatchKey } from '$lib/appearance';
 import { getAccount, listAccounts } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
 import { toLocalInput } from '$lib/server/month';
-import { parseMovementForm, resolveMovement } from '$lib/server/movements';
+import { parseMovementForm, resolveMovement, UNAVAILABLE_MESSAGE } from '$lib/server/movements';
 import { createMovement } from '$lib/server/movements-queries';
-
-const UNAVAILABLE = 'La cuenta o la categoría ya no está disponible.';
 
 export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const userId = locals.user!.id;
@@ -77,7 +75,7 @@ export const actions: Actions = {
 			const code = (e as { code?: string })?.code;
 			const causeCode = (e as { cause?: { code?: string } })?.cause?.code;
 			if (code === '23503' || causeCode === '23503')
-				return fail(400, { values, errors: { accountId: UNAVAILABLE } });
+				return fail(400, { values, errors: { accountId: UNAVAILABLE_MESSAGE } });
 			throw e;
 		}
 		cookies.set('last_account', data.accountId, {

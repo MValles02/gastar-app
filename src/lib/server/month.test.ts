@@ -2,6 +2,10 @@ import { expect, it } from 'vitest';
 import {
 	currentMonth,
 	dateLabel,
+	dateTimeLabel,
+	dayHeading,
+	dayStart,
+	localDay,
 	monthLabel,
 	monthRange,
 	parseLocalDateTime,
@@ -55,4 +59,19 @@ it('parseLocalDateTime reads BA wall time', () => {
 it('toLocalInput formats in BA time', () => {
 	expect(toLocalInput(new Date('2026-10-01T02:59:00Z'))).toBe('2026-09-30T23:59');
 	expect(toLocalInput(new Date('2026-10-01T03:00:00Z'))).toBe('2026-10-01T00:00');
+});
+
+it('dayStart, localDay and dayHeading use Buenos Aires days', () => {
+	expect(dayStart('2026-10-01')?.toISOString()).toBe('2026-10-01T03:00:00.000Z');
+	expect(dayStart('2026-02-30')).toBeNull();
+	expect(localDay(new Date('2026-10-01T02:59:00Z'))).toBe('2026-09-30');
+	expect(localDay(new Date('2026-10-02T00:30:00Z'))).toBe('2026-10-01');
+	expect(dayHeading('2026-10-02', '2026-10-02')).toBe('Hoy');
+	expect(dayHeading('2026-10-01', '2026-10-02')).toBe('Ayer');
+	expect(dayHeading('2026-09-30', '2026-10-02')).toBe('Miércoles 30 de septiembre');
+	expect(dayHeading('2025-09-30', '2026-10-02')).toMatch(/^Martes 30 de septiembre de 2025$/);
+});
+
+it('dateTimeLabel returns a non-empty es-AR string', () => {
+	expect(dateTimeLabel(new Date('2026-10-01T12:00:00Z'))).toMatch(/octubre/);
 });

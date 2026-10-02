@@ -89,6 +89,7 @@
 		{/if}
 	</div>
 
+	<a class="back" href={resolve(`/movements?account=${a.id}`)}>Ver movimientos</a>
 	<a class="back" href={resolve('/accounts')}>Volver a cuentas</a>
 </div>
 
