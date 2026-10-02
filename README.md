@@ -35,3 +35,16 @@ Signup is disabled; users are created from inside the running container
 ```sh
 docker exec -it <container> node scripts/create-user.js <email> "<name>"
 ```
+
+## Local development
+
+```sh
+docker compose up -d                 # Postgres on 127.0.0.1:5432
+cp .env.example .env                 # then set BETTER_AUTH_SECRET
+pnpm db:migrate
+pnpm db:seed                         # demo data; safe to re-run (resets only the demo user)
+pnpm dev
+```
+
+Demo login: `demo@gastar.local` / `demo1234` (override with `SEED_EMAIL` / `SEED_PASSWORD`).
+The seed refuses to run unless `DATABASE_URL` points at localhost.
