@@ -27,26 +27,26 @@ svg {
 	max-width: 100%;
 }
 
-/* Tokens */
+/* Colour tokens are light-dark(light, dark); color-scheme in :root / [data-theme] picks the side. */
 :root {
-	--bg: #f4ece6;
-	--surface: #ffffff;
-	--text: #14201a;
-	--text-muted: #6b6259;
-	--border: #ded3c9;
-	--primary: #00301c;
-	--on-primary: #f4ece6;
-	--accent: #f0ff9c;
-	--positive: #1c6b3e;
-	--negative: #7a1f0e;
-	--swatch-green: #2f6b45;
-	--swatch-teal: #1f6a6a;
-	--swatch-blue: #2c5d8a;
-	--swatch-violet: #5b4a8a;
-	--swatch-plum: #7a3d6b;
-	--swatch-red: #9a3b2e;
-	--swatch-orange: #9a5a1f;
-	--swatch-ochre: #7d6a1e;
+	--bg: light-dark(#f4ece6, #06120c);
+	--surface: light-dark(#ffffff, #0c2318);
+	--text: light-dark(#14201a, #f4ece6);
+	--text-muted: light-dark(#6b6259, #a9a199);
+	--border: light-dark(#ded3c9, #1e3a2b);
+	--primary: light-dark(#00301c, #f0ff9c);
+	--on-primary: light-dark(#f4ece6, #00301c);
+	--accent: light-dark(#f0ff9c, #f0ff9c);
+	--positive: light-dark(#1c6b3e, #7ce0a0);
+	--negative: light-dark(#7a1f0e, #ff9c85);
+	--swatch-green: light-dark(#2f6b45, #7fc79a);
+	--swatch-teal: light-dark(#1f6a6a, #6cc4c0);
+	--swatch-blue: light-dark(#2c5d8a, #8db8e6);
+	--swatch-violet: light-dark(#5b4a8a, #b3a3e6);
+	--swatch-plum: light-dark(#7a3d6b, #d99ac6);
+	--swatch-red: light-dark(#9a3b2e, #f0a090);
+	--swatch-orange: light-dark(#9a5a1f, #f0b27a);
+	--swatch-ochre: light-dark(#7d6a1e, #d9c46e);
 
 	--radius: 0.75rem;
 	--radius-pill: 999px;
@@ -66,61 +66,19 @@ svg {
 	--font-size-xl: 1.75rem;
 	--font-size-hero: 2.25rem;
 
-	--shadow-lift: 0 4px 12px rgb(0 0 0 / 0.2);
+	--shadow-lift:
+		0 0 0 1px light-dark(transparent, var(--border)),
+		0 6px 16px light-dark(rgb(0 0 0 / 0.2), rgb(0 0 0 / 0.6));
 
+	color-scheme: light dark;
+}
+
+:root[data-theme='light'] {
 	color-scheme: light;
 }
 
-/* Dark palette: keep in sync with the prefers-color-scheme block below. */
 :root[data-theme='dark'] {
-	--bg: #06120c;
-	--surface: #0c2318;
-	--text: #f4ece6;
-	--text-muted: #a9a199;
-	--border: #1e3a2b;
-	--primary: #f0ff9c;
-	--on-primary: #00301c;
-	--accent: #f0ff9c;
-	--positive: #7ce0a0;
-	--negative: #ff9c85;
-	--swatch-green: #7fc79a;
-	--swatch-teal: #6cc4c0;
-	--swatch-blue: #8db8e6;
-	--swatch-violet: #b3a3e6;
-	--swatch-plum: #d99ac6;
-	--swatch-red: #f0a090;
-	--swatch-orange: #f0b27a;
-	--swatch-ochre: #d9c46e;
-	--shadow-lift: 0 0 0 1px var(--border), 0 6px 16px rgb(0 0 0 / 0.6);
-
 	color-scheme: dark;
-}
-
-/* Dark palette: keep in sync with the [data-theme='dark'] block above. */
-@media (prefers-color-scheme: dark) {
-	:root:not([data-theme='light']) {
-		--bg: #06120c;
-		--surface: #0c2318;
-		--text: #f4ece6;
-		--text-muted: #a9a199;
-		--border: #1e3a2b;
-		--primary: #f0ff9c;
-		--on-primary: #00301c;
-		--accent: #f0ff9c;
-		--positive: #7ce0a0;
-		--negative: #ff9c85;
-		--swatch-green: #7fc79a;
-		--swatch-teal: #6cc4c0;
-		--swatch-blue: #8db8e6;
-		--swatch-violet: #b3a3e6;
-		--swatch-plum: #d99ac6;
-		--swatch-red: #f0a090;
-		--swatch-orange: #f0b27a;
-		--swatch-ochre: #d9c46e;
-		--shadow-lift: 0 0 0 1px var(--border), 0 6px 16px rgb(0 0 0 / 0.6);
-
-		color-scheme: dark;
-	}
 }
 
 body {
@@ -222,14 +180,4 @@ label {
 :focus-visible {
 	outline: 2px solid var(--primary);
 	outline-offset: 2px;
-}
-
-:root[data-theme='dark'] :focus-visible {
-	outline-color: var(--accent);
-}
-
-@media (prefers-color-scheme: dark) {
-	:root:not([data-theme='light']) :focus-visible {
-		outline-color: var(--accent);
-	}
 }
