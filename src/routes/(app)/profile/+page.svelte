@@ -98,6 +98,8 @@
 
 	.muted {
 		color: var(--text-muted);
+		overflow-wrap: anywhere;
+		min-width: 0;
 	}
 
 	.user-info {

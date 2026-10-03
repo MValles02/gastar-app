@@ -11,17 +11,18 @@ import {
 	getCategory,
 	setCategoryArchived
 } from '$lib/server/categories-queries';
-import { currentMonth, monthLabel, monthRange } from '$lib/server/month';
+import { currentMonth, monthLabel, monthRange, parseMonth, shiftMonth } from '$lib/server/month';
 
 const notFound = () => error(404, 'Categoría no encontrada.');
 
-export const load: PageServerLoad = async ({ locals, params }) => {
+export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const userId = locals.user!.id;
 	if (!isUuid(params.id)) notFound();
 	const [category] = await getCategory(userId, params.id);
 	if (!category) notFound();
 
-	const month = currentMonth(new Date());
+	const now = new Date();
+	const month = parseMonth(url.searchParams.get('month'), now);
 	const [rows, referenced] = await Promise.all([
 		categoryMonthNet(userId, category.id, monthRange(month)),
 		categoryReferenced(userId, category.id)
@@ -31,7 +32,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	return {
 		category: { ...rest, archived },
-		monthLabel: monthLabel(month),
+		month: {
+			label: monthLabel(month),
+			prev: shiftMonth(month, -1),
+			next: shiftMonth(month, 1),
+			isCurrent: month >= currentMonth(now)
+		},
 		nets: toCurrencyNets(rows),
 		actions: accountActions({ referenced: referenced.length > 0, archived })
 	};

@@ -106,3 +106,39 @@ test('keyboard focus shows an outline on /accounts/new', async ({ page }) => {
 	expect(outline.style).not.toBe('none');
 	expect(outline.width).toBeGreaterThan(0);
 });
+
+for (const width of [320, 360]) {
+	test(`list pages have no horizontal overflow at 200% text, ${width}px`, async ({ page }) => {
+		await page.setViewportSize({ width, height: 640 });
+		await login(page);
+		for (const route of [
+			'/',
+			'/accounts',
+			'/movements',
+			'/movements/new',
+			'/categories',
+			'/profile'
+		]) {
+			await page.goto(route);
+			await expect(page.getByRole('heading', { level: 1 }), route).toBeVisible();
+			await page.evaluate(() => (document.documentElement.style.fontSize = '32px'));
+			await expectNoOverflow(page);
+		}
+	});
+}
+
+test('category detail navigates months', async ({ page }) => {
+	await login(page);
+	const href = await firstDetailHref(page, 'categories');
+	test.skip(!href, 'seed has no categories');
+	await page.goto('/categories');
+	await page.locator(`main a[href="${href}"]`).click();
+	await expect(page).toHaveURL(/\/categories\/[^/?]+$/);
+	const label = page.locator('.month-label');
+	const before = await label.textContent();
+	await expect(page.getByRole('link', { name: 'Mes siguiente' })).toHaveCount(0);
+	await expect(page.getByLabel('Mes siguiente')).toHaveAttribute('aria-disabled', 'true');
+	await page.getByRole('link', { name: 'Mes anterior' }).click();
+	await expect(page).toHaveURL(/\?month=\d{4}-\d{2}$/);
+	await expect(label).not.toHaveText(before!);
+});

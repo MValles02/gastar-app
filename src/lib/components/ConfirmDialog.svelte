@@ -12,7 +12,7 @@
 		children
 	}: {
 		triggerLabel: string;
-		triggerVariant?: 'primary' | 'secondary';
+		triggerVariant?: 'primary' | 'secondary' | 'danger';
 		title: string;
 		confirmLabel: string;
 		action: string;

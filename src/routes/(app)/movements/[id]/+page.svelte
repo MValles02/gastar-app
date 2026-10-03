@@ -87,6 +87,7 @@
 		<Button href={resolve(`/movements/${data.movement.id}/edit`)}>Editar</Button>
 		<ConfirmDialog
 			triggerLabel="Eliminar"
+			triggerVariant="danger"
 			title="¿Eliminar este movimiento?"
 			confirmLabel="Eliminar"
 			action="?/delete"
@@ -136,11 +137,5 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-3);
-	}
-
-	/* Destructive cue for the confirm trigger (a direct child of .actions; Archivar sits in a form). */
-	.actions > :global(button.secondary) {
-		color: var(--negative);
-		border-color: color-mix(in srgb, var(--negative) 50%, transparent);
 	}
 </style>

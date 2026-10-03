@@ -81,6 +81,7 @@
 	}
 
 	.trailing {
-		flex: none;
+		flex: 0 1 auto;
+		min-width: 0;
 	}
 </style>
