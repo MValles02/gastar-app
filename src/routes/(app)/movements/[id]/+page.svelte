@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { toIconKey, toSwatchKey } from '$lib/appearance';
 	import Button from '$lib/components/Button.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import DetailHeader from '$lib/components/DetailHeader.svelte';
 	import { formatMoney } from '$lib/money';
 	import type { PageData } from './$types';
 
@@ -33,12 +34,16 @@
 </svelte:head>
 
 <div class="detail">
-	<PageHeader title={m.description} />
-
-	<section class="hero" aria-labelledby="amount-label">
-		<p id="amount-label" class="label">Monto</p>
-		<p class="amount hero-amount {sign === 'neutral' ? 'transfer' : sign}">{heroAmount}</p>
-	</section>
+	<DetailHeader
+		title={m.description}
+		back={{ href: resolve('/movements'), label: 'Volver a movimientos' }}
+		icon={toIconKey(m.accountIcon)}
+		color={toSwatchKey(m.accountColor)}
+		label="Monto"
+		value={heroAmount}
+		tone={sign === 'neutral' ? 'transfer' : sign}
+		context={typeLabel}
+	/>
 
 	<dl class="data">
 		<div class="item">
@@ -47,11 +52,7 @@
 		</div>
 		<div class="item">
 			<dt>Fecha</dt>
-			<dd>{m.dateLabel}</dd>
-		</div>
-		<div class="item">
-			<dt>Descripción</dt>
-			<dd>{m.description}</dd>
+			<dd class="amount">{m.dateLabel}</dd>
 		</div>
 		<div class="item">
 			<dt>{m.type === 'transfer' ? 'Cuenta de origen' : 'Cuenta'}</dt>
@@ -93,8 +94,6 @@
 			Esta acción no se puede deshacer.
 		</ConfirmDialog>
 	</div>
-
-	<a class="back" href={resolve('/movements')}>Volver a movimientos</a>
 </div>
 
 <style>
@@ -102,30 +101,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-	}
-
-	.label {
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-	}
-
-	.hero-amount {
-		font-size: clamp(1.5rem, 9vw, var(--font-size-hero));
-		font-weight: 500;
-		line-height: 1.2;
-		white-space: nowrap;
-	}
-
-	.positive {
-		color: var(--positive);
-	}
-
-	.negative {
-		color: var(--negative);
-	}
-
-	.transfer {
-		color: var(--transfer);
 	}
 
 	.data {
@@ -163,12 +138,9 @@
 		gap: var(--space-3);
 	}
 
-	.back {
-		display: inline-flex;
-		align-items: center;
-		min-height: 2.75rem;
-		font-weight: 500;
-		color: var(--text);
-		text-decoration: underline;
+	/* Destructive cue for the confirm trigger (a direct child of .actions; Archivar sits in a form). */
+	.actions > :global(button.secondary) {
+		color: var(--negative);
+		border-color: color-mix(in srgb, var(--negative) 50%, transparent);
 	}
 </style>

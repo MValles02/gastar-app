@@ -260,7 +260,14 @@ A pill track (background color, 1px control-edge border, `space-1` padding) of r
 
 ### Page Header and Empty State
 
-- **PageHeader:** A single h1 (1.75rem, 500, line-height 1.2) with `space-5` below.
+- **PageHeader:** An h1 (1.75rem, 500, line-height 1.2) with `space-5` below. Optional `back` (`{ href, label }`) adds a 2.75rem circular chevron-left icon link before the title (`label` is its aria-label, hover tints primary 8%). Optional `action` snippet sits after the title. With either, it is a row `[back] [title] [action]` and the title truncates with an ellipsis.
+- **DetailHeader:** Used on account, category and movement detail. Renders `PageHeader` with `back`, then a hero `Card`. Props: `title`, `back`, `label` (muted small caption), optional `icon` and `color` (IconBadge), `value` (hero figure, 600, `clamp` hero size), `tone` (`positive`, `negative` or `transfer` colour for the value), `context` (muted small line) and a children snippet for extra content (such as the category per-currency nets).
+- **Secondary link row:** "Ver movimientos" on account and category detail is a single `ListRow` with a trailing chevron-right in a surface container (hairline border, `--shadow-1`), not an underlined text link.
+- **Destructive cue:** The confirm-delete trigger ("Eliminar") in the detail actions uses the `negative` text colour and a 50% `negative` border; other actions stay neutral.
+- **FilterBar:** Wrapping flex form with `space-2` by `space-3` gaps. The search field takes the full first row (search icon inset left); a segmented control or filters disclosure takes its own full row; a checkbox label stays compact (auto width) and shares a row when it fits. On the movements list the filters `summary` is an inline pill (surface fill, hairline border, 2.75rem tall).
+- **List day headings:** Movements group by day under a small heading (0.875rem, 600, muted text, `space-4` inline padding) rather than a body-size title.
+- **Month navigation:** On the dashboard the next-month arrow at the current month is a non-link with `aria-disabled='true'` and 0.4 opacity with a not-allowed cursor.
+- **Profile:** One `Card` groups the user name and email, the theme control and the "Cerrar sesión" button as sections separated by hairline dividers.
 - **EmptyState:** A centered column: a 3.5rem pill circle tinted with `color-mix(in srgb, var(--primary) 8%, transparent)` holding a primary-colored icon, over muted text. Used by the placeholder pages.
 
 ### Icon and Wordmark

@@ -4,8 +4,10 @@
 	import { ACCOUNT_ICONS, SWATCHES, toIconKey, toSwatchKey } from '$lib/appearance';
 	import Button from '$lib/components/Button.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import DetailHeader from '$lib/components/DetailHeader.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
 	import { formatMoney } from '$lib/money';
 	import type { ActionData, PageData } from './$types';
 
@@ -21,17 +23,15 @@
 </svelte:head>
 
 <div class="detail">
-	<div class="title">
-		<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} />
-		<div class="grow"><PageHeader title={a.name} /></div>
-	</div>
-
-	<section class="hero" aria-labelledby="balance-label">
-		<p id="balance-label" class="label">Saldo</p>
-		<p class="amount hero-amount" class:negative={data.balance < 0}>
-			{formatMoney(data.balance, a.currency)}
-		</p>
-	</section>
+	<DetailHeader
+		title={a.name}
+		back={{ href: resolve('/accounts'), label: 'Volver a cuentas' }}
+		icon={toIconKey(a.icon)}
+		color={toSwatchKey(a.color)}
+		label="Saldo"
+		value={formatMoney(data.balance, a.currency)}
+		tone={data.balance < 0 ? 'negative' : undefined}
+	/>
 
 	<dl class="data">
 		<div class="item">
@@ -89,8 +89,12 @@
 		{/if}
 	</div>
 
-	<a class="back" href={resolve(`/movements?account=${a.id}`)}>Ver movimientos</a>
-	<a class="back" href={resolve('/accounts')}>Volver a cuentas</a>
+	<div class="link">
+		<ListRow href={resolve(`/movements?account=${a.id}`)}>
+			{#snippet title()}Ver movimientos{/snippet}
+			{#snippet trailing()}<Icon name="chevron-right" />{/snippet}
+		</ListRow>
+	</div>
 </div>
 
 <style>
@@ -100,41 +104,8 @@
 		gap: var(--space-5);
 	}
 
-	.title {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-	}
-
-	.grow {
-		min-width: 0;
-		flex: 1;
-	}
-
-	.grow :global(h1) {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.label,
 	.muted {
 		color: var(--text-muted);
-	}
-
-	.label {
-		font-size: var(--font-size-sm);
-	}
-
-	.hero-amount {
-		font-size: clamp(1.5rem, 9vw, var(--font-size-hero));
-		font-weight: 500;
-		line-height: 1.2;
-		white-space: nowrap;
-	}
-
-	.negative {
-		color: var(--negative);
 	}
 
 	.data {
@@ -182,12 +153,21 @@
 		gap: var(--space-3);
 	}
 
-	.back {
-		display: inline-flex;
-		align-items: center;
-		min-height: 2.75rem;
-		font-weight: 500;
-		color: var(--text);
-		text-decoration: underline;
+	.link {
+		overflow: hidden;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-1);
+	}
+
+	.link :global(.row:last-child) {
+		border-bottom: 0;
+	}
+
+	/* Destructive cue for the confirm trigger (a direct child of .actions; Archivar sits in a form). */
+	.actions > :global(button.secondary) {
+		color: var(--negative);
+		border-color: color-mix(in srgb, var(--negative) 50%, transparent);
 	}
 </style>

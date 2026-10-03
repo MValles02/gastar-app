@@ -40,15 +40,13 @@
 
 <PageHeader title="Perfil" />
 
-<div class="sections">
-	<Card>
+<Card>
+	<div class="sections">
 		<section class="user-info">
 			<p class="name">{data.user.name}</p>
 			<p class="muted">{data.user.email}</p>
 		</section>
-	</Card>
 
-	<Card>
 		<section>
 			<h2 id="theme-heading">Tema</h2>
 
@@ -79,20 +77,23 @@
 				<noscript><Button type="submit" variant="secondary">Guardar</Button></noscript>
 			</form>
 		</section>
-	</Card>
 
-	<Card>
 		<form method="POST" action="/logout">
 			<Button type="submit" variant="secondary" block>Cerrar sesión</Button>
 		</form>
-	</Card>
-</div>
+	</div>
+</Card>
 
 <style>
 	.sections {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
+	}
+
+	.sections > :global(* + *) {
+		padding-top: var(--space-4);
+		border-top: 1px solid var(--border);
 	}
 
 	.muted {
