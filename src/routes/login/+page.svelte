@@ -44,6 +44,8 @@
 			<Button type="submit" block>Ingresar</Button>
 		</form>
 	</Card>
+
+	<p class="hint">¿Olvidaste tu contraseña? Pedile al administrador que la restablezca.</p>
 </main>
 
 <style>
@@ -64,6 +66,14 @@
 	.brand {
 		margin: 0;
 		font: inherit;
+	}
+
+	.hint {
+		margin: 0;
+		max-width: 360px;
+		text-align: center;
+		font-size: var(--font-size-sm);
+		color: var(--text-muted);
 	}
 
 	.form {
