@@ -26,6 +26,22 @@ colors:
   negative-dark: '#e3928b'
   transfer: '#405870'
   transfer-dark: '#9db8d0'
+  swatch-green: '#2f6b45'
+  swatch-green-dark: '#7fc79a'
+  swatch-teal: '#1f6a6a'
+  swatch-teal-dark: '#6cc4c0'
+  swatch-blue: '#2c5d8a'
+  swatch-blue-dark: '#8db8e6'
+  swatch-violet: '#5b4a8a'
+  swatch-violet-dark: '#b3a3e6'
+  swatch-plum: '#7a3d6b'
+  swatch-plum-dark: '#d99ac6'
+  swatch-red: '#9a3b2e'
+  swatch-red-dark: '#f0a090'
+  swatch-orange: '#9a5a1f'
+  swatch-orange-dark: '#f0b27a'
+  swatch-ochre: '#7d6a1e'
+  swatch-ochre-dark: '#d9c46e'
 typography:
   body:
     fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif"
@@ -158,7 +174,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 
 - **Warm Paper** (`background`; `on-primary` in light): Page background and text on primary fills. Dark counterpart: Night Ledger (`background-dark`, also on-primary in dark).
 - **Page White** (`surface`): Top bar, bottom nav, cards and fields. Dark counterpart: Ledger Slate (`surface-dark`).
-- **Raised White** (`surface-raised`): Layers above a surface, such as the Sheet dialog. Dark counterpart: Raised Slate (`surface-raised-dark`).
+- **Raised White** (`surface-raised`): Layers above a surface, such as the Sheet and ConfirmDialog dialogs. Dark counterpart: Raised Slate (`surface-raised-dark`).
 - **Ledger Ink** (`text`): Body text. Dark counterpart: Warm Paper Ink (`text-dark`).
 - **Muted Taupe** (`text-muted`): Labels and inactive nav items. Dark counterpart: Dusk Sage (`text-muted-dark`).
 - **Hairline Sand** (`border`): 1px borders on bars, cards and dividers. Dark counterpart: Hairline Slate (`border-dark`).
@@ -169,6 +185,10 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 - **Credit Green** (`positive`): Income amounts. Dark: Credit Sage (`positive-dark`).
 - **Debit Burgundy** (`negative`): Outcome amounts and error messages. Dark: Debit Clay (`negative-dark`).
 - **Transfer Slate** (`transfer`): Transfer amounts. Dark: `transfer-dark`.
+
+### Swatches
+
+- **Account and category swatches** (`--swatch-green`, `--swatch-teal`, `--swatch-blue`, `--swatch-violet`, `--swatch-plum`, `--swatch-red`, `--swatch-orange`, `--swatch-ochre`): The eight user-pickable accent colours for IconBadge and the color picker, each with a light and a `-dark` value (listed in the frontmatter, defined with `light-dark()` in `app.css`).
 
 ### Named Rules
 
@@ -183,7 +203,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 **Display Font:** none
 **Body Font:** DM Sans (with system-ui, -apple-system, sans-serif), weights 400, 500, 600 loaded via @fontsource/dm-sans.
 
-**Character:** A single clean humanist sans. Hierarchy comes from weight and a short size scale (0.75rem `--font-size-xs`, 0.875rem, 1rem, 1.25rem, 1.75rem, plus the 2.25rem hero step) rather than a second family.
+**Character:** A single clean humanist sans. Hierarchy comes from weight and a short size scale (0.75rem `--font-size-xs`, 0.875rem `--font-size-sm`, 1rem `--font-size-base`, 1.25rem `--font-size-lg`, 1.75rem `--font-size-xl`, plus the 2.25rem hero step) rather than a second family.
 
 ### Hierarchy
 
@@ -201,7 +221,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 
 ## Layout
 
-Mobile-first single column with no breakpoints. `.content` shares the `--content-width` (560px) column with the top bar and bottom nav: both bars keep a full-bleed surface and border, and their inner items are inset (inline padding) to align with that centered column. The segmented control options shrink (`min-width: 0`, `space-1` side padding), wrap labels with `overflow-wrap: anywhere` instead of clipping, and drop to `--font-size-sm` under 26rem wide, keeping the 2.75rem target. The top bar is sticky (z-index 10) and the bottom nav is fixed with a `safe-area-inset-bottom` allowance (z-index 10). Content bottom padding is `calc(space-8 + 4.5rem + env(safe-area-inset-bottom))` so nothing hides under the nav. The login screen is a centered column with safe-area padding on all four sides. Spacing is a short rem scale (`space-1` to `space-6`, plus `space-8`); page padding is `space-5`. The browser theme color is Forest Ledger Green and the PWA manifest background is Warm Paper.
+Mobile-first single column with no layout breakpoints; two narrow-width tweaks (nav label font size, segmented control). `.content` shares the `--content-width` (560px) column with the top bar and bottom nav: both bars keep a full-bleed surface and border, and their inner items are inset (inline padding of `space-5` inside the column, as page content) to align with that centered column. The segmented control options shrink (`min-width: 0`, `space-1` side padding), wrap labels with `overflow-wrap: anywhere` instead of clipping, and drop to `--font-size-sm` under 26rem wide, keeping the 2.75rem target. The top bar is sticky (z-index 10) and the bottom nav is fixed with a `safe-area-inset-bottom` allowance (z-index 10). Content bottom padding is `calc(space-8 + 4.5rem + env(safe-area-inset-bottom))` so nothing hides under the nav. The login screen is a centered column with safe-area padding on all four sides. Spacing is a short rem scale (`space-1` to `space-6`, plus `space-8`); page padding is `space-5`. The browser theme color is Forest Ledger Green and the PWA manifest background is Warm Paper.
 
 ## Elevation & Depth
 
@@ -211,7 +231,7 @@ Depth comes from layering first, shadow second. The page (Warm Paper) is the bas
 
 - **Level 0, page** (`--bg`): No shadow.
 - **Level 1, card** (`--shadow-1`: light `0 1px 2px rgb(0 0 0 / 0.08)`; dark `0 1px 2px rgb(0 0 0 / 0.25)` plus a 1px inset top highlight): `Card` and the shared `.list-card` list container (surface fill, hairline border, 0.75rem radius, clipped overflow, last row without divider). Used for list pages, dashboard sections and the month card.
-- **Level 2, raised** (`--shadow-2`: light `0 2px 8px rgb(0 0 0 / 0.12)`; dark `0 2px 8px rgb(0 0 0 / 0.35)` plus a brighter inset highlight): Layers above cards. Pair with `--surface-raised` fill.
+- **Level 2, raised** (`--shadow-2`: light `0 2px 8px rgb(0 0 0 / 0.12)`; dark `0 2px 8px rgb(0 0 0 / 0.35)` plus a brighter inset highlight): Modal layers: the `Sheet` and `ConfirmDialog` dialogs, both with the `--surface-raised` fill.
 - **Lift** (`--shadow-lift`: light `0 6px 16px rgb(0 0 0 / 0.2)`; dark `0 6px 16px rgb(0 0 0 / 0.6)` plus a 1px border-token edge): The center "+" FAB only; it stays the most prominent element in the bottom nav.
 
 ### Dark Theme
@@ -289,7 +309,7 @@ A fieldset with quick chips (Hoy, Ayer, and "Otra fecha" showing the picked date
 
 ### Icon and Color Pickers
 
-Radio groups of round swatches (the icon picker shows the ten account icons in IconBadge, the color picker the eight swatches at 2.75rem). The checked option has a 2px text-color ring separated by a 2px surface gap; focus-visible moves the ring to 4px offset.
+Radio groups of round swatches (the icon picker shows the ten account icons in IconBadge, the color picker the eight swatches at 2.75rem). The checked option has a 2px text-color ring separated by a 2px surface gap; focus-visible moves the ring to 4px offset. The ring is a literal two-ring `box-shadow` in `IconPicker` and `ColorPicker`, the single named exception to the no-literal-`box-shadow` rule.
 
 ### Navigation
 
@@ -316,5 +336,5 @@ A 3.5rem primary pill circle with a 24px plus icon, centered in the bottom nav a
 
 - **Don't** hardcode hex values in components.
 - **Don't** use primary as link text; links use the text color with an underline.
-- **Don't** hardcode a `box-shadow` in a component or add a shadow outside the elevation scale; don't use heavy black shadows in dark; don't add hover, press and disabled treatments beyond those described in Components (0.9 hover opacity, tints, press scale, 0.5 disabled).
+- **Don't** hardcode a `box-shadow` in a component (the checked ring of `IconPicker` and `ColorPicker` is the only exception) or add a shadow outside the elevation scale; don't use heavy black shadows in dark; don't add hover, press and disabled treatments beyond those described in Components (0.9 hover opacity, tints, press scale, 0.5 disabled).
 - **Don't** treat these known gaps (documented, not decided) as settled: z-indices are not tokenized, and the tint percentages (8% and 10% `color-mix`) and the 0.96 and 0.98 press scales are repeated literals rather than tokens.

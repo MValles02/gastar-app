@@ -9,27 +9,24 @@
 	}: { title: string; action?: Snippet; back?: { href: string; label: string } } = $props();
 </script>
 
-{#if action || back}
-	<div class="header" class:has-back={!!back}>
-		{#if back}
-			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass an already resolved href -->
-			<a class="back" href={back.href} aria-label={back.label}>
-				<Icon name="chevron-left" />
-			</a>
-		{/if}
-		<h1>{title}</h1>
-		{#if action}{@render action()}{/if}
-	</div>
-{:else}
+<div class="header" class:has-back={!!back}>
+	{#if back}
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass an already resolved href -->
+		<a class="back" href={back.href} aria-label={back.label}>
+			<Icon name="chevron-left" />
+		</a>
+	{/if}
 	<h1>{title}</h1>
-{/if}
+	{#if action}{@render action()}{/if}
+</div>
 
 <style>
 	/* Row: [back] [title] [action]; the action wraps below the title instead of truncating it. */
 	.header {
 		display: flex;
 		flex-wrap: wrap;
-		align-items: center;
+		align-items: flex-start;
+		min-height: 2.75rem;
 		gap: var(--space-2) var(--space-3);
 		margin-bottom: var(--space-5);
 	}
@@ -56,6 +53,8 @@
 		flex: 1 1 auto;
 		min-width: 0;
 		margin-bottom: 0;
+		/* Centre one title line on the 2.75rem back button while the h1 box stays at the row top. */
+		padding-block: calc((2.75rem - 1.2 * var(--font-size-xl)) / 2);
 	}
 
 	/* Detail pages keep a single truncated line next to the back button. */

@@ -52,7 +52,7 @@
 		</div>
 		<div class="item">
 			<dt>Fecha</dt>
-			<dd class="amount">{m.dateLabel}</dd>
+			<dd>{m.dateLabel}</dd>
 		</div>
 		<div class="item">
 			<dt>{m.type === 'transfer' ? 'Cuenta de origen' : 'Cuenta'}</dt>

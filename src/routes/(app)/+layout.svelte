@@ -141,7 +141,7 @@
 		background: var(--surface);
 		border-top: 1px solid var(--border);
 		padding: var(--space-2) 0;
-		padding-inline: max(0px, calc((100% - var(--content-width)) / 2));
+		padding-inline: max(0px, calc((100% - var(--content-width)) / 2 + var(--space-5)));
 		padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom));
 	}
 
