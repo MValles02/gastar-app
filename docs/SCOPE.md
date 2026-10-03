@@ -66,7 +66,7 @@ Personal finance PWA for Argentina. Answers two questions:
 - For the selected currency:
   - Total balance: all accounts of that currency, **including archived**.
   - Month balance: incomes − outcomes (transfers excluded).
-  - Month navigation: ‹ › arrows, defaults to current month.
+  - The dashboard always shows the current month; there is no month navigation.
   - Top 3 categories by net outcome, each with amount and %.
   - Last 10 movements, filtered by selected currency.
 

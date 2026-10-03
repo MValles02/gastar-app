@@ -45,6 +45,7 @@ it('shiftMonth crosses years', () => {
 
 it('labels in es-AR', () => {
 	expect(monthLabel('2026-10')).toBe('Octubre de 2026');
+	expect(monthLabel('2026-10', false)).toBe('Octubre');
 	expect(dateLabel(new Date('2026-10-01T02:30:00Z'))).toMatch(/^30 sep/);
 });
 

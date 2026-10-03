@@ -4,7 +4,6 @@
 	import Button from '$lib/components/Button.svelte';
 	import Card from '$lib/components/Card.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
-	import Icon from '$lib/components/Icon.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { formatMoney } from '$lib/money';
@@ -22,8 +21,6 @@
 
 	const percent = new Intl.NumberFormat('es-AR', { style: 'percent' });
 
-	const atCurrent = $derived(data.month.isCurrent);
-
 	const tone = (n: number) => (n > 0 ? 'positive' : n < 0 ? 'negative' : '');
 </script>
 
@@ -36,7 +33,7 @@
 <div class="dashboard">
 	<form
 		method="post"
-		action="?month={data.month.value}&/currency"
+		action="?/currency"
 		bind:this={currencyForm}
 		use:enhance={() => {
 			return async ({ update }) => {
@@ -71,37 +68,14 @@
 			<Card>
 				<p id="balance-label" class="label">Saldo total</p>
 				<p class="amount hero-amount">{formatMoney(data.totalBalance, data.currency)}</p>
-			</Card>
-		</section>
-
-		<section aria-label="Resumen del mes">
-			<Card>
-				<div class="nav">
-					<a class="arrow" href={resolve(`/?month=${data.month.prev}`)} aria-label="Mes anterior">
-						<Icon name="chevron-left" />
-					</a>
-					<p class="month-label">{data.month.label}</p>
-					{#if atCurrent}
-						<span
-							class="arrow disabled"
-							role="link"
-							aria-disabled="true"
-							aria-label="Mes siguiente"
-						>
-							<Icon name="chevron-right" />
-						</span>
-					{:else}
-						<a
-							class="arrow"
-							href={resolve(`/?month=${data.month.next}`)}
-							aria-label="Mes siguiente"
-						>
-							<Icon name="chevron-right" />
-						</a>
-					{/if}
+				<div class="month">
+					<p class="label">
+						<span class="visually-hidden">Balance del mes: </span>{data.month.label}
+					</p>
+					<p class="amount net {tone(data.monthNet)}">
+						{formatMoney(data.monthNet, data.currency)}
+					</p>
 				</div>
-				<p class="label">Balance del mes</p>
-				<p class="amount net {tone(data.monthNet)}">{formatMoney(data.monthNet, data.currency)}</p>
 			</Card>
 		</section>
 
@@ -194,35 +168,15 @@
 		overflow-wrap: anywhere;
 	}
 
-	.nav {
+	.month {
 		display: flex;
-		align-items: center;
+		flex-wrap: wrap;
+		align-items: baseline;
 		justify-content: space-between;
-		margin-bottom: var(--space-3);
-	}
-
-	.month-label {
-		font-weight: 500;
-	}
-
-	.arrow {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 2.75rem;
-		height: 2.75rem;
-		border-radius: var(--radius-pill);
-		color: var(--text);
-		transition: background-color 0.15s ease;
-	}
-
-	.arrow.disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-	}
-
-	a.arrow:hover {
-		background: color-mix(in srgb, var(--primary) 8%, transparent);
+		gap: var(--space-1) var(--space-3);
+		margin-top: var(--space-2);
+		padding-top: var(--space-2);
+		border-top: 1px solid var(--border);
 	}
 
 	.error {
@@ -231,7 +185,7 @@
 	}
 
 	.net {
-		font-size: var(--font-size-xl);
+		font-size: var(--font-size-lg);
 		font-weight: 600;
 		line-height: 1.2;
 		white-space: normal;

@@ -230,7 +230,7 @@ Depth comes from layering first, shadow second. The page (Warm Paper) is the bas
 ### Elevation Scale
 
 - **Level 0, page** (`--bg`): No shadow.
-- **Level 1, card** (`--shadow-1`: light `0 1px 2px rgb(0 0 0 / 0.08)`; dark `0 1px 2px rgb(0 0 0 / 0.25)` plus a 1px inset top highlight): `Card` and the shared `.list-card` list container (surface fill, hairline border, 0.75rem radius, clipped overflow, last row without divider). Used for list pages, dashboard sections and the month card.
+- **Level 1, card** (`--shadow-1`: light `0 1px 2px rgb(0 0 0 / 0.08)`; dark `0 1px 2px rgb(0 0 0 / 0.25)` plus a 1px inset top highlight): `Card` and the shared `.list-card` list container (surface fill, hairline border, 0.75rem radius, clipped overflow, last row without divider). Used for list pages, dashboard sections and the merged balance card (total balance plus month balance).
 - **Level 2, raised** (`--shadow-2`: light `0 2px 8px rgb(0 0 0 / 0.12)`; dark `0 2px 8px rgb(0 0 0 / 0.35)` plus a brighter inset highlight): Modal layers: the `Sheet` and `ConfirmDialog` dialogs, both with the `--surface-raised` fill.
 - **Lift** (`--shadow-lift`: light `0 6px 16px rgb(0 0 0 / 0.2)`; dark `0 6px 16px rgb(0 0 0 / 0.6)` plus a 1px border-token edge): The center "+" FAB only; it stays the most prominent element in the bottom nav.
 
@@ -286,7 +286,6 @@ A pill track (background color, 1px control-edge border, `space-1` padding) of r
 - **Destructive cue:** The confirm-delete trigger ("Eliminar") in the detail actions uses the `negative` text colour and a 50% `negative` border; other actions stay neutral.
 - **FilterBar:** Wrapping flex form with `space-2` by `space-3` gaps. The search field takes the full first row (search icon inset left); a segmented control or filters disclosure takes its own full row; a checkbox label stays compact (auto width) and shares a row when it fits. On the movements list the filters `summary` is an inline pill (surface fill, hairline border, 2.75rem tall).
 - **List day headings:** Movements group by day under a small heading (0.875rem, 600, muted text, `space-4` inline padding) rather than a body-size title.
-- **Month navigation:** On the dashboard the next-month arrow at the current month is a non-link with `aria-disabled='true'` and 0.4 opacity with a not-allowed cursor.
 - **Profile:** One `Card` groups the user name and email, the theme control and the "Cerrar sesión" button as sections separated by hairline dividers.
 - **EmptyState:** A centered column: a 3.5rem pill circle tinted with `color-mix(in srgb, var(--primary) 8%, transparent)` holding a primary-colored icon, over muted text. Used by the placeholder pages.
 
