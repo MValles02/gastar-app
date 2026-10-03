@@ -201,7 +201,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 
 ## Layout
 
-Mobile-first single column with no breakpoints. `.content` and the bottom nav share a 560px max width, centered. The top bar is sticky (z-index 10) and the bottom nav is fixed with a `safe-area-inset-bottom` allowance (z-index 10). Content bottom padding is `calc(space-8 + 4.5rem + env(safe-area-inset-bottom))` so nothing hides under the nav. The login screen is a centered column with safe-area padding on all four sides. Spacing is a short rem scale (`space-1` to `space-6`, plus `space-8`); page padding is `space-5`. The browser theme color is Forest Ledger Green and the PWA manifest background is Warm Paper.
+Mobile-first single column with no breakpoints. `.content` shares the `--content-width` (560px) column with the top bar and bottom nav: both bars keep a full-bleed surface and border, and their inner items are inset (inline padding) to align with that centered column. The segmented control options shrink (`min-width: 0`, `space-1` side padding), wrap labels with `overflow-wrap: anywhere` instead of clipping, and drop to `--font-size-sm` under 26rem wide, keeping the 2.75rem target. The top bar is sticky (z-index 10) and the bottom nav is fixed with a `safe-area-inset-bottom` allowance (z-index 10). Content bottom padding is `calc(space-8 + 4.5rem + env(safe-area-inset-bottom))` so nothing hides under the nav. The login screen is a centered column with safe-area padding on all four sides. Spacing is a short rem scale (`space-1` to `space-6`, plus `space-8`); page padding is `space-5`. The browser theme color is Forest Ledger Green and the PWA manifest background is Warm Paper.
 
 ## Elevation & Depth
 

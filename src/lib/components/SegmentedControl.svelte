@@ -28,6 +28,8 @@
 <style>
 	.track {
 		display: flex;
+		min-width: 0;
+		max-width: 100%;
 		gap: var(--space-1);
 		padding: var(--space-1);
 		background: var(--bg);
@@ -37,7 +39,9 @@
 
 	.option {
 		position: relative;
-		flex: 1;
+		flex: 1 1 0;
+		min-width: 0;
+		padding-inline: var(--space-1);
 		flex-direction: row;
 		align-items: center;
 		justify-content: center;
@@ -50,6 +54,18 @@
 		transition:
 			background-color 0.15s ease,
 			color 0.15s ease;
+	}
+
+	.option span {
+		min-width: 0;
+		overflow-wrap: anywhere;
+		text-align: center;
+	}
+
+	@media (max-width: 26rem) {
+		.option {
+			font-size: var(--font-size-sm);
+		}
 	}
 
 	.option input {

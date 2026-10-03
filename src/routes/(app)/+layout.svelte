@@ -91,7 +91,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: var(--space-4) var(--space-5);
+		padding: var(--space-4);
+		padding-inline: max(var(--space-5), calc((100% - var(--content-width)) / 2 + var(--space-5)));
 		background: var(--surface);
 		border-bottom: 1px solid var(--border);
 	}
@@ -121,7 +122,7 @@
 	.content {
 		flex: 1;
 		width: 100%;
-		max-width: 560px;
+		max-width: var(--content-width);
 		margin-inline: auto;
 		padding: var(--space-5);
 		padding-bottom: calc(var(--space-8) + 4.5rem + env(safe-area-inset-bottom));
@@ -140,9 +141,8 @@
 		background: var(--surface);
 		border-top: 1px solid var(--border);
 		padding: var(--space-2) 0;
+		padding-inline: max(0px, calc((100% - var(--content-width)) / 2));
 		padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom));
-		max-width: 560px;
-		margin-inline: auto;
 	}
 
 	.nav-item {

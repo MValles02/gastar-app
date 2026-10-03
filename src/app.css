@@ -53,6 +53,8 @@ svg {
 	--radius: 0.75rem;
 	--radius-pill: 999px;
 
+	--content-width: 560px;
+
 	--space-1: 0.25rem;
 	--space-2: 0.5rem;
 	--space-3: 0.75rem;
