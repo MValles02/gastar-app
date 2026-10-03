@@ -4,8 +4,10 @@
 	import { SWATCHES, toSwatchKey } from '$lib/appearance';
 	import Button from '$lib/components/Button.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import DetailHeader from '$lib/components/DetailHeader.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
 	import { formatMoney } from '$lib/money';
 	import type { ActionData, PageData } from './$types';
 
@@ -13,6 +15,7 @@
 
 	const c = $derived(data.category);
 	const colorLabel = $derived(SWATCHES.find((s) => s.key === c.color)?.label ?? c.color);
+	const single = $derived(data.nets.length === 1 ? data.nets[0] : null);
 </script>
 
 <svelte:head>
@@ -20,16 +23,19 @@
 </svelte:head>
 
 <div class="detail">
-	<div class="title">
-		<IconBadge icon="categories" color={toSwatchKey(c.color)} />
-		<div class="grow"><PageHeader title={c.name} /></div>
-	</div>
-
-	<section aria-labelledby="month-label">
-		<h2 id="month-label" class="label">Este mes · {data.monthLabel}</h2>
+	<DetailHeader
+		title={c.name}
+		back={{ href: resolve('/categories'), label: 'Volver a categorías' }}
+		icon="categories"
+		color={toSwatchKey(c.color)}
+		label="Este mes"
+		context={data.monthLabel}
+		value={single ? formatMoney(single.net, single.currency) : undefined}
+		tone={single && single.net < 0 ? 'negative' : undefined}
+	>
 		{#if data.nets.length === 0}
 			<p class="muted">Sin movimientos este mes.</p>
-		{:else}
+		{:else if !single}
 			<dl class="data">
 				{#each data.nets as n (n.currency)}
 					<div class="item">
@@ -39,7 +45,7 @@
 				{/each}
 			</dl>
 		{/if}
-	</section>
+	</DetailHeader>
 
 	<dl class="data">
 		<div class="item">
@@ -89,8 +95,12 @@
 		{/if}
 	</div>
 
-	<a class="back" href={resolve(`/movements?category=${c.id}`)}>Ver movimientos</a>
-	<a class="back" href={resolve('/categories')}>Volver a categorías</a>
+	<div class="link">
+		<ListRow href={resolve(`/movements?category=${c.id}`)}>
+			{#snippet title()}Ver movimientos{/snippet}
+			{#snippet trailing()}<Icon name="chevron-right" />{/snippet}
+		</ListRow>
+	</div>
 </div>
 
 <style>
@@ -100,31 +110,8 @@
 		gap: var(--space-5);
 	}
 
-	.title {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-	}
-
-	.grow {
-		min-width: 0;
-		flex: 1;
-	}
-
-	.grow :global(h1) {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.label,
 	.muted {
 		color: var(--text-muted);
-	}
-
-	.label {
-		font-size: var(--font-size-sm);
-		font-weight: 400;
 	}
 
 	.data {
@@ -172,12 +159,21 @@
 		gap: var(--space-3);
 	}
 
-	.back {
-		display: inline-flex;
-		align-items: center;
-		min-height: 2.75rem;
-		font-weight: 500;
-		color: var(--text);
-		text-decoration: underline;
+	.link {
+		overflow: hidden;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-1);
+	}
+
+	.link :global(.row:last-child) {
+		border-bottom: 0;
+	}
+
+	/* Destructive cue for the confirm trigger (a direct child of .actions; Archivar sits in a form). */
+	.actions > :global(button.secondary) {
+		color: var(--negative);
+		border-color: color-mix(in srgb, var(--negative) 50%, transparent);
 	}
 </style>

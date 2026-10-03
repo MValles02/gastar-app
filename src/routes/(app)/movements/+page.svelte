@@ -158,11 +158,19 @@
 	}
 
 	summary {
-		display: flex;
+		display: inline-flex;
 		align-items: center;
 		min-height: 2.75rem;
+		padding: 0 var(--space-4);
 		font-weight: 500;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-pill);
 		cursor: pointer;
+	}
+
+	details[open] > summary {
+		margin-bottom: var(--space-3);
 	}
 
 	.filters {
@@ -172,7 +180,10 @@
 	}
 
 	h2 {
-		font-size: var(--font-size-base);
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		color: var(--text-muted);
+		padding-inline: var(--space-4);
 		margin-bottom: var(--space-2);
 	}
 

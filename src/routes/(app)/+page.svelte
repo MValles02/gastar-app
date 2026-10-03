@@ -22,6 +22,17 @@
 
 	const percent = new Intl.NumberFormat('es-AR', { style: 'percent' });
 
+	// Same TZ-aware "YYYY-MM" the server uses; the next arrow stops at the current month.
+	// Keep in sync with TZ in $lib/server/month.ts (not importable from client code).
+	const thisMonth = new Intl.DateTimeFormat('en-CA', {
+		timeZone: 'America/Argentina/Buenos_Aires',
+		year: 'numeric',
+		month: '2-digit'
+	})
+		.format(new Date())
+		.slice(0, 7);
+	const atCurrent = $derived(data.month.value >= thisMonth);
+
 	const tone = (n: number) => (n > 0 ? 'positive' : n < 0 ? 'negative' : '');
 </script>
 
@@ -79,9 +90,24 @@
 						<Icon name="chevron-left" />
 					</a>
 					<p class="month-label">{data.month.label}</p>
-					<a class="arrow" href={resolve(`/?month=${data.month.next}`)} aria-label="Mes siguiente">
-						<Icon name="chevron-right" />
-					</a>
+					{#if atCurrent}
+						<span
+							class="arrow disabled"
+							role="link"
+							aria-disabled="true"
+							aria-label="Mes siguiente"
+						>
+							<Icon name="chevron-right" />
+						</span>
+					{:else}
+						<a
+							class="arrow"
+							href={resolve(`/?month=${data.month.next}`)}
+							aria-label="Mes siguiente"
+						>
+							<Icon name="chevron-right" />
+						</a>
+					{/if}
 				</div>
 				<p class="label">Balance del mes</p>
 				<p class="amount net {tone(data.monthNet)}">{formatMoney(data.monthNet, data.currency)}</p>
@@ -196,6 +222,11 @@
 		border-radius: var(--radius-pill);
 		color: var(--text);
 		transition: background-color 0.15s ease;
+	}
+
+	.arrow.disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
 	}
 
 	a.arrow:hover {

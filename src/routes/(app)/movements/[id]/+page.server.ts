@@ -20,6 +20,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			destinationAmount: m.destinationAmount,
 			exchangeRate: m.exchangeRate,
 			accountName: m.accountName,
+			accountIcon: m.accountIcon,
+			accountColor: m.accountColor,
 			accountCurrency: m.accountCurrency,
 			accountArchived: m.accountArchivedAt !== null,
 			destinationName: m.destinationName,

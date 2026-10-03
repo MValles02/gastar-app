@@ -38,13 +38,24 @@
 <style>
 	form {
 		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-		margin-bottom: var(--space-4);
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2) var(--space-3);
 	}
 
 	.search {
 		position: relative;
+		flex: 1 1 100%;
+	}
+
+	/* Full-width children (segmented control, filters disclosure) take their own row. */
+	form > :global(:not(.search, noscript, label)) {
+		flex: 1 1 100%;
+	}
+
+	/* Checkbox shares the row with the other compact control when it fits. */
+	form > :global(label:not(.search)) {
+		flex: 0 0 auto;
 	}
 
 	.icon {
