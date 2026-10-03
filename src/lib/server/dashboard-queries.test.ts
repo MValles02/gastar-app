@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { expect, it } from 'vitest';
 import {
 	accountSummary,
@@ -73,7 +73,7 @@ it('access.ts is the only src file referencing the owner column', () => {
 		}
 	};
 	walk('src');
-	expect(hits.map((h) => h.split('/').pop()).sort()).toEqual(['access.ts', 'schema.ts']);
+	expect(hits.map((h) => basename(h)).sort()).toEqual(['access.ts', 'schema.ts']);
 });
 
 it('categories joins carry the ownership condition', () => {
