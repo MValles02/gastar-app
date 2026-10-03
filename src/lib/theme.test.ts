@@ -4,7 +4,7 @@ import { THEME_COLORS, themeColors } from './theme';
 describe('themeColors', () => {
 	it('forces both metas to the explicit choice', () => {
 		expect(themeColors('light')).toEqual({ light: '#00301c', dark: '#00301c' });
-		expect(themeColors('dark')).toEqual({ light: '#06120c', dark: '#06120c' });
+		expect(themeColors('dark')).toEqual({ light: '#09100d', dark: '#09100d' });
 	});
 
 	it('keeps both colours for system, undefined and invalid values', () => {

@@ -121,7 +121,7 @@
 											: m.accountName}{m.categoryName ? ` · ${m.categoryName}` : ''}
 									</span>
 								</span>
-								<span class="amount row-amount {m.sign === 'neutral' ? '' : m.sign}">
+								<span class="amount row-amount {m.sign === 'neutral' ? 'transfer' : m.sign}">
 									{formatMoney(m.amount, data.currency, {
 										sign: m.sign === 'positive' ? 'always' : 'auto'
 									})}
@@ -219,6 +219,10 @@
 		color: var(--negative);
 	}
 
+	.transfer {
+		color: var(--transfer);
+	}
+
 	h2 {
 		font-size: var(--font-size-base);
 		margin-bottom: var(--space-2);
@@ -298,6 +302,7 @@
 		align-items: center;
 		min-height: 2.75rem;
 		font-weight: 500;
-		color: var(--primary);
+		color: var(--text);
+		text-decoration: underline;
 	}
 </style>

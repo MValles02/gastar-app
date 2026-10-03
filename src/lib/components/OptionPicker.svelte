@@ -158,7 +158,7 @@
 		padding: var(--space-2) var(--space-4);
 		background: var(--surface);
 		color: var(--text);
-		border: 1px solid var(--border);
+		border: 1px solid var(--border-strong);
 		border-radius: var(--radius);
 		font-weight: 400;
 		text-align: left;

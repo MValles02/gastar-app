@@ -47,7 +47,7 @@
 		margin: auto auto 0;
 		padding: 0;
 		overflow-y: auto;
-		background: var(--surface);
+		background: var(--surface-raised);
 		color: var(--text);
 		border: 1px solid var(--border);
 		border-radius: var(--radius) var(--radius) 0 0;

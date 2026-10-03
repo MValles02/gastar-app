@@ -27,7 +27,8 @@
 		align-items: center;
 		justify-content: center;
 		border-radius: var(--radius-pill);
-		background: color-mix(in srgb, var(--tone) 14%, transparent);
+		background: color-mix(in srgb, var(--tone) 22%, transparent);
+		border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent);
 		color: var(--tone);
 	}
 </style>
