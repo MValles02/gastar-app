@@ -38,13 +38,33 @@ docker exec -it <container> node scripts/create-user.js <email> "<name>"
 
 ## Local development
 
-```sh
-docker compose up -d                 # Postgres on 127.0.0.1:5432
-cp .env.example .env                 # then set BETTER_AUTH_SECRET
-pnpm db:migrate
-pnpm db:seed                         # demo data; safe to re-run (resets only the demo user)
-pnpm dev
-```
+Windows quick start (PowerShell).
+
+1. Prerequisites: Docker Desktop (WSL2 backend; run `wsl --install` and reboot if WSL is missing), running; Node and pnpm. A native Postgres 17 also works if `DATABASE_URL` points at a localhost DB with role/db `gastar` (the seed refuses non-localhost URLs).
+2. Install dependencies; the Chromium download is only needed for `pnpm test:e2e`:
+
+   ```powershell
+   pnpm install
+   pnpm exec playwright install chromium
+   ```
+
+3. Create `.env` and set `BETTER_AUTH_SECRET` to the output of this command (works in any shell):
+
+   ```powershell
+   Copy-Item .env.example .env
+   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+   ```
+
+4. Start Postgres, migrate, seed and run:
+
+   ```powershell
+   docker compose up -d     # Postgres on 127.0.0.1:5432
+   pnpm db:migrate
+   pnpm db:seed             # demo data; safe to re-run (resets only the demo user)
+   pnpm dev                 # http://localhost:5173
+   ```
 
 Demo login: `demo@gastar.local` / `demo1234` (override with `SEED_EMAIL` / `SEED_PASSWORD`).
-The seed refuses to run unless `DATABASE_URL` points at localhost.
+The seed refuses to run unless `DATABASE_URL` points at localhost and is safe to re-run.
+
+`pnpm test:e2e` needs the migrated + seeded DB and reuses a running `pnpm dev`.
