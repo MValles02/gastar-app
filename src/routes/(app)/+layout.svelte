@@ -14,6 +14,7 @@
 
 	let selected = $derived(data.currency as string);
 	let currencyForm: HTMLFormElement;
+	let currencyError = $state('');
 
 	const currencyOptions = [
 		{ value: 'ARS', label: 'ARS' },
@@ -58,8 +59,12 @@
 				class="currency-form"
 				bind:this={currencyForm}
 				use:enhance={() => {
+					currencyError = '';
 					return async ({ result, update }) => {
-						if (result.type === 'redirect') {
+						if (result.type === 'failure') {
+							// update() only applies the result on the action's own route, so keep it locally.
+							currencyError = (result.data?.currencyError as string | undefined) ?? '';
+						} else if (result.type === 'redirect') {
 							// eslint-disable-next-line svelte/no-navigation-without-resolve -- server-validated same-origin redirect location
 							await goto(result.location, { invalidateAll: true, keepFocus: true, noScroll: true });
 							document.querySelector<HTMLInputElement>('input[name="currency"]:checked')?.focus();
@@ -80,8 +85,8 @@
 					onchange={() => currencyForm.requestSubmit()}
 				/>
 				<noscript><Button type="submit" variant="secondary">Guardar</Button></noscript>
-				{#if page.form?.error}
-					<p class="currency-error" role="alert">{page.form.error}</p>
+				{#if currencyError}
+					<p class="currency-error" role="alert">{currencyError}</p>
 				{/if}
 			</form>
 			<a
@@ -173,6 +178,11 @@
 		grid-area: control;
 		justify-self: end;
 		min-width: 0;
+	}
+
+	/* No-JS fallback button: own full-width row below the bar. */
+	.currency-form > :global(noscript) {
+		grid-column: 1 / -1;
 	}
 
 	.currency-error {

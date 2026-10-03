@@ -11,7 +11,7 @@ export const actions: Actions = {
 		const value = data.get('currency');
 
 		if (typeof value !== 'string' || !(CURRENCY_PREFS as readonly string[]).includes(value)) {
-			return fail(400, { error: 'Moneda inválida.' });
+			return fail(400, { currencyError: 'Moneda inválida.' });
 		}
 
 		cookies.set('currency', value, {

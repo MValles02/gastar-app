@@ -98,6 +98,26 @@ test('an account filter on /movements wins over the USD selection', async ({ pag
 	await expect(page.getByText('No hay movimientos')).toHaveCount(0);
 });
 
+test('a failed currency submission shows one alert in the header and clears on success', async ({
+	page
+}) => {
+	await login(page);
+	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	await page.getByRole('radio', { name: 'USD' }).evaluate((el) => {
+		const input = el as HTMLInputElement;
+		input.value = 'invalid';
+		input.checked = true;
+		input.form!.requestSubmit();
+	});
+	const alert = page.locator('header').getByRole('alert');
+	await expect(alert).toHaveText('Moneda inválida.');
+	await expect(page.getByRole('alert')).toHaveCount(1);
+	await expect(page).toHaveURL(/\/accounts$/);
+
+	await choose(page, 'ARS');
+	await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
 test('the old currency filters are gone from /accounts and /movements', async ({ page }) => {
 	await login(page);
 	for (const path of ['/accounts', '/movements']) {

@@ -90,13 +90,13 @@
 	.compact .option {
 		flex: 1 0 auto;
 		white-space: nowrap;
-		min-height: 2.25rem;
+		min-height: calc(2.75rem - 2 * var(--space-1));
 		padding-inline: var(--space-2);
 		font-size: var(--font-size-sm);
 	}
 
 	.compact .option input {
-		inset: -0.25rem -2px;
+		inset: calc(-1 * var(--space-1)) -2px;
 		width: auto;
 		height: auto;
 	}
