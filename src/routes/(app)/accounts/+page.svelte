@@ -8,20 +8,12 @@
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { formatMoney } from '$lib/money';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
-	let currency = $derived<string>(data.filters.currency);
 	let archived = $derived(data.filters.archived);
-
-	const options = [
-		{ value: '', label: 'Todas' },
-		{ value: 'ARS', label: 'ARS' },
-		{ value: 'USD', label: 'USD' }
-	];
 </script>
 
 <svelte:head>
@@ -37,14 +29,17 @@
 <div class="page">
 	{#if !data.hasAnyAccount}
 		<EmptyState icon="accounts">
-			Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos.
+			{#if data.currency === 'both'}
+				Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos.
+			{:else}
+				No tenés cuentas en {data.currency}.
+			{/if}
 		</EmptyState>
 		<div class="empty-action">
 			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 		</div>
 	{:else}
 		<FilterBar q={data.filters.q} label="Buscar cuentas" placeholder="Buscar cuentas">
-			<SegmentedControl name="currency" {options} bind:value={currency} />
 			<Checkbox name="archived" value="1" label="Mostrar archivadas" bind:checked={archived} />
 		</FilterBar>
 

@@ -217,7 +217,6 @@ it('parseMovementFilters normalises input', () => {
 		type: 'x',
 		account: 'z',
 		category: 'z',
-		currency: 'EUR',
 		page: '0'
 	});
 	expect(bad.activeCount).toBe(0);
@@ -234,5 +233,5 @@ it('parseMovementFilters normalises input', () => {
 	expect(swapped.query).toMatchObject({ from: '2026-10-01', to: '2026-10-31', q: 'café' });
 	expect(swapped.values.type).toBe('income');
 	expect(swapped.activeCount).toBe(4);
-	expect(f({ account: A, category: C, currency: 'USD', page: '4' }).activeCount).toBe(3);
+	expect(f({ account: A, category: C, currency: 'USD', page: '4' }).activeCount).toBe(2);
 });

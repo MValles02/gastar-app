@@ -1,23 +1,13 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/Button.svelte';
 	import Card from '$lib/components/Card.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { formatMoney } from '$lib/money';
-	import type { ActionData, PageData } from './$types';
+	import type { PageData } from './$types';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
-
-	let selected = $derived<string>(data.currency);
-	let currencyForm: HTMLFormElement;
-
-	const currencyOptions = [
-		{ value: 'ARS', label: 'ARS' },
-		{ value: 'USD', label: 'USD' }
-	];
+	let { data }: { data: PageData } = $props();
 
 	const percent = new Intl.NumberFormat('es-AR', { style: 'percent' });
 
@@ -31,29 +21,6 @@
 <h1 class="visually-hidden">Inicio</h1>
 
 <div class="dashboard">
-	<form
-		method="post"
-		action="?/currency"
-		bind:this={currencyForm}
-		use:enhance={() => {
-			return async ({ update }) => {
-				await update({ reset: false });
-				currencyForm.querySelector<HTMLInputElement>('input:checked')?.focus();
-			};
-		}}
-	>
-		<SegmentedControl
-			name="currency"
-			options={currencyOptions}
-			bind:value={selected}
-			onchange={() => currencyForm.requestSubmit()}
-		/>
-		<noscript><Button type="submit" variant="secondary">Guardar</Button></noscript>
-		{#if form?.error}
-			<p class="error" role="alert">{form.error}</p>
-		{/if}
-	</form>
-
 	{#if !data.hasAnyAccount}
 		<EmptyState icon="accounts">
 			Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos.
@@ -61,47 +28,56 @@
 		<div class="empty-action">
 			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 		</div>
-	{:else if !data.hasCurrencyAccount}
-		<EmptyState icon="accounts">No tenés cuentas en {data.currency}.</EmptyState>
+	{:else if data.blocks.length === 0}
+		<EmptyState icon="accounts">No tenés cuentas en {data.pref}.</EmptyState>
+		<div class="empty-action">
+			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
+		</div>
 	{:else}
-		<section aria-labelledby="balance-label">
-			<Card>
-				<p id="balance-label" class="label">Saldo total</p>
-				<p class="amount hero-amount">{formatMoney(data.totalBalance, data.currency)}</p>
-				<div class="month">
-					<p class="label">
-						<span class="visually-hidden">Balance del mes: </span>{data.month.label}
-					</p>
-					<p class="amount net {tone(data.monthNet)}">
-						{formatMoney(data.monthNet, data.currency)}
-					</p>
-				</div>
-			</Card>
-		</section>
-
-		<section aria-labelledby="categories-heading">
-			<h2 id="categories-heading">Principales categorías</h2>
-			{#if data.topCategories.length === 0}
-				<p class="muted">Sin gastos este mes</p>
-			{:else}
+		{#each data.blocks as b (b.currency)}
+			<section aria-labelledby="balance-{b.currency}">
 				<Card>
-					<ul class="list">
-						{#each data.topCategories as cat (cat.id)}
-							<li class="cat">
-								<div class="cat-row">
-									<span class="ellipsis">{cat.name}</span>
-									<span class="amount">{formatMoney(cat.net, data.currency)}</span>
-									<span class="amount muted pct">{percent.format(cat.share)}</span>
-								</div>
-								<div class="track">
-									<div class="fill" style:width={`${cat.share * 100}%`}></div>
-								</div>
-							</li>
-						{/each}
-					</ul>
+					<p id="balance-{b.currency}" class="label">
+						Saldo total{data.pref === 'both' ? ` ${b.currency}` : ''}
+					</p>
+					<p class="amount hero-amount">{formatMoney(b.balance, b.currency)}</p>
+					<div class="month">
+						<p class="label">
+							<span class="visually-hidden">Balance del mes: </span>{data.month.label}
+						</p>
+						<p class="amount net {tone(b.monthNet)}">
+							{formatMoney(b.monthNet, b.currency)}
+						</p>
+					</div>
 				</Card>
-			{/if}
-		</section>
+			</section>
+
+			<section aria-labelledby="categories-{b.currency}">
+				<h2 id="categories-{b.currency}">
+					Principales categorías{data.pref === 'both' ? ` ${b.currency}` : ''}
+				</h2>
+				{#if b.topCategories.length === 0}
+					<p class="muted">Sin gastos este mes</p>
+				{:else}
+					<Card>
+						<ul class="list">
+							{#each b.topCategories as cat (cat.id)}
+								<li class="cat">
+									<div class="cat-row">
+										<span class="ellipsis">{cat.name}</span>
+										<span class="amount">{formatMoney(cat.net, b.currency)}</span>
+										<span class="amount muted pct">{percent.format(cat.share)}</span>
+									</div>
+									<div class="track">
+										<div class="fill" style:width={`${cat.share * 100}%`}></div>
+									</div>
+								</li>
+							{/each}
+						</ul>
+					</Card>
+				{/if}
+			</section>
+		{/each}
 
 		<section aria-labelledby="recent-heading">
 			<h2 id="recent-heading">Últimos movimientos</h2>
@@ -120,7 +96,7 @@
 								{/snippet}
 								{#snippet trailing()}
 									<span class="amount row-amount {m.sign === 'neutral' ? 'transfer' : m.sign}">
-										{formatMoney(m.amount, data.currency, {
+										{formatMoney(m.amount, m.currency, {
 											sign: m.sign === 'positive' ? 'always' : 'auto'
 										})}
 									</span>
@@ -129,7 +105,7 @@
 						</li>
 					{/each}
 				</ul>
-				<a class="all" href={resolve(`/movements?currency=${data.currency}`)}>Ver todos</a>
+				<a class="all" href={resolve('/movements')}>Ver todos</a>
 			{/if}
 		</section>
 	{/if}
@@ -156,10 +132,6 @@
 		font-size: var(--font-size-sm);
 	}
 
-	.small {
-		font-size: var(--font-size-sm);
-	}
-
 	.hero-amount {
 		font-size: clamp(1.5rem, 9vw, var(--font-size-hero));
 		font-weight: 600;
@@ -177,11 +149,6 @@
 		margin-top: var(--space-2);
 		padding-top: var(--space-2);
 		border-top: 1px solid var(--border);
-	}
-
-	.error {
-		color: var(--negative);
-		font-size: var(--font-size-sm);
 	}
 
 	.net {

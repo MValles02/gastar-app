@@ -14,18 +14,12 @@
 
 	let { data }: { data: PageData } = $props();
 
-	let currency = $derived<string>(data.filters.currency);
 	let type = $derived<string>(data.filters.type);
 	let account = $derived<string>(data.filters.account);
 	let category = $derived<string>(data.filters.category);
 	let from = $derived<string>(data.filters.from);
 	let to = $derived<string>(data.filters.to);
 
-	const currencyOptions = [
-		{ value: '', label: 'Todas' },
-		{ value: 'ARS', label: 'ARS' },
-		{ value: 'USD', label: 'USD' }
-	];
 	const typeOptions = [
 		{ value: '', label: 'Todos' },
 		{ value: 'income', label: 'Ingresos' },
@@ -63,7 +57,6 @@
 		<details open={data.activeCount > 0}>
 			<summary>Filtros ({data.activeCount})</summary>
 			<div class="filters">
-				<SegmentedControl name="currency" options={currencyOptions} bind:value={currency} />
 				<SegmentedControl name="type" options={typeOptions} bind:value={type} />
 				<OptionPicker
 					name="account"

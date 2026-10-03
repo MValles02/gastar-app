@@ -41,7 +41,7 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ## Layout
 
-- Top bar: app name (left), profile button (right).
+- Top bar: app name (left), profile button (right), and a global currency control `ARS | USD | Ambas` that replaces the dashboard toggle and all per-screen currency filters. The choice is stored in the `currency` cookie (default Ambas). Amounts are never converted or summed across currencies.
 - Bottom nav (MVP): Dashboard | Accounts | Create movement (center "+") | Movements | Categories.
 - Future nav change: "Reports" replaces Categories in the bottom nav; Categories moves into the Profile menu. Reports are **not** in MVP.
 - Profile page (MVP): theme toggle (light / dark / system) + logout.
@@ -62,17 +62,17 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ### Dashboard
 
-- ARS/USD toggle. Currencies are never converted or summed together.
-- For the selected currency:
+- Follows the global currency control (see Layout). Currencies are never converted or summed together.
+- For each shown currency (ARS or USD; with Ambas, one block per currency, ARS then USD, omitting currencies without accounts):
   - Total balance: all accounts of that currency, **including archived**.
   - Month balance: incomes − outcomes (transfers excluded).
   - The dashboard always shows the current month; there is no month navigation.
   - Top 3 categories by net outcome, each with amount and %.
-  - Last 10 movements, filtered by selected currency.
+- Last 10 movements, filtered by the selected currency; with Ambas, merged, each amount in its own currency.
 
 ### Accounts
 
-- List with search + filters on top: currency, show archived (archived hidden by default).
+- List with search + filter on top: show archived (archived hidden by default). Currency follows the global control; with Ambas, accounts of both currencies are listed.
 - Each row: icon, color, name, currency, computed balance.
 - Tap → detail page with Edit / Delete.
 
@@ -90,7 +90,7 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ### Movements
 
-- List with search (description) + filters: date range, type, account, category, currency.
+- List with search (description) + filters: date range, type, account, category. Currency follows the global control (Ambas = merged list, each amount in its own currency); when an `?account=` filter is set, that account's own currency wins.
 - Tap → detail page with Edit / Delete.
 
 ### Categories

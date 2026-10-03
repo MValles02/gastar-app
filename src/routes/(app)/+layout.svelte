@@ -1,10 +1,25 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
+	import Button from '$lib/components/Button.svelte';
+	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import type { LayoutData } from './$types';
 	import Icon from '$lib/components/Icon.svelte';
 	import Wordmark from '$lib/components/Wordmark.svelte';
 
-	let { children } = $props();
+	let { data, children }: { data: LayoutData; children: Snippet } = $props();
+
+	let selected = $derived(data.currency as string);
+	let currencyForm: HTMLFormElement;
+
+	const currencyOptions = [
+		{ value: 'ARS', label: 'ARS' },
+		{ value: 'USD', label: 'USD' },
+		{ value: 'both', label: 'Ambas' }
+	];
 
 	const navItems = [
 		{ href: resolve('/'), path: '/', label: 'Inicio', icon: 'home' as const },
@@ -35,15 +50,49 @@
 
 <div class="shell">
 	<header class="topbar">
-		<Wordmark />
-		<a
-			href={profileHref}
-			class="profile-link"
-			aria-label="Perfil"
-			aria-current={isActive('/profile') ? 'page' : undefined}
-		>
-			<Icon name="profile" />
-		</a>
+		<div class="topbar-grid">
+			<Wordmark />
+			<form
+				method="POST"
+				action="/currency"
+				class="currency-form"
+				bind:this={currencyForm}
+				use:enhance={() => {
+					return async ({ result, update }) => {
+						if (result.type === 'redirect') {
+							// eslint-disable-next-line svelte/no-navigation-without-resolve -- server-validated same-origin redirect location
+							await goto(result.location, { invalidateAll: true, keepFocus: true, noScroll: true });
+							document.querySelector<HTMLInputElement>('input[name="currency"]:checked')?.focus();
+						} else {
+							await update({ reset: false });
+						}
+					};
+				}}
+			>
+				<input type="hidden" name="redirectTo" value={page.url.pathname + page.url.search} />
+				<span id="currency-label" class="visually-hidden">Moneda</span>
+				<SegmentedControl
+					name="currency"
+					options={currencyOptions}
+					bind:value={selected}
+					labelledby="currency-label"
+					size="compact"
+					onchange={() => currencyForm.requestSubmit()}
+				/>
+				<noscript><Button type="submit" variant="secondary">Guardar</Button></noscript>
+				{#if page.form?.error}
+					<p class="currency-error" role="alert">{page.form.error}</p>
+				{/if}
+			</form>
+			<a
+				href={profileHref}
+				class="profile-link"
+				aria-label="Perfil"
+				aria-current={isActive('/profile') ? 'page' : undefined}
+			>
+				<Icon name="profile" />
+			</a>
+		</div>
 	</header>
 
 	<main class="content">
@@ -88,16 +137,91 @@
 		position: sticky;
 		top: 0;
 		z-index: 10;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
+		container-type: inline-size;
 		padding: var(--space-4);
 		padding-inline: max(var(--space-5), calc((100% - var(--content-width)) / 2 + var(--space-5)));
 		background: var(--surface);
 		border-bottom: 1px solid var(--border);
 	}
 
+	@media (max-width: 30rem) {
+		.topbar {
+			padding-inline: var(--space-4);
+		}
+	}
+
+	.topbar-grid {
+		display: grid;
+		grid-template-columns: auto 1fr auto;
+		grid-template-areas:
+			'brand control profile'
+			'error error error';
+		align-items: center;
+		column-gap: var(--space-2);
+	}
+
+	.topbar-grid > :global(.wordmark) {
+		grid-area: brand;
+	}
+
+	/* Contents so the track and the error become grid items of the topbar. */
+	.currency-form {
+		display: contents;
+	}
+
+	.currency-form > :global(.track) {
+		grid-area: control;
+		justify-self: end;
+		min-width: 0;
+	}
+
+	.currency-error {
+		grid-area: error;
+		margin: var(--space-2) 0 0;
+		font-size: var(--font-size-sm);
+		color: var(--negative);
+	}
+
+	/* Not enough room for one row (also at large text: everything is rem-sized). */
+	@container (max-width: 20rem) {
+		.topbar-grid {
+			grid-template-columns: 1fr auto;
+			grid-template-areas:
+				'brand profile'
+				'control control'
+				'error error';
+			row-gap: var(--space-2);
+		}
+
+		.currency-form > :global(.track) {
+			justify-self: stretch;
+		}
+
+		.currency-form > :global(.track .option) {
+			flex: 1 1 0;
+			white-space: normal;
+		}
+	}
+
+	/* Wordmark + profile no longer fit side by side: stack them. */
+	@container (max-width: 9rem) {
+		.topbar-grid {
+			grid-template-columns: 1fr;
+			grid-template-areas:
+				'brand'
+				'profile'
+				'control'
+				'error';
+			justify-items: start;
+		}
+
+		.currency-form > :global(.track) {
+			justify-self: stretch;
+		}
+	}
+
 	.profile-link {
+		grid-area: profile;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
