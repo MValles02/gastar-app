@@ -54,7 +54,7 @@
 				<a class="clear" href={resolve('/accounts')}>Limpiar filtros</a>
 			</div>
 		{:else}
-			<ul class="list">
+			<ul class="list-card">
 				{#each data.accounts as a (a.id)}
 					<li>
 						<ListRow href={resolve(`/accounts/${a.id}`)}>
@@ -81,11 +81,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
-	}
-
-	.list {
-		list-style: none;
-		padding: 0;
 	}
 
 	.empty-action {

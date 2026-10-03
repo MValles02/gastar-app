@@ -2,8 +2,10 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/Button.svelte';
+	import Card from '$lib/components/Card.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { formatMoney } from '$lib/money';
 	import type { ActionData, PageData } from './$types';
@@ -63,23 +65,27 @@
 	{:else if !data.hasCurrencyAccount}
 		<EmptyState icon="accounts">No tenés cuentas en {data.currency}.</EmptyState>
 	{:else}
-		<section class="hero" aria-labelledby="balance-label">
-			<p id="balance-label" class="label">Saldo total</p>
-			<p class="amount hero-amount">{formatMoney(data.totalBalance, data.currency)}</p>
+		<section aria-labelledby="balance-label">
+			<Card>
+				<p id="balance-label" class="label">Saldo total</p>
+				<p class="amount hero-amount">{formatMoney(data.totalBalance, data.currency)}</p>
+			</Card>
 		</section>
 
-		<section class="month">
-			<div class="nav">
-				<a class="arrow" href={resolve(`/?month=${data.month.prev}`)} aria-label="Mes anterior">
-					<Icon name="chevron-left" />
-				</a>
-				<p class="month-label">{data.month.label}</p>
-				<a class="arrow" href={resolve(`/?month=${data.month.next}`)} aria-label="Mes siguiente">
-					<Icon name="chevron-right" />
-				</a>
-			</div>
-			<p class="label">Balance del mes</p>
-			<p class="amount net {tone(data.monthNet)}">{formatMoney(data.monthNet, data.currency)}</p>
+		<section aria-label="Resumen del mes">
+			<Card>
+				<div class="nav">
+					<a class="arrow" href={resolve(`/?month=${data.month.prev}`)} aria-label="Mes anterior">
+						<Icon name="chevron-left" />
+					</a>
+					<p class="month-label">{data.month.label}</p>
+					<a class="arrow" href={resolve(`/?month=${data.month.next}`)} aria-label="Mes siguiente">
+						<Icon name="chevron-right" />
+					</a>
+				</div>
+				<p class="label">Balance del mes</p>
+				<p class="amount net {tone(data.monthNet)}">{formatMoney(data.monthNet, data.currency)}</p>
+			</Card>
 		</section>
 
 		<section aria-labelledby="categories-heading">
@@ -87,20 +93,22 @@
 			{#if data.topCategories.length === 0}
 				<p class="muted">Sin gastos este mes</p>
 			{:else}
-				<ul class="list">
-					{#each data.topCategories as cat (cat.id)}
-						<li class="cat">
-							<div class="cat-row">
-								<span class="ellipsis">{cat.name}</span>
-								<span class="amount">{formatMoney(cat.net, data.currency)}</span>
-								<span class="amount muted pct">{percent.format(cat.share)}</span>
-							</div>
-							<div class="track">
-								<div class="fill" style:width={`${cat.share * 100}%`}></div>
-							</div>
-						</li>
-					{/each}
-				</ul>
+				<Card>
+					<ul class="list">
+						{#each data.topCategories as cat (cat.id)}
+							<li class="cat">
+								<div class="cat-row">
+									<span class="ellipsis">{cat.name}</span>
+									<span class="amount">{formatMoney(cat.net, data.currency)}</span>
+									<span class="amount muted pct">{percent.format(cat.share)}</span>
+								</div>
+								<div class="track">
+									<div class="fill" style:width={`${cat.share * 100}%`}></div>
+								</div>
+							</li>
+						{/each}
+					</ul>
+				</Card>
 			{/if}
 		</section>
 
@@ -109,24 +117,24 @@
 			{#if data.recent.length === 0}
 				<p class="muted">Sin movimientos</p>
 			{:else}
-				<ul class="list">
+				<ul class="list-card">
 					{#each data.recent as m (m.id)}
 						<li>
-							<a class="row" href={resolve(`/movements/${m.id}`)}>
-								<span class="row-main">
-									<span class="ellipsis">{m.description}</span>
-									<span class="muted small ellipsis">
-										{m.dateLabel} · {m.type === 'transfer'
-											? `${m.accountName} → ${m.destinationAccountName}`
-											: m.accountName}{m.categoryName ? ` · ${m.categoryName}` : ''}
+							<ListRow href={resolve(`/movements/${m.id}`)}>
+								{#snippet title()}{m.description}{/snippet}
+								{#snippet subtitle()}
+									{m.dateLabel} · {m.type === 'transfer'
+										? `${m.accountName} → ${m.destinationAccountName}`
+										: m.accountName}{m.categoryName ? ` · ${m.categoryName}` : ''}
+								{/snippet}
+								{#snippet trailing()}
+									<span class="amount row-amount {m.sign === 'neutral' ? 'transfer' : m.sign}">
+										{formatMoney(m.amount, data.currency, {
+											sign: m.sign === 'positive' ? 'always' : 'auto'
+										})}
 									</span>
-								</span>
-								<span class="amount row-amount {m.sign === 'neutral' ? 'transfer' : m.sign}">
-									{formatMoney(m.amount, data.currency, {
-										sign: m.sign === 'positive' ? 'always' : 'auto'
-									})}
-								</span>
-							</a>
+								{/snippet}
+							</ListRow>
 						</li>
 					{/each}
 				</ul>
@@ -163,15 +171,9 @@
 
 	.hero-amount {
 		font-size: clamp(1.5rem, 9vw, var(--font-size-hero));
-		font-weight: 500;
+		font-weight: 600;
 		line-height: 1.2;
 		white-space: nowrap;
-	}
-
-	.month {
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		padding: var(--space-3) var(--space-4) var(--space-4);
 	}
 
 	.nav {
@@ -206,8 +208,9 @@
 	}
 
 	.net {
-		font-size: var(--font-size-lg);
-		font-weight: 500;
+		font-size: var(--font-size-xl);
+		font-weight: 600;
+		line-height: 1.2;
 		white-space: nowrap;
 	}
 
@@ -224,7 +227,8 @@
 	}
 
 	h2 {
-		font-size: var(--font-size-base);
+		font-size: var(--font-size-lg);
+		font-weight: 600;
 		margin-bottom: var(--space-2);
 	}
 
@@ -242,6 +246,14 @@
 
 	.cat {
 		padding: var(--space-2) 0;
+	}
+
+	.cat:first-child {
+		padding-top: 0;
+	}
+
+	.cat:last-child {
+		padding-bottom: 0;
 	}
 
 	.cat-row {
@@ -266,30 +278,15 @@
 	}
 
 	.track {
-		height: 2px;
+		height: 0.5rem;
+		border-radius: var(--radius-pill);
+		overflow: hidden;
 		background: var(--border);
 	}
 
 	.fill {
 		height: 100%;
-		background: color-mix(in srgb, var(--primary) 60%, transparent);
-	}
-
-	.row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-		min-height: 2.75rem;
-		padding: var(--space-2) 0;
-		border-bottom: 1px solid var(--border);
-		text-decoration: none;
-	}
-
-	.row-main {
-		display: flex;
-		flex-direction: column;
-		min-width: 0;
+		background: color-mix(in srgb, var(--primary) 70%, transparent);
 	}
 
 	.row-amount {
@@ -298,6 +295,7 @@
 	}
 
 	.all {
+		margin-top: var(--space-2);
 		display: inline-flex;
 		align-items: center;
 		min-height: 2.75rem;

@@ -88,16 +88,22 @@
 	</div>
 
 	<Field label="Monto" error={errors.amount} errorId="amount-error">
-		<input
-			name="amount"
-			type="text"
-			inputmode="decimal"
-			placeholder="0,00"
-			autocomplete="off"
-			bind:value={amount}
-			aria-invalid={errors.amount ? 'true' : undefined}
-			aria-describedby={errors.amount ? 'amount-error' : undefined}
-		/>
+		<span class="amount-wrap">
+			{#if originCurrency}<span class="currency">{originCurrency}</span>{/if}
+			<!-- svelte-ignore a11y_autofocus -->
+			<input
+				class="amount-input"
+				name="amount"
+				type="text"
+				inputmode="decimal"
+				placeholder="0,00"
+				autocomplete="off"
+				autofocus
+				bind:value={amount}
+				aria-invalid={errors.amount ? 'true' : undefined}
+				aria-describedby={errors.amount ? 'amount-error' : undefined}
+			/>
+		</span>
 	</Field>
 
 	<Field label="Descripción" error={errors.description} errorId="description-error">
@@ -219,6 +225,27 @@
 
 	.label {
 		font-size: var(--font-size-sm);
+	}
+
+	.amount-wrap {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+	}
+
+	.currency {
+		font-size: var(--font-size-lg);
+		font-weight: 600;
+		color: var(--text-muted);
+	}
+
+	.amount-wrap .amount-input {
+		flex: 1;
+		min-width: 0;
+		min-height: 4rem;
+		font-size: var(--font-size-xl);
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.hint {

@@ -14,6 +14,7 @@
 		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
+		box-shadow: var(--shadow-1);
 		padding: var(--space-6) var(--space-5);
 	}
 </style>
