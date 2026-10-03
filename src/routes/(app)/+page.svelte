@@ -22,16 +22,7 @@
 
 	const percent = new Intl.NumberFormat('es-AR', { style: 'percent' });
 
-	// Same TZ-aware "YYYY-MM" the server uses; the next arrow stops at the current month.
-	// Keep in sync with TZ in $lib/server/month.ts (not importable from client code).
-	const thisMonth = new Intl.DateTimeFormat('en-CA', {
-		timeZone: 'America/Argentina/Buenos_Aires',
-		year: 'numeric',
-		month: '2-digit'
-	})
-		.format(new Date())
-		.slice(0, 7);
-	const atCurrent = $derived(data.month.value >= thisMonth);
+	const atCurrent = $derived(data.month.isCurrent);
 
 	const tone = (n: number) => (n > 0 ? 'positive' : n < 0 ? 'negative' : '');
 </script>
@@ -199,7 +190,8 @@
 		font-size: clamp(1.5rem, 9vw, var(--font-size-hero));
 		font-weight: 600;
 		line-height: 1.2;
-		white-space: nowrap;
+		white-space: normal;
+		overflow-wrap: anywhere;
 	}
 
 	.nav {
@@ -242,7 +234,8 @@
 		font-size: var(--font-size-xl);
 		font-weight: 600;
 		line-height: 1.2;
-		white-space: nowrap;
+		white-space: normal;
+		overflow-wrap: anywhere;
 	}
 
 	.positive {
@@ -299,7 +292,8 @@
 	}
 
 	.cat-row .amount {
-		white-space: nowrap;
+		white-space: normal;
+		overflow-wrap: anywhere;
 	}
 
 	.pct {

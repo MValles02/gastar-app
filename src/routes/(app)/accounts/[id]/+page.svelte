@@ -70,6 +70,7 @@
 		{#if data.actions.canDelete}
 			<ConfirmDialog
 				triggerLabel="Eliminar"
+				triggerVariant="danger"
 				title="¿Eliminar esta cuenta?"
 				confirmLabel="Eliminar"
 				action="?/delete"
@@ -116,6 +117,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		flex-wrap: wrap;
 		gap: var(--space-3);
 		min-height: 2.75rem;
 		padding: var(--space-2) 0;
@@ -163,11 +165,5 @@
 
 	.link :global(.row:last-child) {
 		border-bottom: 0;
-	}
-
-	/* Destructive cue for the confirm trigger (a direct child of .actions; Archivar sits in a form). */
-	.actions > :global(button.secondary) {
-		color: var(--negative);
-		border-color: color-mix(in srgb, var(--negative) 50%, transparent);
 	}
 </style>

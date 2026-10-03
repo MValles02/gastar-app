@@ -55,7 +55,8 @@
 
 	/* Checkbox shares the row with the other compact control when it fits. */
 	form > :global(label:not(.search)) {
-		flex: 0 0 auto;
+		flex: 0 1 auto;
+		min-width: 0;
 	}
 
 	.icon {

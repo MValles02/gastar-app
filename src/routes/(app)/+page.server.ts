@@ -9,7 +9,14 @@ import {
 	transfersInSum
 } from '$lib/server/dashboard-queries';
 import { monthNet, toRecentItem, topCategories, totalBalance } from '$lib/server/dashboard';
-import { dateLabel, monthLabel, monthRange, parseMonth, shiftMonth } from '$lib/server/month';
+import {
+	currentMonth,
+	dateLabel,
+	monthLabel,
+	monthRange,
+	parseMonth,
+	shiftMonth
+} from '$lib/server/month';
 
 const isCurrency = (v: unknown): v is 'ARS' | 'USD' => v === 'ARS' || v === 'USD';
 
@@ -41,7 +48,8 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 			value,
 			label: monthLabel(value),
 			prev: shiftMonth(value, -1),
-			next: shiftMonth(value, 1)
+			next: shiftMonth(value, 1),
+			isCurrent: value >= currentMonth(now)
 		},
 		monthNet: monthNet(monthSums),
 		topCategories: topCategories(cats),

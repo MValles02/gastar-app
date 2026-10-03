@@ -66,6 +66,7 @@
 	}
 
 	h1 {
+		overflow-wrap: anywhere;
 		font-size: var(--font-size-xl);
 		font-weight: 500;
 		line-height: 1.2;

@@ -66,7 +66,8 @@
 		font-size: clamp(1.5rem, 9vw, var(--font-size-hero));
 		font-weight: 600;
 		line-height: 1.2;
-		white-space: nowrap;
+		white-space: normal;
+		overflow-wrap: anywhere;
 	}
 
 	.positive {

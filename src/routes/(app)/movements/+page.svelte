@@ -212,7 +212,8 @@
 	}
 
 	.amount {
-		white-space: nowrap;
+		white-space: normal;
+		overflow-wrap: anywhere;
 		font-weight: 500;
 	}
 

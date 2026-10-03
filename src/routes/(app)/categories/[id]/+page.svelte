@@ -28,13 +28,13 @@
 		back={{ href: resolve('/categories'), label: 'Volver a categorías' }}
 		icon="categories"
 		color={toSwatchKey(c.color)}
-		label="Este mes"
-		context={data.monthLabel}
+		label={data.month.isCurrent ? 'Este mes' : 'Balance del mes'}
+		context={data.month.label}
 		value={single ? formatMoney(single.net, single.currency) : undefined}
 		tone={single && single.net < 0 ? 'negative' : undefined}
 	>
 		{#if data.nets.length === 0}
-			<p class="muted">Sin movimientos este mes.</p>
+			<p class="muted">Sin movimientos en este mes.</p>
 		{:else if !single}
 			<dl class="data">
 				{#each data.nets as n (n.currency)}
@@ -46,6 +46,30 @@
 			</dl>
 		{/if}
 	</DetailHeader>
+
+	<nav class="nav" aria-label="Mes">
+		<a
+			class="arrow"
+			href={resolve(`/categories/${c.id}?month=${data.month.prev}`)}
+			aria-label="Mes anterior"
+		>
+			<Icon name="chevron-left" />
+		</a>
+		<p class="month-label">{data.month.label}</p>
+		{#if data.month.isCurrent}
+			<span class="arrow disabled" role="link" aria-disabled="true" aria-label="Mes siguiente">
+				<Icon name="chevron-right" />
+			</span>
+		{:else}
+			<a
+				class="arrow"
+				href={resolve(`/categories/${c.id}?month=${data.month.next}`)}
+				aria-label="Mes siguiente"
+			>
+				<Icon name="chevron-right" />
+			</a>
+		{/if}
+	</nav>
 
 	<dl class="data">
 		<div class="item">
@@ -76,6 +100,7 @@
 		{#if data.actions.canDelete}
 			<ConfirmDialog
 				triggerLabel="Eliminar"
+				triggerVariant="danger"
 				title="¿Eliminar esta categoría?"
 				confirmLabel="Eliminar"
 				action="?/delete"
@@ -110,6 +135,36 @@
 		gap: var(--space-5);
 	}
 
+	.nav {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.month-label {
+		font-weight: 500;
+	}
+
+	.arrow {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.75rem;
+		height: 2.75rem;
+		border-radius: var(--radius-pill);
+		color: var(--text);
+		transition: background-color 0.15s ease;
+	}
+
+	.arrow.disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	a.arrow:hover {
+		background: color-mix(in srgb, var(--primary) 8%, transparent);
+	}
+
 	.muted {
 		color: var(--text-muted);
 	}
@@ -135,6 +190,7 @@
 	dd {
 		margin: 0;
 		min-width: 0;
+		overflow-wrap: anywhere;
 		text-align: right;
 	}
 
@@ -169,11 +225,5 @@
 
 	.link :global(.row:last-child) {
 		border-bottom: 0;
-	}
-
-	/* Destructive cue for the confirm trigger (a direct child of .actions; Archivar sits in a form). */
-	.actions > :global(button.secondary) {
-		color: var(--negative);
-		border-color: color-mix(in srgb, var(--negative) 50%, transparent);
 	}
 </style>

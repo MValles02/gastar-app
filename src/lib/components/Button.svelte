@@ -3,7 +3,7 @@
 	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements';
 
 	type Props = {
-		variant?: 'primary' | 'secondary';
+		variant?: 'primary' | 'secondary' | 'danger';
 		block?: boolean;
 		href?: string;
 		children: Snippet;
@@ -30,6 +30,10 @@
 		align-items: center;
 		justify-content: center;
 		gap: var(--space-2);
+		max-width: 100%;
+		box-sizing: border-box;
+		overflow-wrap: anywhere;
+		text-align: center;
 		font-family: inherit;
 		font-size: var(--font-size-base);
 		font-weight: 500;
@@ -53,13 +57,20 @@
 		opacity: 0.9;
 	}
 
-	.secondary {
+	.secondary,
+	.danger {
 		background: transparent;
 		color: var(--text);
 		border-color: var(--border);
 	}
 
-	.secondary:hover {
+	.danger {
+		color: var(--negative);
+		border-color: color-mix(in srgb, var(--negative) 50%, transparent);
+	}
+
+	.secondary:hover,
+	.danger:hover {
 		opacity: 1;
 		background: color-mix(in srgb, var(--primary) 8%, transparent);
 	}
