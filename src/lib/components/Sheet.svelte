@@ -51,6 +51,7 @@
 		color: var(--text);
 		border: 1px solid var(--border);
 		border-radius: var(--radius) var(--radius) 0 0;
+		box-shadow: var(--shadow-2);
 	}
 
 	dialog::backdrop {

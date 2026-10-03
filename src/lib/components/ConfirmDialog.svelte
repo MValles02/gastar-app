@@ -63,10 +63,11 @@
 		width: min(calc(100% - 2 * var(--space-5)), 22rem);
 		margin: auto;
 		padding: var(--space-5);
-		background: var(--surface);
+		background: var(--surface-raised);
 		color: var(--text);
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
+		box-shadow: var(--shadow-2);
 	}
 
 	dialog::backdrop {
