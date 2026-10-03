@@ -10,7 +10,7 @@ test('signed-out visit redirects to login', async ({ page }) => {
 });
 
 test('seeded user logs in and reaches home', async ({ page }) => {
-	await page.goto('/login');
+	await page.goto('/login', { waitUntil: 'networkidle' });
 	await page.getByLabel('Email').fill(email);
 	await page.getByLabel('Contraseña').fill(password);
 	await page.getByRole('button', { name: 'Ingresar' }).click();
