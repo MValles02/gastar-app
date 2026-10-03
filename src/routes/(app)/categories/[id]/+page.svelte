@@ -177,6 +177,7 @@
 		align-items: center;
 		min-height: 2.75rem;
 		font-weight: 500;
-		color: var(--primary);
+		color: var(--text);
+		text-decoration: underline;
 	}
 </style>

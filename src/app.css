@@ -29,16 +29,18 @@ svg {
 
 /* Colour tokens are light-dark(light, dark); color-scheme in :root / [data-theme] picks the side. */
 :root {
-	--bg: light-dark(#f4ece6, #06120c);
-	--surface: light-dark(#ffffff, #0c2318);
-	--text: light-dark(#14201a, #f4ece6);
-	--text-muted: light-dark(#6b6259, #a9a199);
-	--border: light-dark(#ded3c9, #1e3a2b);
-	--primary: light-dark(#00301c, #f0ff9c);
-	--on-primary: light-dark(#f4ece6, #00301c);
-	--accent: light-dark(#f0ff9c, #f0ff9c);
-	--positive: light-dark(#1c6b3e, #7ce0a0);
-	--negative: light-dark(#7a1f0e, #ff9c85);
+	--bg: light-dark(#f4ece6, #09100d);
+	--surface: light-dark(#ffffff, #1b2420);
+	--surface-raised: light-dark(#ffffff, #2b3631);
+	--text: light-dark(#14201a, #ece7df);
+	--text-muted: light-dark(#6b6259, #a3b2ab);
+	--border: light-dark(#cfc2b6, #43514a);
+	--border-strong: light-dark(#8a7d70, #85978e);
+	--primary: light-dark(#00301c, #b1dfb9);
+	--on-primary: light-dark(#f4ece6, #09100d);
+	--positive: light-dark(#1c6b3e, #82cb9b);
+	--negative: light-dark(#7a1f0e, #e3928b);
+	--transfer: light-dark(#405870, #9db8d0);
 	--swatch-green: light-dark(#2f6b45, #7fc79a);
 	--swatch-teal: light-dark(#1f6a6a, #6cc4c0);
 	--swatch-blue: light-dark(#2c5d8a, #8db8e6);
@@ -155,7 +157,7 @@ select {
 	font-size: var(--font-size-base);
 	color: var(--text);
 	background: var(--surface);
-	border: 1px solid var(--border);
+	border: 1px solid var(--border-strong);
 	border-radius: var(--radius);
 	padding: var(--space-3) var(--space-4);
 	width: 100%;

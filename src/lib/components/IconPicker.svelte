@@ -57,7 +57,9 @@
 	}
 
 	.option:has(input:checked) .ring {
-		outline-color: var(--primary);
+		box-shadow:
+			0 0 0 2px var(--surface),
+			0 0 0 4px var(--text);
 	}
 
 	.option:has(input:focus-visible) .ring {

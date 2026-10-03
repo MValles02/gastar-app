@@ -315,7 +315,7 @@
 		min-height: 2.75rem;
 		background: transparent;
 		color: var(--text);
-		border-color: var(--border);
+		border-color: var(--border-strong);
 	}
 
 	.chip:hover {

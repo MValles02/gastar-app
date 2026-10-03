@@ -37,7 +37,7 @@
 
 	<section class="hero" aria-labelledby="amount-label">
 		<p id="amount-label" class="label">Monto</p>
-		<p class="amount hero-amount {sign === 'neutral' ? '' : sign}">{heroAmount}</p>
+		<p class="amount hero-amount {sign === 'neutral' ? 'transfer' : sign}">{heroAmount}</p>
 	</section>
 
 	<dl class="data">
@@ -124,6 +124,10 @@
 		color: var(--negative);
 	}
 
+	.transfer {
+		color: var(--transfer);
+	}
+
 	.data {
 		margin: 0;
 	}
@@ -164,6 +168,7 @@
 		align-items: center;
 		min-height: 2.75rem;
 		font-weight: 500;
-		color: var(--primary);
+		color: var(--text);
+		text-decoration: underline;
 	}
 </style>

@@ -31,7 +31,7 @@
 		gap: var(--space-1);
 		padding: var(--space-1);
 		background: var(--bg);
-		border: 1px solid var(--border);
+		border: 1px solid var(--border-strong);
 		border-radius: var(--radius-pill);
 	}
 

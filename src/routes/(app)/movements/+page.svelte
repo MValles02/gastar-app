@@ -124,7 +124,7 @@
 										? `${m.accountName} → ${m.destinationAccountName}`
 										: m.accountName}{m.categoryName ? ` · ${m.categoryName}` : ''}{/snippet}
 								{#snippet trailing()}
-									<span class="amount {m.sign === 'neutral' ? '' : m.sign}">
+									<span class="amount {m.sign === 'neutral' ? 'transfer' : m.sign}">
 										{formatMoney(m.amount, m.currency, {
 											sign: m.sign === 'positive' ? 'always' : 'auto'
 										})}
@@ -192,7 +192,8 @@
 		align-items: center;
 		min-height: 2.75rem;
 		font-weight: 500;
-		color: var(--primary);
+		color: var(--text);
+		text-decoration: underline;
 	}
 
 	.pager {
@@ -215,5 +216,9 @@
 
 	.negative {
 		color: var(--negative);
+	}
+
+	.transfer {
+		color: var(--transfer);
 	}
 </style>

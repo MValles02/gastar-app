@@ -180,7 +180,7 @@
 	}
 
 	.nav-item[aria-current='page'] {
-		color: var(--primary);
+		color: var(--text);
 		background: color-mix(in srgb, var(--primary) 10%, transparent);
 	}
 
