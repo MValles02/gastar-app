@@ -115,7 +115,7 @@
 		{#each data.groups as g (g.day)}
 			<section aria-labelledby="day-{g.day}">
 				<h2 id="day-{g.day}">{g.heading}</h2>
-				<ul class="list">
+				<ul class="list-card">
 					{#each g.items as m (m.id)}
 						<li>
 							<ListRow href={resolve(`/movements/${m.id}`)}>
@@ -174,11 +174,6 @@
 	h2 {
 		font-size: var(--font-size-base);
 		margin-bottom: var(--space-2);
-	}
-
-	.list {
-		list-style: none;
-		padding: 0;
 	}
 
 	.empty-action {

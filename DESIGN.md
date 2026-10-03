@@ -134,13 +134,13 @@ components:
 
 Gastar is a calm, precise, personal book of accounts. Numbers lead, and color appears only at moments that matter. The tone is the classic, serious-bank feel from PRODUCT.md, a durable brand commitment rather than a style option. Light and dark themes are both first-class.
 
-The system is quiet and flat. Tonal layering and hairline borders carry structure, type weight carries hierarchy, and a single lifted element marks the primary action. Buttons and navigation are tactile and confident: pill shapes, a firm 2px focus ring, a slight press scale, and a clear dimmed disabled state.
+The system is quiet and layered. Tonal surfaces, hairline borders and a small three-step elevation scale carry structure, type weight carries hierarchy, and the lifted FAB marks the primary action. Buttons and navigation are tactile and confident: pill shapes, a firm 2px focus ring, a slight press scale, and a clear dimmed disabled state.
 
 **Key Characteristics:**
 
 - Warm, paper-like light theme and a calm night-ledger dark theme, switched by token swap only.
 - One typeface (DM Sans) with weight, not size, doing most of the hierarchy work.
-- Flat surfaces separated by hairline borders; one shadow in the whole app.
+- Lists and sections sit on surface cards over the page; a three-step elevation scale (`--shadow-1`, `--shadow-2`, `--shadow-lift`).
 - Pill buttons, 0.75rem fields and cards.
 - Tabular numerals for every amount.
 
@@ -205,15 +205,26 @@ Mobile-first single column with no breakpoints. `.content` and the bottom nav sh
 
 ## Elevation & Depth
 
-Essentially flat. Depth comes from tonal layering (bg < surface < raised: Warm Paper page, Page White bars, cards and fields, and a raised layer for sheets) and 1px hairline borders. The only shadow is the center add-movement FAB, which is lifted to read as the primary action.
+Depth comes from layering first, shadow second. The page (Warm Paper) is the base; lists and sections sit on surface cards (Page White) with a 1px hairline border; sheets sit on the raised surface. Shadows are soft and small, and money direction colours are never affected by them.
 
-### Shadow Vocabulary
+### Elevation Scale
 
-- **FAB lift** (`--shadow-lift`, per theme: light `0 4px 12px rgb(0 0 0 / 0.2)`; dark a stronger shadow plus a 1px border-token edge): The center "+" FAB only.
+- **Level 0, page** (`--bg`): No shadow.
+- **Level 1, card** (`--shadow-1`: light `0 1px 2px rgb(0 0 0 / 0.08)`; dark `0 1px 2px rgb(0 0 0 / 0.25)` plus a 1px inset top highlight): `Card` and the shared `.list-card` list container (surface fill, hairline border, 0.75rem radius, clipped overflow, last row without divider). Used for list pages, dashboard sections and the month card.
+- **Level 2, raised** (`--shadow-2`: light `0 2px 8px rgb(0 0 0 / 0.12)`; dark `0 2px 8px rgb(0 0 0 / 0.35)` plus a brighter inset highlight): Layers above cards. Pair with `--surface-raised` fill.
+- **Lift** (`--shadow-lift`: light `0 6px 16px rgb(0 0 0 / 0.2)`; dark `0 6px 16px rgb(0 0 0 / 0.6)` plus a 1px border-token edge): The center "+" FAB only; it stays the most prominent element in the bottom nav.
+
+### Dark Theme
+
+Dark does not rely on black shadows, which vanish on dark backgrounds. Elevation is expressed by lighter surface steps (`--bg` < `--surface` < `--surface-raised`), the hairline border as a subtle edge, and a faint inset top highlight; the drop shadows are kept light-touch except the FAB lift.
+
+### Row Feedback
+
+`ListRow` shows a primary tint (8%) on hover (only under `@media (hover: hover)`), a stronger tint (14%) while pressed, and an inset focus-visible outline. Background transitions (0.15s) apply only under `prefers-reduced-motion: no-preference`; there is no row scale.
 
 ### Named Rules
 
-**The One Lift Rule.** Only the FAB is lifted. Everything else stays flat with a hairline border.
+**The Layering Rule.** Group rows and sections into a surface card (`Card` or `.list-card`); do not leave lists directly on the page background. Use the lowest elevation level that separates the layer.
 
 ## Shapes
 
@@ -233,7 +244,8 @@ Shared components live in `src/lib/components/`.
 ### Cards / Containers
 
 - **Corner Style:** 0.75rem.
-- **Background:** Surface with a 1px border; no shadow.
+- **Background:** Surface with a 1px border and `--shadow-1`.
+- **List container:** `.list-card` (global class in `app.css`) on a `<ul>` of `ListRow` items; the shared way to group rows.
 - **Internal Padding:** `space-6` by `space-5`; full width, with an optional `maxWidth` (360px on the login card).
 
 ### Inputs / Fields
@@ -281,7 +293,7 @@ Radio groups of round swatches (the icon picker shows the ten account icons in I
 
 ### Nav FAB
 
-A 3.5rem primary pill circle with a 24px plus icon, centered in the bottom nav and pulled up by 1.5rem. It is the only lifted element; hover drops opacity to 0.9 and press scales to 0.96.
+A 3.5rem primary pill circle with a 24px plus icon, centered in the bottom nav and pulled up by 1.5rem. It is the only element with `--shadow-lift`; hover drops opacity to 0.9 and press scales to 0.96.
 
 ## Do's and Don'ts
 
@@ -290,12 +302,12 @@ A 3.5rem primary pill circle with a 24px plus icon, centered in the bottom nav a
 - **Do** use the theme tokens for every color, radius and spacing value.
 - **Do** put `tabular-nums` on every amount; income uses `positive`, outcome `negative` and transfer `transfer`.
 - **Do** use pill buttons and the 0.75rem radius for fields and cards.
-- **Do** keep the FAB as the single lifted element; everything else is flat with a hairline border.
+- **Do** group lists and sections into surface cards (`Card` or `.list-card`) and pick the lowest elevation token that works; keep `--shadow-lift` for the FAB.
 - **Do** keep primary for actions, selection and focus; use `border-strong` on control edges.
 
 ### Don't:
 
 - **Don't** hardcode hex values in components.
 - **Don't** use primary as link text; links use the text color with an underline.
-- **Don't** add new shadows, or hover, press and disabled treatments beyond those described in Components (0.9 hover opacity, tints, press scale, 0.5 disabled).
+- **Don't** hardcode a `box-shadow` in a component or add a shadow outside the elevation scale; don't use heavy black shadows in dark; don't add hover, press and disabled treatments beyond those described in Components (0.9 hover opacity, tints, press scale, 0.5 disabled).
 - **Don't** treat these known gaps (documented, not decided) as settled: z-indices are not tokenized, and the tint percentages (8% and 10% `color-mix`) and the 0.96 and 0.98 press scales are repeated literals rather than tokens.

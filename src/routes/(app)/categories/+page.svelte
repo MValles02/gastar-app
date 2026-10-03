@@ -44,7 +44,7 @@
 				<a class="clear" href={resolve('/categories')}>Limpiar filtros</a>
 			</div>
 		{:else}
-			<ul class="list">
+			<ul class="list-card">
 				{#each data.categories as c (c.id)}
 					<li>
 						<ListRow href={resolve(`/categories/${c.id}`)}>
@@ -66,11 +66,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
-	}
-
-	.list {
-		list-style: none;
-		padding: 0;
 	}
 
 	.empty-action {
