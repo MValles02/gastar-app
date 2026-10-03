@@ -62,11 +62,11 @@ export function monthRange(ym: string): { start: Date; end: Date } {
 	return { start: at(ym), end: at(shiftMonth(ym, 1)) };
 }
 
-export function monthLabel(ym: string): string {
+export function monthLabel(ym: string, withYear = true): string {
 	const [y, m] = ym.split('-').map(Number);
 	const s = new Intl.DateTimeFormat('es-AR', {
 		month: 'long',
-		year: 'numeric',
+		...(withYear ? { year: 'numeric' } : {}),
 		timeZone: 'UTC'
 	}).format(new Date(Date.UTC(y, m - 1, 1, 12)));
 	return s.charAt(0).toUpperCase() + s.slice(1);

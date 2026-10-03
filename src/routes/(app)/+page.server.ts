@@ -9,23 +9,16 @@ import {
 	transfersInSum
 } from '$lib/server/dashboard-queries';
 import { monthNet, toRecentItem, topCategories, totalBalance } from '$lib/server/dashboard';
-import {
-	currentMonth,
-	dateLabel,
-	monthLabel,
-	monthRange,
-	parseMonth,
-	shiftMonth
-} from '$lib/server/month';
+import { currentMonth, dateLabel, monthLabel, monthRange } from '$lib/server/month';
 
 const isCurrency = (v: unknown): v is 'ARS' | 'USD' => v === 'ARS' || v === 'USD';
 
-export const load: PageServerLoad = async ({ locals, cookies, url }) => {
+export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const userId = locals.user!.id;
 	const raw = cookies.get('dashboard_currency');
 	const currency = isCurrency(raw) ? raw : 'ARS';
 	const now = new Date();
-	const value = parseMonth(url.searchParams.get('month'), now);
+	const value = currentMonth(now);
 	const range = monthRange(value);
 
 	const [summary, allSums, inSum, monthSums, cats, recent] = await Promise.all([
@@ -44,13 +37,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		hasAnyAccount: summary.some((s) => s.count > 0),
 		hasCurrencyAccount: (current?.count ?? 0) > 0,
 		totalBalance: totalBalance(current?.initial ?? 0, allSums, inSum[0]?.amount ?? 0),
-		month: {
-			value,
-			label: monthLabel(value),
-			prev: shiftMonth(value, -1),
-			next: shiftMonth(value, 1),
-			isCurrent: value >= currentMonth(now)
-		},
+		month: { label: monthLabel(value, false) },
 		monthNet: monthNet(monthSums),
 		topCategories: topCategories(cats),
 		recent: recent.map((r) => {
