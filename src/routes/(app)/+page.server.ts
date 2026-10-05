@@ -1,6 +1,4 @@
-import { fail } from '@sveltejs/kit';
-import { dev } from '$app/environment';
-import type { Actions, PageServerLoad } from './$types';
+import type { PageServerLoad } from './$types';
 import {
 	accountSummary,
 	categorySums,
@@ -9,55 +7,52 @@ import {
 	transfersInSum
 } from '$lib/server/dashboard-queries';
 import { monthNet, toRecentItem, topCategories, totalBalance } from '$lib/server/dashboard';
+import { parseCurrencyPref } from '$lib/server/currency-pref';
 import { currentMonth, dateLabel, monthLabel, monthRange } from '$lib/server/month';
-
-const isCurrency = (v: unknown): v is 'ARS' | 'USD' => v === 'ARS' || v === 'USD';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const userId = locals.user!.id;
-	const raw = cookies.get('dashboard_currency');
-	const currency = isCurrency(raw) ? raw : 'ARS';
+	const pref = parseCurrencyPref(cookies.get('currency'));
 	const now = new Date();
 	const value = currentMonth(now);
 	const range = monthRange(value);
 
-	const [summary, allSums, inSum, monthSums, cats, recent] = await Promise.all([
-		accountSummary(userId),
-		originTypeSums(userId, currency),
-		transfersInSum(userId, currency),
-		originTypeSums(userId, currency, range),
-		categorySums(userId, currency, range),
-		recentMovements(userId, currency)
+	const summary = await accountSummary(userId);
+	const hasAnyAccount = summary.some((s) => s.count > 0);
+	const wanted = pref === 'both' ? (['ARS', 'USD'] as const) : ([pref] as const);
+	const currencies = wanted.filter((c) => summary.some((s) => s.currency === c && s.count > 0));
+
+	const [blocks, recent] = await Promise.all([
+		Promise.all(
+			currencies.map(async (currency) => {
+				const [allSums, inSum, monthSums, cats] = await Promise.all([
+					originTypeSums(userId, currency),
+					transfersInSum(userId, currency),
+					originTypeSums(userId, currency, range),
+					categorySums(userId, currency, range)
+				]);
+				const initial = summary.find((s) => s.currency === currency)?.initial ?? 0;
+				return {
+					currency,
+					balance: totalBalance(initial, allSums, inSum[0]?.amount ?? 0),
+					monthNet: monthNet(monthSums),
+					topCategories: topCategories(cats)
+				};
+			})
+		),
+		currencies.length > 0
+			? recentMovements(userId, pref === 'both' ? undefined : pref)
+			: Promise.resolve([])
 	]);
 
-	const current = summary.find((s) => s.currency === currency);
-
 	return {
-		currency,
-		hasAnyAccount: summary.some((s) => s.count > 0),
-		hasCurrencyAccount: (current?.count ?? 0) > 0,
-		totalBalance: totalBalance(current?.initial ?? 0, allSums, inSum[0]?.amount ?? 0),
+		pref,
+		hasAnyAccount,
 		month: { label: monthLabel(value, false) },
-		monthNet: monthNet(monthSums),
-		topCategories: topCategories(cats),
+		blocks,
 		recent: recent.map((r) => {
-			const { occurredAt, ...item } = toRecentItem(r, currency);
+			const { occurredAt, ...item } = toRecentItem(r, pref === 'both' ? r.accountCurrency : pref);
 			return { ...item, dateLabel: dateLabel(occurredAt) };
 		})
 	};
-};
-
-export const actions: Actions = {
-	currency: async ({ request, cookies }) => {
-		const value = (await request.formData()).get('currency');
-		if (!isCurrency(value)) return fail(400, { error: 'Moneda inválida.' });
-		cookies.set('dashboard_currency', value, {
-			path: '/',
-			maxAge: 60 * 60 * 24 * 365,
-			sameSite: 'lax',
-			httpOnly: true,
-			secure: !dev
-		});
-		return { currency: value };
-	}
 };

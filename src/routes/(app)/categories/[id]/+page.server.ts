@@ -11,16 +11,18 @@ import {
 	getCategory,
 	setCategoryArchived
 } from '$lib/server/categories-queries';
+import { parseCurrencyPref } from '$lib/server/currency-pref';
 import { currentMonth, monthLabel, monthRange, parseMonth, shiftMonth } from '$lib/server/month';
 
 const notFound = () => error(404, 'Categoría no encontrada.');
 
-export const load: PageServerLoad = async ({ locals, params, url }) => {
+export const load: PageServerLoad = async ({ locals, params, url, cookies }) => {
 	const userId = locals.user!.id;
 	if (!isUuid(params.id)) notFound();
 	const [category] = await getCategory(userId, params.id);
 	if (!category) notFound();
 
+	const pref = parseCurrencyPref(cookies.get('currency'));
 	const now = new Date();
 	const month = parseMonth(url.searchParams.get('month'), now);
 	const [rows, referenced] = await Promise.all([
@@ -38,7 +40,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			next: shiftMonth(month, 1),
 			isCurrent: month >= currentMonth(now)
 		},
-		nets: toCurrencyNets(rows),
+		nets: toCurrencyNets(rows).filter((n) => pref === 'both' || n.currency === pref),
 		actions: accountActions({ referenced: referenced.length > 0, archived })
 	};
 };

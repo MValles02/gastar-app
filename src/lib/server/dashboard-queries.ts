@@ -74,7 +74,7 @@ export function categorySums(userId: string, cur: Currency, range: Range) {
 		.groupBy(categories.id, categories.name);
 }
 
-export function recentMovements(userId: string, cur: Currency) {
+export function recentMovements(userId: string, cur?: Currency) {
 	return db
 		.select({
 			id: movements.id,
@@ -98,10 +98,12 @@ export function recentMovements(userId: string, cur: Currency) {
 		.where(
 			and(
 				canAccessAccount(userId),
-				or(
-					eq(financialAccounts.currency, cur),
-					and(eq(movements.type, 'transfer'), eq(dest.currency, cur))
-				)
+				cur
+					? or(
+							eq(financialAccounts.currency, cur),
+							and(eq(movements.type, 'transfer'), eq(dest.currency, cur))
+						)
+					: undefined
 			)
 		)
 		.orderBy(desc(movements.occurredAt), desc(movements.createdAt), desc(movements.id))

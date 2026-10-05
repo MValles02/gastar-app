@@ -60,6 +60,7 @@ export function toRecentItem(row: RecentRow, currency: Currency) {
 		categoryName: row.categoryName,
 		destinationAccountName: row.destinationAccountName,
 		occurredAt: row.occurredAt,
+		currency,
 		amount: sign === 'negative' ? -raw : raw,
 		sign: sign as 'positive' | 'negative' | 'neutral'
 	};

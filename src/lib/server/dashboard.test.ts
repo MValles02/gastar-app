@@ -98,6 +98,18 @@ it('toRecentItem signs', () => {
 	});
 });
 
+it('toRecentItem in both mode keeps the origin amount and carries its own currency', () => {
+	const t = row({
+		type: 'transfer',
+		accountCurrency: 'USD',
+		amount: 100_00,
+		destinationAmount: 150000_00
+	});
+	expect(toRecentItem(t, t.accountCurrency)).toMatchObject({ amount: 100_00, currency: 'USD' });
+	const o = row({ type: 'outcome', accountCurrency: 'ARS' });
+	expect(toRecentItem(o, o.accountCurrency)).toMatchObject({ amount: -100, currency: 'ARS' });
+});
+
 it('toRecentItem shows destinationAmount from the destination currency', () => {
 	const t = row({
 		type: 'transfer',

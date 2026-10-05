@@ -5,7 +5,8 @@
 		value = $bindable(),
 		labelledby,
 		onchange,
-		disabled = false
+		disabled = false,
+		size = 'default'
 	}: {
 		name: string;
 		options: { value: string; label: string }[];
@@ -13,10 +14,16 @@
 		labelledby?: string;
 		onchange?: () => void;
 		disabled?: boolean;
+		size?: 'default' | 'compact';
 	} = $props();
 </script>
 
-<div class="track" role="radiogroup" aria-labelledby={labelledby}>
+<div
+	class="track"
+	class:compact={size === 'compact'}
+	role="radiogroup"
+	aria-labelledby={labelledby}
+>
 	{#each options as option (option.value)}
 		<label class="option">
 			<input type="radio" {name} value={option.value} bind:group={value} {onchange} {disabled} />
@@ -77,6 +84,21 @@
 		padding: 0;
 		opacity: 0;
 		cursor: pointer;
+	}
+
+	/* Compact: smaller pill, hit area still >= 44px via the extended input. */
+	.compact .option {
+		flex: 1 0 auto;
+		white-space: nowrap;
+		min-height: calc(2.75rem - 2 * var(--space-1));
+		padding-inline: var(--space-2);
+		font-size: var(--font-size-sm);
+	}
+
+	.compact .option input {
+		inset: calc(-1 * var(--space-1)) -2px;
+		width: auto;
+		height: auto;
 	}
 
 	.option:has(input:disabled) {

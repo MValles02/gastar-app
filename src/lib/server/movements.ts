@@ -189,7 +189,7 @@ export type MovementFilterQuery = {
 	type: MovementType | '';
 	account: string;
 	category: string;
-	currency: Currency | '';
+	currency?: Currency | '';
 };
 
 // Year 9999 is rejected so the day after `to` is always representable.
@@ -215,6 +215,9 @@ export function parseMovementFilters(sp: URLSearchParams) {
 	};
 	const n = Number(get('page'));
 	const page = Number.isSafeInteger(n) && n >= 1 && n <= 10000 ? n : 1;
-	const activeCount = Object.values(query).filter(Boolean).length;
-	return { values: { ...query } as Record<string, string>, query, page, activeCount };
+	// currency is no longer a user filter: the movements load overrides it from the global cookie.
+	const shown: Record<string, string> = { ...query };
+	delete shown.currency;
+	const activeCount = Object.values(shown).filter(Boolean).length;
+	return { values: shown, query, page, activeCount };
 }
