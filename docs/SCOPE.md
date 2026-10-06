@@ -41,7 +41,7 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ## Layout
 
-- Top bar: app name (left), profile button (right); no currency control. Each screen states its own currency; amounts are never converted or summed across currencies.
+- Top bar (sticky, every app screen): optional back link, today's date as an eyebrow above the screen title, and an avatar (initials) linking to Profile. Bottom-nav tabs have no back; every other screen has an "up" back to its parent (new-movement returns to the screen it was opened from). Screens have no action buttons under the bar; Accounts and Categories end their list with a "+ Nueva …" row. No currency control: each screen states its own currency, and amounts are never converted or summed across currencies.
 - Bottom nav (MVP): Dashboard | Accounts | Create movement (center "+") | Movements | Categories.
 - Future nav change: "Reports" replaces Categories in the bottom nav; Categories moves into the Profile menu. Reports are **not** in MVP.
 - Profile page (MVP): theme toggle (light / dark / system) + logout.

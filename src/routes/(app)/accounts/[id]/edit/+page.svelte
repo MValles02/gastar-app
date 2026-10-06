@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import AccountForm from '../../AccountForm.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -10,7 +11,10 @@
 	<title>Editar cuenta · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Editar cuenta" />
+<PageHeader
+	title="Editar cuenta"
+	back={{ href: resolve(`/accounts/${data.id}`), label: 'Volver a la cuenta' }}
+/>
 
 <AccountForm
 	mode="edit"

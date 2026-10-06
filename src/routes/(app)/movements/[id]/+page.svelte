@@ -13,9 +13,6 @@
 	const typeLabel = $derived(
 		m.type === 'income' ? 'Ingreso' : m.type === 'outcome' ? 'Gasto' : 'Transferencia'
 	);
-	const sign = $derived(
-		m.type === 'income' ? 'positive' : m.type === 'outcome' ? 'negative' : 'neutral'
-	);
 	const heroAmount = $derived(
 		formatMoney(m.type === 'outcome' ? -m.amount : m.amount, m.accountCurrency, {
 			sign: m.type === 'income' ? 'always' : 'auto'
@@ -41,7 +38,7 @@
 		color={toSwatchKey(m.accountColor)}
 		label="Monto"
 		value={heroAmount}
-		tone={sign === 'neutral' ? 'transfer' : sign}
+		tone={m.type === 'income' ? 'positive' : m.type === 'transfer' ? 'transfer' : undefined}
 		context={typeLabel}
 	/>
 

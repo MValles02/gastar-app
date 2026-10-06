@@ -16,6 +16,9 @@
 	const c = $derived(data.category);
 	const colorLabel = $derived(SWATCHES.find((s) => s.key === c.color)?.label ?? c.color);
 	const single = $derived(data.nets.length === 1 ? data.nets[0] : null);
+	// Net spend (outcomes - incomes) shown as a cash flow, like movement rows: spend "-", income "+".
+	const flow = (net: number, currency: 'ARS' | 'USD') =>
+		formatMoney(-net, currency, { sign: 'always' });
 </script>
 
 <svelte:head>
@@ -30,8 +33,8 @@
 		color={toSwatchKey(c.color)}
 		label={data.month.isCurrent ? 'Este mes' : 'Balance del mes'}
 		context={data.month.label}
-		value={single ? formatMoney(single.net, single.currency) : undefined}
-		tone={single && single.net < 0 ? 'negative' : undefined}
+		value={single ? flow(single.net, single.currency) : undefined}
+		tone={single && single.net < 0 ? 'positive' : undefined}
 	>
 		{#if data.nets.length === 0}
 			<p class="muted">Sin movimientos en este mes.</p>
@@ -40,7 +43,7 @@
 				{#each data.nets as n (n.currency)}
 					<div class="item">
 						<dt>{n.currency}</dt>
-						<dd class="amount">{formatMoney(n.net, n.currency)}</dd>
+						<dd class="amount">{flow(n.net, n.currency)}</dd>
 					</div>
 				{/each}
 			</dl>

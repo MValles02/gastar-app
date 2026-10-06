@@ -139,11 +139,11 @@ components:
     textColor: '{colors.primary}'
     rounded: '{rounded.pill}'
     size: '3.5rem'
-  topbar:
-    backgroundColor: '{colors.surface}'
-    textColor: '{colors.primary}'
-    typography: '{typography.title}'
-    padding: '1rem 1.5rem'
+  top-bar:
+    backgroundColor: '{colors.background}'
+    textColor: '{colors.text}'
+    typography: '{typography.headline}'
+    padding: '1rem 1.5rem 0.75rem'
 ---
 
 # Design System: Gastar
@@ -161,7 +161,7 @@ The system is quiet and layered. Tonal surfaces, hairline borders and a small th
 - Stone neutrals with a forest-green primary in light and a lime primary in dark, switched by token swap only (`light-dark()` in `app.css`).
 - One typeface (DM Sans) with weight, not size, doing most of the hierarchy work.
 - Lists and sections sit on surface cards over the page; a three-step elevation scale (`--shadow-1`, `--shadow-2`, `--shadow-lift`).
-- 0.625rem radius buttons and fields, 0.875rem cards and FAB; pills only for the profile link and the empty-state badge.
+- 0.625rem radius buttons and fields, 0.875rem cards and FAB; pills only for the top-bar avatar and the empty-state badge.
 - Tabular numerals for every amount.
 
 ## Colors
@@ -177,9 +177,9 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 ### Neutral (stone)
 
 - **Stone 50** (`background`): Page background, the selected segment and the translucent bottom nav. Dark counterpart: Stone 950 (`background-dark`).
-- **Page White** (`surface`): Top bar, cards and fields. Dark counterpart: Stone 900 (`surface-dark`).
+- **Page White** (`surface`): Cards and fields. Dark counterpart: Stone 900 (`surface-dark`).
 - **Raised White** (`surface-raised`): Layers above a surface, such as the Sheet and ConfirmDialog dialogs. Dark counterpart: `surface-raised-dark`.
-- **Muted** (`muted`): The segmented track, hover fills (rows, secondary button, profile link). Dark counterpart: `muted-dark`.
+- **Muted** (`muted`): The segmented track, hover fills (rows, secondary button, top-bar avatar). Dark counterpart: `muted-dark`.
 - **Ledger Ink** (`text`): Body text. Dark counterpart: `text-dark`.
 - **Muted Stone** (`text-muted`): Labels and inactive nav items. Dark counterpart: `text-muted-dark`.
 - **Hairline** (`border`): 1px borders on bars, cards and dividers. Dark counterpart: `border-dark`.
@@ -214,7 +214,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 ### Hierarchy
 
 - **Headline** (600, h1 to h3, 1.2, letter-spacing -0.01em): Page and section headings.
-- **Title** (600, 1.25rem): The "Gastar" wordmark text in the top bar (larger mark on the login screen).
+- **Title** (600, 1.25rem): The "Gastar" wordmark text on the login screen.
 - **Page title** (500, 1.75rem, 1.2): The `PageHeader` h1 on every screen.
 - **Body** (400, 1rem, 1.5): Default text and fields.
 - **Label** (400, 0.875rem): Form labels in muted stone, and error text in the negative color. Buttons use 0.875rem at weight 500.
@@ -227,7 +227,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 
 ## Layout
 
-Mobile-first single column with no layout breakpoints; one narrow-width tweak (nav label font size). `.content` shares the `--content-width` (560px) column with the top bar and bottom nav: both bars span the full width with a border (the top bar on the surface colour, the bottom nav translucent: `--bg` at 92% with a 12px backdrop blur), and their inner items are inset (inline padding of `space-5` inside the column, as page content) to align with that centered column. The segmented control options shrink (`min-width: 0`, `space-1` side padding), wrap labels with `overflow-wrap: anywhere` instead of clipping, and keep the 2.75rem hit area. The top bar is sticky (z-index 10) and the bottom nav is fixed with a `safe-area-inset-bottom` allowance (z-index 10). Content bottom padding is `calc(space-8 + 4.5rem + env(safe-area-inset-bottom))` so nothing hides under the nav. The login screen is a centered column with safe-area padding on all four sides. Spacing is a short rem scale (`space-1` to `space-6`, plus `space-8`); page padding is `space-5`. The browser theme color follows the page background (Stone 50 / Stone 950), the PWA manifest `theme_color` is Forest (`#14532d`) and its background is Stone 50.
+Mobile-first single column with no layout breakpoints; one narrow-width tweak (nav label font size). `.content` shares the `--content-width` (560px) column with the bottom nav; the nav spans the full width with a border (translucent: `--bg` at 92% with a 12px backdrop blur) and its inner items are inset (inline padding of `space-5` inside the column, as page content). `.content` sets `--gutter` (`space-5`) as its inline padding; the page top bar bleeds out to the content edges with a negative `--gutter` margin. The segmented control options shrink (`min-width: 0`, `space-1` side padding), wrap labels with `overflow-wrap: anywhere` instead of clipping, and keep the 2.75rem hit area. The page top bar is sticky (z-index 9, inside `.content`) only on viewports at least 40em tall (`@media (min-height: 40em)`; `em` is the browser text size, so large text or zoom turns it off and the bar scrolls away); under the same query `html` has a `scroll-padding-top` so focused elements stay clear of it, and the bottom nav is fixed with a `safe-area-inset-bottom` allowance (z-index 10). Content bottom padding is `calc(space-8 + 4.5rem + env(safe-area-inset-bottom))` so nothing hides under the nav. The login screen is a centered column with safe-area padding on all four sides. Spacing is a short rem scale (`space-1` to `space-6`, plus `space-8`); page padding is `space-5`. The browser theme color follows the page background (Stone 50 / Stone 950), the PWA manifest `theme_color` is Forest (`#14532d`) and its background is Stone 50.
 
 ## Elevation & Depth
 
@@ -254,7 +254,7 @@ Dark does not rely on black shadows, which vanish on dark backgrounds. Elevation
 
 ## Shapes
 
-Three radii: `--radius` 0.625rem (`rounded.md`) for buttons, fields, the segmented track, the Sheet top corners and the option picker trigger; `--radius-card` 0.875rem (`rounded.card`) for cards, list cards and the FAB; and a full pill (`rounded.pill`, 999px) for the profile link (a 2.75rem circle). The wordmark mark and the empty-state badge reuse them (an 8px-radius mark; a 3.5rem tinted circle). Borders are always 1px in the border token. Transitions are 0.15s ease on opacity, color and background-color. When `prefers-reduced-motion: no-preference` also holds, `transform` is added so pressed buttons, nav items, the FAB and the profile link scale down (0.98 for buttons, 0.96 for the rest); with reduced motion there is no press scale.
+Three radii: `--radius` 0.625rem (`rounded.md`) for buttons, fields, the segmented track, the Sheet top corners and the option picker trigger; `--radius-card` 0.875rem (`rounded.card`) for cards, list cards and the FAB; and a full pill (`rounded.pill`, 999px) for the avatar (a 2.75rem circle). The wordmark mark and the empty-state badge reuse them (an 8px-radius mark; a 3.5rem tinted circle). Borders are always 1px in the border token. Transitions are 0.15s ease on opacity, color and background-color. When `prefers-reduced-motion: no-preference` also holds, `transform` is added so pressed buttons, nav items and the FAB scale down (0.98 for buttons, 0.96 for the rest); with reduced motion there is no press scale.
 
 ## Components
 
@@ -287,9 +287,11 @@ A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) of radio option
 
 ### Page Header and Empty State
 
-- **PageHeader:** An h1 (1.75rem, 500, line-height 1.2) with `space-5` below. Optional `back` (`{ href, label }`) adds a 2.75rem circular chevron-left icon link before the title (`label` is its aria-label, hover tints primary 8%). Optional `action` snippet sits after the title. With either, it is a row `[back] [title] [action]` and the title truncates with an ellipsis.
+- **PageHeader:** The sticky top bar of every app screen: a row `[back] [eyebrow + h1] [avatar]`. Props `title`, optional `eyebrow` (defaults to today's date in Buenos Aires, es-AR, from the `(app)` layout load) and optional `back` (`{ href, label }`: a 2.75rem circular chevron-left link, `label` is its aria-label, hover tints primary 8%). The h1 is 1.75rem, 500, line-height 1.2 under a muted 0.8125rem eyebrow; it wraps and is never truncated, and the back link and avatar stay fixed 2.75rem so the row never wraps. The bar is sticky only on viewports at least 40em tall (see Layout), uses `--bg` at 92% with a 12px backdrop blur, `space-4` top and `space-3` bottom padding, and a transparent bottom hairline that turns `--border` once the page scrolls (CSS scroll-driven animation inside `@supports (animation-timeline: scroll())`, no JS). The avatar is a 2.75rem `muted` circle with the user's initials linking to Profile (`aria-label="Perfil"`, 2px primary ring on the current page); it is hidden when the layout data is missing (error page). Back rules: bottom-nav tabs have none; every other screen links up to a fixed parent; New movement returns to the in-app screen it was opened from (fallback Inicio).
 - **DetailHeader:** Used on account, category and movement detail. Renders `PageHeader` with `back`, then a hero `Card`. Props: `title`, `back`, `label` (muted small caption), optional `icon` and `color` (IconBadge), `value` (hero figure, 600, `clamp` hero size), `tone` (`positive`, `negative` or `transfer` colour for the value), `context` (muted small line) and a children snippet for extra content (such as the category per-currency nets).
 - **Secondary link row:** "Ver movimientos" on account and category detail is a single `ListRow` with a trailing chevron-right in a surface container (hairline border, `--shadow-1`), not an underlined text link.
+- **Add row (`.add-row`):** A dashed-border, `radius-card` link row (min 3.5rem tall, muted 0.875rem weight-500 text with a plus icon) after a list ("+ Nueva cuenta", "+ Nueva categoría"); hover turns the text to the text colour and the border primary. It replaces header action buttons.
+- **Detail tone:** Detail hero amounts colour only income (`positive`, with "+"). Outcomes use the text colour with "-" (never `negative`), transfers use `transfer`. Category net is shown as a cash flow (spend "-", net income "+" in `positive`).
 - **Destructive cue:** The confirm-delete trigger ("Eliminar") in the detail actions uses the `negative` text colour and a 50% `negative` border; other actions stay neutral.
 - **FilterBar:** Wrapping flex form with `space-2` by `space-3` gaps. The search field takes the full first row (search icon inset left); a segmented control or filters disclosure takes its own full row; a checkbox label stays compact (auto width) and shares a row when it fits. On the movements list the filters `summary` is an inline pill (surface fill, hairline border, 2.75rem tall).
 - **List day headings:** Movements group by day under a small heading (0.875rem, 600, muted text, `space-4` inline padding) rather than a body-size title.
@@ -325,8 +327,7 @@ Radio groups of round swatches (the icon picker shows the ten account icons in I
 
 - **Style:** Fixed translucent bottom bar (`--bg` at 92% with a 12px backdrop blur) with a top hairline, no gap, and `space-2` vertical padding plus the bottom safe-area inset. Five equal slots: two items, the FAB, two items. Each item is an icon over a 0.75rem weight-500 label (0.6875rem under 22rem), muted by default, at least 2.75rem tall.
 - **Item states:** Hover and `aria-current='page'` turn the label the text color; the active item's icon turns primary. Press scales to 0.96. Items have no horizontal padding; labels truncate with an ellipsis.
-- **Top bar:** Sticky, surface background, bottom hairline, the wordmark left and the profile link right (no currency control).
-- **Profile link:** A 2.75rem circle with a 1px border, surface fill and the profile icon; hover and the current page fill it `muted`, and press scales to 0.96.
+- **Top bar:** See PageHeader above. The bottom nav stays Inicio | Cuentas | + | Movimientos | Categorías.
 
 ### Nav FAB
 

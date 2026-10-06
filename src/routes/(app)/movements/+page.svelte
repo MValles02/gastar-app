@@ -52,11 +52,7 @@
 	<title>Movimientos · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Movimientos">
-	{#snippet action()}
-		<Button href={resolve('/movements/new')}>Nuevo movimiento</Button>
-	{/snippet}
-</PageHeader>
+<PageHeader title="Movimientos" />
 
 <div class="page">
 	<FilterBar q={data.filters.q} label="Buscar movimientos" placeholder="Buscar movimientos">

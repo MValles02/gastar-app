@@ -13,6 +13,13 @@ html {
 	-webkit-text-size-adjust: 100%;
 }
 
+/* Keeps focused/anchored elements clear of the sticky top bar (sticky only under the same query). */
+@media (min-height: 40em) {
+	html {
+		scroll-padding-top: 9.5rem;
+	}
+}
+
 body {
 	min-height: 100vh;
 	min-height: 100dvh;
@@ -209,6 +216,29 @@ label {
 
 .list-card > li:last-child > a {
 	border-bottom: 0;
+}
+
+/* "+ Nueva …" row at the end of a list (Cuentas, Categorías). */
+.add-row {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	min-height: 3.5rem;
+	margin-top: var(--space-3);
+	padding: var(--space-2) var(--space-4);
+	border: 1px dashed var(--border);
+	border-radius: var(--radius-card);
+	color: var(--text-muted);
+	font-size: var(--font-size-sm);
+	font-weight: 500;
+	text-decoration: none;
+}
+
+@media (hover: hover) {
+	.add-row:hover {
+		color: var(--text);
+		border-color: var(--primary);
+	}
 }
 
 /* Section heading with a trailing item (link or total). */

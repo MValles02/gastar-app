@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import Card from '$lib/components/Card.svelte';
@@ -38,7 +39,7 @@
 	<title>Perfil · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Perfil" />
+<PageHeader title="Perfil" back={{ href: resolve('/'), label: 'Volver al inicio' }} />
 
 <Card>
 	<div class="sections">

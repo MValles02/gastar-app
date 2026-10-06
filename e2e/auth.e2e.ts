@@ -16,5 +16,5 @@ test('seeded user logs in and reaches home', async ({ page }) => {
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 
 	await expect(page).toHaveURL(/\/$/);
-	await expect(page.getByRole('heading', { level: 1, name: 'Inicio' })).toBeAttached();
+	await expect(page.getByRole('heading', { level: 1, name: /^Hola, / })).toBeAttached();
 });

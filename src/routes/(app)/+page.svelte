@@ -6,6 +6,7 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { formatMoney } from '$lib/money';
 	import type { PageData } from './$types';
 
@@ -18,7 +19,7 @@
 	<title>Gastar</title>
 </svelte:head>
 
-<h1 class="visually-hidden">Inicio</h1>
+<PageHeader title="Hola, {data.header.firstName}" />
 
 <div class="dashboard">
 	{#if !data.hasAnyAccount}
