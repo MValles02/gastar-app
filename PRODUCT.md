@@ -23,7 +23,7 @@ It is private and self-hosted, run for the owner and their friends and family on
 - Mobile-first, installable PWA, used one-handed in short sessions right after spending or receiving money.
 - Month boundaries and default dates use the `America/Argentina/Buenos_Aires` timezone.
 - Currency display is `$ 1.234.568` (ARS) and `US$ 1.234,56` (USD). USD amount input uses a comma as the decimal separator. ARS amounts and rates are whole pesos; USD amounts have up to 2 decimals.
-- Navigation is a sticky top bar (back when applicable, date and title, profile avatar) plus a bottom nav: Dashboard, Accounts, create movement (center "+"), Movements, Categories.
+- Navigation is a sticky top bar (back when applicable, date and title, profile avatar) plus a bottom nav: Dashboard, Accounts, create movement (center "+"), Movements, Reportes (Categories is reached from Profile).
 - Tapping a list item opens a detail page with Edit and Delete. There are no inline row actions. Create and edit share one form.
 
 ## Capabilities and Constraints
@@ -32,7 +32,7 @@ It is private and self-hosted, run for the owner and their friends and family on
 - Movements are income, outcome or transfer. Transfers never count toward the month balance and have no category.
 - Balances and category net are computed at read time, never stored. Money is stored as integer minor units.
 - Categories have no type and are shared across currencies, with stats split by currency.
-- Reports and phone OTP are future work, not MVP.
+- Reportes shows one currency and month at a time: totals, 6-month income and outcome bars, spending by category, daily average and biggest outcome. Phone OTP is future work, not MVP.
 - UI text is Spanish (es-AR). Code, docs and identifiers are English.
 - Authoritative detail lives in `docs/SCOPE.md` and `docs/DATA_MODEL.md`.
 

@@ -20,7 +20,7 @@
 	<title>Categorías · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Categorías" />
+<PageHeader title="Categorías" back={{ href: resolve('/profile'), label: 'Volver al perfil' }} />
 
 <div class="page">
 	{#if !data.hasAnyCategory}

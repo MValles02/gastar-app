@@ -42,9 +42,8 @@ Personal finance PWA for Argentina. Answers two questions:
 ## Layout
 
 - Top bar (sticky, every app screen): optional back link, today's date as an eyebrow above the screen title, and an avatar (initials) linking to Profile. Bottom-nav tabs have no back; every other screen has an "up" back to its parent (new-movement returns to the screen it was opened from). Screens have no action buttons under the bar; Accounts and Categories end their list with a "+ Nueva …" row. No currency control: each screen states its own currency, and amounts are never converted or summed across currencies.
-- Bottom nav (MVP): Dashboard | Accounts | Create movement (center "+") | Movements | Categories.
-- Future nav change: "Reports" replaces Categories in the bottom nav; Categories moves into the Profile menu. Reports are **not** in MVP.
-- Profile page (MVP): theme toggle (light / dark / system) + logout.
+- Bottom nav: Inicio | Cuentas | Create movement (center "+") | Movimientos | Reportes.
+- Profile page: a "Categorías" link (Categories is reached from Profile and links back to it), theme toggle (light / dark / system) + logout.
 
 ## Design
 
@@ -70,6 +69,18 @@ Personal finance PWA for Argentina. Answers two questions:
   - The dashboard always shows the current month; there is no month navigation.
   - Top 3 categories by net outcome, each with amount and %.
 - Last 10 movements in the selected currency, with a "Ver todos" link to `/movements?currency=`.
+
+### Reportes
+
+- Route `/reports`, a bottom-nav tab (no back link), h1 "Reportes".
+- Currency tabs `ARS | USD` as on the dashboard; one currency per screen, never converted or summed. No accounts in the currency (archived counted): "No tenés cuentas en {currency}." + "Crear cuenta".
+- Month: `?month=YYYY-MM` with previous / next navigation; a future or invalid month falls back to the current one; "Mes siguiente" is disabled on the current month.
+- For the selected currency and month (archived accounts included, transfers excluded):
+  - Totals: Ingresos, Gastos and Resultado (income − outcome, with an explicit sign; equals the dashboard month balance for the current month).
+  - Income and outcome bars for the 6 months ending at the selected month; each pair links to its month.
+  - Gastos por categoría: top 4 categories by net outcome plus "Otros", as a donut and a list (name, %, amount). With no categorised spending: "No hay gastos con categoría en {mes}."
+  - Promedio diario: outcome ÷ elapsed days (the whole month for past months).
+  - Gasto más grande, linking to the movement; hidden when there are no outcomes.
 
 ### Accounts
 
@@ -128,13 +139,11 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ## Out of MVP
 
-- Reports (charts/analytics screen beyond the dashboard top-3).
 - Budgets.
 - Recurring movements.
 - Credit cards / installments (cuotas).
 - Attachments / receipts.
 - CSV import/export.
-- Charts beyond the dashboard top-3 categories.
 - Shared accounts.
 - Phone OTP.
 - Automatic exchange rates.

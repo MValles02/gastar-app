@@ -10,6 +10,7 @@ const routes = [
 	'/movements',
 	'/accounts',
 	'/categories',
+	'/reports',
 	'/profile',
 	'/accounts/new',
 	'/movements/new',
@@ -93,6 +94,7 @@ test('h1 top is identical across pages at 390x844', async ({ page }) => {
 		'/movements',
 		'/accounts',
 		'/categories',
+		'/reports',
 		'/profile',
 		...(account ? [account] : [])
 	];
@@ -138,6 +140,7 @@ for (const width of [320, 360]) {
 			'/movements',
 			'/movements/new',
 			'/categories',
+			'/reports',
 			'/profile'
 		]) {
 			await page.goto(route);
@@ -248,7 +251,7 @@ test('focus is never hidden under the sticky bar', async ({ page }) => {
 
 test('back links go up to a fixed parent and tabs have none', async ({ page }) => {
 	await login(page);
-	for (const tab of ['/', '/accounts', '/movements', '/categories']) {
+	for (const tab of ['/', '/accounts', '/movements', '/reports']) {
 		await page.goto(tab);
 		await expect(backLink(page), tab).toHaveCount(0);
 	}
@@ -258,6 +261,7 @@ test('back links go up to a fixed parent and tabs have none', async ({ page }) =
 	expect(account && category && movement).toBeTruthy();
 	const rows: [string, string][] = [
 		['/profile', '/'],
+		['/categories', '/profile'],
 		['/accounts/new', '/accounts'],
 		['/categories/new', '/categories'],
 		['/movements/new', '/'],
