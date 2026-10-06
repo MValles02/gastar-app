@@ -172,7 +172,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 
 ### Primary
 
-- **Forest** (`primary`): Primary buttons, the center FAB, the wordmark, the pressed chip, the active nav icon and the focus ring. Dark: **Lime** (`primary-dark`).
+- **Forest** (`primary`): Primary buttons, the center FAB, the wordmark, the active nav icon and the focus ring. Dark: **Lime** (`primary-dark`).
 
 ### Neutral (stone)
 
@@ -198,9 +198,9 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 
 ### Named Rules
 
-**The Action Colour Rule.** Primary marks actions, selection and focus only: button fills, the FAB, the active nav icon, the pressed chip and the focus ring. Never use it for link text; links and the active nav label use the text color (links underlined).
+**The Action Colour Rule.** Primary marks actions, selection and focus only: button fills, the FAB, the active nav icon and the focus ring. Never use it for link text; links and the active nav label use the text color (links underlined).
 
-**The Control Edge Rule.** Controls are identified by their edge: inputs, selects, the option picker trigger and date chips use `border-strong`. Cards, bars and dividers stay on the hairline `border`. The segmented track is a `muted` fill with no edge.
+**The Control Edge Rule.** Controls are identified by their edge: inputs, selects and the option picker trigger use `border-strong`. Cards, bars and dividers stay on the hairline `border`. The segmented track is a `muted` fill with no edge.
 
 **The Token Rule.** Colors come from the theme tokens; never hardcode a hex in a component.
 
@@ -314,10 +314,6 @@ A modal bottom sheet built on `<dialog>` (`showModal`): full width up to 35rem, 
 ### Option Picker
 
 A field that opens a Sheet of radio rows. The trigger looks like an input (2.75rem minimum height, 1px control-edge border, 0.625rem radius, padding `space-2` by `space-3`) showing the selected row or a muted placeholder. Each row is an icon badge, a name (weight 500, truncated) and optional muted meta text (such as " · Archivada"), at least 2.75rem tall with a hairline divider. Hover fills the row `muted`; the selected row has a 2px primary outline; focus-visible a 2px primary outline at 2px offset. Choosing a row closes the sheet and returns focus to the trigger. Without JavaScript the rows render inline as a plain radio group.
-
-### Date and Time Picker
-
-A fieldset with quick chips (Hoy, Ayer, and "Otra fecha" showing the picked date), at least 2.75rem tall with a control-edge border; a pressed chip is primary-filled. In datetime mode, two numeric text inputs (Hora, Minutos) follow. "Otra fecha" opens a Sheet with a month calendar: a seven-column grid starting on Monday, previous and next month buttons, 2.75rem day buttons, the picked day primary-filled, today outlined in primary, and arrow keys moving by day and week. In date-only mode there is a single chip and a "Quitar" button. Without JavaScript it is a single text field with a format hint.
 
 ### Icon and Color Pickers
 

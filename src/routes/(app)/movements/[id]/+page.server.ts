@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { isUuid } from '$lib/server/db/util';
-import { dateTimeLabel } from '$lib/server/month';
+import { fullDateLabel } from '$lib/server/month';
 import { deleteMovement, getMovement } from '$lib/server/movements-queries';
 
 const notFound = () => error(404, 'Movimiento no encontrado.');
@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		movement: {
 			id: m.id,
 			type: m.type,
-			dateLabel: dateTimeLabel(m.occurredAt),
+			dateLabel: fullDateLabel(m.occurredAt),
 			description: m.description,
 			amount: m.amount,
 			destinationAmount: m.destinationAmount,

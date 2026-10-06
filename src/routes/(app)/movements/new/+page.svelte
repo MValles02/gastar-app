@@ -51,7 +51,6 @@
 			errors={form?.errors}
 			accounts={data.accounts}
 			categories={data.categories}
-			now={data.now}
 			submitLabel="Guardar movimiento"
 			cancelHref={returnTo}
 		/>

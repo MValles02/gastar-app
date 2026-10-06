@@ -6,7 +6,7 @@ import { formatAmountInput } from '$lib/money';
 import { isUuid } from '$lib/server/db/util';
 import { getAccount, listAccounts } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
-import { toLocalInput } from '$lib/server/month';
+import { localDay } from '$lib/server/month';
 import { parseMovementForm, resolveMovement, UNAVAILABLE_MESSAGE } from '$lib/server/movements';
 import { getMovement, updateMovement } from '$lib/server/movements-queries';
 
@@ -46,10 +46,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		id: m.id,
 		accounts,
 		categories,
-		now: toLocalInput(new Date()),
 		values: {
 			type: m.type,
-			occurredAt: toLocalInput(m.occurredAt),
+			occurredAt: localDay(m.occurredAt),
 			description: m.description,
 			amount: formatAmountInput(m.amount),
 			accountId: m.accountId,

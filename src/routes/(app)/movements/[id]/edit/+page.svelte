@@ -21,7 +21,6 @@
 	errors={form?.errors}
 	accounts={data.accounts}
 	categories={data.categories}
-	now={data.now}
 	submitLabel="Guardar cambios"
 	cancelHref={`/movements/${data.id}`}
 />

@@ -61,7 +61,7 @@ Constraints: `UNIQUE (user_id, name)`.
 | `id` | pk | |
 | `user_id` | fk → `user.id` | author |
 | `type` | enum('income','outcome','transfer') | |
-| `occurred_at` | timestamptz | |
+| `occurred_at` | timestamptz | Buenos Aires local midnight of the movement date (date-only; see invariant 18) |
 | `description` | text | short; max 60 chars (firm rule) |
 | `amount` | bigint, > 0 | minor units |
 | `account_id` | fk → `financial_accounts.id` | origin account |
@@ -156,3 +156,4 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 15. Transfers are excluded from month-balance and category-net calculations.
 16. `categories.(user_id, name)` is unique.
 17. All account/movement access is authorized through a single ownership-check helper, to keep future shared-account support a one-place change.
+18. `movements.occurred_at` is the Buenos Aires local midnight of the movement's date; readers derive the date in Buenos Aires and tolerate non-midnight legacy values.

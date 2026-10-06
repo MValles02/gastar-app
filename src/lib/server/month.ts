@@ -27,7 +27,7 @@ function offsetAt(ym: string): string {
 }
 
 /** Date to "YYYY-MM-DDTHH:mm" in TZ (datetime-local format). */
-export function toLocalInput(d: Date): string {
+function toLocalInput(d: Date): string {
 	const parts = new Intl.DateTimeFormat('en-CA', {
 		timeZone: TZ,
 		year: 'numeric',
@@ -106,10 +106,6 @@ export function dayHeading(ymd: string, todayYmd: string): string {
 	return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-export function dateTimeLabel(d: Date): string {
-	return new Intl.DateTimeFormat('es-AR', {
-		dateStyle: 'full',
-		timeStyle: 'short',
-		timeZone: TZ
-	}).format(d);
+export function fullDateLabel(d: Date): string {
+	return new Intl.DateTimeFormat('es-AR', { dateStyle: 'full', timeZone: TZ }).format(d);
 }

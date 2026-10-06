@@ -101,6 +101,17 @@ const acc = Object.fromEntries(accountDefs.map((a) => [a.key, { ...a, id: random
 const cat = Object.fromEntries(categoryDefs.map((c) => [c.key, { ...c, id: randomUUID() }]));
 
 const movements = [];
+// Buenos Aires local midnight of the date's Buenos Aires day (movements are date-only).
+const BA = 'America/Argentina/Buenos_Aires';
+function dayStartBA(d) {
+	const ymd = new Intl.DateTimeFormat('en-CA', { timeZone: BA }).format(d);
+	const offset = new Intl.DateTimeFormat('en-US', { timeZone: BA, timeZoneName: 'longOffset' })
+		.formatToParts(d)
+		.find((p) => p.type === 'timeZoneName')
+		.value.slice(3);
+	return new Date(`${ymd}T00:00:00${offset}`);
+}
+
 // Local-time date in `monthsAgo` months back; future dates are clamped to now, never dropped.
 function add(monthsAgo, day, hour, row) {
 	let occurredAt = new Date(
@@ -111,6 +122,7 @@ function add(monthsAgo, day, hour, row) {
 		between(0, 59)
 	);
 	if (occurredAt > now) occurredAt = new Date(now);
+	occurredAt = dayStartBA(occurredAt);
 	movements.push({
 		id: randomUUID(),
 		user_id: userId,
@@ -222,6 +234,21 @@ for (let m = 2; m >= 0; m--) {
 		exchange_rate: rate
 	});
 }
+
+// Legacy non-midnight row (23:30 Buenos Aires on the 14th) for the date-only e2e; normalized by migration 0001.
+movements.push({
+	id: randomUUID(),
+	user_id: userId,
+	type: 'outcome',
+	occurred_at: new Date('2025-03-15T02:30:00Z'),
+	description: 'Legado fin del día',
+	account_id: acc.bank.id,
+	category_id: cat.super.id,
+	amount: 1_000_00,
+	destination_account_id: null,
+	destination_amount: null,
+	exchange_rate: null
+});
 
 const cols = [
 	'id',
