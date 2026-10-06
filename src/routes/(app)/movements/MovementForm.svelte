@@ -3,7 +3,6 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/Button.svelte';
-	import DateTimePicker from '$lib/components/DateTimePicker.svelte';
 	import Field from '$lib/components/Field.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
@@ -25,7 +24,6 @@
 		errors = {},
 		accounts,
 		categories,
-		now,
 		submitLabel,
 		cancelHref
 	}: {
@@ -33,7 +31,6 @@
 		errors?: Partial<Record<Fields, string>>;
 		accounts: (Picker & { currency: 'ARS' | 'USD' })[];
 		categories: Picker[];
-		now: string;
 		submitLabel: string;
 		cancelHref: string;
 	} = $props();
@@ -51,7 +48,7 @@
 	let accountId = $state(untrack(() => initial.accountId));
 	let destinationId = $state(untrack(() => initial.destinationAccountId));
 	let categoryId = $state(untrack(() => initial.categoryId));
-	let occurredAt = $state(untrack(() => initial.occurredAt || now));
+	let occurredAt = $state(untrack(() => initial.occurredAt));
 	let amount = $state(untrack(() => initial.amount));
 	let description = $state(untrack(() => initial.description));
 	let rate = $state(untrack(() => initial.exchangeRate));
@@ -201,7 +198,16 @@
 		</div>
 	{/if}
 
-	<DateTimePicker name="occurredAt" bind:value={occurredAt} {now} error={errors.occurredAt} />
+	<Field label="Fecha" error={errors.occurredAt} errorId="date-error">
+		<input
+			name="occurredAt"
+			type="date"
+			min="2000-01-01"
+			bind:value={occurredAt}
+			aria-invalid={errors.occurredAt ? 'true' : undefined}
+			aria-describedby={errors.occurredAt ? 'date-error' : undefined}
+		/>
+	</Field>
 
 	<div class="actions">
 		<Button type="submit">{submitLabel}</Button>

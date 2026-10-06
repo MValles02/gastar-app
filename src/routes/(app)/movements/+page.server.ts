@@ -3,7 +3,7 @@ import { toIconKey, toSwatchKey } from '$lib/appearance';
 import { listAccounts } from '$lib/server/accounts-queries';
 import { listCategories } from '$lib/server/categories-queries';
 import { toRecentItem, type Currency } from '$lib/server/dashboard';
-import { dayHeading, localDay, toLocalInput } from '$lib/server/month';
+import { dayHeading, localDay } from '$lib/server/month';
 import { parseMovementFilters } from '$lib/server/movements';
 import { listMovements, PAGE_SIZE } from '$lib/server/movements-queries';
 
@@ -68,7 +68,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				archived: c.archivedAt !== null
 			}))
 		],
-		now: toLocalInput(now),
 		page,
 		hasNext,
 		activeCount

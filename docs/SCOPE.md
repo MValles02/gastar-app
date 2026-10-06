@@ -81,7 +81,7 @@ Personal finance PWA for Argentina. Answers two questions:
 
 - Type toggle: Income / Outcome / Transfer.
 - Fields:
-  - Date + time (default: now).
+  - Date (default: today).
   - Description (short).
   - Amount.
   - Account: origin (all types), destination (transfer only).

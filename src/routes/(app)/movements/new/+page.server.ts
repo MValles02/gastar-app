@@ -5,7 +5,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { toIconKey, toSwatchKey } from '$lib/appearance';
 import { getAccount, listAccounts } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
-import { toLocalInput } from '$lib/server/month';
+import { localDay } from '$lib/server/month';
 import { parseMovementForm, resolveMovement, UNAVAILABLE_MESSAGE } from '$lib/server/movements';
 import { createMovement } from '$lib/server/movements-queries';
 
@@ -38,7 +38,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	return {
 		accounts,
 		categories,
-		now: toLocalInput(new Date()),
+		now: localDay(new Date()),
 		saved: url.searchParams.get('saved') === '1',
 		formKey: crypto.randomUUID(),
 		defaultAccountId

@@ -1,7 +1,7 @@
 import { convertAmount, parseAmount } from '../money';
 import { isUuid } from './db/util';
 import type { Currency, MovementType } from './dashboard';
-import { dayStart, parseLocalDateTime } from './month';
+import { dayStart } from './month';
 
 export type MovementData = {
 	type: MovementType;
@@ -39,7 +39,7 @@ export const UNAVAILABLE_MESSAGE = 'La cuenta o la categoría ya no está dispon
 
 const MSG = {
 	type: 'Elegí un tipo de movimiento.',
-	date: 'Ingresá una fecha y hora válidas.',
+	date: 'Ingresá una fecha válida.',
 	descEmpty: 'Ingresá una descripción.',
 	descLong: 'La descripción puede tener hasta 60 caracteres.',
 	amount: 'Ingresá un monto mayor a cero, con hasta 2 decimales (ej.: 1.234,56).',
@@ -78,8 +78,11 @@ export function parseMovementForm(fd: FormData): MovementFormResult {
 	const type = TYPES.find((t) => t === values.type);
 	if (!type) errors.type = MSG.type;
 
-	const occurredAt =
-		values.occurredAt.slice(0, 4) < '2000' ? null : parseLocalDateTime(values.occurredAt);
+	// "YYYY-MM-DDTHH:mm" exists for open tabs on the previous release (which posted a datetime);
+	// only the date part is used. Drop it in a later release.
+	const day =
+		/^(\d{4}-\d{2}-\d{2})(?:T([01]\d|2[0-3]):[0-5]\d)?$/.exec(values.occurredAt)?.[1] ?? '';
+	const occurredAt = day.slice(0, 4) >= '2000' && validDay(day) ? dayStart(day) : null;
 	if (!occurredAt) errors.occurredAt = MSG.date;
 
 	const description = values.description.trim();

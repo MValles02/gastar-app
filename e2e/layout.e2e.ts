@@ -121,7 +121,7 @@ test('movement form controls share one height of at least 44px at 390x844', asyn
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
 	// The amount field is intentionally larger and excluded.
 	const heights = await page
-		.locator('input[name="description"], select, button.trigger')
+		.locator('input[name="description"], input[name="occurredAt"], select, button.trigger')
 		.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
 	expect(heights.length).toBeGreaterThan(1);
 	for (const h of heights) expect(h).toBeGreaterThanOrEqual(44);
@@ -299,4 +299,22 @@ test('outcomes are not coloured red on detail pages', async ({ page }) => {
 	await page.goto('/categories');
 	await page.getByRole('link', { name: 'Supermercado' }).click();
 	await expectOutcomeTone(page);
+});
+
+test('a keyboard-focused submit button stays clear of the bottom nav at 390x844', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await login(page);
+	await page.goto('/movements/new', { waitUntil: 'networkidle' });
+	await page.locator('input[name="occurredAt"]').focus();
+	const submit = page.getByRole('button', { name: 'Guardar movimiento' });
+	// The date input has several tab stops (day, month, year, picker).
+	for (let i = 0; i < 6 && !(await submit.evaluate((el) => el === document.activeElement)); i++)
+		await page.keyboard.press('Tab');
+	await expect(submit).toBeFocused();
+	const nav = await page.getByRole('navigation', { name: 'Navegación principal' }).boundingBox();
+	await expect
+		.poll(async () => (await submit.boundingBox())!.y + (await submit.boundingBox())!.height)
+		.toBeLessThanOrEqual(nav!.y);
 });

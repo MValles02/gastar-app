@@ -2,8 +2,8 @@
 	import { resolve } from '$app/paths';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import Button from '$lib/components/Button.svelte';
-	import DateTimePicker from '$lib/components/DateTimePicker.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import Field from '$lib/components/Field.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
@@ -88,8 +88,8 @@
 				>
 					{#snippet empty()}{/snippet}
 				</OptionPicker>
-				<DateTimePicker name="from" mode="date" label="Desde" now={data.now} bind:value={from} />
-				<DateTimePicker name="to" mode="date" label="Hasta" now={data.now} bind:value={to} />
+				<Field label="Desde"><input type="date" name="from" bind:value={from} /></Field>
+				<Field label="Hasta"><input type="date" name="to" bind:value={to} /></Field>
 				<a class="clear" href={resolve('/movements')}>Limpiar filtros</a>
 			</div>
 		</details>
