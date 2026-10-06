@@ -154,8 +154,8 @@
 	.trigger {
 		justify-content: flex-start;
 		width: 100%;
-		min-height: 3rem;
-		padding: var(--space-2) var(--space-4);
+		min-height: 2.75rem;
+		padding: var(--space-2) var(--space-3);
 		background: var(--surface);
 		color: var(--text);
 		border: 1px solid var(--border-strong);
@@ -193,7 +193,7 @@
 	}
 
 	.row:hover {
-		background: color-mix(in srgb, var(--primary) 8%, transparent);
+		background: var(--muted);
 	}
 
 	.row:has(input:checked) {

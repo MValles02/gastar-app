@@ -32,7 +32,7 @@
 		align-items: center;
 		gap: var(--space-3);
 		min-height: 2.75rem;
-		padding: var(--space-2) var(--space-4);
+		padding: var(--space-3) var(--space-4);
 		border-bottom: 1px solid var(--border);
 		text-decoration: none;
 	}
@@ -45,12 +45,12 @@
 
 	@media (hover: hover) {
 		.row:hover {
-			background: color-mix(in srgb, var(--primary) 8%, transparent);
+			background: var(--muted);
 		}
 	}
 
 	.row:active {
-		background: color-mix(in srgb, var(--primary) 14%, transparent);
+		background: var(--muted);
 	}
 
 	.row:focus-visible {
@@ -72,11 +72,12 @@
 	}
 
 	.title {
+		font-size: var(--font-size-sm);
 		font-weight: 500;
 	}
 
 	.subtitle {
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-xs);
 		color: var(--text-muted);
 	}
 
