@@ -1,5 +1,11 @@
 import { and, eq, type AnyColumn, type SQL } from 'drizzle-orm';
-import { categories, financialAccounts, movements } from './db/schema';
+import {
+	categories,
+	financialAccounts,
+	movements,
+	recurringMovements,
+	spendingPlans
+} from './db/schema';
 
 /** The single ownership check for accounts (and, through them, movements). Accepts an alias. */
 export function canAccessAccount(
@@ -35,4 +41,27 @@ export function canAccessMovement(
 	origin: { ownerId: AnyColumn } = financialAccounts
 ): SQL {
 	return and(eq(movements.userId, userId), canAccessAccount(userId, origin))!;
+}
+
+/** The single ownership check for recurring rules. Accepts an alias. */
+export function canAccessRecurring(
+	userId: string,
+	r: { userId: AnyColumn } = recurringMovements
+): SQL {
+	return eq(r.userId, userId);
+}
+
+/** Insert-side counterpart of canAccessRecurring. */
+export function recurringOwnedBy(userId: string) {
+	return { userId };
+}
+
+/** The single ownership check for spending plans. Category limits are reached only by joining their plan. */
+export function canAccessPlan(userId: string, p: { userId: AnyColumn } = spendingPlans): SQL {
+	return eq(p.userId, userId);
+}
+
+/** Insert-side counterpart of canAccessPlan. */
+export function planOwnedBy(userId: string) {
+	return { userId };
 }

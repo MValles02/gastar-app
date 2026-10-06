@@ -70,6 +70,7 @@ Constraints: `UNIQUE (user_id, name)`.
 | `destination_account_id` | fk → `financial_accounts.id`, nullable | transfer only |
 | `destination_amount` | bigint, nullable, > 0 | transfer only, minor units |
 | `exchange_rate` | bigint, nullable, > 0 | transfer only, hundredths, only when currencies differ |
+| `recurring_id` | fk → `recurring_movements.id`, nullable | set when the movement logs a recurring rule; ON DELETE SET NULL |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
 
@@ -96,8 +97,75 @@ Constraints: `UNIQUE (user_id, name)`.
 - `(destination_account_id)`
 - `(category_id)`
 - `(user_id, occurred_at)`
+- `(recurring_id)`
+
+### `recurring_movements`
+
+Monthly recurring incomes or bills. Logging one creates a normal movement linked by `movements.recurring_id`; a rule is paid in a month when a linked movement exists in that month. Its currency is its account's currency.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | pk | |
+| `user_id` | fk → `user.id` | |
+| `type` | enum('income','outcome','transfer') | never `transfer` (CHECK) |
+| `description` | varchar(60) | |
+| `amount` | bigint, > 0 | minor units |
+| `account_id` | fk → `financial_accounts.id` | ON DELETE CASCADE |
+| `category_id` | fk → `categories.id` | ON DELETE CASCADE |
+| `day_of_month` | smallint | 1–31 (CHECK); clamped to the month's last day when reading |
+| `archived_at` | timestamptz, nullable | null = active |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | |
+
+Index: `(user_id)`.
+
+### `spending_plans`
+
+At most one plan per user and currency. The currency is stored because a plan has no account.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | pk | |
+| `user_id` | fk → `user.id` | |
+| `currency` | enum('ARS','USD') | |
+| `extra_income` | bigint, >= 0, default 0 | minor units |
+| `savings` | bigint, >= 0, default 0 | minor units |
+| `month` | varchar(7), nullable | null = every month; `YYYY-MM` = that month only (CHECK) |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | |
+
+Constraints: `UNIQUE (user_id, currency)`.
+
+### `plan_category_limits`
+
+Optional monthly limit per category.
+
+| Column | Type | Notes |
+|---|---|---|
+| `plan_id` | fk → `spending_plans.id` | ON DELETE CASCADE |
+| `category_id` | fk → `categories.id` | ON DELETE CASCADE |
+| `amount` | bigint, > 0 | minor units |
+
+Constraints: PK `(plan_id, category_id)`.
 
 ## Derived formulas
+
+### Plan figures (per plan currency, per month; computed in `src/lib/server/plan.ts`)
+
+All inputs are in the plan's currency; nothing is converted or summed across currencies.
+
+```
+income      = sum(active recurring incomes) + extra_income
+forSpending = income - sum(active recurring bills) - savings
+available   = forSpending - spent        -- spent = month outcomes not linked to a rule
+perDay      = available > 0 ? floor(available / daysLeft / unit) * unit : 0
+              -- daysLeft = clamp(days - elapsed + 1, 1, days); unit = 100 for ARS, 1 for USD
+unassigned  = forSpending - sum(limits)
+```
+
+- Status: `over` if `available < 0`; `warn` if `spent / forSpending > elapsed / days`; otherwise `ok`. When `forSpending <= 0`, any spending counts as fully spent (share 1), so status is `warn`, or `over` if `available < 0`; no spending gives `ok`. Each limit shows its own progress the same way.
+- Savings presets: 10 % = `floor(income / 1000) * 100`, 20 % = `floor(income / 500) * 100`.
+- Rule status: `paid` if a linked movement exists in the month; otherwise `overdue` for any past month, or by due day (clamped to the month's length) within the current/future month: `overdue` / `today` / `upcoming`.
 
 ### Account balance (always computed, never stored)
 
@@ -128,6 +196,8 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 - `canAccessMovement(userId, origin = financialAccounts)`: `movements.user_id = userId` AND `canAccessAccount(userId, origin)`. The caller must inner-join the origin account.
 - `movementOwnedBy(userId)`: insert-side counterpart, sets `movements.user_id`.
 - `canAccessCategory(userId, cat = categories)` and `categoryOwnedBy(userId)`: the same pair for `categories.user_id`.
+- `canAccessRecurring(userId, r = recurringMovements)` and `recurringOwnedBy(userId)`: the same pair for `recurring_movements.user_id`.
+- `canAccessPlan(userId, p = spendingPlans)` and `planOwnedBy(userId)`: the same pair for `spending_plans.user_id`. Category limits have no owner column; they are reached only by joining their plan.
 
 `movements.user_id` is the movement's own owner column; reads, updates and deletes go through `canAccessMovement`, inserts through `movementOwnedBy`.
 
@@ -159,3 +229,6 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 17. All account/movement access is authorized through a single ownership-check helper, to keep future shared-account support a one-place change.
 18. `movements.occurred_at` is the Buenos Aires local midnight of the movement's date; readers derive the date in Buenos Aires and tolerate non-midnight legacy values.
 19. New and edited ARS amounts, initial balances and all exchange rates are multiples of 100 (whole pesos); existing non-whole values are tolerated and displayed rounded half-up.
+20. Recurring-rule and plan amounts are in the account's or plan's currency and are never summed across currencies. ARS values are whole pesos, validated in the actions.
+21. Plan figures (income, for spending, available, per day, status, limit progress) are computed at read time, never persisted.
+22. Deletion: hard-deleting an unreferenced account or category cascades to its recurring rules and plan limits. Deleting a recurring rule sets the linked movements' `recurring_id` to NULL, so history is kept. Archiving does not touch plan rows; rules on an archived account or category are inactive (excluded from plan sums, cannot be logged).

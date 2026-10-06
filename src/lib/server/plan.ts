@@ -1,0 +1,151 @@
+import type { MovementType } from './dashboard';
+import { parseAmount } from '../money';
+import { isUuid } from './db/util';
+import { daysInMonth, elapsedDays } from './month';
+
+export type RecurringStatus = 'paid' | 'overdue' | 'today' | 'upcoming';
+
+/** Due day clamped to the month (31 → 30 in September); daysLeft is negative when overdue. */
+export function recurringStatus(dayOfMonth: number, paid: boolean, ym: string, todayYmd: string) {
+	const day = Math.min(dayOfMonth, daysInMonth(ym));
+	const daysLeft = day - elapsedDays(ym, todayYmd);
+	const status: RecurringStatus = paid
+		? 'paid'
+		: daysLeft < 0 || ym < todayYmd.slice(0, 7)
+			? 'overdue'
+			: daysLeft === 0
+				? 'today'
+				: 'upcoming';
+	return { day, daysLeft, status };
+}
+
+export type PlanStatus = 'ok' | 'warn' | 'over';
+
+export type PlanInput = {
+	/** Sum of active recurring incomes. */
+	recurringIncome: number;
+	extraIncome: number;
+	/** Sum of active recurring outcomes. */
+	bills: number;
+	savings: number;
+	/** Month outcomes not linked to a recurring rule (bills are already deducted). */
+	spent: number;
+	limits: { categoryId: string; name: string; amount: number; spent: number }[];
+	ym: string;
+	todayYmd: string;
+};
+
+/** All inputs must be in `currency`; nothing here converts or sums across currencies. */
+export function planSummary(p: PlanInput & { currency: 'ARS' | 'USD' }) {
+	const income = p.recurringIncome + p.extraIncome;
+	const forSpending = income - p.bills - p.savings;
+	const available = forSpending - p.spent;
+	const days = daysInMonth(p.ym);
+	const elapsed = elapsedDays(p.ym, p.todayYmd);
+	// Today still counts as a day to spend in.
+	const daysLeft = Math.min(Math.max(days - elapsed + 1, 1), days);
+	const unit = p.currency === 'ARS' ? 100 : 1;
+	const elapsedShare = elapsed / days;
+	const spentShare = forSpending > 0 ? p.spent / forSpending : p.spent > 0 ? 1 : 0;
+	const status: PlanStatus = available < 0 ? 'over' : spentShare > elapsedShare ? 'warn' : 'ok';
+	const limits = p.limits.map((l) => {
+		const share = l.spent / l.amount;
+		return {
+			...l,
+			share,
+			over: l.spent > l.amount,
+			fast: l.spent <= l.amount && share > elapsedShare
+		};
+	});
+	return {
+		income,
+		bills: p.bills,
+		savings: p.savings,
+		forSpending,
+		spent: p.spent,
+		available,
+		perDay: available > 0 ? Math.floor(available / daysLeft / unit) * unit : 0,
+		daysLeft,
+		elapsed,
+		days,
+		spentShare,
+		elapsedShare,
+		status,
+		limits,
+		unassigned: forSpending - p.limits.reduce((a, l) => a + l.amount, 0)
+	};
+}
+
+/** Savings presets: none, 10 % or 20 % of income (whole units, rounded down; integer math), or a fixed amount. */
+export function savingsFor(option: string, income: number, fixed: number | null): number {
+	if (option === '10') return Math.floor(income / 1000) * 100;
+	if (option === '20') return Math.floor(income / 500) * 100;
+	if (option === 'fixed') return fixed ?? 0;
+	return 0;
+}
+
+export type RecurringFormValues = Record<
+	'type' | 'description' | 'amount' | 'accountId' | 'categoryId' | 'dayOfMonth',
+	string
+>;
+export type RecurringFormResult =
+	| {
+			ok: true;
+			values: RecurringFormValues;
+			data: {
+				type: Exclude<MovementType, 'transfer'>;
+				description: string;
+				amount: number;
+				accountId: string;
+				categoryId: string;
+				dayOfMonth: number;
+			};
+	  }
+	| { ok: false; values: RecurringFormValues; errors: Partial<RecurringFormValues> };
+
+/**
+ * Pure: validates the recurring income/payment form (ownership is checked by the caller).
+ * The currency is unknown here, so the ARS whole-peso check (`isWholeFor`) is the actions' job.
+ */
+export function parseRecurringForm(fd: FormData): RecurringFormResult {
+	const get = (k: string) => {
+		const v = fd.get(k);
+		return typeof v === 'string' ? v : '';
+	};
+	const values: RecurringFormValues = {
+		type: get('type'),
+		description: get('description'),
+		amount: get('amount'),
+		accountId: get('accountId'),
+		categoryId: get('categoryId'),
+		dayOfMonth: get('dayOfMonth')
+	};
+	const errors: Partial<RecurringFormValues> = {};
+	const type = values.type === 'income' || values.type === 'outcome' ? values.type : null;
+	if (!type) errors.type = 'Elegí si es un ingreso o un pago.';
+	const description = values.description.trim();
+	if (!description) errors.description = 'Ingresá una descripción.';
+	else if (description.length > 60)
+		errors.description = 'La descripción puede tener hasta 60 caracteres.';
+	const amount = parseAmount(values.amount);
+	if (amount === null || amount <= 0)
+		errors.amount = 'Ingresá un monto mayor a cero, con hasta 2 decimales (ej.: 1.234,56).';
+	if (!isUuid(values.accountId)) errors.accountId = 'Elegí una cuenta.';
+	if (!isUuid(values.categoryId)) errors.categoryId = 'Elegí una categoría.';
+	const day = Number(values.dayOfMonth);
+	if (!/^\d{1,2}$/.test(values.dayOfMonth) || day < 1 || day > 31)
+		errors.dayOfMonth = 'Elegí un día entre 1 y 31.';
+	if (Object.keys(errors).length > 0) return { ok: false, values, errors };
+	return {
+		ok: true,
+		values,
+		data: {
+			type: type!,
+			description,
+			amount: amount!,
+			accountId: values.accountId,
+			categoryId: values.categoryId,
+			dayOfMonth: day
+		}
+	};
+}
