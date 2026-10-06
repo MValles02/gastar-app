@@ -17,7 +17,8 @@
 		formatMoney(cents, currency, { sign: kind === 'income' ? 'always' : 'auto' }).split(' ')
 	);
 	let num = $derived(parts[1]);
-	let cut = $derived(num.lastIndexOf(','));
+	// ARS has no decimal part: cut at the end.
+	let cut = $derived(num.includes(',') ? num.lastIndexOf(',') : num.length);
 	// Thousands groups of the integer part; the only break points inside the number are after each ".".
 	let groups = $derived(num.slice(0, cut).split('.'));
 </script>

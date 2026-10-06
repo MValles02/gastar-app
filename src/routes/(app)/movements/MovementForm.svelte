@@ -92,8 +92,8 @@
 				class="amount-input"
 				name="amount"
 				type="text"
-				inputmode="decimal"
-				placeholder="0,00"
+				inputmode={originCurrency === 'USD' ? 'decimal' : 'numeric'}
+				placeholder={originCurrency === 'USD' ? '0,00' : '0'}
 				autocomplete="off"
 				autofocus
 				bind:value={amount}
@@ -155,8 +155,8 @@
 				<input
 					name="exchangeRate"
 					type="text"
-					inputmode="decimal"
-					placeholder="0,00"
+					inputmode="numeric"
+					placeholder="0"
 					autocomplete="off"
 					bind:value={rate}
 					aria-invalid={errors.exchangeRate ? 'true' : undefined}

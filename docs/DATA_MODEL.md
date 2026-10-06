@@ -2,14 +2,15 @@
 
 ## Money & rate representation
 
-- All monetary amounts are stored as **integer minor units** (bigint cents). E.g. ARS 1.234,56 → `123456`.
-- Exchange rate is stored as an **integer hundredths** value (`rate × 100`, bigint). E.g. rate "1 USD = 1500,25 ARS" → `150025`.
+- All monetary amounts are stored as **integer minor units** (bigint cents). E.g. US$ 1.234,56 → `123456`.
+- ARS amounts and exchange rates are whole pesos (multiples of 100): the app validates this on input and shows ARS without decimals. Only USD has cents.
+- Exchange rate is stored as an **integer hundredths** value (`rate × 100`, bigint). E.g. rate "1 USD = 1500 ARS" → `150000`.
 - A movement's currency is **derived from its account** (`financial_accounts.currency`); it is not stored on the movement.
 
 ### Conversion formulas (integer arithmetic, half-up rounding)
 
 ```
-USD → ARS: dest_cents = round_half_up(amount_cents × rate_hundredths / 100)
+USD → ARS: dest_cents = round_half_up(amount_cents × rate_hundredths / 10000) × 100   (whole pesos)
 ARS → USD: dest_cents = round_half_up(amount_cents × 100 / rate_hundredths)
 ```
 
@@ -141,7 +142,7 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 
 1. Every monetary column (`initial_balance`, `amount`, `destination_amount`) is stored in integer minor units (bigint).
 2. `exchange_rate`, when present, is stored as integer hundredths (bigint) and is `> 0`.
-3. Conversion rounding is always half-up to 2 decimals, applied via the integer formulas above.
+3. Conversion rounding is always half-up, applied via the integer formulas above: to whole pesos into ARS, to cents into USD.
 4. A movement's currency is never stored; it is derived from `account_id`'s `financial_accounts.currency`.
 5. `income` and `outcome` movements always have a non-null `category_id` and null transfer-only fields.
 6. `transfer` movements always have a non-null `destination_account_id` different from `account_id`, a non-null `destination_amount`, and a null `category_id`.
@@ -157,3 +158,4 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 16. `categories.(user_id, name)` is unique.
 17. All account/movement access is authorized through a single ownership-check helper, to keep future shared-account support a one-place change.
 18. `movements.occurred_at` is the Buenos Aires local midnight of the movement's date; readers derive the date in Buenos Aires and tolerate non-midnight legacy values.
+19. New and edited ARS amounts, initial balances and all exchange rates are multiples of 100 (whole pesos); existing non-whole values are tolerated and displayed rounded half-up.

@@ -179,7 +179,7 @@ test('Inicio hero amount scales with text and never breaks inside a digit group 
 		return out;
 	});
 	for (const line of lines.slice(0, -1)) expect(line).toMatch(/\.$/);
-	expect(lines.join('')).toMatch(/^\d{1,3}(\.\d{3})*,\d{2}$/);
+	expect(lines.join('')).toMatch(/^\d{1,3}(\.\d{3})*$/);
 });
 
 test('category detail navigates months', async ({ page }) => {

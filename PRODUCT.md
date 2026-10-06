@@ -22,7 +22,7 @@ It is private and self-hosted, run for the owner and their friends and family on
 
 - Mobile-first, installable PWA, used one-handed in short sessions right after spending or receiving money.
 - Month boundaries and default dates use the `America/Argentina/Buenos_Aires` timezone.
-- Currency display is `$ 1.234.567,89` (ARS) and `US$ 1.234,56` (USD). Amount input uses a comma as the decimal separator. Amounts and rates have at most 2 decimals.
+- Currency display is `$ 1.234.568` (ARS) and `US$ 1.234,56` (USD). USD amount input uses a comma as the decimal separator. ARS amounts and rates are whole pesos; USD amounts have up to 2 decimals.
 - Navigation is a sticky top bar (back when applicable, date and title, profile avatar) plus a bottom nav: Dashboard, Accounts, create movement (center "+"), Movements, Categories.
 - Tapping a list item opens a detail page with Edit and Delete. There are no inline row actions. Create and edit share one form.
 

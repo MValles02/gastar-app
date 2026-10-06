@@ -222,7 +222,7 @@ for (let m = 2; m >= 0; m--) {
 		destination_amount: 100_000_00
 	});
 	// ARS -> USD: dest = round_half_up(amount * 100 / rate_hundredths).
-	const rate = 120_000 + (2 - m) * 6_500 + between(0, 2_000);
+	const rate = 120_000 + (2 - m) * 6_500 + between(0, 20) * 100;
 	const ars = between(100, 200) * 1000 * 100;
 	add(m, 11, 13, {
 		type: 'transfer',
