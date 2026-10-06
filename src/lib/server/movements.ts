@@ -1,4 +1,4 @@
-import { convertAmount, parseAmount } from '../money';
+import { ARS_WHOLE_MESSAGE, convertAmount, isWholeFor, parseAmount } from '../money';
 import { isUuid } from './db/util';
 import type { Currency, MovementType } from './dashboard';
 import { dayStart } from './month';
@@ -47,7 +47,7 @@ const MSG = {
 	archivedAccount: 'Esa cuenta está archivada. Elegí otra.',
 	destination: 'Elegí la cuenta de destino.',
 	sameAccount: 'Elegí una cuenta distinta de la de origen.',
-	rate: 'Ingresá la cotización (1 USD = X ARS), mayor a cero y con hasta 2 decimales.',
+	rate: 'Ingresá la cotización (1 USD = X ARS) en pesos enteros y mayor a cero.',
 	zero: 'El monto convertido da 0. Revisá el monto o la cotización.',
 	overflow: 'El monto convertido es demasiado grande.',
 	category: 'Elegí una categoría.',
@@ -140,6 +140,7 @@ export function resolveMovement(
 	if (!origin) errors.accountId = MSG.account;
 	else if (origin.archivedAt && !keep.accountIds.includes(origin.id))
 		errors.accountId = MSG.archivedAccount;
+	else if (!isWholeFor(data.amount, origin.currency)) errors.amount = ARS_WHOLE_MESSAGE;
 
 	if (data.type !== 'transfer') {
 		if (!category) errors.categoryId = MSG.category;
@@ -166,7 +167,7 @@ export function resolveMovement(
 			row: { ...base, destinationAccountId: d.id, destinationAmount: data.amount }
 		};
 	}
-	if (!data.exchangeRate || data.exchangeRate <= 0)
+	if (!data.exchangeRate || data.exchangeRate <= 0 || !isWholeFor(data.exchangeRate, 'ARS'))
 		return { ok: false, errors: { exchangeRate: MSG.rate } };
 	const converted = convertAmount(data.amount, data.exchangeRate, o.currency, d.currency);
 	if (converted === null) return { ok: false, errors: { amount: MSG.overflow } };

@@ -75,7 +75,7 @@
 			name="initialBalance"
 			type="text"
 			inputmode="decimal"
-			placeholder="0,00"
+			placeholder={currency === 'USD' ? '0,00' : '0'}
 			autocomplete="off"
 			bind:value={initialBalance}
 			aria-invalid={errors.initialBalance ? 'true' : undefined}

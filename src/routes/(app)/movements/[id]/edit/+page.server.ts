@@ -50,10 +50,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			type: m.type,
 			occurredAt: localDay(m.occurredAt),
 			description: m.description,
-			amount: formatAmountInput(m.amount),
+			amount: formatAmountInput(m.amount, m.accountCurrency),
 			accountId: m.accountId,
 			destinationAccountId: m.destinationAccountId ?? '',
-			exchangeRate: m.exchangeRate !== null ? formatAmountInput(m.exchangeRate) : '',
+			exchangeRate: m.exchangeRate !== null ? formatAmountInput(m.exchangeRate, 'ARS') : '',
 			categoryId: m.categoryId ?? ''
 		}
 	};

@@ -34,9 +34,9 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ## Locale & formatting
 
-- Currency display: `$ 1.234.567,89` (ARS), `US$ 1.234,56` (USD).
-- Amount input: comma as decimal separator.
-- Max 2 decimals everywhere — amounts and exchange rates.
+- Currency display: `$ 1.234.568` (ARS), `US$ 1.234,56` (USD).
+- Amount input: comma as decimal separator (USD only).
+- ARS amounts and exchange rates are whole pesos; USD amounts have up to 2 decimals.
 - Timezone for "month" boundaries and default dates: `America/Argentina/Buenos_Aires`.
 
 ## Layout
@@ -102,10 +102,10 @@ Personal finance PWA for Argentina. Answers two questions:
 ## Rules
 
 - ARS and USD are completely separate ledgers. The only link between them is a transfer between accounts of different currencies.
-- Exchange rate is always expressed as "1 USD = X ARS", entered manually per transfer, max 2 decimals. No automatic rates.
+- Exchange rate is always expressed as "1 USD = X ARS", entered manually per transfer, in whole pesos. No automatic rates.
   - USD → ARS: `destination = amount × rate`.
   - ARS → USD: `destination = amount ÷ rate`.
-  - Rounding: half-up to 2 decimals.
+  - Rounding: half-up to whole pesos into ARS, half-up to cents into USD.
   - Example: 100 USD at rate 1500 → 150.000 ARS. 150.000 ARS at rate 1500 → 100 USD.
   - Same-currency transfer: no rate; destination amount = amount.
 - Transfers never count toward month balance and have no category.

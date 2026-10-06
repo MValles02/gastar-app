@@ -7,7 +7,7 @@ import {
 } from '$lib/server/accounts';
 import { isUuid } from '$lib/server/db/util';
 import { accountReferenced, getAccount, updateAccount } from '$lib/server/accounts-queries';
-import { formatAmountInput } from '$lib/money';
+import { ARS_WHOLE_MESSAGE, formatAmountInput, isWholeFor } from '$lib/money';
 
 const notFound = () => error(404, 'Cuenta no encontrada.');
 
@@ -24,7 +24,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		values: {
 			name: account.name,
 			currency: account.currency,
-			initialBalance: formatAmountInput(account.initialBalance),
+			initialBalance: formatAmountInput(account.initialBalance, account.currency),
 			icon: account.icon,
 			color: account.color
 		}
@@ -41,7 +41,7 @@ export const actions: Actions = {
 
 		const [account] = await getAccount(userId, params.id);
 		if (!account) notFound();
-		const lockedFail = () =>
+		const failWith = (errors: Record<string, string>) =>
 			fail(400, {
 				values: {
 					name: String(fd.get('name') ?? ''),
@@ -50,8 +50,11 @@ export const actions: Actions = {
 					icon: parsed.data.icon,
 					color: parsed.data.color
 				},
-				errors: { currency: CURRENCY_LOCKED_MESSAGE }
+				errors
 			});
+		const lockedFail = () => failWith({ currency: CURRENCY_LOCKED_MESSAGE });
+		if (!isWholeFor(parsed.data.initialBalance, parsed.data.currency ?? account.currency))
+			return failWith({ initialBalance: ARS_WHOLE_MESSAGE });
 
 		if (parsed.data.currency) {
 			const referenced = (await accountReferenced(userId, account.id)).length > 0;
