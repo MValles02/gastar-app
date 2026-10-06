@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import MovementForm from '../../MovementForm.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -10,7 +11,10 @@
 	<title>Editar movimiento · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Editar movimiento" />
+<PageHeader
+	title="Editar movimiento"
+	back={{ href: resolve(`/movements/${data.id}`), label: 'Volver al movimiento' }}
+/>
 
 <MovementForm
 	initial={form?.values ?? data.values}

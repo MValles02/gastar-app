@@ -5,6 +5,7 @@
 	import Checkbox from '$lib/components/Checkbox.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -19,11 +20,7 @@
 	<title>Categorías · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Categorías">
-	{#snippet action()}
-		<Button href={resolve('/categories/new')}>Nueva categoría</Button>
-	{/snippet}
-</PageHeader>
+<PageHeader title="Categorías" />
 
 <div class="page">
 	{#if !data.hasAnyCategory}
@@ -58,6 +55,7 @@
 				{/each}
 			</ul>
 		{/if}
+		<a class="add-row" href={resolve('/categories/new')}><Icon name="plus" />Nueva categoría</a>
 	{/if}
 </div>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import CategoryForm from '../../CategoryForm.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -10,7 +11,10 @@
 	<title>Editar categoría · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Editar categoría" />
+<PageHeader
+	title="Editar categoría"
+	back={{ href: resolve(`/categories/${data.id}`), label: 'Volver a la categoría' }}
+/>
 
 <CategoryForm
 	mode="edit"

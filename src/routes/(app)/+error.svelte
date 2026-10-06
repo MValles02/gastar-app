@@ -11,7 +11,10 @@
 	const detail = $derived(/\.$/.test(page.error?.message ?? '') ? page.error?.message : null);
 </script>
 
-<PageHeader title={notFound ? 'No encontrado' : 'Algo salió mal'} />
+<PageHeader
+	title={notFound ? 'No encontrado' : 'Algo salió mal'}
+	back={{ href: resolve('/'), label: 'Volver al inicio' }}
+/>
 
 <EmptyState icon="home">
 	{detail ?? (notFound ? 'No encontramos lo que buscabas.' : 'Ocurrió un error. Probá de nuevo.')}

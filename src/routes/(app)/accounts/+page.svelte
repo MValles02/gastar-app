@@ -5,6 +5,7 @@
 	import Checkbox from '$lib/components/Checkbox.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
@@ -27,11 +28,7 @@
 	<title>Cuentas · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Cuentas">
-	{#snippet action()}
-		<Button href={resolve('/accounts/new')}>Nueva cuenta</Button>
-	{/snippet}
-</PageHeader>
+<PageHeader title="Cuentas" />
 
 <div class="page">
 	{#if !data.hasAnyAccount}
@@ -85,6 +82,7 @@
 				</section>
 			{/each}
 		{/if}
+		<a class="add-row" href={resolve('/accounts/new')}><Icon name="plus" />Nueva cuenta</a>
 	{/if}
 </div>
 

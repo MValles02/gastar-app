@@ -3,7 +3,6 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import Icon from '$lib/components/Icon.svelte';
-	import Wordmark from '$lib/components/Wordmark.svelte';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -24,7 +23,6 @@
 		}
 	];
 	const newMovementHref = resolve('/movements/new');
-	const profileHref = resolve('/profile');
 
 	function isActive(path: string): boolean {
 		const pathname = page.url.pathname;
@@ -35,20 +33,6 @@
 </script>
 
 <div class="shell">
-	<header class="topbar">
-		<div class="topbar-grid">
-			<Wordmark />
-			<a
-				href={profileHref}
-				class="profile-link"
-				aria-label="Perfil"
-				aria-current={isActive('/profile') ? 'page' : undefined}
-			>
-				<Icon name="profile" />
-			</a>
-		</div>
-	</header>
-
 	<main class="content">
 		{@render children()}
 	</main>
@@ -87,75 +71,13 @@
 		flex-direction: column;
 	}
 
-	.topbar {
-		position: sticky;
-		top: 0;
-		z-index: 10;
-		container-type: inline-size;
-		padding: var(--space-4);
-		padding-inline: max(var(--space-5), calc((100% - var(--content-width)) / 2 + var(--space-5)));
-		background: var(--surface);
-		border-bottom: 1px solid var(--border);
-	}
-
-	@media (max-width: 30rem) {
-		.topbar {
-			padding-inline: var(--space-4);
-		}
-	}
-
-	.topbar-grid {
-		display: grid;
-		grid-template-columns: 1fr auto;
-		grid-template-areas: 'brand profile';
-		align-items: center;
-		column-gap: var(--space-2);
-	}
-
-	.topbar-grid > :global(.wordmark) {
-		grid-area: brand;
-	}
-
-	/* Wordmark + profile no longer fit side by side: stack them. */
-	@container (max-width: 9rem) {
-		.topbar-grid {
-			grid-template-columns: 1fr;
-			grid-template-areas:
-				'brand'
-				'profile';
-			justify-items: start;
-		}
-	}
-
-	.profile-link {
-		grid-area: profile;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 2.75rem;
-		height: 2.75rem;
-		text-decoration: none;
-		border-radius: var(--radius-pill);
-		border: 1px solid var(--border);
-		background: var(--surface);
-		color: var(--text);
-		transition: background-color 0.15s ease;
-	}
-
-	.profile-link:hover {
-		background: var(--muted);
-	}
-
-	.profile-link[aria-current='page'] {
-		background: var(--muted);
-	}
-
 	.content {
 		flex: 1;
 		width: 100%;
 		max-width: var(--content-width);
 		margin-inline: auto;
-		padding: var(--space-5);
+		--gutter: var(--space-5);
+		padding: 0 var(--gutter);
 		padding-bottom: calc(var(--space-8) + 4.5rem + env(safe-area-inset-bottom));
 	}
 
@@ -234,7 +156,6 @@
 	}
 
 	@media (prefers-reduced-motion: no-preference) {
-		.profile-link,
 		.nav-fab {
 			transition-property: opacity, color, background-color, transform;
 		}
@@ -246,7 +167,6 @@
 		}
 	}
 
-	.profile-link:active,
 	.nav-item:active,
 	.nav-fab:active {
 		transform: scale(0.96);
