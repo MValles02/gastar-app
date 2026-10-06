@@ -35,13 +35,14 @@
 		overflow-wrap: anywhere;
 		text-align: center;
 		font-family: inherit;
-		font-size: var(--font-size-base);
+		font-size: var(--font-size-sm);
 		font-weight: 500;
 		line-height: 1.5;
 		text-decoration: none;
-		border-radius: var(--radius-pill);
+		border-radius: var(--radius);
 		border: 1px solid transparent;
-		padding: var(--space-3) var(--space-5);
+		min-height: 2.75rem;
+		padding: var(--space-2) var(--space-4);
 		cursor: pointer;
 		transition:
 			opacity 0.15s ease,
@@ -59,7 +60,7 @@
 
 	.secondary,
 	.danger {
-		background: transparent;
+		background: var(--surface);
 		color: var(--text);
 		border-color: var(--border);
 	}
@@ -72,7 +73,7 @@
 	.secondary:hover,
 	.danger:hover {
 		opacity: 1;
-		background: color-mix(in srgb, var(--primary) 8%, transparent);
+		background: var(--muted);
 	}
 
 	.block {

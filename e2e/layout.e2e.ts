@@ -95,16 +95,31 @@ test('h1 top is identical across pages at 390x844', async ({ page }) => {
 	expect(tops).toEqual(tops.map(() => tops[0]));
 });
 
-test('keyboard focus shows an outline on /accounts/new', async ({ page }) => {
-	await login(page);
-	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
-	await page.keyboard.press('Tab');
-	const outline = await page.evaluate(() => {
-		const s = getComputedStyle(document.activeElement!);
-		return { style: s.outlineStyle, width: parseFloat(s.outlineWidth) };
+for (const route of ['/accounts/new', '/movements/new']) {
+	test(`keyboard focus shows an outline on ${route}`, async ({ page }) => {
+		await login(page);
+		await page.goto(route, { waitUntil: 'networkidle' });
+		await page.keyboard.press('Tab');
+		const outline = await page.evaluate(() => {
+			const s = getComputedStyle(document.activeElement!);
+			return { style: s.outlineStyle, width: parseFloat(s.outlineWidth) };
+		});
+		expect(outline.style).not.toBe('none');
+		expect(outline.width).toBeGreaterThan(0);
 	});
-	expect(outline.style).not.toBe('none');
-	expect(outline.width).toBeGreaterThan(0);
+}
+
+test('movement form controls share one height of at least 44px at 390x844', async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await login(page);
+	await page.goto('/movements/new', { waitUntil: 'networkidle' });
+	// The amount field is intentionally larger and excluded.
+	const heights = await page
+		.locator('input[name="description"], select, button.trigger')
+		.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
+	expect(heights.length).toBeGreaterThan(1);
+	for (const h of heights) expect(h).toBeGreaterThanOrEqual(44);
+	expect(new Set(heights.map((h) => Math.round(h))).size).toBe(1);
 });
 
 for (const width of [320, 360]) {

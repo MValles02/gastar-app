@@ -246,11 +246,11 @@
 	}
 
 	.profile-link:hover {
-		background: color-mix(in srgb, var(--primary) 10%, transparent);
+		background: var(--muted);
 	}
 
 	.profile-link[aria-current='page'] {
-		background: color-mix(in srgb, var(--primary) 10%, transparent);
+		background: var(--muted);
 	}
 
 	.content {
@@ -272,7 +272,8 @@
 		align-items: center;
 		justify-content: space-around;
 		gap: 0;
-		background: var(--surface);
+		background: color-mix(in srgb, var(--bg) 92%, transparent);
+		backdrop-filter: blur(12px);
 		border-top: 1px solid var(--border);
 		padding: var(--space-2) 0;
 		padding-inline: max(0px, calc((100% - var(--content-width)) / 2 + var(--space-5)));
@@ -282,19 +283,17 @@
 	.nav-item {
 		flex: 1 1 0;
 		min-width: 0;
+		min-height: 2.75rem;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: var(--space-1);
+		justify-content: center;
+		gap: 2px;
 		font-size: var(--font-size-xs);
+		font-weight: 500;
 		text-decoration: none;
 		color: var(--text-muted);
-		padding: var(--space-1) 0;
 		white-space: nowrap;
-		border-radius: var(--radius-pill);
-		transition:
-			color 0.15s ease,
-			background-color 0.15s ease;
 	}
 
 	.nav-item span {
@@ -309,28 +308,26 @@
 		}
 	}
 
-	.nav-item:hover {
+	.nav-item:hover,
+	.nav-item[aria-current='page'] {
 		color: var(--text);
 	}
 
-	.nav-item[aria-current='page'] {
-		color: var(--text);
-		background: color-mix(in srgb, var(--primary) 10%, transparent);
+	.nav-item[aria-current='page'] :global(svg) {
+		color: var(--primary);
 	}
 
 	.nav-fab {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 3.5rem;
-		height: 3.5rem;
-		aspect-ratio: 1;
+		width: 3.25rem;
+		height: 3.25rem;
 		flex: 0 0 auto;
 		text-decoration: none;
-		border-radius: var(--radius-pill);
+		border-radius: var(--radius-card);
 		background: var(--primary);
 		color: var(--on-primary);
-		margin-top: -1.5rem;
 		box-shadow: var(--shadow-lift);
 		transition: opacity 0.15s ease;
 	}
@@ -341,9 +338,14 @@
 
 	@media (prefers-reduced-motion: no-preference) {
 		.profile-link,
-		.nav-item,
 		.nav-fab {
 			transition-property: opacity, color, background-color, transform;
+		}
+
+		.nav-item {
+			transition:
+				color 0.15s ease,
+				transform 0.15s ease;
 		}
 	}
 

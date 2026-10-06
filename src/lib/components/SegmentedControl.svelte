@@ -37,11 +37,10 @@
 		display: flex;
 		min-width: 0;
 		max-width: 100%;
-		gap: var(--space-1);
-		padding: var(--space-1);
-		background: var(--bg);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius-pill);
+		gap: 2px;
+		padding: 3px;
+		background: var(--muted);
+		border-radius: var(--radius);
 	}
 
 	.option {
@@ -52,11 +51,11 @@
 		flex-direction: row;
 		align-items: center;
 		justify-content: center;
-		min-height: 2.75rem;
-		border-radius: var(--radius-pill);
-		font-size: var(--font-size-base);
+		min-height: 2.25rem;
+		border-radius: calc(var(--radius) - 3px);
+		font-size: var(--font-size-sm);
 		font-weight: 500;
-		color: var(--text);
+		color: var(--text-muted);
 		cursor: pointer;
 		transition:
 			background-color 0.15s ease,
@@ -69,17 +68,11 @@
 		text-align: center;
 	}
 
-	@media (max-width: 26rem) {
-		.option {
-			font-size: var(--font-size-sm);
-		}
-	}
-
 	.option input {
 		position: absolute;
-		inset: 0;
+		inset: -4px 0;
 		width: 100%;
-		height: 100%;
+		height: calc(100% + 8px);
 		margin: 0;
 		padding: 0;
 		opacity: 0;
@@ -111,8 +104,9 @@
 	}
 
 	.option:has(input:checked) {
-		background: var(--primary);
-		color: var(--on-primary);
+		background: var(--bg);
+		color: var(--text);
+		box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
 	}
 
 	.option:has(input:focus-visible) {

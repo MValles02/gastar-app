@@ -1,4 +1,4 @@
-export const THEME_COLORS = { light: '#00301c', dark: '#09100d' };
+export const THEME_COLORS = { light: '#fafaf9', dark: '#0c0a09' };
 
 /** Browser-chrome colours for the light/dark metas; an explicit choice forces both to it. */
 export function themeColors(theme: string | undefined): { light: string; dark: string } {

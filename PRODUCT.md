@@ -40,6 +40,7 @@ It is private and self-hosted, run for the owner and their friends and family on
 
 - Tone: classic, serious-bank feel. The user confirmed this is still the main idea.
 - Light and dark themes are both required (light / dark / system toggle on the Profile page).
+- Single theme: Pampa (forest green + lime on warm stone), in light and dark. Visual language follows shadcn/ui.
 - Typeface in use is DM Sans. The ARQ palette and fonts were inspiration only and are not binding.
 
 ## Evidence on Hand
