@@ -15,7 +15,7 @@ Invite-only (email + password, no public signup). Deployed as a Docker image via
 
 ## Stack
 
-SvelteKit 2 + TypeScript, Drizzle ORM + Postgres (`src/lib/server/db/schema.ts`), Better Auth (`src/lib/server/auth.ts`), plain component CSS + `@fontsource/dm-sans`, Vitest, pnpm.
+SvelteKit 2 + TypeScript, Drizzle ORM + Postgres (`src/lib/server/db/schema.ts`), Better Auth (`src/lib/server/auth.ts`), plain component CSS + `@fontsource/dm-sans`, Playwright (E2E), pnpm.
 
 ## Design
 
@@ -35,6 +35,7 @@ SvelteKit 2 + TypeScript, Drizzle ORM + Postgres (`src/lib/server/db/schema.ts`)
 - Migrations and rollouts: deploys are start-first (the new container starts while the old one still serves, both on the same DB) and migrations run at container start, so every migration must be backward-compatible with the previous release. Expand/contract: add nullable/defaulted columns first; drop or rename only in a later release, once no running code uses them (`docs/WORKFLOW.md`).
 - Branches: `feat/`, `fix/`, `chore/` or `docs/` prefix; merge to `main` via PR, squash only; PR titles follow Conventional Commits (`docs/WORKFLOW.md`).
 - `main` auto-deploys on merge (`docs/WORKFLOW.md`).
+- Testing: unit tests are not required and are not kept in the repo; cover behavior with integration tests or Playwright E2E (`e2e/`).
 
 ## Commands
 
@@ -45,7 +46,6 @@ pnpm build         # vite build
 pnpm check         # svelte-kit sync && svelte-check
 pnpm lint          # prettier --check . && eslint .
 pnpm format        # prettier --write .
-pnpm test          # vitest run --passWithNoTests
 pnpm test:e2e      # playwright test (Chromium; reuses a running `pnpm dev`, needs a migrated + seeded DB)
 pnpm db:generate   # drizzle-kit generate
 pnpm db:migrate    # node scripts/migrate.js (loads .env if present)
@@ -60,7 +60,6 @@ Run the checks `.github/workflows/ci.yml` runs (CI also runs `pnpm install --fro
 ```sh
 pnpm lint
 pnpm check
-pnpm test
 pnpm build
 ```
 
