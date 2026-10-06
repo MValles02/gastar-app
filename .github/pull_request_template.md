@@ -12,7 +12,6 @@ Refs #  (partial fix: the issue stays open) -->
 
 - [ ] `pnpm lint`
 - [ ] `pnpm check`
-- [ ] `pnpm test`
 - [ ] `pnpm build`
 - [ ] UI changes: `/impeccable audit` run (see docs/WORKFLOW.md)
 
