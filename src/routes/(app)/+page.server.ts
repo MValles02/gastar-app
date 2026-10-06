@@ -7,51 +7,52 @@ import {
 	transfersInSum
 } from '$lib/server/dashboard-queries';
 import { monthNet, toRecentItem, topCategories, totalBalance } from '$lib/server/dashboard';
-import { parseCurrencyPref } from '$lib/server/currency-pref';
+import { singleCurrency } from '$lib/server/currency-pref';
 import { currentMonth, dateLabel, monthLabel, monthRange } from '$lib/server/month';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const userId = locals.user!.id;
-	const pref = parseCurrencyPref(cookies.get('currency'));
+	const currency = singleCurrency(cookies.get('currency'));
 	const now = new Date();
 	const value = currentMonth(now);
 	const range = monthRange(value);
 
 	const summary = await accountSummary(userId);
 	const hasAnyAccount = summary.some((s) => s.count > 0);
-	const wanted = pref === 'both' ? (['ARS', 'USD'] as const) : ([pref] as const);
-	const currencies = wanted.filter((c) => summary.some((s) => s.currency === c && s.count > 0));
+	const row = summary.find((s) => s.currency === currency);
+	const hasCurrencyAccount = (row?.count ?? 0) > 0;
+	const base = {
+		currency,
+		hasAnyAccount,
+		hasCurrencyAccount,
+		month: { label: monthLabel(value, false) }
+	};
 
-	const [blocks, recent] = await Promise.all([
-		Promise.all(
-			currencies.map(async (currency) => {
-				const [allSums, inSum, monthSums, cats] = await Promise.all([
-					originTypeSums(userId, currency),
-					transfersInSum(userId, currency),
-					originTypeSums(userId, currency, range),
-					categorySums(userId, currency, range)
-				]);
-				const initial = summary.find((s) => s.currency === currency)?.initial ?? 0;
-				return {
-					currency,
-					balance: totalBalance(initial, allSums, inSum[0]?.amount ?? 0),
-					monthNet: monthNet(monthSums),
-					topCategories: topCategories(cats)
-				};
-			})
-		),
-		currencies.length > 0
-			? recentMovements(userId, pref === 'both' ? undefined : pref)
-			: Promise.resolve([])
+	if (!hasCurrencyAccount) {
+		return {
+			...base,
+			balance: 0,
+			monthNet: 0,
+			topCategories: [] as ReturnType<typeof topCategories>,
+			recent: []
+		};
+	}
+
+	const [allSums, inSum, monthSums, cats, recent] = await Promise.all([
+		originTypeSums(userId, currency),
+		transfersInSum(userId, currency),
+		originTypeSums(userId, currency, range),
+		categorySums(userId, currency, range),
+		recentMovements(userId, currency)
 	]);
 
 	return {
-		pref,
-		hasAnyAccount,
-		month: { label: monthLabel(value, false) },
-		blocks,
+		...base,
+		balance: totalBalance(row?.initial ?? 0, allSums, inSum[0]?.amount ?? 0),
+		monthNet: monthNet(monthSums),
+		topCategories: topCategories(cats),
 		recent: recent.map((r) => {
-			const { occurredAt, ...item } = toRecentItem(r, pref === 'both' ? r.accountCurrency : pref);
+			const { occurredAt, ...item } = toRecentItem(r, currency);
 			return { ...item, dateLabel: dateLabel(occurredAt) };
 		})
 	};

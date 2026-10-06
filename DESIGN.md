@@ -189,7 +189,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 ### Semantic
 
 - **Positive** (`positive`): Income amounts. Dark: `positive-dark`.
-- **Negative** (`negative`): Outcome amounts and error messages. Dark: `negative-dark`.
+- **Negative** (`negative`): Error messages and destructive actions only; outcome amounts use the text colour with a minus sign. Dark: `negative-dark`.
 - **Transfer** (`transfer`): Transfer amounts (neutral stone). Dark: `transfer-dark`.
 
 ### Swatches
@@ -283,7 +283,7 @@ Shared components live in `src/lib/components/`.
 
 ### Segmented Control
 
-A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) of radio options, used for the theme choice and the top-bar currency control. Options are at least 2.25rem tall, 0.875rem, weight 500, muted text; the selected option is a `--bg` chip with the text color and a small literal shadow (`0 1px 3px`). The radio input is invisible and extends 4px above and below the option so the hit area stays at least 2.75rem; focus-visible draws a 2px primary outline on the option.
+A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) of radio options, used for the theme choice, the Inicio currency tabs (`CurrencyTabs`) and the currency filters of the Cuentas and Movimientos lists. Options are at least 2.25rem tall, 0.875rem, weight 500, muted text; the selected option is a `--bg` chip with the text color and a small literal shadow (`0 1px 3px`). The radio input is invisible and extends 4px above and below the option so the hit area stays at least 2.75rem; focus-visible draws a 2px primary outline on the option.
 
 ### Page Header and Empty State
 
@@ -293,12 +293,16 @@ A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) of radio option
 - **Destructive cue:** The confirm-delete trigger ("Eliminar") in the detail actions uses the `negative` text colour and a 50% `negative` border; other actions stay neutral.
 - **FilterBar:** Wrapping flex form with `space-2` by `space-3` gaps. The search field takes the full first row (search icon inset left); a segmented control or filters disclosure takes its own full row; a checkbox label stays compact (auto width) and shares a row when it fits. On the movements list the filters `summary` is an inline pill (surface fill, hairline border, 2.75rem tall).
 - **List day headings:** Movements group by day under a small heading (0.875rem, 600, muted text, `space-4` inline padding) rather than a body-size title.
+- **CurrencyTabs:** `ARS | USD` `SegmentedControl` in a form posting to `/currency` (cookie `currency`); a failure shows a `role="alert"` line under it, and focus returns to the checked radio after switching.
+- **Money:** An amount with the decimals dimmed (70% opacity, text-colour amounts only, to keep 4.5:1; coloured decimals stay full), `tabular-nums`, the number breaks only after the symbol gap and at thousands separators (`<wbr>` after each `.`), never inside a digit group; `kind` colours it (`income` positive with a `+`, `transfer` transfer colour, `outcome`/`plain` text colour). Font size and weight come from the parent.
+- **MovementRow:** A `ListRow` with a leading `.row-icon` (2.25rem muted square: description initial, or the transfer icon), title, subtitle and a trailing `Money` (`.row-amount`).
+- **Section head:** `.section-head` (global): a wrapping flex row, heading left and a link or `Money` total right, baseline-aligned.
 - **Profile:** One `Card` groups the user name and email, the theme control and the "Cerrar sesión" button as sections separated by hairline dividers.
 - **EmptyState:** A centered column: a 3.5rem pill circle tinted with `color-mix(in srgb, var(--primary) 8%, transparent)` holding a primary-colored icon, over muted text. Used by the placeholder pages.
 
 ### Icon and Wordmark
 
-- **Icon:** Inline SVG, 24px by default, 24-unit viewBox, `currentColor` 1.75 stroke with round caps and joins, `aria-hidden`. Names: home, accounts, plus, movements, categories, profile, search, chevron-left, chevron-right, plus the account icons (bank, wallet, cash, card, piggy-bank, dollar, coins, safe, briefcase, phone).
+- **Icon:** Inline SVG, 24px by default, 24-unit viewBox, `currentColor` 1.75 stroke with round caps and joins, `aria-hidden`. Names: home, accounts, plus, movements, categories, profile, search, chevron-left, chevron-right, transfer, plus the account icons (bank, wallet, cash, card, piggy-bank, dollar, coins, safe, briefcase, phone).
 - **Wordmark:** A rounded-square ledger mark (two horizontal strokes) plus "Gastar" in title type. Mark fill is primary and strokes are on-primary, so it flips in dark; the text is primary.
 
 ### Sheet
@@ -321,7 +325,7 @@ Radio groups of round swatches (the icon picker shows the ten account icons in I
 
 - **Style:** Fixed translucent bottom bar (`--bg` at 92% with a 12px backdrop blur) with a top hairline, no gap, and `space-2` vertical padding plus the bottom safe-area inset. Five equal slots: two items, the FAB, two items. Each item is an icon over a 0.75rem weight-500 label (0.6875rem under 22rem), muted by default, at least 2.75rem tall.
 - **Item states:** Hover and `aria-current='page'` turn the label the text color; the active item's icon turns primary. Press scales to 0.96. Items have no horizontal padding; labels truncate with an ellipsis.
-- **Top bar:** Sticky, surface background, bottom hairline, the wordmark left and the profile link right.
+- **Top bar:** Sticky, surface background, bottom hairline, the wordmark left and the profile link right (no currency control).
 - **Profile link:** A 2.75rem circle with a 1px border, surface fill and the profile icon; hover and the current page fill it `muted`, and press scales to 0.96.
 
 ### Nav FAB
@@ -333,7 +337,7 @@ A 3.25rem primary square with the 0.875rem card radius and a 24px plus icon, cen
 ### Do:
 
 - **Do** use the theme tokens for every color, radius and spacing value.
-- **Do** put `tabular-nums` on every amount; income uses `positive`, outcome `negative` and transfer `transfer`.
+- **Do** put `tabular-nums` on every amount; only income is coloured (`positive`, with `+`); outcomes use the text colour with a minus sign and transfers the neutral `transfer` colour.
 - **Do** use `--radius` for buttons and fields and `--radius-card` for cards and the FAB.
 - **Do** group lists and sections into surface cards (`Card` or `.list-card`) and pick the lowest elevation token that works; keep `--shadow-lift` for the FAB.
 - **Do** keep primary for actions, selection and focus; use `border-strong` on control edges.

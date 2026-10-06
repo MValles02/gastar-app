@@ -12,118 +12,190 @@ async function login(page: Page) {
 	await expect(page).toHaveURL(/\/$/);
 }
 
-async function choose(page: Page, label: 'ARS' | 'USD' | 'Ambas') {
+async function choose(page: Page, label: 'ARS' | 'USD') {
 	await page.getByRole('radio', { name: label }).check({ force: true });
 	await expect(page.getByRole('radio', { name: label })).toBeChecked();
 	// The POST is async; wait for the cookie so a following navigation does not abort it.
-	// A missing cookie means the default (both).
-	const value = { ARS: 'ARS', USD: 'USD', Ambas: 'both' }[label];
 	await expect
 		.poll(
 			async () =>
-				(await page.context().cookies()).find((c) => c.name === 'currency')?.value ?? 'both'
+				(await page.context().cookies()).find((c) => c.name === 'currency')?.value ?? 'ARS'
 		)
-		.toBe(value);
+		.toBe(label);
 }
+
+const setCookie = (page: Page, baseURL: string | undefined, value: string) =>
+	page.context().addCookies([{ name: 'currency', value, url: baseURL! }]);
 
 // Each test context sets its own cookie; reset it so specs stay independent.
 test.afterEach(async ({ context, baseURL }) => {
-	await context.addCookies([{ name: 'currency', value: 'both', url: baseURL! }]);
+	await context.addCookies([{ name: 'currency', value: 'ARS', url: baseURL! }]);
 });
 
-test('USD hides ARS accounts on /accounts', async ({ page }) => {
+test('top bar has no currency control', async ({ page }) => {
 	await login(page);
-	await page.goto('/accounts', { waitUntil: 'networkidle' });
-	await expect(page.getByText('Efectivo')).toBeVisible();
-	await choose(page, 'USD');
-	await expect(page.getByText('Ahorro USD')).toBeVisible();
-	await expect(page.getByText('Efectivo')).toHaveCount(0);
+	for (const path of ['/', '/accounts', '/movements', '/categories', '/profile']) {
+		await page.goto(path, { waitUntil: 'networkidle' });
+		await expect(page.locator('header').getByRole('radio')).toHaveCount(0);
+	}
 });
 
-test('Ambas shows both currency blocks on /', async ({ page }) => {
+test('Inicio defaults to ARS without a cookie', async ({ page }) => {
 	await login(page);
+	await page.context().clearCookies({ name: 'currency' });
 	await page.goto('/', { waitUntil: 'networkidle' });
-	await choose(page, 'Ambas');
-	await expect(page.getByText('Saldo total ARS')).toBeVisible();
-	await expect(page.getByText('Saldo total USD')).toBeVisible();
+	await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
 });
 
-test('currency choice survives a reload', async ({ page }) => {
+test('Inicio tab choice survives a reload', async ({ page }) => {
 	await login(page);
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await choose(page, 'USD');
 	await page.reload({ waitUntil: 'networkidle' });
 	await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
 	await expect(page.getByText('Saldo total')).toBeVisible();
-	await expect(page.getByText('Saldo total ARS')).toHaveCount(0);
+	await expect(page.getByText('US$').first()).toBeVisible();
 });
 
-test('the control is present on every main page', async ({ page }) => {
+test('legacy both cookie reads as ARS on Inicio', async ({ page, baseURL }) => {
 	await login(page);
-	for (const path of ['/', '/accounts', '/movements', '/categories', '/profile']) {
-		await page.goto(path, { waitUntil: 'networkidle' });
-		await expect(page.getByRole('radio', { name: 'ARS' })).toHaveCount(1);
-		await expect(page.getByRole('radio', { name: 'USD' })).toHaveCount(1);
-		await expect(page.getByRole('radio', { name: 'Ambas' })).toHaveCount(1);
-	}
+	await setCookie(page, baseURL, 'both');
+	await page.goto('/', { waitUntil: 'networkidle' });
+	await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
 });
 
-test('choice on one page persists on another', async ({ page }) => {
+test('currency endpoint still accepts both', async ({ page }) => {
 	await login(page);
 	await page.goto('/', { waitUntil: 'networkidle' });
-	await choose(page, 'USD');
-	await page.goto('/movements', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
-	await page.goto('/categories', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
+	await page.evaluate(() =>
+		fetch('/currency', {
+			method: 'POST',
+			headers: { 'content-type': 'application/x-www-form-urlencoded' },
+			body: new URLSearchParams({ currency: 'both', redirectTo: '/' })
+		})
+	);
+	await expect
+		.poll(async () => (await page.context().cookies()).find((c) => c.name === 'currency')?.value)
+		.toBe('both');
+	await page.goto('/', { waitUntil: 'networkidle' });
+	await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
 });
 
-test('the checked radio keeps keyboard focus after switching', async ({ page }) => {
+test('invalid currency shows one alert under the tabs and clears on success', async ({ page }) => {
 	await login(page);
 	await page.goto('/', { waitUntil: 'networkidle' });
-	await choose(page, 'USD');
-	await expect(page.getByRole('radio', { name: 'USD' })).toBeFocused();
-});
-
-test('an account filter on /movements wins over the USD selection', async ({ page }) => {
-	await login(page);
-	await page.goto('/accounts', { waitUntil: 'networkidle' });
-	await page.getByRole('link', { name: /Efectivo/ }).click();
-	await expect(page).toHaveURL(/\/accounts\/[^/]+$/);
-	const id = page.url().split('/').pop()!;
-	await page.goto('/movements', { waitUntil: 'networkidle' });
-	await choose(page, 'USD');
-	await page.goto(`/movements?account=${id}`, { waitUntil: 'networkidle' });
-	await expect(page.getByText('Efectivo').first()).toBeVisible();
-	await expect(page.getByText('No hay movimientos')).toHaveCount(0);
-});
-
-test('a failed currency submission shows one alert in the header and clears on success', async ({
-	page
-}) => {
-	await login(page);
-	await page.goto('/accounts', { waitUntil: 'networkidle' });
 	await page.getByRole('radio', { name: 'USD' }).evaluate((el) => {
 		const input = el as HTMLInputElement;
 		input.value = 'invalid';
 		input.checked = true;
 		input.form!.requestSubmit();
 	});
-	const alert = page.locator('header').getByRole('alert');
-	await expect(alert).toHaveText('Moneda inválida.');
+	await expect(page.getByRole('alert')).toHaveText('Moneda inválida.');
 	await expect(page.getByRole('alert')).toHaveCount(1);
-	await expect(page).toHaveURL(/\/accounts$/);
+	await expect(page).toHaveURL(/\/$/);
 
 	await choose(page, 'ARS');
 	await expect(page.getByRole('alert')).toHaveCount(0);
 });
 
-test('the old currency filters are gone from /accounts and /movements', async ({ page }) => {
+test('checked tab keeps focus after switching', async ({ page }) => {
 	await login(page);
-	for (const path of ['/accounts', '/movements']) {
-		await page.goto(path, { waitUntil: 'networkidle' });
-		// Only the global control remains: a single radiogroup, no currency combobox.
-		await expect(page.getByRole('radiogroup')).toHaveCount(1);
-		await expect(page.getByRole('combobox', { name: /moneda/i })).toHaveCount(0);
+	await page.goto('/', { waitUntil: 'networkidle' });
+	await choose(page, 'USD');
+	await expect(page.getByRole('radio', { name: 'USD' })).toBeFocused();
+});
+
+test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
+	await login(page);
+	await page.goto('/movements?currency=USD', { waitUntil: 'networkidle' });
+	await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
+	await expect(page.getByText('US$').first()).toBeVisible();
+	await expect(page.locator('.list-card').getByText(/^[-+]?\$/)).toHaveCount(0);
+
+	await page.goto('/movements?currency=ARS', { waitUntil: 'networkidle' });
+	await expect(page.getByText('$').first()).toBeVisible();
+	await expect(page.getByText('US$')).toHaveCount(0);
+});
+
+test('an account filter on /movements wins over ?currency=USD', async ({ page }) => {
+	await login(page);
+	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	await page.getByRole('link', { name: /Efectivo/ }).click();
+	await expect(page).toHaveURL(/\/accounts\/[^/]+$/);
+	const id = page.url().split('/').pop()!;
+	await page.goto(`/movements?account=${id}&currency=USD`, { waitUntil: 'networkidle' });
+	await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
+	await expect(page.getByRole('radio', { name: 'ARS' })).toBeDisabled();
+	await expect(page.getByText('No hay movimientos')).toHaveCount(0);
+});
+
+test('accounts are grouped into Pesos and Dólares', async ({ page }) => {
+	await login(page);
+	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	await expect(page.getByRole('heading', { name: 'Pesos' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Dólares' })).toBeVisible();
+	await expect(page.getByText('Efectivo')).toBeVisible();
+	await expect(page.getByText('Ahorro USD')).toBeVisible();
+});
+
+test('accounts ?currency=USD shows only Dólares', async ({ page }) => {
+	await login(page);
+	await page.goto('/accounts?currency=USD', { waitUntil: 'networkidle' });
+	await expect(page.getByRole('heading', { name: 'Dólares' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Pesos' })).toHaveCount(0);
+	await expect(page.getByText('Ahorro USD')).toBeVisible();
+	await expect(page.getByText('Efectivo')).toHaveCount(0);
+});
+
+test('Inicio "Ver todos" links to the selected currency', async ({ page }) => {
+	await login(page);
+	for (const c of ['ARS', 'USD'] as const) {
+		await page.goto('/', { waitUntil: 'networkidle' });
+		await choose(page, c);
+		await expect(page.getByRole('link', { name: 'Ver todos' })).toHaveAttribute(
+			'href',
+			`/movements?currency=${c}`
+		);
 	}
+});
+
+test('archived accounts are listed without changing the group totals', async ({ page }) => {
+	await login(page);
+	const totals = async () =>
+		page.locator('.section-head').evaluateAll((els) => els.map((el) => el.textContent?.trim()));
+	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	await expect(page.getByText('Cuenta Santander (cerrada)')).toHaveCount(0);
+	const before = await totals();
+	await page.goto('/accounts?archived=1', { waitUntil: 'networkidle' });
+	await expect(page.getByText('Cuenta Santander (cerrada)')).toBeVisible();
+	expect(await totals()).toEqual(before);
+});
+
+test.describe('without JavaScript', () => {
+	test.use({ javaScriptEnabled: false });
+
+	test('Guardar switches the Inicio currency and the Movimientos filter applies it', async ({
+		page
+	}) => {
+		await login(page);
+		await page.goto('/');
+		await page.getByRole('radio', { name: 'USD' }).check({ force: true });
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
+
+		await page.goto('/movements');
+		await page.getByRole('radio', { name: 'USD' }).check({ force: true });
+		await page.getByRole('button', { name: 'Filtrar' }).click();
+		await expect(page).toHaveURL(/currency=USD/);
+		await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
+	});
+});
+
+test('movements and accounts ignore the currency cookie', async ({ page, baseURL }) => {
+	await login(page);
+	await setCookie(page, baseURL, 'USD');
+	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	await expect(page.getByText('Efectivo')).toBeVisible();
+	await page.goto('/movements', { waitUntil: 'networkidle' });
+	await expect(page.getByRole('radio', { name: 'Ambas' })).toBeChecked();
 });

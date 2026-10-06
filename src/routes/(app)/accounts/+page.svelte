@@ -7,13 +7,20 @@
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
+	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { formatMoney } from '$lib/money';
+	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	let archived = $derived(data.filters.archived);
+	let currency = $derived<string>(data.filters.currency);
+	const currencyOptions = [
+		{ value: '', label: 'Ambas' },
+		{ value: 'ARS', label: 'ARS' },
+		{ value: 'USD', label: 'USD' }
+	];
 </script>
 
 <svelte:head>
@@ -29,44 +36,54 @@
 <div class="page">
 	{#if !data.hasAnyAccount}
 		<EmptyState icon="accounts">
-			{#if data.currency === 'both'}
-				Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos.
-			{:else}
-				No tenés cuentas en {data.currency}.
-			{/if}
+			Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos.
 		</EmptyState>
 		<div class="empty-action">
 			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 		</div>
 	{:else}
 		<FilterBar q={data.filters.q} label="Buscar cuentas" placeholder="Buscar cuentas">
+			<span id="currency-label" class="visually-hidden">Moneda</span>
+			<SegmentedControl
+				name="currency"
+				options={currencyOptions}
+				bind:value={currency}
+				labelledby="currency-label"
+			/>
 			<Checkbox name="archived" value="1" label="Mostrar archivadas" bind:checked={archived} />
 		</FilterBar>
 
-		{#if data.accounts.length === 0}
+		{#if data.groups.length === 0}
 			<EmptyState icon="search">No hay cuentas que coincidan con los filtros.</EmptyState>
 			<div class="empty-action">
 				<a class="clear" href={resolve('/accounts')}>Limpiar filtros</a>
 			</div>
 		{:else}
-			<ul class="list-card">
-				{#each data.accounts as a (a.id)}
-					<li>
-						<ListRow href={resolve(`/accounts/${a.id}`)}>
-							{#snippet leading()}
-								<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} />
-							{/snippet}
-							{#snippet title()}{a.name}{/snippet}
-							{#snippet subtitle()}{a.currency}{a.archivedAt ? ' · Archivada' : ''}{/snippet}
-							{#snippet trailing()}
-								<span class="amount" class:negative={a.balance < 0}>
-									{formatMoney(a.balance, a.currency)}
-								</span>
-							{/snippet}
-						</ListRow>
-					</li>
-				{/each}
-			</ul>
+			{#each data.groups as g (g.currency)}
+				<section aria-labelledby="group-{g.currency}">
+					<div class="section-head">
+						<h2 id="group-{g.currency}">{g.label}</h2>
+						<span class="group-total"><Money cents={g.total} currency={g.currency} /></span>
+					</div>
+					<ul class="list-card">
+						{#each g.accounts as a (a.id)}
+							<li>
+								<ListRow href={resolve(`/accounts/${a.id}`)}>
+									{#snippet leading()}
+										<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} />
+									{/snippet}
+									{#snippet title()}{a.name}{/snippet}
+									{#snippet subtitle()}{a.currency}{a.archivedAt ? ' · Archivada' : ''}{/snippet}
+									{#snippet trailing()}
+										<span class="row-amount"><Money cents={a.balance} currency={a.currency} /></span
+										>
+									{/snippet}
+								</ListRow>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			{/each}
 		{/if}
 	{/if}
 </div>
@@ -92,13 +109,13 @@
 		text-decoration: underline;
 	}
 
-	.amount {
-		white-space: normal;
-		overflow-wrap: anywhere;
-		font-weight: 500;
+	h2 {
+		font-size: var(--font-size-sm);
+		font-weight: 600;
 	}
 
-	.negative {
-		color: var(--negative);
+	.group-total {
+		font-size: var(--font-size-sm);
+		font-weight: 600;
 	}
 </style>

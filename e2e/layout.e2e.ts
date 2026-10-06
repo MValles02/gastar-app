@@ -142,6 +142,40 @@ for (const width of [320, 360]) {
 	});
 }
 
+test('Inicio hero amount scales with text and never breaks inside a digit group at 320px', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 320, height: 640 });
+	await login(page);
+	await page.goto('/', { waitUntil: 'networkidle' });
+	const hero = page.locator('.hero-amount');
+	const size = () => hero.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+	const base = await size();
+	await page.evaluate(() => (document.documentElement.style.fontSize = '32px'));
+	expect(await size()).toBeGreaterThan(base);
+	await expectNoOverflow(page);
+	// Split the number's characters into rendered lines: every line but the last must end after a ".".
+	const lines = await page.locator('.hero-amount .num').evaluate((el) => {
+		const out: string[] = [];
+		let top: number | null = null;
+		const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+		for (let n = walker.nextNode() as Text | null; n; n = walker.nextNode() as Text | null) {
+			for (let i = 0; i < n.length; i++) {
+				const r = document.createRange();
+				r.setStart(n, i);
+				r.setEnd(n, i + 1);
+				const t = r.getBoundingClientRect().top;
+				if (top === null || Math.abs(t - top) > 2) out.push('');
+				top = t;
+				out[out.length - 1] += n.data[i];
+			}
+		}
+		return out;
+	});
+	for (const line of lines.slice(0, -1)) expect(line).toMatch(/\.$/);
+	expect(lines.join('')).toMatch(/^\d{1,3}(\.\d{3})*,\d{2}$/);
+});
+
 test('category detail navigates months', async ({ page }) => {
 	await login(page);
 	const href = await firstDetailHref(page, 'categories');

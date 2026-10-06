@@ -2,16 +2,16 @@
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/Button.svelte';
 	import Card from '$lib/components/Card.svelte';
+	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
+	import Money from '$lib/components/Money.svelte';
+	import MovementRow from '$lib/components/MovementRow.svelte';
 	import { formatMoney } from '$lib/money';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	const percent = new Intl.NumberFormat('es-AR', { style: 'percent' });
-
-	const tone = (n: number) => (n > 0 ? 'positive' : n < 0 ? 'negative' : '');
 </script>
 
 <svelte:head>
@@ -28,44 +28,46 @@
 		<div class="empty-action">
 			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 		</div>
-	{:else if data.blocks.length === 0}
-		<EmptyState icon="accounts">No tenés cuentas en {data.pref}.</EmptyState>
-		<div class="empty-action">
-			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
-		</div>
 	{:else}
-		{#each data.blocks as b (b.currency)}
-			<section aria-labelledby="balance-{b.currency}">
+		<CurrencyTabs value={data.currency} />
+
+		{#if !data.hasCurrencyAccount}
+			<EmptyState icon="accounts">No tenés cuentas en {data.currency}.</EmptyState>
+			<div class="empty-action">
+				<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
+			</div>
+		{:else}
+			<section aria-labelledby="balance-heading">
 				<Card>
-					<p id="balance-{b.currency}" class="label">
-						Saldo total{data.pref === 'both' ? ` ${b.currency}` : ''}
-					</p>
-					<p class="amount hero-amount">{formatMoney(b.balance, b.currency)}</p>
+					<p id="balance-heading" class="label">Saldo total</p>
+					<p class="hero-amount"><Money cents={data.balance} currency={data.currency} /></p>
 					<div class="month">
 						<p class="label">
 							<span class="visually-hidden">Balance del mes: </span>{data.month.label}
 						</p>
-						<p class="amount net {tone(b.monthNet)}">
-							{formatMoney(b.monthNet, b.currency)}
+						<p class="net">
+							<Money
+								cents={data.monthNet}
+								currency={data.currency}
+								kind={data.monthNet > 0 ? 'income' : 'plain'}
+							/>
 						</p>
 					</div>
 				</Card>
 			</section>
 
-			<section aria-labelledby="categories-{b.currency}">
-				<h2 id="categories-{b.currency}">
-					Principales categorías{data.pref === 'both' ? ` ${b.currency}` : ''}
-				</h2>
-				{#if b.topCategories.length === 0}
+			<section aria-labelledby="categories-heading">
+				<h2 id="categories-heading">Principales categorías</h2>
+				{#if data.topCategories.length === 0}
 					<p class="muted">Sin gastos este mes</p>
 				{:else}
 					<Card>
 						<ul class="list">
-							{#each b.topCategories as cat (cat.id)}
+							{#each data.topCategories as cat (cat.id)}
 								<li class="cat">
 									<div class="cat-row">
 										<span class="ellipsis">{cat.name}</span>
-										<span class="amount">{formatMoney(cat.net, b.currency)}</span>
+										<span class="amount">{formatMoney(cat.net, data.currency)}</span>
 										<span class="amount muted pct">{percent.format(cat.share)}</span>
 									</div>
 									<div class="track">
@@ -77,37 +79,36 @@
 					</Card>
 				{/if}
 			</section>
-		{/each}
 
-		<section aria-labelledby="recent-heading">
-			<h2 id="recent-heading">Últimos movimientos</h2>
-			{#if data.recent.length === 0}
-				<p class="muted">Sin movimientos</p>
-			{:else}
-				<ul class="list-card">
-					{#each data.recent as m (m.id)}
-						<li>
-							<ListRow href={resolve(`/movements/${m.id}`)}>
-								{#snippet title()}{m.description}{/snippet}
-								{#snippet subtitle()}
-									{m.dateLabel} · {m.type === 'transfer'
-										? `${m.accountName} → ${m.destinationAccountName}`
-										: m.accountName}{m.categoryName ? ` · ${m.categoryName}` : ''}
-								{/snippet}
-								{#snippet trailing()}
-									<span class="amount row-amount {m.sign === 'neutral' ? 'transfer' : m.sign}">
-										{formatMoney(m.amount, m.currency, {
-											sign: m.sign === 'positive' ? 'always' : 'auto'
-										})}
-									</span>
-								{/snippet}
-							</ListRow>
-						</li>
-					{/each}
-				</ul>
-				<a class="all" href={resolve('/movements')}>Ver todos</a>
-			{/if}
-		</section>
+			<section aria-labelledby="recent-heading">
+				<div class="section-head">
+					<h2 id="recent-heading">Últimos movimientos</h2>
+					{#if data.recent.length > 0}
+						<a class="all" href={resolve(`/movements?currency=${data.currency}`)}>Ver todos</a>
+					{/if}
+				</div>
+				{#if data.recent.length === 0}
+					<p class="muted">Sin movimientos</p>
+				{:else}
+					<ul class="list-card">
+						{#each data.recent as m (m.id)}
+							<li>
+								<MovementRow
+									m={{
+										...m,
+										subtitle: `${m.dateLabel} · ${
+											m.type === 'transfer'
+												? `${m.accountName} → ${m.destinationAccountName}`
+												: m.accountName
+										}${m.categoryName ? ` · ${m.categoryName}` : ''}`
+									}}
+								/>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</section>
+		{/if}
 	{/if}
 </div>
 
@@ -135,9 +136,8 @@
 	.hero-amount {
 		font-size: clamp(1.5rem, 9vw, var(--font-size-hero));
 		font-weight: 600;
+		letter-spacing: -0.02em;
 		line-height: 1.2;
-		white-space: normal;
-		overflow-wrap: anywhere;
 	}
 
 	.month {
@@ -155,26 +155,16 @@
 		font-size: var(--font-size-lg);
 		font-weight: 600;
 		line-height: 1.2;
-		white-space: normal;
-		overflow-wrap: anywhere;
-	}
-
-	.positive {
-		color: var(--positive);
-	}
-
-	.negative {
-		color: var(--negative);
-	}
-
-	.transfer {
-		color: var(--transfer);
 	}
 
 	h2 {
 		font-size: var(--font-size-lg);
 		font-weight: 600;
 		margin-bottom: var(--space-2);
+	}
+
+	.section-head h2 {
+		margin-bottom: 0;
 	}
 
 	.list {
@@ -235,17 +225,12 @@
 		background: color-mix(in srgb, var(--primary) 70%, transparent);
 	}
 
-	.row-amount {
-		white-space: nowrap;
-		font-weight: 500;
-	}
-
 	.all {
-		margin-top: var(--space-2);
 		display: inline-flex;
 		align-items: center;
 		min-height: 2.75rem;
 		font-weight: 500;
+		font-size: var(--font-size-sm);
 		color: var(--text);
 		text-decoration: underline;
 	}

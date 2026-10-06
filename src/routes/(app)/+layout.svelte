@@ -1,26 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { enhance } from '$app/forms';
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import Button from '$lib/components/Button.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import type { LayoutData } from './$types';
 	import Icon from '$lib/components/Icon.svelte';
 	import Wordmark from '$lib/components/Wordmark.svelte';
 
-	let { data, children }: { data: LayoutData; children: Snippet } = $props();
-
-	let selected = $derived(data.currency as string);
-	let currencyForm: HTMLFormElement;
-	let currencyError = $state('');
-
-	const currencyOptions = [
-		{ value: 'ARS', label: 'ARS' },
-		{ value: 'USD', label: 'USD' },
-		{ value: 'both', label: 'Ambas' }
-	];
+	let { children }: { children: Snippet } = $props();
 
 	const navItems = [
 		{ href: resolve('/'), path: '/', label: 'Inicio', icon: 'home' as const },
@@ -53,42 +38,6 @@
 	<header class="topbar">
 		<div class="topbar-grid">
 			<Wordmark />
-			<form
-				method="POST"
-				action="/currency"
-				class="currency-form"
-				bind:this={currencyForm}
-				use:enhance={() => {
-					currencyError = '';
-					return async ({ result, update }) => {
-						if (result.type === 'failure') {
-							// update() only applies the result on the action's own route, so keep it locally.
-							currencyError = (result.data?.currencyError as string | undefined) ?? '';
-						} else if (result.type === 'redirect') {
-							// eslint-disable-next-line svelte/no-navigation-without-resolve -- server-validated same-origin redirect location
-							await goto(result.location, { invalidateAll: true, keepFocus: true, noScroll: true });
-							document.querySelector<HTMLInputElement>('input[name="currency"]:checked')?.focus();
-						} else {
-							await update({ reset: false });
-						}
-					};
-				}}
-			>
-				<input type="hidden" name="redirectTo" value={page.url.pathname + page.url.search} />
-				<span id="currency-label" class="visually-hidden">Moneda</span>
-				<SegmentedControl
-					name="currency"
-					options={currencyOptions}
-					bind:value={selected}
-					labelledby="currency-label"
-					size="compact"
-					onchange={() => currencyForm.requestSubmit()}
-				/>
-				<noscript><Button type="submit" variant="secondary">Guardar</Button></noscript>
-				{#if currencyError}
-					<p class="currency-error" role="alert">{currencyError}</p>
-				{/if}
-			</form>
 			<a
 				href={profileHref}
 				class="profile-link"
@@ -157,10 +106,8 @@
 
 	.topbar-grid {
 		display: grid;
-		grid-template-columns: auto 1fr auto;
-		grid-template-areas:
-			'brand control profile'
-			'error error error';
+		grid-template-columns: 1fr auto;
+		grid-template-areas: 'brand profile';
 		align-items: center;
 		column-gap: var(--space-2);
 	}
@@ -169,64 +116,14 @@
 		grid-area: brand;
 	}
 
-	/* Contents so the track and the error become grid items of the topbar. */
-	.currency-form {
-		display: contents;
-	}
-
-	.currency-form > :global(.track) {
-		grid-area: control;
-		justify-self: end;
-		min-width: 0;
-	}
-
-	/* No-JS fallback button: own full-width row below the bar. */
-	.currency-form > :global(noscript) {
-		grid-column: 1 / -1;
-	}
-
-	.currency-error {
-		grid-area: error;
-		margin: var(--space-2) 0 0;
-		font-size: var(--font-size-sm);
-		color: var(--negative);
-	}
-
-	/* Not enough room for one row (also at large text: everything is rem-sized). */
-	@container (max-width: 20rem) {
-		.topbar-grid {
-			grid-template-columns: 1fr auto;
-			grid-template-areas:
-				'brand profile'
-				'control control'
-				'error error';
-			row-gap: var(--space-2);
-		}
-
-		.currency-form > :global(.track) {
-			justify-self: stretch;
-		}
-
-		.currency-form > :global(.track .option) {
-			flex: 1 1 0;
-			white-space: normal;
-		}
-	}
-
 	/* Wordmark + profile no longer fit side by side: stack them. */
 	@container (max-width: 9rem) {
 		.topbar-grid {
 			grid-template-columns: 1fr;
 			grid-template-areas:
 				'brand'
-				'profile'
-				'control'
-				'error';
+				'profile';
 			justify-items: start;
-		}
-
-		.currency-form > :global(.track) {
-			justify-self: stretch;
 		}
 	}
 
