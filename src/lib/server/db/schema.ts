@@ -6,6 +6,8 @@ import {
 	index,
 	pgEnum,
 	pgTable,
+	primaryKey,
+	smallint,
 	text,
 	timestamp,
 	uniqueIndex,
@@ -148,6 +150,83 @@ export const categories = pgTable(
 	(table) => [uniqueIndex('categories_user_id_name_idx').on(table.userId, table.name)]
 );
 
+export const recurringMovements = pgTable(
+	'recurring_movements',
+	{
+		id: uuid('id').defaultRandom().primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id),
+		type: movementTypeEnum('type').notNull(),
+		description: varchar('description', { length: 60 }).notNull(),
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		accountId: uuid('account_id')
+			.notNull()
+			.references(() => financialAccounts.id, { onDelete: 'cascade' }),
+		categoryId: uuid('category_id')
+			.notNull()
+			.references(() => categories.id, { onDelete: 'cascade' }),
+		dayOfMonth: smallint('day_of_month').notNull(),
+		archivedAt: timestamp('archived_at', { withTimezone: true }),
+		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp('updated_at', { withTimezone: true })
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull()
+	},
+	(table) => [
+		index('recurring_movements_user_id_idx').on(table.userId),
+		check('recurring_movements_amount_positive_check', sql`${table.amount} > 0`),
+		check('recurring_movements_type_check', sql`${table.type} <> 'transfer'`),
+		check('recurring_movements_day_of_month_check', sql`${table.dayOfMonth} BETWEEN 1 AND 31`)
+	]
+);
+
+export const spendingPlans = pgTable(
+	'spending_plans',
+	{
+		id: uuid('id').defaultRandom().primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id),
+		currency: currencyEnum('currency').notNull(),
+		extraIncome: bigint('extra_income', { mode: 'number' }).default(0).notNull(),
+		savings: bigint('savings', { mode: 'number' }).default(0).notNull(),
+		// NULL = every month; 'YYYY-MM' = that month only.
+		month: varchar('month', { length: 7 }),
+		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp('updated_at', { withTimezone: true })
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull()
+	},
+	(table) => [
+		uniqueIndex('spending_plans_user_id_currency_idx').on(table.userId, table.currency),
+		check('spending_plans_amounts_check', sql`${table.extraIncome} >= 0 AND ${table.savings} >= 0`),
+		check(
+			'spending_plans_month_check',
+			sql`${table.month} IS NULL OR ${table.month} ~ '^\\d{4}-(0[1-9]|1[0-2])$'`
+		)
+	]
+);
+
+export const planCategoryLimits = pgTable(
+	'plan_category_limits',
+	{
+		planId: uuid('plan_id')
+			.notNull()
+			.references(() => spendingPlans.id, { onDelete: 'cascade' }),
+		categoryId: uuid('category_id')
+			.notNull()
+			.references(() => categories.id, { onDelete: 'cascade' }),
+		amount: bigint('amount', { mode: 'number' }).notNull()
+	},
+	(table) => [
+		primaryKey({ columns: [table.planId, table.categoryId] }),
+		check('plan_category_limits_amount_positive_check', sql`${table.amount} > 0`)
+	]
+);
+
 export const movements = pgTable(
 	'movements',
 	{
@@ -168,6 +247,9 @@ export const movements = pgTable(
 		}),
 		destinationAmount: bigint('destination_amount', { mode: 'number' }),
 		exchangeRate: bigint('exchange_rate', { mode: 'number' }),
+		recurringId: uuid('recurring_id').references(() => recurringMovements.id, {
+			onDelete: 'set null'
+		}),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp('updated_at', { withTimezone: true })
 			.defaultNow()
@@ -178,6 +260,7 @@ export const movements = pgTable(
 		index('movements_account_id_occurred_at_idx').on(table.accountId, table.occurredAt),
 		index('movements_destination_account_id_idx').on(table.destinationAccountId),
 		index('movements_category_id_idx').on(table.categoryId),
+		index('movements_recurring_id_idx').on(table.recurringId),
 		index('movements_user_id_occurred_at_idx').on(table.userId, table.occurredAt),
 		check('movements_amount_positive_check', sql`${table.amount} > 0`),
 		check(
