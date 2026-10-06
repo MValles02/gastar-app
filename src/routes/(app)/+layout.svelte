@@ -16,10 +16,10 @@
 			icon: 'movements' as const
 		},
 		{
-			href: resolve('/categories'),
-			path: '/categories',
-			label: 'Categorías',
-			icon: 'categories' as const
+			href: resolve('/reports'),
+			path: '/reports',
+			label: 'Reportes',
+			icon: 'chart' as const
 		}
 	];
 	const newMovementHref = resolve('/movements/new');

@@ -34,7 +34,7 @@ test.afterEach(async ({ context, baseURL }) => {
 
 test('top bar has no currency control', async ({ page }) => {
 	await login(page);
-	for (const path of ['/', '/accounts', '/movements', '/categories', '/profile']) {
+	for (const path of ['/', '/accounts', '/movements', '/categories', '/reports', '/profile']) {
 		await page.goto(path, { waitUntil: 'networkidle' });
 		await expect(page.locator('header').getByRole('radio')).toHaveCount(0);
 	}

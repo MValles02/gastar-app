@@ -48,6 +48,12 @@
 			<p class="muted">{data.user.email}</p>
 		</section>
 
+		<nav aria-label="Administrar">
+			<ul class="links">
+				<li><a href={resolve('/categories')}>Categorías</a></li>
+			</ul>
+		</nav>
+
 		<section>
 			<h2 id="theme-heading">Tema</h2>
 
@@ -126,6 +132,21 @@
 
 	.theme-form :global(.btn) {
 		align-self: flex-start;
+	}
+
+	.links {
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.links a {
+		display: flex;
+		align-items: center;
+		min-height: 2.75rem;
+		color: var(--text);
+		text-decoration: underline;
+		font-weight: 500;
 	}
 
 	.error {

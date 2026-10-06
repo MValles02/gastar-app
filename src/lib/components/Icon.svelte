@@ -12,7 +12,8 @@
 		| 'profile'
 		| 'chevron-left'
 		| 'chevron-right'
-		| 'transfer';
+		| 'transfer'
+		| 'chart';
 
 	let { name, size = '1.5rem' }: { name: IconName; size?: string } = $props();
 
@@ -29,6 +30,7 @@
 		'chevron-left': ['m15 18-6-6 6-6'],
 		'chevron-right': ['m9 18 6-6-6-6'],
 		transfer: ['m16 3 4 4-4 4', 'M20 7H4', 'm8 21-4-4 4-4', 'M4 17h16'],
+		chart: ['M3 3v18h18', 'M18 17V9', 'M13 17V5', 'M8 17v-3'],
 		search: ['M11 3a8 8 0 1 0 0 16 8 8 0 0 0 0-16z', 'm21 21-4.3-4.3'],
 		bank: ['M3 22h18', 'M6 18v-7', 'M10 18v-7', 'M14 18v-7', 'M18 18v-7', 'M12 2l8 5H4z'],
 		wallet: [

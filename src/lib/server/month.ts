@@ -57,6 +57,25 @@ export function shiftMonth(ym: string, delta: 1 | -1): string {
 	return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
+/** n months ending at ym, oldest first. */
+export function lastMonths(ym: string, n: number): string[] {
+	const out = [ym];
+	while (out.length < n) out.unshift(shiftMonth(out[0], -1));
+	return out;
+}
+
+export function daysInMonth(ym: string): number {
+	const [y, m] = ym.split('-').map(Number);
+	return new Date(Date.UTC(y, m, 0)).getUTCDate();
+}
+
+/** Day of `ym` that counts as "today": today's day in the current month, the last day for past months, 0 for future ones. */
+export function elapsedDays(ym: string, todayYmd: string): number {
+	const todayYm = todayYmd.slice(0, 7);
+	if (ym === todayYm) return Number(todayYmd.slice(8, 10));
+	return ym < todayYm ? daysInMonth(ym) : 0;
+}
+
 export function monthRange(ym: string): { start: Date; end: Date } {
 	const at = (m: string) => new Date(`${m}-01T00:00:00${offsetAt(m)}`);
 	return { start: at(ym), end: at(shiftMonth(ym, 1)) };
@@ -70,6 +89,12 @@ export function monthLabel(ym: string, withYear = true): string {
 		timeZone: 'UTC'
 	}).format(new Date(Date.UTC(y, m - 1, 1, 12)));
 	return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** "Mayo", "Sep.": full name when short, else 3 letters. */
+export function shortMonth(ym: string): string {
+	const name = monthLabel(ym, false);
+	return name.length <= 5 ? name : `${name.slice(0, 3)}.`;
 }
 
 export function dateLabel(d: Date): string {
