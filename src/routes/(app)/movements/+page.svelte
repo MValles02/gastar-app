@@ -5,11 +5,10 @@
 	import DateTimePicker from '$lib/components/DateTimePicker.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
+	import MovementRow from '$lib/components/MovementRow.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import { formatMoney } from '$lib/money';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -19,6 +18,13 @@
 	let category = $derived<string>(data.filters.category);
 	let from = $derived<string>(data.filters.from);
 	let to = $derived<string>(data.filters.to);
+	let currency = $derived<string>(data.lockedCurrency ?? data.filters.currency);
+
+	const currencyOptions = [
+		{ value: '', label: 'Ambas' },
+		{ value: 'ARS', label: 'ARS' },
+		{ value: 'USD', label: 'USD' }
+	];
 
 	const typeOptions = [
 		{ value: '', label: 'Todos' },
@@ -54,6 +60,14 @@
 
 <div class="page">
 	<FilterBar q={data.filters.q} label="Buscar movimientos" placeholder="Buscar movimientos">
+		<span id="currency-label" class="visually-hidden">Moneda</span>
+		<SegmentedControl
+			name="currency"
+			options={currencyOptions}
+			bind:value={currency}
+			labelledby="currency-label"
+			disabled={data.lockedCurrency !== null}
+		/>
 		<details open={data.activeCount > 0}>
 			<summary>Filtros ({data.activeCount})</summary>
 			<div class="filters">
@@ -111,19 +125,16 @@
 				<ul class="list-card">
 					{#each g.items as m (m.id)}
 						<li>
-							<ListRow href={resolve(`/movements/${m.id}`)}>
-								{#snippet title()}{m.description}{/snippet}
-								{#snippet subtitle()}{m.type === 'transfer'
-										? `${m.accountName} → ${m.destinationAccountName}`
-										: m.accountName}{m.categoryName ? ` · ${m.categoryName}` : ''}{/snippet}
-								{#snippet trailing()}
-									<span class="amount {m.sign === 'neutral' ? 'transfer' : m.sign}">
-										{formatMoney(m.amount, m.currency, {
-											sign: m.sign === 'positive' ? 'always' : 'auto'
-										})}
-									</span>
-								{/snippet}
-							</ListRow>
+							<MovementRow
+								m={{
+									...m,
+									subtitle: `${
+										m.type === 'transfer'
+											? `${m.accountName} → ${m.destinationAccountName}`
+											: m.accountName
+									}${m.categoryName ? ` · ${m.categoryName}` : ''}`
+								}}
+							/>
 						</li>
 					{/each}
 				</ul>
@@ -202,23 +213,5 @@
 
 	.next {
 		margin-left: auto;
-	}
-
-	.amount {
-		white-space: normal;
-		overflow-wrap: anywhere;
-		font-weight: 500;
-	}
-
-	.positive {
-		color: var(--positive);
-	}
-
-	.negative {
-		color: var(--negative);
-	}
-
-	.transfer {
-		color: var(--transfer);
 	}
 </style>

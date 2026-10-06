@@ -1,8 +1,9 @@
+/** `both` is accepted only for the previous release (start-first deploy overlap); drop it in a later release. */
 export const CURRENCY_PREFS = ['ARS', 'USD', 'both'] as const;
-export type CurrencyPref = (typeof CURRENCY_PREFS)[number];
 
-export function parseCurrencyPref(raw: string | null | undefined): CurrencyPref {
-	return (CURRENCY_PREFS as readonly string[]).includes(raw ?? '') ? (raw as CurrencyPref) : 'both';
+/** The stored preference as a single currency: anything but `USD` (including legacy `both`) is ARS. */
+export function singleCurrency(raw: string | null | undefined): 'ARS' | 'USD' {
+	return raw === 'USD' ? 'USD' : 'ARS';
 }
 
 /** Same-origin relative paths only: start with `/` but not `//`; no control chars (browsers strip tab/CR/LF) or backslashes. */

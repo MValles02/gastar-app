@@ -215,9 +215,8 @@ export function parseMovementFilters(sp: URLSearchParams) {
 	};
 	const n = Number(get('page'));
 	const page = Number.isSafeInteger(n) && n >= 1 && n <= 10000 ? n : 1;
-	// currency is no longer a user filter: the movements load overrides it from the global cookie.
+	// currency is a segmented control outside the filters disclosure: kept in `values`, not counted in `activeCount`.
 	const shown: Record<string, string> = { ...query };
-	delete shown.currency;
-	const activeCount = Object.values(shown).filter(Boolean).length;
+	const activeCount = Object.values({ ...shown, currency: '' }).filter(Boolean).length;
 	return { values: shown, query, page, activeCount };
 }
