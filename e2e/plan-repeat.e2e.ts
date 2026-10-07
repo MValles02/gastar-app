@@ -43,6 +43,19 @@ async function fillOutcome(page: Page, description: string, amount: string) {
 	await pick(page, 'Categoría', 'Ajena');
 }
 
+/** Deletes every movement whose description matches. */
+async function cleanupMovements(page: Page, baseURL: string, description: string) {
+	await page.goto(`/movements?q=${encodeURIComponent(description)}`);
+	const movementHrefs = await page
+		.locator('a[href*="movements/"]')
+		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
+	for (const href of movementHrefs.filter((h) => /\/movements\/[0-9a-f-]{36}$/.test(h)))
+		await page.request.post(`${href}?/delete`, {
+			form: {},
+			headers: { origin: baseURL, accept: 'text/html' }
+		});
+}
+
 /** Deletes every movement, then every rule, whose description matches. */
 async function cleanup(page: Page, baseURL: string, description: string) {
 	const del = (href: string) =>
@@ -266,4 +279,64 @@ test('Registrar pago hides Repetir cada mes', async ({ page, baseURL }) => {
 	await page.goto(`/movements/new?recurring=${id}`, { waitUntil: 'networkidle' });
 	await expect(page.getByRole('heading', { level: 1, name: 'Registrar pago' })).toBeVisible();
 	await expect(checkbox(page)).toHaveCount(0);
+});
+
+test('Registrar pago saves the rule category, whatever category is posted', async ({
+	page,
+	baseURL
+}) => {
+	const description = 'Pago categoria e2e';
+	const extra = 'Otra categoria e2e';
+	const headers = { origin: baseURL!, accept: 'text/html' };
+	await login(page, otherEmail);
+	let extraId: string | undefined;
+	try {
+		const created = await page.request.post('/categories/new', {
+			form: { name: extra, color: 'green' },
+			headers
+		});
+		extraId = created.url().split('/').pop()!;
+		expect(extraId).toMatch(/^[0-9a-f-]{36}$/);
+
+		await fillOutcome(page, description, '1.000');
+		await checkbox(page).check();
+		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await expect(page).toHaveURL(/\/movements\/new\?saved=1$/);
+		await page.goto('/plan', { waitUntil: 'networkidle' });
+		const id = await rule(page, description)
+			.locator('a.main')
+			.evaluate((a: HTMLAnchorElement) => a.pathname.split('/').pop()!);
+		// Drop the movement the rule was created with so this month's payment is still open.
+		await cleanupMovements(page, baseURL!, description);
+
+		await page.goto(`/movements/new?recurring=${id}`, { waitUntil: 'networkidle' });
+		await expect(page.locator('input[name="categoryId"]')).toHaveAttribute('type', 'hidden');
+		await expect(page.getByText('Ajena', { exact: true })).toBeVisible();
+		const accountId = await page.locator('input[name="accountId"]:checked').getAttribute('value');
+
+		const res = await page.request.post('/movements/new', {
+			form: {
+				recurringId: id,
+				type: 'outcome',
+				amount: '1000',
+				description,
+				accountId: accountId!,
+				categoryId: extraId,
+				occurredAt: todayBA()
+			},
+			headers
+		});
+		expect(res.url()).toMatch(/\/plan\?saved=1$/);
+
+		await page.goto(`/movements?q=${encodeURIComponent(description)}`, {
+			waitUntil: 'networkidle'
+		});
+		const row = page.locator('a[href*="movements/"]').filter({ hasText: description });
+		await expect(row).toHaveCount(1);
+		await expect(row).toContainText('Ajena');
+		await expect(row).not.toContainText(extra);
+	} finally {
+		await cleanup(page, baseURL!, description);
+		if (extraId) await page.request.post(`/categories/${extraId}?/delete`, { form: {}, headers });
+	}
 });

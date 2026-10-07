@@ -193,23 +193,33 @@
 	{#if showCategory}
 		<div class="group">
 			{#if !mounted}<p class="hint">Solo para ingresos y gastos</p>{/if}
-			<OptionPicker
-				name="categoryId"
-				legend="Categoría"
-				title="Elegí la categoría"
-				items={categories}
-				bind:value={categoryId}
-				placeholder="Elegir categoría"
-				error={errors.categoryId}
-				errorId="category-error"
-			>
-				{#snippet empty()}
-					<p class="hint">
-						Todavía no tenés categorías.
-						<a href={resolve('/categories/new')}>Crear categoría</a>
-					</p>
-				{/snippet}
-			</OptionPicker>
+			{#if recurring}
+				<!-- The payment always takes the rule's category (the server ignores any other). -->
+				<input type="hidden" name="categoryId" value={categoryId} />
+				<span class="label">Categoría</span>
+				<p class="fixed">
+					{categories.find((c) => c.id === categoryId)?.name ?? ''}
+				</p>
+				<p class="hint">Se registra en la categoría del pago.</p>
+			{:else}
+				<OptionPicker
+					name="categoryId"
+					legend="Categoría"
+					title="Elegí la categoría"
+					items={categories}
+					bind:value={categoryId}
+					placeholder="Elegir categoría"
+					error={errors.categoryId}
+					errorId="category-error"
+				>
+					{#snippet empty()}
+						<p class="hint">
+							Todavía no tenés categorías.
+							<a href={resolve('/categories/new')}>Crear categoría</a>
+						</p>
+					{/snippet}
+				</OptionPicker>
+			{/if}
 		</div>
 	{/if}
 
@@ -260,6 +270,13 @@
 
 	.label {
 		font-size: var(--font-size-sm);
+	}
+
+	.fixed {
+		display: flex;
+		align-items: center;
+		min-height: 2.75rem;
+		font-weight: 600;
 	}
 
 	.amount-wrap {

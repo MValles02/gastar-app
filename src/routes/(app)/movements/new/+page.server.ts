@@ -78,6 +78,9 @@ export const actions: Actions = {
 	default: async ({ request, locals, cookies }) => {
 		const userId = locals.user!.id;
 		const fd = await request.formData();
+		const rule = await findRule(userId, fd.get('recurringId'));
+		// A payment always takes the rule's category, whatever was posted.
+		if (rule) fd.set('categoryId', rule.categoryId);
 		const parsed = parseMovementForm(fd);
 		const { values } = parsed;
 		// Keeps the checkbox state when the form is shown again with errors.
@@ -101,7 +104,6 @@ export const actions: Actions = {
 		});
 		if (!resolved.ok) return fail(400, { values, errors: resolved.errors });
 
-		const rule = await findRule(userId, fd.get('recurringId'));
 		if (rule) {
 			if (data.type !== rule.type)
 				return fail(400, {
