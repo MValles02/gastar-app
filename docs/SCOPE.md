@@ -62,7 +62,7 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ### Dashboard
 
-- Currency tabs `ARS | USD` (radiogroup), stored in the `currency` cookie; default ARS. A legacy `both` value reads as ARS. Currencies are never converted or summed together.
+- Currency tabs `ARS | USD` (radiogroup), stored in the `currency` cookie; default ARS. Currencies are never converted or summed together.
 - For the selected currency:
   - Total balance: all accounts of that currency, **including archived**.
   - Month balance: incomes − outcomes (transfers excluded).

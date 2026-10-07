@@ -65,26 +65,9 @@ test('Inicio tab choice survives a reload', async ({ page }) => {
 	await expect(page.getByText('US$').first()).toBeVisible();
 });
 
-test('legacy both cookie reads as ARS on Inicio', async ({ page, baseURL }) => {
+test('an unknown currency cookie reads as ARS on Inicio', async ({ page, baseURL }) => {
 	await login(page);
-	await setCookie(page, baseURL, 'both');
-	await page.goto('/', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
-});
-
-test('currency endpoint still accepts both', async ({ page }) => {
-	await login(page);
-	await page.goto('/', { waitUntil: 'networkidle' });
-	await page.evaluate(() =>
-		fetch('/currency', {
-			method: 'POST',
-			headers: { 'content-type': 'application/x-www-form-urlencoded' },
-			body: new URLSearchParams({ currency: 'both', redirectTo: '/' })
-		})
-	);
-	await expect
-		.poll(async () => (await page.context().cookies()).find((c) => c.name === 'currency')?.value)
-		.toBe('both');
+	await setCookie(page, baseURL, 'EUR');
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
 });
