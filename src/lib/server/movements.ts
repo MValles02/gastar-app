@@ -1,4 +1,10 @@
-import { ARS_WHOLE_MESSAGE, convertAmount, isWholeFor, parseAmount } from '../money';
+import {
+	AMOUNT_EXAMPLE,
+	ARS_WHOLE_MESSAGE,
+	convertAmount,
+	isWholeFor,
+	parseAmount
+} from '../money';
 import { isUuid } from './db/util';
 import type { Currency, MovementType } from './dashboard';
 import { dayStart } from './month';
@@ -42,7 +48,7 @@ const MSG = {
 	date: 'Ingresá una fecha válida.',
 	descEmpty: 'Ingresá una descripción.',
 	descLong: 'La descripción puede tener hasta 60 caracteres.',
-	amount: 'Ingresá un monto mayor a cero, con hasta 2 decimales (ej.: 1.234,56).',
+	amount: `Ingresá un monto mayor a cero ${AMOUNT_EXAMPLE}.`,
 	account: 'Elegí una cuenta.',
 	archivedAccount: 'Esa cuenta está archivada. Elegí otra.',
 	destination: 'Elegí la cuenta de destino.',

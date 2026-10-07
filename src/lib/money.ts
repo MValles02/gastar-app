@@ -16,6 +16,7 @@ export function formatMoney(
 }
 
 export const ARS_WHOLE_MESSAGE = 'Los montos en pesos van sin decimales.';
+export const AMOUNT_EXAMPLE = '(ej.: 1.234 en pesos o 1.234,56 en dólares)';
 
 /** ARS amounts (and exchange rates, which are in ARS) are whole pesos; USD may have cents. */
 export const isWholeFor = (cents: number, currency: 'ARS' | 'USD') =>

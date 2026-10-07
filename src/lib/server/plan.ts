@@ -1,5 +1,5 @@
 import type { MovementType } from './dashboard';
-import { parseAmount } from '../money';
+import { AMOUNT_EXAMPLE, parseAmount } from '../money';
 import { isUuid } from './db/util';
 import { daysInMonth, elapsedDays, monthRange, shiftMonth } from './month';
 
@@ -179,7 +179,7 @@ export function parseRecurringForm(fd: FormData): RecurringFormResult {
 		errors.description = 'La descripción puede tener hasta 60 caracteres.';
 	const amount = parseAmount(values.amount);
 	if (amount === null || amount <= 0)
-		errors.amount = 'Ingresá un monto mayor a cero, con hasta 2 decimales (ej.: 1.234,56).';
+		errors.amount = `Ingresá un monto mayor a cero ${AMOUNT_EXAMPLE}.`;
 	if (!isUuid(values.accountId)) errors.accountId = 'Elegí una cuenta.';
 	if (!isUuid(values.categoryId)) errors.categoryId = 'Elegí una categoría.';
 	const day = Number(values.dayOfMonth);

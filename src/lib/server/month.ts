@@ -18,9 +18,8 @@ export function parseMonth(raw: string | null, now: Date): string {
 	return raw !== null && MONTH_RE.test(raw) ? raw : current;
 }
 
-/** UTC offset of TZ at the start of the given month, e.g. "-03:00". */
-function offsetAt(ym: string): string {
-	const probe = new Date(`${ym}-01T12:00:00Z`);
+/** UTC offset of TZ at the given instant, e.g. "-03:00". */
+function offsetAt(probe: Date): string {
 	const name = new Intl.DateTimeFormat('en-US', { timeZone: TZ, timeZoneName: 'longOffset' })
 		.formatToParts(probe)
 		.find((p) => p.type === 'timeZoneName')!.value;
@@ -53,7 +52,7 @@ export function elapsedDays(ym: string, todayYmd: string): number {
 }
 
 export function monthRange(ym: string): { start: Date; end: Date } {
-	const at = (m: string) => new Date(`${m}-01T00:00:00${offsetAt(m)}`);
+	const at = (m: string) => new Date(`${m}-01T00:00:00${offsetAt(new Date(`${m}-01T12:00:00Z`))}`);
 	return { start: at(ym), end: at(shiftMonth(ym, 1)) };
 }
 
@@ -81,10 +80,13 @@ export function dateLabel(d: Date): string {
 
 /** Start (00:00 Buenos Aires) of a "YYYY-MM-DD" day; null for impossible dates. */
 export function dayStart(ymd: string): Date | null {
-	const m = DAY_RE.exec(ymd);
-	if (!m) return null;
-	const d = new Date(`${ymd}T00:00:00${offsetAt(m[1])}`);
-	return Number.isNaN(d.getTime()) || localDay(d) !== ymd ? null : d;
+	if (!DAY_RE.test(ymd)) return null;
+	// Probe the offset at both ends of the day so mid-month DST transitions resolve either way.
+	for (const t of ['00:00:00', '12:00:00']) {
+		const d = new Date(`${ymd}T00:00:00${offsetAt(new Date(`${ymd}T${t}Z`))}`);
+		if (!Number.isNaN(d.getTime()) && localDay(d) === ymd) return d;
+	}
+	return null;
 }
 
 /** "YYYY-MM-DD" of a Date in TZ. */
