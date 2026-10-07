@@ -17,7 +17,7 @@ const nextDay = (ymd: string) => {
 	return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
 };
 
-export function createMovement(userId: string, row: MovementRow) {
+export function createMovement(userId: string, row: MovementRow & { recurringId?: string | null }) {
 	return db
 		.insert(movements)
 		.values({ ...row, ...movementOwnedBy(userId) })
@@ -120,6 +120,7 @@ const ownedIds = (userId: string) =>
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
 		.where(canAccessMovement(userId));
 
+/** Never touches `recurring_id`: MovementRow has no such field, so an edit keeps the link. */
 export function updateMovement(userId: string, id: string, row: MovementRow) {
 	return db
 		.update(movements)

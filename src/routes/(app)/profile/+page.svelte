@@ -50,6 +50,7 @@
 
 		<nav aria-label="Administrar">
 			<ul class="links">
+				<li><a href={resolve('/accounts')}>Cuentas</a></li>
 				<li><a href={resolve('/categories')}>Categorías</a></li>
 			</ul>
 		</nav>

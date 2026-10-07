@@ -299,13 +299,14 @@ A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) of radio option
 - **Money:** An amount with the decimals dimmed for USD only (ARS has no decimal part; 70% opacity, text-colour amounts only, to keep 4.5:1; coloured decimals stay full), `tabular-nums`, the number breaks only after the symbol gap and at thousands separators (`<wbr>` after each `.`), never inside a digit group; `kind` colours it (`income` positive with a `+`, `transfer` transfer colour, `outcome`/`plain` text colour). Font size and weight come from the parent.
 - **MovementRow:** A `ListRow` with a leading `.row-icon` (2.25rem muted square: description initial, or the transfer icon), title, subtitle and a trailing `Money` (`.row-amount`).
 - **Section head:** `.section-head` (global): a wrapping flex row, heading left and a link or `Money` total right, baseline-aligned.
-- **Profile:** One `Card` groups the user name and email, an "Administrar" link section (a `nav` with the "Categorías" link: 2.75rem tall, text colour, weight 500), the theme control and the "Cerrar sesión" button as sections separated by hairline dividers.
+- **Profile:** One `Card` groups the user name and email, an "Administrar" link section (a `nav` with the "Cuentas" and "Categorías" links: 2.75rem tall, text colour, weight 500), the theme control and the "Cerrar sesión" button as sections separated by hairline dividers.
 - **Reportes charts:** The 6-month income and outcome bars and the category donut are `aria-hidden` SVG/CSS; their text equivalents are the per-month link `aria-label` ("{mes}: ingresos X, gastos Y") and the visible slice list (name, %, amount). Tokens: income bar `--positive`, outcome bar `--text-muted` (income always left, outcome right, as in the legend, so colour is not the only cue), slices `--swatch-green`, `--swatch-orange`, `--swatch-blue`, `--swatch-plum` and `--transfer` for "Otros". Bars keep full opacity (non-text 3:1); the selected month has a bold label and `aria-current="true"`. The bar row bleeds to the card edges so each month link is at least 2.75rem wide at 320px.
+- **Plan rule row (`/plan`):** A list card (surface, hairline border, `radius-card`) of rows; each row is a link (min 2.75rem, `ListRow` padding) with the description (0.875rem, 500), a muted 0.75rem line "status · Día N · account" and a trailing `Money`. An unpaid active rule adds a separate "Registrar" link (text colour, underlined, 600, 2.75rem tall) that wraps under the row at large text sizes. Status is always text, never colour alone.
 - **EmptyState:** A centered column: a 3.5rem pill circle tinted with `color-mix(in srgb, var(--primary) 8%, transparent)` holding a primary-colored icon, over muted text. Used by the placeholder pages.
 
 ### Icon and Wordmark
 
-- **Icon:** Inline SVG, 24px by default, 24-unit viewBox, `currentColor` 1.75 stroke with round caps and joins, `aria-hidden`. Names: home, accounts, plus, movements, categories, profile, chart, search, chevron-left, chevron-right, transfer, plus the account icons (bank, wallet, cash, card, piggy-bank, dollar, coins, safe, briefcase, phone).
+- **Icon:** Inline SVG, 24px by default, 24-unit viewBox, `currentColor` 1.75 stroke with round caps and joins, `aria-hidden`. Names: home, accounts, plus, movements, categories, profile, plan, chart, search, chevron-left, chevron-right, transfer, plus the account icons (bank, wallet, cash, card, piggy-bank, dollar, coins, safe, briefcase, phone).
 - **Wordmark:** A rounded-square ledger mark (two horizontal strokes) plus "Gastar" in title type. Mark fill is primary and strokes are on-primary, so it flips in dark; the text is primary.
 
 ### Sheet
@@ -324,7 +325,7 @@ Radio groups of round swatches (the icon picker shows the ten account icons in I
 
 - **Style:** Fixed translucent bottom bar (`--bg` at 92% with a 12px backdrop blur) with a top hairline, no gap, and `space-2` vertical padding plus the bottom safe-area inset. Five equal slots: two items, the FAB, two items. Each item is an icon over a 0.75rem weight-500 label (0.6875rem under 22rem), muted by default, at least 2.75rem tall.
 - **Item states:** Hover and `aria-current='page'` turn the label the text color; the active item's icon turns primary. Press scales to 0.96. Items have no horizontal padding; labels truncate with an ellipsis.
-- **Top bar:** See PageHeader above. The bottom nav stays Inicio | Cuentas | + | Movimientos | Reportes (Categorías lives in Profile).
+- **Top bar:** See PageHeader above. The bottom nav stays Inicio | Movimientos | + | Plan | Reportes (Cuentas and Categorías live in Profile).
 
 ### Nav FAB
 

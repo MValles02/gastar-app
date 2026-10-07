@@ -22,21 +22,31 @@ test.afterEach(async ({ context, baseURL }) => {
 	await context.addCookies([{ name: 'currency', value: 'ARS', url: baseURL! }]);
 });
 
-test('Reportes replaces Categorías in the bottom nav and Profile links to Categorías', async ({
+test('bottom nav is Inicio, Movimientos, Nuevo movimiento, Plan, Reportes and Profile links to Cuentas and Categorías', async ({
 	page
 }) => {
 	await login(page);
 	await page.goto('/reports', { waitUntil: 'networkidle' });
 	const nav = page.getByRole('navigation', { name: 'Navegación principal' });
+	await expect(nav.getByRole('link')).toHaveText(['Inicio', 'Movimientos', '', 'Plan', 'Reportes']);
+	await expect(nav.getByRole('link', { name: 'Nuevo movimiento' })).toHaveAttribute(
+		'href',
+		'/movements/new'
+	);
+	await expect(nav.getByRole('link', { name: 'Cuentas' })).toHaveCount(0);
 	await expect(nav.getByRole('link', { name: 'Categorías' })).toHaveCount(0);
 	const tab = nav.getByRole('link', { name: 'Reportes' });
 	await expect(tab).toHaveAttribute('href', '/reports');
 	await expect(tab).toHaveAttribute('aria-current', 'page');
 
 	await page.goto('/profile', { waitUntil: 'networkidle' });
-	await expect(
-		page.getByRole('navigation', { name: 'Administrar' }).getByRole('link', { name: 'Categorías' })
-	).toHaveAttribute('href', '/categories');
+	const admin = page.getByRole('navigation', { name: 'Administrar' });
+	await expect(admin.getByRole('link')).toHaveText(['Cuentas', 'Categorías']);
+	await expect(admin.getByRole('link', { name: 'Cuentas' })).toHaveAttribute('href', '/accounts');
+	await expect(admin.getByRole('link', { name: 'Categorías' })).toHaveAttribute(
+		'href',
+		'/categories'
+	);
 });
 
 test('a future or invalid month falls back to the current month', async ({ page }) => {

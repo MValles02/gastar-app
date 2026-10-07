@@ -100,6 +100,9 @@ const categoryDefs = [
 const acc = Object.fromEntries(accountDefs.map((a) => [a.key, { ...a, id: randomUUID() }]));
 const cat = Object.fromEntries(categoryDefs.map((c) => [c.key, { ...c, id: randomUUID() }]));
 
+const rentRule = randomUUID();
+const gymRule = randomUUID();
+
 const movements = [];
 // Buenos Aires local midnight of the date's Buenos Aires day (movements are date-only).
 const BA = 'America/Argentina/Buenos_Aires';
@@ -132,6 +135,7 @@ function add(monthsAgo, day, hour, row) {
 		destination_account_id: null,
 		destination_amount: null,
 		exchange_rate: null,
+		recurring_id: null,
 		...row
 	});
 }
@@ -234,6 +238,7 @@ for (let m = 2; m >= 0; m--) {
 		exchange_rate: rate
 	});
 }
+for (const mv of movements) if (mv.description === 'Alquiler') mv.recurring_id = rentRule;
 
 // Legacy non-midnight row (23:30 Buenos Aires on the 14th) for the date-only e2e; normalized by migration 0001.
 movements.push({
@@ -247,7 +252,8 @@ movements.push({
 	amount: 1_000_00,
 	destination_account_id: null,
 	destination_amount: null,
-	exchange_rate: null
+	exchange_rate: null,
+	recurring_id: null
 });
 
 const cols = [
@@ -261,7 +267,8 @@ const cols = [
 	'category_id',
 	'destination_account_id',
 	'destination_amount',
-	'exchange_rate'
+	'exchange_rate',
+	'recurring_id'
 ];
 
 const sql = postgres(databaseUrl, { max: 1 });
@@ -273,6 +280,8 @@ try {
 		if (existing) {
 			const id = existing.id;
 			await tx`delete from movements where user_id = ${id}`;
+			await tx`delete from spending_plans where user_id = ${id}`;
+			await tx`delete from recurring_movements where user_id = ${id}`;
 			await tx`delete from categories where user_id = ${id}`;
 			await tx`delete from financial_accounts where owner_id = ${id}`;
 			await tx`delete from session where user_id = ${id}`;
@@ -308,6 +317,28 @@ try {
 				archived_at: c.archived ? now : null
 			}))
 		)}`;
+		await tx`insert into recurring_movements ${tx([
+			{
+				id: rentRule,
+				user_id: userId,
+				type: 'outcome',
+				description: 'Alquiler',
+				amount: 380_000_00,
+				account_id: acc.bank.id,
+				category_id: cat.rent.id,
+				day_of_month: 3
+			},
+			{
+				id: gymRule,
+				user_id: userId,
+				type: 'outcome',
+				description: 'Gimnasio',
+				amount: 22_000_00,
+				account_id: acc.old.id,
+				category_id: cat.gym.id,
+				day_of_month: 2
+			}
+		])}`;
 		await tx`insert into movements ${tx(movements, ...cols)}`;
 	});
 

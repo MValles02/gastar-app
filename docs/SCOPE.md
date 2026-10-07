@@ -42,8 +42,8 @@ Personal finance PWA for Argentina. Answers two questions:
 ## Layout
 
 - Top bar (sticky, every app screen): optional back link, today's date as an eyebrow above the screen title, and an avatar (initials) linking to Profile. Bottom-nav tabs have no back; every other screen has an "up" back to its parent (new-movement returns to the screen it was opened from). Screens have no action buttons under the bar; Accounts and Categories end their list with a "+ Nueva …" row. No currency control: each screen states its own currency, and amounts are never converted or summed across currencies.
-- Bottom nav: Inicio | Cuentas | Create movement (center "+") | Movimientos | Reportes.
-- Profile page: a "Categorías" link (Categories is reached from Profile and links back to it), theme toggle (light / dark / system) + logout.
+- Bottom nav: Inicio | Movimientos | Create movement (center "+") | Plan | Reportes.
+- Profile page: "Cuentas" and "Categorías" links (both are reached from Profile and link back to it), theme toggle (light / dark / system) + logout.
 
 ## Design
 
@@ -82,8 +82,19 @@ Personal finance PWA for Argentina. Answers two questions:
   - Promedio diario: outcome ÷ elapsed days (the whole month for past months).
   - Gasto más grande, linking to the movement; hidden when there are no outcomes.
 
+### Plan
+
+- Route `/plan`, a bottom-nav tab (no back link), h1 "Plan". Currency tabs `ARS | USD`; one currency per screen, never converted or summed. No accounts in the currency: "No tenés cuentas en {pesos|dólares}." + a link to create one.
+- Recurring incomes and payments ("Ingresos fijos", "Pagos fijos"): monthly rules with description, amount (in the account's currency; ARS in whole pesos), due day 1–31 (clamped to the month's last day), account and category.
+- Each row shows description, amount, "Día N", account and a status as text: Cobrado/Pagado, Vence hoy, Mañana, En N días, Venció ayer, Venció hace N días. A rule is paid when a movement linked to it exists in the current month.
+- An unpaid active rule has "Registrar", which opens `/movements/new?recurring=<id>` ("Registrar pago"): the form is prefilled from the rule with today's date, the type and the account's currency must match the rule, and saving links the movement to the rule and returns to `/plan` with "Pago registrado.".
+- A rule is inactive if the rule, its account or its category is archived; inactive rules are listed under "Inactivos" with the reason ("Archivado", "Cuenta archivada", "Categoría archivada") and cannot be registered.
+- Create / edit at `/plan/recurring/new` and `/plan/recurring/[id]` (back to `/plan`); a rule can be archived or reactivated, or deleted with confirmation (the movements already registered are kept). Another user's or a missing rule is "Movimiento fijo no encontrado." (404).
+- Empty state: "No tenés pagos ni ingresos fijos en {pesos|dólares}." with "Agregar pago fijo" and "Agregar ingreso fijo".
+
 ### Accounts
 
+- Reached from Profile (back link "Volver al perfil").
 - List with search + filter on top: show archived (archived hidden by default). Currency filter `?currency=ARS|USD` (default both); accounts are grouped under Pesos / Dólares, each with the total of its active (non-archived) accounts.
 - Each row: icon, color, name, currency, computed balance.
 - Tap → detail page with Edit / Delete.
@@ -140,7 +151,6 @@ Personal finance PWA for Argentina. Answers two questions:
 ## Out of MVP
 
 - Budgets.
-- Recurring movements.
 - Credit cards / installments (cuotas).
 - Attachments / receipts.
 - CSV import/export.

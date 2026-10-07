@@ -22,14 +22,17 @@
 		)
 			cameFrom = path;
 	});
-	const returnTo = $derived(cameFrom ?? '/');
+	const returnTo = $derived(cameFrom ?? (data.recurring ? '/plan' : '/'));
 </script>
 
 <svelte:head>
-	<title>Nuevo movimiento · Gastar</title>
+	<title>{data.recurring ? 'Registrar pago' : 'Nuevo movimiento'} · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Nuevo movimiento" back={{ href: resolve(returnTo as '/'), label: 'Volver' }} />
+<PageHeader
+	title={data.recurring ? 'Registrar pago' : 'Nuevo movimiento'}
+	back={{ href: resolve(returnTo as '/'), label: 'Volver' }}
+/>
 
 {#if data.accounts.length === 0}
 	<EmptyState icon="plus">Necesitás al menos una cuenta para registrar movimientos.</EmptyState>
@@ -38,21 +41,23 @@
 	{#if data.saved && !form}<p role="status">Movimiento guardado.</p>{/if}
 	{#key data.formKey}
 		<MovementForm
-			initial={form?.values ?? {
-				type: 'outcome',
-				amount: '',
-				description: '',
-				accountId: data.defaultAccountId,
-				destinationAccountId: '',
-				exchangeRate: '',
-				categoryId: '',
-				occurredAt: data.now
-			}}
+			initial={form?.values ??
+				data.recurring?.initial ?? {
+					type: 'outcome',
+					amount: '',
+					description: '',
+					accountId: data.defaultAccountId,
+					destinationAccountId: '',
+					exchangeRate: '',
+					categoryId: '',
+					occurredAt: data.now
+				}}
 			errors={form?.errors}
 			accounts={data.accounts}
 			categories={data.categories}
 			submitLabel="Guardar movimiento"
 			cancelHref={returnTo}
+			recurring={data.recurring ?? undefined}
 		/>
 	{/key}
 {/if}

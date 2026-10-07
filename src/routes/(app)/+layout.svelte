@@ -8,13 +8,13 @@
 
 	const navItems = [
 		{ href: resolve('/'), path: '/', label: 'Inicio', icon: 'home' as const },
-		{ href: resolve('/accounts'), path: '/accounts', label: 'Cuentas', icon: 'accounts' as const },
 		{
 			href: resolve('/movements'),
 			path: '/movements',
 			label: 'Movimientos',
 			icon: 'movements' as const
 		},
+		{ href: resolve('/plan'), path: '/plan', label: 'Plan', icon: 'plan' as const },
 		{
 			href: resolve('/reports'),
 			path: '/reports',
