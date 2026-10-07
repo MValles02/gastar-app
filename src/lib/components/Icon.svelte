@@ -14,7 +14,8 @@
 		| 'chevron-right'
 		| 'transfer'
 		| 'plan'
-		| 'chart';
+		| 'chart'
+		| 'bell';
 
 	let { name, size = '1.5rem' }: { name: IconName; size?: string } = $props();
 
@@ -37,6 +38,7 @@
 			'M12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4z'
 		],
 		chart: ['M3 3v18h18', 'M18 17V9', 'M13 17V5', 'M8 17v-3'],
+		bell: ['M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9', 'M10.3 21a1.94 1.94 0 0 0 3.4 0'],
 		search: ['M11 3a8 8 0 1 0 0 16 8 8 0 0 0 0-16z', 'm21 21-4.3-4.3'],
 		bank: ['M3 22h18', 'M6 18v-7', 'M10 18v-7', 'M14 18v-7', 'M18 18v-7', 'M12 2l8 5H4z'],
 		wallet: [

@@ -13,6 +13,7 @@ const routes = [
 	'/reports',
 	'/plan',
 	'/profile',
+	'/notifications',
 	'/accounts/new',
 	'/movements/new',
 	'/categories/new'
@@ -73,6 +74,18 @@ for (const width of widths) {
 		}
 	});
 }
+
+test('the bell to Avisos is at least 44px at 320px', async ({ page }) => {
+	await page.setViewportSize({ width: 320, height: 800 });
+	await login(page);
+	const bell = page.locator('header.top-bar a[aria-label^="Avisos"]');
+	const box = await bell.boundingBox();
+	expect(box!.width).toBeGreaterThanOrEqual(44);
+	expect(box!.height).toBeGreaterThanOrEqual(44);
+	await bell.click();
+	await expect(page).toHaveURL(/\/notifications$/);
+	await expect(bell).toHaveAttribute('aria-current', 'page');
+});
 
 test('detail pages have no horizontal overflow at 320px', async ({ page }) => {
 	await page.setViewportSize({ width: 320, height: 800 });
@@ -268,6 +281,7 @@ test('back links go up to a fixed parent and tabs have none', async ({ page }) =
 	expect(account && category && movement && ruleHref).toBeTruthy();
 	const rows: [string, string][] = [
 		['/profile', '/'],
+		['/notifications', '/'],
 		['/accounts', '/profile'],
 		['/categories', '/profile'],
 		['/plan/recurring/new', '/plan'],

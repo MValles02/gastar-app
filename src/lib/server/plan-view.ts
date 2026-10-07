@@ -35,6 +35,8 @@ export async function planView(userId: string, cur: Currency, now = new Date()) 
 		: null;
 
 	return {
+		/** Server-only: the active rules, so callers need not query them again; never send to the client. */
+		active,
 		monthName: monthLabel(ym, false).toLowerCase(),
 		summary,
 		statusLabel: summary ? PLAN_STATUS_LABEL[summary.status] : '',
