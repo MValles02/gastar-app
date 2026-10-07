@@ -67,8 +67,10 @@
 
 	:global(.bd-header) {
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		justify-content: space-between;
+		text-align: left;
 		gap: var(--space-3);
 		padding: var(--space-2) var(--space-5) 0;
 	}

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount, untrack, type ComponentProps } from 'svelte';
+	import Lock from '@lucide/svelte/icons/lock';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/Button.svelte';
 	import Checkbox from '$lib/components/Checkbox.svelte';
-	import Field from '$lib/components/Field.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { convertAmount, formatMoney, parseAmount } from '$lib/money';
@@ -51,6 +51,7 @@
 		{ value: 'transfer', label: 'Transferencia' }
 	];
 
+	let submitting = $state(false);
 	let mounted = $state(false);
 	onMount(() => (mounted = true));
 
@@ -87,21 +88,37 @@
 	});
 </script>
 
-<form method="POST" use:enhance class="form" novalidate>
+<form
+	method="POST"
+	class="form"
+	class:submitting
+	novalidate
+	use:enhance={() => {
+		submitting = true;
+		return async ({ update }) => {
+			await update();
+			submitting = false;
+		};
+	}}
+>
 	{#if recurring}
 		<input type="hidden" name="recurringId" value={recurring.id} />
-		<p class="hint">Registrás el pago de <strong>{recurring.description}</strong> de este mes.</p>
+		<p class="hint note">
+			Registrás el pago de <strong>{recurring.description}</strong> de este mes.
+		</p>
 	{/if}
 
 	<div class="field">
-		<span id="type-label" class="label">Tipo</span>
+		<span id="type-label" class="visually-hidden">Tipo</span>
 		<SegmentedControl name="type" options={typeOptions} bind:value={type} labelledby="type-label" />
 		{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
 	</div>
 
-	<Field label="Monto" error={errors.amount} errorId="amount-error">
-		<span class="amount-wrap">
-			{#if originCurrency}<span class="currency">{originCurrency}</span>{/if}
+	<div class="amount-block">
+		<label class="amount" class:sm={amount.length > 11}>
+			<span class="visually-hidden">Monto</span>
+			{#if originCurrency}<span class="currency">{originCurrency === 'USD' ? 'US$' : '$'}</span
+				>{/if}
 			<!-- svelte-ignore a11y_autofocus -->
 			<input
 				class="amount-input"
@@ -115,141 +132,179 @@
 				aria-invalid={errors.amount ? 'true' : undefined}
 				aria-describedby={errors.amount ? 'amount-error' : undefined}
 			/>
-		</span>
-	</Field>
+		</label>
+		{#if errors.amount}<p class="error" id="amount-error" role="alert">{errors.amount}</p>{/if}
+	</div>
 
-	<Field label="Descripción" error={errors.description} errorId="description-error">
-		<input
-			name="description"
-			type="text"
-			maxlength="60"
-			required
-			autocomplete="off"
-			bind:value={description}
-			aria-invalid={errors.description ? 'true' : undefined}
-			aria-describedby={errors.description ? 'description-error' : undefined}
-		/>
-	</Field>
-
-	<OptionPicker
-		name="accountId"
-		legend={isTransfer ? 'Cuenta de origen' : 'Cuenta'}
-		title="Elegí la cuenta"
-		items={accounts}
-		bind:value={accountId}
-		placeholder="Elegir cuenta"
-		error={errors.accountId}
-		errorId="account-error"
-	>
-		{#snippet empty()}<p class="hint">Todavía no tenés cuentas.</p>{/snippet}
-	</OptionPicker>
-
-	{#if showTransfer}
-		<div class="group">
-			{#if !mounted}<p class="hint">Solo para transferencias</p>{/if}
-			<OptionPicker
-				name="destinationAccountId"
-				legend="Cuenta de destino"
-				title="Elegí la cuenta de destino"
-				items={accounts}
-				bind:value={destinationId}
-				excludeId={mounted ? accountId : undefined}
-				placeholder="Elegir cuenta"
-				error={errors.destinationAccountId}
-				errorId="destination-error"
-			>
-				{#snippet empty()}<p class="hint">Necesitás otra cuenta para transferir.</p>{/snippet}
-			</OptionPicker>
-		</div>
-	{/if}
-
-	{#if !mounted || showRate}
-		<div class="group">
-			{#if !mounted}<p class="hint">Solo para transferencias entre monedas distintas</p>{/if}
-			<Field label="Cotización (1 USD en ARS)" error={errors.exchangeRate} errorId="rate-error">
+	<ul class="card">
+		<li class:bad={errors.description}>
+			<label class="row">
+				<span class="k">Descripción</span>
 				<input
-					name="exchangeRate"
+					name="description"
 					type="text"
-					inputmode="numeric"
-					placeholder="0"
+					maxlength="60"
+					required
 					autocomplete="off"
-					bind:value={rate}
-					aria-invalid={errors.exchangeRate ? 'true' : undefined}
-					aria-describedby={errors.exchangeRate ? 'rate-error' : undefined}
+					placeholder="Agregar"
+					bind:value={description}
+					aria-invalid={errors.description ? 'true' : undefined}
+					aria-describedby={errors.description ? 'description-error' : undefined}
 				/>
-			</Field>
-		</div>
-		{#if mounted}
-			<p class="hint" aria-live="polite">
-				{#if converted !== null && destCurrency}
-					Monto en destino: {formatMoney(converted, destCurrency)}
-				{:else}
-					Ingresá monto y cotización para ver el monto en destino.
-				{/if}
-			</p>
-		{/if}
-	{/if}
-
-	{#if showCategory}
-		<div class="group">
-			{#if !mounted}<p class="hint">Solo para ingresos y gastos</p>{/if}
-			{#if recurring}
-				<!-- The payment always takes the rule's category (the server ignores any other). -->
-				<input type="hidden" name="categoryId" value={categoryId} />
-				<span class="label">Categoría</span>
-				<p class="fixed">
-					{categories.find((c) => c.id === categoryId)?.name ?? ''}
-				</p>
-				<p class="hint">Se registra en la categoría del pago.</p>
-			{:else}
-				<OptionPicker
-					name="categoryId"
-					legend="Categoría"
-					title="Elegí la categoría"
-					items={categories}
-					bind:value={categoryId}
-					placeholder="Elegir categoría"
-					error={errors.categoryId}
-					errorId="category-error"
-				>
-					{#snippet empty()}
-						<p class="hint">
-							Todavía no tenés categorías.
-							<a href={resolve('/categories/new')}>Crear categoría</a>
-						</p>
-					{/snippet}
-				</OptionPicker>
+			</label>
+			{#if errors.description}
+				<p class="error et" id="description-error" role="alert">{errors.description}</p>
 			{/if}
-		</div>
-	{/if}
+		</li>
 
-	<Field label="Fecha" error={errors.occurredAt} errorId="date-error">
-		<input
-			name="occurredAt"
-			type="date"
-			min="2000-01-01"
-			bind:value={occurredAt}
-			aria-invalid={errors.occurredAt ? 'true' : undefined}
-			aria-describedby={errors.occurredAt ? 'date-error' : undefined}
-		/>
-	</Field>
+		<li class:bad={errors.accountId}>
+			<OptionPicker
+				variant="row"
+				name="accountId"
+				legend={isTransfer ? 'Cuenta de origen' : 'Cuenta'}
+				title="Elegí la cuenta"
+				items={accounts}
+				bind:value={accountId}
+				placeholder="Elegir cuenta"
+				error={errors.accountId}
+				errorId="account-error"
+			>
+				{#snippet empty()}<p class="hint pad">Todavía no tenés cuentas.</p>{/snippet}
+			</OptionPicker>
+		</li>
+
+		{#if showTransfer}
+			<li class:bad={errors.destinationAccountId}>
+				{#if !mounted}<p class="hint pad">Solo para transferencias</p>{/if}
+				<OptionPicker
+					variant="row"
+					name="destinationAccountId"
+					legend="Cuenta de destino"
+					title="Elegí la cuenta de destino"
+					items={accounts}
+					bind:value={destinationId}
+					excludeId={mounted ? accountId : undefined}
+					placeholder="Elegir cuenta"
+					error={errors.destinationAccountId}
+					errorId="destination-error"
+				>
+					{#snippet empty()}<p class="hint pad">Necesitás otra cuenta para transferir.</p>{/snippet}
+				</OptionPicker>
+			</li>
+		{/if}
+
+		{#if !mounted || showRate}
+			<li class:bad={errors.exchangeRate}>
+				{#if !mounted}<p class="hint pad">Solo para transferencias entre monedas distintas</p>{/if}
+				<label class="row">
+					<span class="k">Cotización (1 USD en ARS)</span>
+					<input
+						name="exchangeRate"
+						type="text"
+						inputmode="numeric"
+						placeholder="0"
+						autocomplete="off"
+						bind:value={rate}
+						aria-invalid={errors.exchangeRate ? 'true' : undefined}
+						aria-describedby={errors.exchangeRate ? 'rate-error' : undefined}
+					/>
+				</label>
+				{#if errors.exchangeRate}
+					<p class="error et" id="rate-error" role="alert">{errors.exchangeRate}</p>
+				{/if}
+			</li>
+			{#if mounted}
+				<li>
+					<p class="hint pad" aria-live="polite">
+						{#if converted !== null && destCurrency}
+							Monto en destino: {formatMoney(converted, destCurrency)}
+						{:else}
+							Ingresá monto y cotización para ver el monto en destino.
+						{/if}
+					</p>
+				</li>
+			{/if}
+		{/if}
+
+		{#if showCategory}
+			<li class:bad={errors.categoryId && !recurring}>
+				{#if !mounted}<p class="hint pad">Solo para ingresos y gastos</p>{/if}
+				{#if recurring}
+					<!-- The payment always takes the rule's category (the server ignores any other). -->
+					<input type="hidden" name="categoryId" value={categoryId} />
+					<p class="row locked">
+						<span class="k">Categoría</span>
+						<span class="v">
+							{categories.find((c) => c.id === categoryId)?.name ?? ''}
+							<Lock size={16} strokeWidth={1.75} aria-hidden="true" />
+						</span>
+					</p>
+					<p class="hint pad">Se registra en la categoría del pago.</p>
+				{:else}
+					<OptionPicker
+						variant="row"
+						name="categoryId"
+						legend="Categoría"
+						title="Elegí la categoría"
+						items={categories}
+						bind:value={categoryId}
+						placeholder="Elegir categoría"
+						error={errors.categoryId}
+						errorId="category-error"
+					>
+						{#snippet empty()}
+							<p class="hint pad">
+								Todavía no tenés categorías.
+								<a href={resolve('/categories/new')}>Crear categoría</a>
+							</p>
+						{/snippet}
+					</OptionPicker>
+				{/if}
+			</li>
+		{/if}
+
+		<li class:bad={errors.occurredAt}>
+			<label class="row">
+				<span class="k">Fecha</span>
+				<input
+					name="occurredAt"
+					type="date"
+					min="2000-01-01"
+					bind:value={occurredAt}
+					aria-invalid={errors.occurredAt ? 'true' : undefined}
+					aria-describedby={errors.occurredAt ? 'date-error' : undefined}
+				/>
+			</label>
+			{#if errors.occurredAt}
+				<p class="error et" id="date-error" role="alert">{errors.occurredAt}</p>
+			{/if}
+		</li>
+	</ul>
 
 	{#if repeatable && !recurring && showCategory}
 		<div class="group">
-			<Checkbox
-				name="repeat"
-				label="Repetir cada mes"
-				checked={repeatChecked}
-				aria-describedby="repeat-hint"
-			/>
-			<p id="repeat-hint" class="hint">
+			<ul class="card">
+				<li class="check">
+					<Checkbox
+						name="repeat"
+						label="Repetir cada mes"
+						checked={repeatChecked}
+						aria-describedby="repeat-hint"
+					/>
+				</li>
+			</ul>
+			<p id="repeat-hint" class="hint pad">
 				Te lo recordamos el mismo día de cada mes. Solo ingresos y gastos.
 			</p>
 		</div>
 	{/if}
 
-	<div class="actions">
-		<Button type="submit">{submitLabel}</Button>
+	<div class="bar">
+		<Button type="submit" block disabled={submitting} aria-busy={submitting ? 'true' : undefined}>
+			{#if submitting}<span class="spin" aria-hidden="true"></span>{/if}{submitLabel}
+		</Button>
+	</div>
+	<div class="cancel">
 		<Button href={resolve(cancelHref as '/')} variant="secondary">Cancelar</Button>
 	</div>
 </form>
@@ -259,45 +314,139 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
+		padding-top: var(--space-1);
 	}
 
-	.field,
-	.group {
+	.form.submitting > :not(.bar) {
+		opacity: 0.55;
+	}
+
+	.field {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
 	}
 
-	.label {
-		font-size: var(--font-size-sm);
+	.note {
+		margin-bottom: calc(var(--space-3) * -1);
+		text-align: center;
 	}
 
-	.fixed {
+	.amount-block {
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		min-height: 2.75rem;
-		font-weight: 600;
+		gap: var(--space-1);
 	}
 
-	.amount-wrap {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
+	.amount {
+		flex-direction: row;
+		align-items: baseline;
+		justify-content: center;
+		gap: var(--space-2);
+		max-width: 100%;
+		padding: var(--space-4) 0 var(--space-1);
+		color: var(--text);
 	}
 
 	.currency {
-		font-size: var(--font-size-lg);
-		font-weight: 600;
+		font-family: var(--font-display);
+		font-size: 1.75rem;
+		font-weight: 500;
 		color: var(--text-muted);
 	}
 
-	.amount-wrap .amount-input {
-		flex: 1;
-		min-width: 0;
-		min-height: 4rem;
-		font-size: var(--font-size-xl);
-		font-weight: 600;
+	.amount .amount-input {
+		flex: 0 1 auto;
+		width: auto;
+		min-width: 2ch;
+		max-width: 100%;
+		field-sizing: content;
+		min-height: 3.5rem;
+		padding: 0 var(--space-1);
+		border: 0;
+		background: transparent;
+		font-family: var(--font-display);
+		font-size: 2.75rem;
+		font-weight: 500;
+		text-align: center;
 		font-variant-numeric: tabular-nums;
+	}
+
+	.amount.sm .amount-input {
+		font-size: var(--font-size-hero);
+	}
+
+	.amount-block .error {
+		text-align: center;
+	}
+
+	.card {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		overflow: hidden;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-card);
+		box-shadow: var(--shadow-1);
+	}
+
+	.card > li + li {
+		border-top: 1px solid var(--border);
+	}
+
+	.card > li.bad {
+		box-shadow: inset 3px 0 0 var(--negative);
+	}
+
+	.row {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-1) var(--space-3);
+		min-height: 3.5rem;
+		padding: 0 var(--space-4);
+		font-size: var(--font-size-base);
+		color: var(--text);
+	}
+
+	label.row {
+		cursor: text;
+	}
+
+	.row input {
+		flex: 1 1 4rem;
+		min-width: 0;
+		width: auto;
+		min-height: 3.5rem;
+		padding: 0;
+		border: 0;
+		border-radius: 0;
+		background: transparent;
+		text-align: right;
+		scroll-margin-bottom: 6rem;
+	}
+
+	.row input:focus-visible {
+		outline-offset: -2px;
+	}
+
+	.locked {
+		justify-content: space-between;
+		color: var(--text-muted);
+	}
+
+	.locked .v {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		color: var(--text);
+	}
+
+	.check {
+		padding: 0 var(--space-4);
 	}
 
 	.hint {
@@ -305,14 +454,58 @@
 		font-size: var(--font-size-sm);
 	}
 
+	.hint.pad {
+		padding: var(--space-3) var(--space-4);
+	}
+
+	.group > .hint.pad {
+		padding-bottom: 0;
+	}
+
 	.error {
 		color: var(--negative);
 		font-size: var(--font-size-sm);
 	}
 
-	.actions {
+	.et {
+		padding: 0 var(--space-4) var(--space-3);
+	}
+
+	/* Sticky Guardar: full-bleed bar pinned to the bottom of the viewport (no tab bar on this screen). */
+	.bar {
+		position: sticky;
+		bottom: 0;
+		z-index: 2;
+		margin-inline: calc(var(--gutter, var(--space-5)) * -1);
+		padding: var(--space-3) var(--gutter, var(--space-5))
+			calc(var(--space-3) + env(safe-area-inset-bottom));
+		background: var(--bg);
+		box-shadow: 0 -1px 0 var(--border);
+	}
+
+	.spin {
+		width: 1rem;
+		height: 1rem;
+		border: 2px solid currentColor;
+		border-right-color: transparent;
+		border-radius: 50%;
+		animation: spin 0.8s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.spin {
+			animation-duration: 2.4s;
+		}
+	}
+
+	.cancel {
 		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-3);
+		justify-content: center;
 	}
 </style>

@@ -134,9 +134,8 @@ test('a transfer hides the checkbox and never creates a rule', async ({ page, ba
 			await page.getByRole('button', { name: new RegExp(legend) }).click();
 			const value = await page
 				.getByRole('dialog')
-				.locator('label', { hasText: label })
-				.locator('input')
-				.getAttribute('value');
+				.locator('button.opt', { hasText: label })
+				.getAttribute('data-value');
 			await page.keyboard.press('Escape');
 			return value;
 		};
@@ -307,7 +306,7 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 		await page.goto(`/movements/new?recurring=${id}`, { waitUntil: 'networkidle' });
 		await expect(page.locator('input[name="categoryId"]')).toHaveAttribute('type', 'hidden');
 		await expect(page.getByText('Ajena', { exact: true })).toBeVisible();
-		const accountId = await page.locator('input[name="accountId"]:checked').getAttribute('value');
+		const accountId = await page.locator('input[name="accountId"]').getAttribute('value');
 
 		const res = await page.request.post('/movements/new', {
 			form: {

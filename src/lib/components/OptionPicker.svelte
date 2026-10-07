@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount, tick, type ComponentProps, type Snippet } from 'svelte';
+	import Check from '@lucide/svelte/icons/check';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import type { SwatchKey } from '$lib/appearance';
+	import BottomDrawer from './BottomDrawer.svelte';
 	import IconBadge from './IconBadge.svelte';
-	import Sheet from './Sheet.svelte';
 
 	type Item = {
 		id: string;
@@ -23,7 +25,8 @@
 		empty,
 		error,
 		errorId,
-		excludeId
+		excludeId,
+		variant = 'field'
 	}: {
 		name: string;
 		legend: string;
@@ -35,6 +38,8 @@
 		error?: string;
 		errorId?: string;
 		excludeId?: string;
+		/** `row`: a full-width list row (label left, value right) for grouped cards. */
+		variant?: 'field' | 'row';
 	} = $props();
 
 	let mounted = $state(false);
@@ -52,8 +57,8 @@
 		open = true;
 		await tick();
 		const target =
-			list?.querySelector<HTMLInputElement>('input:checked') ??
-			list?.querySelector<HTMLInputElement>('input');
+			list?.querySelector<HTMLElement>('[aria-pressed="true"]') ??
+			list?.querySelector<HTMLElement>('button');
 		target?.focus();
 	}
 
@@ -65,68 +70,92 @@
 	}
 </script>
 
-{#snippet group()}
-	<fieldset bind:this={list}>
-		<legend class:visually-hidden={mounted}>{legend}</legend>
-		{#each visible as item (item.id)}
-			<label class="row">
-				<input
-					class="visually-hidden"
-					type="radio"
-					{name}
-					value={item.id}
-					bind:group={value}
-					onclick={(e) => {
-						if (mounted && e.detail > 0) choose(item.id);
-					}}
-					onkeydown={(e) => {
-						if (mounted && e.key === 'Enter') {
-							e.preventDefault();
-							choose(item.id);
-						}
-					}}
-				/>
-				<IconBadge icon={item.icon} color={item.color} />
-				<span class="name">{item.name}</span>
-				{#if item.meta || item.archived}
-					<span class="meta">{item.meta ?? ''}{item.archived ? ' · Archivada' : ''}</span>
-				{/if}
-			</label>
-		{/each}
-	</fieldset>
+{#snippet current()}
+	<span id="{labelId}-value" class="current" class:placeholder={!selected}>
+		{#if selected}
+			<IconBadge
+				icon={selected.icon}
+				color={selected.color}
+				size={variant === 'row' ? '1.5rem' : '2rem'}
+			/>
+			<span class="name">{selected.name}</span>
+		{:else}
+			{placeholder}
+		{/if}
+	</span>
 {/snippet}
 
 {#if visible.length === 0}
 	{@render empty()}
 {:else if mounted}
-	<div class="field">
-		<span class="label" id={labelId}>{legend}</span>
-		<button
-			type="button"
-			class="trigger"
-			aria-haspopup="dialog"
-			aria-labelledby="{labelId} {labelId}-value"
-			aria-describedby={error ? errorId : undefined}
-			bind:this={trigger}
-			onclick={openSheet}
-		>
-			<span id="{labelId}-value" class="current" class:placeholder={!selected}>
-				{#if selected}
-					<IconBadge icon={selected.icon} color={selected.color} size="2rem" />
-					<span class="name">{selected.name}</span>
-				{:else}
-					{placeholder}
-				{/if}
-			</span>
-		</button>
+	<div class="field" class:row={variant === 'row'}>
+		{#if variant === 'row'}
+			<button
+				type="button"
+				class="trigger"
+				aria-haspopup="dialog"
+				aria-labelledby="{labelId} {labelId}-value"
+				aria-describedby={error ? errorId : undefined}
+				bind:this={trigger}
+				onclick={openSheet}
+			>
+				<span class="label" id={labelId}>{legend}</span>
+				{@render current()}
+				<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="chev" />
+			</button>
+		{:else}
+			<span class="label" id={labelId}>{legend}</span>
+			<button
+				type="button"
+				class="trigger"
+				aria-haspopup="dialog"
+				aria-labelledby="{labelId} {labelId}-value"
+				aria-describedby={error ? errorId : undefined}
+				bind:this={trigger}
+				onclick={openSheet}
+			>
+				{@render current()}
+			</button>
+		{/if}
+		<!-- The Drawer is portaled out of the form, so the value submits through this input. -->
+		<input type="hidden" {name} {value} disabled={!value} />
 		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
 	</div>
-	<Sheet {title} bind:open>
-		{@render group()}
-	</Sheet>
+	<BottomDrawer {title} bind:open>
+		<div class="options" bind:this={list}>
+			{#each visible as item (item.id)}
+				<button
+					type="button"
+					class="opt"
+					data-value={item.id}
+					aria-pressed={item.id === value}
+					onclick={() => choose(item.id)}
+				>
+					<IconBadge icon={item.icon} color={item.color} />
+					<span class="name">{item.name}</span>
+					{#if item.meta || item.archived}
+						<span class="meta">{item.meta ?? ''}{item.archived ? ' · Archivada' : ''}</span>
+					{/if}
+					{#if item.id === value}<Check size={20} strokeWidth={1.75} aria-hidden="true" />{/if}
+				</button>
+			{/each}
+		</div>
+	</BottomDrawer>
 {:else}
 	<div class="field">
-		{@render group()}
+		<fieldset>
+			<legend>{legend}</legend>
+			{#each visible as item (item.id)}
+				<label class="pre">
+					<input class="visually-hidden" type="radio" {name} value={item.id} bind:group={value} />
+					<IconBadge icon={item.icon} color={item.color} />
+					<span class="name">{item.name}</span>
+					{#if item.meta || item.archived}
+						<span class="meta">{item.meta ?? ''}{item.archived ? ' · Archivada' : ''}</span>
+					{/if}
+				</label>
+			{/each}
+		</fieldset>
 		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
 	</div>
 {/if}
@@ -168,6 +197,46 @@
 		opacity: 1;
 	}
 
+	/* Row variant: label left, value right, 56px tall, no own border (the card draws it). */
+	.row {
+		gap: 0;
+	}
+
+	.row .trigger {
+		justify-content: space-between;
+		gap: var(--space-3);
+		min-height: 3.5rem;
+		padding: var(--space-2) var(--space-4);
+		background: transparent;
+		border: 0;
+		border-radius: 0;
+		scroll-margin-bottom: 6rem;
+	}
+
+	.row .trigger:active {
+		background: var(--muted);
+	}
+
+	.row .label {
+		flex: none;
+		font-size: var(--font-size-base);
+		color: var(--text);
+	}
+
+	.row .current {
+		flex: 1;
+		justify-content: flex-end;
+	}
+
+	.row .error {
+		padding: 0 var(--space-4) var(--space-3);
+	}
+
+	.row :global(.chev) {
+		flex: none;
+		color: var(--text-muted);
+	}
+
 	.current {
 		display: flex;
 		align-items: center;
@@ -179,7 +248,7 @@
 		color: var(--text-muted);
 	}
 
-	.row {
+	.pre {
 		position: relative;
 		flex-direction: row;
 		align-items: center;
@@ -192,19 +261,45 @@
 		cursor: pointer;
 	}
 
-	.row:hover {
-		background: var(--muted);
-	}
-
-	.row:has(input:checked) {
+	.pre:has(input:checked) {
 		outline: 2px solid var(--primary);
 		outline-offset: -2px;
 		border-radius: var(--radius);
 	}
 
-	.row:has(input:focus-visible) {
+	.pre:has(input:focus-visible) {
 		outline: 2px solid var(--primary);
 		outline-offset: 2px;
+	}
+
+	.options {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.opt {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		width: 100%;
+		min-height: 3.75rem;
+		padding: var(--space-2) 0;
+		background: transparent;
+		border: 0;
+		border-bottom: 1px solid var(--border);
+		color: var(--text);
+		font: inherit;
+		font-size: var(--font-size-base);
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.opt:last-child {
+		border-bottom: 0;
+	}
+
+	.opt:active {
+		background: var(--muted);
 	}
 
 	.name {
@@ -214,6 +309,10 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		font-weight: 500;
+	}
+
+	.current .name {
+		flex: 0 1 auto;
 	}
 
 	.meta {
