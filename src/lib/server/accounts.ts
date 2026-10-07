@@ -1,4 +1,4 @@
-import { ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '../money';
+import { AMOUNT_EXAMPLE, ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '../money';
 import { ACCOUNT_ICONS, SWATCHES } from '../appearance';
 import { totalBalance, type Currency, type MovementType } from './dashboard';
 
@@ -44,8 +44,7 @@ export function parseAccountForm(fd: FormData, mode: 'create' | 'edit'): Account
 
 	const rawBalance = values.initialBalance.trim();
 	const initialBalance = rawBalance === '' ? 0 : parseAmount(rawBalance);
-	if (initialBalance === null)
-		errors.initialBalance = 'Ingresá un monto válido, con hasta 2 decimales (ej.: 1.234,56).';
+	if (initialBalance === null) errors.initialBalance = `Ingresá un monto válido ${AMOUNT_EXAMPLE}.`;
 	// A locked currency is not submitted in edit mode; the edit action checks it against the account.
 	else if (currency && !isWholeFor(initialBalance, currency))
 		errors.initialBalance = ARS_WHOLE_MESSAGE;

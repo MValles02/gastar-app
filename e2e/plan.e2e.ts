@@ -106,7 +106,7 @@ test('empty new rule form shows every required-field message', async ({ page }) 
 	await expect(page).toHaveURL(/\/plan\/recurring\/new$/);
 	for (const message of [
 		'Ingresá una descripción.',
-		'Ingresá un monto mayor a cero, con hasta 2 decimales (ej.: 1.234,56).',
+		'Ingresá un monto mayor a cero (ej.: 1.234 en pesos o 1.234,56 en dólares).',
 		'Elegí una cuenta.',
 		'Elegí una categoría.',
 		'Elegí un día entre 1 y 31.'
