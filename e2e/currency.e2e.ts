@@ -123,7 +123,7 @@ test('an account filter on /movements wins over ?currency=USD', async ({ page })
 test('picking an account in the /movements filter applies it', async ({ page }) => {
 	await login(page);
 	await page.goto('/movements', { waitUntil: 'networkidle' });
-	await page.getByText(/^Filtros/).click();
+	await page.getByRole('button', { name: /^Filtros/ }).click();
 	await page.getByRole('button', { name: /Cuenta/ }).click();
 	await page.getByRole('dialog').locator('button.opt', { hasText: 'Efectivo' }).click();
 	await expect(page).toHaveURL(/[?&]account=[0-9a-f-]{36}/);
@@ -184,10 +184,10 @@ test.describe('without JavaScript', () => {
 		await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
 
 		await page.goto('/movements');
-		await page.getByRole('radio', { name: 'USD' }).check({ force: true });
+		await page.getByRole('radio', { name: 'USD', exact: true }).check({ force: true });
 		await page.getByRole('button', { name: 'Filtrar' }).click();
 		await expect(page).toHaveURL(/currency=USD/);
-		await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
+		await expect(page.getByRole('radio', { name: 'USD', exact: true })).toBeChecked();
 	});
 });
 

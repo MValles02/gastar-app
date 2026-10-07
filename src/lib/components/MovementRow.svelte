@@ -42,7 +42,7 @@
 		justify-content: center;
 		width: 2.25rem;
 		height: 2.25rem;
-		border-radius: var(--radius-pill);
+		border-radius: var(--radius);
 		background: var(--muted);
 		color: var(--text);
 		font-size: 0.9375rem;
