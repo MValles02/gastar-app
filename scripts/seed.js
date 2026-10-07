@@ -340,6 +340,63 @@ try {
 			}
 		])}`;
 		await tx`insert into movements ${tx(movements, ...cols)}`;
+
+		// Demo ARS plan: repeats every month, one Supermercado limit.
+		const planId = randomUUID();
+		await tx`
+			insert into spending_plans (id, user_id, currency, extra_income, savings, month)
+			values (${planId}, ${userId}, 'ARS', ${1_500_000_00}, ${150_000_00}, null)
+		`;
+		await tx`
+			insert into plan_category_limits (plan_id, category_id, amount)
+			values (${planId}, ${cat.super.id}, ${300_000_00})
+		`;
+
+		// Second user with USD data of its own, for the cross-user (foreign id) e2e tests.
+		const otherEmail = 'otro@gastar.local';
+		const [other] = await tx`select id from "user" where email = ${otherEmail}`;
+		if (other) {
+			const id = other.id;
+			await tx`delete from movements where user_id = ${id}`;
+			await tx`delete from spending_plans where user_id = ${id}`;
+			await tx`delete from recurring_movements where user_id = ${id}`;
+			await tx`delete from categories where user_id = ${id}`;
+			await tx`delete from financial_accounts where owner_id = ${id}`;
+			await tx`delete from session where user_id = ${id}`;
+			await tx`delete from "account" where user_id = ${id}`;
+			await tx`delete from "user" where id = ${id}`;
+		}
+		const otherId = randomUUID();
+		const otherAccountId = randomUUID();
+		const otherCategoryId = randomUUID();
+		await tx`
+			insert into "user" (id, name, email, email_verified, created_at, updated_at)
+			values (${otherId}, 'Otro', ${otherEmail}, false, now(), now())
+		`;
+		await tx`
+			insert into "account" (id, account_id, provider_id, user_id, password, created_at, updated_at)
+			values (${randomUUID()}, ${otherId}, 'credential', ${otherId}, ${passwordHash}, now(), now())
+		`;
+		await tx`
+			insert into financial_accounts (id, owner_id, name, currency, initial_balance, icon, color)
+			values (${otherAccountId}, ${otherId}, 'Otra cuenta', 'USD', ${500_00}, 'dollar', 'green')
+		`;
+		await tx`
+			insert into financial_accounts (id, owner_id, name, currency, initial_balance, icon, color)
+			values (${randomUUID()}, ${otherId}, 'Otra cuenta pesos', 'ARS', ${500_000_00}, 'bank', 'teal')
+		`;
+		await tx`
+			insert into categories (id, user_id, name, color)
+			values (${otherCategoryId}, ${otherId}, 'Ajena', 'blue')
+		`;
+		await tx`
+			insert into spending_plans (id, user_id, currency, extra_income, savings)
+			values (${randomUUID()}, ${otherId}, 'USD', ${1_000_00}, 0)
+		`;
+		await tx`
+			insert into recurring_movements (id, user_id, type, description, amount, account_id, category_id, day_of_month)
+			values (${randomUUID()}, ${otherId}, 'outcome', 'Regla ajena', ${50_00}, ${otherAccountId}, ${otherCategoryId}, 10)
+		`;
 	});
 
 	const n = (t) => movements.filter((x) => x.type === t).length;

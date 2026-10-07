@@ -327,6 +327,14 @@ Radio groups of round swatches (the icon picker shows the ten account icons in I
 - **Item states:** Hover and `aria-current='page'` turn the label the text color; the active item's icon turns primary. Press scales to 0.96. Items have no horizontal padding; labels truncate with an ellipsis.
 - **Top bar:** See PageHeader above. The bottom nav stays Inicio | Movimientos | + | Plan | Reportes (Cuentas and Categorías live in Profile).
 
+### Plan Summary and Limit Row
+
+The `/plan` summary is a `Card` with the "Disponible · {mes}" heading, a hero `Money`, a status pill (hairline `--border-strong`, `negative` border and text when over) whose label is always text, and a `<dl>` of figures (muted term, 500 value, a hairline above the "Para gastar" and "Disponible" totals) that wraps at 320px. A limit row sits in a `.list-card`: name, "{gastado} de {límite}", a text flag ("Vas rápido", "Te pasaste") and a 0.5rem pill `role="meter"` bar (`--primary` fill, `negative` when over) so state never relies on colour.
+
+### Wizard Steps
+
+The plan setup is one form with four sections. With JS a step list (3px top border: `--primary` when done or current) and Siguiente / Atrás show one section at a time and focus its heading; without JS every section shows and one "Guardar plan" submits. Rows are `.list-card` check rows (at least 3rem) or bordered fieldsets; two-field pairs use `auto-fit` columns so they stack at 320px and 200% text.
+
 ### Nav FAB
 
 A 3.25rem primary square with the 0.875rem card radius and a 24px plus icon, centered in the bottom nav. It is the only element with `--shadow-lift`; hover drops opacity to 0.9 and press scales to 0.96.
