@@ -26,7 +26,7 @@ and only allows merges through pull requests (squash), so this is a hard
 block, not just convention:
 
 - `.github/workflows/ci.yml` runs on every pull request: install, lint,
-  check, test, build, and a `docker build` (no push).
+  check, build, Playwright E2E, and a `docker build` (no push).
 - `.github/workflows/deploy.yml` re-runs the same CI workflow (via
   `workflow_call`) before publishing, so a merge can never deploy code that
   didn't pass checks, even if a PR was merged without waiting for CI.
