@@ -1,6 +1,7 @@
 export const TZ = 'America/Argentina/Buenos_Aires';
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+const DAY_RE = /^(\d{4}-(?:0[1-9]|1[0-2]))-\d{2}$/;
 
 export function currentMonth(now: Date): string {
 	const parts = new Intl.DateTimeFormat('en-CA', {
@@ -24,31 +25,6 @@ function offsetAt(ym: string): string {
 		.formatToParts(probe)
 		.find((p) => p.type === 'timeZoneName')!.value;
 	return name === 'GMT' ? '+00:00' : name.slice(3);
-}
-
-/** Date to "YYYY-MM-DDTHH:mm" in TZ (datetime-local format). */
-function toLocalInput(d: Date): string {
-	const parts = new Intl.DateTimeFormat('en-CA', {
-		timeZone: TZ,
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit',
-		hour: '2-digit',
-		minute: '2-digit',
-		hourCycle: 'h23'
-	}).formatToParts(d);
-	const get = (t: string) => parts.find((p) => p.type === t)!.value;
-	return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
-}
-
-const LOCAL_RE = /^(\d{4}-(?:0[1-9]|1[0-2]))-\d{2}T\d{2}:\d{2}$/;
-
-/** Parses "YYYY-MM-DDTHH:mm" as TZ wall time; null on bad syntax or impossible dates. */
-export function parseLocalDateTime(raw: string): Date | null {
-	const m = LOCAL_RE.exec(raw);
-	if (!m) return null;
-	const d = new Date(`${raw}:00${offsetAt(m[1])}`);
-	return Number.isNaN(d.getTime()) || toLocalInput(d) !== raw ? null : d;
 }
 
 export function shiftMonth(ym: string, delta: 1 | -1): string {
@@ -105,12 +81,20 @@ export function dateLabel(d: Date): string {
 
 /** Start (00:00 Buenos Aires) of a "YYYY-MM-DD" day; null for impossible dates. */
 export function dayStart(ymd: string): Date | null {
-	return parseLocalDateTime(`${ymd}T00:00`);
+	const m = DAY_RE.exec(ymd);
+	if (!m) return null;
+	const d = new Date(`${ymd}T00:00:00${offsetAt(m[1])}`);
+	return Number.isNaN(d.getTime()) || localDay(d) !== ymd ? null : d;
 }
 
 /** "YYYY-MM-DD" of a Date in TZ. */
 export function localDay(d: Date): string {
-	return toLocalInput(d).slice(0, 10);
+	return new Intl.DateTimeFormat('en-CA', {
+		timeZone: TZ,
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	}).format(d);
 }
 
 /** "Hoy", "Ayer" or e.g. "Miércoles 30 de septiembre" (year added when not todayYmd's year). */
