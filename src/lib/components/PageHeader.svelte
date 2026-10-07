@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import Icon from './Icon.svelte';
 
-	/** Sticky top bar: [back] [eyebrow + title] [profile]. The eyebrow defaults to today's date. */
+	/** Sticky top bar: [back] [eyebrow + title] [avisos] [profile]. The eyebrow defaults to today's date. */
 	let {
 		title,
 		eyebrow,
@@ -16,6 +16,7 @@
 
 	// From the (app) layout load; missing only if that load failed (error page).
 	const header = $derived(page.data.header as { date: string; initials: string } | undefined);
+	const alertCount = $derived((page.data.alertCount as number | undefined) ?? 0);
 	const kicker = $derived(eyebrow ?? header?.date);
 </script>
 
@@ -32,6 +33,17 @@
 	</div>
 	{#if header}
 		<a
+			class="bell"
+			href={resolve('/notifications')}
+			aria-current={page.url.pathname === '/notifications' ? 'page' : undefined}
+			aria-label={alertCount > 0 ? `Avisos: ${alertCount}` : 'Avisos'}
+		>
+			<Icon name="bell" size="1.25rem" />
+			{#if alertCount > 0}<span class="badge" aria-hidden="true"
+					>{alertCount > 9 ? '9+' : alertCount}</span
+				>{/if}
+		</a>
+		<a
 			class="avatar"
 			href={resolve('/profile')}
 			aria-current={page.url.pathname === '/profile' ? 'page' : undefined}
@@ -44,6 +56,7 @@
 	/* Bleeds to the content edges (--gutter from the layout) so scrolled content hides under it. */
 	.top-bar {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-2);
 		margin: 0 calc(var(--gutter) * -1) var(--space-4);
@@ -77,9 +90,10 @@
 		}
 	}
 
+	/* Wraps below the buttons at large text instead of breaking the title per character. */
 	.titles {
-		flex: 1;
-		min-width: 0;
+		flex: 1 1 4rem;
+		min-width: min(100%, 7rem);
 	}
 
 	.eyebrow {
@@ -95,7 +109,9 @@
 	}
 
 	.back,
+	.bell,
 	.avatar {
+		position: relative;
 		flex: none;
 		display: inline-flex;
 		align-items: center;
@@ -117,6 +133,31 @@
 		}
 	}
 
+	.bell {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--surface);
+	}
+
+	/* The count as text (capped at 9+); the link's aria-label carries it for screen readers. */
+	.badge {
+		position: absolute;
+		top: -0.3125rem;
+		right: -0.3125rem;
+		min-width: 1.25rem;
+		height: 1.25rem;
+		padding: 0 0.25rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: var(--radius-pill);
+		background: var(--primary);
+		color: var(--on-primary);
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		line-height: 1;
+	}
+
 	.avatar {
 		border-radius: 50%;
 		background: var(--muted);
@@ -124,6 +165,7 @@
 		font-weight: 600;
 	}
 
+	.bell[aria-current='page'],
 	.avatar[aria-current='page'] {
 		box-shadow: 0 0 0 2px var(--primary);
 	}

@@ -41,7 +41,7 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ## Layout
 
-- Top bar (sticky, every app screen): optional back link, today's date as an eyebrow above the screen title, and an avatar (initials) linking to Profile. Bottom-nav tabs have no back; every other screen has an "up" back to its parent (new-movement returns to the screen it was opened from). Screens have no action buttons under the bar; Accounts and Categories end their list with a "+ Nueva …" row. No currency control: each screen states its own currency, and amounts are never converted or summed across currencies.
+- Top bar (sticky, every app screen): optional back link, today's date as an eyebrow above the screen title, a bell linking to Avisos (with the alert count as a badge) and an avatar (initials) linking to Profile. Bottom-nav tabs have no back; every other screen has an "up" back to its parent (new-movement returns to the screen it was opened from). Screens have no action buttons under the bar; Accounts and Categories end their list with a "+ Nueva …" row. No currency control: each screen states its own currency, and amounts are never converted or summed across currencies.
 - Bottom nav: Inicio | Movimientos | Create movement (center "+") | Plan | Reportes.
 - Profile page: "Cuentas" and "Categorías" links (both are reached from Profile and link back to it), theme toggle (light / dark / system) + logout.
 
@@ -99,6 +99,14 @@ Personal finance PWA for Argentina. Answers two questions:
 - Limits: "Límites por categoría" lists each limit as "{gastado} de {límite}" with a progress meter and, as text, "Vas rápido" or "Te pasaste".
 - No plan for the current month: "Todavía no tenés un plan en {pesos|dólares}." with "Crear plan" (and "Tu plan de {mes} terminó." after a one-month plan ends).
 - Wizard `/plan/setup` (back "Volver al plan"; "Crear plan" / "Editar plan"), 4 steps: "¿Cuánto cobrás por mes en {ARS|USD}?" (keep or add income rules, accept detected ones, "Otros ingresos del mes (opcional)"), "¿Qué pagos fijos tenés?", "¿Cuánto querés ahorrar?" (Nada, 10 %, 20 % or Monto) and "Tu plan para {mes}" (the equation, the checkbox "Usar este plan todos los meses", "Límites por categoría (opcional)" with "Usar sugeridos"). Checked stores the plan for every month; unchecked only for the current month. Without JS all steps show at once with one "Guardar plan". Saving writes the plan, its limits and any rules created or archived in one transaction and returns to `/plan` with "Plan guardado."; "Eliminar plan" (with confirmation) deletes the plan and its limits but keeps the rules. ARS amounts are whole pesos.
+
+### Avisos
+
+- Route `/notifications` (back to Inicio), h1 "Avisos", reached from the bell in the top bar. Alerts are worked out from existing data when a page loads; nothing is stored, so there is no read state. The bell's badge is the number of alerts across both currencies (capped at "9+"; label "Avisos: N"); it refreshes on full page loads and after form submissions, not on client-side navigation.
+- One group per currency that has accounts ("Pesos", "Dólares"); amounts are never converted or summed across currencies. Overdue payments first, then by due day, then plan and limits.
+  - Fixed payment: an active payment rule (not income) that is unpaid this month and overdue or due within 3 days. Title is the description; the line below reads "{Vence hoy | Mañana | En N días | Venció …} · {monto} · {cuenta}". Opens `/movements/new?recurring=<id>`.
+  - "Te pasaste del plan en {pesos|dólares}" or "Estás gastando más rápido de lo planeado en {pesos|dólares}" ("Gastado X de Y"; when savings plus fixed payments exceed income: "Tu ahorro y tus pagos fijos superan tus ingresos por X"), and "{categoría} superó su límite" ("X de Y"). They open `/plan` in that currency (a form that sets the currency cookie, so it works without JS). Limits that are only "Vas rápido" do not alert.
+- Nothing to show: "Estás al día. No hay pagos por vencer ni excesos en tu plan."
 
 ### Accounts
 
@@ -164,5 +172,6 @@ Personal finance PWA for Argentina. Answers two questions:
 - CSV import/export.
 - Shared accounts.
 - Phone OTP.
+- Push or email notifications (Avisos are in-app only).
 - Automatic exchange rates.
 - Adjustable (editable) destination amount on cross-currency transfers.

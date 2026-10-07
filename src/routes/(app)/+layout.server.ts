@@ -1,3 +1,4 @@
+import { alerts } from '$lib/server/alerts';
 import { TZ } from '$lib/server/month';
 import type { LayoutServerLoad } from './$types';
 
@@ -9,11 +10,21 @@ const dayFmt = new Intl.DateTimeFormat('es-AR', {
 });
 
 // Top bar data shared by every screen (see PageHeader).
-export const load: LayoutServerLoad = ({ locals }) => {
+export const load: LayoutServerLoad = async ({ locals }) => {
 	const user = locals.user!;
 	const name = user.name?.trim() || user.email;
-	const date = dayFmt.format(new Date()).replace(',', '');
+	const now = new Date();
+	const date = dayFmt.format(now).replace(',', '');
+	// Counts alerts, not money, so adding across currencies is fine. Refreshed on full loads and form actions.
+	// A failure here must not take down every screen: log it and show no badge.
+	let alertCount = 0;
+	try {
+		alertCount = (await alerts(user.id, now)).reduce((n, g) => n + g.items.length, 0);
+	} catch (err) {
+		console.error('alerts failed', err);
+	}
 	return {
+		alertCount,
 		header: {
 			date: date.charAt(0).toUpperCase() + date.slice(1),
 			firstName: name.split(/[\s@]/)[0],

@@ -18,14 +18,15 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const now = new Date();
 	const ym = currentMonth(now);
 	const today = localDay(now);
-	const [rules, paid, plan] = await Promise.all([
+	// `active` is server-only (see planView); the rest of the view goes to the client.
+	const [rules, paid, { active: activeRules, ...plan }] = await Promise.all([
 		listRecurring(userId, currency),
 		paidRecurring(userId, monthRange(ym)),
 		planView(userId, currency, now)
 	]);
 	const paidIds = new Set(paid.map((p) => p.recurringId));
 
-	const active = rules.filter(isRecurringActive).map((r) => {
+	const active = activeRules.map((r) => {
 		const s = recurringStatus(r.dayOfMonth, paidIds.has(r.id), ym, today);
 		return {
 			id: r.id,
