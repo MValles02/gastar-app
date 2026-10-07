@@ -11,7 +11,7 @@ import { localDay } from '$lib/server/month';
 import { parseMovementForm, resolveMovement, UNAVAILABLE_MESSAGE } from '$lib/server/movements';
 import { createMovement } from '$lib/server/movements-queries';
 import { isRecurringActive } from '$lib/server/plan';
-import { listRecurring } from '$lib/server/plan-queries';
+import { createMovementWithRule, listRecurring } from '$lib/server/plan-queries';
 
 /** An active recurring rule owned by the user, or undefined (inactive, foreign and invalid ids alike). */
 async function findRule(userId: string, id: FormDataEntryValue | null) {
@@ -80,6 +80,8 @@ export const actions: Actions = {
 		const fd = await request.formData();
 		const parsed = parseMovementForm(fd);
 		const { values } = parsed;
+		// Keeps the checkbox state when the form is shown again with errors.
+		if (fd.get('repeat') === 'on') values.repeat = 'on';
 		if (!parsed.ok) return fail(400, { values, errors: parsed.errors });
 		const { data } = parsed;
 
@@ -118,7 +120,20 @@ export const actions: Actions = {
 		}
 
 		try {
-			await createMovement(userId, { ...resolved.row, recurringId: rule?.id ?? null });
+			const { type, categoryId } = resolved.row;
+			if (!rule && fd.get('repeat') === 'on' && type !== 'transfer' && categoryId) {
+				// The rule repeats on the movement's Buenos Aires day (clamped by recurringStatus in short months).
+				await createMovementWithRule(userId, resolved.row, {
+					type,
+					description: resolved.row.description,
+					amount: resolved.row.amount,
+					accountId: resolved.row.accountId,
+					categoryId,
+					dayOfMonth: Number(localDay(resolved.row.occurredAt).slice(8, 10))
+				});
+			} else {
+				await createMovement(userId, { ...resolved.row, recurringId: rule?.id ?? null });
+			}
 		} catch (e) {
 			const code = pgErrorCode(e);
 			if (code === '23503')

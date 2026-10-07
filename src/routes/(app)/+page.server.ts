@@ -9,6 +9,7 @@ import {
 import { monthNet, toRecentItem, topCategories, totalBalance } from '$lib/server/dashboard';
 import { singleCurrency } from '$lib/server/currency-pref';
 import { currentMonth, dateLabel, monthLabel, monthRange } from '$lib/server/month';
+import { planView } from '$lib/server/plan-view';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const userId = locals.user!.id;
@@ -33,23 +34,36 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 			...base,
 			balance: 0,
 			monthNet: 0,
+			plan: null,
 			topCategories: [] as ReturnType<typeof topCategories>,
 			recent: []
 		};
 	}
 
-	const [allSums, inSum, monthSums, cats, recent] = await Promise.all([
+	const [allSums, inSum, monthSums, cats, recent, plan] = await Promise.all([
 		originTypeSums(userId, currency),
 		transfersInSum(userId, currency),
 		originTypeSums(userId, currency, range),
 		categorySums(userId, currency, range),
-		recentMovements(userId, currency)
+		recentMovements(userId, currency),
+		planView(userId, currency, now)
 	]);
 
 	return {
 		...base,
 		balance: totalBalance(row?.initial ?? 0, allSums, inSum[0]?.amount ?? 0),
 		monthNet: monthNet(monthSums),
+		plan: {
+			monthName: plan.monthName,
+			endedMonthName: plan.endedMonthName,
+			statusLabel: plan.statusLabel,
+			summary: plan.summary && {
+				available: plan.summary.available,
+				perDay: plan.summary.perDay,
+				daysLeft: plan.summary.daysLeft,
+				status: plan.summary.status
+			}
+		},
 		topCategories: topCategories(cats),
 		recent: recent.map((r) => {
 			const { occurredAt, ...item } = toRecentItem(r, currency);
