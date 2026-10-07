@@ -1,3 +1,53 @@
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+
+/*
+ * Tailwind is used only inside shadcn components; no preflight, the rules below stay unlayered.
+ * source(none) disables auto-detection: it scanned every file and emitted utilities that collide
+ * with app classes (e.g. .ring in IconPicker/ColorPicker). Phase 3 must add
+ * `@source "./lib/components/ui";` (or wherever shadcn components live).
+ */
+@custom-variant dark {
+	&:where([data-theme='dark'], [data-theme='dark'] *, .dark, .dark *) {
+		@slot;
+	}
+
+	@media (prefers-color-scheme: dark) {
+		&:where(:root:not([data-theme='light']), :root:not([data-theme='light']) *) {
+			@slot;
+		}
+	}
+}
+
+@theme inline {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+
+	/* shadcn v4 scale: xl = --radius + 4px = 14px = --radius-card, so no --radius-card mapping is needed. */
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+}
+
 /* Reset-lite */
 *,
 *::before,
@@ -61,6 +111,24 @@ svg {
 	--swatch-orange: light-dark(#9a5a1f, #f0b27a);
 	--swatch-ochre: light-dark(#7d6a1e, #d9c46e);
 
+	/* shadcn-svelte names, aliased to the tokens above. */
+	--background: var(--bg);
+	--foreground: var(--text);
+	--card: var(--surface);
+	--card-foreground: var(--text);
+	--popover: var(--surface-raised);
+	--popover-foreground: var(--text);
+	--primary-foreground: var(--on-primary);
+	--secondary: var(--muted);
+	--secondary-foreground: var(--text);
+	--muted-foreground: var(--text-muted);
+	--accent: var(--muted);
+	--accent-foreground: var(--text);
+	--destructive: var(--negative);
+	--destructive-foreground: light-dark(#ffffff, #1c1917);
+	--input: var(--border-strong);
+	--ring: var(--primary);
+
 	--radius: 0.625rem;
 	--radius-card: 0.875rem;
 	--radius-pill: 999px;
@@ -98,7 +166,8 @@ svg {
 	color-scheme: light;
 }
 
-:root[data-theme='dark'] {
+:root[data-theme='dark'],
+:root.dark {
 	color-scheme: dark;
 }
 
