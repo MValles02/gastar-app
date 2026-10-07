@@ -91,6 +91,10 @@ Personal finance PWA for Argentina. Answers two questions:
 - A rule is inactive if the rule, its account or its category is archived; inactive rules are listed under "Inactivos" with the reason ("Archivado", "Cuenta archivada", "Categoría archivada") and cannot be registered.
 - Create / edit at `/plan/recurring/new` and `/plan/recurring/[id]` (back to `/plan`); a rule can be archived or reactivated, or deleted with confirmation (the movements already registered are kept). Another user's or a missing rule is "Movimiento fijo no encontrado." (404).
 - Empty state: "No tenés pagos ni ingresos fijos en {pesos|dólares}." with "Agregar pago fijo" and "Agregar ingreso fijo".
+- Plan summary (top of `/plan`, per currency): "Disponible · {mes}" with the hero amount, a status as text ("Vas bien", "Atención", "Te pasaste"), "{monto} por día · quedan N días", and the figures Ingresos, Pagos fijos, Ahorro, Para gastar, Gastado and Disponible (Disponible = Ingresos (active income rules + otros ingresos) − Pagos fijos − Ahorro − Gastado). Gastado counts the month's outcomes on accounts in that currency (archived accounts included, transfers excluded) except those linked to an active rule, whose full amount is already in Pagos fijos. "Editar plan" opens the wizard.
+- Limits: "Límites por categoría" lists each limit as "{gastado} de {límite}" with a progress meter and, as text, "Vas rápido" or "Te pasaste".
+- No plan for the current month: "Todavía no tenés un plan en {pesos|dólares}." with "Crear plan" (and "Tu plan de {mes} terminó." after a one-month plan ends).
+- Wizard `/plan/setup` (back "Volver al plan"; "Crear plan" / "Editar plan"), 4 steps: "¿Cuánto cobrás por mes en {ARS|USD}?" (keep or add income rules, accept detected ones, "Otros ingresos del mes (opcional)"), "¿Qué pagos fijos tenés?", "¿Cuánto querés ahorrar?" (Nada, 10 %, 20 % or Monto) and "Tu plan para {mes}" (the equation, the checkbox "Usar este plan todos los meses", "Límites por categoría (opcional)" with "Usar sugeridos"). Checked stores the plan for every month; unchecked only for the current month. Without JS all steps show at once with one "Guardar plan". Saving writes the plan, its limits and any rules created or archived in one transaction and returns to `/plan` with "Plan guardado."; "Eliminar plan" (with confirmation) deletes the plan and its limits but keeps the rules. ARS amounts are whole pesos.
 
 ### Accounts
 
@@ -150,7 +154,6 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ## Out of MVP
 
-- Budgets.
 - Credit cards / installments (cuotas).
 - Attachments / receipts.
 - CSV import/export.

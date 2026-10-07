@@ -1,7 +1,7 @@
 import type { MovementType } from './dashboard';
 import { parseAmount } from '../money';
 import { isUuid } from './db/util';
-import { daysInMonth, elapsedDays } from './month';
+import { daysInMonth, elapsedDays, monthRange, shiftMonth } from './month';
 
 export type RecurringStatus = 'paid' | 'overdue' | 'today' | 'upcoming';
 
@@ -37,6 +37,39 @@ export function isRecurringActive(r: {
 }
 
 export type PlanStatus = 'ok' | 'warn' | 'over';
+
+export const PLAN_STATUS_LABEL: Record<PlanStatus, string> = {
+	ok: 'Vas bien',
+	warn: 'Atención',
+	over: 'Te pasaste'
+};
+
+/** The 3 full months before `ym`, as a range (the window for suggested rules and limits). */
+export function lastFullMonths(ym: string) {
+	return {
+		start: monthRange(shiftMonth(shiftMonth(shiftMonth(ym, -1), -1), -1)).start,
+		end: monthRange(ym).start
+	};
+}
+
+/**
+ * Pure: month outcomes (one currency) that count as spent, total and per category. Payments linked to
+ * an active rule are skipped (the rule's full amount is already deducted as `bills`); a payment linked
+ * to an inactive or deleted rule counts.
+ */
+export function planSpent(
+	rows: { categoryId: string | null; recurringId: string | null; amount: number }[],
+	activeIds: ReadonlySet<string>
+) {
+	const byCategory = new Map<string, number>();
+	let total = 0;
+	for (const r of rows) {
+		if (r.recurringId && activeIds.has(r.recurringId)) continue;
+		total += r.amount;
+		if (r.categoryId) byCategory.set(r.categoryId, (byCategory.get(r.categoryId) ?? 0) + r.amount);
+	}
+	return { total, byCategory };
+}
 
 export type PlanInput = {
 	/** Sum of active recurring incomes. */

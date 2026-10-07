@@ -4,21 +4,24 @@ import { accountSummary } from '$lib/server/dashboard-queries';
 import { currentMonth, localDay, monthRange } from '$lib/server/month';
 import { dueLabel, isRecurringActive, recurringStatus } from '$lib/server/plan';
 import { listRecurring, paidRecurring } from '$lib/server/plan-queries';
+import { planView } from '$lib/server/plan-view';
 
 export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const userId = locals.user!.id;
 	const currency = singleCurrency(cookies.get('currency'));
 	const saved = url.searchParams.get('saved') === '1';
+	const planSaved = url.searchParams.get('planSaved') === '1';
 	const summary = await accountSummary(userId);
 	if (!summary.some((s) => s.currency === currency && s.count > 0))
-		return { currency, saved, hasCurrency: false as const };
+		return { currency, saved, planSaved, hasCurrency: false as const };
 
 	const now = new Date();
 	const ym = currentMonth(now);
 	const today = localDay(now);
-	const [rules, paid] = await Promise.all([
+	const [rules, paid, plan] = await Promise.all([
 		listRecurring(userId, currency),
-		paidRecurring(userId, monthRange(ym))
+		paidRecurring(userId, monthRange(ym)),
+		planView(userId, currency, now)
 	]);
 	const paidIds = new Set(paid.map((p) => p.recurringId));
 
@@ -54,7 +57,9 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	return {
 		currency,
 		saved,
+		planSaved,
 		hasCurrency: true as const,
+		plan,
 		incomes: active.filter((r) => r.type === 'income'),
 		outcomes: active.filter((r) => r.type === 'outcome'),
 		inactive

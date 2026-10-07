@@ -4,9 +4,9 @@ import { expect, test, type Page } from '@playwright/test';
 const email = process.env.SEED_EMAIL || 'demo@gastar.local';
 const password = process.env.SEED_PASSWORD || 'demo1234';
 
-async function login(page: Page) {
+async function login(page: Page, as = email) {
 	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(email);
+	await page.getByLabel('Email').fill(as);
 	await page.getByLabel('Contraseña').fill(password);
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 	await expect(page).toHaveURL(/\/$/);
@@ -239,5 +239,23 @@ for (const id of ['00000000-0000-4000-8000-000000000000', 'x']) {
 	});
 }
 
-// Foreign ownership (another user's rule returns 404) is not covered: the seed has a single user,
-// and creating a second one from a spec would need credentials/scripts outside the e2e setup.
+test("another user's rule is a 404", async ({ page, browser, baseURL }) => {
+	const other = await browser.newContext({ baseURL });
+	let id: string;
+	try {
+		const op = await other.newPage();
+		await login(op, 'otro@gastar.local');
+		await other.addCookies([{ name: 'currency', value: 'USD', url: baseURL! }]);
+		await op.goto('/plan', { waitUntil: 'networkidle' });
+		id = await op
+			.getByRole('link', { name: /Regla ajena/ })
+			.first()
+			.evaluate((a: HTMLAnchorElement) => a.pathname.split('/').pop()!);
+	} finally {
+		await other.close();
+	}
+	await login(page);
+	const res = await page.goto(`/plan/recurring/${id}`);
+	expect(res!.status()).toBe(404);
+	await expect(page.getByText('Movimiento fijo no encontrado.')).toBeVisible();
+});
