@@ -108,10 +108,7 @@ test.describe('without JavaScript', () => {
 		expect(await bad.text()).toContain('Ingresá una fecha válida.');
 	});
 
-	test('a datetime from the previous release is accepted and its date used', async ({
-		page,
-		baseURL
-	}) => {
+	test('a datetime is rejected and nothing is saved', async ({ page, baseURL }) => {
 		await login(page);
 		await page.goto('/movements/new');
 		const accountId = await page
@@ -122,7 +119,7 @@ test.describe('without JavaScript', () => {
 			.getByRole('group', { name: 'Categoría', exact: true })
 			.getByRole('radio', { name: /Supermercado/ })
 			.getAttribute('value');
-		const desc = unique('Fecha vieja');
+		const desc = unique('Fecha hora');
 		const res = await page.request.post('/movements/new', {
 			form: {
 				type: 'outcome',
@@ -134,15 +131,10 @@ test.describe('without JavaScript', () => {
 			},
 			headers: { origin: baseURL!, accept: 'text/html' }
 		});
-		expect(res.ok()).toBe(true);
+		expect(res.status()).toBe(400);
+		expect(await res.text()).toContain('Ingresá una fecha válida.');
 		await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
-		await expect(
-			page
-				.locator('section', {
-					has: page.getByRole('heading', { name: 'Martes 27 de febrero de 2024' })
-				})
-				.getByText(desc)
-		).toBeVisible();
+		await expect(page.getByText(desc)).toHaveCount(0);
 	});
 
 	test('same-day movements list the newest first', async ({ page }) => {

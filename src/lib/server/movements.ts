@@ -78,10 +78,7 @@ export function parseMovementForm(fd: FormData): MovementFormResult {
 	const type = TYPES.find((t) => t === values.type);
 	if (!type) errors.type = MSG.type;
 
-	// "YYYY-MM-DDTHH:mm" exists for open tabs on the previous release (which posted a datetime);
-	// only the date part is used. Drop it in a later release.
-	const day =
-		/^(\d{4}-\d{2}-\d{2})(?:T([01]\d|2[0-3]):[0-5]\d)?$/.exec(values.occurredAt)?.[1] ?? '';
+	const day = values.occurredAt;
 	const occurredAt = day.slice(0, 4) >= '2000' && validDay(day) ? dayStart(day) : null;
 	if (!occurredAt) errors.occurredAt = MSG.date;
 
