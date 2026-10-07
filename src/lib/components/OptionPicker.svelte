@@ -46,6 +46,7 @@
 	let open = $state(false);
 	let trigger: HTMLButtonElement | null = $state(null);
 	let list: HTMLElement | null = $state(null);
+	let hidden: HTMLInputElement | null = $state(null);
 	const labelId = $props.id();
 
 	onMount(() => (mounted = true));
@@ -66,6 +67,8 @@
 		value = id;
 		open = false;
 		await tick();
+		// The hidden input carries the new value; let ancestors (e.g. the filter bar form) see a change.
+		hidden?.dispatchEvent(new Event('change', { bubbles: true }));
 		trigger?.focus();
 	}
 </script>
@@ -118,7 +121,7 @@
 			</button>
 		{/if}
 		<!-- The Drawer is portaled out of the form, so the value submits through this input. -->
-		<input type="hidden" {name} {value} disabled={!value} />
+		<input type="hidden" {name} {value} disabled={!value} bind:this={hidden} />
 		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
 	</div>
 	<BottomDrawer {title} bind:open>

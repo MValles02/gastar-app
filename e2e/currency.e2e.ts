@@ -120,6 +120,15 @@ test('an account filter on /movements wins over ?currency=USD', async ({ page })
 	await expect(page.getByText('No hay movimientos')).toHaveCount(0);
 });
 
+test('picking an account in the /movements filter applies it', async ({ page }) => {
+	await login(page);
+	await page.goto('/movements', { waitUntil: 'networkidle' });
+	await page.getByText(/^Filtros/).click();
+	await page.getByRole('button', { name: /Cuenta/ }).click();
+	await page.getByRole('dialog').locator('button.opt', { hasText: 'Efectivo' }).click();
+	await expect(page).toHaveURL(/[?&]account=[0-9a-f-]{36}/);
+});
+
 test('accounts are grouped into Pesos and Dólares', async ({ page }) => {
 	await login(page);
 	await page.goto('/accounts', { waitUntil: 'networkidle' });

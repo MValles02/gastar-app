@@ -29,12 +29,19 @@
 	let hydrated = $state(false);
 	onMount(() => (hydrated = true));
 	// Toast once per saved redirect. The history entry is marked (state only, the URL keeps ?saved=1)
-	// so back-nav to it does not re-fire; a new save is a new entry.
-	$effect(() => {
-		// formKey is new on every load, so each saved redirect re-runs this even though saved stays true.
-		if (data.formKey && data.saved && !form && !(page.state as { toasted?: boolean }).toasted) {
-			toast.success('Movimiento guardado.');
+	// so back-nav to it does not re-fire; a new save is a new entry. Runs in afterNavigate because
+	// replaceState throws before the router is initialized (hard load of ?saved=1).
+	const markToasted = () => {
+		try {
 			replaceState('', { toasted: true } as App.PageState);
+		} catch {
+			setTimeout(markToasted, 50);
+		}
+	};
+	afterNavigate(() => {
+		if (data.saved && !form && !(page.state as { toasted?: boolean }).toasted) {
+			toast.success('Movimiento guardado.');
+			markToasted();
 		}
 	});
 	const returnTo = $derived(cameFrom ?? (data.recurring ? '/plan' : '/'));

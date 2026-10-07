@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, untrack, type ComponentProps } from 'svelte';
+	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import Lock from '@lucide/svelte/icons/lock';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
@@ -67,6 +67,18 @@
 	const isTransfer = $derived(type === 'transfer');
 	const showTransfer = $derived(!mounted || isTransfer);
 	const showCategory = $derived(!mounted || !isTransfer);
+
+	// After a failed submit, move focus to the first field marked invalid (inputs or picker triggers).
+	$effect(() => {
+		if (!Object.values(errors).some(Boolean)) return;
+		tick().then(() => {
+			document
+				.querySelector<HTMLElement>(
+					'form [aria-invalid="true"], form button[aria-describedby$="-error"]'
+				)
+				?.focus();
+		});
+	});
 
 	$effect(() => {
 		if (destinationId && destinationId === accountId) destinationId = '';
@@ -375,6 +387,12 @@
 
 	.amount.sm .amount-input {
 		font-size: var(--font-size-hero);
+	}
+
+	.amount .amount-input::placeholder,
+	.row input::placeholder {
+		color: var(--text-muted);
+		opacity: 1;
 	}
 
 	.amount-block .error {
