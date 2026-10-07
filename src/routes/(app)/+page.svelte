@@ -118,8 +118,12 @@
 					<Card>
 						<ul class="list">
 							{#each data.topCategories as cat (cat.id)}
-								<li class="cat">
+								<li
+									class="cat"
+									style:--tone={cat.color ? `var(--swatch-${cat.color})` : 'var(--text)'}
+								>
 									<div class="cat-row">
+										<span class="dot" aria-hidden="true"></span>
 										<span class="ellipsis">{cat.name}</span>
 										<span class="amount cat-amount">{formatMoney(cat.net, data.currency)}</span>
 										<span class="amount muted pct">{percent.format(cat.share)}</span>
@@ -401,11 +405,20 @@
 		background: var(--muted);
 	}
 
-	/* Spending reads in the text colour; the category swatch is not in the page data. */
+	/* The category swatch tints the dot and bar; text stays on tokens. */
+	.dot {
+		flex: none;
+		align-self: center;
+		width: 0.625rem;
+		height: 0.625rem;
+		border-radius: var(--radius-pill);
+		background: var(--tone);
+	}
+
 	.fill {
 		height: 100%;
 		border-radius: var(--radius-pill);
-		background: var(--text);
+		background: var(--tone);
 	}
 
 	.all {

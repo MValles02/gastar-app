@@ -117,8 +117,8 @@ test('a plan alert opens /plan in its currency, and the page works without JS', 
 		// The cookie says USD; the alert's form switches it to ARS.
 		await page.context().addCookies([{ name: 'currency', value: 'USD', url: baseURL! }]);
 		await page.goto('/notifications');
-		const row = alertRow(page, 'Te pasaste del plan en pesos');
-		await expect(row).toContainText('Tu ahorro y tus pagos fijos superan tus ingresos por');
+		const row = alertRow(page, 'Faltan');
+		await expect(row).toContainText('Te pasaste');
 		await row.getByRole('button').click();
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();

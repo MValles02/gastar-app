@@ -1,6 +1,9 @@
 <script lang="ts">
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import AlertCircle from '@lucide/svelte/icons/circle-alert';
+	import Clock from '@lucide/svelte/icons/clock';
 	import Icon from '$lib/components/Icon.svelte';
+	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
@@ -27,14 +30,33 @@
 					{#each g.items as n (n.id)}
 						<li>
 							{#snippet row()}
-								<span class="lead" aria-hidden="true">
-									{#if n.id.startsWith('plan-')}<Icon name="plan" size="1.25rem" />{:else}{n.title
+								<span
+									class="lead"
+									style:--tone={n.color ? `var(--swatch-${n.color})` : null}
+									class:tinted={n.color}
+									aria-hidden="true"
+								>
+									{#if n.kind === 'plan'}<Icon name="plan" size="1.25rem" />{:else}{n.name
 											.charAt(0)
 											.toUpperCase()}{/if}
 								</span>
 								<span class="text">
-									<span class="title">{n.title}</span>
-									<span class="sub">{n.body}</span>
+									<span class="line">
+										<span class="title">{n.name}</span>
+										{#if n.amount !== null}
+											<span class="am"
+												><Money cents={-n.amount} currency={g.currency} kind="outcome" /></span
+											>
+										{/if}
+									</span>
+									<span class="line sub-line">
+										<span class="pill {n.pill.tone}">
+											{#if n.pill.tone === 'over'}<AlertCircle size={14} strokeWidth={2} />
+											{:else if n.pill.tone === 'due'}<Clock size={14} strokeWidth={2} />{/if}
+											{n.pill.label}
+										</span>
+										<span class="sub">{n.detail}</span>
+									</span>
 								</span>
 							{/snippet}
 							{#if n.href}
@@ -117,7 +139,7 @@
 		background: var(--muted);
 	}
 
-	/* Neutral badge: alerts carry no category colour. */
+	/* Neutral badge; payments and limits tint it with the category swatch (letter stays on the text token). */
 	.lead {
 		flex: none;
 		display: inline-flex;
@@ -130,6 +152,55 @@
 		color: var(--text);
 		font-size: 0.9375rem;
 		font-weight: 600;
+	}
+
+	.lead.tinted {
+		background: color-mix(in srgb, var(--tone) 14%, transparent);
+	}
+
+	.line {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: var(--space-3);
+	}
+
+	.sub-line {
+		align-items: center;
+		justify-content: flex-start;
+		gap: var(--space-2);
+		margin-top: 0.25rem;
+	}
+
+	.am {
+		flex: none;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.pill {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.125rem 0.625rem;
+		border-radius: var(--radius-pill);
+		background: var(--muted);
+		color: var(--text-muted);
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		white-space: nowrap;
+	}
+
+	.pill.due {
+		background: color-mix(in srgb, var(--swatch-orange) 14%, transparent);
+		color: var(--swatch-orange);
+	}
+
+	/* Overdue and over-limit are information, not errors: inverted fill, never red. */
+	.pill.over {
+		background: var(--text);
+		color: var(--bg);
 	}
 
 	.text {
@@ -145,6 +216,7 @@
 	}
 
 	.sub {
+		min-width: 0;
 		font-size: var(--font-size-sm);
 		color: var(--text-muted);
 		overflow-wrap: anywhere;
