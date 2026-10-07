@@ -2,7 +2,7 @@ import { and, desc, eq, gte, lt, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
-import { canAccessAccount, canAccessCategory } from './access';
+import { canAccessAccount, canAccessCategory, canAccessMovement } from './access';
 
 type Currency = 'ARS' | 'USD';
 type Range = { start: Date; end: Date };
@@ -33,7 +33,7 @@ export function originTypeSums(userId: string, cur: Currency, range?: Range) {
 		.select({ type: movements.type, amount: total(movements.amount) })
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.where(and(canAccessAccount(userId), eq(financialAccounts.currency, cur), inRange(range)))
+		.where(and(canAccessMovement(userId), eq(financialAccounts.currency, cur), inRange(range)))
 		.groupBy(movements.type);
 }
 
@@ -43,7 +43,7 @@ export function transfersInSum(userId: string, cur: Currency) {
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
 		.innerJoin(dest, eq(movements.destinationAccountId, dest.id))
-		.where(and(canAccessAccount(userId), canAccessAccount(userId, dest), eq(dest.currency, cur)));
+		.where(and(canAccessMovement(userId), canAccessAccount(userId, dest), eq(dest.currency, cur)));
 }
 
 export function categorySums(userId: string, cur: Currency, range: Range) {
@@ -65,7 +65,7 @@ export function categorySums(userId: string, cur: Currency, range: Range) {
 		.innerJoin(categories, and(eq(movements.categoryId, categories.id), canAccessCategory(userId)))
 		.where(
 			and(
-				canAccessAccount(userId),
+				canAccessMovement(userId),
 				eq(financialAccounts.currency, cur),
 				or(eq(movements.type, 'income'), eq(movements.type, 'outcome')),
 				inRange(range)
@@ -97,7 +97,7 @@ export function recentMovements(userId: string, cur?: Currency) {
 		.leftJoin(categories, and(eq(movements.categoryId, categories.id), canAccessCategory(userId)))
 		.where(
 			and(
-				canAccessAccount(userId),
+				canAccessMovement(userId),
 				cur
 					? or(
 							eq(financialAccounts.currency, cur),

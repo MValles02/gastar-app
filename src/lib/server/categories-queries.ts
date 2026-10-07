@@ -1,7 +1,7 @@
 import { and, asc, eq, gte, ilike, inArray, isNull, lt, ne, sql } from 'drizzle-orm';
 import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
-import { canAccessAccount, canAccessCategory, categoryOwnedBy } from './access';
+import { canAccessCategory, canAccessMovement, categoryOwnedBy } from './access';
 import { escapeLike } from './db/util';
 import type { CategoryData } from './categories';
 
@@ -75,7 +75,7 @@ export function categoryMonthNet(userId: string, id: string, range: { start: Dat
 		.innerJoin(categories, eq(movements.categoryId, categories.id))
 		.where(
 			and(
-				canAccessAccount(userId),
+				canAccessMovement(userId),
 				canAccessCategory(userId),
 				eq(categories.id, id),
 				inArray(movements.type, ['income', 'outcome']),

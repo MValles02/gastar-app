@@ -1,7 +1,7 @@
 import { and, asc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 import { db } from './db';
 import { financialAccounts, movements } from './db/schema';
-import { canAccessAccount, ownedBy } from './access';
+import { canAccessAccount, canAccessMovement, ownedBy } from './access';
 import { alias } from 'drizzle-orm/pg-core';
 import { type AccountData } from './accounts';
 import { escapeLike } from './db/util';
@@ -44,7 +44,7 @@ export function accountOriginSums(userId: string, id?: string) {
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.where(and(canAccessAccount(userId), id ? eq(movements.accountId, id) : undefined))
+		.where(and(canAccessMovement(userId), id ? eq(movements.accountId, id) : undefined))
 		.groupBy(movements.accountId, movements.type);
 }
 
@@ -59,7 +59,7 @@ export function accountTransfersIn(userId: string, id?: string) {
 		.innerJoin(dest, eq(movements.destinationAccountId, dest.id))
 		.where(
 			and(
-				canAccessAccount(userId),
+				canAccessMovement(userId),
 				canAccessAccount(userId, dest),
 				id ? eq(movements.destinationAccountId, id) : undefined
 			)
