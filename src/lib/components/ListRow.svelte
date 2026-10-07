@@ -72,7 +72,7 @@
 	}
 
 	.title {
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-base);
 		font-weight: 500;
 	}
 

@@ -7,7 +7,7 @@
 </script>
 
 <div class="empty">
-	<span class="badge"><Icon name={icon} /></span>
+	<span class="badge"><Icon name={icon} size="1.75rem" /></span>
 	<p>{@render children()}</p>
 </div>
 
@@ -19,7 +19,7 @@
 		gap: var(--space-4);
 		padding: var(--space-8) var(--space-5);
 		text-align: center;
-		color: var(--text-muted);
+		color: var(--text);
 	}
 
 	.badge {
@@ -29,7 +29,7 @@
 		width: 3.5rem;
 		height: 3.5rem;
 		border-radius: var(--radius-pill);
-		background: color-mix(in srgb, var(--primary) 8%, transparent);
-		color: var(--primary);
+		background: var(--muted);
+		color: var(--text);
 	}
 </style>

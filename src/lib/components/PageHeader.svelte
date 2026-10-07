@@ -9,20 +9,26 @@
 	 * Sticky top bar: [back] [eyebrow + title] [avisos] [profile]. The eyebrow defaults to today's date.
 	 * `compact` drops the eyebrow and shrinks the title; `close` shows an X instead of back, hides the
 	 * bell and avatar, is always compact and wins over `back`.
+	 * `collapse` (Inicio) compacts the large header after 24px of scroll: no eyebrow, a centered 16px title.
 	 */
 	let {
 		title,
 		eyebrow,
 		back,
 		variant = 'large',
-		close
+		close,
+		collapse = false
 	}: {
 		title: string;
 		eyebrow?: string;
 		back?: { href: string; label: string };
 		variant?: 'large' | 'compact';
 		close?: { href: string; label: string };
+		collapse?: boolean;
 	} = $props();
+
+	let scrollY = $state(0);
+	const collapsed = $derived(collapse && !close && !back && variant === 'large' && scrollY > 24);
 
 	const compact = $derived(variant === 'compact' || !!close);
 
@@ -32,7 +38,13 @@
 	const kicker = $derived(eyebrow ?? header?.date);
 </script>
 
-<header class="top-bar">
+<svelte:window bind:scrollY />
+
+<header class="top-bar" class:collapsed>
+	{#if collapsed}
+		<!-- Mirrors the bell and avatar so the title stays centered. -->
+		<span class="spacer" aria-hidden="true"></span>
+	{/if}
 	{#if close}
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass an already resolved href -->
 		<a class="back" href={close.href} aria-label={close.label}>
@@ -105,6 +117,39 @@
 					border-bottom-color: var(--border);
 				}
 			}
+		}
+	}
+
+	.spacer {
+		display: none;
+	}
+
+	/* Only while the bar is pinned: a static bar scrolls away with the page. */
+	@media (min-height: 40em) {
+		.collapsed .spacer {
+			display: block;
+			flex: none;
+			width: 5.5rem;
+		}
+
+		.collapsed .eyebrow {
+			display: none;
+		}
+
+		.collapsed .titles {
+			text-align: center;
+		}
+
+		.collapsed h1 {
+			overflow: hidden;
+			overflow-wrap: normal;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			font-size: var(--font-size-base);
+		}
+
+		.collapsed {
+			border-bottom-color: var(--border);
 		}
 	}
 

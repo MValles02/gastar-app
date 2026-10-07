@@ -1,5 +1,6 @@
 <script lang="ts">
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
@@ -17,18 +18,24 @@
 
 <div class="page">
 	{#if data.groups.length === 0}
-		<EmptyState icon="bell">Estás al día. No hay pagos por vencer ni excesos en tu plan.</EmptyState
-		>
+		<EmptyState icon="bell">Estás al día.</EmptyState>
 	{:else}
 		{#each data.groups as g (g.currency)}
-			<section aria-labelledby="alerts-{g.currency}">
-				<div class="section-head"><h2 id="alerts-{g.currency}">{currencyName[g.currency]}</h2></div>
+			<section class="group" aria-labelledby="alerts-{g.currency}">
+				<h2 id="alerts-{g.currency}">{currencyName[g.currency]}</h2>
 				<ul class="list-card">
 					{#each g.items as n (n.id)}
 						<li>
 							{#snippet row()}
-								<span class="title">{n.title}</span>
-								<span class="sub">{n.body}</span>
+								<span class="lead" aria-hidden="true">
+									{#if n.id.startsWith('plan-')}<Icon name="plan" size="1.25rem" />{:else}{n.title
+											.charAt(0)
+											.toUpperCase()}{/if}
+								</span>
+								<span class="text">
+									<span class="title">{n.title}</span>
+									<span class="sub">{n.body}</span>
+								</span>
 							{/snippet}
 							{#if n.href}
 								<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- server-built app path (with query) -->
@@ -56,20 +63,32 @@
 		gap: var(--space-5);
 	}
 
+	.group {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
 	h2 {
-		font-size: var(--font-size-lg);
+		padding: 0 var(--space-1);
+		font-size: var(--font-size-xs);
 		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
 	}
 
 	.item {
 		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
+		align-items: center;
+		justify-content: flex-start;
+		gap: var(--space-3);
 		width: 100%;
-		min-height: 2.75rem;
+		min-height: 4rem;
 		padding: var(--space-3) var(--space-4);
 		border: 0;
 		border-bottom: 1px solid var(--border);
+		border-radius: 0;
 		background: none;
 		color: inherit;
 		font: inherit;
@@ -90,17 +109,43 @@
 	@media (hover: hover) {
 		.item:hover {
 			background: var(--muted);
+			opacity: 1;
 		}
 	}
 
+	.item:active {
+		background: var(--muted);
+	}
+
+	/* Neutral badge: alerts carry no category colour. */
+	.lead {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.25rem;
+		height: 2.25rem;
+		border-radius: var(--radius-pill);
+		background: var(--muted);
+		color: var(--text);
+		font-size: 0.9375rem;
+		font-weight: 600;
+	}
+
+	.text {
+		display: flex;
+		flex: 1;
+		flex-direction: column;
+		min-width: 0;
+	}
+
 	.title {
-		font-size: var(--font-size-sm);
 		font-weight: 500;
 		overflow-wrap: anywhere;
 	}
 
 	.sub {
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm);
 		color: var(--text-muted);
 		overflow-wrap: anywhere;
 	}

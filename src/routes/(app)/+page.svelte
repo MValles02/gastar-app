@@ -1,9 +1,13 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import Check from '@lucide/svelte/icons/check';
+	import CircleAlert from '@lucide/svelte/icons/circle-alert';
+	import Clock from '@lucide/svelte/icons/clock';
 	import Button from '$lib/components/Button.svelte';
 	import Card from '$lib/components/Card.svelte';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -14,19 +18,21 @@
 
 	const percent = new Intl.NumberFormat('es-AR', { style: 'percent' });
 	const currencyName = { ARS: 'pesos', USD: 'dólares' } as const;
+	const statusIcon = { ok: Check, warn: Clock, over: CircleAlert } as const;
+
+	// Past 11 characters ("$ 12.345.678") the hero steps down so it never wraps or truncates.
+	const heroSmall = (cents: number) => formatMoney(cents, data.currency).length > 11;
 </script>
 
 <svelte:head>
 	<title>Gastar</title>
 </svelte:head>
 
-<PageHeader title="Hola, {data.header.firstName}" />
+<PageHeader title="Hola, {data.header.firstName}" collapse />
 
 <div class="dashboard">
 	{#if !data.hasAnyAccount}
-		<EmptyState icon="accounts">
-			Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos.
-		</EmptyState>
+		<EmptyState icon="accounts">Sin cuentas.</EmptyState>
 		<div class="empty-action">
 			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 		</div>
@@ -34,66 +40,80 @@
 		<CurrencyTabs value={data.currency} />
 
 		{#if !data.hasCurrencyAccount}
-			<EmptyState icon="accounts">No tenés cuentas en {data.currency}.</EmptyState>
+			<EmptyState icon="accounts">Sin cuentas en {data.currency}.</EmptyState>
 			<div class="empty-action">
 				<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 			</div>
 		{:else}
-			<section aria-labelledby="balance-heading">
-				<Card>
-					<p id="balance-heading" class="label">Saldo total</p>
-					<p class="hero-amount"><Money cents={data.balance} currency={data.currency} /></p>
-					<div class="month">
-						<p class="label">
-							<span class="visually-hidden">Balance del mes: </span>{data.month.label}
-						</p>
-						<p class="net">
-							<Money
-								cents={data.monthNet}
-								currency={data.currency}
-								kind={data.monthNet > 0 ? 'income' : 'plain'}
-							/>
-						</p>
-					</div>
+			{#snippet monthNet()}
+				<div class="kv">
+					<span class="k">Mes actual</span>
+					<span class="am net">
+						<Money
+							cents={data.monthNet}
+							currency={data.currency}
+							kind={data.monthNet > 0 ? 'income' : 'plain'}
+						/>
+					</span>
+				</div>
+			{/snippet}
+
+			<section aria-labelledby="summary-heading">
+				<Card flush>
+					{#if data.plan?.summary}
+						{@const s = data.plan.summary}
+						{@const Status = statusIcon[s.status]}
+						<div class="box">
+							<div class="top">
+								<h2 id="summary-heading" class="eyebrow">Disponible</h2>
+								<span class="pill {s.status}">
+									<Status size={14} strokeWidth={2} />
+									{data.plan.statusLabel}
+								</span>
+							</div>
+							<p class="hero hero-amount available-amount" class:small={heroSmall(s.available)}>
+								<Money cents={s.available} currency={data.currency} />
+							</p>
+							<p class="muted per-day">
+								<Money cents={s.perDay} currency={data.currency} />/día · {s.daysLeft}
+								{s.daysLeft === 1 ? 'día' : 'días'}
+							</p>
+						</div>
+						<div class="sub">
+							<div class="kv">
+								<span class="k">Saldo</span>
+								<span class="am"><Money cents={data.balance} currency={data.currency} /></span>
+							</div>
+							{@render monthNet()}
+						</div>
+						<a class="footer" href={resolve('/plan')}>
+							Ver plan
+							<Icon name="chevron-right" size="1.25rem" />
+						</a>
+					{:else}
+						<div class="box">
+							<h2 id="summary-heading" class="eyebrow">Saldo</h2>
+							<p class="hero hero-amount" class:small={heroSmall(data.balance)}>
+								<Money cents={data.balance} currency={data.currency} />
+							</p>
+						</div>
+						<div class="sub">{@render monthNet()}</div>
+						<div class="no-plan">
+							<p class="eyebrow">Disponible</p>
+							{#if data.plan?.endedMonthName}
+								<p class="strong">Terminó el plan de {data.plan.endedMonthName}.</p>
+							{/if}
+							<p class="strong">Sin plan en {currencyName[data.currency]}.</p>
+							<Button href={resolve('/plan/setup')} variant="secondary">Crear plan</Button>
+						</div>
+					{/if}
 				</Card>
 			</section>
 
-			{#if data.plan}
-				{@const s = data.plan.summary}
-				<section aria-labelledby="available-heading">
-					<Card>
-						<div class="available">
-							{#if s}
-								<h2 id="available-heading">Disponible para gastar · {data.plan.monthName}</h2>
-								<p class="available-amount">
-									<Money cents={s.available} currency={data.currency} />
-								</p>
-								<p class="status {s.status}">{data.plan.statusLabel}</p>
-								<p class="muted per-day">
-									<Money cents={s.perDay} currency={data.currency} /> por día · quedan {s.daysLeft}
-									{s.daysLeft === 1 ? 'día' : 'días'}
-								</p>
-								<a class="all" href={resolve('/plan')}>Ver plan</a>
-							{:else}
-								<h2 id="available-heading">Disponible para gastar</h2>
-								{#if data.plan.endedMonthName}
-									<p class="strong">Tu plan de {data.plan.endedMonthName} terminó.</p>
-								{/if}
-								<p class="strong">Todavía no tenés un plan en {currencyName[data.currency]}.</p>
-								<p class="muted per-day">
-									Con tus ingresos, pagos fijos y ahorro calculamos cuánto podés gastar por día.
-								</p>
-								<Button href={resolve('/plan/setup')}>Crear plan</Button>
-							{/if}
-						</div>
-					</Card>
-				</section>
-			{/if}
-
 			<section aria-labelledby="categories-heading">
-				<h2 id="categories-heading">Principales categorías</h2>
+				<div class="section-head"><h2 id="categories-heading">Categorías</h2></div>
 				{#if data.topCategories.length === 0}
-					<p class="muted">Sin gastos este mes</p>
+					<Card><p class="muted inline-empty">Sin gastos</p></Card>
 				{:else}
 					<Card>
 						<ul class="list">
@@ -101,7 +121,7 @@
 								<li class="cat">
 									<div class="cat-row">
 										<span class="ellipsis">{cat.name}</span>
-										<span class="amount">{formatMoney(cat.net, data.currency)}</span>
+										<span class="amount cat-amount">{formatMoney(cat.net, data.currency)}</span>
 										<span class="amount muted pct">{percent.format(cat.share)}</span>
 									</div>
 									<div class="track">
@@ -116,13 +136,13 @@
 
 			<section aria-labelledby="recent-heading">
 				<div class="section-head">
-					<h2 id="recent-heading">Últimos movimientos</h2>
+					<h2 id="recent-heading">Movimientos</h2>
 					{#if data.recent.length > 0}
 						<a class="all" href={resolve(`/movements?currency=${data.currency}`)}>Ver todos</a>
 					{/if}
 				</div>
 				{#if data.recent.length === 0}
-					<p class="muted">Sin movimientos</p>
+					<Card><p class="muted inline-empty">Sin movimientos</p></Card>
 				{:else}
 					<ul class="list-card">
 						{#each data.recent as m (m.id)}
@@ -158,87 +178,167 @@
 		justify-content: center;
 	}
 
-	.label,
 	.muted {
 		color: var(--text-muted);
 	}
 
-	.label {
-		font-size: var(--font-size-sm);
+	.strong {
+		font-weight: 500;
 	}
 
-	.hero-amount {
-		font-size: clamp(1.5rem, 9vw, var(--font-size-hero));
+	.eyebrow {
+		font-size: var(--font-size-xs);
 		font-weight: 600;
-		letter-spacing: -0.02em;
-		line-height: 1.2;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
 	}
 
-	.month {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: var(--space-1) var(--space-3);
-		margin-top: var(--space-2);
-		padding-top: var(--space-2);
-		border-top: 1px solid var(--border);
-	}
-
-	.available {
+	/* Summary card */
+	.box {
 		display: flex;
 		flex-direction: column;
-		align-items: flex-start;
-		gap: var(--space-2);
+		gap: 0.375rem;
+		padding: 1.25rem 1.25rem var(--space-4);
 	}
 
-	.available h2 {
-		margin-bottom: 0;
+	.top {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-3);
+		min-height: 1.375rem;
 	}
 
-	.available-amount {
-		font-size: var(--font-size-xl);
-		font-weight: 600;
-		line-height: 1.2;
+	.hero {
+		margin-top: var(--space-1);
 		max-width: 100%;
-		overflow-wrap: anywhere;
+		font-family: var(--font-display);
+		font-size: 2.75rem;
+		font-weight: 500;
+		letter-spacing: -0.02em;
+		line-height: 1.1;
 	}
 
-	.status {
-		padding: var(--space-1) var(--space-3);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius-pill);
-		font-size: var(--font-size-sm);
-		font-weight: 600;
-	}
-
-	.status.over {
-		border-color: var(--negative);
-		color: var(--negative);
+	.hero.small {
+		font-size: 2.25rem;
 	}
 
 	.per-day {
 		font-size: var(--font-size-sm);
 	}
 
-	.strong {
+	.pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.125rem 0.625rem;
+		border-radius: var(--radius-pill);
+		font-size: var(--font-size-xs);
 		font-weight: 600;
+		white-space: nowrap;
 	}
 
-	.net {
-		font-size: var(--font-size-lg);
-		font-weight: 600;
-		line-height: 1.2;
+	.pill.ok {
+		background: color-mix(in srgb, var(--positive) 14%, transparent);
+		color: var(--positive);
 	}
 
+	.pill.warn {
+		background: color-mix(in srgb, var(--swatch-orange) 14%, transparent);
+		color: var(--swatch-orange);
+	}
+
+	/* Over budget is information, not an error: inverted fill, never red. */
+	.pill.over {
+		background: var(--text);
+		color: var(--bg);
+	}
+
+	.sub {
+		padding: 0 1.25rem;
+		border-top: 1px solid var(--border);
+	}
+
+	.kv {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 0 var(--space-3);
+		min-height: 3rem;
+	}
+
+	.kv + .kv {
+		border-top: 1px solid var(--border);
+	}
+
+	.k {
+		font-size: var(--font-size-sm);
+		font-weight: 500;
+		color: var(--text-muted);
+	}
+
+	.am {
+		font-size: 1.0625rem;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		min-height: 3rem;
+		padding: 0 var(--space-3) 0 1.25rem;
+		border-top: 1px solid var(--border);
+		font-weight: 500;
+		text-decoration: none;
+		color: var(--text);
+	}
+
+	.footer :global(svg) {
+		color: var(--border-strong);
+	}
+
+	@media (hover: hover) {
+		.footer:hover {
+			background: var(--muted);
+		}
+	}
+
+	.footer:active {
+		background: var(--muted);
+	}
+
+	.footer:focus-visible {
+		outline-offset: -2px;
+	}
+
+	.no-plan {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--space-2);
+		padding: 1.25rem;
+		border-top: 1px solid var(--border);
+	}
+
+	/* Sections */
 	h2 {
 		font-size: var(--font-size-lg);
 		font-weight: 600;
+	}
+
+	.section-head {
 		margin-bottom: var(--space-2);
 	}
 
-	.section-head h2 {
-		margin-bottom: 0;
+	.inline-empty {
+		display: flex;
+		align-items: center;
+		min-height: 2rem;
+		font-size: var(--font-size-sm);
 	}
 
 	.list {
@@ -254,7 +354,11 @@
 	}
 
 	.cat {
-		padding: var(--space-2) 0;
+		padding: var(--space-3) 0;
+	}
+
+	.cat + .cat {
+		border-top: 1px solid var(--border);
 	}
 
 	.cat:first-child {
@@ -269,34 +373,39 @@
 		display: flex;
 		align-items: baseline;
 		gap: var(--space-3);
-		margin-bottom: var(--space-1);
+		margin-bottom: var(--space-2);
+		font-weight: 500;
 	}
 
 	.cat-row .ellipsis {
 		flex: 1;
 	}
 
-	.cat-row .amount {
+	.cat-amount {
 		white-space: normal;
 		overflow-wrap: anywhere;
+		font-weight: 600;
 	}
 
 	.pct {
 		min-width: 3ch;
 		text-align: right;
 		font-size: var(--font-size-sm);
+		font-weight: 500;
 	}
 
 	.track {
-		height: 0.5rem;
+		height: 0.375rem;
 		border-radius: var(--radius-pill);
 		overflow: hidden;
-		background: var(--border);
+		background: var(--muted);
 	}
 
+	/* Spending reads in the text colour; the category swatch is not in the page data. */
 	.fill {
 		height: 100%;
-		background: color-mix(in srgb, var(--primary) 70%, transparent);
+		border-radius: var(--radius-pill);
+		background: var(--text);
 	}
 
 	.all {

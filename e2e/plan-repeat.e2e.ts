@@ -232,15 +232,10 @@ test('Inicio without a plan offers to create one (demo, USD)', async ({ page, ba
 	// Other specs briefly create a demo USD plan; read again until it is gone.
 	await expect(async () => {
 		await page.goto('/', { waitUntil: 'networkidle' });
-		const card = page.getByRole('region', { name: 'Disponible para gastar' });
-		await expect(card.getByText('Todavía no tenés un plan en dólares.')).toBeVisible({
+		const card = page.getByRole('region', { name: 'Saldo', exact: true });
+		await expect(card.getByText('Sin plan en dólares.')).toBeVisible({
 			timeout: 1_000
 		});
-		await expect(
-			card.getByText(
-				'Con tus ingresos, pagos fijos y ahorro calculamos cuánto podés gastar por día.'
-			)
-		).toBeVisible({ timeout: 1_000 });
 		await expect(card.getByRole('link', { name: 'Crear plan' })).toHaveAttribute(
 			'href',
 			'/plan/setup'
@@ -256,10 +251,10 @@ test('Inicio with a plan shows the same Disponible as /plan and links to it', as
 	await login(page, otherEmail);
 	await page.context().addCookies([{ name: 'currency', value: 'USD', url: baseURL! }]);
 	await page.goto('/', { waitUntil: 'networkidle' });
-	const card = page.getByRole('region', { name: /^Disponible para gastar · / });
+	const card = page.getByRole('region', { name: 'Disponible', exact: true });
 	await expect(card).toBeVisible();
 	await expect(card.getByText(/Vas bien|Atención|Te pasaste/)).toBeVisible();
-	await expect(card).toContainText(/por día · quedan\s+\d+\s+(día|días)/);
+	await expect(card).toContainText(/\/día · \d+\s+(día|días)/);
 	const onHome = await card.locator('.available-amount').innerText();
 
 	await card.getByRole('link', { name: 'Ver plan' }).click();

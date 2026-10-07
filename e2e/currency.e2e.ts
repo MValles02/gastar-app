@@ -61,7 +61,7 @@ test('Inicio tab choice survives a reload', async ({ page }) => {
 	await choose(page, 'USD');
 	await page.reload({ waitUntil: 'networkidle' });
 	await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
-	await expect(page.getByText('Saldo total')).toBeVisible();
+	await expect(page.getByText('Saldo', { exact: true })).toBeVisible();
 	await expect(page.getByText('US$').first()).toBeVisible();
 });
 
