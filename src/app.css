@@ -63,8 +63,8 @@
 
 html {
 	-webkit-text-size-adjust: 100%;
-	/* Keeps focused/anchored elements clear of the fixed bottom nav (about 4.3rem tall, plus the safe area). */
-	scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+	/* Keeps focused/anchored elements clear of the floating tab bar (4rem tall, 1.5rem above the bottom, plus the safe area). */
+	scroll-padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
 }
 
 /* Keeps focused/anchored elements clear of the sticky top bar (sticky only under the same query). */
