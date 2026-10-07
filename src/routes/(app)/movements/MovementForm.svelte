@@ -25,7 +25,8 @@
 		accounts,
 		categories,
 		submitLabel,
-		cancelHref
+		cancelHref,
+		recurring
 	}: {
 		initial: Record<Fields, string>;
 		errors?: Partial<Record<Fields, string>>;
@@ -33,6 +34,8 @@
 		categories: Picker[];
 		submitLabel: string;
 		cancelHref: string;
+		/** Registering a payment of this recurring rule. */
+		recurring?: { id: string; description: string };
 	} = $props();
 
 	const typeOptions = [
@@ -78,6 +81,11 @@
 </script>
 
 <form method="POST" use:enhance class="form" novalidate>
+	{#if recurring}
+		<input type="hidden" name="recurringId" value={recurring.id} />
+		<p class="hint">Registrás el pago de <strong>{recurring.description}</strong> de este mes.</p>
+	{/if}
+
 	<div class="field">
 		<span id="type-label" class="label">Tipo</span>
 		<SegmentedControl name="type" options={typeOptions} bind:value={type} labelledby="type-label" />

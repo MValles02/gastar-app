@@ -11,6 +11,7 @@ const routes = [
 	'/accounts',
 	'/categories',
 	'/reports',
+	'/plan',
 	'/profile',
 	'/accounts/new',
 	'/movements/new',
@@ -95,6 +96,7 @@ test('h1 top is identical across pages at 390x844', async ({ page }) => {
 		'/accounts',
 		'/categories',
 		'/reports',
+		'/plan',
 		'/profile',
 		...(account ? [account] : [])
 	];
@@ -141,6 +143,7 @@ for (const width of [320, 360]) {
 			'/movements/new',
 			'/categories',
 			'/reports',
+			'/plan',
 			'/profile'
 		]) {
 			await page.goto(route);
@@ -251,17 +254,24 @@ test('focus is never hidden under the sticky bar', async ({ page }) => {
 
 test('back links go up to a fixed parent and tabs have none', async ({ page }) => {
 	await login(page);
-	for (const tab of ['/', '/accounts', '/movements', '/reports']) {
+	for (const tab of ['/', '/movements', '/plan', '/reports']) {
 		await page.goto(tab);
 		await expect(backLink(page), tab).toHaveCount(0);
 	}
 	const account = await firstDetailHref(page, 'accounts');
 	const category = await firstDetailHref(page, 'categories');
 	const movement = await firstDetailHref(page, 'movements');
-	expect(account && category && movement).toBeTruthy();
+	await page.goto('/plan');
+	const ruleHref = await pathOf(
+		page.locator('main a[href*="/plan/recurring/"]:not([href*="/new"])').first()
+	);
+	expect(account && category && movement && ruleHref).toBeTruthy();
 	const rows: [string, string][] = [
 		['/profile', '/'],
+		['/accounts', '/profile'],
 		['/categories', '/profile'],
+		['/plan/recurring/new', '/plan'],
+		[ruleHref, '/plan'],
 		['/accounts/new', '/accounts'],
 		['/categories/new', '/categories'],
 		['/movements/new', '/'],

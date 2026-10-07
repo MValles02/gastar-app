@@ -5,9 +5,20 @@ import type { Actions, PageServerLoad } from './$types';
 import { toIconKey, toSwatchKey } from '$lib/appearance';
 import { getAccount, listAccounts } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
+import { isUuid } from '$lib/server/db/util';
+import { formatAmountInput } from '$lib/money';
 import { localDay } from '$lib/server/month';
 import { parseMovementForm, resolveMovement, UNAVAILABLE_MESSAGE } from '$lib/server/movements';
 import { createMovement } from '$lib/server/movements-queries';
+import { isRecurringActive } from '$lib/server/plan';
+import { listRecurring } from '$lib/server/plan-queries';
+
+/** An active recurring rule owned by the user, or undefined (inactive, foreign and invalid ids alike). */
+async function findRule(userId: string, id: FormDataEntryValue | null) {
+	if (typeof id !== 'string' || !isUuid(id)) return undefined;
+	const [rule] = await listRecurring(userId, undefined, id);
+	return rule && isRecurringActive(rule) ? rule : undefined;
+}
 
 export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const userId = locals.user!.id;
@@ -29,16 +40,34 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		icon: 'categories' as const,
 		color: toSwatchKey(c.color)
 	}));
+	const rule = await findRule(userId, url.searchParams.get('recurring'));
 	const last = cookies.get('last_account');
 	const defaultAccountId = accounts.some((a) => a.id === last)
 		? last!
 		: accounts.length === 1
 			? accounts[0].id
 			: '';
+	const now = localDay(new Date());
 	return {
 		accounts,
 		categories,
-		now: localDay(new Date()),
+		now,
+		recurring: rule
+			? {
+					id: rule.id,
+					description: rule.description,
+					initial: {
+						type: rule.type,
+						amount: formatAmountInput(rule.amount, rule.currency),
+						description: rule.description,
+						accountId: rule.accountId,
+						destinationAccountId: '',
+						exchangeRate: '',
+						categoryId: rule.categoryId,
+						occurredAt: now
+					}
+				}
+			: null,
 		saved: url.searchParams.get('saved') === '1',
 		formKey: crypto.randomUUID(),
 		defaultAccountId
@@ -70,8 +99,26 @@ export const actions: Actions = {
 		});
 		if (!resolved.ok) return fail(400, { values, errors: resolved.errors });
 
+		const rule = await findRule(userId, fd.get('recurringId'));
+		if (rule) {
+			if (data.type !== rule.type)
+				return fail(400, {
+					values,
+					errors: {
+						type: `Este pago es un ${rule.type === 'income' ? 'ingreso' : 'gasto'}.`
+					}
+				});
+			if (origin[0].currency !== rule.currency)
+				return fail(400, {
+					values,
+					errors: {
+						accountId: `Elegí una cuenta en ${rule.currency} para registrar este pago.`
+					}
+				});
+		}
+
 		try {
-			await createMovement(userId, resolved.row);
+			await createMovement(userId, { ...resolved.row, recurringId: rule?.id ?? null });
 		} catch (e) {
 			const code = pgErrorCode(e);
 			if (code === '23503')
@@ -85,6 +132,6 @@ export const actions: Actions = {
 			httpOnly: true,
 			secure: !dev
 		});
-		redirect(303, '/movements/new?saved=1');
+		redirect(303, rule ? '/plan?saved=1' : '/movements/new?saved=1');
 	}
 };

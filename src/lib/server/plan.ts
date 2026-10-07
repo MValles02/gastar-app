@@ -19,6 +19,23 @@ export function recurringStatus(dayOfMonth: number, paid: boolean, ym: string, t
 	return { day, daysLeft, status };
 }
 
+export function dueLabel(status: RecurringStatus, daysLeft: number, type: MovementType): string {
+	if (status === 'paid') return type === 'income' ? 'Cobrado' : 'Pagado';
+	if (status === 'today') return 'Vence hoy';
+	if (status === 'overdue')
+		return daysLeft === -1 ? 'Venció ayer' : `Venció hace ${-daysLeft} días`;
+	return daysLeft === 1 ? 'Mañana' : `En ${daysLeft} días`;
+}
+
+/** A rule counts only while the rule, its account and its category are all unarchived. */
+export function isRecurringActive(r: {
+	archivedAt: Date | null;
+	accountArchivedAt: Date | null;
+	categoryArchivedAt: Date | null;
+}): boolean {
+	return !r.archivedAt && !r.accountArchivedAt && !r.categoryArchivedAt;
+}
+
 export type PlanStatus = 'ok' | 'warn' | 'over';
 
 export type PlanInput = {

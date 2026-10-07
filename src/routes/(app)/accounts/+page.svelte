@@ -28,7 +28,7 @@
 	<title>Cuentas · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Cuentas" />
+<PageHeader title="Cuentas" back={{ href: resolve('/profile'), label: 'Volver al perfil' }} />
 
 <div class="page">
 	{#if !data.hasAnyAccount}
