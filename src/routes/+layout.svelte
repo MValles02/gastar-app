@@ -11,12 +11,14 @@
 
 	let { children } = $props();
 
-	// Keeps toasts above the floating tab bar, or above the sticky submit bar on form routes (no tab bar).
-	const toastOffset = $derived({
-		bottom: FORM_ROUTES.has(page.route.id ?? '')
-			? 'calc(5rem + env(safe-area-inset-bottom))'
-			: 'calc(6.5rem + env(safe-area-inset-bottom))'
-	});
+	// Toasts sit above the floating tab bar; form routes have no tab bar and a sticky submit bar
+	// plus Cancelar at the bottom, so they show below the compact header instead.
+	const isForm = $derived(FORM_ROUTES.has(page.route.id ?? ''));
+	const toastOffset = $derived(
+		isForm
+			? { top: 'calc(4.5rem + env(safe-area-inset-top))' }
+			: { bottom: 'calc(6.5rem + env(safe-area-inset-bottom))' }
+	);
 </script>
 
 <svelte:head>
@@ -26,7 +28,7 @@
 {@render children()}
 
 <Toaster
-	position="bottom-center"
+	position={isForm ? 'top-center' : 'bottom-center'}
 	duration={4000}
 	containerAriaLabel="Notificaciones"
 	offset={toastOffset}
