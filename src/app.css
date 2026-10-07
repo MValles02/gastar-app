@@ -1,12 +1,14 @@
 @layer theme, base, components, utilities;
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@import 'tw-animate-css';
+@source "./lib/components/ui";
 
 /*
  * Tailwind is used only inside shadcn components; no preflight, the rules below stay unlayered.
  * source(none) disables auto-detection: it scanned every file and emitted utilities that collide
- * with app classes (e.g. .ring in IconPicker/ColorPicker). Phase 3 must add
- * `@source "./lib/components/ui";` (or wherever shadcn components live).
+ * with app classes (e.g. .ring in IconPicker/ColorPicker). The @source line re-enables scanning
+ * for the shadcn components only, so just the utilities they use are generated.
  */
 @custom-variant dark {
 	&:where([data-theme='dark'], [data-theme='dark'] *, .dark, .dark *) {
