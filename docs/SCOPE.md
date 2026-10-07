@@ -68,6 +68,10 @@ Personal finance PWA for Argentina. Answers two questions:
   - Month balance: incomes − outcomes (transfers excluded).
   - The dashboard always shows the current month; there is no month navigation.
   - Top 3 categories by net outcome, each with amount and %.
+- Below the balance card, a "Disponible para gastar" card for the selected currency (hidden when there are no accounts in it), reading the same figures as the `/plan` summary:
+  - With a plan for the current month: "Disponible para gastar · {mes}", the amount, the status as text ("Vas bien", "Atención", "Te pasaste"), "{monto} por día · quedan N días" and a "Ver plan" link to `/plan`.
+  - No plan: "Todavía no tenés un plan en {pesos|dólares}.", "Con tus ingresos, pagos fijos y ahorro calculamos cuánto podés gastar por día." and a "Crear plan" link to `/plan/setup`.
+  - A one-month plan of a past month is treated as no plan and adds "Tu plan de {mes} terminó.".
 - Last 10 movements in the selected currency, with a "Ver todos" link to `/movements?currency=`.
 
 ### Reportes
@@ -114,6 +118,7 @@ Personal finance PWA for Argentina. Answers two questions:
   - Exchange rate: shown only for a transfer between accounts of different currencies.
   - Category: required for income/outcome, not shown for transfers.
 - Cross-currency transfer: destination amount is computed live and shown, but is **not editable**.
+- "Repetir cada mes" (new movements only; hidden when editing and when registering a rule's payment): a checkbox with the hint "Te lo recordamos el mismo día de cada mes. Solo ingresos y gastos.". Checked, saving also creates a recurring rule (same description, amount, type, account and category) due on the movement's day of the month, and the movement is linked to it, so it counts as paid this month. Transfers never create a rule (the checkbox is hidden for them; without JS it shows and is ignored). Nothing is saved if the movement is rejected.
 
 ### Movements
 

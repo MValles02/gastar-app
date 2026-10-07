@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/Button.svelte';
+	import Checkbox from '$lib/components/Checkbox.svelte';
 	import Field from '$lib/components/Field.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
@@ -26,7 +27,9 @@
 		categories,
 		submitLabel,
 		cancelHref,
-		recurring
+		recurring,
+		repeatable = false,
+		repeatChecked = false
 	}: {
 		initial: Record<Fields, string>;
 		errors?: Partial<Record<Fields, string>>;
@@ -36,6 +39,10 @@
 		cancelHref: string;
 		/** Registering a payment of this recurring rule. */
 		recurring?: { id: string; description: string };
+		/** Offer "Repetir cada mes" (new incomes and outcomes only). */
+		repeatable?: boolean;
+		/** Initial state of the "Repetir cada mes" checkbox (kept when the form is shown again with errors). */
+		repeatChecked?: boolean;
 	} = $props();
 
 	const typeOptions = [
@@ -216,6 +223,20 @@
 			aria-describedby={errors.occurredAt ? 'date-error' : undefined}
 		/>
 	</Field>
+
+	{#if repeatable && !recurring && showCategory}
+		<div class="group">
+			<Checkbox
+				name="repeat"
+				label="Repetir cada mes"
+				checked={repeatChecked}
+				aria-describedby="repeat-hint"
+			/>
+			<p id="repeat-hint" class="hint">
+				Te lo recordamos el mismo día de cada mes. Solo ingresos y gastos.
+			</p>
+		</div>
+	{/if}
 
 	<div class="actions">
 		<Button type="submit">{submitLabel}</Button>

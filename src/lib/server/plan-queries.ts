@@ -14,11 +14,13 @@ import {
 	canAccessMovement,
 	canAccessPlan,
 	canAccessRecurring,
+	movementOwnedBy,
 	planOwnedBy,
 	recurringOwnedBy
 } from './access';
 import type { Currency } from './dashboard';
 import { TZ } from './month';
+import type { MovementRow } from './movements';
 
 type Range = { start: Date; end: Date };
 
@@ -93,6 +95,24 @@ export function createRecurring(userId: string, row: RecurringRow) {
 		.insert(recurringMovements)
 		.values({ ...row, ...recurringOwnedBy(userId) })
 		.returning({ id: recurringMovements.id });
+}
+
+/**
+ * "Repetir cada mes": the rule and the movement linked to it, in ONE transaction. The caller has
+ * already checked the account and category against the user; any failure writes nothing.
+ */
+export function createMovementWithRule(userId: string, row: MovementRow, ruleRow: RecurringRow) {
+	return db.transaction(async (tx) => {
+		const [rule] = await tx
+			.insert(recurringMovements)
+			.values({ ...ruleRow, ...recurringOwnedBy(userId) })
+			.returning({ id: recurringMovements.id });
+		const [movement] = await tx
+			.insert(movements)
+			.values({ ...row, ...movementOwnedBy(userId), recurringId: rule.id })
+			.returning({ id: movements.id });
+		return { ruleId: rule.id, movementId: movement.id };
+	});
 }
 
 export function updateRecurring(userId: string, id: string, row: RecurringRow) {

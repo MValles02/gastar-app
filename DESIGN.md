@@ -331,6 +331,8 @@ Radio groups of round swatches (the icon picker shows the ten account icons in I
 
 The `/plan` summary is a `Card` with the "Disponible · {mes}" heading, a hero `Money`, a status pill (hairline `--border-strong`, `negative` border and text when over) whose label is always text, and a `<dl>` of figures (muted term, 500 value, a hairline above the "Para gastar" and "Disponible" totals) that wraps at 320px. A limit row sits in a `.list-card`: name, "{gastado} de {límite}", a text flag ("Vas rápido", "Te pasaste") and a 0.5rem pill `role="meter"` bar (`--primary` fill, `negative` when over) so state never relies on colour.
 
+The Inicio "Disponible para gastar" card reuses this pattern in compact form: a `Card` after the balance card (the hero balance stays the one `--font-size-hero` figure), an h2, the amount at `--font-size-xl`, the same text status pill, the muted "por día" line and a 2.75rem "Ver plan" link. With no plan it shows the two lines of copy and a "Crear plan" `Button`.
+
 ### Wizard Steps
 
 The plan setup is one form with four sections. With JS a step list (3px top border: `--primary` when done or current) and Siguiente / Atrás show one section at a time and focus its heading; without JS every section shows and one "Guardar plan" submits. Rows are `.list-card` check rows (at least 3rem) or bordered fieldsets; two-field pairs use `auto-fit` columns so they stack at 320px and 200% text.

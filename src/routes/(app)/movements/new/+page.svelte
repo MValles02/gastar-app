@@ -58,6 +58,8 @@
 			submitLabel="Guardar movimiento"
 			cancelHref={returnTo}
 			recurring={data.recurring ?? undefined}
+			repeatable
+			repeatChecked={form?.values?.repeat === 'on'}
 		/>
 	{/key}
 {/if}

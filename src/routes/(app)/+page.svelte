@@ -13,6 +13,7 @@
 	let { data }: { data: PageData } = $props();
 
 	const percent = new Intl.NumberFormat('es-AR', { style: 'percent' });
+	const currencyName = { ARS: 'pesos', USD: 'dólares' } as const;
 </script>
 
 <svelte:head>
@@ -56,6 +57,38 @@
 					</div>
 				</Card>
 			</section>
+
+			{#if data.plan}
+				{@const s = data.plan.summary}
+				<section aria-labelledby="available-heading">
+					<Card>
+						<div class="available">
+							{#if s}
+								<h2 id="available-heading">Disponible para gastar · {data.plan.monthName}</h2>
+								<p class="available-amount">
+									<Money cents={s.available} currency={data.currency} />
+								</p>
+								<p class="status {s.status}">{data.plan.statusLabel}</p>
+								<p class="muted per-day">
+									<Money cents={s.perDay} currency={data.currency} /> por día · quedan {s.daysLeft}
+									{s.daysLeft === 1 ? 'día' : 'días'}
+								</p>
+								<a class="all" href={resolve('/plan')}>Ver plan</a>
+							{:else}
+								<h2 id="available-heading">Disponible para gastar</h2>
+								{#if data.plan.endedMonthName}
+									<p class="strong">Tu plan de {data.plan.endedMonthName} terminó.</p>
+								{/if}
+								<p class="strong">Todavía no tenés un plan en {currencyName[data.currency]}.</p>
+								<p class="muted per-day">
+									Con tus ingresos, pagos fijos y ahorro calculamos cuánto podés gastar por día.
+								</p>
+								<Button href={resolve('/plan/setup')}>Crear plan</Button>
+							{/if}
+						</div>
+					</Card>
+				</section>
+			{/if}
 
 			<section aria-labelledby="categories-heading">
 				<h2 id="categories-heading">Principales categorías</h2>
@@ -150,6 +183,46 @@
 		margin-top: var(--space-2);
 		padding-top: var(--space-2);
 		border-top: 1px solid var(--border);
+	}
+
+	.available {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--space-2);
+	}
+
+	.available h2 {
+		margin-bottom: 0;
+	}
+
+	.available-amount {
+		font-size: var(--font-size-xl);
+		font-weight: 600;
+		line-height: 1.2;
+		max-width: 100%;
+		overflow-wrap: anywhere;
+	}
+
+	.status {
+		padding: var(--space-1) var(--space-3);
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius-pill);
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+	}
+
+	.status.over {
+		border-color: var(--negative);
+		color: var(--negative);
+	}
+
+	.per-day {
+		font-size: var(--font-size-sm);
+	}
+
+	.strong {
+		font-weight: 600;
 	}
 
 	.net {
