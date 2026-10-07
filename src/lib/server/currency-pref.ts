@@ -1,7 +1,6 @@
-/** `both` is accepted only for the previous release (start-first deploy overlap); drop it in a later release. */
-export const CURRENCY_PREFS = ['ARS', 'USD', 'both'] as const;
+export const CURRENCY_PREFS = ['ARS', 'USD'] as const;
 
-/** The stored preference as a single currency: anything but `USD` (including legacy `both`) is ARS. */
+/** The stored preference as a currency: anything but `USD` (including an unknown cookie value) is ARS. */
 export function singleCurrency(raw: string | null | undefined): 'ARS' | 'USD' {
 	return raw === 'USD' ? 'USD' : 'ARS';
 }

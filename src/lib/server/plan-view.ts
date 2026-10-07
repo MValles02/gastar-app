@@ -35,7 +35,8 @@ export async function planView(userId: string, cur: Currency, now = new Date()) 
 		: null;
 
 	return {
-		/** Server-only: the active rules, so callers need not query them again; never send to the client. */
+		/** Server-only: all rules and the active subset, so callers need not query them again; never send to the client. */
+		rules,
 		active,
 		monthName: monthLabel(ym, false).toLowerCase(),
 		summary,

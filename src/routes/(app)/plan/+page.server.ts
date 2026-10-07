@@ -3,7 +3,7 @@ import { singleCurrency } from '$lib/server/currency-pref';
 import { accountSummary } from '$lib/server/dashboard-queries';
 import { currentMonth, localDay, monthRange } from '$lib/server/month';
 import { dueLabel, isRecurringActive, recurringStatus } from '$lib/server/plan';
-import { listRecurring, paidRecurring } from '$lib/server/plan-queries';
+import { paidRecurring } from '$lib/server/plan-queries';
 import { planView } from '$lib/server/plan-view';
 
 export const load: PageServerLoad = async ({ locals, cookies, url }) => {
@@ -18,9 +18,8 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const now = new Date();
 	const ym = currentMonth(now);
 	const today = localDay(now);
-	// `active` is server-only (see planView); the rest of the view goes to the client.
-	const [rules, paid, { active: activeRules, ...plan }] = await Promise.all([
-		listRecurring(userId, currency),
+	// `rules` and `active` are server-only (see planView); the rest of the view goes to the client.
+	const [paid, { rules, active: activeRules, ...plan }] = await Promise.all([
 		paidRecurring(userId, monthRange(ym)),
 		planView(userId, currency, now)
 	]);
