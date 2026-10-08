@@ -1,6 +1,6 @@
 import { expect, type APIRequestContext } from '@playwright/test';
 
-type Entry = { to: string; subject: string; link: string };
+type Entry = { id: number; to: string; subject: string; link: string };
 
 /** Latest dev outbox entry for an address (null when nothing was sent). */
 export async function latestMail(request: APIRequestContext, to: string): Promise<Entry | null> {

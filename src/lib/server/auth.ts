@@ -18,13 +18,16 @@ export const auth = betterAuth({
 		resetPasswordTokenExpiresIn: 3600,
 		revokeSessionsOnPasswordReset: true,
 		sendResetPassword: async ({ user, url }) => {
-			await sendEmail({ to: user.email, link: url, ...resetPassword(user.name, url) });
+			// Not awaited on purpose: awaiting the send would make known emails slower than
+			// unknown ones (timing side-channel). sendEmail never throws.
+			void sendEmail({ to: user.email, link: url, ...resetPassword(user.name, url) });
 		},
 		onExistingUserSignUp: async ({ user }) => {
 			const origin = new URL(env.BETTER_AUTH_URL ?? 'http://localhost:5173').origin;
 			const login = `${origin}/login`;
 			const forgot = `${origin}/forgot-password`;
-			await sendEmail({
+			// Not awaited: same timing side-channel reason as sendResetPassword.
+			void sendEmail({
 				to: user.email,
 				link: login,
 				...existingAccount(user.name, login, forgot)
@@ -54,6 +57,7 @@ export const auth = betterAuth({
 			'/sign-in/email': { window: 60, max: 5 },
 			'/send-verification-email': { window: 900, max: 3 },
 			'/request-password-reset': { window: 900, max: 3 },
+			'/sign-up/email': { window: 3600, max: 10 },
 			'/verify-email': { window: 60, max: 10 }
 		}
 	},

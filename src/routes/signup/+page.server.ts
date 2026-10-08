@@ -24,6 +24,7 @@ export const actions: Actions = {
 
 		const errors: { name?: string; email?: string; password?: string } = {};
 		if (!name) errors.name = 'Falta el nombre.';
+		else if (name.length > 80) errors.name = 'Usá un nombre de hasta 80 caracteres.';
 		if (!EMAIL_RE.test(email)) errors.email = 'Email inválido.';
 		if (password.length < 8 || password.length > 128) {
 			errors.password = 'Mínimo 8 caracteres.';

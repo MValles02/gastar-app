@@ -61,6 +61,7 @@
 					type="text"
 					name="name"
 					autocomplete="name"
+					maxlength="80"
 					value={form?.name ?? ''}
 					required
 					aria-invalid={form?.errors?.name ? true : undefined}
