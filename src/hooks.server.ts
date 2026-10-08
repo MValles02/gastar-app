@@ -8,7 +8,7 @@ import { themeColors } from '$lib/theme';
 
 if (!building && process.env.NODE_ENV === 'production') checkEnv(env);
 
-const PUBLIC_PATHS = ['/login', '/health', '/csp-report'];
+const PUBLIC_PATHS = ['/login', '/health', '/csp-report', '/dev/outbox'];
 
 function isPublic(pathname: string): boolean {
 	return PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/api/auth/');

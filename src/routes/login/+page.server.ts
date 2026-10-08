@@ -1,13 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
 import { auth } from '$lib/server/auth';
-import { isLoginBlocked, recordLoginFailure } from '$lib/server/login-limit';
+import { isBlocked, record } from '$lib/server/rate-limit';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
 	default: async ({ request, getClientAddress }) => {
 		const ip = getClientAddress();
-		if (isLoginBlocked(ip)) {
+		if (isBlocked('signIn', ip)) {
 			return fail(429, { email: '', error: 'Demasiados intentos. Probá de nuevo en un minuto.' });
 		}
 
@@ -29,7 +29,10 @@ export const actions: Actions = {
 			});
 		} catch (err) {
 			if (err instanceof APIError) {
-				recordLoginFailure(ip);
+				if (err.body?.code === 'EMAIL_NOT_VERIFIED') {
+					return fail(403, { email, error: 'Revisá tu email para confirmar tu cuenta.' });
+				}
+				record('signIn', ip);
 				return fail(400, { email, error: 'Email o contraseña incorrectos.' });
 			}
 			throw err;
