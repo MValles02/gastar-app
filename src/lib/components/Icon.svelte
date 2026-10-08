@@ -9,14 +9,18 @@
 	import Briefcase from '@lucide/svelte/icons/briefcase';
 	import CalendarCheck from '@lucide/svelte/icons/calendar-check';
 	import ChartColumn from '@lucide/svelte/icons/chart-column';
+	import Check from '@lucide/svelte/icons/check';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import CircleDollarSign from '@lucide/svelte/icons/circle-dollar-sign';
 	import Coins from '@lucide/svelte/icons/coins';
 	import CreditCard from '@lucide/svelte/icons/credit-card';
+	import Eye from '@lucide/svelte/icons/eye';
+	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import House from '@lucide/svelte/icons/house';
 	import Landmark from '@lucide/svelte/icons/landmark';
 	import List from '@lucide/svelte/icons/list';
+	import Mail from '@lucide/svelte/icons/mail';
 	import PiggyBank from '@lucide/svelte/icons/piggy-bank';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Search from '@lucide/svelte/icons/search';
@@ -42,7 +46,11 @@
 		| 'chart'
 		| 'bell'
 		| 'alert'
-		| 'logout';
+		| 'logout'
+		| 'check'
+		| 'eye'
+		| 'eye-off'
+		| 'mail';
 
 	/** Lucide at stroke 1.75; `size` is a CSS length (1rem, 1.25rem or 1.5rem) or a percentage of the parent. */
 	let { name, size = '1.5rem' }: { name: IconName; size?: string } = $props();
@@ -62,6 +70,10 @@
 		bell: Bell,
 		alert: CircleAlert,
 		logout: LogOut,
+		check: Check,
+		eye: Eye,
+		'eye-off': EyeOff,
+		mail: Mail,
 		search: Search,
 		bank: Landmark,
 		wallet: Wallet,
