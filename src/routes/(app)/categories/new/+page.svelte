@@ -11,10 +11,7 @@
 	<title>Nueva categoría · Gastar</title>
 </svelte:head>
 
-<PageHeader
-	title="Nueva categoría"
-	back={{ href: resolve('/categories'), label: 'Volver a categorías' }}
-/>
+<PageHeader title="Nueva categoría" close={{ href: resolve('/categories'), label: 'Cerrar' }} />
 
 <CategoryForm
 	mode="create"

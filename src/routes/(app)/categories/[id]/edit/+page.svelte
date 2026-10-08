@@ -13,7 +13,7 @@
 
 <PageHeader
 	title="Editar categoría"
-	back={{ href: resolve(`/categories/${data.id}`), label: 'Volver a la categoría' }}
+	close={{ href: resolve(`/categories/${data.id}`), label: 'Cerrar' }}
 />
 
 <CategoryForm

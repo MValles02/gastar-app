@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/Button.svelte';
+	import Card from '$lib/components/Card.svelte';
 	import ColorPicker from '$lib/components/ColorPicker.svelte';
-	import Field from '$lib/components/Field.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import type { SwatchKey } from '$lib/appearance';
 
 	type Values = Partial<Record<'name' | 'color', string | null>>;
@@ -23,29 +24,54 @@
 
 	let name = $state(untrack(() => initial.name ?? ''));
 	let color = $state(untrack(() => (initial.color ?? 'green') as SwatchKey));
+
+	// After a failed submit, move focus to the first field marked invalid.
+	$effect(() => {
+		if (!Object.values(errors).some(Boolean)) return;
+		tick().then(() => {
+			document.querySelector<HTMLElement>('form [aria-invalid="true"]')?.focus();
+		});
+	});
 </script>
 
 <form method="POST" use:enhance class="form" novalidate>
-	<Field label="Nombre" error={errors.name} errorId="name-error">
-		<input
-			name="name"
-			type="text"
-			maxlength="40"
-			required
-			autocomplete="off"
-			bind:value={name}
-			aria-invalid={errors.name ? 'true' : undefined}
-			aria-describedby={errors.name ? 'name-error' : undefined}
-		/>
-	</Field>
+	<ul class="card">
+		<li class:bad={errors.name}>
+			<label class="row">
+				<span class="k">Nombre</span>
+				<input
+					name="name"
+					type="text"
+					maxlength="40"
+					required
+					autocomplete="off"
+					placeholder="Agregar"
+					bind:value={name}
+					aria-invalid={errors.name ? 'true' : undefined}
+					aria-describedby={errors.name ? 'name-error' : undefined}
+				/>
+			</label>
+			{#if errors.name}
+				<p class="error et" id="name-error" role="alert">
+					<Icon name="alert" size="1rem" />{errors.name}
+				</p>
+			{/if}
+		</li>
+	</ul>
 
 	<div>
-		<ColorPicker name="color" legend="Color" bind:value={color} />
-		{#if errors.color}<p class="error" role="alert">{errors.color}</p>{/if}
+		<Card>
+			<ColorPicker name="color" legend="Color" bind:value={color} />
+		</Card>
+		{#if errors.color}
+			<p class="error pad" role="alert"><Icon name="alert" size="1rem" />{errors.color}</p>
+		{/if}
 	</div>
 
-	<div class="actions">
-		<Button type="submit">{mode === 'create' ? 'Crear categoría' : 'Guardar cambios'}</Button>
+	<div class="bar">
+		<Button type="submit" block>{mode === 'create' ? 'Crear categoría' : 'Guardar cambios'}</Button>
+	</div>
+	<div class="cancel">
 		<Button href={resolve(cancelHref as '/categories')} variant="secondary">Cancelar</Button>
 	</div>
 </form>
@@ -55,16 +81,89 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
+		padding-top: var(--space-1);
+	}
+
+	.card {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		overflow: hidden;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-card);
+		box-shadow: var(--shadow-1);
+	}
+
+	.card > li.bad {
+		box-shadow: inset 3px 0 0 var(--negative);
+	}
+
+	.row {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-1) var(--space-3);
+		min-height: 3.5rem;
+		padding: 0 var(--space-4);
+		font-size: var(--font-size-base);
+		color: var(--text);
+		cursor: text;
+	}
+
+	.row input[name='name'] {
+		flex: 1 1 4rem;
+		min-width: 0;
+		width: auto;
+		min-height: 3.5rem;
+		padding: 0;
+		border: 0;
+		border-radius: 0;
+		background: transparent;
+		text-align: right;
+		scroll-margin-bottom: 6rem;
+	}
+
+	.row input:focus-visible {
+		outline-offset: -2px;
+	}
+
+	.row input::placeholder {
+		color: var(--text-muted);
+		opacity: 1;
 	}
 
 	.error {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--space-2);
 		color: var(--negative);
 		font-size: var(--font-size-sm);
 	}
 
-	.actions {
+	.et {
+		padding: 0 var(--space-4) var(--space-3);
+	}
+
+	.pad {
+		padding: var(--space-2) var(--space-4) 0;
+	}
+
+	/* Sticky save bar: full-bleed, pinned to the bottom of the viewport (no tab bar on this screen). */
+	.bar {
+		position: sticky;
+		bottom: 0;
+		z-index: 2;
+		margin-inline: calc(var(--gutter, var(--space-5)) * -1);
+		padding: var(--space-3) var(--gutter, var(--space-5))
+			calc(var(--space-3) + env(safe-area-inset-bottom));
+		background: var(--bg);
+		box-shadow: 0 -1px 0 var(--border);
+	}
+
+	.cancel {
 		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-3);
+		justify-content: center;
 	}
 </style>

@@ -70,7 +70,7 @@
 	</ul>
 
 	{#if form?.error}
-		<p class="error" role="alert">{form.error}</p>
+		<p class="error" role="alert"><Icon name="alert" size="1rem" />{form.error}</p>
 	{/if}
 
 	<div class="actions">

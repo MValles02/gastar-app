@@ -5,11 +5,14 @@
 
 	let {
 		icon,
+		letter,
 		color,
 		size = '2.75rem',
 		neutral = false
 	}: {
-		icon: ComponentProps<typeof Icon>['name'];
+		icon?: ComponentProps<typeof Icon>['name'];
+		/** Shows this initial instead of the icon (categories). */
+		letter?: string;
 		color: SwatchKey | null;
 		size?: string;
 		/** Text-colored badge instead of the primary one, for non-selected navigation rows. */
@@ -21,8 +24,18 @@
 	);
 </script>
 
-<span class="badge" style:--tone={tone} style:width={size} style:height={size} aria-hidden="true">
-	<Icon name={icon} size="55%" />
+<span
+	class="badge"
+	style:--tone={tone}
+	style:width={size}
+	style:height={size}
+	style:--badge-size={size}
+	aria-hidden="true"
+>
+	{#if letter}<span class="letter">{letter}</span>{:else if icon}<Icon
+			name={icon}
+			size="55%"
+		/>{/if}
 </span>
 
 <style>
@@ -34,5 +47,12 @@
 		border-radius: var(--radius-pill);
 		background: color-mix(in srgb, var(--tone) 14%, transparent);
 		color: var(--tone);
+	}
+
+	.letter {
+		font-size: calc(var(--badge-size) * 0.4);
+		font-weight: 600;
+		line-height: 1;
+		text-transform: uppercase;
 	}
 </style>

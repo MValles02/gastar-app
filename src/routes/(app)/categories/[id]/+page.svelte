@@ -3,11 +3,12 @@
 	import { resolve } from '$app/paths';
 	import { SWATCHES, toSwatchKey } from '$lib/appearance';
 	import Button from '$lib/components/Button.svelte';
+	import Card from '$lib/components/Card.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
-	import DetailHeader from '$lib/components/DetailHeader.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { formatMoney } from '$lib/money';
 	import type { ActionData, PageData } from './$types';
 
@@ -16,6 +17,7 @@
 	const c = $derived(data.category);
 	const colorLabel = $derived(SWATCHES.find((s) => s.key === c.color)?.label ?? c.color);
 	const single = $derived(data.nets.length === 1 ? data.nets[0] : null);
+	const labelId = $props.id();
 	// Net spend (outcomes - incomes) shown as a cash flow, like movement rows: spend "-", income "+".
 	const flow = (net: number, currency: 'ARS' | 'USD') =>
 		formatMoney(-net, currency, { sign: 'always' });
@@ -26,59 +28,63 @@
 </svelte:head>
 
 <div class="detail">
-	<DetailHeader
+	<PageHeader
 		title={c.name}
 		back={{ href: resolve('/categories'), label: 'Volver a categorías' }}
-		icon="categories"
-		color={toSwatchKey(c.color)}
-		label={data.month.isCurrent ? 'Este mes' : 'Balance del mes'}
-		context={data.month.label}
-		value={single ? flow(single.net, single.currency) : undefined}
-		tone={single && single.net < 0 ? 'positive' : undefined}
-	>
-		{#if data.nets.length === 0}
-			<p class="muted">Sin movimientos en este mes.</p>
-		{:else if !single}
-			<dl class="data">
-				{#each data.nets as n (n.currency)}
-					<div class="item">
-						<dt>{n.currency}</dt>
-						<dd class="amount">{flow(n.net, n.currency)}</dd>
-					</div>
-				{/each}
-			</dl>
-		{/if}
-	</DetailHeader>
+	/>
 
-	<nav class="nav" aria-label="Mes">
-		<a
-			class="arrow"
-			href={resolve(`/categories/${c.id}?month=${data.month.prev}`)}
-			aria-label="Mes anterior"
-		>
-			<Icon name="chevron-left" />
-		</a>
-		<p class="month-label">{data.month.label}</p>
-		{#if data.month.isCurrent}
-			<span class="arrow disabled" role="link" aria-disabled="true" aria-label="Mes siguiente">
-				<Icon name="chevron-right" />
-			</span>
-		{:else}
-			<a
-				class="arrow"
-				href={resolve(`/categories/${c.id}?month=${data.month.next}`)}
-				aria-label="Mes siguiente"
-			>
-				<Icon name="chevron-right" />
-			</a>
-		{/if}
-	</nav>
+	<section aria-labelledby={labelId}>
+		<Card>
+			<nav class="nav" aria-label="Mes">
+				<a
+					class="arrow"
+					href={resolve(`/categories/${c.id}?month=${data.month.prev}`)}
+					aria-label="Mes anterior"
+				>
+					<Icon name="chevron-left" />
+				</a>
+				<p class="month-label">{data.month.label}</p>
+				{#if data.month.isCurrent}
+					<span class="arrow disabled" role="link" aria-disabled="true" aria-label="Mes siguiente">
+						<Icon name="chevron-right" />
+					</span>
+				{:else}
+					<a
+						class="arrow"
+						href={resolve(`/categories/${c.id}?month=${data.month.next}`)}
+						aria-label="Mes siguiente"
+					>
+						<Icon name="chevron-right" />
+					</a>
+				{/if}
+			</nav>
 
-	<dl class="data">
+			<div class="hero">
+				<IconBadge letter={c.name[0]} color={toSwatchKey(c.color)} size="3rem" />
+				<p id={labelId} class="label">{data.month.isCurrent ? 'Este mes' : 'Balance del mes'}</p>
+				{#if single}
+					<p class="value" class:income={single.net < 0}>{flow(single.net, single.currency)}</p>
+				{:else if data.nets.length === 0}
+					<p class="muted">Sin movimientos en este mes.</p>
+				{:else}
+					<dl class="duo">
+						{#each data.nets as n (n.currency)}
+							<div>
+								<dt>{n.currency}</dt>
+								<dd class="amount" class:income={n.net < 0}>{flow(n.net, n.currency)}</dd>
+							</div>
+						{/each}
+					</dl>
+				{/if}
+			</div>
+		</Card>
+	</section>
+
+	<dl class="list-card data">
 		<div class="item">
 			<dt>Color</dt>
 			<dd class="appearance">
-				<IconBadge icon="categories" color={toSwatchKey(c.color)} size="1.75rem" />
+				<IconBadge letter={c.name[0]} color={toSwatchKey(c.color)} size="1.75rem" />
 				<span>{colorLabel}</span>
 			</dd>
 		</div>
@@ -88,18 +94,36 @@
 		</div>
 	</dl>
 
-	{#if form?.error}
-		<p class="error" role="alert">{form.error}</p>
-	{/if}
+	<ul class="list-card">
+		<li>
+			<ListRow href={resolve(`/movements?category=${c.id}`)}>
+				{#snippet title()}Ver movimientos{/snippet}
+				{#snippet trailing()}<Icon name="chevron-right" />{/snippet}
+			</ListRow>
+		</li>
+	</ul>
 
-	{#if data.actions.canArchive}
-		<p class="muted">
-			Tiene movimientos, así que no se puede eliminar. Podés archivarla para ocultarla.
-		</p>
+	{#if form?.error}
+		<p class="error" role="alert"><Icon name="alert" size="1rem" />{form.error}</p>
 	{/if}
 
 	<div class="actions">
-		<Button href={resolve(`/categories/${c.id}/edit`)}>Editar</Button>
+		{#if data.actions.canArchive}
+			<p class="muted small">
+				Tiene movimientos, así que no se puede eliminar. Podés archivarla para ocultarla.
+			</p>
+		{/if}
+		<Button href={resolve(`/categories/${c.id}/edit`)} block>Editar</Button>
+		{#if data.actions.canArchive}
+			<form method="POST" action="?/archive" use:enhance>
+				<Button type="submit" variant="secondary" block>Archivar</Button>
+			</form>
+		{/if}
+		{#if data.actions.canUnarchive}
+			<form method="POST" action="?/unarchive" use:enhance>
+				<Button type="submit" variant="secondary" block>Desarchivar</Button>
+			</form>
+		{/if}
 		{#if data.actions.canDelete}
 			<ConfirmDialog
 				triggerLabel="Eliminar"
@@ -111,23 +135,6 @@
 				Esta acción no se puede deshacer.
 			</ConfirmDialog>
 		{/if}
-		{#if data.actions.canArchive}
-			<form method="POST" action="?/archive" use:enhance>
-				<Button type="submit" variant="secondary">Archivar</Button>
-			</form>
-		{/if}
-		{#if data.actions.canUnarchive}
-			<form method="POST" action="?/unarchive" use:enhance>
-				<Button type="submit" variant="secondary">Desarchivar</Button>
-			</form>
-		{/if}
-	</div>
-
-	<div class="link">
-		<ListRow href={resolve(`/movements?category=${c.id}`)}>
-			{#snippet title()}Ver movimientos{/snippet}
-			{#snippet trailing()}<Icon name="chevron-right" />{/snippet}
-		</ListRow>
 	</div>
 </div>
 
@@ -135,13 +142,14 @@
 	.detail {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-5);
+		gap: var(--space-4);
 	}
 
 	.nav {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		margin-bottom: var(--space-3);
 	}
 
 	.month-label {
@@ -160,7 +168,7 @@
 	}
 
 	.arrow.disabled {
-		opacity: 0.4;
+		opacity: 0.3;
 		cursor: not-allowed;
 	}
 
@@ -168,8 +176,59 @@
 		background: color-mix(in srgb, var(--primary) 8%, transparent);
 	}
 
+	.hero {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-2);
+		padding-block: var(--space-2);
+		text-align: center;
+	}
+
+	.label {
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
+	}
+
+	/* Spending stays in the text colour; only income (a negative net) is green. */
+	.value {
+		max-width: 100%;
+		font-family: var(--font-display);
+		font-size: clamp(1.5rem, 9vw, 2.75rem);
+		font-weight: 500;
+		line-height: 1.2;
+		overflow-wrap: anywhere;
+	}
+
+	.income {
+		color: var(--positive);
+	}
+
+	.duo {
+		align-self: stretch;
+		margin: 0;
+	}
+
+	.duo div {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: var(--space-3);
+	}
+
+	.duo dd {
+		font-family: var(--font-display);
+		font-size: var(--font-size-xl, 1.5rem);
+		font-weight: 500;
+	}
+
 	.muted {
 		color: var(--text-muted);
+	}
+
+	.small {
+		font-size: var(--font-size-sm);
+		text-align: center;
 	}
 
 	.data {
@@ -180,10 +239,15 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		flex-wrap: wrap;
 		gap: var(--space-3);
-		min-height: 2.75rem;
-		padding: var(--space-2) 0;
+		min-height: 3.5rem;
+		padding: var(--space-2) var(--space-4);
 		border-bottom: 1px solid var(--border);
+	}
+
+	.item:last-child {
+		border-bottom: 0;
 	}
 
 	dt {
@@ -193,8 +257,8 @@
 	dd {
 		margin: 0;
 		min-width: 0;
-		overflow-wrap: anywhere;
 		text-align: right;
+		overflow-wrap: anywhere;
 	}
 
 	.amount {
@@ -205,28 +269,25 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
+		font-weight: 500;
 	}
 
 	.error {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--space-2);
 		color: var(--negative);
 		font-size: var(--font-size-sm);
 	}
 
 	.actions {
 		display: flex;
-		flex-wrap: wrap;
+		flex-direction: column;
 		gap: var(--space-3);
+		margin-top: var(--space-2);
 	}
 
-	.link {
-		overflow: hidden;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		box-shadow: var(--shadow-1);
-	}
-
-	.link :global(.row:last-child) {
-		border-bottom: 0;
+	.actions :global(.btn) {
+		width: 100%;
 	}
 </style>

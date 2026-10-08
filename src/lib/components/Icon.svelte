@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
 	import type { AccountIconKey } from '$lib/appearance';
+	import CircleAlert from '@lucide/svelte/icons/circle-alert';
+	import LogOut from '@lucide/svelte/icons/log-out';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import Banknote from '@lucide/svelte/icons/banknote';
 	import Bell from '@lucide/svelte/icons/bell';
@@ -38,7 +40,9 @@
 		| 'transfer'
 		| 'plan'
 		| 'chart'
-		| 'bell';
+		| 'bell'
+		| 'alert'
+		| 'logout';
 
 	/** Lucide at stroke 1.75; `size` is a CSS length (1rem, 1.25rem or 1.5rem) or a percentage of the parent. */
 	let { name, size = '1.5rem' }: { name: IconName; size?: string } = $props();
@@ -56,6 +60,8 @@
 		plan: CalendarCheck,
 		chart: ChartColumn,
 		bell: Bell,
+		alert: CircleAlert,
+		logout: LogOut,
 		search: Search,
 		bank: Landmark,
 		wallet: Wallet,
