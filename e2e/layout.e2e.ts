@@ -61,7 +61,7 @@ for (const width of widths) {
 		await page.goto('/login', { waitUntil: 'networkidle' });
 		await expect(page.getByRole('heading', { level: 1, name: 'Gastar' })).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Ingresar' })).toBeVisible();
-		await expect(page.getByText('¿Olvidaste tu contraseña?')).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Olvidé mi contraseña' })).toBeVisible();
 		await expectNoOverflow(page);
 	});
 
