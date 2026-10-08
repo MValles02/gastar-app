@@ -10,6 +10,7 @@
 	import CalendarCheck from '@lucide/svelte/icons/calendar-check';
 	import ChartColumn from '@lucide/svelte/icons/chart-column';
 	import Check from '@lucide/svelte/icons/check';
+	import Clock from '@lucide/svelte/icons/clock';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import CircleDollarSign from '@lucide/svelte/icons/circle-dollar-sign';
@@ -50,7 +51,8 @@
 		| 'check'
 		| 'eye'
 		| 'eye-off'
-		| 'mail';
+		| 'mail'
+		| 'clock';
 
 	/** Lucide at stroke 1.75; `size` is a CSS length (1rem, 1.25rem or 1.5rem) or a percentage of the parent. */
 	let { name, size = '1.5rem' }: { name: IconName; size?: string } = $props();
@@ -74,6 +76,7 @@
 		eye: Eye,
 		'eye-off': EyeOff,
 		mail: Mail,
+		clock: Clock,
 		search: Search,
 		bank: Landmark,
 		wallet: Wallet,

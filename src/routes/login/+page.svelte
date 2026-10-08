@@ -109,8 +109,7 @@
 				{/if}
 			</div>
 
-			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- route is added in the next task; switch to resolve() then -->
-			<a class="forgot" href="/forgot-password">Olvidé mi contraseña</a>
+			<a class="forgot" href={resolve('/forgot-password')}>Olvidé mi contraseña</a>
 
 			{#if form?.formError}
 				<p class="error" role="alert"><Icon name="alert" size="1rem" />{form.formError}</p>
