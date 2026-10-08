@@ -79,7 +79,7 @@ test('a payment due today alerts until it is registered', async ({ page, baseURL
 		await page.goto('/plan');
 		const rules = await page
 			.locator('li.rule', { hasText: description })
-			.locator('a.main')
+			.locator('a.row')
 			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
 		for (const href of rules) await del(page, baseURL!, href);
 	}

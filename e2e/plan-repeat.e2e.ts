@@ -71,7 +71,7 @@ async function cleanup(page: Page, baseURL: string, description: string) {
 		await del(href);
 	await page.goto('/plan');
 	const ruleHrefs = await rule(page, description)
-		.locator('a.main')
+		.locator('a.row')
 		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
 	for (const href of ruleHrefs) await del(href);
 }
@@ -298,7 +298,7 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 		await expect(page).toHaveURL(/\/movements\/new\?saved=1$/);
 		await page.goto('/plan', { waitUntil: 'networkidle' });
 		const id = await rule(page, description)
-			.locator('a.main')
+			.locator('a.row')
 			.evaluate((a: HTMLAnchorElement) => a.pathname.split('/').pop()!);
 		// Drop the movement the rule was created with so this month's payment is still open.
 		await cleanupMovements(page, baseURL!, description);

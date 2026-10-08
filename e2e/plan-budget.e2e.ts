@@ -123,7 +123,9 @@ async function figures(page: Page) {
 	const out: Record<string, number> = {};
 	terms.forEach((t, i) => {
 		const v = values[i];
-		out[t.trim()] = Number(v.replace(/\D/g, '')) * (/[-−]/.test(v) ? -1 : 1);
+		// Fixed payments, savings and spent show a minus; the equation uses their magnitudes.
+		const signed = ['Disponible', 'Para gastar'].includes(t.trim());
+		out[t.trim()] = Number(v.replace(/\D/g, '')) * (signed && /[-−]/.test(v) ? -1 : 1);
 	});
 	// Same page load: the amounts of the active "Pagos fijos" rule rows, which Pagos fijos must equal.
 	const rows = await page
@@ -344,7 +346,7 @@ test('a rule created after the wizard loaded stays active when the plan is saved
 		await page.goto('/plan');
 		const hrefs = await page
 			.locator('li.rule', { hasText: description })
-			.locator('a.main')
+			.locator('a.row')
 			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
 		for (const href of hrefs) await post(page, baseURL!, href);
 	}
