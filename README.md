@@ -14,9 +14,11 @@ Env vars required at runtime:
 | -------------------- | ----------------------------------------------------- |
 | `DATABASE_URL`        | Postgres connection string                            |
 | `BETTER_AUTH_SECRET`  | Strong secret, e.g. `openssl rand -base64 32`         |
-| `BETTER_AUTH_URL`     | Public https URL of the app                           |
+| `BETTER_AUTH_URL`     | Public https URL of the app; email links are built from it                           |
 | `ORIGIN`              | Same public https URL (adapter-node CSRF check)       |
 | `ADDRESS_HEADER`      | `CF-Connecting-IP`. MUST be set in Dokploy BEFORE (or with) deploying this release: the app refuses to start in production without it |
+| `RESEND_API_KEY`      | Resend API key restricted to the sending domain. The app refuses to start in production without it |
+| `EMAIL_FROM`          | Bare sender address on a domain verified in Resend, e.g. `no-reply@yourdomain`. The app refuses to start in production without it |
 | `PORT`                | Port to listen on (default `3000`)                    |
 
 `CF-Connecting-IP` is trustworthy only because the origin accepts Cloudflare IPs only (firewall ipset); if the origin is ever exposed directly, the header is spoofable.
@@ -27,9 +29,19 @@ new code against the same schema).
 
 The Content-Security-Policy is report-only; violations are posted to `/csp-report` and logged as `csp-violation` lines.
 
+### Email (Resend)
+
+Sign-up requires email verification and password reset is by link, both sent through Resend.
+
+1. Verify the sending domain in Resend and add its DNS records (SPF/MX, DKIM, optional DMARC).
+2. Create an API key restricted to that domain and set `RESEND_API_KEY` and `EMAIL_FROM`.
+
+In dev with no key, emails go to an in-memory outbox at `/dev/outbox?to=<email>` (404 in production or when a key is set).
+Auth rate limits are in-memory and reset on deploy.
+
 ### Creating users
 
-Signup is disabled; users are created from inside the running container
+Users sign up from the app. To create a pre-verified user from inside the running container
 (e.g. via the Dokploy container terminal):
 
 ```sh

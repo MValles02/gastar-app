@@ -19,7 +19,7 @@ ARS → USD: dest_cents = round_half_up(amount_cents × 100 / rate_hundredths)
 
 ## Naming note
 
-- Better Auth owns its own tables (`user`, `session`, `account`, `verification`) and manages their schema.
+- Better Auth owns its own tables (`user`, `session`, `account`, `verification`) and manages their schema. Password-reset tokens live in `verification`; email-verification links are stateless signed tokens. Migration 0003 marked pre-existing users as verified.
 - Because Better Auth already uses the table name `account`, the finance-domain table is named `financial_accounts` at the DB/schema level. Application code, routes, and UI may still refer to it as "account" — this is a deliberate naming split, not an inconsistency.
 
 ## Tables

@@ -8,7 +8,7 @@ web
 
 ## Users
 
-The primary user is the owner, who also built the app. They open it right after a movement (income, outcome or transfer) to log it, almost always on a phone. Friends and family may be invited later at small scale. The app is invite-only, and each user's data is isolated from every other user's. Shared accounts between users are a possible future feature, not part of the MVP.
+The primary user is the owner, who also built the app. They open it right after a movement (income, outcome or transfer) to log it, almost always on a phone. Friends and family may join later at small scale. Sign-up is public with email verification, and each user's data is isolated from every other user's. Shared accounts between users are a possible future feature, not part of the MVP.
 
 ## Product Purpose
 
@@ -28,7 +28,7 @@ It is private and self-hosted, run for the owner and their friends and family on
 
 ## Capabilities and Constraints
 
-- Auth is email + password only. There is no public signup. Password reset is a manual admin action.
+- Auth is email + password only. Sign-up is public and requires email verification. Password reset is by emailed link.
 - Movements are income, outcome or transfer. Transfers never count toward the month balance and have no category.
 - Balances and category net are computed at read time, never stored. Money is stored as integer minor units.
 - Categories have no type and are shared across currencies, with stats split by currency.
@@ -52,7 +52,7 @@ There are no user research, testimonials or metrics, and none should be fabricat
 - Speed of entry first: logging a movement right after it happens must be fast on a phone.
 - The two core answers (total balance, month balance) must always be correct and visible at a glance.
 - Never blur currencies: ARS and USD stay separate and no implicit conversion happens.
-- Private by default: self-hosted, invite-only, strictly isolated per-user data.
+- Private by default: self-hosted, verified emails only, strictly isolated per-user data.
 - Serious and trustworthy: calm, precise and bank-like, not playful.
 
 ## Accessibility & Inclusion

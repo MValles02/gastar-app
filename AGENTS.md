@@ -1,7 +1,7 @@
 # Gastar
 
 Personal finance PWA for Argentina. It answers two questions: how much money do I have, and how is my month going.
-Invite-only (email + password, no public signup). Deployed as a Docker image via Dokploy on the user's VPS.
+Public sign-up (email + password, email verification required, password reset by link). Deployed as a Docker image via Dokploy on the user's VPS.
 
 ## Documentation
 
