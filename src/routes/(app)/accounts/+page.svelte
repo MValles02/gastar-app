@@ -5,7 +5,6 @@
 	import Checkbox from '$lib/components/Checkbox.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
-	import Icon from '$lib/components/Icon.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
@@ -56,6 +55,7 @@
 				<a class="clear" href={resolve('/accounts')}>Limpiar filtros</a>
 			</div>
 		{:else}
+			<!-- Balances are totalled per currency group, never across currencies. -->
 			{#each data.groups as g (g.currency)}
 				<section aria-labelledby="group-{g.currency}">
 					<div class="section-head">
@@ -64,7 +64,7 @@
 					</div>
 					<ul class="list-card">
 						{#each g.accounts as a (a.id)}
-							<li>
+							<li class:archived={a.archivedAt}>
 								<ListRow href={resolve(`/accounts/${a.id}`)}>
 									{#snippet leading()}
 										<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} />
@@ -82,7 +82,14 @@
 				</section>
 			{/each}
 		{/if}
-		<a class="add-row" href={resolve('/accounts/new')}><Icon name="plus" />Nueva cuenta</a>
+		<ul class="list-card">
+			<li>
+				<ListRow href={resolve('/accounts/new')}>
+					{#snippet leading()}<IconBadge icon="plus" color={null} neutral />{/snippet}
+					{#snippet title()}Nueva cuenta{/snippet}
+				</ListRow>
+			</li>
+		</ul>
 	{/if}
 </div>
 
@@ -107,13 +114,36 @@
 		text-decoration: underline;
 	}
 
+	.section-head {
+		padding-inline: var(--space-1);
+	}
+
 	h2 {
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-xs);
 		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.group-total,
+	.row-amount {
+		font-family: var(--font-display);
+		font-size: var(--font-size-base);
+		font-weight: 500;
 	}
 
 	.group-total {
-		font-size: var(--font-size-sm);
-		font-weight: 600;
+		color: var(--text-muted);
+	}
+
+	/* Archived: dimmed badge and muted text; the "Archivada" subtitle keeps it from relying on colour. */
+	.archived :global(.badge) {
+		opacity: 0.5;
+	}
+
+	.archived :global(.title),
+	.archived .row-amount {
+		color: var(--text-muted);
 	}
 </style>

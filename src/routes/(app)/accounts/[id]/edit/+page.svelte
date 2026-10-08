@@ -13,7 +13,7 @@
 
 <PageHeader
 	title="Editar cuenta"
-	back={{ href: resolve(`/accounts/${data.id}`), label: 'Volver a la cuenta' }}
+	close={{ href: resolve(`/accounts/${data.id}`), label: 'Cerrar' }}
 />
 
 <AccountForm
