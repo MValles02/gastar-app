@@ -3,6 +3,9 @@
 	import { enhance } from '$app/forms';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import Card from '$lib/components/Card.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
+	import IconBadge from '$lib/components/IconBadge.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { themeColors } from '$lib/theme';
@@ -10,6 +13,14 @@
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
+	const initials = $derived(
+		data.user.name
+			.split(/s+/)
+			.filter(Boolean)
+			.slice(0, 2)
+			.map((w) => w[0].toUpperCase())
+			.join('')
+	);
 	let selected = $derived(data.theme);
 	let themeForm: HTMLFormElement;
 
@@ -41,88 +52,133 @@
 
 <PageHeader title="Perfil" back={{ href: resolve('/'), label: 'Volver al inicio' }} />
 
-<Card>
-	<div class="sections">
-		<section class="user-info">
-			<p class="name">{data.user.name}</p>
-			<p class="muted">{data.user.email}</p>
-		</section>
+<div class="page">
+	<section class="who" aria-label="Usuario">
+		<span class="big" aria-hidden="true">{initials}</span>
+		<p class="name">{data.user.name}</p>
+		<p class="email">{data.user.email}</p>
+	</section>
 
-		<nav aria-label="Administrar">
+	<nav aria-label="Administrar">
+		<Card flush>
 			<ul class="links">
-				<li><a href={resolve('/accounts')}>Cuentas</a></li>
-				<li><a href={resolve('/categories')}>Categorías</a></li>
+				<li>
+					<ListRow href={resolve('/accounts')}>
+						{#snippet leading()}<IconBadge icon="accounts" color={null} neutral />{/snippet}
+						{#snippet title()}Cuentas{/snippet}
+						{#snippet trailing()}<Icon name="chevron-right" size="1.25rem" />{/snippet}
+					</ListRow>
+				</li>
+				<li>
+					<ListRow href={resolve('/categories')}>
+						{#snippet leading()}<IconBadge icon="categories" color={null} neutral />{/snippet}
+						{#snippet title()}Categorías{/snippet}
+						{#snippet trailing()}<Icon name="chevron-right" size="1.25rem" />{/snippet}
+					</ListRow>
+				</li>
 			</ul>
-		</nav>
+		</Card>
+	</nav>
 
-		<section>
-			<h2 id="theme-heading">Tema</h2>
+	<section class="theme">
+		<h2 id="theme-heading">Tema</h2>
 
-			<form
-				method="POST"
-				action="?/theme"
-				bind:this={themeForm}
-				use:enhance={() => {
-					return async ({ result, update }) => {
-						if (result.type === 'success') applyTheme(selected);
-						await update({ reset: false });
-					};
-				}}
-				class="theme-form"
-			>
-				<SegmentedControl
-					name="theme"
-					options={themeOptions}
-					bind:value={selected}
-					labelledby="theme-heading"
-					onchange={() => themeForm.requestSubmit()}
-				/>
+		<form
+			method="POST"
+			action="?/theme"
+			bind:this={themeForm}
+			use:enhance={() => {
+				return async ({ result, update }) => {
+					if (result.type === 'success') applyTheme(selected);
+					await update({ reset: false });
+				};
+			}}
+			class="theme-form"
+		>
+			<SegmentedControl
+				name="theme"
+				options={themeOptions}
+				bind:value={selected}
+				labelledby="theme-heading"
+				onchange={() => themeForm.requestSubmit()}
+			/>
 
-				{#if form?.error}
-					<p class="error" role="alert">{form.error}</p>
-				{/if}
+			{#if form?.error}
+				<p class="error" role="alert">{form.error}</p>
+			{/if}
 
-				<noscript><Button type="submit" variant="secondary">Guardar</Button></noscript>
-			</form>
-		</section>
-
-		<form method="POST" action="/logout">
-			<Button type="submit" variant="secondary" block>Cerrar sesión</Button>
+			<noscript><Button type="submit" variant="secondary">Guardar</Button></noscript>
 		</form>
-	</div>
-</Card>
+	</section>
+
+	<form method="POST" action="/logout">
+		<Button type="submit" variant="secondary" block>Cerrar sesión</Button>
+	</form>
+</div>
 
 <style>
-	.sections {
+	.page {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-4);
+		gap: var(--space-6);
 	}
 
-	.sections > :global(* + *) {
-		padding-top: var(--space-4);
-		border-top: 1px solid var(--border);
-	}
-
-	.muted {
-		color: var(--text-muted);
-		overflow-wrap: anywhere;
+	.who {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		gap: var(--space-1);
 		min-width: 0;
 	}
 
-	.user-info {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
+	.big {
+		display: grid;
+		place-items: center;
+		width: 4.5rem;
+		height: 4.5rem;
+		margin-bottom: var(--space-2);
+		border-radius: var(--radius-pill);
+		background: var(--muted);
+		box-shadow: inset 0 0 0 1px var(--border);
+		font-size: 1.5rem;
+		font-weight: 600;
 	}
 
 	.name {
+		font-family: var(--font-display);
+		font-size: 1.625rem;
 		font-weight: 500;
+		line-height: 1.2;
+		letter-spacing: -0.01em;
+		max-width: 100%;
+		overflow-wrap: anywhere;
+	}
+
+	.email {
+		color: var(--text-muted);
+		max-width: 100%;
+		overflow-wrap: anywhere;
+	}
+
+	.links {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.links li:last-child :global(.row) {
+		border-bottom: 0;
 	}
 
 	h2 {
-		font-size: var(--font-size-base);
-		margin-bottom: var(--space-3);
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		margin-bottom: var(--space-2);
+		padding: 0 var(--space-1);
 	}
 
 	.theme-form {
@@ -133,21 +189,6 @@
 
 	.theme-form :global(.btn) {
 		align-self: flex-start;
-	}
-
-	.links {
-		list-style: none;
-		display: flex;
-		flex-direction: column;
-	}
-
-	.links a {
-		display: flex;
-		align-items: center;
-		min-height: 2.75rem;
-		color: var(--text);
-		text-decoration: underline;
-		font-weight: 500;
 	}
 
 	.error {

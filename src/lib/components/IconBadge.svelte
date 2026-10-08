@@ -6,14 +6,19 @@
 	let {
 		icon,
 		color,
-		size = '2.75rem'
+		size = '2.75rem',
+		neutral = false
 	}: {
 		icon: ComponentProps<typeof Icon>['name'];
 		color: SwatchKey | null;
 		size?: string;
+		/** Text-colored badge instead of the primary one, for non-selected navigation rows. */
+		neutral?: boolean;
 	} = $props();
 
-	const tone = $derived(color ? `var(--swatch-${color})` : 'var(--primary)');
+	const tone = $derived(
+		color ? `var(--swatch-${color})` : neutral ? 'var(--text)' : 'var(--primary)'
+	);
 </script>
 
 <span class="badge" style:--tone={tone} style:width={size} style:height={size} aria-hidden="true">
