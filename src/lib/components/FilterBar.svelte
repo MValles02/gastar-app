@@ -25,6 +25,10 @@
 	let form: HTMLFormElement;
 	let timer: ReturnType<typeof setTimeout>;
 
+	// Drop empty params (q=, currency=) so the URL only carries what is set.
+	const onformdata = (e: FormDataEvent) => {
+		for (const [k, v] of [...e.formData]) if (v === '') e.formData.delete(k);
+	};
 	const submit = () => form.requestSubmit();
 	const debounced = () => {
 		clearTimeout(timer);
@@ -38,6 +42,7 @@
 	data-sveltekit-replacestate
 	bind:this={form}
 	onchange={submit}
+	{onformdata}
 >
 	{#each Object.entries(hidden) as [k, v] (k)}
 		{#if v}<input type="hidden" name={k} value={v} />{/if}

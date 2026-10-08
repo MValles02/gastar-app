@@ -11,7 +11,7 @@
 	<title>Nuevo fijo · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Nuevo fijo" back={{ href: resolve('/plan'), label: 'Volver al plan' }} />
+<PageHeader title="Nuevo fijo" close={{ href: resolve('/plan'), label: 'Cerrar' }} />
 
 <RecurringForm
 	initial={form?.values ?? {

@@ -5,6 +5,7 @@
 	import Card from '$lib/components/Card.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import { formatMoney, parseAmount } from '$lib/money';
 	import RecurringForm from '../RecurringForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -12,7 +13,9 @@
 
 	const account = $derived(data.accounts.find((a) => a.id === data.values.accountId));
 	const category = $derived(data.categories.find((c) => c.id === data.values.categoryId));
-	const symbol = $derived(account?.meta === 'USD' ? 'US$' : '$');
+	const shown = $derived(
+		formatMoney(parseAmount(data.values.amount) ?? 0, account?.meta === 'USD' ? 'USD' : 'ARS')
+	);
 </script>
 
 <svelte:head>
@@ -26,8 +29,8 @@
 />
 
 <div class="detail">
-	<p class="amount hero-amount">
-		{data.values.type === 'income' ? '' : '−'}{symbol}&nbsp;{data.values.amount}
+	<p class="amount hero-amount" class:income={data.values.type === 'income'}>
+		{data.values.type === 'income' ? '' : '−'}{shown}
 	</p>
 
 	<Card flush>
@@ -65,6 +68,7 @@
 			categories={data.categories}
 			action="?/update"
 			submitLabel="Guardar cambios"
+			inline
 		/>
 	{/key}
 
@@ -98,6 +102,10 @@
 		letter-spacing: -0.02em;
 		line-height: 1.1;
 		overflow-wrap: anywhere;
+	}
+
+	.income {
+		color: var(--positive);
 	}
 
 	.facts {
