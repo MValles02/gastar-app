@@ -15,7 +15,7 @@ const LIMITS = {
 /** A key idle for the longest window holds no hits that count in any bucket. */
 const MAX_WINDOW_MS = Math.max(...Object.values(LIMITS).map((limit) => limit.windowMs));
 
-export type Bucket = keyof typeof LIMITS;
+type Bucket = keyof typeof LIMITS;
 
 const hits = new Map<string, number[]>();
 

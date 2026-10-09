@@ -1,7 +1,7 @@
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 
-export type OutboxEntry = { id: number; to: string; subject: string; link: string };
+type OutboxEntry = { id: number; to: string; subject: string; link: string };
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
 const SEND_TIMEOUT_MS = 10_000;
