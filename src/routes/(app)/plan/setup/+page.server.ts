@@ -44,7 +44,8 @@ const wholeUnits = (cents: number) => Math.floor((cents + 50) / 100) * 100;
 const monthlyAverage = (total: number) =>
 	Math.floor((total + 50 * HISTORY_MONTHS) / (100 * HISTORY_MONTHS)) * 100;
 
-async function context(userId: string, cur: Currency, ym: string) {
+/** Accounts in `cur`, categories, the active rules and the suggested new rules the wizard offers. */
+async function setupContext(userId: string, cur: Currency, ym: string) {
 	const [accountRows, categories, rules, rawCandidates] = await Promise.all([
 		listAccounts(userId, { currency: cur }),
 		listCategories(userId),
@@ -75,7 +76,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const userId = locals.user!.id;
 	const currency = singleCurrency(cookies.get('currency'));
 	const ym = currentMonth(new Date());
-	const ctx = await context(userId, currency, ym);
+	const ctx = await setupContext(userId, currency, ym);
 	if (ctx.accounts.length === 0) redirect(303, '/plan');
 
 	const [[plan], rows] = await Promise.all([
@@ -120,7 +121,121 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	};
 };
 
+type SetupContext = Awaited<ReturnType<typeof setupContext>>;
+/** A rejected save: the message and the wizard step to show it on. */
+type StepError = { step: number; message: string };
+
 const LIMIT_KEY = /^limit_([0-9a-f-]{36})$/i;
+/** Rows typed in the wizard are posted as parallel `new_<field>` arrays, one entry per row. */
+const NEW_ROW_FIELDS = ['type', 'description', 'amount', 'accountId', 'categoryId', 'dayOfMonth'];
+
+const strings = (fd: FormData, key: string) =>
+	fd.getAll(key).filter((v): v is string => typeof v === 'string');
+
+const text = (fd: FormData, key: string) => {
+	const v = fd.get(key);
+	return typeof v === 'string' ? v : '';
+};
+
+/**
+ * Existing rules: only rules the form showed (`shown`) and the user left unchecked are archived.
+ * A rule created after the form loaded is not in `shown`, so it stays active. `active` holds only
+ * the user's own active rules, so unknown or foreign posted ids are ignored.
+ */
+function existingRuleChoices(fd: FormData, active: SetupContext['active']) {
+	const keep = new Set(strings(fd, 'keep'));
+	const shown = new Set(strings(fd, 'shown'));
+	return {
+		archiveIds: active.filter((r) => shown.has(r.id) && !keep.has(r.id)).map((r) => r.id),
+		keptRules: active.filter((r) => keep.has(r.id))
+	};
+}
+
+/** Detected candidates the user accepted, re-derived on the server. */
+function acceptedCandidates(fd: FormData, candidates: SetupContext['candidates']): RecurringRow[] {
+	const accepted = new Set(strings(fd, 'candidate'));
+	return candidates
+		.filter((c) => accepted.has(c.key))
+		.map(({ type, description, amount, accountId, categoryId, dayOfMonth }) => ({
+			type,
+			description,
+			amount,
+			accountId,
+			categoryId,
+			dayOfMonth
+		}));
+}
+
+/** Rows typed in the wizard, validated like the recurring form; blank descriptions are ignored. */
+function typedRules(
+	fd: FormData,
+	ctx: SetupContext,
+	currency: Currency
+): { rules: RecurringRow[] } | { error: StepError } {
+	const columns = NEW_ROW_FIELDS.map((f) => strings(fd, `new_${f}`));
+	const [types, descriptions] = columns;
+	const rules: RecurringRow[] = [];
+	for (let i = 0; i < descriptions.length; i++) {
+		const label = descriptions[i]?.trim();
+		if (!label) continue;
+		const row = new FormData();
+		NEW_ROW_FIELDS.forEach((f, j) => row.set(f, columns[j][i] ?? ''));
+		const step = types[i] === 'income' ? PLAN_STEP.income : PLAN_STEP.bills;
+		const reject = (message: string) => ({ error: { step, message } });
+
+		const parsed = parseRecurringForm(row);
+		if (!parsed.ok) return reject(`Revisá “${label}”: ${Object.values(parsed.errors)[0]}`);
+		const { data } = parsed;
+		if (!ctx.accounts.some((a) => a.id === data.accountId))
+			return reject(`Elegí una cuenta en ${currency} para “${data.description}”.`);
+		if (!ctx.categories.some((c) => c.id === data.categoryId))
+			return reject(`Elegí una categoría para “${data.description}”.`);
+		if (!isWholeFor(data.amount, currency))
+			return reject(`Revisá “${data.description}”: ${ARS_WHOLE_MESSAGE}`);
+		rules.push(data);
+	}
+	return { rules };
+}
+
+/**
+ * An optional amount field: empty is 0; otherwise a non-negative amount (whole pesos in ARS).
+ * `label` names the field in the whole-pesos message; `invalid` is the message for anything else.
+ */
+function optionalAmount(
+	raw: string,
+	currency: Currency,
+	{ label, invalid }: { label: string; invalid: string }
+): { cents: number } | { message: string } {
+	const t = raw.trim();
+	if (t === '') return { cents: 0 };
+	const cents = parseAmount(t);
+	if (cents === null || cents < 0) return { message: invalid };
+	if (!isWholeFor(cents, currency)) return { message: `Revisá “${label}”: ${ARS_WHOLE_MESSAGE}` };
+	return { cents };
+}
+
+/** Every non-empty limit_<uuid> field, kept as sent; the ownership check is inside the transaction. */
+function parseLimits(
+	fd: FormData,
+	ctx: SetupContext,
+	currency: Currency
+): { limits: { categoryId: string; amount: number }[] } | { error: StepError } {
+	const reject = (message: string) => ({ error: { step: PLAN_STEP.summary, message } });
+	const byCategory = new Map<string, number>();
+	for (const [key, value] of fd.entries()) {
+		const m = LIMIT_KEY.exec(key);
+		if (!m || typeof value !== 'string' || value.trim() === '') continue;
+		const id = m[1].toLowerCase();
+		if (!isUuid(id)) return reject('Elegí una categoría válida para cada límite.');
+		const name = ctx.categories.find((c) => c.id === id)?.name ?? 'esa categoría';
+		const cents = parseAmount(value);
+		if (cents === null || cents <= 0) return reject(`Ingresá un límite válido para ${name}.`);
+		if (!isWholeFor(cents, currency))
+			return reject(`Revisá el límite de ${name}: ${ARS_WHOLE_MESSAGE}`);
+		byCategory.set(id, cents);
+	}
+	return { limits: [...byCategory].map(([categoryId, amount]) => ({ categoryId, amount })) };
+}
 
 export const actions: Actions = {
 	save: async ({ locals, cookies, request }) => {
@@ -128,117 +243,52 @@ export const actions: Actions = {
 		const currency = singleCurrency(cookies.get('currency'));
 		const ym = currentMonth(new Date());
 		const fd = await request.formData();
-		const ctx = await context(userId, currency, ym);
-		const error = (step: number, message: string) => fail(400, { step, message });
-		const strings = (k: string) => fd.getAll(k).filter((v): v is string => typeof v === 'string');
+		const ctx = await setupContext(userId, currency, ym);
+		const reject = (e: StepError) => fail(400, e);
 
-		// Existing rules: only rules the form showed (`shown`) and the user left unchecked are archived.
-		// A rule created after the form loaded is not in `shown`, so it stays active. `ctx.active` holds
-		// only the user's own active rules, so unknown or foreign posted ids are ignored.
-		const keep = new Set(strings('keep'));
-		const shown = new Set(strings('shown'));
-		const archiveIds = ctx.active
-			.filter((r) => shown.has(r.id) && !keep.has(r.id))
-			.map((r) => r.id);
-		const keptRules = ctx.active.filter((r) => keep.has(r.id));
+		const { archiveIds, keptRules } = existingRuleChoices(fd, ctx.active);
+		const typed = typedRules(fd, ctx, currency);
+		if ('error' in typed) return reject(typed.error);
+		const newRules = [...acceptedCandidates(fd, ctx.candidates), ...typed.rules];
 
-		// Detected candidates the user accepted, re-derived on the server.
-		const accepted = new Set(strings('candidate'));
-		const newRules: RecurringRow[] = ctx.candidates
-			.filter((c) => accepted.has(c.key))
-			.map(({ type, description, amount, accountId, categoryId, dayOfMonth }) => ({
-				type,
-				description,
-				amount,
-				accountId,
-				categoryId,
-				dayOfMonth
-			}));
-
-		// Rows typed in the wizard: parallel arrays, blank descriptions are ignored.
-		const cols = ['type', 'description', 'amount', 'accountId', 'categoryId', 'dayOfMonth'];
-		const rows = cols.map((c) => strings(`new_${c}`));
-		for (let i = 0; i < rows[1].length; i++) {
-			if (!rows[1][i]?.trim()) continue;
-			const row = new FormData();
-			cols.forEach((c, j) => row.set(c, rows[j][i] ?? ''));
-			const step = rows[0][i] === 'income' ? PLAN_STEP.income : PLAN_STEP.bills;
-			const parsed = parseRecurringForm(row);
-			if (!parsed.ok)
-				return error(step, `Revisá “${rows[1][i].trim()}”: ${Object.values(parsed.errors)[0]}`);
-			if (!ctx.accounts.some((a) => a.id === parsed.data.accountId))
-				return error(step, `Elegí una cuenta en ${currency} para “${parsed.data.description}”.`);
-			if (!ctx.categories.some((c) => c.id === parsed.data.categoryId))
-				return error(step, `Elegí una categoría para “${parsed.data.description}”.`);
-			if (!isWholeFor(parsed.data.amount, currency))
-				return error(step, `Revisá “${parsed.data.description}”: ${ARS_WHOLE_MESSAGE}`);
-			newRules.push(parsed.data);
-		}
-
-		/** Empty is 0; otherwise a non-negative amount (whole pesos in ARS). */
-		const money = (raw: string): { ok: true; cents: number } | { ok: false; whole: boolean } => {
-			const t = raw.trim();
-			if (t === '') return { ok: true, cents: 0 };
-			const cents = parseAmount(t);
-			if (cents === null || cents < 0) return { ok: false, whole: false };
-			return isWholeFor(cents, currency) ? { ok: true, cents } : { ok: false, whole: true };
-		};
-		const text = (k: string) => (typeof fd.get(k) === 'string' ? (fd.get(k) as string) : '');
-
-		const extra = money(text('extraIncome'));
-		if (!extra.ok)
-			return error(
-				PLAN_STEP.income,
-				extra.whole
-					? `Revisá “Otros ingresos”: ${ARS_WHOLE_MESSAGE}`
-					: 'Ingresá un monto válido en “Otros ingresos”.'
-			);
+		const extra = optionalAmount(text(fd, 'extraIncome'), currency, {
+			label: 'Otros ingresos',
+			invalid: 'Ingresá un monto válido en “Otros ingresos”.'
+		});
+		if ('message' in extra) return reject({ step: PLAN_STEP.income, message: extra.message });
 		const extraIncome = extra.cents;
 
 		const income =
 			[...keptRules, ...newRules]
 				.filter((r) => r.type === 'income')
 				.reduce((a, r) => a + r.amount, 0) + extraIncome;
-		const option = text('savingsOption') || '0';
-		const fixed = money(text('savingsFixed'));
-		if (option === 'fixed' && !fixed.ok)
-			return error(
-				PLAN_STEP.savings,
-				fixed.whole
-					? `Revisá “Monto a ahorrar”: ${ARS_WHOLE_MESSAGE}`
-					: 'Ingresá un monto de ahorro válido.'
-			);
-		const savings = savingsFor(option, income, fixed.ok ? fixed.cents : null);
-
-		// Every limit_<uuid> key is kept as sent; the ownership check is inside the transaction.
-		const limitMap = new Map<string, number>();
-		for (const [key, value] of fd.entries()) {
-			const m = LIMIT_KEY.exec(key);
-			if (!m || typeof value !== 'string' || value.trim() === '') continue;
-			const id = m[1].toLowerCase();
-			if (!isUuid(id))
-				return error(PLAN_STEP.summary, 'Elegí una categoría válida para cada límite.');
-			const name = ctx.categories.find((c) => c.id === id)?.name ?? 'esa categoría';
-			const cents = parseAmount(value);
-			if (cents === null || cents <= 0)
-				return error(PLAN_STEP.summary, `Ingresá un límite válido para ${name}.`);
-			if (!isWholeFor(cents, currency))
-				return error(PLAN_STEP.summary, `Revisá el límite de ${name}: ${ARS_WHOLE_MESSAGE}`);
-			limitMap.set(id, cents);
+		const option = text(fd, 'savingsOption') || '0';
+		// The fixed amount is only read (and validated) when it is the chosen option.
+		let fixed: number | null = null;
+		if (option === 'fixed') {
+			const r = optionalAmount(text(fd, 'savingsFixed'), currency, {
+				label: 'Monto a ahorrar',
+				invalid: 'Ingresá un monto de ahorro válido.'
+			});
+			if ('message' in r) return reject({ step: PLAN_STEP.savings, message: r.message });
+			fixed = r.cents;
 		}
-		const limits = [...limitMap].map(([categoryId, amount]) => ({ categoryId, amount }));
+		const savings = savingsFor(option, income, fixed);
+
+		const parsedLimits = parseLimits(fd, ctx, currency);
+		if ('error' in parsedLimits) return reject(parsedLimits.error);
 
 		try {
 			await savePlan(userId, currency, {
 				extraIncome,
 				savings,
 				month: fd.get('repeat') === 'on' ? null : ym,
-				limits,
+				limits: parsedLimits.limits,
 				newRules,
 				archiveIds
 			});
 		} catch (e) {
-			if (e instanceof PlanRejected) return error(e.step, e.message);
+			if (e instanceof PlanRejected) return reject({ step: e.step, message: e.message });
 			throw e;
 		}
 		redirect(303, '/plan?planSaved=1');
