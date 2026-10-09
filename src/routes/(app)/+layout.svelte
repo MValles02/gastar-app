@@ -36,6 +36,6 @@
 	}
 
 	.content.with-bar {
-		padding-bottom: calc(110px + env(safe-area-inset-bottom));
+		padding-bottom: calc(var(--tabbar-clearance) + 1rem);
 	}
 </style>
