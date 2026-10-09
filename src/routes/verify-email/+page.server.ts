@@ -1,7 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { APIError } from 'better-auth/api';
-import { auth } from '$lib/server/auth';
-import { isBlocked, record } from '$lib/server/rate-limit';
+import { resendVerification } from '$lib/server/auth-forms';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals, url }) => {
@@ -17,14 +15,7 @@ export const actions: Actions = {
 		const email = String((await request.formData()).get('email') ?? '').trim();
 		if (!email) return fail(400, { emailError: 'Ingresá tu email.' });
 
-		if (!isBlocked('resend', ip)) {
-			record('resend', ip);
-			try {
-				await auth.api.sendVerificationEmail({ body: { email, callbackURL: '/verify-email' } });
-			} catch (err) {
-				if (!(err instanceof APIError)) throw err;
-			}
-		}
+		await resendVerification(email, ip);
 		return { checkEmail: email };
 	}
 };

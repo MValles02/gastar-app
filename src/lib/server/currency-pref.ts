@@ -1,5 +1,8 @@
 import type { Currency } from '$lib/money';
 
+/** Cookie holding the user's single-currency preference (read with `singleCurrency`). */
+export const CURRENCY_COOKIE = 'currency';
+
 /** The stored preference as a currency: anything but `USD` (including an unknown cookie value) is ARS. */
 export function singleCurrency(raw: string | null | undefined): Currency {
 	return raw === 'USD' ? 'USD' : 'ARS';

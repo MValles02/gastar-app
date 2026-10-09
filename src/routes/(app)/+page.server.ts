@@ -9,9 +9,11 @@ import {
 } from '$lib/server/dashboard-queries';
 import { monthNet, toRecentItem, topCategories, totalBalance } from '$lib/server/dashboard';
 import { singleCurrency } from '$lib/server/currency-pref';
-import { currentMonth, dateLabel, monthLabel, monthRange } from '$lib/server/month';
+import { currentMonth, dateLabel, monthRange } from '$lib/server/month';
 import { categorySwatches } from '$lib/server/alerts';
 import { planView } from '$lib/server/plan-view';
+
+type TopCategory = ReturnType<typeof topCategories>[number] & { color: SwatchKey | null };
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const userId = locals.user!.id;
@@ -24,12 +26,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const hasAnyAccount = summary.some((s) => s.count > 0);
 	const row = summary.find((s) => s.currency === currency);
 	const hasCurrencyAccount = (row?.count ?? 0) > 0;
-	const base = {
-		currency,
-		hasAnyAccount,
-		hasCurrencyAccount,
-		month: { label: monthLabel(value, false) }
-	};
+	const base = { currency, hasAnyAccount, hasCurrencyAccount };
 
 	if (!hasCurrencyAccount) {
 		return {
@@ -37,9 +34,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 			balance: 0,
 			monthNet: 0,
 			plan: null,
-			topCategories: [] as (ReturnType<typeof topCategories>[number] & {
-				color: SwatchKey | null;
-			})[],
+			topCategories: [] as TopCategory[],
 			recent: []
 		};
 	}
@@ -64,7 +59,6 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		balance: totalBalance(row?.initial ?? 0, allSums, inSum[0]?.amount ?? 0),
 		monthNet: monthNet(monthSums),
 		plan: {
-			monthName: plan.monthName,
 			endedMonthName: plan.endedMonthName,
 			statusLabel: plan.statusLabel,
 			summary: plan.summary && {

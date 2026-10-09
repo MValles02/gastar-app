@@ -1,7 +1,11 @@
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 
-export type OutboxEntry = { id: number; to: string; subject: string; link: string };
+type OutboxEntry = { id: number; to: string; subject: string; link: string };
+
+const RESEND_API_URL = 'https://api.resend.com/emails';
+const SEND_TIMEOUT_MS = 10_000;
+const SENDER_NAME = 'Gastar';
 
 const OUTBOX_MAX = 20;
 let nextId = 1;
@@ -30,17 +34,17 @@ export async function sendEmail(msg: {
 		return;
 	}
 	try {
-		const res = await fetch('https://api.resend.com/emails', {
+		const res = await fetch(RESEND_API_URL, {
 			method: 'POST',
 			headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
 			body: JSON.stringify({
-				from: `Gastar <${env.EMAIL_FROM}>`,
+				from: `${SENDER_NAME} <${env.EMAIL_FROM}>`,
 				to: [msg.to],
 				subject: msg.subject,
 				text: msg.text,
 				html: msg.html
 			}),
-			signal: AbortSignal.timeout(10_000)
+			signal: AbortSignal.timeout(SEND_TIMEOUT_MS)
 		});
 		if (!res.ok) console.error(`email send failed: ${res.status}`);
 	} catch {

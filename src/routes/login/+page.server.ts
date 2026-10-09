@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
 import { auth } from '$lib/server/auth';
+import { resendAction, VERIFY_EMAIL_PATH } from '$lib/server/auth-forms';
 import { isBlocked, record } from '$lib/server/rate-limit';
 import type { Actions } from './$types';
 
@@ -27,7 +28,7 @@ export const actions: Actions = {
 
 		try {
 			await auth.api.signInEmail({
-				body: { email, password, callbackURL: '/verify-email' },
+				body: { email, password, callbackURL: VERIFY_EMAIL_PATH },
 				headers: request.headers
 			});
 		} catch (err) {
@@ -43,20 +44,5 @@ export const actions: Actions = {
 		redirect(303, '/');
 	},
 
-	// Always reports success so it cannot be used to probe which emails exist.
-	resend: async ({ request, getClientAddress }) => {
-		const ip = getClientAddress();
-		const email = (await request.formData()).get('email');
-		if (typeof email !== 'string' || !email) return fail(400, { email: '' });
-
-		if (!isBlocked('resend', ip)) {
-			record('resend', ip);
-			try {
-				await auth.api.sendVerificationEmail({ body: { email, callbackURL: '/verify-email' } });
-			} catch (err) {
-				if (!(err instanceof APIError)) throw err;
-			}
-		}
-		return { checkEmail: email };
-	}
+	resend: resendAction
 };

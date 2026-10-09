@@ -15,6 +15,7 @@ if (process.env.NODE_ENV === 'production') {
 	console.error('Refusing to seed: NODE_ENV=production');
 	process.exit(1);
 }
+const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1', '[::1]'];
 let hostname;
 try {
 	hostname = new URL(databaseUrl).hostname;
@@ -22,7 +23,7 @@ try {
 	console.error('Refusing to seed: DATABASE_URL is not a valid URL');
 	process.exit(1);
 }
-if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(hostname)) {
+if (!LOCAL_HOSTS.includes(hostname)) {
 	console.error(`Refusing to seed: DATABASE_URL host "${hostname}" is not local`);
 	process.exit(1);
 }
@@ -271,23 +272,25 @@ const cols = [
 	'recurring_id'
 ];
 
+// Removes a seeded user and everything they own, children before parents.
+async function deleteUserData(tx, id) {
+	await tx`delete from movements where user_id = ${id}`;
+	await tx`delete from spending_plans where user_id = ${id}`;
+	await tx`delete from recurring_movements where user_id = ${id}`;
+	await tx`delete from categories where user_id = ${id}`;
+	await tx`delete from financial_accounts where owner_id = ${id}`;
+	await tx`delete from session where user_id = ${id}`;
+	await tx`delete from "account" where user_id = ${id}`;
+	await tx`delete from "user" where id = ${id}`;
+}
+
 const sql = postgres(databaseUrl, { max: 1 });
 
 try {
 	const passwordHash = await hashPassword(password);
 	await sql.begin(async (tx) => {
 		const [existing] = await tx`select id from "user" where email = ${email}`;
-		if (existing) {
-			const id = existing.id;
-			await tx`delete from movements where user_id = ${id}`;
-			await tx`delete from spending_plans where user_id = ${id}`;
-			await tx`delete from recurring_movements where user_id = ${id}`;
-			await tx`delete from categories where user_id = ${id}`;
-			await tx`delete from financial_accounts where owner_id = ${id}`;
-			await tx`delete from session where user_id = ${id}`;
-			await tx`delete from "account" where user_id = ${id}`;
-			await tx`delete from "user" where id = ${id}`;
-		}
+		if (existing) await deleteUserData(tx, existing.id);
 		await tx`
 			insert into "user" (id, name, email, email_verified, created_at, updated_at)
 			values (${userId}, 'Demo', ${email}, true, now(), now())
@@ -355,17 +358,7 @@ try {
 		// Second user with USD data of its own, for the cross-user (foreign id) e2e tests.
 		const otherEmail = 'otro@gastar.local';
 		const [other] = await tx`select id from "user" where email = ${otherEmail}`;
-		if (other) {
-			const id = other.id;
-			await tx`delete from movements where user_id = ${id}`;
-			await tx`delete from spending_plans where user_id = ${id}`;
-			await tx`delete from recurring_movements where user_id = ${id}`;
-			await tx`delete from categories where user_id = ${id}`;
-			await tx`delete from financial_accounts where owner_id = ${id}`;
-			await tx`delete from session where user_id = ${id}`;
-			await tx`delete from "account" where user_id = ${id}`;
-			await tx`delete from "user" where id = ${id}`;
-		}
+		if (other) await deleteUserData(tx, other.id);
 		const otherId = randomUUID();
 		const otherAccountId = randomUUID();
 		const otherCategoryId = randomUUID();

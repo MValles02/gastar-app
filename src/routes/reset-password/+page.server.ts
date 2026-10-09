@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
 import { auth } from '$lib/server/auth';
+import { isValidPasswordLength } from '$lib/server/auth-forms';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ url }) => {
@@ -15,7 +16,7 @@ export const actions: Actions = {
 		const password = String(data.get('password') ?? '');
 
 		if (!token) return fail(400, { expired: true });
-		if (password.length < 8 || password.length > 128) {
+		if (!isValidPasswordLength(password)) {
 			return fail(400, { passwordError: 'Mínimo 8 caracteres.' });
 		}
 

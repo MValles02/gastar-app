@@ -16,7 +16,8 @@
 	// Spending is negated so Money shows it as an outcome (red); zero stays neutral.
 	const neg = (c: number) => (c === 0 ? 0 : -c);
 	// Past 11 characters ("$ 12.345.678") the hero steps down so it never wraps or truncates.
-	const heroSmall = (c: number) => formatMoney(c, data.currency).length > 11;
+	const HERO_MAX_CHARS = 11;
+	const heroSmall = (c: number) => formatMoney(c, data.currency).length > HERO_MAX_CHARS;
 	const SLICE_COLORS = [
 		'var(--swatch-green)',
 		'var(--swatch-orange)',

@@ -6,14 +6,10 @@ type Session = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
 // for information about these interfaces
 declare global {
 	namespace App {
-		// interface Error {}
 		interface Locals {
 			user: Session['user'] | null;
 			session: Session['session'] | null;
 		}
-		// interface PageData {}
-		// interface PageState {}
-		// interface Platform {}
 	}
 }
 
