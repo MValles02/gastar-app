@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { singleCurrency } from '$lib/server/currency-pref';
+import { hasAccountsIn } from '$lib/server/dashboard';
 import { accountSummary, categorySums } from '$lib/server/dashboard-queries';
 import {
 	currentMonth,
@@ -36,8 +37,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	};
 
 	const summary = await accountSummary(userId);
-	if (!summary.some((s) => s.currency === currency && s.count > 0))
-		return { currency, nav, hasCurrency: false as const };
+	if (!hasAccountsIn(summary, currency)) return { currency, nav, hasCurrency: false as const };
 
 	const months = lastMonths(ym, FLOW_MONTHS);
 	const range = monthRange(ym);

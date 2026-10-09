@@ -2,6 +2,7 @@ import { and, inArray } from 'drizzle-orm';
 import { toSwatchKey, type SwatchKey } from '../appearance';
 import { CURRENCIES, formatMoney, type Currency } from '../money';
 import { canAccessCategory } from './access';
+import { hasAccountsIn } from './dashboard';
 import { accountSummary } from './dashboard-queries';
 import { db } from './db';
 import { categories } from './db/schema';
@@ -56,7 +57,7 @@ export async function alerts(userId: string, now = new Date()) {
 		paidRecurring(userId, monthRange(ym))
 	]);
 	const paidIds = new Set(paid.map((p) => p.recurringId));
-	const currencies = CURRENCIES.filter((c) => summary.some((s) => s.currency === c && s.count > 0));
+	const currencies = CURRENCIES.filter((c) => hasAccountsIn(summary, c));
 
 	return Promise.all(
 		currencies.map(async (currency: Currency) => {

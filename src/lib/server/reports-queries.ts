@@ -1,33 +1,25 @@
 import type { Currency } from '$lib/money';
-import { and, desc, eq, gte, lt, or, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
 import { canAccessCategory, canAccessMovement } from './access';
+import { inRange, isIncomeOrOutcome, sumOfType, type Range } from './dashboard-queries';
 import { TZ } from './month';
-
-type Range = { start: Date; end: Date };
 
 // sql.raw: a bound parameter would make SELECT and GROUP BY expressions differ.
 const localMonth = sql<string>`to_char(${movements.occurredAt} at time zone ${sql.raw(`'${TZ}'`)}, 'YYYY-MM')`;
 
-const inRange = (range: Range) =>
-	and(gte(movements.occurredAt, range.start), lt(movements.occurredAt, range.end));
-
 /** Per local month income and outcome in one currency; transfers never count. */
 export function monthlyFlows(userId: string, cur: Currency, range: Range) {
-	const sumOf = (t: 'income' | 'outcome') =>
-		sql<number>`coalesce(sum(${movements.amount}) filter (where ${movements.type} = ${t}), 0)`.mapWith(
-			Number
-		);
 	return db
-		.select({ month: localMonth, income: sumOf('income'), outcome: sumOf('outcome') })
+		.select({ month: localMonth, income: sumOfType('income'), outcome: sumOfType('outcome') })
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
 		.where(
 			and(
 				canAccessMovement(userId),
 				eq(financialAccounts.currency, cur),
-				or(eq(movements.type, 'income'), eq(movements.type, 'outcome')),
+				isIncomeOrOutcome,
 				inRange(range)
 			)
 		)

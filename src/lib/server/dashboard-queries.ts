@@ -5,7 +5,7 @@ import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
 import { canAccessAccount, canAccessCategory, canAccessMovement } from './access';
 
-type Range = { start: Date; end: Date };
+export type Range = { start: Date; end: Date };
 
 /** Movements listed under "Movimientos" on the home screen. */
 const RECENT_LIMIT = 10;
@@ -13,10 +13,19 @@ const RECENT_LIMIT = 10;
 const dest = alias(financialAccounts, 'dest');
 const total = (col: unknown) => sql<number>`coalesce(sum(${col}), 0)`.mapWith(Number);
 
-const inRange = (range?: Range) =>
+export const inRange = (range?: Range) =>
 	range
 		? and(gte(movements.occurredAt, range.start), lt(movements.occurredAt, range.end))
 		: undefined;
+
+/** Income and outcome only: transfers never count as spending or earning. */
+export const isIncomeOrOutcome = or(eq(movements.type, 'income'), eq(movements.type, 'outcome'));
+
+/** Sum of movement amounts of one type within the group (0 when none). */
+export const sumOfType = (type: 'income' | 'outcome') =>
+	sql<number>`coalesce(sum(${movements.amount}) filter (where ${movements.type} = ${type}), 0)`.mapWith(
+		Number
+	);
 
 // No archived filter: archived accounts still count toward the total balance.
 export function accountSummary(userId: string) {
@@ -54,14 +63,8 @@ export function categorySums(userId: string, cur: Currency, range: Range) {
 		.select({
 			id: categories.id,
 			name: categories.name,
-			outcome:
-				sql<number>`coalesce(sum(${movements.amount}) filter (where ${movements.type} = 'outcome'), 0)`.mapWith(
-					Number
-				),
-			income:
-				sql<number>`coalesce(sum(${movements.amount}) filter (where ${movements.type} = 'income'), 0)`.mapWith(
-					Number
-				)
+			outcome: sumOfType('outcome'),
+			income: sumOfType('income')
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
@@ -70,7 +73,7 @@ export function categorySums(userId: string, cur: Currency, range: Range) {
 			and(
 				canAccessMovement(userId),
 				eq(financialAccounts.currency, cur),
-				or(eq(movements.type, 'income'), eq(movements.type, 'outcome')),
+				isIncomeOrOutcome,
 				inRange(range)
 			)
 		)

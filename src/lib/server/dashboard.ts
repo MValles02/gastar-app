@@ -3,6 +3,12 @@ import type { Currency } from '$lib/money';
 export type MovementType = 'income' | 'outcome' | 'transfer';
 export type TypeSum = { type: MovementType; amount: number };
 
+/** Whether the user has any account (archived included) in `currency`, from accountSummary rows. */
+export const hasAccountsIn = (
+	summary: { currency: Currency; count: number }[],
+	currency: Currency
+): boolean => summary.some((s) => s.currency === currency && s.count > 0);
+
 const sumOf = (sums: TypeSum[], type: MovementType) =>
 	sums.filter((s) => s.type === type).reduce((a, s) => a + s.amount, 0);
 
