@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { pgErrorCode } from '$lib/server/db/errors';
+import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
 import { dev } from '$app/environment';
 import type { Actions, PageServerLoad } from './$types';
 import { toIconKey, toSwatchKey } from '$lib/appearance';
@@ -138,7 +138,7 @@ export const actions: Actions = {
 			}
 		} catch (e) {
 			const code = pgErrorCode(e);
-			if (code === '23503')
+			if (code === PG_FOREIGN_KEY_VIOLATION)
 				return fail(400, { values, errors: { accountId: UNAVAILABLE_MESSAGE } });
 			throw e;
 		}

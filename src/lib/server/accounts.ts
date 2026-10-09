@@ -1,6 +1,7 @@
 import { AMOUNT_EXAMPLE, ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '../money';
 import { ACCOUNT_ICONS, SWATCHES } from '../appearance';
-import { totalBalance, type Currency, type MovementType } from './dashboard';
+import type { Currency } from '$lib/money';
+import { totalBalance, type MovementType } from './dashboard';
 
 export const CURRENCY_LOCKED_MESSAGE =
 	'No podés cambiar la moneda porque la cuenta tiene movimientos.';

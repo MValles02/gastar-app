@@ -1,3 +1,4 @@
+import type { Currency } from '$lib/money';
 import type { MovementType } from './dashboard';
 import { AMOUNT_EXAMPLE, parseAmount } from '../money';
 import { isUuid } from './db/util';
@@ -86,7 +87,7 @@ export type PlanInput = {
 };
 
 /** All inputs must be in `currency`; nothing here converts or sums across currencies. */
-export function planSummary(p: PlanInput & { currency: 'ARS' | 'USD' }) {
+export function planSummary(p: PlanInput & { currency: Currency }) {
 	const income = p.recurringIncome + p.extraIncome;
 	const forSpending = income - p.bills - p.savings;
 	const available = forSpending - p.spent;

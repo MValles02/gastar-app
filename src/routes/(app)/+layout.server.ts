@@ -1,8 +1,9 @@
 import { alerts } from '$lib/server/alerts';
+import { LOCALE } from '$lib/locale';
 import { TZ } from '$lib/server/month';
 import type { LayoutServerLoad } from './$types';
 
-const dayFmt = new Intl.DateTimeFormat('es-AR', {
+const dayFmt = new Intl.DateTimeFormat(LOCALE, {
 	weekday: 'long',
 	day: 'numeric',
 	month: 'long',

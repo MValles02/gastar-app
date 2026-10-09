@@ -2,7 +2,7 @@ import { and, inArray } from 'drizzle-orm';
 import { toSwatchKey, type SwatchKey } from '../appearance';
 import { formatMoney } from '../money';
 import { canAccessCategory } from './access';
-import type { Currency } from './dashboard';
+import type { Currency } from '$lib/money';
 import { accountSummary } from './dashboard-queries';
 import { db } from './db';
 import { categories } from './db/schema';

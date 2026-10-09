@@ -4,7 +4,7 @@ import { ARS_WHOLE_MESSAGE, formatAmountInput, isWholeFor, parseAmount } from '$
 import { listAccounts } from '$lib/server/accounts-queries';
 import { listCategories } from '$lib/server/categories-queries';
 import { singleCurrency } from '$lib/server/currency-pref';
-import type { Currency } from '$lib/server/dashboard';
+import type { Currency } from '$lib/money';
 import { isUuid } from '$lib/server/db/util';
 import { currentMonth, monthLabel } from '$lib/server/month';
 import {

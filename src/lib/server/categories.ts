@@ -1,5 +1,5 @@
 import { SWATCHES } from '../appearance';
-import type { Currency } from './dashboard';
+import type { Currency } from '$lib/money';
 
 export const DUPLICATE_NAME_MESSAGE = 'Ya tenés una categoría con ese nombre.';
 export const DELETE_REFERENCED_MESSAGE = 'Esta categoría tiene movimientos. Podés archivarla.';

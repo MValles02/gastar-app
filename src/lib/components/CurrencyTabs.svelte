@@ -1,11 +1,12 @@
 <script lang="ts">
+	import type { Currency } from '$lib/money';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import SegmentedControl from './SegmentedControl.svelte';
 
 	/** ARS | USD radiogroup saved in the `currency` cookie. */
-	let { value }: { value: 'ARS' | 'USD' } = $props();
+	let { value }: { value: Currency } = $props();
 
 	let selected = $derived(value as string);
 	let form: HTMLFormElement;

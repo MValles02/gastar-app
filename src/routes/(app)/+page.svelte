@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { LOCALE } from '$lib/locale';
 	import { resolve } from '$app/paths';
 	import Check from '@lucide/svelte/icons/check';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
@@ -16,7 +17,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const percent = new Intl.NumberFormat('es-AR', { style: 'percent' });
+	const percent = new Intl.NumberFormat(LOCALE, { style: 'percent' });
 	const currencyName = { ARS: 'pesos', USD: 'dólares' } as const;
 	const statusIcon = { ok: Check, warn: Clock, over: CircleAlert } as const;
 

@@ -18,7 +18,7 @@ import {
 	planOwnedBy,
 	recurringOwnedBy
 } from './access';
-import type { Currency } from './dashboard';
+import type { Currency } from '$lib/money';
 import { TZ } from './month';
 import type { MovementRow } from './movements';
 

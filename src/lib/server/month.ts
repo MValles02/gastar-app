@@ -1,3 +1,5 @@
+import { LOCALE } from '$lib/locale';
+
 export const TZ = 'America/Argentina/Buenos_Aires';
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -58,7 +60,7 @@ export function monthRange(ym: string): { start: Date; end: Date } {
 
 export function monthLabel(ym: string, withYear = true): string {
 	const [y, m] = ym.split('-').map(Number);
-	const s = new Intl.DateTimeFormat('es-AR', {
+	const s = new Intl.DateTimeFormat(LOCALE, {
 		month: 'long',
 		...(withYear ? { year: 'numeric' } : {}),
 		timeZone: 'UTC'
@@ -73,7 +75,7 @@ export function shortMonth(ym: string): string {
 }
 
 export function dateLabel(d: Date): string {
-	return new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', timeZone: TZ }).format(
+	return new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short', timeZone: TZ }).format(
 		d
 	);
 }
@@ -105,7 +107,7 @@ export function dayHeading(ymd: string, todayYmd: string): string {
 	const at = (s: string) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), 12);
 	if (at(todayYmd) - at(ymd) === 86_400_000) return 'Ayer';
 	const sameYear = ymd.slice(0, 4) === todayYmd.slice(0, 4);
-	const s = new Intl.DateTimeFormat('es-AR', {
+	const s = new Intl.DateTimeFormat(LOCALE, {
 		weekday: 'long',
 		day: 'numeric',
 		month: 'long',
@@ -118,5 +120,5 @@ export function dayHeading(ymd: string, todayYmd: string): string {
 }
 
 export function fullDateLabel(d: Date): string {
-	return new Intl.DateTimeFormat('es-AR', { dateStyle: 'full', timeZone: TZ }).format(d);
+	return new Intl.DateTimeFormat(LOCALE, { dateStyle: 'full', timeZone: TZ }).format(d);
 }

@@ -1,5 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { pgErrorCode } from '$lib/server/db/errors';
+import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
 import { accountActions } from '$lib/server/accounts';
 import { isUuid } from '$lib/server/db/util';
@@ -65,7 +65,7 @@ export const actions: Actions = {
 			rows = await deleteCategory(userId, params.id);
 		} catch (e) {
 			const code = pgErrorCode(e);
-			if (code === '23503') return fail(409, { error: DELETE_REFERENCED_MESSAGE });
+			if (code === PG_FOREIGN_KEY_VIOLATION) return fail(409, { error: DELETE_REFERENCED_MESSAGE });
 			throw e;
 		}
 		if (rows.length === 0) notFound();

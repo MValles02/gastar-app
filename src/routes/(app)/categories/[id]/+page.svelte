@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Currency } from '$lib/money';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { SWATCHES, toSwatchKey } from '$lib/appearance';
@@ -21,7 +22,7 @@
 </script>
 
 <!-- Net spend (outcomes - incomes) as a cash flow: spend in red, net income in green. -->
-{#snippet flow(net: number, currency: 'ARS' | 'USD')}
+{#snippet flow(net: number, currency: Currency)}
 	<Money cents={-net} {currency} kind={net < 0 ? 'income' : 'plain'} />
 {/snippet}
 

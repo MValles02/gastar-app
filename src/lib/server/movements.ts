@@ -6,7 +6,8 @@ import {
 	parseAmount
 } from '../money';
 import { isUuid } from './db/util';
-import type { Currency, MovementType } from './dashboard';
+import { CURRENCIES, type Currency } from '$lib/money';
+import type { MovementType } from './dashboard';
 import { dayStart } from './month';
 
 export type MovementData = {
@@ -187,7 +188,6 @@ export function resolveMovement(
 }
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
-const CURRENCIES: Currency[] = ['ARS', 'USD'];
 
 export type MovementFilterQuery = {
 	q: string;

@@ -1,7 +1,7 @@
-export const CURRENCY_PREFS = ['ARS', 'USD'] as const;
+import type { Currency } from '$lib/money';
 
 /** The stored preference as a currency: anything but `USD` (including an unknown cookie value) is ARS. */
-export function singleCurrency(raw: string | null | undefined): 'ARS' | 'USD' {
+export function singleCurrency(raw: string | null | undefined): Currency {
 	return raw === 'USD' ? 'USD' : 'ARS';
 }
 

@@ -1,4 +1,5 @@
-export type Currency = 'ARS' | 'USD';
+import type { Currency } from '$lib/money';
+
 export type MovementType = 'income' | 'outcome' | 'transfer';
 export type TypeSum = { type: MovementType; amount: number };
 

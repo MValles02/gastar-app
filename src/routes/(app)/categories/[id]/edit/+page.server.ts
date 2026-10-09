@@ -1,5 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { pgErrorCode } from '$lib/server/db/errors';
+import { PG_UNIQUE_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
 import { isUuid } from '$lib/server/db/util';
 import { DUPLICATE_NAME_MESSAGE, parseCategoryForm } from '$lib/server/categories';
@@ -35,7 +35,7 @@ export const actions: Actions = {
 			rows = await updateCategory(userId, params.id, parsed.data);
 		} catch (e) {
 			const code = pgErrorCode(e);
-			if (code === '23505') return duplicate();
+			if (code === PG_UNIQUE_VIOLATION) return duplicate();
 			throw e;
 		}
 		if (rows.length === 0) notFound();

@@ -1,8 +1,13 @@
+import { LOCALE } from './locale';
+
+export const CURRENCIES = ['ARS', 'USD'] as const;
+export type Currency = (typeof CURRENCIES)[number];
+
 const NBSP = '\u00A0';
-const intFmt = new Intl.NumberFormat('es-AR');
+const intFmt = new Intl.NumberFormat(LOCALE);
 
 /** Unsigned display ("$ 1.234", "US$ 1.234,56"): direction is shown by colour, never by a sign. */
-export function formatMoney(cents: number, currency: 'ARS' | 'USD'): string {
+export function formatMoney(cents: number, currency: Currency): string {
 	// ARS is shown in whole pesos (rounded half up on the magnitude); only USD shows cents.
 	const abs = currency === 'ARS' ? Math.round(Math.abs(cents) / 100) * 100 : Math.abs(cents);
 	const int = intFmt.format(Math.trunc(abs / 100));
@@ -15,7 +20,7 @@ export const ARS_WHOLE_MESSAGE = 'Los montos en pesos van sin decimales.';
 export const AMOUNT_EXAMPLE = '(ej.: 1.234 en pesos o 1.234,56 en dólares)';
 
 /** ARS amounts (and exchange rates, which are in ARS) are whole pesos; USD may have cents. */
-export const isWholeFor = (cents: number, currency: 'ARS' | 'USD') =>
+export const isWholeFor = (cents: number, currency: Currency) =>
 	currency === 'USD' || cents % 100 === 0;
 
 const AMOUNT_RE = /^(-?)(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}))?$/;
@@ -34,7 +39,7 @@ export function parseAmount(input: string): number | null {
  * Cents to an editable string without grouping: "-1234" (whole ARS) or "-1234,56". Never rounds,
  * so editing shows the exact stored value; round-trips with parseAmount.
  */
-export function formatAmountInput(cents: number, currency: 'ARS' | 'USD'): string {
+export function formatAmountInput(cents: number, currency: Currency): string {
 	const abs = Math.abs(cents);
 	const dec = currency === 'ARS' && abs % 100 === 0 ? '' : `,${String(abs % 100).padStart(2, '0')}`;
 	return `${cents < 0 ? '-' : ''}${Math.trunc(abs / 100)}${dec}`;
@@ -48,8 +53,8 @@ export function formatAmountInput(cents: number, currency: 'ARS' | 'USD'): strin
 export function convertAmount(
 	amount: number,
 	rate: number,
-	from: 'ARS' | 'USD',
-	to: 'ARS' | 'USD'
+	from: Currency,
+	to: Currency
 ): number | null {
 	if (from === to) return amount;
 	const a = BigInt(amount);

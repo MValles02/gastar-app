@@ -1,3 +1,4 @@
+import type { Currency } from '$lib/money';
 import { and, asc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 import { db } from './db';
 import { financialAccounts, movements } from './db/schema';
@@ -11,7 +12,7 @@ const total = (col: unknown) => sql<number>`coalesce(sum(${col}), 0)`.mapWith(Nu
 
 export function listAccounts(
 	userId: string,
-	opts: { q?: string; currency?: 'ARS' | 'USD'; archived?: boolean } = {}
+	opts: { q?: string; currency?: Currency; archived?: boolean } = {}
 ) {
 	return db
 		.select()
@@ -82,7 +83,7 @@ export function accountReferenced(userId: string, id: string) {
 		.limit(1);
 }
 
-export function createAccount(userId: string, data: AccountData & { currency: 'ARS' | 'USD' }) {
+export function createAccount(userId: string, data: AccountData & { currency: Currency }) {
 	return db
 		.insert(financialAccounts)
 		.values({ ...data, ...ownedBy(userId) })

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Currency } from '$lib/money';
 	import { formatMoney } from '$lib/money';
 
 	/**
@@ -12,7 +13,7 @@
 		kind = 'plain'
 	}: {
 		cents: number;
-		currency: 'ARS' | 'USD';
+		currency: Currency;
 		kind?: 'income' | 'outcome' | 'transfer' | 'plain';
 	} = $props();
 

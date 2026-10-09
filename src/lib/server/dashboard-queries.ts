@@ -1,10 +1,10 @@
+import type { Currency } from '$lib/money';
 import { and, desc, eq, gte, lt, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
 import { canAccessAccount, canAccessCategory, canAccessMovement } from './access';
 
-type Currency = 'ARS' | 'USD';
 type Range = { start: Date; end: Date };
 
 const dest = alias(financialAccounts, 'dest');
