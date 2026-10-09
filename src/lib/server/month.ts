@@ -4,6 +4,7 @@ export const TZ = 'America/Argentina/Buenos_Aires';
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const DAY_RE = /^(\d{4}-(?:0[1-9]|1[0-2]))-\d{2}$/;
+const DAY_MS = 86_400_000;
 
 export function currentMonth(now: Date): string {
 	const parts = new Intl.DateTimeFormat('en-CA', {
@@ -105,7 +106,7 @@ export function localDay(d: Date): string {
 export function dayHeading(ymd: string, todayYmd: string): string {
 	if (ymd === todayYmd) return 'Hoy';
 	const at = (s: string) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), 12);
-	if (at(todayYmd) - at(ymd) === 86_400_000) return 'Ayer';
+	if (at(todayYmd) - at(ymd) === DAY_MS) return 'Ayer';
 	const sameYear = ymd.slice(0, 4) === todayYmd.slice(0, 4);
 	const s = new Intl.DateTimeFormat(LOCALE, {
 		weekday: 'long',

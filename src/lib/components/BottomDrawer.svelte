@@ -61,7 +61,7 @@
 		width: 2.5rem;
 		height: 0.25rem;
 		margin: var(--space-2) auto 0;
-		border-radius: 999px;
+		border-radius: var(--radius-pill);
 		background: var(--border);
 	}
 
@@ -92,7 +92,7 @@
 		margin-inline-end: calc(var(--space-2) * -1);
 		padding: 0;
 		border: 0;
-		border-radius: 999px;
+		border-radius: var(--radius-pill);
 		background: transparent;
 		color: var(--text);
 		cursor: pointer;
