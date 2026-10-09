@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import XIcon from '@lucide/svelte/icons/x';
+	import { Drawer as DrawerPrimitive } from 'vaul-svelte';
 	import * as Drawer from '$lib/components/ui/drawer/index.js';
 
 	let {
@@ -11,10 +12,11 @@
 	}: { title: string; open?: boolean; onclose?: () => void; children: Snippet } = $props();
 </script>
 
+<!-- Primitive Portal/Overlay/Content: the generated Drawer.Content adds its own portal and overlay. -->
 <Drawer.Root bind:open shouldScaleBackground={false} onClose={() => onclose?.()}>
-	<Drawer.Portal>
-		<Drawer.Overlay class="bd-overlay" />
-		<Drawer.Content class="bd-content">
+	<DrawerPrimitive.Portal>
+		<DrawerPrimitive.Overlay class="bd-overlay" />
+		<DrawerPrimitive.Content class="bd-content">
 			<div class="bd-handle" aria-hidden="true"></div>
 			<Drawer.Header class="bd-header">
 				<Drawer.Title class="bd-title">{title}</Drawer.Title>
@@ -25,8 +27,8 @@
 			<div class="bd-body">
 				{@render children()}
 			</div>
-		</Drawer.Content>
-	</Drawer.Portal>
+		</DrawerPrimitive.Content>
+	</DrawerPrimitive.Portal>
 </Drawer.Root>
 
 <style>
@@ -36,6 +38,8 @@
 		inset: 0;
 		z-index: 50;
 		background: var(--scrim);
+		-webkit-backdrop-filter: blur(4px);
+		backdrop-filter: blur(4px);
 	}
 
 	:global(.bd-content) {
@@ -51,6 +55,8 @@
 		margin-inline: auto;
 		background: var(--surface-raised);
 		color: var(--text);
+		font-size: var(--font-size-sm);
+		line-height: 1.43;
 		border: 0;
 		border-radius: var(--radius-card) var(--radius-card) 0 0;
 		box-shadow: var(--shadow-2);
