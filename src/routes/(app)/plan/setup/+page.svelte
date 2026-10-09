@@ -241,7 +241,7 @@
 	{#if form?.message}<p class="message" role="alert">{form.message}</p>{/if}
 
 	<section class="step" hidden={js && step !== 1} aria-labelledby="s1">
-		<p class="eyebrow">Paso 1 de 4</p>
+		<p class="eyebrow">Paso 1 de {STEPS.length}</p>
 		<h2 id="s1" tabindex="-1">¿Cuánto cobrás por mes en {data.currency}?</h2>
 		{@render fixedStep('income')}
 		<Field label="Otros ingresos del mes (opcional)">
@@ -257,7 +257,7 @@
 	</section>
 
 	<section class="step" hidden={js && step !== 2} aria-labelledby="s2">
-		<p class="eyebrow">Paso 2 de 4</p>
+		<p class="eyebrow">Paso 2 de {STEPS.length}</p>
 		<h2 id="s2" tabindex="-1">¿Qué pagos fijos tenés?</h2>
 		{@render fixedStep('outcome')}
 		<p class="total">
@@ -266,7 +266,7 @@
 	</section>
 
 	<section class="step" hidden={js && step !== 3} aria-labelledby="s3">
-		<p class="eyebrow">Paso 3 de 4</p>
+		<p class="eyebrow">Paso 3 de {STEPS.length}</p>
 		<h2 id="s3" tabindex="-1">¿Cuánto querés ahorrar?</h2>
 		<p class="muted small">Lo apartamos antes de calcular cuánto podés gastar.</p>
 		<SegmentedControl
@@ -290,7 +290,7 @@
 	</section>
 
 	<section class="step" hidden={js && step !== 4} aria-labelledby="s4">
-		<p class="eyebrow">Paso 4 de 4</p>
+		<p class="eyebrow">Paso 4 de {STEPS.length}</p>
 		<h2 id="s4" tabindex="-1">Tu plan para {data.monthName}</h2>
 		<dl class="list-card equation">
 			<div>
@@ -361,7 +361,7 @@
 			{#if js && step > 1}
 				<Button type="button" variant="secondary" onclick={() => go(step - 1)}>Atrás</Button>
 			{/if}
-			{#if !js || step === 4}
+			{#if !js || step === STEPS.length}
 				<Button type="submit">Guardar plan</Button>
 			{:else}
 				<Button type="button" onclick={() => go(step + 1)}>Siguiente</Button>

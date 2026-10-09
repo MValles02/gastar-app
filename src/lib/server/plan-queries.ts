@@ -21,6 +21,7 @@ import {
 import type { Currency } from '$lib/money';
 import { TZ } from './month';
 import type { MovementRow } from './movements';
+import { HISTORY_MONTHS, PLAN_STEP } from './plan';
 
 type Range = { start: Date; end: Date };
 
@@ -139,7 +140,7 @@ export function deleteRecurring(userId: string, id: string) {
 }
 
 /**
- * Unlinked incomes/outcomes that happened in each of the 3 months of `range` with the same
+ * Unlinked incomes/outcomes that happened in each of the `HISTORY_MONTHS` months of `range` with the same
  * description, account and category: likely recurring, suggested when setting up a plan.
  */
 export function recurringCandidates(userId: string, cur: Currency, range: Range) {
@@ -174,7 +175,7 @@ export function recurringCandidates(userId: string, cur: Currency, range: Range)
 			movements.accountId,
 			movements.categoryId
 		)
-		.having(sql`count(distinct ${localMonth}) >= 3`);
+		.having(sql`count(distinct ${localMonth}) >= ${HISTORY_MONTHS}`);
 }
 
 // --- Spending plans ---
@@ -291,7 +292,10 @@ export function savePlan(userId: string, cur: Currency, v: PlanSave) {
 					)
 			]);
 			if (accountRows.length !== accountIds.length || categoryRows.length !== categoryIds.length)
-				throw new PlanRejected(1, 'Elegí una cuenta y una categoría válidas para cada fila.');
+				throw new PlanRejected(
+					PLAN_STEP.income,
+					'Elegí una cuenta y una categoría válidas para cada fila.'
+				);
 			await tx
 				.insert(recurringMovements)
 				.values(v.newRules.map((r) => ({ ...r, ...recurringOwnedBy(userId) })));
@@ -323,7 +327,7 @@ export function savePlan(userId: string, cur: Currency, v: PlanSave) {
 					and(inArray(categories.id, ids), canAccessCategory(userId), isNull(categories.archivedAt))
 				);
 			if (owned.length !== ids.length)
-				throw new PlanRejected(4, 'Elegí una categoría válida para cada límite.');
+				throw new PlanRejected(PLAN_STEP.summary, 'Elegí una categoría válida para cada límite.');
 			await tx.insert(planCategoryLimits).values(v.limits.map((l) => ({ ...l, planId: plan.id })));
 		}
 		return plan.id;

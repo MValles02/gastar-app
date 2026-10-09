@@ -8,9 +8,13 @@ import type { Currency } from '$lib/money';
 import { isUuid } from '$lib/server/db/util';
 import { currentMonth, monthLabel } from '$lib/server/month';
 import {
+	DESCRIPTION_MAX,
+	HISTORY_MONTHS,
 	isRecurringActive,
 	lastFullMonths,
+	MAX_DAY_OF_MONTH,
 	parseRecurringForm,
+	PLAN_STEP,
 	planSpent,
 	savingsFor
 } from '$lib/server/plan';
@@ -36,6 +40,10 @@ const candidateKey = (c: {
 /** Integer cents rounded half up to whole units (pesos or dollars). */
 const wholeUnits = (cents: number) => Math.floor((cents + 50) / 100) * 100;
 
+/** Monthly average of a `HISTORY_MONTHS` total, rounded half up to whole units (integer math). */
+const monthlyAverage = (total: number) =>
+	Math.floor((total + 50 * HISTORY_MONTHS) / (100 * HISTORY_MONTHS)) * 100;
+
 async function context(userId: string, cur: Currency, ym: string) {
 	const [accountRows, categories, rules, rawCandidates] = await Promise.all([
 		listAccounts(userId, { currency: cur }),
@@ -50,10 +58,10 @@ async function context(userId: string, cur: Currency, ym: string) {
 		.map((c) => ({
 			key: candidateKey(c),
 			type: c.type as 'income' | 'outcome',
-			description: c.description.slice(0, 60),
+			description: c.description.slice(0, DESCRIPTION_MAX),
 			// Averages are not always whole; ARS rules are whole pesos.
 			amount: cur === 'ARS' ? wholeUnits(c.amount) : c.amount,
-			dayOfMonth: Math.min(Math.max(c.dayOfMonth, 1), 31),
+			dayOfMonth: Math.min(Math.max(c.dayOfMonth, 1), MAX_DAY_OF_MONTH),
 			accountId: c.accountId,
 			categoryId: c.categoryId!,
 			accountName: accountRows.find((a) => a.id === c.accountId)?.name ?? '',
@@ -75,7 +83,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		monthOutcomes(userId, currency, lastFullMonths(ym))
 	]);
 	const limits = plan ? await planLimits(userId, plan.id) : [];
-	// Suggested limit: 3-month average of spending outside active rules, in whole units (integer math).
+	// Suggested limit: monthly average of spending outside active rules.
 	const spent = planSpent(rows, new Set(ctx.active.map((r) => r.id)));
 
 	return {
@@ -85,7 +93,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		categories: ctx.categories.map((c) => ({
 			id: c.id,
 			name: c.name,
-			suggested: Math.floor(((spent.byCategory.get(c.id) ?? 0) + 150) / 300) * 100,
+			suggested: monthlyAverage(spent.byCategory.get(c.id) ?? 0),
 			limit: limits.find((l) => l.categoryId === c.id)?.amount ?? null
 		})),
 		rules: ctx.active.map((r) => ({
@@ -154,7 +162,7 @@ export const actions: Actions = {
 			if (!rows[1][i]?.trim()) continue;
 			const row = new FormData();
 			cols.forEach((c, j) => row.set(c, rows[j][i] ?? ''));
-			const step = rows[0][i] === 'income' ? 1 : 2;
+			const step = rows[0][i] === 'income' ? PLAN_STEP.income : PLAN_STEP.bills;
 			const parsed = parseRecurringForm(row);
 			if (!parsed.ok)
 				return error(step, `Revisá “${rows[1][i].trim()}”: ${Object.values(parsed.errors)[0]}`);
@@ -180,7 +188,7 @@ export const actions: Actions = {
 		const extra = money(text('extraIncome'));
 		if (!extra.ok)
 			return error(
-				1,
+				PLAN_STEP.income,
 				extra.whole
 					? `Revisá “Otros ingresos”: ${ARS_WHOLE_MESSAGE}`
 					: 'Ingresá un monto válido en “Otros ingresos”.'
@@ -195,7 +203,7 @@ export const actions: Actions = {
 		const fixed = money(text('savingsFixed'));
 		if (option === 'fixed' && !fixed.ok)
 			return error(
-				3,
+				PLAN_STEP.savings,
 				fixed.whole
 					? `Revisá “Monto a ahorrar”: ${ARS_WHOLE_MESSAGE}`
 					: 'Ingresá un monto de ahorro válido.'
@@ -208,12 +216,14 @@ export const actions: Actions = {
 			const m = LIMIT_KEY.exec(key);
 			if (!m || typeof value !== 'string' || value.trim() === '') continue;
 			const id = m[1].toLowerCase();
-			if (!isUuid(id)) return error(4, 'Elegí una categoría válida para cada límite.');
+			if (!isUuid(id))
+				return error(PLAN_STEP.summary, 'Elegí una categoría válida para cada límite.');
 			const name = ctx.categories.find((c) => c.id === id)?.name ?? 'esa categoría';
 			const cents = parseAmount(value);
-			if (cents === null || cents <= 0) return error(4, `Ingresá un límite válido para ${name}.`);
+			if (cents === null || cents <= 0)
+				return error(PLAN_STEP.summary, `Ingresá un límite válido para ${name}.`);
 			if (!isWholeFor(cents, currency))
-				return error(4, `Revisá el límite de ${name}: ${ARS_WHOLE_MESSAGE}`);
+				return error(PLAN_STEP.summary, `Revisá el límite de ${name}: ${ARS_WHOLE_MESSAGE}`);
 			limitMap.set(id, cents);
 		}
 		const limits = [...limitMap].map(([categoryId, amount]) => ({ categoryId, amount }));
