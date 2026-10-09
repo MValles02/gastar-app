@@ -2,11 +2,12 @@ import {
 	AMOUNT_EXAMPLE,
 	ARS_WHOLE_MESSAGE,
 	convertAmount,
+	CURRENCIES,
+	type Currency,
 	isWholeFor,
 	parseAmount
-} from '../money';
+} from '$lib/money';
 import { isUuid } from './db/util';
-import { CURRENCIES, type Currency } from '$lib/money';
 import type { MovementType } from './dashboard';
 import { dayStart } from './month';
 
@@ -20,15 +21,17 @@ export type MovementData = {
 	categoryId: string | null;
 	exchangeRate: number | null;
 };
-type MovementField =
-	| 'type'
-	| 'occurredAt'
-	| 'description'
-	| 'amount'
-	| 'accountId'
-	| 'destinationAccountId'
-	| 'categoryId'
-	| 'exchangeRate';
+const FIELDS = [
+	'type',
+	'occurredAt',
+	'description',
+	'amount',
+	'accountId',
+	'destinationAccountId',
+	'categoryId',
+	'exchangeRate'
+] as const;
+type MovementField = (typeof FIELDS)[number];
 type MovementFormErrors = Partial<Record<MovementField, string>>;
 type MovementFormResult =
 	| { ok: true; values: Record<string, string>; data: MovementData }
@@ -48,6 +51,10 @@ const MIN_DAY = '2000-01-01';
 const QUERY_MAX_LENGTH = DESCRIPTION_MAX_LENGTH;
 const MAX_PAGE = 10000;
 
+const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
+// Year 9999 is rejected so the day after `to` is always representable.
+const validDay = (s: string) => YMD_RE.test(s) && s < '9999' && dayStart(s) !== null;
+
 const MSG = {
 	type: 'Elegí un tipo de movimiento.',
 	date: 'Ingresá una fecha válida.',
@@ -64,17 +71,6 @@ const MSG = {
 	category: 'Elegí una categoría.',
 	archivedCategory: 'Esa categoría está archivada. Elegí otra.'
 };
-
-const FIELDS: MovementField[] = [
-	'type',
-	'occurredAt',
-	'description',
-	'amount',
-	'accountId',
-	'destinationAccountId',
-	'categoryId',
-	'exchangeRate'
-];
 
 const TYPES: MovementType[] = ['income', 'outcome', 'transfer'];
 
@@ -191,8 +187,6 @@ export function resolveMovement(
 	};
 }
 
-const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
-
 export type MovementFilterQuery = {
 	q: string;
 	from: string;
@@ -202,9 +196,6 @@ export type MovementFilterQuery = {
 	category: string;
 	currency: Currency | '';
 };
-
-// Year 9999 is rejected so the day after `to` is always representable.
-const validDay = (s: string) => YMD_RE.test(s) && s < '9999' && dayStart(s) !== null;
 
 /** Pure: normalises URL search params; any invalid value becomes empty/default. */
 export function parseMovementFilters(sp: URLSearchParams) {

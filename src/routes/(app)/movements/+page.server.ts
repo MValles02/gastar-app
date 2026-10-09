@@ -20,8 +20,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		listCategories(userId, { archived: true })
 	]);
 
-	const now = new Date();
-	const today = localDay(now);
+	const today = localDay(new Date());
 	const lockedCurrency: Currency | null = query.account
 		? (accountRows.find((a) => a.id === query.account)?.currency ?? null)
 		: null;
