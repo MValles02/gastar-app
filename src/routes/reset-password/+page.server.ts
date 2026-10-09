@@ -1,0 +1,31 @@
+import { fail, redirect } from '@sveltejs/kit';
+import { APIError } from 'better-auth/api';
+import { auth } from '$lib/server/auth';
+import type { Actions, PageServerLoad } from './$types';
+
+export const load: PageServerLoad = ({ url }) => {
+	const token = url.searchParams.get('token');
+	return { token: token ?? '', expired: !token || url.searchParams.has('error') };
+};
+
+export const actions: Actions = {
+	reset: async ({ request }) => {
+		const data = await request.formData();
+		const token = String(data.get('token') ?? '');
+		const password = String(data.get('password') ?? '');
+
+		if (!token) return fail(400, { expired: true });
+		if (password.length < 8 || password.length > 128) {
+			return fail(400, { passwordError: 'Mínimo 8 caracteres.' });
+		}
+
+		try {
+			await auth.api.resetPassword({ body: { newPassword: password, token } });
+		} catch (err) {
+			if (!(err instanceof APIError)) throw err;
+			// Invalid, expired or already used token.
+			return fail(400, { expired: true });
+		}
+		redirect(303, '/login?reset=1');
+	}
+};

@@ -8,7 +8,16 @@ import { themeColors } from '$lib/theme';
 
 if (!building && process.env.NODE_ENV === 'production') checkEnv(env);
 
-const PUBLIC_PATHS = ['/login', '/health', '/csp-report'];
+const PUBLIC_PATHS = [
+	'/login',
+	'/signup',
+	'/forgot-password',
+	'/reset-password',
+	'/verify-email',
+	'/health',
+	'/csp-report',
+	'/dev/outbox'
+];
 
 function isPublic(pathname: string): boolean {
 	return PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/api/auth/');
@@ -45,7 +54,7 @@ const handleRequest: Handle = async ({ event, resolve }) => {
 	event.locals.user = session?.user ?? null;
 	event.locals.session = session?.session ?? null;
 
-	if (event.locals.user && event.url.pathname === '/login') {
+	if (event.locals.user && ['/login', '/signup', '/forgot-password'].includes(event.url.pathname)) {
 		redirect(303, '/');
 	}
 

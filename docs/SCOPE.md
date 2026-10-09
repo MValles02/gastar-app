@@ -25,10 +25,10 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ## Auth
 
-- Email + password only. No public signup — invite-only.
+- Email + password only. Public sign-up; email verification is required before sign-in.
 - Single user at launch; family/friends may be added later (small scale).
 - Phone OTP: future, not MVP.
-- Password reset: manual admin action (no email provider configured yet).
+- Password reset: by emailed link (sent through Resend).
 - Every user's data is isolated from every other user's.
 - Shared accounts between users: **future**. The data model must leave this door open (see DATA_MODEL.md).
 

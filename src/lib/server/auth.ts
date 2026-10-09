@@ -3,12 +3,47 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { getRequestEvent } from '$app/server';
 import { env } from '$env/dynamic/private';
+import { existingAccount, resetPassword, verifyEmail } from './auth-emails';
 import { db } from './db';
+import { sendEmail } from './email';
 import * as schema from './db/schema';
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, { provider: 'pg', schema }),
-	emailAndPassword: { enabled: true, disableSignUp: true },
+	emailAndPassword: {
+		enabled: true,
+		requireEmailVerification: true,
+		minPasswordLength: 8,
+		maxPasswordLength: 128,
+		resetPasswordTokenExpiresIn: 3600,
+		revokeSessionsOnPasswordReset: true,
+		sendResetPassword: async ({ user, url }) => {
+			// Not awaited on purpose: awaiting the send would make known emails slower than
+			// unknown ones (timing side-channel). sendEmail never throws.
+			void sendEmail({ to: user.email, link: url, ...resetPassword(user.name, url) });
+		},
+		onExistingUserSignUp: async ({ user }) => {
+			const origin = new URL(env.BETTER_AUTH_URL ?? 'http://localhost:5173').origin;
+			const login = `${origin}/login`;
+			const forgot = `${origin}/forgot-password`;
+			// Not awaited: same timing side-channel reason as sendResetPassword.
+			void sendEmail({
+				to: user.email,
+				link: login,
+				...existingAccount(user.name, login, forgot)
+			});
+		}
+	},
+	emailVerification: {
+		sendOnSignUp: true,
+		sendOnSignIn: true,
+		autoSignInAfterVerification: true,
+		expiresIn: 86400,
+		sendVerificationEmail: async ({ user, url }) => {
+			await sendEmail({ to: user.email, link: url, ...verifyEmail(user.name, url) });
+		}
+	},
+	logger: { level: 'warn' },
 	secret: env.BETTER_AUTH_SECRET,
 	baseURL: env.BETTER_AUTH_URL,
 	advanced: { ipAddress: { ipAddressHeaders: ['cf-connecting-ip'] } },
@@ -18,7 +53,13 @@ export const auth = betterAuth({
 		storage: 'memory',
 		window: 60,
 		max: 100,
-		customRules: { '/sign-in/email': { window: 60, max: 5 } }
+		customRules: {
+			'/sign-in/email': { window: 60, max: 5 },
+			'/send-verification-email': { window: 900, max: 3 },
+			'/request-password-reset': { window: 900, max: 3 },
+			'/sign-up/email': { window: 3600, max: 10 },
+			'/verify-email': { window: 60, max: 10 }
+		}
 	},
 	plugins: [sveltekitCookies(getRequestEvent)]
 });

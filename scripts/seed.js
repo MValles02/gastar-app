@@ -290,7 +290,7 @@ try {
 		}
 		await tx`
 			insert into "user" (id, name, email, email_verified, created_at, updated_at)
-			values (${userId}, 'Demo', ${email}, false, now(), now())
+			values (${userId}, 'Demo', ${email}, true, now(), now())
 		`;
 		await tx`
 			insert into "account" (id, account_id, provider_id, user_id, password, created_at, updated_at)
@@ -371,7 +371,7 @@ try {
 		const otherCategoryId = randomUUID();
 		await tx`
 			insert into "user" (id, name, email, email_verified, created_at, updated_at)
-			values (${otherId}, 'Otro', ${otherEmail}, false, now(), now())
+			values (${otherId}, 'Otro', ${otherEmail}, true, now(), now())
 		`;
 		await tx`
 			insert into "account" (id, account_id, provider_id, user_id, password, created_at, updated_at)

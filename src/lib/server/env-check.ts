@@ -3,7 +3,9 @@ const REQUIRED = [
 	'BETTER_AUTH_URL',
 	'DATABASE_URL',
 	'ORIGIN',
-	'ADDRESS_HEADER'
+	'ADDRESS_HEADER',
+	'RESEND_API_KEY',
+	'EMAIL_FROM'
 ];
 
 /** Throws listing the names (never values) of missing or invalid env vars. */
