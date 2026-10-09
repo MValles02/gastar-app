@@ -7,7 +7,7 @@ import {
 	type AccountFormErrors
 } from '$lib/server/accounts';
 import { isUuid } from '$lib/server/db/util';
-import { accountReferenced, getAccount, updateAccount } from '$lib/server/accounts-queries';
+import { getAccount, isAccountReferenced, updateAccount } from '$lib/server/accounts-queries';
 import { ARS_WHOLE_MESSAGE, formatAmountInput, isWholeFor } from '$lib/money';
 
 const notFound = () => error(404, 'Cuenta no encontrada.');
@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!isUuid(params.id)) notFound();
 	const [account] = await getAccount(userId, params.id);
 	if (!account) notFound();
-	const referenced = (await accountReferenced(userId, account.id)).length > 0;
+	const referenced = await isAccountReferenced(userId, account.id);
 	return {
 		id: account.id,
 		name: account.name,
@@ -49,7 +49,7 @@ export const actions: Actions = {
 			return failWith({ initialBalance: ARS_WHOLE_MESSAGE });
 
 		if (parsed.data.currency) {
-			const referenced = (await accountReferenced(userId, account.id)).length > 0;
+			const referenced = await isAccountReferenced(userId, account.id);
 			if (!currencyChangeAllowed(account.currency, parsed.data.currency, referenced))
 				return lockedFail();
 		}

@@ -5,10 +5,10 @@ import { DELETE_REFERENCED_MESSAGE, accountActions, withBalances } from '$lib/se
 import { isUuid } from '$lib/server/db/util';
 import {
 	accountOriginSums,
-	accountReferenced,
 	accountTransfersIn,
 	deleteAccount,
 	getAccount,
+	isAccountReferenced,
 	setArchived
 } from '$lib/server/accounts-queries';
 
@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const [sums, ins, referenced] = await Promise.all([
 		accountOriginSums(userId, account.id),
 		accountTransfersIn(userId, account.id),
-		accountReferenced(userId, account.id)
+		isAccountReferenced(userId, account.id)
 	]);
 	const [{ balance }] = withBalances([account], sums, ins);
 	const { archivedAt, ...rest } = account;
@@ -32,7 +32,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	return {
 		account: { ...rest, archived },
 		balance,
-		actions: accountActions({ referenced: referenced.length > 0, archived })
+		actions: accountActions({ referenced, archived })
 	};
 };
 
@@ -51,14 +51,14 @@ export const actions: Actions = {
 	delete: async ({ locals, params }) => {
 		const userId = locals.user!.id;
 		if (!isUuid(params.id)) notFound();
-		if ((await accountReferenced(userId, params.id)).length > 0)
+		if (await isAccountReferenced(userId, params.id))
 			return fail(409, { error: DELETE_REFERENCED_MESSAGE });
 		let rows;
 		try {
 			rows = await deleteAccount(userId, params.id);
 		} catch (e) {
-			const code = pgErrorCode(e);
-			if (code === PG_FOREIGN_KEY_VIOLATION) return fail(409, { error: DELETE_REFERENCED_MESSAGE });
+			if (pgErrorCode(e) === PG_FOREIGN_KEY_VIOLATION)
+				return fail(409, { error: DELETE_REFERENCED_MESSAGE });
 			throw e;
 		}
 		if (rows.length === 0) notFound();

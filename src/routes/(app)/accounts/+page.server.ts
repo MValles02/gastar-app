@@ -23,9 +23,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		accountTransfersIn(userId)
 	]);
 
-	const withBal = withBalances(accounts, sums, ins);
+	const accountsWithBalance = withBalances(accounts, sums, ins);
 	const groups = CURRENCY_GROUPS.flatMap(([cur, label]) => {
-		const items = withBal.filter((a) => a.currency === cur);
+		const items = accountsWithBalance.filter((a) => a.currency === cur);
 		if (items.length === 0) return [];
 		const total = items.filter((a) => a.archivedAt === null).reduce((s, a) => s + a.balance, 0);
 		return [{ currency: cur, label, total, accounts: items }];

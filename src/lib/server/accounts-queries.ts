@@ -67,8 +67,9 @@ export function accountTransfersIn(userId: string, id?: string) {
 		.groupBy(movements.destinationAccountId);
 }
 
-export function accountReferenced(userId: string, id: string) {
-	return db
+/** Whether any movement uses the account as origin or destination. */
+export async function isAccountReferenced(userId: string, id: string) {
+	const rows = await db
 		.select({ id: movements.id })
 		.from(movements)
 		.innerJoin(
@@ -80,6 +81,7 @@ export function accountReferenced(userId: string, id: string) {
 		)
 		.where(ownedAccount(userId, id))
 		.limit(1);
+	return rows.length > 0;
 }
 
 export function createAccount(userId: string, data: AccountData & { currency: Currency }) {
