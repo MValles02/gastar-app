@@ -13,6 +13,8 @@ import { currentMonth, dateLabel, monthRange } from '$lib/server/month';
 import { categorySwatches } from '$lib/server/alerts';
 import { planView } from '$lib/server/plan-view';
 
+type TopCategory = ReturnType<typeof topCategories>[number] & { color: SwatchKey | null };
+
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const userId = locals.user!.id;
 	const currency = singleCurrency(cookies.get('currency'));
@@ -32,9 +34,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 			balance: 0,
 			monthNet: 0,
 			plan: null,
-			topCategories: [] as (ReturnType<typeof topCategories>[number] & {
-				color: SwatchKey | null;
-			})[],
+			topCategories: [] as TopCategory[],
 			recent: []
 		};
 	}

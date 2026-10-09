@@ -61,7 +61,8 @@ export function toRecentItem(row: RecentRow, currency: Currency) {
 		row.type === 'transfer' && row.accountCurrency !== currency
 			? (row.destinationAmount ?? row.amount)
 			: row.amount;
-	const sign = row.type === 'income' ? 'positive' : row.type === 'outcome' ? 'negative' : 'neutral';
+	const sign: 'positive' | 'negative' | 'neutral' =
+		row.type === 'income' ? 'positive' : row.type === 'outcome' ? 'negative' : 'neutral';
 	return {
 		id: row.id,
 		type: row.type,
@@ -72,6 +73,6 @@ export function toRecentItem(row: RecentRow, currency: Currency) {
 		occurredAt: row.occurredAt,
 		currency,
 		amount: sign === 'negative' ? -raw : raw,
-		sign: sign as 'positive' | 'negative' | 'neutral'
+		sign
 	};
 }
