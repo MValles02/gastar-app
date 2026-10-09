@@ -104,9 +104,9 @@
 	}
 
 	.option:has(input:checked) {
-		background: var(--bg);
+		background: var(--segment-selected);
 		color: var(--text);
-		box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+		box-shadow: var(--shadow-1);
 	}
 
 	.option:has(input:focus-visible) {

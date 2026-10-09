@@ -1,3 +1,4 @@
+import type { SwatchKey } from '$lib/appearance';
 import type { PageServerLoad } from './$types';
 import {
 	accountSummary,
@@ -9,6 +10,7 @@ import {
 import { monthNet, toRecentItem, topCategories, totalBalance } from '$lib/server/dashboard';
 import { singleCurrency } from '$lib/server/currency-pref';
 import { currentMonth, dateLabel, monthLabel, monthRange } from '$lib/server/month';
+import { categorySwatches } from '$lib/server/alerts';
 import { planView } from '$lib/server/plan-view';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
@@ -35,7 +37,9 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 			balance: 0,
 			monthNet: 0,
 			plan: null,
-			topCategories: [] as ReturnType<typeof topCategories>,
+			topCategories: [] as (ReturnType<typeof topCategories>[number] & {
+				color: SwatchKey | null;
+			})[],
 			recent: []
 		};
 	}
@@ -48,6 +52,12 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		recentMovements(userId, currency),
 		planView(userId, currency, now)
 	]);
+
+	const top = topCategories(cats);
+	const swatches = await categorySwatches(
+		userId,
+		top.map((c) => c.id)
+	);
 
 	return {
 		...base,
@@ -64,7 +74,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 				status: plan.summary.status
 			}
 		},
-		topCategories: topCategories(cats),
+		topCategories: top.map((c) => ({ ...c, color: swatches.get(c.id) ?? null })),
 		recent: recent.map((r) => {
 			const { occurredAt, ...item } = toRecentItem(r, currency);
 			return { ...item, dateLabel: dateLabel(occurredAt) };

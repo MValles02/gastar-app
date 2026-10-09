@@ -20,8 +20,8 @@
 
 <ListRow href={resolve(`/movements/${m.id}`)}>
 	{#snippet leading()}
-		<span class="row-icon" aria-hidden="true">
-			{#if m.type === 'transfer'}<Icon name="transfer" size="1.125rem" />{:else}{m.description
+		<span class="lead" aria-hidden="true">
+			{#if m.type === 'transfer'}<Icon name="transfer" size="1.25rem" />{:else}{m.description
 					.charAt(0)
 					.toUpperCase()}{/if}
 		</span>
@@ -32,3 +32,20 @@
 		<span class="row-amount"><Money cents={m.amount} currency={m.currency} kind={m.type} /></span>
 	{/snippet}
 </ListRow>
+
+<style>
+	/* Neutral letter badge: the movement carries no category colour here. */
+	.lead {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.25rem;
+		height: 2.25rem;
+		border-radius: var(--radius-pill);
+		background: var(--muted);
+		color: var(--text);
+		font-size: 0.9375rem;
+		font-weight: 600;
+	}
+</style>
