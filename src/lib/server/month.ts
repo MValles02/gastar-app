@@ -6,14 +6,10 @@ const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const DAY_RE = /^(\d{4}-(?:0[1-9]|1[0-2]))-\d{2}$/;
 const DAY_MS = 86_400_000;
 
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 export function currentMonth(now: Date): string {
-	const parts = new Intl.DateTimeFormat('en-CA', {
-		timeZone: TZ,
-		year: 'numeric',
-		month: '2-digit'
-	}).formatToParts(now);
-	const get = (t: string) => parts.find((p) => p.type === t)!.value;
-	return `${get('year')}-${get('month')}`;
+	return localDay(now).slice(0, 7);
 }
 
 export function parseMonth(raw: string | null, now: Date): string {
@@ -61,12 +57,13 @@ export function monthRange(ym: string): { start: Date; end: Date } {
 
 export function monthLabel(ym: string, withYear = true): string {
 	const [y, m] = ym.split('-').map(Number);
-	const s = new Intl.DateTimeFormat(LOCALE, {
-		month: 'long',
-		...(withYear ? { year: 'numeric' } : {}),
-		timeZone: 'UTC'
-	}).format(new Date(Date.UTC(y, m - 1, 1, 12)));
-	return s.charAt(0).toUpperCase() + s.slice(1);
+	return capitalize(
+		new Intl.DateTimeFormat(LOCALE, {
+			month: 'long',
+			...(withYear ? { year: 'numeric' } : {}),
+			timeZone: 'UTC'
+		}).format(new Date(Date.UTC(y, m - 1, 1, 12)))
+	);
 }
 
 /** "Mayo", "Sep.": full name when short, else 3 letters. */
@@ -108,16 +105,17 @@ export function dayHeading(ymd: string, todayYmd: string): string {
 	const at = (s: string) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), 12);
 	if (at(todayYmd) - at(ymd) === DAY_MS) return 'Ayer';
 	const sameYear = ymd.slice(0, 4) === todayYmd.slice(0, 4);
-	const s = new Intl.DateTimeFormat(LOCALE, {
-		weekday: 'long',
-		day: 'numeric',
-		month: 'long',
-		...(sameYear ? {} : { year: 'numeric' }),
-		timeZone: 'UTC'
-	})
-		.format(new Date(at(ymd)))
-		.replace(',', '');
-	return s.charAt(0).toUpperCase() + s.slice(1);
+	return capitalize(
+		new Intl.DateTimeFormat(LOCALE, {
+			weekday: 'long',
+			day: 'numeric',
+			month: 'long',
+			...(sameYear ? {} : { year: 'numeric' }),
+			timeZone: 'UTC'
+		})
+			.format(new Date(at(ymd)))
+			.replace(',', '')
+	);
 }
 
 export function fullDateLabel(d: Date): string {
