@@ -1,9 +1,10 @@
 import type { PageServerLoad } from './$types';
+import { NAME_MAX_LENGTH } from '$lib/server/categories';
 import { hasAnyCategory, listCategories } from '$lib/server/categories-queries';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = locals.user!.id;
-	const q = (url.searchParams.get('q') ?? '').trim().slice(0, 40);
+	const q = (url.searchParams.get('q') ?? '').trim().slice(0, NAME_MAX_LENGTH);
 	const archived = url.searchParams.get('archived') === '1';
 
 	const [any, categories] = await Promise.all([

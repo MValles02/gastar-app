@@ -3,7 +3,11 @@ import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
 import { accountActions } from '$lib/server/accounts';
 import { isUuid } from '$lib/server/db/util';
-import { DELETE_REFERENCED_MESSAGE, toCurrencyNets } from '$lib/server/categories';
+import {
+	DELETE_REFERENCED_MESSAGE,
+	NOT_FOUND_MESSAGE,
+	toCurrencyNets
+} from '$lib/server/categories';
 import {
 	categoryMonthNet,
 	categoryReferenced,
@@ -13,7 +17,7 @@ import {
 } from '$lib/server/categories-queries';
 import { currentMonth, monthLabel, monthRange, parseMonth, shiftMonth } from '$lib/server/month';
 
-const notFound = () => error(404, 'Categoría no encontrada.');
+const notFound = () => error(404, NOT_FOUND_MESSAGE);
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const userId = locals.user!.id;

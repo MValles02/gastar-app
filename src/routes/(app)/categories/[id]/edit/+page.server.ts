@@ -2,10 +2,14 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { PG_UNIQUE_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
 import { isUuid } from '$lib/server/db/util';
-import { DUPLICATE_NAME_MESSAGE, parseCategoryForm } from '$lib/server/categories';
+import {
+	DUPLICATE_NAME_MESSAGE,
+	NOT_FOUND_MESSAGE,
+	parseCategoryForm
+} from '$lib/server/categories';
 import { categoryNameTaken, getCategory, updateCategory } from '$lib/server/categories-queries';
 
-const notFound = () => error(404, 'Categoría no encontrada.');
+const notFound = () => error(404, NOT_FOUND_MESSAGE);
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!isUuid(params.id)) notFound();
