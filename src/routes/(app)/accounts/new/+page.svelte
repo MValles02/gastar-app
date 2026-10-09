@@ -11,7 +11,7 @@
 	<title>Nueva cuenta · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Nueva cuenta" back={{ href: resolve('/accounts'), label: 'Volver a cuentas' }} />
+<PageHeader title="Nueva cuenta" close={{ href: resolve('/accounts'), label: 'Cerrar' }} />
 
 <AccountForm
 	mode="create"
