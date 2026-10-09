@@ -1,6 +1,8 @@
+import { NAME_MAX_LENGTH } from '$lib/limits';
 import { SWATCHES } from '../appearance';
-import type { Currency } from './dashboard';
+import type { Currency } from '$lib/money';
 
+export const NOT_FOUND_MESSAGE = 'Categoría no encontrada.';
 export const DUPLICATE_NAME_MESSAGE = 'Ya tenés una categoría con ese nombre.';
 export const DELETE_REFERENCED_MESSAGE = 'Esta categoría tiene movimientos. Podés archivarla.';
 
@@ -21,7 +23,8 @@ export function parseCategoryForm(fd: FormData): CategoryFormResult {
 
 	const name = values.name.trim();
 	if (!name) errors.name = 'Ingresá un nombre.';
-	else if (name.length > 40) errors.name = 'El nombre puede tener hasta 40 caracteres.';
+	else if (name.length > NAME_MAX_LENGTH)
+		errors.name = `El nombre puede tener hasta ${NAME_MAX_LENGTH} caracteres.`;
 	if (!SWATCHES.some((s) => s.key === values.color)) errors.color = 'Elegí un color.';
 
 	if (Object.keys(errors).length > 0) return { ok: false, values, errors };

@@ -1,11 +1,14 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
 import { notFoundHelpers } from '$lib/server/not-found';
-import { DUPLICATE_NAME_MESSAGE, parseCategoryForm } from '$lib/server/categories';
-import { categoryNameTaken, getCategory, updateCategory } from '$lib/server/categories-queries';
+import {
+	DUPLICATE_NAME_MESSAGE,
+	NOT_FOUND_MESSAGE,
+	parseCategoryForm
+} from '$lib/server/categories';
+import { getCategory, updateCategory, writeIfNameFree } from '$lib/server/categories-queries';
 
-const { notFound, requireId } = notFoundHelpers('Categoría no encontrada.');
+const { notFound, requireId } = notFoundHelpers(NOT_FOUND_MESSAGE);
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	requireId(params.id);
@@ -23,21 +26,15 @@ export const actions: Actions = {
 		requireId(params.id);
 		const parsed = parseCategoryForm(await request.formData());
 		if (!parsed.ok) return fail(400, { values: parsed.values, errors: parsed.errors });
-		const duplicate = () =>
-			fail(400, { values: parsed.data, errors: { name: DUPLICATE_NAME_MESSAGE } });
 
 		if ((await getCategory(userId, params.id)).length === 0) notFound();
-		if ((await categoryNameTaken(userId, parsed.data.name, params.id)).length > 0)
-			return duplicate();
-
-		let rows;
-		try {
-			rows = await updateCategory(userId, params.id, parsed.data);
-		} catch (e) {
-			const code = pgErrorCode(e);
-			if (code === '23505') return duplicate();
-			throw e;
-		}
+		const rows = await writeIfNameFree(
+			userId,
+			parsed.data.name,
+			() => updateCategory(userId, params.id, parsed.data),
+			params.id
+		);
+		if (!rows) return fail(400, { values: parsed.data, errors: { name: DUPLICATE_NAME_MESSAGE } });
 		if (rows.length === 0) notFound();
 		redirect(303, `/categories/${params.id}`);
 	}

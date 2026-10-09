@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
+	import type { Currency } from '$lib/money';
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import Lock from '@lucide/svelte/icons/lock';
 	import { enhance } from '$app/forms';
@@ -33,7 +35,7 @@
 	}: {
 		initial: Record<Fields, string>;
 		errors?: Partial<Record<Fields, string>>;
-		accounts: (Picker & { currency: 'ARS' | 'USD' })[];
+		accounts: (Picker & { currency: Currency })[];
 		categories: Picker[];
 		submitLabel: string;
 		cancelHref: string;
@@ -155,7 +157,7 @@
 				<input
 					name="description"
 					type="text"
-					maxlength="60"
+					maxlength={DESCRIPTION_MAX_LENGTH}
 					required
 					autocomplete="off"
 					placeholder="Agregar"

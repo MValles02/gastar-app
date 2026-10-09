@@ -1,6 +1,13 @@
-export type Currency = 'ARS' | 'USD';
+import type { Currency } from '$lib/money';
+
 export type MovementType = 'income' | 'outcome' | 'transfer';
 export type TypeSum = { type: MovementType; amount: number };
+
+/** Whether the user has any account (archived included) in `currency`, from accountSummary rows. */
+export const hasAccountsIn = (
+	summary: { currency: Currency; count: number }[],
+	currency: Currency
+): boolean => summary.some((s) => s.currency === currency && s.count > 0);
 
 const sumOf = (sums: TypeSum[], type: MovementType) =>
 	sums.filter((s) => s.type === type).reduce((a, s) => a + s.amount, 0);
@@ -20,6 +27,9 @@ export function monthNet(sums: TypeSum[]): number {
 	return sumOf(sums, 'income') - sumOf(sums, 'outcome');
 }
 
+/** How many categories the home screen ranks. */
+const TOP_CATEGORIES = 3;
+
 export function topCategories(
 	rows: { id: string; name: string; outcome: number; income: number }[]
 ): { id: string; name: string; net: number; share: number }[] {
@@ -29,7 +39,7 @@ export function topCategories(
 	const total = positive.reduce((a, r) => a + r.net, 0);
 	return positive
 		.sort((a, b) => b.net - a.net || a.name.localeCompare(b.name))
-		.slice(0, 3)
+		.slice(0, TOP_CATEGORIES)
 		.map((r) => ({ ...r, share: r.net / total }));
 }
 
@@ -51,7 +61,8 @@ export function toRecentItem(row: RecentRow, currency: Currency) {
 		row.type === 'transfer' && row.accountCurrency !== currency
 			? (row.destinationAmount ?? row.amount)
 			: row.amount;
-	const sign = row.type === 'income' ? 'positive' : row.type === 'outcome' ? 'negative' : 'neutral';
+	const sign: 'positive' | 'negative' | 'neutral' =
+		row.type === 'income' ? 'positive' : row.type === 'outcome' ? 'negative' : 'neutral';
 	return {
 		id: row.id,
 		type: row.type,
@@ -62,6 +73,6 @@ export function toRecentItem(row: RecentRow, currency: Currency) {
 		occurredAt: row.occurredAt,
 		currency,
 		amount: sign === 'negative' ? -raw : raw,
-		sign: sign as 'positive' | 'negative' | 'neutral'
+		sign
 	};
 }

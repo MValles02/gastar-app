@@ -13,10 +13,11 @@ const db = drizzle(client);
 
 // Session advisory lock: start-first deploys may run two migrators at once.
 const LOCK_ID = 727274001;
+const MIGRATIONS_FOLDER = './drizzle';
 
 try {
 	await client`SELECT pg_advisory_lock(${LOCK_ID}::bigint)`;
-	await migrate(db, { migrationsFolder: './drizzle' });
+	await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
 	console.log('Migrations applied successfully');
 } catch (err) {
 	console.error('Migration failed:', err);

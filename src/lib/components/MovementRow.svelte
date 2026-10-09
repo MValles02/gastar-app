@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Currency } from '$lib/money';
 	import { resolve } from '$app/paths';
 	import Icon from './Icon.svelte';
 	import ListRow from './ListRow.svelte';
@@ -13,7 +14,7 @@
 			description: string;
 			subtitle: string;
 			amount: number;
-			currency: 'ARS' | 'USD';
+			currency: Currency;
 		};
 	} = $props();
 </script>

@@ -1,3 +1,4 @@
+import type { Currency } from '$lib/money';
 import { and, asc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 import { db } from './db';
 import { financialAccounts, movements } from './db/schema';
@@ -8,10 +9,13 @@ import { escapeLike } from './db/util';
 
 const dest = alias(financialAccounts, 'dest');
 const total = (col: unknown) => sql<number>`coalesce(sum(${col}), 0)`.mapWith(Number);
+const ownedAccount = (userId: string, id: string) =>
+	and(eq(financialAccounts.id, id), canAccessAccount(userId));
+const returningId = { id: financialAccounts.id };
 
 export function listAccounts(
 	userId: string,
-	opts: { q?: string; currency?: 'ARS' | 'USD'; archived?: boolean } = {}
+	opts: { q?: string; currency?: Currency; archived?: boolean } = {}
 ) {
 	return db
 		.select()
@@ -28,11 +32,7 @@ export function listAccounts(
 }
 
 export function getAccount(userId: string, id: string) {
-	return db
-		.select()
-		.from(financialAccounts)
-		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId)))
-		.limit(1);
+	return db.select().from(financialAccounts).where(ownedAccount(userId, id)).limit(1);
 }
 
 export function accountOriginSums(userId: string, id?: string) {
@@ -67,8 +67,9 @@ export function accountTransfersIn(userId: string, id?: string) {
 		.groupBy(movements.destinationAccountId);
 }
 
-export function accountReferenced(userId: string, id: string) {
-	return db
+/** Whether any movement uses the account as origin or destination. */
+export async function isAccountReferenced(userId: string, id: string) {
+	const rows = await db
 		.select({ id: movements.id })
 		.from(movements)
 		.innerJoin(
@@ -78,15 +79,16 @@ export function accountReferenced(userId: string, id: string) {
 				eq(movements.destinationAccountId, financialAccounts.id)
 			)
 		)
-		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId)))
+		.where(ownedAccount(userId, id))
 		.limit(1);
+	return rows.length > 0;
 }
 
-export function createAccount(userId: string, data: AccountData & { currency: 'ARS' | 'USD' }) {
+export function createAccount(userId: string, data: AccountData & { currency: Currency }) {
 	return db
 		.insert(financialAccounts)
 		.values({ ...data, ...ownedBy(userId) })
-		.returning({ id: financialAccounts.id });
+		.returning(returningId);
 }
 
 /**
@@ -104,21 +106,18 @@ export function updateAccount(userId: string, id: string, data: AccountData) {
 	return db
 		.update(financialAccounts)
 		.set(data)
-		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId), lock))
-		.returning({ id: financialAccounts.id });
+		.where(and(ownedAccount(userId, id), lock))
+		.returning(returningId);
 }
 
 export function deleteAccount(userId: string, id: string) {
-	return db
-		.delete(financialAccounts)
-		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId)))
-		.returning({ id: financialAccounts.id });
+	return db.delete(financialAccounts).where(ownedAccount(userId, id)).returning(returningId);
 }
 
 export function setArchived(userId: string, id: string, at: Date | null) {
 	return db
 		.update(financialAccounts)
 		.set({ archivedAt: at })
-		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId)))
-		.returning({ id: financialAccounts.id });
+		.where(ownedAccount(userId, id))
+		.returning(returningId);
 }

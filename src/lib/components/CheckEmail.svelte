@@ -3,18 +3,18 @@
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import Button from '$lib/components/Button.svelte';
-	import Icon from '$lib/components/Icon.svelte';
+	import StatusMessage from '$lib/components/StatusMessage.svelte';
 
 	// Shared "Revisá tu email" state. The page that renders it must have a `resend` action.
 	let { email }: { email: string } = $props();
 
-	const COOLDOWN = 60;
+	const COOLDOWN_SECONDS = 60;
 	// Starts at 0 so without JS the button stays usable; the countdown only exists with JS.
 	let seconds = $state(0);
 	let sent = $state(false);
 
 	onMount(() => {
-		seconds = COOLDOWN;
+		seconds = COOLDOWN_SECONDS;
 		const timer = setInterval(() => {
 			if (seconds > 0) seconds--;
 		}, 1000);
@@ -24,9 +24,7 @@
 	const clock = $derived(`${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`);
 </script>
 
-<main class="page">
-	<span class="icon" aria-hidden="true"><Icon name="mail" size="1.75rem" /></span>
-	<h1>Revisá tu email</h1>
+<StatusMessage icon="mail" title="Revisá tu email">
 	<p class="body">Enviamos un enlace a <b>{email}</b>.</p>
 
 	<form
@@ -40,7 +38,7 @@
 			}
 			return async ({ update }) => {
 				await update({ reset: false });
-				seconds = COOLDOWN;
+				seconds = COOLDOWN_SECONDS;
 				sent = true;
 			};
 		}}
@@ -54,42 +52,9 @@
 		{/if}
 		<a class="back" href={resolve('/login')}>Volver a ingresar</a>
 	</form>
-</main>
+</StatusMessage>
 
 <style>
-	.page {
-		min-height: 100vh;
-		min-height: 100dvh;
-		box-sizing: border-box;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		text-align: center;
-		gap: var(--space-3);
-		padding: var(--space-5);
-	}
-
-	.icon {
-		display: grid;
-		place-items: center;
-		width: 4rem;
-		height: 4rem;
-		border-radius: 999px;
-		background: var(--muted);
-		color: var(--text);
-		margin-bottom: var(--space-2);
-	}
-
-	h1 {
-		margin: 0;
-		font-family: var(--font-display);
-		font-size: 1.875rem;
-		font-weight: 500;
-		line-height: 1.15;
-		letter-spacing: -0.01em;
-	}
-
 	.body {
 		margin: 0;
 		max-width: 300px;

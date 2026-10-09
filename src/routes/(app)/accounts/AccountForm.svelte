@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { NAME_MAX_LENGTH } from '$lib/limits';
 	import { tick, untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
@@ -9,6 +10,7 @@
 	import IconPicker from '$lib/components/IconPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import type { AccountIconKey, SwatchKey } from '$lib/appearance';
+	import { CURRENCIES } from '$lib/money';
 
 	type Values = Partial<
 		Record<'name' | 'currency' | 'initialBalance' | 'icon' | 'color', string | null>
@@ -34,10 +36,7 @@
 	let icon = $state(untrack(() => (initial.icon ?? 'wallet') as AccountIconKey));
 	let color = $state(untrack(() => (initial.color ?? 'green') as SwatchKey));
 
-	const currencyOptions = [
-		{ value: 'ARS', label: 'ARS' },
-		{ value: 'USD', label: 'USD' }
-	];
+	const currencyOptions = CURRENCIES.map((c) => ({ value: c, label: c }));
 
 	// After a failed submit, move focus to the first field marked invalid.
 	$effect(() => {
@@ -56,7 +55,7 @@
 				<input
 					name="name"
 					type="text"
-					maxlength="40"
+					maxlength={NAME_MAX_LENGTH}
 					required
 					autocomplete="off"
 					placeholder="Agregar"

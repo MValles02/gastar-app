@@ -1,12 +1,15 @@
+import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 import {
 	AMOUNT_EXAMPLE,
 	ARS_WHOLE_MESSAGE,
 	convertAmount,
+	CURRENCIES,
+	type Currency,
 	isWholeFor,
 	parseAmount
-} from '../money';
+} from '$lib/money';
 import { isUuid } from './db/util';
-import type { Currency, MovementType } from './dashboard';
+import type { MovementType } from './dashboard';
 import { dayStart } from './month';
 
 export type MovementData = {
@@ -19,35 +22,44 @@ export type MovementData = {
 	categoryId: string | null;
 	exchangeRate: number | null;
 };
-export type MovementField =
-	| 'type'
-	| 'occurredAt'
-	| 'description'
-	| 'amount'
-	| 'accountId'
-	| 'destinationAccountId'
-	| 'categoryId'
-	| 'exchangeRate';
-export type MovementFormErrors = Partial<Record<MovementField, string>>;
-export type MovementFormResult =
+const FIELDS = [
+	'type',
+	'occurredAt',
+	'description',
+	'amount',
+	'accountId',
+	'destinationAccountId',
+	'categoryId',
+	'exchangeRate'
+] as const;
+type MovementField = (typeof FIELDS)[number];
+type MovementFormErrors = Partial<Record<MovementField, string>>;
+type MovementFormResult =
 	| { ok: true; values: Record<string, string>; data: MovementData }
 	| { ok: false; values: Record<string, string>; errors: MovementFormErrors };
 
 /** Row to insert (the owner is added by createMovement). */
-export type MovementRow = Omit<MovementData, 'exchangeRate'> & {
-	destinationAmount: number | null;
-	exchangeRate: number | null;
-};
-export type MovementResolveResult =
+export type MovementRow = MovementData & { destinationAmount: number | null };
+type MovementResolveResult =
 	{ ok: true; row: MovementRow } | { ok: false; errors: MovementFormErrors };
 
 export const UNAVAILABLE_MESSAGE = 'La cuenta o la categoría ya no está disponible.';
+
+/** Earliest movement date (the form's date input uses the same `min`). */
+const MIN_DAY = '2000-01-01';
+// A longer search term cannot match any description, so it is dropped.
+const QUERY_MAX_LENGTH = DESCRIPTION_MAX_LENGTH;
+const MAX_PAGE = 10000;
+
+const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
+// Year 9999 is rejected so the day after `to` is always representable.
+const validDay = (s: string) => YMD_RE.test(s) && s < '9999' && dayStart(s) !== null;
 
 const MSG = {
 	type: 'Elegí un tipo de movimiento.',
 	date: 'Ingresá una fecha válida.',
 	descEmpty: 'Ingresá una descripción.',
-	descLong: 'La descripción puede tener hasta 60 caracteres.',
+	descLong: `La descripción puede tener hasta ${DESCRIPTION_MAX_LENGTH} caracteres.`,
 	amount: `Ingresá un monto mayor a cero ${AMOUNT_EXAMPLE}.`,
 	account: 'Elegí una cuenta.',
 	archivedAccount: 'Esa cuenta está archivada. Elegí otra.',
@@ -59,17 +71,6 @@ const MSG = {
 	category: 'Elegí una categoría.',
 	archivedCategory: 'Esa categoría está archivada. Elegí otra.'
 };
-
-const FIELDS: MovementField[] = [
-	'type',
-	'occurredAt',
-	'description',
-	'amount',
-	'accountId',
-	'destinationAccountId',
-	'categoryId',
-	'exchangeRate'
-];
 
 const TYPES: MovementType[] = ['income', 'outcome', 'transfer'];
 
@@ -85,12 +86,12 @@ export function parseMovementForm(fd: FormData): MovementFormResult {
 	if (!type) errors.type = MSG.type;
 
 	const day = values.occurredAt;
-	const occurredAt = day.slice(0, 4) >= '2000' && validDay(day) ? dayStart(day) : null;
+	const occurredAt = validDay(day) && day >= MIN_DAY ? dayStart(day) : null;
 	if (!occurredAt) errors.occurredAt = MSG.date;
 
 	const description = values.description.trim();
 	if (!description) errors.description = MSG.descEmpty;
-	else if (description.length > 60) errors.description = MSG.descLong;
+	else if (description.length > DESCRIPTION_MAX_LENGTH) errors.description = MSG.descLong;
 
 	const amount = parseAmount(values.amount);
 	if (amount === null || amount <= 0) errors.amount = MSG.amount;
@@ -186,9 +187,6 @@ export function resolveMovement(
 	};
 }
 
-const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
-const CURRENCIES: Currency[] = ['ARS', 'USD'];
-
 export type MovementFilterQuery = {
 	q: string;
 	from: string;
@@ -196,11 +194,8 @@ export type MovementFilterQuery = {
 	type: MovementType | '';
 	account: string;
 	category: string;
-	currency?: Currency | '';
+	currency: Currency | '';
 };
-
-// Year 9999 is rejected so the day after `to` is always representable.
-const validDay = (s: string) => YMD_RE.test(s) && s < '9999' && dayStart(s) !== null;
 
 /** Pure: normalises URL search params; any invalid value becomes empty/default. */
 export function parseMovementFilters(sp: URLSearchParams) {
@@ -212,7 +207,7 @@ export function parseMovementFilters(sp: URLSearchParams) {
 	if (from && to && from > to) [from, to] = [to, from];
 	const q = get('q').trim();
 	const query: MovementFilterQuery = {
-		q: q.length > 60 ? '' : q,
+		q: q.length > QUERY_MAX_LENGTH ? '' : q,
 		from,
 		to,
 		type: TYPES.find((t) => t === get('type')) ?? '',
@@ -221,7 +216,7 @@ export function parseMovementFilters(sp: URLSearchParams) {
 		currency: CURRENCIES.find((c) => c === get('currency')) ?? ''
 	};
 	const n = Number(get('page'));
-	const page = Number.isSafeInteger(n) && n >= 1 && n <= 10000 ? n : 1;
+	const page = Number.isSafeInteger(n) && n >= 1 && n <= MAX_PAGE ? n : 1;
 	// currency is a segmented control outside the filters disclosure: kept in `values`, not counted in `activeCount`.
 	const shown: Record<string, string> = { ...query };
 	const activeCount = Object.values({ ...shown, currency: '' }).filter(Boolean).length;

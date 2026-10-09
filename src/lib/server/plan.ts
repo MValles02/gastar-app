@@ -1,7 +1,16 @@
+import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
+import type { Currency } from '$lib/money';
 import type { MovementType } from './dashboard';
 import { AMOUNT_EXAMPLE, parseAmount } from '../money';
 import { isUuid } from './db/util';
-import { daysInMonth, elapsedDays, monthRange, shiftMonth } from './month';
+import { daysInMonth, elapsedDays, lastMonths, monthRange, shiftMonth } from './month';
+
+/** Full months of history behind suggested rules and limits; a suggested rule appears in each of them. */
+export const HISTORY_MONTHS = 3;
+export const MAX_DAY_OF_MONTH = 31;
+
+/** Setup wizard steps, as shown to the user (1-based); errors send the user back to one of them. */
+export const PLAN_STEP = { income: 1, bills: 2, savings: 3, summary: 4 } as const;
 
 export type RecurringStatus = 'paid' | 'overdue' | 'today' | 'upcoming';
 
@@ -36,6 +45,18 @@ export function isRecurringActive(r: {
 	return !r.archivedAt && !r.accountArchivedAt && !r.categoryArchivedAt;
 }
 
+/** Why a rule is inactive (the rule itself first, then its account, then its category); null when active. */
+export function inactiveReason(r: {
+	archivedAt: Date | null;
+	accountArchivedAt: Date | null;
+	categoryArchivedAt: Date | null;
+}): string | null {
+	if (r.archivedAt) return 'Archivado';
+	if (r.accountArchivedAt) return 'Cuenta archivada';
+	if (r.categoryArchivedAt) return 'Categoría archivada';
+	return null;
+}
+
 export type PlanStatus = 'ok' | 'warn' | 'over';
 
 export const PLAN_STATUS_LABEL: Record<PlanStatus, string> = {
@@ -44,12 +65,10 @@ export const PLAN_STATUS_LABEL: Record<PlanStatus, string> = {
 	over: 'Te pasaste'
 };
 
-/** The 3 full months before `ym`, as a range (the window for suggested rules and limits). */
+/** The `HISTORY_MONTHS` full months before `ym`, as a range (the window for suggested rules and limits). */
 export function lastFullMonths(ym: string) {
-	return {
-		start: monthRange(shiftMonth(shiftMonth(shiftMonth(ym, -1), -1), -1)).start,
-		end: monthRange(ym).start
-	};
+	const [oldest] = lastMonths(shiftMonth(ym, -1), HISTORY_MONTHS);
+	return { start: monthRange(oldest).start, end: monthRange(ym).start };
 }
 
 /**
@@ -86,7 +105,7 @@ export type PlanInput = {
 };
 
 /** All inputs must be in `currency`; nothing here converts or sums across currencies. */
-export function planSummary(p: PlanInput & { currency: 'ARS' | 'USD' }) {
+export function planSummary(p: PlanInput & { currency: Currency }) {
 	const income = p.recurringIncome + p.extraIncome;
 	const forSpending = income - p.bills - p.savings;
 	const available = forSpending - p.spent;
@@ -94,7 +113,8 @@ export function planSummary(p: PlanInput & { currency: 'ARS' | 'USD' }) {
 	const elapsed = elapsedDays(p.ym, p.todayYmd);
 	// Today still counts as a day to spend in.
 	const daysLeft = Math.min(Math.max(days - elapsed + 1, 1), days);
-	const unit = p.currency === 'ARS' ? 100 : 1;
+	// The daily figure is rounded down to whole pesos in ARS, to the cent in USD.
+	const perDayStep = p.currency === 'ARS' ? 100 : 1;
 	const elapsedShare = elapsed / days;
 	const spentShare = forSpending > 0 ? p.spent / forSpending : p.spent > 0 ? 1 : 0;
 	const status: PlanStatus = available < 0 ? 'over' : spentShare > elapsedShare ? 'warn' : 'ok';
@@ -114,7 +134,7 @@ export function planSummary(p: PlanInput & { currency: 'ARS' | 'USD' }) {
 		forSpending,
 		spent: p.spent,
 		available,
-		perDay: available > 0 ? Math.floor(available / daysLeft / unit) * unit : 0,
+		perDay: available > 0 ? Math.floor(available / daysLeft / perDayStep) * perDayStep : 0,
 		daysLeft,
 		elapsed,
 		days,
@@ -167,16 +187,16 @@ export function parseRecurringForm(fd: FormData): RecurringFormResult {
 	if (!type) errors.type = 'Elegí si es un ingreso o un pago.';
 	const description = values.description.trim();
 	if (!description) errors.description = 'Ingresá una descripción.';
-	else if (description.length > 60)
-		errors.description = 'La descripción puede tener hasta 60 caracteres.';
+	else if (description.length > DESCRIPTION_MAX_LENGTH)
+		errors.description = `La descripción puede tener hasta ${DESCRIPTION_MAX_LENGTH} caracteres.`;
 	const amount = parseAmount(values.amount);
 	if (amount === null || amount <= 0)
 		errors.amount = `Ingresá un monto mayor a cero ${AMOUNT_EXAMPLE}.`;
 	if (!isUuid(values.accountId)) errors.accountId = 'Elegí una cuenta.';
 	if (!isUuid(values.categoryId)) errors.categoryId = 'Elegí una categoría.';
 	const day = Number(values.dayOfMonth);
-	if (!/^\d{1,2}$/.test(values.dayOfMonth) || day < 1 || day > 31)
-		errors.dayOfMonth = 'Elegí un día entre 1 y 31.';
+	if (!/^\d{1,2}$/.test(values.dayOfMonth) || day < 1 || day > MAX_DAY_OF_MONTH)
+		errors.dayOfMonth = `Elegí un día entre 1 y ${MAX_DAY_OF_MONTH}.`;
 	if (Object.keys(errors).length > 0) return { ok: false, values, errors };
 	return {
 		ok: true,

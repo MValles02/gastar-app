@@ -1,19 +1,20 @@
 import { fail } from '@sveltejs/kit';
-import { dev } from '$app/environment';
+import { PREFERENCE_COOKIE_OPTIONS, THEME_COOKIE } from '$lib/server/cookies';
 import type { Actions, PageServerLoad } from './$types';
 
 const THEMES = ['light', 'dark', 'system'] as const;
 type Theme = (typeof THEMES)[number];
 
-function parseTheme(value: string | undefined): Theme {
-	return (THEMES as readonly string[]).includes(value ?? '') ? (value as Theme) : 'system';
-}
+const isTheme = (value: unknown): value is Theme =>
+	typeof value === 'string' && (THEMES as readonly string[]).includes(value);
+
+const parseTheme = (value: string | undefined): Theme => (isTheme(value) ? value : 'system');
 
 export const load: PageServerLoad = ({ locals, cookies }) => {
 	const user = locals.user!;
 	return {
 		user: { name: user.name, email: user.email },
-		theme: parseTheme(cookies.get('theme'))
+		theme: parseTheme(cookies.get(THEME_COOKIE))
 	};
 };
 
@@ -22,18 +23,12 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const value = data.get('theme');
 
-		if (typeof value !== 'string' || !(THEMES as readonly string[]).includes(value)) {
+		if (!isTheme(value)) {
 			return fail(400, { error: 'Tema inválido.' });
 		}
 
-		cookies.set('theme', value, {
-			path: '/',
-			maxAge: 60 * 60 * 24 * 365,
-			sameSite: 'lax',
-			httpOnly: true,
-			secure: !dev
-		});
+		cookies.set(THEME_COOKIE, value, PREFERENCE_COOKIE_OPTIONS);
 
-		return { theme: value as Theme };
+		return { theme: value };
 	}
 };

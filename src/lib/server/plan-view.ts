@@ -1,4 +1,4 @@
-import type { Currency } from './dashboard';
+import type { Currency } from '$lib/money';
 import { currentMonth, localDay, monthLabel, monthRange } from './month';
 import { isRecurringActive, PLAN_STATUS_LABEL, planSpent, planSummary } from './plan';
 import { getPlan, listRecurring, monthOutcomes, planLimits } from './plan-queries';

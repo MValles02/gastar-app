@@ -5,13 +5,17 @@ import { env } from '$env/dynamic/private';
 import { auth } from '$lib/server/auth';
 import { checkEnv } from '$lib/server/env-check';
 import { themeColors } from '$lib/theme';
+import { THEME_COOKIE } from '$lib/server/cookies';
 
 if (!building && process.env.NODE_ENV === 'production') checkEnv(env);
 
+const AUTH_API_PREFIX = '/api/auth/';
+
+/** Pages a signed-in user has no use for; they are sent home instead. */
+const SIGNED_OUT_ONLY_PATHS = ['/login', '/signup', '/forgot-password'];
+
 const PUBLIC_PATHS = [
-	'/login',
-	'/signup',
-	'/forgot-password',
+	...SIGNED_OUT_ONLY_PATHS,
 	'/reset-password',
 	'/verify-email',
 	'/health',
@@ -20,7 +24,7 @@ const PUBLIC_PATHS = [
 ];
 
 function isPublic(pathname: string): boolean {
-	return PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/api/auth/');
+	return PUBLIC_PATHS.includes(pathname) || pathname.startsWith(AUTH_API_PREFIX);
 }
 
 const SECURITY_HEADERS = {
@@ -46,7 +50,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 };
 
 const handleRequest: Handle = async ({ event, resolve }) => {
-	if (event.url.pathname.startsWith('/api/auth/')) {
+	if (event.url.pathname.startsWith(AUTH_API_PREFIX)) {
 		return svelteKitHandler({ event, resolve, auth, building });
 	}
 
@@ -54,7 +58,7 @@ const handleRequest: Handle = async ({ event, resolve }) => {
 	event.locals.user = session?.user ?? null;
 	event.locals.session = session?.session ?? null;
 
-	if (event.locals.user && ['/login', '/signup', '/forgot-password'].includes(event.url.pathname)) {
+	if (event.locals.user && SIGNED_OUT_ONLY_PATHS.includes(event.url.pathname)) {
 		redirect(303, '/');
 	}
 
@@ -65,9 +69,8 @@ const handleRequest: Handle = async ({ event, resolve }) => {
 		return new Response('Unauthorized', { status: 401 });
 	}
 
-	const theme = event.cookies.get('theme');
-	const themeAttr =
-		theme === 'light' ? 'data-theme="light"' : theme === 'dark' ? 'data-theme="dark"' : '';
+	const theme = event.cookies.get(THEME_COOKIE);
+	const themeAttr = theme === 'light' || theme === 'dark' ? `data-theme="${theme}"` : '';
 
 	const colors = themeColors(theme);
 

@@ -1,19 +1,17 @@
 <script lang="ts">
+	import { CURRENCIES, type Currency } from '$lib/money';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import SegmentedControl from './SegmentedControl.svelte';
 
 	/** ARS | USD radiogroup saved in the `currency` cookie. */
-	let { value }: { value: 'ARS' | 'USD' } = $props();
+	let { value }: { value: Currency } = $props();
 
 	let selected = $derived(value as string);
 	let form: HTMLFormElement;
 	let error = $state('');
-	const options = [
-		{ value: 'ARS', label: 'ARS' },
-		{ value: 'USD', label: 'USD' }
-	];
+	const options = CURRENCIES.map((currency) => ({ value: currency, label: currency }));
 </script>
 
 <form

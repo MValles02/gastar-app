@@ -46,12 +46,12 @@
 <style>
 	nav {
 		position: fixed;
-		inset-inline: 1rem;
+		inset-inline: var(--space-4);
 		bottom: var(--tabbar-bottom);
 		max-width: var(--content-width);
 		margin-inline: auto;
 		display: flex;
-		gap: 0.75rem;
+		gap: var(--space-3);
 		align-items: center;
 		z-index: 10;
 	}
@@ -60,9 +60,9 @@
 		flex: 1;
 		min-width: 0;
 		display: flex;
-		height: 4rem;
-		padding: 0.25rem;
-		border-radius: 999px;
+		height: var(--tabbar-height);
+		padding: var(--space-1);
+		border-radius: var(--radius-pill);
 		background: color-mix(in srgb, var(--card) 62%, transparent);
 		-webkit-backdrop-filter: blur(20px) saturate(180%);
 		backdrop-filter: blur(20px) saturate(180%);
@@ -93,7 +93,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: 999px;
+		border-radius: var(--radius-pill);
 		text-decoration: none;
 		color: var(--text-muted);
 	}
@@ -112,8 +112,8 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 4rem;
-		height: 4rem;
+		width: var(--tabbar-height);
+		height: var(--tabbar-height);
 		border-radius: 50%;
 		background: var(--primary);
 		color: var(--on-primary);

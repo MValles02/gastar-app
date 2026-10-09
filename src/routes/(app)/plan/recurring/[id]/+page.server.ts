@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { notFoundHelpers } from '$lib/server/not-found';
 import { toIconKey } from '$lib/appearance';
 import { formatAmountInput } from '$lib/money';
+import { inactiveReason } from '$lib/server/plan';
 import {
 	deleteRecurring,
 	listRecurring,
@@ -43,13 +44,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	return {
 		...pickers,
 		id: rule.id,
-		inactiveReason: rule.archivedAt
-			? 'Archivado'
-			: rule.accountArchivedAt
-				? 'Cuenta archivada'
-				: rule.categoryArchivedAt
-					? 'Categoría archivada'
-					: null,
+		inactiveReason: inactiveReason(rule),
 		archived: rule.archivedAt !== null,
 		values: {
 			type: rule.type,

@@ -172,7 +172,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 
 - **Stone 50** (`background`): Page background, the selected segment and the translucent bottom nav. Dark counterpart: Stone 950 (`background-dark`).
 - **Page White** (`surface`): Cards and fields. Dark counterpart: Stone 900 (`surface-dark`).
-- **Raised White** (`surface-raised`): Layers above a surface, such as the Sheet and ConfirmDialog dialogs. Dark counterpart: `surface-raised-dark`.
+- **Raised White** (`surface-raised`): Layers above a surface, such as the BottomDrawer and ConfirmDialog. Dark counterpart: `surface-raised-dark`.
 - **Muted** (`muted`): The segmented track, hover fills (rows, secondary button, top-bar avatar). Dark counterpart: `muted-dark`.
 - **Ledger Ink** (`text`): Body text. Dark counterpart: `text-dark`.
 - **Muted Stone** (`text-muted`): Labels and inactive nav items. Dark counterpart: `text-muted-dark`.
@@ -230,7 +230,7 @@ Depth comes from layering first, shadow second. The page (Stone 50) is the base;
 
 - **Level 0, page** (`--bg`): No shadow.
 - **Level 1, card** (`--shadow-1`: light `0 1px 2px rgb(0 0 0 / 0.04)`; dark `0 1px 2px rgb(0 0 0 / 0.2)`): `Card` and the shared `.list-card` list container (surface fill, hairline border, 0.875rem radius, clipped overflow, last row without divider). Used for list pages, dashboard sections and the merged balance card (total balance plus month balance).
-- **Level 2, raised** (`--shadow-2`: light `0 2px 8px rgb(0 0 0 / 0.12)`; dark `0 2px 8px rgb(0 0 0 / 0.35)` plus a brighter inset highlight): Modal layers: the `Sheet` and `ConfirmDialog` dialogs, both with the `--surface-raised` fill.
+- **Level 2, raised** (`--shadow-2`: light `0 2px 8px rgb(0 0 0 / 0.12)`; dark `0 2px 8px rgb(0 0 0 / 0.35)` plus a brighter inset highlight): Modal layers: the `BottomDrawer` and `ConfirmDialog`, both with the `--surface-raised` fill.
 - **Lift** (`--shadow-lift`: light `0 6px 16px rgb(0 0 0 / 0.2)`; dark `0 6px 16px rgb(0 0 0 / 0.6)` plus a 1px border-token edge): The center "+" FAB only; it stays the most prominent element in the bottom nav.
 
 ### Dark Theme
@@ -247,7 +247,7 @@ Dark does not rely on black shadows, which vanish on dark backgrounds. Elevation
 
 ## Shapes
 
-Three radii: `--radius` 0.625rem (`rounded.md`) for buttons, fields, the segmented track, the Sheet top corners and the option picker trigger; `--radius-card` 0.875rem (`rounded.card`) for cards, list cards and the FAB; and a full pill (`rounded.pill`, 999px) for the avatar (a 2.75rem circle). The wordmark mark and the empty-state badge reuse them (an 8px-radius mark; a 3.5rem tinted circle). Borders are always 1px in the border token. Transitions are 0.15s ease on opacity, color and background-color. When `prefers-reduced-motion: no-preference` also holds, `transform` is added so pressed buttons, nav items and the FAB scale down (0.98 for buttons, 0.96 for the rest); with reduced motion there is no press scale.
+Three radii: `--radius` 0.625rem (`rounded.md`) for buttons, fields, the segmented track and the option picker trigger; `--radius-card` 0.875rem (`rounded.card`) for cards, list cards and the FAB; and a full pill (`rounded.pill`, 999px) for the avatar (a 2.75rem circle). The wordmark mark and the empty-state badge reuse them (an 8px-radius mark; a 3.5rem tinted circle). Borders are always 1px in the border token. Transitions are 0.15s ease on opacity, color and background-color. When `prefers-reduced-motion: no-preference` also holds, `transform` is added so pressed buttons, nav items and the FAB scale down (0.98 for buttons, 0.96 for the rest); with reduced motion there is no press scale.
 
 ## Components
 
@@ -281,7 +281,6 @@ A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) of radio option
 ### Page Header and Empty State
 
 - **PageHeader:** The sticky top bar of every app screen: a row `[back] [eyebrow + h1] [bell] [avatar]`. Props `title`, optional `eyebrow` (defaults to today's date in Buenos Aires, es-AR, from the `(app)` layout load) and optional `back` (`{ href, label }`: a 2.75rem circular chevron-left link, `label` is its aria-label, hover tints primary 8%). The h1 is 1.75rem, 500, line-height 1.2 under a muted 0.8125rem eyebrow; it wraps and is never truncated, and the back link, bell and avatar stay fixed 2.75rem (the title wraps below them at large text). The bell is a 2.75rem `--surface` square with a hairline border and `--radius`, linking to `/notifications` (2px primary ring on that page); its badge is a 1.25rem primary pill with the alert count as text (`--on-primary`, 0.75rem, 600, capped at "9+") straddling its top-right corner, and is `aria-hidden` because the link's label already says "Avisos: N" (plain "Avisos" at zero). The bar is sticky only on viewports at least 40em tall (see Layout), uses `--bg` at 92% with a 12px backdrop blur, `space-4` top and `space-3` bottom padding, and a transparent bottom hairline that turns `--border` once the page scrolls (CSS scroll-driven animation inside `@supports (animation-timeline: scroll())`, no JS). The avatar is a 2.75rem `muted` circle with the user's initials linking to Profile (`aria-label="Perfil"`, 2px primary ring on the current page); it is hidden when the layout data is missing (error page). Back rules: bottom-nav tabs have none; every other screen links up to a fixed parent; New movement returns to the in-app screen it was opened from (fallback Inicio).
-- **DetailHeader:** Used on account, category and movement detail. Renders `PageHeader` with `back`, then a hero `Card`. Props: `title`, `back`, `label` (muted small caption), optional `icon` and `color` (IconBadge), `value` (hero figure, 600, `clamp` hero size), `tone` (`positive`, `negative` or `transfer` colour for the value), `context` (muted small line) and a children snippet for extra content (such as the category per-currency nets).
 - **Secondary link row:** "Ver movimientos" on account and category detail is a single `ListRow` with a trailing chevron-right in a surface container (hairline border, `--shadow-1`), not an underlined text link.
 - **Add row (`.add-row`):** A dashed-border, `radius-card` link row (min 3.5rem tall, muted 0.875rem weight-500 text with a plus icon) after a list ("+ Nueva cuenta", "+ Nueva categoría"); hover turns the text to the text colour and the border primary. It replaces header action buttons.
 - **Detail tone:** Amounts never show a visible "+" or "-"; colour carries the direction: income `positive`, outcome `negative`, transfer `transfer`. Category net is shown as a cash flow (spend `negative`, net income `positive`).
@@ -302,13 +301,13 @@ A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) of radio option
 - **Icon:** Inline SVG, 24px by default, 24-unit viewBox, `currentColor` 1.75 stroke with round caps and joins, `aria-hidden`. Names: home, accounts, plus, movements, categories, profile, plan, chart, search, chevron-left, chevron-right, transfer, plus the account icons (bank, wallet, cash, card, piggy-bank, dollar, coins, safe, briefcase, phone).
 - **Wordmark:** A rounded-square ledger mark (two horizontal strokes) plus "Gastar" in title type. Mark fill is primary and strokes are on-primary, so it flips in dark; the text is primary.
 
-### Sheet
+### Bottom Drawer
 
-A modal bottom sheet built on `<dialog>` (`showModal`): full width up to 35rem, max height 85dvh, raised-surface fill, 1px border, top corners rounded 0.625rem, bottom safe-area padding. The backdrop is the text color at 40%. A header holds an h2 title (1.25rem) and a secondary "Cerrar" button; clicking the backdrop or pressing Escape closes it.
+A modal bottom drawer (`BottomDrawer`, built on vaul-svelte via `ui/drawer`): full width up to 35rem, max height 85dvh, raised-surface fill, top corners rounded `--radius-card`, `--shadow-2`, bottom safe-area padding, over the `--scrim` backdrop. A grab handle sits above a header with the title (`--font-size-lg`, 600) and a 2.75rem "Cerrar" icon button; dragging down, clicking the backdrop or pressing Escape closes it.
 
 ### Option Picker
 
-A field that opens a Sheet of radio rows. The trigger looks like an input (2.75rem minimum height, 1px control-edge border, 0.625rem radius, padding `space-2` by `space-3`) showing the selected row or a muted placeholder. Each row is an icon badge, a name (weight 500, truncated) and optional muted meta text (such as " · Archivada"), at least 2.75rem tall with a hairline divider. Hover fills the row `muted`; the selected row has a 2px primary outline; focus-visible a 2px primary outline at 2px offset. Choosing a row closes the sheet and returns focus to the trigger. Without JavaScript the rows render inline as a plain radio group.
+A field that opens a Bottom Drawer of radio rows. The trigger looks like an input (2.75rem minimum height, 1px control-edge border, 0.625rem radius, padding `space-2` by `space-3`) showing the selected row or a muted placeholder. Each row is an icon badge, a name (weight 500, truncated) and optional muted meta text (such as " · Archivada"), at least 2.75rem tall with a hairline divider. Hover fills the row `muted`; the selected row has a 2px primary outline; focus-visible a 2px primary outline at 2px offset. Choosing a row closes the drawer and returns focus to the trigger. Without JavaScript the rows render inline as a plain radio group.
 
 ### Icon and Color Pickers
 

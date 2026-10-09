@@ -2,7 +2,8 @@ import type { PageServerLoad } from './$types';
 import { toIconKey, toSwatchKey } from '$lib/appearance';
 import { listAccounts } from '$lib/server/accounts-queries';
 import { listCategories } from '$lib/server/categories-queries';
-import { toRecentItem, type Currency } from '$lib/server/dashboard';
+import type { Currency } from '$lib/money';
+import { toRecentItem } from '$lib/server/dashboard';
 import { dayHeading, localDay } from '$lib/server/month';
 import { parseMovementFilters } from '$lib/server/movements';
 import { listMovements, PAGE_SIZE } from '$lib/server/movements-queries';
@@ -19,8 +20,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		listCategories(userId, { archived: true })
 	]);
 
-	const now = new Date();
-	const today = localDay(now);
+	const today = localDay(new Date());
 	const lockedCurrency: Currency | null = query.account
 		? (accountRows.find((a) => a.id === query.account)?.currency ?? null)
 		: null;

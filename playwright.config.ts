@@ -1,5 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
+const BASE_URL = 'http://localhost:5173';
+
 export default defineConfig({
 	testDir: 'e2e',
 	testMatch: /.*\.e2e\.ts/,
@@ -7,13 +9,13 @@ export default defineConfig({
 	// html feeds the report artifact CI uploads on failure.
 	reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
 	use: {
-		baseURL: 'http://localhost:5173',
+		baseURL: BASE_URL,
 		launchOptions: process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}
 	},
 	// Locally reuses an already running `pnpm dev` (and its .env).
 	webServer: {
 		command: 'pnpm dev',
-		url: 'http://localhost:5173/health',
+		url: `${BASE_URL}/health`,
 		reuseExistingServer: !process.env.CI,
 		// Default SIGKILL of `pnpm dev` leaves vite running and the run never exits.
 		gracefulShutdown: { signal: 'SIGTERM', timeout: 5000 },

@@ -4,7 +4,8 @@
 	import { tick } from 'svelte';
 	import Button from '$lib/components/Button.svelte';
 	import CheckEmail from '$lib/components/CheckEmail.svelte';
-	import Icon from '$lib/components/Icon.svelte';
+	import ErrorText from '$lib/components/ErrorText.svelte';
+	import StatusMessage from '$lib/components/StatusMessage.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -20,9 +21,7 @@
 {#if form?.checkEmail}
 	<CheckEmail email={form.checkEmail} />
 {:else if data.expired}
-	<main class="msg">
-		<span class="icon" aria-hidden="true"><Icon name="clock" size="1.75rem" /></span>
-		<h1>Enlace vencido</h1>
+	<StatusMessage icon="clock" title="Enlace vencido">
 		<p class="body">Pedí uno nuevo.</p>
 		<form
 			bind:this={formEl}
@@ -55,60 +54,23 @@
 					aria-describedby={form?.emailError ? 'email-error' : undefined}
 				/>
 				{#if form?.emailError}
-					<p class="error" id="email-error" role="alert">
-						<Icon name="alert" size="1rem" />{form.emailError}
-					</p>
+					<ErrorText id="email-error" message={form.emailError} />
 				{/if}
 			</div>
 			<Button type="submit" block disabled={busy}>Reenviar</Button>
 			<a class="link" href={resolve('/login')}>Ir a Ingresar</a>
 		</form>
-	</main>
+	</StatusMessage>
 {:else}
-	<main class="msg">
-		<span class="icon" aria-hidden="true"><Icon name="check" size="1.75rem" /></span>
-		<h1>Email confirmado</h1>
+	<StatusMessage icon="check" title="Email confirmado">
 		<p class="body">Ya podés ingresar a Gastar.</p>
 		<div class="actions">
 			<Button href={resolve('/login')} block>Ir a Ingresar</Button>
 		</div>
-	</main>
+	</StatusMessage>
 {/if}
 
 <style>
-	.msg {
-		min-height: 100vh;
-		min-height: 100dvh;
-		box-sizing: border-box;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		text-align: center;
-		gap: var(--space-3);
-		padding: var(--space-5);
-	}
-
-	.icon {
-		display: grid;
-		place-items: center;
-		width: 4rem;
-		height: 4rem;
-		border-radius: 999px;
-		background: var(--muted);
-		color: var(--text);
-		margin-bottom: var(--space-2);
-	}
-
-	h1 {
-		margin: 0;
-		font-family: var(--font-display);
-		font-size: 1.875rem;
-		font-weight: 500;
-		line-height: 1.15;
-		letter-spacing: -0.01em;
-	}
-
 	.body {
 		margin: 0;
 		font-size: var(--font-size-base);
@@ -133,20 +95,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
-	}
-
-	.error {
-		margin: 0;
-		display: flex;
-		align-items: flex-start;
-		gap: var(--space-1);
-		font-size: var(--font-size-sm);
-		color: var(--negative);
-	}
-
-	.error :global(svg) {
-		flex: none;
-		margin-top: 0.1rem;
 	}
 
 	.link {

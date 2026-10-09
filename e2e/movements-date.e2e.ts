@@ -1,16 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-
-// Same defaults as scripts/seed.js (local demo user, not a secret).
-const email = process.env.SEED_EMAIL || 'demo@gastar.local';
-const password = process.env.SEED_PASSWORD || 'demo1234';
-
-async function login(page: Page) {
-	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(email);
-	await page.getByLabel('Contraseña').fill(password);
-	await page.getByRole('button', { name: 'Ingresar' }).click();
-	await expect(page).toHaveURL(/\/$/);
-}
+import { deleteMovements, login } from './helpers';
 
 // Descriptions of movements this spec may have created; removed in afterEach.
 const created: string[] = [];
@@ -20,33 +9,25 @@ const unique = (prefix: string) => {
 	return d;
 };
 
+test.beforeEach(async ({ page }) => {
+	await login(page);
+});
+
 test.afterEach(async ({ page, baseURL }) => {
-	for (const prefix of created.splice(0)) {
-		await page.goto(`/movements?q=${encodeURIComponent(prefix)}`);
-		const hrefs = await page
-			.locator('a[href*="movements/"]')
-			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of hrefs.filter((h) => /\/movements\/[0-9a-f-]{36}$/.test(h)))
-			await page.request.post(`${href}?/delete`, {
-				form: {},
-				headers: { origin: baseURL!, accept: 'text/html' }
-			});
-	}
+	for (const prefix of created.splice(0)) await deleteMovements(page, baseURL!, prefix);
 });
 
 // No-JS form: the pickers render as plain radio groups.
+const option = (page: Page, group: 'Cuenta' | 'Categoría', name: RegExp) =>
+	page.getByRole('group', { name: group, exact: true }).getByRole('radio', { name });
+
+/** Creates a 1-peso outcome dated `date` through the no-JS form. */
 async function create(page: Page, description: string, date: string) {
 	await page.goto('/movements/new');
 	await page.locator('input[name="amount"]').fill('1');
 	await page.locator('input[name="description"]').fill(description);
-	await page
-		.getByRole('group', { name: 'Cuenta', exact: true })
-		.getByRole('radio', { name: /Banco Galicia/ })
-		.check({ force: true });
-	await page
-		.getByRole('group', { name: 'Categoría', exact: true })
-		.getByRole('radio', { name: /Supermercado/ })
-		.check({ force: true });
+	await option(page, 'Cuenta', /Banco Galicia/).check({ force: true });
+	await option(page, 'Categoría', /Supermercado/).check({ force: true });
 	await page.locator('input[name="occurredAt"]').fill(date);
 	await page.getByRole('button', { name: 'Guardar movimiento' }).click();
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
@@ -58,7 +39,6 @@ test.describe('without JavaScript', () => {
 	test.use({ javaScriptEnabled: false });
 
 	test('create stores the date and shows no time', async ({ page }) => {
-		await login(page);
 		const desc = unique('Fecha crear');
 		await create(page, desc, '2024-02-29');
 		await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
@@ -75,7 +55,6 @@ test.describe('without JavaScript', () => {
 	});
 
 	test('edit keeps the date', async ({ page }) => {
-		await login(page);
 		const desc = unique('Fecha editar');
 		await create(page, desc, '2024-02-29');
 		await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
@@ -90,7 +69,6 @@ test.describe('without JavaScript', () => {
 		page,
 		baseURL
 	}) => {
-		await login(page);
 		const res = await page.request.post('/movements/new', {
 			form: { type: 'outcome', occurredAt: '2026-02-30', description: 'x', amount: '1' },
 			headers: { origin: baseURL!, accept: 'text/html' }
@@ -109,16 +87,9 @@ test.describe('without JavaScript', () => {
 	});
 
 	test('a datetime is rejected and nothing is saved', async ({ page, baseURL }) => {
-		await login(page);
 		await page.goto('/movements/new');
-		const accountId = await page
-			.getByRole('group', { name: 'Cuenta', exact: true })
-			.getByRole('radio', { name: /Banco Galicia/ })
-			.getAttribute('value');
-		const categoryId = await page
-			.getByRole('group', { name: 'Categoría', exact: true })
-			.getByRole('radio', { name: /Supermercado/ })
-			.getAttribute('value');
+		const accountId = await option(page, 'Cuenta', /Banco Galicia/).getAttribute('value');
+		const categoryId = await option(page, 'Categoría', /Supermercado/).getAttribute('value');
 		const desc = unique('Fecha hora');
 		const res = await page.request.post('/movements/new', {
 			form: {
@@ -138,7 +109,6 @@ test.describe('without JavaScript', () => {
 	});
 
 	test('same-day movements list the newest first', async ({ page }) => {
-		await login(page);
 		const prefix = unique('Orden');
 		await create(page, `${prefix} A`, '2024-02-28');
 		await create(page, `${prefix} B`, '2024-02-28');
@@ -151,7 +121,6 @@ test.describe('without JavaScript', () => {
 });
 
 test('a date before 2000 shows the error and keeps the value', async ({ page }) => {
-	await login(page);
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
 	await page.locator('input[name="amount"]').fill('1');
 	await page.locator('input[name="description"]').fill(unique('Fecha antigua'));
@@ -163,7 +132,6 @@ test('a date before 2000 shows the error and keeps the value', async ({ page }) 
 });
 
 test('a legacy non-midnight row uses its Buenos Aires date everywhere', async ({ page }) => {
-	await login(page);
 	const list = '/movements?q=Legado';
 	await page.goto(list, { waitUntil: 'networkidle' });
 	await expect(

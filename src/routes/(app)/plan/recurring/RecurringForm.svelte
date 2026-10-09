@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 	import { tick, untrack, type ComponentProps } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
@@ -109,7 +110,7 @@
 				<input
 					name="description"
 					type="text"
-					maxlength="60"
+					maxlength={DESCRIPTION_MAX_LENGTH}
 					required
 					autocomplete="off"
 					placeholder={type === 'income' ? 'Sueldo' : 'Alquiler'}

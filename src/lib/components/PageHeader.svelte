@@ -27,8 +27,14 @@
 		collapse?: boolean;
 	} = $props();
 
+	const COLLAPSE_AFTER_PX = 24;
+	/** Larger alert counts show as "9+". */
+	const MAX_BADGE_COUNT = 9;
+
 	let scrollY = $state(0);
-	const collapsed = $derived(collapse && !close && !back && variant === 'large' && scrollY > 24);
+	const collapsed = $derived(
+		collapse && !close && !back && variant === 'large' && scrollY > COLLAPSE_AFTER_PX
+	);
 
 	const compact = $derived(variant === 'compact' || !!close);
 
@@ -69,7 +75,7 @@
 		>
 			<Bell size={20} strokeWidth={1.75} aria-hidden="true" />
 			{#if alertCount > 0}<span class="badge" aria-hidden="true"
-					>{alertCount > 9 ? '9+' : alertCount}</span
+					>{alertCount > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : alertCount}</span
 				>{/if}
 		</a>
 		<a
@@ -219,7 +225,7 @@
 		right: -0.3125rem;
 		min-width: 1.25rem;
 		height: 1.25rem;
-		padding: 0 0.25rem;
+		padding: 0 var(--space-1);
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;

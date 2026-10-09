@@ -16,12 +16,6 @@
 <AccountForm
 	mode="create"
 	cancelHref="/accounts"
-	initial={form?.values ?? {
-		name: '',
-		currency: 'ARS',
-		initialBalance: '',
-		icon: 'wallet',
-		color: 'green'
-	}}
+	initial={form?.values ?? {}}
 	errors={form?.errors}
 />

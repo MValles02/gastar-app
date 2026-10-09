@@ -144,7 +144,8 @@ svg {
 	--ease-fast: 0.15s ease;
 	/* Floating tab bar: hugs the home indicator on notched devices, 0.75rem off the edge elsewhere. */
 	--tabbar-bottom: max(0.75rem, calc(env(safe-area-inset-bottom) - 0.5rem));
-	--tabbar-clearance: calc(var(--tabbar-bottom) + 4rem + 0.75rem);
+	--tabbar-height: 4rem;
+	--tabbar-clearance: calc(var(--tabbar-bottom) + var(--tabbar-height) + 0.75rem);
 
 	--space-1: 0.25rem;
 	--space-2: 0.5rem;
@@ -154,6 +155,7 @@ svg {
 	--space-6: 2rem;
 	--space-8: 3rem;
 
+	--font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
 	/* Newsreader 500 (latin): amounts and page titles only, per the Linen board; DM Sans stays the fallback. */
 	--font-display: 'Newsreader', Georgia, serif;
 
@@ -188,11 +190,7 @@ svg {
 body {
 	background: var(--bg);
 	color: var(--text);
-	font-family:
-		'DM Sans',
-		system-ui,
-		-apple-system,
-		sans-serif;
+	font-family: var(--font-body);
 	font-weight: 400;
 }
 

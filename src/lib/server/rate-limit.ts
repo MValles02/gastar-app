@@ -2,30 +2,33 @@
 // better-auth's built-in limiter only covers HTTP requests, not direct auth.api calls,
 // so form actions use these per-bucket counters.
 const SWEEP_SIZE = 1000;
-const MIN = 60_000;
+const MINUTE_MS = 60_000;
 
 const LIMITS = {
-	signIn: { max: 5, windowMs: MIN },
-	signUp: { max: 10, windowMs: 60 * MIN },
-	resetRequestIp: { max: 5, windowMs: 15 * MIN },
-	resetRequestEmail: { max: 3, windowMs: 15 * MIN },
-	resend: { max: 5, windowMs: 15 * MIN }
+	signIn: { max: 5, windowMs: MINUTE_MS },
+	signUp: { max: 10, windowMs: 60 * MINUTE_MS },
+	resetRequestIp: { max: 5, windowMs: 15 * MINUTE_MS },
+	resetRequestEmail: { max: 3, windowMs: 15 * MINUTE_MS },
+	resend: { max: 5, windowMs: 15 * MINUTE_MS }
 } as const;
 
-export type Bucket = keyof typeof LIMITS;
+/** A key idle for the longest window holds no hits that count in any bucket. */
+const MAX_WINDOW_MS = Math.max(...Object.values(LIMITS).map((limit) => limit.windowMs));
+
+type Bucket = keyof typeof LIMITS;
 
 const hits = new Map<string, number[]>();
 
-function recent(bucket: Bucket, key: string, now: number): number[] {
-	const { windowMs } = LIMITS[bucket];
-	if (hits.size > SWEEP_SIZE) {
-		const maxWindow = 60 * MIN;
-		for (const [k, times] of hits) {
-			if (times.every((t) => now - t >= maxWindow)) hits.delete(k);
-		}
+function sweepStale(now: number): void {
+	for (const [id, times] of hits) {
+		if (times.every((t) => now - t >= MAX_WINDOW_MS)) hits.delete(id);
 	}
+}
+
+function recent(bucket: Bucket, key: string, now: number): number[] {
+	if (hits.size > SWEEP_SIZE) sweepStale(now);
 	const id = `${bucket}:${key}`;
-	const list = (hits.get(id) ?? []).filter((t) => now - t < windowMs);
+	const list = (hits.get(id) ?? []).filter((t) => now - t < LIMITS[bucket].windowMs);
 	if (list.length) hits.set(id, list);
 	else hits.delete(id);
 	return list;

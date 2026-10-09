@@ -1,57 +1,34 @@
 import { expect, test, type Page } from '@playwright/test';
-
-// Same defaults as scripts/seed.js (local demo users, not secrets).
-const password = process.env.SEED_PASSWORD || 'demo1234';
-const otherEmail = 'otro@gastar.local';
+import {
+	deleteMovements,
+	deleteRules,
+	fillRule,
+	login,
+	OTHER_EMAIL,
+	postDelete,
+	setCurrencyCookie,
+	todayInAppTz
+} from './helpers';
 
 // Every test that writes runs as `otro` (ARS account "Otra cuenta pesos", category "Ajena"). Other specs
 // change his data too, so every assertion is about one uniquely named row, never a count.
 test.describe.configure({ timeout: 60_000 });
 
-async function login(page: Page) {
-	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(otherEmail);
-	await page.getByLabel('Contraseña').fill(password);
-	await page.getByRole('button', { name: 'Ingresar' }).click();
-	await expect(page).toHaveURL(/\/$/);
-}
-
-test.afterEach(async ({ context, baseURL }) => {
-	await context.addCookies([{ name: 'currency', value: 'ARS', url: baseURL! }]);
-});
-
 const bell = (page: Page) => page.locator('header.top-bar a[aria-label^="Avisos"]');
 const pesos = (page: Page) => page.getByRole('region', { name: 'Pesos' });
 const alertRow = (page: Page, text: string) => pesos(page).locator('li', { hasText: text });
 
-const todayDay = () =>
-	Number(
-		new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
-			.format(new Date())
-			.slice(8)
-	);
-
-async function pick(page: Page, legend: string, name: string) {
-	await page.getByRole('button', { name: new RegExp(legend) }).click();
-	await page.getByRole('dialog').getByText(name, { exact: true }).click();
-}
-
-const del = (page: Page, baseURL: string, href: string, action = 'delete') =>
-	page.request.post(`${href}?/${action}`, {
-		form: {},
-		headers: { origin: baseURL, accept: 'text/html' }
-	});
-
 test('a payment due today alerts until it is registered', async ({ page, baseURL }) => {
-	await login(page);
+	await login(page, OTHER_EMAIL);
 	const description = `Aviso e2e ${Date.now()}`;
 	try {
-		await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
-		await page.locator('input[name="description"]').fill(description);
-		await page.locator('input[name="amount"]').fill('1.500');
-		await page.locator('input[name="dayOfMonth"]').fill(String(todayDay()));
-		await pick(page, 'Cuenta', 'Otra cuenta pesos');
-		await pick(page, 'Categoría', 'Ajena');
+		await fillRule(page, {
+			description,
+			amount: '1.500',
+			day: String(Number(todayInAppTz().slice(8))),
+			account: 'Otra cuenta pesos',
+			category: 'Ajena'
+		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 
@@ -70,18 +47,8 @@ test('a payment due today alerts until it is registered', async ({ page, baseURL
 		await page.goto('/notifications');
 		await expect(alertRow(page, description)).toHaveCount(0);
 	} finally {
-		await page.goto(`/movements?q=${encodeURIComponent(description)}`);
-		const movements = await page
-			.locator('a[href*="movements/"]')
-			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of movements.filter((h) => /\/movements\/[0-9a-f-]{36}$/.test(h)))
-			await del(page, baseURL!, href);
-		await page.goto('/plan');
-		const rules = await page
-			.locator('li.rule', { hasText: description })
-			.locator('a.row')
-			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of rules) await del(page, baseURL!, href);
+		await deleteMovements(page, baseURL!, description);
+		await deleteRules(page, baseURL!, description);
 	}
 });
 
@@ -89,8 +56,8 @@ test('a plan alert opens /plan in its currency, and the page works without JS', 
 	page,
 	baseURL
 }) => {
-	await login(page);
-	await page.context().addCookies([{ name: 'currency', value: 'ARS', url: baseURL! }]);
+	await login(page, OTHER_EMAIL);
+	await setCurrencyCookie(page, baseURL!, 'ARS');
 	// Fail loudly if another spec gave otro an ARS plan: this test must own it to delete it.
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await expect(page.getByText('Todavía no tenés un plan en pesos.')).toBeVisible();
@@ -115,7 +82,7 @@ test('a plan alert opens /plan in its currency, and the page works without JS', 
 		expect(html).toMatch(/name="redirectTo"[^>]*value="\/plan"/);
 
 		// The cookie says USD; the alert's form switches it to ARS.
-		await page.context().addCookies([{ name: 'currency', value: 'USD', url: baseURL! }]);
+		await setCurrencyCookie(page, baseURL!, 'USD');
 		await page.goto('/notifications');
 		const row = alertRow(page, 'Faltan');
 		await expect(row).toContainText('Te pasaste');
@@ -123,7 +90,7 @@ test('a plan alert opens /plan in its currency, and the page works without JS', 
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
 	} finally {
-		await page.context().addCookies([{ name: 'currency', value: 'ARS', url: baseURL! }]);
-		if (created) await del(page, baseURL!, `${baseURL}/plan/setup`);
+		await setCurrencyCookie(page, baseURL!, 'ARS');
+		if (created) await postDelete(page, baseURL!, `${baseURL}/plan/setup`);
 	}
 });

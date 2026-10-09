@@ -1,14 +1,14 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { pgErrorCode } from '$lib/server/db/errors';
+import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
 import { notFoundHelpers } from '$lib/server/not-found';
 import { DELETE_REFERENCED_MESSAGE, accountActions, withBalances } from '$lib/server/accounts';
 import {
 	accountOriginSums,
-	accountReferenced,
 	accountTransfersIn,
 	deleteAccount,
 	getAccount,
+	isAccountReferenced,
 	setArchived
 } from '$lib/server/accounts-queries';
 
@@ -23,20 +23,16 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const [sums, ins, referenced] = await Promise.all([
 		accountOriginSums(userId, account.id),
 		accountTransfersIn(userId, account.id),
-		accountReferenced(userId, account.id)
+		isAccountReferenced(userId, account.id)
 	]);
-	const [{ balance }] = withBalances(
-		[account],
-		sums,
-		ins.flatMap((t) => (t.accountId ? [{ ...t, accountId: t.accountId }] : []))
-	);
+	const [{ balance }] = withBalances([account], sums, ins);
 	const { archivedAt, ...rest } = account;
 	const archived = archivedAt !== null;
 
 	return {
 		account: { ...rest, archived },
 		balance,
-		actions: accountActions({ referenced: referenced.length > 0, archived })
+		actions: accountActions({ referenced, archived })
 	};
 };
 
@@ -55,14 +51,14 @@ export const actions: Actions = {
 	delete: async ({ locals, params }) => {
 		const userId = locals.user!.id;
 		requireId(params.id);
-		if ((await accountReferenced(userId, params.id)).length > 0)
+		if (await isAccountReferenced(userId, params.id))
 			return fail(409, { error: DELETE_REFERENCED_MESSAGE });
 		let rows;
 		try {
 			rows = await deleteAccount(userId, params.id);
 		} catch (e) {
-			const code = pgErrorCode(e);
-			if (code === '23503') return fail(409, { error: DELETE_REFERENCED_MESSAGE });
+			if (pgErrorCode(e) === PG_FOREIGN_KEY_VIOLATION)
+				return fail(409, { error: DELETE_REFERENCED_MESSAGE });
 			throw e;
 		}
 		if (rows.length === 0) notFound();

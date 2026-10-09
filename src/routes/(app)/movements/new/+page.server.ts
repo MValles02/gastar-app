@@ -1,17 +1,17 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { pgErrorCode } from '$lib/server/db/errors';
-import { dev } from '$app/environment';
+import { PREFERENCE_COOKIE_OPTIONS } from '$lib/server/cookies';
 import type { Actions, PageServerLoad } from './$types';
-import { toIconKey, toSwatchKey } from '$lib/appearance';
-import { getAccount, listAccounts } from '$lib/server/accounts-queries';
-import { getCategory, listCategories } from '$lib/server/categories-queries';
 import { isUuid } from '$lib/server/db/util';
 import { formatAmountInput } from '$lib/money';
 import { localDay } from '$lib/server/month';
-import { parseMovementForm, resolveMovement, UNAVAILABLE_MESSAGE } from '$lib/server/movements';
+import { parseMovementForm } from '$lib/server/movements';
 import { createMovement } from '$lib/server/movements-queries';
 import { isRecurringActive } from '$lib/server/plan';
 import { createMovementWithRule, listRecurring } from '$lib/server/plan-queries';
+import { failIfUnavailable, movementPickers, resolvePostedMovement } from '../form.server';
+
+/** Remembers the account of the last saved movement as the next form's default. */
+const LAST_ACCOUNT_COOKIE = 'last_account';
 
 /** An active recurring rule owned by the user, or undefined (inactive, foreign and invalid ids alike). */
 async function findRule(userId: string, id: FormDataEntryValue | null) {
@@ -22,26 +22,9 @@ async function findRule(userId: string, id: FormDataEntryValue | null) {
 
 export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const userId = locals.user!.id;
-	const [accountRows, categoryRows] = await Promise.all([
-		listAccounts(userId),
-		listCategories(userId)
-	]);
-	const accounts = accountRows.map((a) => ({
-		id: a.id,
-		name: a.name,
-		icon: toIconKey(a.icon),
-		color: toSwatchKey(a.color),
-		meta: a.currency,
-		currency: a.currency
-	}));
-	const categories = categoryRows.map((c) => ({
-		id: c.id,
-		name: c.name,
-		icon: 'categories' as const,
-		color: toSwatchKey(c.color)
-	}));
+	const { accounts, categories } = await movementPickers(userId);
 	const rule = await findRule(userId, url.searchParams.get('recurring'));
-	const last = cookies.get('last_account');
+	const last = cookies.get(LAST_ACCOUNT_COOKIE);
 	const defaultAccountId = accounts.some((a) => a.id === last)
 		? last!
 		: accounts.length === 1
@@ -88,20 +71,7 @@ export const actions: Actions = {
 		if (!parsed.ok) return fail(400, { values, errors: parsed.errors });
 		const { data } = parsed;
 
-		const [origin, destination, category] = await Promise.all([
-			getAccount(userId, data.accountId),
-			data.type === 'transfer' && data.destinationAccountId
-				? getAccount(userId, data.destinationAccountId)
-				: Promise.resolve([]),
-			data.type !== 'transfer' && data.categoryId
-				? getCategory(userId, data.categoryId)
-				: Promise.resolve([])
-		]);
-		const resolved = resolveMovement(data, {
-			origin: origin[0],
-			destination: destination[0],
-			category: category[0]
-		});
+		const { origin, resolved } = await resolvePostedMovement(userId, data);
 		if (!resolved.ok) return fail(400, { values, errors: resolved.errors });
 
 		if (rule) {
@@ -112,7 +82,7 @@ export const actions: Actions = {
 						type: `Este pago es un ${rule.type === 'income' ? 'ingreso' : 'gasto'}.`
 					}
 				});
-			if (origin[0].currency !== rule.currency)
+			if (origin!.currency !== rule.currency)
 				return fail(400, {
 					values,
 					errors: {
@@ -137,18 +107,9 @@ export const actions: Actions = {
 				await createMovement(userId, { ...resolved.row, recurringId: rule?.id ?? null });
 			}
 		} catch (e) {
-			const code = pgErrorCode(e);
-			if (code === '23503')
-				return fail(400, { values, errors: { accountId: UNAVAILABLE_MESSAGE } });
-			throw e;
+			return failIfUnavailable(e, values);
 		}
-		cookies.set('last_account', data.accountId, {
-			path: '/',
-			maxAge: 60 * 60 * 24 * 365,
-			sameSite: 'lax',
-			httpOnly: true,
-			secure: !dev
-		});
+		cookies.set(LAST_ACCOUNT_COOKIE, data.accountId, PREFERENCE_COOKIE_OPTIONS);
 		redirect(303, rule ? '/plan?saved=1' : '/movements/new?saved=1');
 	}
 };

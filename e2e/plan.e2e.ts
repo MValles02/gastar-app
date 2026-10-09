@@ -1,28 +1,18 @@
 import { expect, test, type Page } from '@playwright/test';
-
-// Same defaults as scripts/seed.js (local demo user, not a secret).
-const email = process.env.SEED_EMAIL || 'demo@gastar.local';
-const password = process.env.SEED_PASSWORD || 'demo1234';
-
-async function login(page: Page, as = email) {
-	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(as);
-	await page.getByLabel('Contraseña').fill(password);
-	await page.getByRole('button', { name: 'Ingresar' }).click();
-	await expect(page).toHaveURL(/\/$/);
-}
-
-// Each test context sets its own cookie; reset it so specs stay independent.
-test.afterEach(async ({ context, baseURL }) => {
-	await context.addCookies([{ name: 'currency', value: 'ARS', url: baseURL! }]);
-});
+import {
+	deleteMovements,
+	deleteRules,
+	fillRule,
+	linkId,
+	login,
+	OTHER_EMAIL,
+	PHONE,
+	setCurrencyCookie,
+	SMALL_PHONE,
+	WHOLE_PESOS_ERROR
+} from './helpers';
 
 const rule = (page: Page, text: string) => page.locator('li.rule', { hasText: text });
-
-async function pick(page: Page, legend: string, name: string) {
-	await page.getByRole('button', { name: new RegExp(legend) }).click();
-	await page.getByRole('dialog').getByText(name, { exact: true }).click();
-}
 
 test('seeded rules: rent is paid, the gym is inactive and cannot be registered', async ({
 	page
@@ -37,10 +27,7 @@ test('seeded rules: rent is paid, the gym is inactive and cannot be registered',
 	const inactive = page.getByRole('region', { name: 'Inactivos' });
 	await expect(inactive).toContainText('Gimnasio');
 	await expect(inactive).toContainText('Cuenta archivada');
-	const href = await inactive
-		.getByRole('link', { name: /Gimnasio/ })
-		.evaluate((a: HTMLAnchorElement) => a.pathname);
-	const id = href.split('/').pop()!;
+	const id = await linkId(inactive.getByRole('link', { name: /Gimnasio/ }));
 	await page.goto(`/movements/new?recurring=${id}`, { waitUntil: 'networkidle' });
 	await expect(page.getByRole('heading', { level: 1, name: 'Nuevo movimiento' })).toBeVisible();
 	await expect(page.locator('input[name="recurringId"]')).toHaveCount(0);
@@ -71,7 +58,7 @@ test('a rule on an archived account can be edited and stays inactive', async ({ 
 });
 
 test('rule rows sit flush in the list card at 390px', async ({ page }) => {
-	await page.setViewportSize({ width: 390, height: 844 });
+	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	const row = page.locator('li.rule').first();
@@ -82,7 +69,7 @@ test('rule rows sit flush in the list card at 390px', async ({ page }) => {
 });
 
 test('rule text does not wrap per character at 320px and 200% text', async ({ page }) => {
-	await page.setViewportSize({ width: 320, height: 640 });
+	await page.setViewportSize(SMALL_PHONE);
 	await login(page);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await page.evaluate(() => (document.documentElement.style.fontSize = '32px'));
@@ -118,12 +105,13 @@ test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
 	await login(page);
 	const description = 'Ciclo e2e';
 	try {
-		await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
-		await page.locator('input[name="description"]').fill(description);
-		await page.locator('input[name="amount"]').fill('900');
-		await page.locator('input[name="dayOfMonth"]').fill('20');
-		await pick(page, 'Cuenta', 'Mercado Pago');
-		await pick(page, 'Categoría', 'Regalos');
+		await fillRule(page, {
+			description,
+			amount: '900',
+			day: '20',
+			account: 'Mercado Pago',
+			category: 'Regalos'
+		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		const inactive = page.getByRole('region', { name: 'Inactivos' });
@@ -154,22 +142,13 @@ test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(page.getByText(description)).toHaveCount(0);
 	} finally {
-		await page.goto('/plan');
-		const hrefs = await page
-			.locator('li.rule', { hasText: description })
-			.locator('a.row')
-			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of hrefs)
-			await page.request.post(`${href}?/delete`, {
-				form: {},
-				headers: { origin: baseURL!, accept: 'text/html' }
-			});
+		await deleteRules(page, baseURL!, description);
 	}
 });
 
 test('USD tab shows the empty state', async ({ page, baseURL }) => {
 	await login(page);
-	await page.context().addCookies([{ name: 'currency', value: 'USD', url: baseURL! }]);
+	await setCurrencyCookie(page, baseURL!, 'USD');
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await expect(page.getByText('No tenés pagos ni ingresos fijos en dólares.')).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Agregar pago fijo' })).toBeVisible();
@@ -179,20 +158,16 @@ test('USD tab shows the empty state', async ({ page, baseURL }) => {
 test('create a rule, register its payment and clean up', async ({ page, baseURL }) => {
 	await login(page);
 	const description = 'Prueba e2e';
-	const post = (href: string) =>
-		page.request.post(`${href}?/delete`, {
-			form: {},
-			headers: { origin: baseURL!, accept: 'text/html' }
-		});
 	try {
-		await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
-		await page.locator('input[name="description"]').fill(description);
-		await page.locator('input[name="amount"]').fill('1.500,50');
-		await page.locator('input[name="dayOfMonth"]').fill('15');
-		await pick(page, 'Cuenta', 'Mercado Pago');
-		await pick(page, 'Categoría', 'Regalos');
+		await fillRule(page, {
+			description,
+			amount: '1.500,50',
+			day: '15',
+			account: 'Mercado Pago',
+			category: 'Regalos'
+		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
-		await expect(page.getByText('Los montos en pesos van sin decimales.')).toBeVisible();
+		await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
 		await expect(page.locator('input[name="amount"]')).toHaveValue('1.500,50');
 		await expect(page).toHaveURL(/\/plan\/recurring\/new$/);
 
@@ -217,17 +192,8 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		await expect(rule(page, description)).toContainText('Pagado');
 		await expect(rule(page, description).getByRole('link', { name: /Registrar/ })).toHaveCount(0);
 	} finally {
-		await page.goto(`/movements?q=${encodeURIComponent(description)}`);
-		const movementHrefs = await page
-			.locator('a[href*="movements/"]')
-			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of movementHrefs.filter((h) => /\/movements\/[0-9a-f-]{36}$/.test(h)))
-			await post(href);
-		await page.goto('/plan');
-		const ruleHrefs = await rule(page, description)
-			.locator('a.row')
-			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of ruleHrefs) await post(href);
+		await deleteMovements(page, baseURL!, description);
+		await deleteRules(page, baseURL!, description);
 	}
 });
 
@@ -241,19 +207,16 @@ for (const id of ['00000000-0000-4000-8000-000000000000', 'x']) {
 }
 
 test("another user's rule is a 404", async ({ page, browser, baseURL }) => {
-	const other = await browser.newContext({ baseURL });
+	const otherContext = await browser.newContext({ baseURL });
 	let id: string;
 	try {
-		const op = await other.newPage();
-		await login(op, 'otro@gastar.local');
-		await other.addCookies([{ name: 'currency', value: 'USD', url: baseURL! }]);
-		await op.goto('/plan', { waitUntil: 'networkidle' });
-		id = await op
-			.getByRole('link', { name: /Regla ajena/ })
-			.first()
-			.evaluate((a: HTMLAnchorElement) => a.pathname.split('/').pop()!);
+		const otherPage = await otherContext.newPage();
+		await login(otherPage, OTHER_EMAIL);
+		await setCurrencyCookie(otherPage, baseURL!, 'USD');
+		await otherPage.goto('/plan', { waitUntil: 'networkidle' });
+		id = await linkId(otherPage.getByRole('link', { name: /Regla ajena/ }).first());
 	} finally {
-		await other.close();
+		await otherContext.close();
 	}
 	await login(page);
 	const res = await page.goto(`/plan/recurring/${id}`);

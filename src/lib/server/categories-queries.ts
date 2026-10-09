@@ -2,6 +2,7 @@ import { and, asc, eq, gte, ilike, inArray, isNull, lt, ne, sql } from 'drizzle-
 import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
 import { canAccessCategory, canAccessMovement, categoryOwnedBy } from './access';
+import { PG_UNIQUE_VIOLATION, pgErrorCode } from './db/errors';
 import { escapeLike } from './db/util';
 import type { CategoryData } from './categories';
 
@@ -45,7 +46,7 @@ export function categoryReferenced(userId: string, id: string) {
 		.limit(1);
 }
 
-export function categoryNameTaken(userId: string, name: string, exceptId?: string) {
+function categoryNameTaken(userId: string, name: string, exceptId?: string) {
 	return db
 		.select({ id: categories.id })
 		.from(categories)
@@ -57,6 +58,26 @@ export function categoryNameTaken(userId: string, name: string, exceptId?: strin
 			)
 		)
 		.limit(1);
+}
+
+/**
+ * Runs `write` unless another of the user's categories already has this name (case-insensitive).
+ * The unique index still catches a concurrent write that lands between the check and `write`.
+ * Returns null when the name is taken.
+ */
+export async function writeIfNameFree<T>(
+	userId: string,
+	name: string,
+	write: () => Promise<T>,
+	exceptId?: string
+): Promise<T | null> {
+	if ((await categoryNameTaken(userId, name, exceptId)).length > 0) return null;
+	try {
+		return await write();
+	} catch (e) {
+		if (pgErrorCode(e) === PG_UNIQUE_VIOLATION) return null;
+		throw e;
+	}
 }
 
 export function categoryMonthNet(userId: string, id: string, range: { start: Date; end: Date }) {

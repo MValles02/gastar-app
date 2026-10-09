@@ -1,6 +1,14 @@
-import { AMOUNT_EXAMPLE, ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '../money';
-import { ACCOUNT_ICONS, SWATCHES } from '../appearance';
-import { totalBalance, type Currency, type MovementType } from './dashboard';
+import { NAME_MAX_LENGTH } from '$lib/limits';
+import {
+	AMOUNT_EXAMPLE,
+	ARS_WHOLE_MESSAGE,
+	CURRENCIES,
+	isWholeFor,
+	parseAmount,
+	type Currency
+} from '$lib/money';
+import { ACCOUNT_ICONS, SWATCHES } from '$lib/appearance';
+import { totalBalance, type MovementType } from './dashboard';
 
 export const CURRENCY_LOCKED_MESSAGE =
 	'No podés cambiar la moneda porque la cuenta tiene movimientos.';
@@ -15,9 +23,10 @@ export type AccountData = {
 	color: string;
 };
 export type AccountFormErrors = Partial<Record<keyof AccountData, string>>;
-export type AccountFormResult =
-	| { ok: true; data: AccountData }
-	| { ok: false; values: Record<string, string>; errors: AccountFormErrors };
+/** `values` are the raw submitted strings, for re-rendering the form after a failure. */
+export type AccountFormResult = { values: Record<string, string> } & (
+	{ ok: true; data: AccountData } | { ok: false; errors: AccountFormErrors }
+);
 
 const str = (fd: FormData, key: string) => {
 	const v = fd.get(key);
@@ -36,11 +45,13 @@ export function parseAccountForm(fd: FormData, mode: 'create' | 'edit'): Account
 
 	const name = values.name.trim();
 	if (!name) errors.name = 'Ingresá un nombre.';
-	else if (name.length > 40) errors.name = 'El nombre puede tener hasta 40 caracteres.';
+	else if (name.length > NAME_MAX_LENGTH)
+		errors.name = `El nombre puede tener hasta ${NAME_MAX_LENGTH} caracteres.`;
 
-	let currency: Currency | undefined;
-	if (values.currency === 'ARS' || values.currency === 'USD') currency = values.currency;
-	else if (!(mode === 'edit' && values.currency === '')) errors.currency = 'Elegí una moneda.';
+	const currency = CURRENCIES.find((c) => c === values.currency);
+	// A locked currency control is disabled, so edit submits none: the stored currency stays.
+	const currencyOmitted = mode === 'edit' && values.currency === '';
+	if (!currency && !currencyOmitted) errors.currency = 'Elegí una moneda.';
 
 	const rawBalance = values.initialBalance.trim();
 	const initialBalance = rawBalance === '' ? 0 : parseAmount(rawBalance);
@@ -55,6 +66,7 @@ export function parseAccountForm(fd: FormData, mode: 'create' | 'edit'): Account
 	if (Object.keys(errors).length > 0) return { ok: false, values, errors };
 	return {
 		ok: true,
+		values,
 		data: {
 			name,
 			currency,
@@ -78,7 +90,8 @@ export const accountActions = ({
 });
 
 export type OriginSum = { accountId: string; type: MovementType; amount: number };
-export type TransferIn = { accountId: string; amount: number };
+/** `accountId` is the destination account (null never matches an account). */
+export type TransferIn = { accountId: string | null; amount: number };
 
 /** Balance per account, same formula as the dashboard total (all movements, archived included). */
 export function withBalances<A extends { id: string; initialBalance: number }>(
