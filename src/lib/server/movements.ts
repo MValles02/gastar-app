@@ -20,7 +20,7 @@ export type MovementData = {
 	categoryId: string | null;
 	exchangeRate: number | null;
 };
-export type MovementField =
+type MovementField =
 	| 'type'
 	| 'occurredAt'
 	| 'description'
@@ -29,17 +29,14 @@ export type MovementField =
 	| 'destinationAccountId'
 	| 'categoryId'
 	| 'exchangeRate';
-export type MovementFormErrors = Partial<Record<MovementField, string>>;
-export type MovementFormResult =
+type MovementFormErrors = Partial<Record<MovementField, string>>;
+type MovementFormResult =
 	| { ok: true; values: Record<string, string>; data: MovementData }
 	| { ok: false; values: Record<string, string>; errors: MovementFormErrors };
 
 /** Row to insert (the owner is added by createMovement). */
-export type MovementRow = Omit<MovementData, 'exchangeRate'> & {
-	destinationAmount: number | null;
-	exchangeRate: number | null;
-};
-export type MovementResolveResult =
+export type MovementRow = MovementData & { destinationAmount: number | null };
+type MovementResolveResult =
 	{ ok: true; row: MovementRow } | { ok: false; errors: MovementFormErrors };
 
 export const UNAVAILABLE_MESSAGE = 'La cuenta o la categoría ya no está disponible.';
@@ -203,7 +200,7 @@ export type MovementFilterQuery = {
 	type: MovementType | '';
 	account: string;
 	category: string;
-	currency?: Currency | '';
+	currency: Currency | '';
 };
 
 // Year 9999 is rejected so the day after `to` is always representable.
