@@ -272,23 +272,25 @@ const cols = [
 	'recurring_id'
 ];
 
+// Removes a seeded user and everything they own, children before parents.
+async function deleteUserData(tx, id) {
+	await tx`delete from movements where user_id = ${id}`;
+	await tx`delete from spending_plans where user_id = ${id}`;
+	await tx`delete from recurring_movements where user_id = ${id}`;
+	await tx`delete from categories where user_id = ${id}`;
+	await tx`delete from financial_accounts where owner_id = ${id}`;
+	await tx`delete from session where user_id = ${id}`;
+	await tx`delete from "account" where user_id = ${id}`;
+	await tx`delete from "user" where id = ${id}`;
+}
+
 const sql = postgres(databaseUrl, { max: 1 });
 
 try {
 	const passwordHash = await hashPassword(password);
 	await sql.begin(async (tx) => {
 		const [existing] = await tx`select id from "user" where email = ${email}`;
-		if (existing) {
-			const id = existing.id;
-			await tx`delete from movements where user_id = ${id}`;
-			await tx`delete from spending_plans where user_id = ${id}`;
-			await tx`delete from recurring_movements where user_id = ${id}`;
-			await tx`delete from categories where user_id = ${id}`;
-			await tx`delete from financial_accounts where owner_id = ${id}`;
-			await tx`delete from session where user_id = ${id}`;
-			await tx`delete from "account" where user_id = ${id}`;
-			await tx`delete from "user" where id = ${id}`;
-		}
+		if (existing) await deleteUserData(tx, existing.id);
 		await tx`
 			insert into "user" (id, name, email, email_verified, created_at, updated_at)
 			values (${userId}, 'Demo', ${email}, true, now(), now())
@@ -356,17 +358,7 @@ try {
 		// Second user with USD data of its own, for the cross-user (foreign id) e2e tests.
 		const otherEmail = 'otro@gastar.local';
 		const [other] = await tx`select id from "user" where email = ${otherEmail}`;
-		if (other) {
-			const id = other.id;
-			await tx`delete from movements where user_id = ${id}`;
-			await tx`delete from spending_plans where user_id = ${id}`;
-			await tx`delete from recurring_movements where user_id = ${id}`;
-			await tx`delete from categories where user_id = ${id}`;
-			await tx`delete from financial_accounts where owner_id = ${id}`;
-			await tx`delete from session where user_id = ${id}`;
-			await tx`delete from "account" where user_id = ${id}`;
-			await tx`delete from "user" where id = ${id}`;
-		}
+		if (other) await deleteUserData(tx, other.id);
 		const otherId = randomUUID();
 		const otherAccountId = randomUUID();
 		const otherCategoryId = randomUUID();

@@ -69,8 +69,7 @@ const handleRequest: Handle = async ({ event, resolve }) => {
 	}
 
 	const theme = event.cookies.get('theme');
-	const themeAttr =
-		theme === 'light' ? 'data-theme="light"' : theme === 'dark' ? 'data-theme="dark"' : '';
+	const themeAttr = theme === 'light' || theme === 'dark' ? `data-theme="${theme}"` : '';
 
 	const colors = themeColors(theme);
 
