@@ -8,13 +8,13 @@
 	// Shared "Revisá tu email" state. The page that renders it must have a `resend` action.
 	let { email }: { email: string } = $props();
 
-	const COOLDOWN = 60;
+	const COOLDOWN_SECONDS = 60;
 	// Starts at 0 so without JS the button stays usable; the countdown only exists with JS.
 	let seconds = $state(0);
 	let sent = $state(false);
 
 	onMount(() => {
-		seconds = COOLDOWN;
+		seconds = COOLDOWN_SECONDS;
 		const timer = setInterval(() => {
 			if (seconds > 0) seconds--;
 		}, 1000);
@@ -40,7 +40,7 @@
 			}
 			return async ({ update }) => {
 				await update({ reset: false });
-				seconds = COOLDOWN;
+				seconds = COOLDOWN_SECONDS;
 				sent = true;
 			};
 		}}

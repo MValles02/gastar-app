@@ -1,10 +1,11 @@
 import { fail } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
-import { auth } from '$lib/server/auth';
+import { auth, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '$lib/server/auth';
 import { isBlocked, record } from '$lib/server/rate-limit';
 import type { Actions } from './$types';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NAME_MAX_LENGTH = 80;
 
 export const actions: Actions = {
 	signup: async ({ request, getClientAddress }) => {
@@ -24,9 +25,9 @@ export const actions: Actions = {
 
 		const errors: { name?: string; email?: string; password?: string } = {};
 		if (!name) errors.name = 'Falta el nombre.';
-		else if (name.length > 80) errors.name = 'Usá un nombre de hasta 80 caracteres.';
+		else if (name.length > NAME_MAX_LENGTH) errors.name = 'Usá un nombre de hasta 80 caracteres.';
 		if (!EMAIL_RE.test(email)) errors.email = 'Email inválido.';
-		if (password.length < 8 || password.length > 128) {
+		if (password.length < PASSWORD_MIN_LENGTH || password.length > PASSWORD_MAX_LENGTH) {
 			errors.password = 'Mínimo 8 caracteres.';
 		}
 		if (errors.name || errors.email || errors.password) {

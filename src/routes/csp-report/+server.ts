@@ -1,6 +1,7 @@
 import type { RequestHandler } from './$types';
 
 const MAX_BYTES = 8 * 1024;
+const LOG_MAX_CHARS = 1000;
 const TYPES = ['application/csp-report', 'application/reports+json', 'application/json'];
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -13,6 +14,6 @@ export const POST: RequestHandler = async ({ request }) => {
 	} catch {
 		// ignore unreadable bodies
 	}
-	console.warn(`csp-violation ${JSON.stringify(body.slice(0, 1000))}`);
+	console.warn(`csp-violation ${JSON.stringify(body.slice(0, LOG_MAX_CHARS))}`);
 	return new Response(null, { status: 204 });
 };

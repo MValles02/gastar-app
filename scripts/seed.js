@@ -15,6 +15,7 @@ if (process.env.NODE_ENV === 'production') {
 	console.error('Refusing to seed: NODE_ENV=production');
 	process.exit(1);
 }
+const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1', '[::1]'];
 let hostname;
 try {
 	hostname = new URL(databaseUrl).hostname;
@@ -22,7 +23,7 @@ try {
 	console.error('Refusing to seed: DATABASE_URL is not a valid URL');
 	process.exit(1);
 }
-if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(hostname)) {
+if (!LOCAL_HOSTS.includes(hostname)) {
 	console.error(`Refusing to seed: DATABASE_URL host "${hostname}" is not local`);
 	process.exit(1);
 }

@@ -1,5 +1,10 @@
 type Template = { subject: string; text: string; html: string };
 
+// Inline styles: email clients ignore <style> blocks and CSS variables.
+const CONTAINER_STYLE = 'font-family:system-ui,sans-serif;max-width:480px';
+const BUTTON_STYLE =
+	'display:inline-block;padding:10px 18px;background:#0f766e;color:#fff;border-radius:8px;text-decoration:none';
+
 function esc(s: string): string {
 	return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
@@ -10,12 +15,9 @@ function layout(
 	links: [label: string, url: string][]
 ): Template['html'] {
 	const buttons = links
-		.map(
-			([label, url]) =>
-				`<p><a href="${esc(url)}" style="display:inline-block;padding:10px 18px;background:#0f766e;color:#fff;border-radius:8px;text-decoration:none">${esc(label)}</a></p>`
-		)
+		.map(([label, url]) => `<p><a href="${esc(url)}" style="${BUTTON_STYLE}">${esc(label)}</a></p>`)
 		.join('');
-	return `<div style="font-family:system-ui,sans-serif;max-width:480px"><p>Hola, ${esc(name)}.</p><p>${body}</p>${buttons}</div>`;
+	return `<div style="${CONTAINER_STYLE}"><p>Hola, ${esc(name)}.</p><p>${body}</p>${buttons}</div>`;
 }
 
 export function verifyEmail(name: string, link: string): Template {
