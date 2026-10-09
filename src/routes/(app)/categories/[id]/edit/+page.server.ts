@@ -1,14 +1,14 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
-import { isUuid } from '$lib/server/db/util';
+import { notFoundHelpers } from '$lib/server/not-found';
 import { DUPLICATE_NAME_MESSAGE, parseCategoryForm } from '$lib/server/categories';
 import { categoryNameTaken, getCategory, updateCategory } from '$lib/server/categories-queries';
 
-const notFound = () => error(404, 'Categoría no encontrada.');
+const { notFound, requireId } = notFoundHelpers('Categoría no encontrada.');
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!isUuid(params.id)) notFound();
+	requireId(params.id);
 	const [category] = await getCategory(locals.user!.id, params.id);
 	if (!category) notFound();
 	return {
@@ -20,7 +20,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 export const actions: Actions = {
 	default: async ({ request, locals, params }) => {
 		const userId = locals.user!.id;
-		if (!isUuid(params.id)) notFound();
+		requireId(params.id);
 		const parsed = parseCategoryForm(await request.formData());
 		if (!parsed.ok) return fail(400, { values: parsed.values, errors: parsed.errors });
 		const duplicate = () =>

@@ -5,7 +5,9 @@
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import MonthNav from '$lib/components/MonthNav.svelte';
 	import Money from '$lib/components/Money.svelte';
+	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { formatMoney } from '$lib/money';
 	import type { PageData } from './$types';
@@ -16,7 +18,6 @@
 	// Spending is negated so Money shows it as an outcome (red); zero stays neutral.
 	const neg = (c: number) => (c === 0 ? 0 : -c);
 	// Past 11 characters ("$ 12.345.678") the hero steps down so it never wraps or truncates.
-	const heroSmall = (c: number) => formatMoney(c, data.currency).length > 11;
 	const SLICE_COLORS = [
 		'var(--swatch-green)',
 		'var(--swatch-orange)',
@@ -36,21 +37,13 @@
 <div class="page">
 	<CurrencyTabs value={data.currency} />
 
-	<nav class="nav" aria-label="Mes">
-		<a class="arrow" href={resolve(`/reports?month=${data.nav.prev}`)} aria-label="Mes anterior">
-			<Icon name="chevron-left" />
-		</a>
-		<p class="month-label">{data.nav.label}</p>
-		{#if data.nav.isCurrent}
-			<span class="arrow disabled" role="link" aria-disabled="true" aria-label="Mes siguiente">
-				<Icon name="chevron-right" />
-			</span>
-		{:else}
-			<a class="arrow" href={resolve(`/reports?month=${data.nav.next}`)} aria-label="Mes siguiente">
-				<Icon name="chevron-right" />
-			</a>
-		{/if}
-	</nav>
+	<div class="month-nav">
+		<MonthNav
+			label={data.nav.label}
+			prevHref={resolve(`/reports?month=${data.nav.prev}`)}
+			nextHref={data.nav.isCurrent ? null : resolve(`/reports?month=${data.nav.next}`)}
+		/>
+	</div>
 
 	{#if !data.hasCurrency}
 		<EmptyState icon="accounts">Sin cuentas en {data.currency}.</EmptyState>
@@ -64,13 +57,12 @@
 				<dl class="totals">
 					<div class="box">
 						<dt class="eyebrow">Resultado</dt>
-						<dd class="hero" class:small={heroSmall(data.net)}>
-							<Money
-								cents={data.net}
-								currency={data.currency}
-								kind={data.net > 0 ? 'income' : 'plain'}
-							/>
-						</dd>
+						<HeroAmount
+							as="dd"
+							cents={data.net}
+							currency={data.currency}
+							kind={data.net > 0 ? 'income' : 'plain'}
+						/>
 					</div>
 					<div class="kv">
 						<dt class="k">Ingresos</dt>
@@ -207,42 +199,8 @@
 		color: var(--text-muted);
 	}
 
-	.nav {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
+	.month-nav {
 		margin: calc(-1 * var(--space-2));
-	}
-
-	.month-label {
-		font-size: var(--font-size-base);
-		font-weight: 600;
-	}
-
-	.arrow {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 2.75rem;
-		height: 2.75rem;
-		border-radius: var(--radius-pill);
-		color: var(--text);
-		transition: background-color 0.12s ease;
-	}
-
-	.arrow.disabled {
-		opacity: 0.35;
-		cursor: not-allowed;
-	}
-
-	a.arrow:active {
-		background: var(--muted);
-	}
-
-	@media (hover: hover) {
-		a.arrow:hover {
-			background: var(--muted);
-		}
 	}
 
 	/* Resultado card: same shape as Disponible on Inicio and Plan. */
@@ -255,21 +213,8 @@
 		flex-direction: column;
 		gap: 0.375rem;
 		padding: 1.25rem 1.25rem var(--space-4);
-	}
-
-	.hero {
-		margin: var(--space-1) 0 0;
-		max-width: 100%;
-		font-family: var(--font-display);
-		font-size: 2.75rem;
-		font-weight: 500;
-		letter-spacing: -0.02em;
-		line-height: 1.1;
+		/* Inherited by the hero amount. */
 		overflow-wrap: anywhere;
-	}
-
-	.hero.small {
-		font-size: 2.25rem;
 	}
 
 	.kv {
@@ -301,7 +246,7 @@
 	.bars {
 		list-style: none;
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(2.75rem, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(var(--tap-target), 1fr));
 		margin: 0 calc(-1 * var(--space-4));
 		padding: 0;
 	}
@@ -311,7 +256,7 @@
 		flex-direction: column;
 		align-items: center;
 		gap: var(--space-2);
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		padding: var(--space-2) 0 0.375rem;
 		border-radius: 0.75rem;
 		text-decoration: none;

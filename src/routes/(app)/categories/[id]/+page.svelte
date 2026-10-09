@@ -6,6 +6,7 @@
 	import Card from '$lib/components/Card.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import MonthNav from '$lib/components/MonthNav.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -37,29 +38,15 @@
 
 	<section aria-labelledby={labelId}>
 		<Card>
-			<nav class="nav" aria-label="Mes">
-				<a
-					class="arrow"
-					href={resolve(`/categories/${c.id}?month=${data.month.prev}`)}
-					aria-label="Mes anterior"
-				>
-					<Icon name="chevron-left" />
-				</a>
-				<p class="month-label">{data.month.label}</p>
-				{#if data.month.isCurrent}
-					<span class="arrow disabled" role="link" aria-disabled="true" aria-label="Mes siguiente">
-						<Icon name="chevron-right" />
-					</span>
-				{:else}
-					<a
-						class="arrow"
-						href={resolve(`/categories/${c.id}?month=${data.month.next}`)}
-						aria-label="Mes siguiente"
-					>
-						<Icon name="chevron-right" />
-					</a>
-				{/if}
-			</nav>
+			<div class="month-nav">
+				<MonthNav
+					label={data.month.label}
+					prevHref={resolve(`/categories/${c.id}?month=${data.month.prev}`)}
+					nextHref={data.month.isCurrent
+						? null
+						: resolve(`/categories/${c.id}?month=${data.month.next}`)}
+				/>
+			</div>
 
 			<div class="hero">
 				<IconBadge letter={c.name[0]} color={toSwatchKey(c.color)} size="3rem" />
@@ -147,35 +134,8 @@
 		gap: var(--space-4);
 	}
 
-	.nav {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
+	.month-nav {
 		margin-bottom: var(--space-3);
-	}
-
-	.month-label {
-		font-weight: 500;
-	}
-
-	.arrow {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 2.75rem;
-		height: 2.75rem;
-		border-radius: var(--radius-pill);
-		color: var(--text);
-		transition: background-color 0.15s ease;
-	}
-
-	.arrow.disabled {
-		opacity: 0.3;
-		cursor: not-allowed;
-	}
-
-	a.arrow:hover {
-		background: color-mix(in srgb, var(--primary) 8%, transparent);
 	}
 
 	.hero {

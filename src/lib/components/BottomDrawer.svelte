@@ -93,8 +93,8 @@
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
-		min-width: 2.75rem;
-		min-height: 2.75rem;
+		min-width: var(--tap-target);
+		min-height: var(--tap-target);
 		margin-inline-end: calc(var(--space-2) * -1);
 		padding: 0;
 		border: 0;

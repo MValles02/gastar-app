@@ -31,7 +31,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		padding: var(--space-3) var(--space-4);
 		border-bottom: 1px solid var(--border);
 		text-decoration: none;
@@ -39,7 +39,7 @@
 
 	@media (prefers-reduced-motion: no-preference) {
 		.row {
-			transition: background-color 0.15s ease;
+			transition: background-color var(--ease-fast);
 		}
 	}
 

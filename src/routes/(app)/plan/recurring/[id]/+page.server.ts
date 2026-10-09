@@ -1,8 +1,8 @@
-import { error, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { notFoundHelpers } from '$lib/server/not-found';
 import { toIconKey } from '$lib/appearance';
 import { formatAmountInput } from '$lib/money';
-import { isUuid } from '$lib/server/db/util';
 import {
 	deleteRecurring,
 	listRecurring,
@@ -11,10 +11,10 @@ import {
 } from '$lib/server/plan-queries';
 import { readRecurringForm, recurringPickers } from '../form.server';
 
-const notFound = () => error(404, 'Movimiento fijo no encontrado.');
+const { notFound, requireId } = notFoundHelpers('Movimiento fijo no encontrado.');
 
 async function findRule(userId: string, id: string) {
-	if (!isUuid(id)) notFound();
+	requireId(id);
 	const [rule] = await listRecurring(userId, undefined, id);
 	if (!rule) notFound();
 	return rule;

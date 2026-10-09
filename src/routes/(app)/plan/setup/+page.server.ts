@@ -1,19 +1,14 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { ARS_WHOLE_MESSAGE, formatAmountInput, isWholeFor, parseAmount } from '$lib/money';
+import { savingsFor } from '$lib/savings';
 import { listAccounts } from '$lib/server/accounts-queries';
 import { listCategories } from '$lib/server/categories-queries';
 import { singleCurrency } from '$lib/server/currency-pref';
 import type { Currency } from '$lib/server/dashboard';
 import { isUuid } from '$lib/server/db/util';
 import { currentMonth, monthLabel } from '$lib/server/month';
-import {
-	isRecurringActive,
-	lastFullMonths,
-	parseRecurringForm,
-	planSpent,
-	savingsFor
-} from '$lib/server/plan';
+import { isRecurringActive, lastFullMonths, parseRecurringForm, planSpent } from '$lib/server/plan';
 import {
 	deletePlan,
 	getPlan,

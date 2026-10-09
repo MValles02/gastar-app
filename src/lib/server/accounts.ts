@@ -65,9 +65,6 @@ export function parseAccountForm(fd: FormData, mode: 'create' | 'edit'): Account
 	};
 }
 
-export const currencyChangeAllowed = (prev: Currency, next: Currency, referenced: boolean) =>
-	prev === next || !referenced;
-
 export const accountActions = ({
 	referenced,
 	archived
