@@ -2,6 +2,7 @@ import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { ARS_WHOLE_MESSAGE, formatAmountInput, isWholeFor, parseAmount } from '$lib/money';
+import { savingsFor } from '$lib/savings';
 import { listAccounts } from '$lib/server/accounts-queries';
 import { listCategories } from '$lib/server/categories-queries';
 import { preferredCurrency } from '$lib/server/currency-pref';
@@ -15,8 +16,7 @@ import {
 	MAX_DAY_OF_MONTH,
 	parseRecurringForm,
 	PLAN_STEP,
-	planSpent,
-	savingsFor
+	planSpent
 } from '$lib/server/plan';
 import {
 	deletePlan,

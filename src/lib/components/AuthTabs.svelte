@@ -36,7 +36,7 @@
 		flex: 1;
 		display: grid;
 		place-items: center;
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		border-radius: calc(var(--radius) - 3px);
 		font-size: var(--font-size-sm);
 		font-weight: 500;

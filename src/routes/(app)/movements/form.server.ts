@@ -1,20 +1,20 @@
-import { error, fail } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import { toIconKey, toSwatchKey } from '$lib/appearance';
 import { getAccount, listAccounts } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
 import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
-import { isUuid } from '$lib/server/db/util';
+import { notFoundHelpers } from '$lib/server/not-found';
 import { type MovementData, resolveMovement, UNAVAILABLE_MESSAGE } from '$lib/server/movements';
 import { getMovement } from '$lib/server/movements-queries';
 
 /** Archived accounts/category already referenced by the movement being edited (they stay valid). */
 type KeptRefs = { accountIds: string[]; categoryId: string | null };
 
-export const notFound = () => error(404, 'Movimiento no encontrado.');
+export const { notFound, requireId } = notFoundHelpers('Movimiento no encontrado.');
 
 /** The user's movement, or a 404 (invalid, foreign and missing ids alike). */
 export async function findMovement(userId: string, id: string) {
-	if (!isUuid(id)) notFound();
+	requireId(id);
 	const [m] = await getMovement(userId, id);
 	if (!m) notFound();
 	return m;

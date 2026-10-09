@@ -15,6 +15,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
+	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { formatMoney } from '$lib/money';
 	import type { PageData } from './$types';
@@ -27,8 +28,6 @@
 	const dueClass = { paid: 'ok', today: 'warn', overdue: 'over', upcoming: '' } as const;
 
 	// Past 11 characters ("$ 12.345.678") the hero steps down so it never wraps or truncates.
-	const heroSmall = (cents: number) => formatMoney(cents, data.currency).length > 11;
-
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
 	let hydrated = $state(false);
 	onMount(() => (hydrated = true));
@@ -80,9 +79,7 @@
 								{data.plan.statusLabel}
 							</span>
 						</div>
-						<p class="hero hero-amount" class:small={heroSmall(s.available)}>
-							<Money cents={s.available} currency={data.currency} />
-						</p>
+						<HeroAmount cents={s.available} currency={data.currency} />
 						<p class="per-day">
 							<Money cents={s.perDay} currency={data.currency} />/día · {s.daysLeft}
 							{s.daysLeft === 1 ? 'día' : 'días'}
@@ -320,7 +317,7 @@
 	.section-head .add {
 		display: inline-flex;
 		align-items: center;
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		color: var(--text);
 		font-weight: 500;
 		text-decoration: underline;
@@ -340,20 +337,6 @@
 		justify-content: space-between;
 		gap: var(--space-3);
 		min-height: 1.375rem;
-	}
-
-	.hero {
-		margin-top: var(--space-1);
-		max-width: 100%;
-		font-family: var(--font-display);
-		font-size: 2.75rem;
-		font-weight: 500;
-		letter-spacing: -0.02em;
-		line-height: 1.1;
-	}
-
-	.hero.small {
-		font-size: 2.25rem;
 	}
 
 	.per-day {

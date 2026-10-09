@@ -41,12 +41,12 @@
 		text-decoration: none;
 		border-radius: var(--radius);
 		border: 1px solid transparent;
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		padding: var(--space-2) var(--space-4);
 		cursor: pointer;
 		transition:
-			opacity 0.15s ease,
-			background-color 0.15s ease;
+			opacity var(--ease-fast),
+			background-color var(--ease-fast);
 	}
 
 	.primary {

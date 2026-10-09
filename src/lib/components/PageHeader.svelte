@@ -195,8 +195,8 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 2.75rem;
-		height: 2.75rem;
+		width: var(--tap-target);
+		height: var(--tap-target);
 		text-decoration: none;
 		color: var(--text);
 	}

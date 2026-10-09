@@ -139,6 +139,9 @@ svg {
 	--radius-pill: 999px;
 
 	--content-width: 560px;
+	/* Minimum hit area for anything tappable (44px). */
+	--tap-target: 2.75rem;
+	--ease-fast: 0.15s ease;
 	/* Floating tab bar: hugs the home indicator on notched devices, 0.75rem off the edge elsewhere. */
 	--tabbar-bottom: max(0.75rem, calc(env(safe-area-inset-bottom) - 0.5rem));
 	--tabbar-height: 4rem;
@@ -227,7 +230,7 @@ button {
 	border-radius: var(--radius);
 	border: 1px solid transparent;
 	padding: var(--space-2) var(--space-4);
-	min-height: 2.75rem;
+	min-height: var(--tap-target);
 	background: var(--primary);
 	color: var(--on-primary);
 	cursor: pointer;
@@ -236,8 +239,8 @@ button {
 	justify-content: center;
 	gap: var(--space-2);
 	transition:
-		opacity 0.15s ease,
-		background-color 0.15s ease;
+		opacity var(--ease-fast),
+		background-color var(--ease-fast);
 }
 
 button:hover {
@@ -260,7 +263,7 @@ select {
 	border-radius: var(--radius);
 	padding: var(--space-2) var(--space-3);
 	width: 100%;
-	min-height: 2.75rem;
+	min-height: var(--tap-target);
 }
 
 input:not([type='radio'], [type='checkbox']):focus-visible,

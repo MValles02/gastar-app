@@ -256,7 +256,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		padding: 0 var(--space-4);
 		background: var(--surface);
 		color: var(--text);
@@ -334,7 +334,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-		transition: opacity 0.15s ease;
+		transition: opacity var(--ease-fast);
 	}
 
 	.groups[aria-busy='true'] {

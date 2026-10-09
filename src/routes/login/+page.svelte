@@ -86,7 +86,7 @@
 		align-self: flex-end;
 		display: inline-flex;
 		align-items: center;
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		margin-block: calc(-1 * var(--space-3)) calc(-1 * var(--space-2));
 		font-size: var(--font-size-sm);
 		font-weight: 500;

@@ -1,8 +1,8 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
+import { notFoundHelpers } from '$lib/server/not-found';
 import { accountActions } from '$lib/server/accounts';
-import { isUuid } from '$lib/server/db/util';
 import {
 	DELETE_REFERENCED_MESSAGE,
 	NOT_FOUND_MESSAGE,
@@ -17,11 +17,11 @@ import {
 } from '$lib/server/categories-queries';
 import { currentMonth, monthLabel, monthRange, parseMonth, shiftMonth } from '$lib/server/month';
 
-const notFound = () => error(404, NOT_FOUND_MESSAGE);
+const { notFound, requireId } = notFoundHelpers(NOT_FOUND_MESSAGE);
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const userId = locals.user!.id;
-	if (!isUuid(params.id)) notFound();
+	requireId(params.id);
 	const [category] = await getCategory(userId, params.id);
 	if (!category) notFound();
 
@@ -50,7 +50,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 const archiveAction =
 	(archive: boolean): Actions[string] =>
 	async ({ locals, params }) => {
-		if (!isUuid(params.id)) notFound();
+		requireId(params.id);
 		const rows = await setCategoryArchived(locals.user!.id, params.id, archive ? new Date() : null);
 		if (rows.length === 0) notFound();
 		return { done: true };
@@ -61,7 +61,7 @@ export const actions: Actions = {
 	unarchive: archiveAction(false),
 	delete: async ({ locals, params }) => {
 		const userId = locals.user!.id;
-		if (!isUuid(params.id)) notFound();
+		requireId(params.id);
 		const referenced = () => fail(409, { error: DELETE_REFERENCED_MESSAGE });
 
 		// Pre-check for the friendly error; ON DELETE RESTRICT still catches a movement added meanwhile.

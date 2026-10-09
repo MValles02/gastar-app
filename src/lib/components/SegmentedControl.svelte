@@ -51,15 +51,15 @@
 		flex-direction: row;
 		align-items: center;
 		justify-content: center;
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		border-radius: calc(var(--radius) - 3px);
 		font-size: var(--font-size-sm);
 		font-weight: 500;
 		color: var(--text-muted);
 		cursor: pointer;
 		transition:
-			background-color 0.15s ease,
-			color 0.15s ease;
+			background-color var(--ease-fast),
+			color var(--ease-fast);
 	}
 
 	.option span {
@@ -83,7 +83,7 @@
 	.compact .option {
 		flex: 1 0 auto;
 		white-space: nowrap;
-		min-height: calc(2.75rem - 2 * var(--space-1));
+		min-height: calc(var(--tap-target) - 2 * var(--space-1));
 		padding-inline: var(--space-2);
 		font-size: var(--font-size-sm);
 	}

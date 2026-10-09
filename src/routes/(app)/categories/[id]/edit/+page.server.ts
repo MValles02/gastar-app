@@ -1,6 +1,6 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { isUuid } from '$lib/server/db/util';
+import { notFoundHelpers } from '$lib/server/not-found';
 import {
 	DUPLICATE_NAME_MESSAGE,
 	NOT_FOUND_MESSAGE,
@@ -8,10 +8,10 @@ import {
 } from '$lib/server/categories';
 import { getCategory, updateCategory, writeIfNameFree } from '$lib/server/categories-queries';
 
-const notFound = () => error(404, NOT_FOUND_MESSAGE);
+const { notFound, requireId } = notFoundHelpers(NOT_FOUND_MESSAGE);
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!isUuid(params.id)) notFound();
+	requireId(params.id);
 	const [category] = await getCategory(locals.user!.id, params.id);
 	if (!category) notFound();
 	return {
@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 export const actions: Actions = {
 	default: async ({ request, locals, params }) => {
 		const userId = locals.user!.id;
-		if (!isUuid(params.id)) notFound();
+		requireId(params.id);
 		const parsed = parseCategoryForm(await request.formData());
 		if (!parsed.ok) return fail(400, { values: parsed.values, errors: parsed.errors });
 

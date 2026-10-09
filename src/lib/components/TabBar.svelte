@@ -89,7 +89,7 @@
 	.tab {
 		flex: 1 1 auto;
 		min-width: 0;
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -125,9 +125,9 @@
 		.tab,
 		.fab {
 			transition:
-				color 0.15s ease,
-				background-color 0.15s ease,
-				transform 0.15s ease;
+				color var(--ease-fast),
+				background-color var(--ease-fast),
+				transform var(--ease-fast);
 		}
 	}
 

@@ -1,20 +1,19 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { notFoundHelpers } from '$lib/server/not-found';
 import {
 	CURRENCY_LOCKED_MESSAGE,
-	currencyChangeAllowed,
 	parseAccountForm,
 	type AccountFormErrors
 } from '$lib/server/accounts';
-import { isUuid } from '$lib/server/db/util';
 import { getAccount, isAccountReferenced, updateAccount } from '$lib/server/accounts-queries';
 import { ARS_WHOLE_MESSAGE, formatAmountInput, isWholeFor } from '$lib/money';
 
-const notFound = () => error(404, 'Cuenta no encontrada.');
+const { notFound, requireId } = notFoundHelpers('Cuenta no encontrada.');
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const userId = locals.user!.id;
-	if (!isUuid(params.id)) notFound();
+	requireId(params.id);
 	const [account] = await getAccount(userId, params.id);
 	if (!account) notFound();
 	const referenced = await isAccountReferenced(userId, account.id);
@@ -35,7 +34,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 export const actions: Actions = {
 	default: async ({ request, locals, params }) => {
 		const userId = locals.user!.id;
-		if (!isUuid(params.id)) notFound();
+		requireId(params.id);
 		const parsed = parseAccountForm(await request.formData(), 'edit');
 		if (!parsed.ok) return fail(400, { values: parsed.values, errors: parsed.errors });
 
@@ -44,20 +43,14 @@ export const actions: Actions = {
 		const currency = parsed.data.currency ?? account.currency;
 		const failWith = (errors: AccountFormErrors) =>
 			fail(400, { values: { ...parsed.values, currency }, errors });
-		const lockedFail = () => failWith({ currency: CURRENCY_LOCKED_MESSAGE });
 		if (!isWholeFor(parsed.data.initialBalance, currency))
 			return failWith({ initialBalance: ARS_WHOLE_MESSAGE });
 
-		if (parsed.data.currency) {
-			const referenced = await isAccountReferenced(userId, account.id);
-			if (!currencyChangeAllowed(account.currency, parsed.data.currency, referenced))
-				return lockedFail();
-		}
-
 		const rows = await updateAccount(userId, params.id, parsed.data);
 		if (rows.length === 0) {
-			// Still exists for this user: the atomic currency lock rejected the update.
-			if ((await getAccount(userId, params.id)).length > 0) return lockedFail();
+			// Still exists for this user: the atomic currency lock (no currency change once referenced) rejected it.
+			if ((await getAccount(userId, params.id)).length > 0)
+				return failWith({ currency: CURRENCY_LOCKED_MESSAGE });
 			notFound();
 		}
 		redirect(303, `/accounts/${params.id}`);

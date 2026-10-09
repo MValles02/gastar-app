@@ -51,14 +51,14 @@
 	}
 
 	.control input {
-		padding-right: 2.75rem;
+		padding-right: var(--tap-target);
 	}
 
 	.eye {
 		position: absolute;
 		top: 0;
 		right: 0;
-		width: 2.75rem;
+		width: var(--tap-target);
 		height: 100%;
 		padding: 0;
 		background: none;

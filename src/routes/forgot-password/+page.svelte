@@ -54,8 +54,8 @@
 	.back {
 		display: grid;
 		place-items: center;
-		width: 2.75rem;
-		height: 2.75rem;
+		width: var(--tap-target);
+		height: var(--tap-target);
 		margin-left: calc(-1 * var(--space-3));
 		color: var(--text);
 	}

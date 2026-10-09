@@ -83,7 +83,10 @@ export function dayStart(ymd: string): Date | null {
 	if (!DAY_RE.test(ymd)) return null;
 	// Probe the offset at both ends of the day so mid-month DST transitions resolve either way.
 	for (const t of ['00:00:00', '12:00:00']) {
-		const d = new Date(`${ymd}T00:00:00${offsetAt(new Date(`${ymd}T${t}Z`))}`);
+		// Days past 31 (or 00) parse as Invalid Date, which offsetAt cannot format.
+		const probe = new Date(`${ymd}T${t}Z`);
+		if (Number.isNaN(probe.getTime())) return null;
+		const d = new Date(`${ymd}T00:00:00${offsetAt(probe)}`);
 		if (!Number.isNaN(d.getTime()) && localDay(d) === ymd) return d;
 	}
 	return null;

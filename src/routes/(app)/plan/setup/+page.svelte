@@ -12,6 +12,7 @@
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { formatAmountInput, formatMoney, parseAmount } from '$lib/money';
+	import { savingsFor } from '$lib/savings';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -81,16 +82,7 @@
 
 	const income = $derived(sumOf('income') + cents(extraIncome));
 	const bills = $derived(sumOf('outcome'));
-	// Same integer math as savingsFor on the server: 10 % / 20 % of income, whole units rounded down.
-	const savings = $derived(
-		savingsOption === '10'
-			? Math.floor(income / 1000) * 100
-			: savingsOption === '20'
-				? Math.floor(income / 500) * 100
-				: savingsOption === 'fixed'
-					? cents(savingsFixed)
-					: 0
-	);
+	const savings = $derived(savingsFor(savingsOption, income, cents(savingsFixed)));
 	const forSpending = $derived(income - bills - savings);
 	const limitTotal = $derived(Object.values(limits).reduce((a, v) => a + cents(v), 0));
 
@@ -550,7 +542,7 @@
 
 	.link {
 		align-self: flex-start;
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		padding: 0;
 		background: none;
 		border: 0;

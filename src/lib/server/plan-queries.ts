@@ -256,6 +256,62 @@ export type PlanSave = {
 	archiveIds: string[];
 };
 
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** Inserts the rules the wizard creates once every account (active, in `cur`) and category (active) is the user's. */
+async function insertRules(tx: Tx, userId: string, cur: Currency, rules: RecurringRow[]) {
+	if (rules.length === 0) return;
+	const accountIds = [...new Set(rules.map((r) => r.accountId))];
+	const categoryIds = [...new Set(rules.map((r) => r.categoryId))];
+	const [accountRows, categoryRows] = await Promise.all([
+		tx
+			.select({ id: financialAccounts.id })
+			.from(financialAccounts)
+			.where(
+				and(
+					inArray(financialAccounts.id, accountIds),
+					canAccessAccount(userId),
+					eq(financialAccounts.currency, cur),
+					isNull(financialAccounts.archivedAt)
+				)
+			),
+		tx
+			.select({ id: categories.id })
+			.from(categories)
+			.where(
+				and(
+					inArray(categories.id, categoryIds),
+					canAccessCategory(userId),
+					isNull(categories.archivedAt)
+				)
+			)
+	]);
+	if (accountRows.length !== accountIds.length || categoryRows.length !== categoryIds.length)
+		throw new PlanRejected(
+			PLAN_STEP.income,
+			'Elegí una cuenta y una categoría válidas para cada fila.'
+		);
+	await tx
+		.insert(recurringMovements)
+		.values(rules.map((r) => ({ ...r, ...recurringOwnedBy(userId) })));
+}
+
+/** Replaces the plan's limits; every category must be the user's and active. */
+async function replaceLimits(tx: Tx, userId: string, planId: string, limits: PlanSave['limits']) {
+	await tx.delete(planCategoryLimits).where(eq(planCategoryLimits.planId, planId));
+	if (limits.length === 0) return;
+	const ids = limits.map((l) => l.categoryId);
+	const owned = await tx
+		.select({ id: categories.id })
+		.from(categories)
+		.where(
+			and(inArray(categories.id, ids), canAccessCategory(userId), isNull(categories.archivedAt))
+		);
+	if (owned.length !== ids.length)
+		throw new PlanRejected(PLAN_STEP.summary, 'Elegí una categoría válida para cada límite.');
+	await tx.insert(planCategoryLimits).values(limits.map((l) => ({ ...l, planId })));
+}
+
 /**
  * Writes the user's plan for `cur`, its limits and any rules it creates or archives in ONE transaction.
  * Every account and category id is checked against the user inside it; a bad one throws `PlanRejected`
@@ -263,41 +319,7 @@ export type PlanSave = {
  */
 export function savePlan(userId: string, cur: Currency, v: PlanSave) {
 	return db.transaction(async (tx) => {
-		if (v.newRules.length > 0) {
-			const accountIds = [...new Set(v.newRules.map((r) => r.accountId))];
-			const categoryIds = [...new Set(v.newRules.map((r) => r.categoryId))];
-			const [accountRows, categoryRows] = await Promise.all([
-				tx
-					.select({ id: financialAccounts.id })
-					.from(financialAccounts)
-					.where(
-						and(
-							inArray(financialAccounts.id, accountIds),
-							canAccessAccount(userId),
-							eq(financialAccounts.currency, cur),
-							isNull(financialAccounts.archivedAt)
-						)
-					),
-				tx
-					.select({ id: categories.id })
-					.from(categories)
-					.where(
-						and(
-							inArray(categories.id, categoryIds),
-							canAccessCategory(userId),
-							isNull(categories.archivedAt)
-						)
-					)
-			]);
-			if (accountRows.length !== accountIds.length || categoryRows.length !== categoryIds.length)
-				throw new PlanRejected(
-					PLAN_STEP.income,
-					'Elegí una cuenta y una categoría válidas para cada fila.'
-				);
-			await tx
-				.insert(recurringMovements)
-				.values(v.newRules.map((r) => ({ ...r, ...recurringOwnedBy(userId) })));
-		}
+		await insertRules(tx, userId, cur, v.newRules);
 
 		if (v.archiveIds.length > 0)
 			await tx
@@ -315,19 +337,7 @@ export function savePlan(userId: string, cur: Currency, v: PlanSave) {
 			})
 			.returning({ id: spendingPlans.id });
 
-		await tx.delete(planCategoryLimits).where(eq(planCategoryLimits.planId, plan.id));
-		if (v.limits.length > 0) {
-			const ids = v.limits.map((l) => l.categoryId);
-			const owned = await tx
-				.select({ id: categories.id })
-				.from(categories)
-				.where(
-					and(inArray(categories.id, ids), canAccessCategory(userId), isNull(categories.archivedAt))
-				);
-			if (owned.length !== ids.length)
-				throw new PlanRejected(PLAN_STEP.summary, 'Elegí una categoría válida para cada límite.');
-			await tx.insert(planCategoryLimits).values(v.limits.map((l) => ({ ...l, planId: plan.id })));
-		}
+		await replaceLimits(tx, userId, plan.id, v.limits);
 		return plan.id;
 	});
 }

@@ -174,7 +174,7 @@
 	.trigger {
 		justify-content: flex-start;
 		width: 100%;
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		padding: var(--space-2) var(--space-3);
 		background: var(--surface);
 		color: var(--text);
@@ -244,7 +244,7 @@
 		flex-direction: row;
 		align-items: center;
 		gap: var(--space-3);
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		padding: var(--space-2) 0;
 		border-bottom: 1px solid var(--border);
 		font-size: var(--font-size-base);
