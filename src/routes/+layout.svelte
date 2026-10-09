@@ -17,7 +17,7 @@
 	const toastOffset = $derived(
 		isForm
 			? { top: 'calc(4.5rem + env(safe-area-inset-top))' }
-			: { bottom: 'calc(6.5rem + env(safe-area-inset-bottom))' }
+			: { bottom: 'var(--tabbar-clearance)' }
 	);
 </script>
 

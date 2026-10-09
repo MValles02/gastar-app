@@ -63,8 +63,8 @@
 
 html {
 	-webkit-text-size-adjust: 100%;
-	/* Keeps focused/anchored elements clear of the floating tab bar (4rem tall, 1.5rem above the bottom, plus the safe area). */
-	scroll-padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+	/* Keeps focused/anchored elements clear of the floating tab bar. */
+	scroll-padding-bottom: var(--tabbar-clearance);
 }
 
 /* Keeps focused/anchored elements clear of the sticky top bar (sticky only under the same query). */
@@ -139,6 +139,9 @@ svg {
 	--radius-pill: 999px;
 
 	--content-width: 560px;
+	/* Floating tab bar: hugs the home indicator on notched devices, 0.75rem off the edge elsewhere. */
+	--tabbar-bottom: max(0.75rem, calc(env(safe-area-inset-bottom) - 0.5rem));
+	--tabbar-clearance: calc(var(--tabbar-bottom) + 4rem + 0.75rem);
 
 	--space-1: 0.25rem;
 	--space-2: 0.5rem;

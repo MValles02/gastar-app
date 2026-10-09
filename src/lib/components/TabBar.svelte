@@ -47,7 +47,7 @@
 	nav {
 		position: fixed;
 		inset-inline: 1rem;
-		bottom: calc(1.5rem + env(safe-area-inset-bottom));
+		bottom: var(--tabbar-bottom);
 		max-width: var(--content-width);
 		margin-inline: auto;
 		display: flex;
