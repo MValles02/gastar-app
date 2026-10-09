@@ -246,6 +246,7 @@
 
 	.bell[aria-current='page'],
 	.avatar[aria-current='page'] {
-		box-shadow: 0 0 0 2px var(--primary);
+		/* Neutral, so the current-page ring never reads as the primary focus ring. */
+		box-shadow: 0 0 0 2px var(--border-strong);
 	}
 </style>
