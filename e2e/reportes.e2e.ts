@@ -31,11 +31,6 @@ test.beforeEach(async ({ page }) => {
 	await login(page);
 });
 
-// Each test context sets its own cookie; reset it so specs stay independent.
-test.afterEach(async ({ context, baseURL }) => {
-	await context.addCookies([{ name: 'currency', value: 'ARS', url: baseURL! }]);
-});
-
 test('tab bar is Inicio, Movimientos, Plan, Reportes plus the Nuevo movimiento button and Profile links to Cuentas and Categorías', async ({
 	page
 }) => {

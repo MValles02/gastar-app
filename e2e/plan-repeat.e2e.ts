@@ -16,11 +16,6 @@ import {
 // reads his ARS totals, so parallel workers stay independent.
 test.describe.configure({ timeout: 60_000 });
 
-// Each test context sets its own cookie; reset it so specs stay independent.
-test.afterEach(async ({ context, baseURL }) => {
-	await context.addCookies([{ name: 'currency', value: 'ARS', url: baseURL! }]);
-});
-
 const rule = (page: Page, text: string) => page.locator('li.rule', { hasText: text });
 const checkbox = (page: Page) => page.getByRole('checkbox', { name: 'Repetir cada mes' });
 /** A uniquely described ARS outcome as `otro`, filled but not submitted. */

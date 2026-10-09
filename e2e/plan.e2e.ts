@@ -12,11 +12,6 @@ import {
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
-// Each test context sets its own cookie; reset it so specs stay independent.
-test.afterEach(async ({ context, baseURL }) => {
-	await context.addCookies([{ name: 'currency', value: 'ARS', url: baseURL! }]);
-});
-
 const rule = (page: Page, text: string) => page.locator('li.rule', { hasText: text });
 
 test('seeded rules: rent is paid, the gym is inactive and cannot be registered', async ({

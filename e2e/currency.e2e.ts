@@ -17,11 +17,6 @@ test.beforeEach(async ({ page }) => {
 	await login(page);
 });
 
-// Each test context sets its own cookie; reset it so specs stay independent.
-test.afterEach(async ({ context, baseURL }) => {
-	await context.addCookies([{ name: 'currency', value: 'ARS', url: baseURL! }]);
-});
-
 test('top bar has no currency control', async ({ page }) => {
 	for (const path of [
 		'/',

@@ -14,10 +14,6 @@ import {
 // change his data too, so every assertion is about one uniquely named row, never a count.
 test.describe.configure({ timeout: 60_000 });
 
-test.afterEach(async ({ context, baseURL }) => {
-	await context.addCookies([{ name: 'currency', value: 'ARS', url: baseURL! }]);
-});
-
 const bell = (page: Page) => page.locator('header.top-bar a[aria-label^="Avisos"]');
 const pesos = (page: Page) => page.getByRole('region', { name: 'Pesos' });
 const alertRow = (page: Page, text: string) => pesos(page).locator('li', { hasText: text });
