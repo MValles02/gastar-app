@@ -128,12 +128,12 @@ test('a rejected post with the box checked writes no movement and no rule', asyn
 }) => {
 	const description = 'Atómico e2e';
 	await login(page, OTHER_EMAIL);
-	const demo = await browser.newContext({ baseURL });
+	const demoContext = await browser.newContext({ baseURL });
 	try {
-		const dp = await demo.newPage();
-		await login(dp);
-		await dp.goto('/movements/new', { waitUntil: 'networkidle' });
-		const foreignAccount = await dp
+		const demoPage = await demoContext.newPage();
+		await login(demoPage);
+		await demoPage.goto('/movements/new', { waitUntil: 'networkidle' });
+		const foreignAccount = await demoPage
 			.locator('input[name="accountId"]')
 			.first()
 			.getAttribute('value');
@@ -157,7 +157,7 @@ test('a rejected post with the box checked writes no movement and no rule', asyn
 		await page.goto('/plan', { waitUntil: 'networkidle' });
 		await expect(rule(page, description)).toHaveCount(0);
 	} finally {
-		await demo.close();
+		await demoContext.close();
 		await cleanup(page, baseURL!, description);
 	}
 });

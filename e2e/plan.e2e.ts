@@ -207,16 +207,16 @@ for (const id of ['00000000-0000-4000-8000-000000000000', 'x']) {
 }
 
 test("another user's rule is a 404", async ({ page, browser, baseURL }) => {
-	const other = await browser.newContext({ baseURL });
+	const otherContext = await browser.newContext({ baseURL });
 	let id: string;
 	try {
-		const op = await other.newPage();
-		await login(op, OTHER_EMAIL);
-		await setCurrencyCookie(op, baseURL!, 'USD');
-		await op.goto('/plan', { waitUntil: 'networkidle' });
-		id = await linkId(op.getByRole('link', { name: /Regla ajena/ }).first());
+		const otherPage = await otherContext.newPage();
+		await login(otherPage, OTHER_EMAIL);
+		await setCurrencyCookie(otherPage, baseURL!, 'USD');
+		await otherPage.goto('/plan', { waitUntil: 'networkidle' });
+		id = await linkId(otherPage.getByRole('link', { name: /Regla ajena/ }).first());
 	} finally {
-		await other.close();
+		await otherContext.close();
 	}
 	await login(page);
 	const res = await page.goto(`/plan/recurring/${id}`);
