@@ -1,6 +1,6 @@
 import { and, inArray } from 'drizzle-orm';
 import { toSwatchKey, type SwatchKey } from '../appearance';
-import { CURRENCIES, formatMoney, type Currency } from '../money';
+import { CURRENCIES, CURRENCY_NAME, formatMoney, type Currency } from '../money';
 import { canAccessCategory } from './access';
 import { hasAccountsIn } from './dashboard';
 import { accountSummary } from './dashboard-queries';
@@ -13,9 +13,6 @@ import { planView } from './plan-view';
 
 /** An unpaid fixed payment is an alert once it is overdue or due within this many days. */
 const DUE_WINDOW_DAYS = 3;
-
-/** Currency name inside alert titles ("Te pasaste del plan en pesos"). */
-const CURRENCY_NAME = { ARS: 'pesos', USD: 'dólares' } as const satisfies Record<Currency, string>;
 
 export type AlertItem = {
 	id: string;

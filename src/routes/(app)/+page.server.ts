@@ -8,7 +8,7 @@ import {
 	transfersInSum
 } from '$lib/server/dashboard-queries';
 import { monthNet, toRecentItem, topCategories, totalBalance } from '$lib/server/dashboard';
-import { singleCurrency } from '$lib/server/currency-pref';
+import { preferredCurrency } from '$lib/server/currency-pref';
 import { currentMonth, dateLabel, monthRange } from '$lib/server/month';
 import { categorySwatches } from '$lib/server/alerts';
 import { planView } from '$lib/server/plan-view';
@@ -17,7 +17,7 @@ type TopCategory = ReturnType<typeof topCategories>[number] & { color: SwatchKey
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const userId = locals.user!.id;
-	const currency = singleCurrency(cookies.get('currency'));
+	const currency = preferredCurrency(cookies);
 	const now = new Date();
 	const value = currentMonth(now);
 	const range = monthRange(value);

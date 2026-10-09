@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { NAME_MAX_LENGTH } from '$lib/server/categories';
+import { NAME_MAX_LENGTH } from '$lib/limits';
 import { hasAnyCategory, listCategories } from '$lib/server/categories-queries';
 
 export const load: PageServerLoad = async ({ locals, url }) => {

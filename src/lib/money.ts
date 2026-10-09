@@ -3,6 +3,12 @@ import { LOCALE } from './locale';
 export const CURRENCIES = ['ARS', 'USD'] as const;
 export type Currency = (typeof CURRENCIES)[number];
 
+/** Spanish plural name used in running copy ("en pesos", "en dólares"). */
+export const CURRENCY_NAME = { ARS: 'pesos', USD: 'dólares' } as const satisfies Record<
+	Currency,
+	string
+>;
+
 const NBSP = '\u00A0';
 const intFmt = new Intl.NumberFormat(LOCALE);
 

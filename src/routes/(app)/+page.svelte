@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { CURRENCY_NAME } from '$lib/money';
 	import { LOCALE } from '$lib/locale';
 	import { resolve } from '$app/paths';
 	import Check from '@lucide/svelte/icons/check';
@@ -18,7 +19,6 @@
 	let { data }: { data: PageData } = $props();
 
 	const percent = new Intl.NumberFormat(LOCALE, { style: 'percent' });
-	const currencyName = { ARS: 'pesos', USD: 'dólares' } as const;
 	const statusIcon = { ok: Check, warn: Clock, over: CircleAlert } as const;
 
 	// Past 11 characters ("$ 12.345.678") the hero steps down so it never wraps or truncates.
@@ -105,7 +105,7 @@
 							{#if data.plan?.endedMonthName}
 								<p class="strong">Terminó el plan de {data.plan.endedMonthName}.</p>
 							{/if}
-							<p class="strong">Sin plan en {currencyName[data.currency]}.</p>
+							<p class="strong">Sin plan en {CURRENCY_NAME[data.currency]}.</p>
 							<Button href={resolve('/plan/setup')} variant="secondary">Crear plan</Button>
 						</div>
 					{/if}

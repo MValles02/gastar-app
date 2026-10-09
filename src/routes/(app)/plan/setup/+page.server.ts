@@ -1,14 +1,14 @@
+import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { ARS_WHOLE_MESSAGE, formatAmountInput, isWholeFor, parseAmount } from '$lib/money';
 import { listAccounts } from '$lib/server/accounts-queries';
 import { listCategories } from '$lib/server/categories-queries';
-import { singleCurrency } from '$lib/server/currency-pref';
+import { preferredCurrency } from '$lib/server/currency-pref';
 import type { Currency } from '$lib/money';
 import { isUuid } from '$lib/server/db/util';
 import { currentMonth, monthLabel } from '$lib/server/month';
 import {
-	DESCRIPTION_MAX,
 	HISTORY_MONTHS,
 	isRecurringActive,
 	lastFullMonths,
@@ -59,7 +59,7 @@ async function setupContext(userId: string, cur: Currency, ym: string) {
 		.map((c) => ({
 			key: candidateKey(c),
 			type: c.type as 'income' | 'outcome',
-			description: c.description.slice(0, DESCRIPTION_MAX),
+			description: c.description.slice(0, DESCRIPTION_MAX_LENGTH),
 			// Averages are not always whole; ARS rules are whole pesos.
 			amount: cur === 'ARS' ? wholeUnits(c.amount) : c.amount,
 			dayOfMonth: Math.min(Math.max(c.dayOfMonth, 1), MAX_DAY_OF_MONTH),
@@ -74,7 +74,7 @@ async function setupContext(userId: string, cur: Currency, ym: string) {
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const userId = locals.user!.id;
-	const currency = singleCurrency(cookies.get('currency'));
+	const currency = preferredCurrency(cookies);
 	const ym = currentMonth(new Date());
 	const ctx = await setupContext(userId, currency, ym);
 	if (ctx.accounts.length === 0) redirect(303, '/plan');
@@ -240,7 +240,7 @@ function parseLimits(
 export const actions: Actions = {
 	save: async ({ locals, cookies, request }) => {
 		const userId = locals.user!.id;
-		const currency = singleCurrency(cookies.get('currency'));
+		const currency = preferredCurrency(cookies);
 		const ym = currentMonth(new Date());
 		const fd = await request.formData();
 		const ctx = await setupContext(userId, currency, ym);
@@ -294,7 +294,7 @@ export const actions: Actions = {
 		redirect(303, '/plan?planSaved=1');
 	},
 	delete: async ({ locals, cookies }) => {
-		await deletePlan(locals.user!.id, singleCurrency(cookies.get('currency')));
+		await deletePlan(locals.user!.id, preferredCurrency(cookies));
 		redirect(303, '/plan');
 	}
 };

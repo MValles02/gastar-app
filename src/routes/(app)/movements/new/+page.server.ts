@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { dev } from '$app/environment';
+import { PREFERENCE_COOKIE_OPTIONS } from '$lib/server/cookies';
 import type { Actions, PageServerLoad } from './$types';
 import { isUuid } from '$lib/server/db/util';
 import { formatAmountInput } from '$lib/money';
@@ -12,7 +12,6 @@ import { failIfUnavailable, movementPickers, resolvePostedMovement } from '../fo
 
 /** Remembers the account of the last saved movement as the next form's default. */
 const LAST_ACCOUNT_COOKIE = 'last_account';
-const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 /** An active recurring rule owned by the user, or undefined (inactive, foreign and invalid ids alike). */
 async function findRule(userId: string, id: FormDataEntryValue | null) {
@@ -110,13 +109,7 @@ export const actions: Actions = {
 		} catch (e) {
 			return failIfUnavailable(e, values);
 		}
-		cookies.set(LAST_ACCOUNT_COOKIE, data.accountId, {
-			path: '/',
-			maxAge: ONE_YEAR_SECONDS,
-			sameSite: 'lax',
-			httpOnly: true,
-			secure: !dev
-		});
+		cookies.set(LAST_ACCOUNT_COOKIE, data.accountId, PREFERENCE_COOKIE_OPTIONS);
 		redirect(303, rule ? '/plan?saved=1' : '/movements/new?saved=1');
 	}
 };

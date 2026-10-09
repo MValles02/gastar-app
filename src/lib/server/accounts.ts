@@ -1,3 +1,4 @@
+import { NAME_MAX_LENGTH } from '$lib/limits';
 import {
 	AMOUNT_EXAMPLE,
 	ARS_WHOLE_MESSAGE,
@@ -12,8 +13,6 @@ import { totalBalance, type MovementType } from './dashboard';
 export const CURRENCY_LOCKED_MESSAGE =
 	'No podés cambiar la moneda porque la cuenta tiene movimientos.';
 export const DELETE_REFERENCED_MESSAGE = 'Esta cuenta tiene movimientos. Podés archivarla.';
-
-const NAME_MAX_LENGTH = 40;
 
 export type AccountData = {
 	name: string;

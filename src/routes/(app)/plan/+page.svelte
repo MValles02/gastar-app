@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { CURRENCY_NAME } from '$lib/money';
 	import Check from '@lucide/svelte/icons/check';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import Clock from '@lucide/svelte/icons/clock';
@@ -20,7 +21,6 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const currencyName = { ARS: 'pesos', USD: 'dólares' } as const;
 	const statusIcon = { ok: Check, warn: Clock, over: CircleAlert } as const;
 	// Row pill by due status: paid is green, today is orange, overdue is inverted (never red).
 	const dueIcon = { paid: Check, today: Clock, overdue: CircleAlert, upcoming: null } as const;
@@ -64,7 +64,7 @@
 	{/if}
 
 	{#if !data.hasCurrency}
-		<EmptyState icon="accounts">No tenés cuentas en {currencyName[data.currency]}.</EmptyState>
+		<EmptyState icon="accounts">No tenés cuentas en {CURRENCY_NAME[data.currency]}.</EmptyState>
 		<div class="center"><Button href={resolve('/accounts/new')}>Crear cuenta</Button></div>
 	{:else}
 		{#if data.plan.summary}
@@ -167,7 +167,7 @@
 					{#if data.plan.endedMonthName}
 						<p class="strong">Tu plan de {data.plan.endedMonthName} terminó.</p>
 					{/if}
-					<p class="strong">Todavía no tenés un plan en {currencyName[data.currency]}.</p>
+					<p class="strong">Todavía no tenés un plan en {CURRENCY_NAME[data.currency]}.</p>
 					<p class="muted">
 						Sumá tus ingresos, restá pagos fijos y ahorro, y te decimos cuánto podés gastar por día.
 					</p>
@@ -178,7 +178,7 @@
 
 		{#if !data.incomes.length && !data.outcomes.length && !data.inactive.length}
 			<EmptyState icon="plan">
-				No tenés pagos ni ingresos fijos en {currencyName[data.currency]}.
+				No tenés pagos ni ingresos fijos en {CURRENCY_NAME[data.currency]}.
 			</EmptyState>
 			<div class="center actions">
 				<Button href={resolve('/plan/recurring/new')}>Agregar pago fijo</Button>

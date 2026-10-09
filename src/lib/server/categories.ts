@@ -1,7 +1,6 @@
+import { NAME_MAX_LENGTH } from '$lib/limits';
 import { SWATCHES } from '../appearance';
 import type { Currency } from '$lib/money';
-
-export const NAME_MAX_LENGTH = 40;
 
 export const NOT_FOUND_MESSAGE = 'Categoría no encontrada.';
 export const DUPLICATE_NAME_MESSAGE = 'Ya tenés una categoría con ese nombre.';

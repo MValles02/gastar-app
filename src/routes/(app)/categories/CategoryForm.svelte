@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { NAME_MAX_LENGTH } from '$lib/limits';
 	import { tick, untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
@@ -42,7 +43,7 @@
 				<input
 					name="name"
 					type="text"
-					maxlength="40"
+					maxlength={NAME_MAX_LENGTH}
 					required
 					autocomplete="off"
 					placeholder="Agregar"

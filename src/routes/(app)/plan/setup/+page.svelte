@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 	import { onMount, tick, untrack } from 'svelte';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import { enhance } from '$app/forms';
@@ -169,7 +170,7 @@
 				<Field label="Descripción">
 					<input
 						name="new_description"
-						maxlength="60"
+						maxlength={DESCRIPTION_MAX_LENGTH}
 						autocomplete="off"
 						bind:value={row.description}
 					/>

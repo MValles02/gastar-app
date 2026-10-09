@@ -1,3 +1,4 @@
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '$lib/limits';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
@@ -8,9 +9,6 @@ import { db } from './db';
 import { sendEmail } from './email';
 import { CLIENT_IP_HEADER } from './env-check';
 import * as schema from './db/schema';
-
-export const PASSWORD_MIN_LENGTH = 8;
-export const PASSWORD_MAX_LENGTH = 128;
 
 /** Base URL for links in emails when BETTER_AUTH_URL is unset (local dev). */
 const DEV_BASE_URL = 'http://localhost:5173';

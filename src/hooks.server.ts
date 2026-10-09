@@ -5,6 +5,7 @@ import { env } from '$env/dynamic/private';
 import { auth } from '$lib/server/auth';
 import { checkEnv } from '$lib/server/env-check';
 import { themeColors } from '$lib/theme';
+import { THEME_COOKIE } from '$lib/server/cookies';
 
 if (!building && process.env.NODE_ENV === 'production') checkEnv(env);
 
@@ -68,7 +69,7 @@ const handleRequest: Handle = async ({ event, resolve }) => {
 		return new Response('Unauthorized', { status: 401 });
 	}
 
-	const theme = event.cookies.get('theme');
+	const theme = event.cookies.get(THEME_COOKIE);
 	const themeAttr = theme === 'light' || theme === 'dark' ? `data-theme="${theme}"` : '';
 
 	const colors = themeColors(theme);

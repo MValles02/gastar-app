@@ -1,3 +1,4 @@
+import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 import {
 	AMOUNT_EXAMPLE,
 	ARS_WHOLE_MESSAGE,
@@ -44,7 +45,6 @@ type MovementResolveResult =
 
 export const UNAVAILABLE_MESSAGE = 'La cuenta o la categoría ya no está disponible.';
 
-const DESCRIPTION_MAX_LENGTH = 60;
 /** Earliest movement date (the form's date input uses the same `min`). */
 const MIN_DAY = '2000-01-01';
 // A longer search term cannot match any description, so it is dropped.

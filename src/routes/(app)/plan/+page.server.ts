@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { singleCurrency } from '$lib/server/currency-pref';
+import { preferredCurrency } from '$lib/server/currency-pref';
 import { accountSummary } from '$lib/server/dashboard-queries';
 import { currentMonth, localDay, monthRange } from '$lib/server/month';
 import { dueLabel, inactiveReason, isRecurringActive, recurringStatus } from '$lib/server/plan';
@@ -18,7 +18,7 @@ const ruleRow = (r: Awaited<ReturnType<typeof listRecurring>>[number]) => ({
 
 export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const userId = locals.user!.id;
-	const currency = singleCurrency(cookies.get('currency'));
+	const currency = preferredCurrency(cookies);
 	const saved = url.searchParams.get('saved') === '1';
 	const planSaved = url.searchParams.get('planSaved') === '1';
 	const summary = await accountSummary(userId);

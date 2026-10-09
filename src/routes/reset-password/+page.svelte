@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PASSWORD_MIN_LENGTH } from '$lib/limits';
 	import { resolve } from '$app/paths';
 	import AuthForm from '$lib/components/AuthForm.svelte';
 	import AuthPage from '$lib/components/AuthPage.svelte';
@@ -44,7 +45,7 @@
 				<PasswordInput
 					bind:value={password}
 					autocomplete="new-password"
-					minlength={8}
+					minlength={PASSWORD_MIN_LENGTH}
 					invalid={!!form?.passwordError}
 					describedby={form?.passwordError ? 'password-error' : 'password-hint'}
 				/>

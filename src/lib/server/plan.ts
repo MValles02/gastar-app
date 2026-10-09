@@ -1,3 +1,4 @@
+import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 import type { Currency } from '$lib/money';
 import type { MovementType } from './dashboard';
 import { AMOUNT_EXAMPLE, parseAmount } from '../money';
@@ -6,8 +7,6 @@ import { daysInMonth, elapsedDays, lastMonths, monthRange, shiftMonth } from './
 
 /** Full months of history behind suggested rules and limits; a suggested rule appears in each of them. */
 export const HISTORY_MONTHS = 3;
-/** Longest description a recurring rule may have. */
-export const DESCRIPTION_MAX = 60;
 export const MAX_DAY_OF_MONTH = 31;
 
 /** Setup wizard steps, as shown to the user (1-based); errors send the user back to one of them. */
@@ -196,8 +195,8 @@ export function parseRecurringForm(fd: FormData): RecurringFormResult {
 	if (!type) errors.type = 'Elegí si es un ingreso o un pago.';
 	const description = values.description.trim();
 	if (!description) errors.description = 'Ingresá una descripción.';
-	else if (description.length > DESCRIPTION_MAX)
-		errors.description = `La descripción puede tener hasta ${DESCRIPTION_MAX} caracteres.`;
+	else if (description.length > DESCRIPTION_MAX_LENGTH)
+		errors.description = `La descripción puede tener hasta ${DESCRIPTION_MAX_LENGTH} caracteres.`;
 	const amount = parseAmount(values.amount);
 	if (amount === null || amount <= 0)
 		errors.amount = `Ingresá un monto mayor a cero ${AMOUNT_EXAMPLE}.`;

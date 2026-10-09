@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { singleCurrency } from '$lib/server/currency-pref';
+import { preferredCurrency } from '$lib/server/currency-pref';
 import { hasAccountsIn } from '$lib/server/dashboard';
 import { accountSummary, categorySums } from '$lib/server/dashboard-queries';
 import {
@@ -23,7 +23,7 @@ const DONUT_TOP = 4;
 
 export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const userId = locals.user!.id;
-	const currency = singleCurrency(cookies.get('currency'));
+	const currency = preferredCurrency(cookies);
 	const now = new Date();
 	const current = currentMonth(now);
 	const raw = parseMonth(url.searchParams.get('month'), now);

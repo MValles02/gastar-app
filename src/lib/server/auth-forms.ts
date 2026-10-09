@@ -1,6 +1,7 @@
 import { fail, type RequestEvent } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
-import { auth, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from './auth';
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '$lib/limits';
+import { auth } from './auth';
 import { isBlocked, record } from './rate-limit';
 
 /** Page that verification links land on (Better Auth `callbackURL`). */

@@ -1,10 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { dev } from '$app/environment';
+import { PREFERENCE_COOKIE_OPTIONS } from '$lib/server/cookies';
 import { CURRENCIES } from '$lib/money';
 import { CURRENCY_COOKIE, safeRedirectTo } from '$lib/server/currency-pref';
 import type { Actions } from './$types';
 
-const ONE_YEAR_S = 60 * 60 * 24 * 365;
 /** Pre-single-currency cookie, cleared whenever the preference is saved. */
 const LEGACY_DASHBOARD_CURRENCY_COOKIE = 'dashboard_currency';
 
@@ -19,13 +18,7 @@ export const actions: Actions = {
 			return fail(400, { currencyError: 'Moneda inválida.' });
 		}
 
-		cookies.set(CURRENCY_COOKIE, value, {
-			path: '/',
-			maxAge: ONE_YEAR_S,
-			sameSite: 'lax',
-			httpOnly: true,
-			secure: !dev
-		});
+		cookies.set(CURRENCY_COOKIE, value, PREFERENCE_COOKIE_OPTIONS);
 		cookies.delete(LEGACY_DASHBOARD_CURRENCY_COOKIE, { path: '/' });
 
 		redirect(303, safeRedirectTo(data.get('redirectTo')));
