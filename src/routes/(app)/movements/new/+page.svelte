@@ -1,6 +1,9 @@
 <script lang="ts">
-	import { afterNavigate } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
+	import { afterNavigate, replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import Button from '$lib/components/Button.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -22,6 +25,25 @@
 		)
 			cameFrom = path;
 	});
+	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
+	let hydrated = $state(false);
+	onMount(() => (hydrated = true));
+	// Toast once per saved redirect. The history entry is marked (state only, the URL keeps ?saved=1)
+	// so back-nav to it does not re-fire; a new save is a new entry. Runs in afterNavigate because
+	// replaceState throws before the router is initialized (hard load of ?saved=1).
+	const markToasted = () => {
+		try {
+			replaceState('', { toasted: true } as App.PageState);
+		} catch {
+			setTimeout(markToasted, 50);
+		}
+	};
+	afterNavigate(() => {
+		if (data.saved && !form && !(page.state as { toasted?: boolean }).toasted) {
+			toast.success('Movimiento guardado.');
+			markToasted();
+		}
+	});
 	const returnTo = $derived(cameFrom ?? (data.recurring ? '/plan' : '/'));
 </script>
 
@@ -31,14 +53,14 @@
 
 <PageHeader
 	title={data.recurring ? 'Registrar pago' : 'Nuevo movimiento'}
-	back={{ href: resolve(returnTo as '/'), label: 'Volver' }}
+	close={{ href: resolve(returnTo as '/'), label: 'Cerrar' }}
 />
 
 {#if data.accounts.length === 0}
 	<EmptyState icon="plus">Necesitás al menos una cuenta para registrar movimientos.</EmptyState>
 	<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 {:else}
-	{#if data.saved && !form}<p role="status">Movimiento guardado.</p>{/if}
+	{#if data.saved && !form && !hydrated}<p role="status">Movimiento guardado.</p>{/if}
 	{#key data.formKey}
 		<MovementForm
 			initial={form?.values ??

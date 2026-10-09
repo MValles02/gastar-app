@@ -13,7 +13,7 @@
 
 <PageHeader
 	title="Editar movimiento"
-	back={{ href: resolve(`/movements/${data.id}`), label: 'Volver al movimiento' }}
+	close={{ href: resolve(`/movements/${data.id}`), label: 'Cerrar' }}
 />
 
 <MovementForm

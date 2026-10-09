@@ -52,7 +52,8 @@ async function firstDetailHref(page: Page, entity: string, query = '') {
 	return (await link.count()) ? pathOf(link) : null;
 }
 
-const backLink = (page: Page) => page.locator('header.top-bar a[aria-label^="Volver"]');
+const backLink = (page: Page) =>
+	page.locator('header.top-bar a[aria-label^="Volver"], header.top-bar a[aria-label="Cerrar"]');
 
 for (const width of widths) {
 	test(`login has no horizontal overflow at ${width}px`, async ({ page }) => {

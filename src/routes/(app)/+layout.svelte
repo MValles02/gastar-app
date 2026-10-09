@@ -1,21 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
+	import { FORM_ROUTES } from '$lib/form-routes';
 	import TabBar from '$lib/components/TabBar.svelte';
 
 	let { children }: { children: Snippet } = $props();
 
-	// Forms and the plan setup flow hide the tab bar and the new-movement button.
-	const FORM_ROUTES = new Set([
-		'/(app)/movements/new',
-		'/(app)/movements/[id]/edit',
-		'/(app)/accounts/new',
-		'/(app)/accounts/[id]/edit',
-		'/(app)/categories/new',
-		'/(app)/categories/[id]/edit',
-		'/(app)/plan/recurring/new',
-		'/(app)/plan/setup'
-	]);
 	const showBar = $derived(!FORM_ROUTES.has(page.route.id ?? ''));
 </script>
 
