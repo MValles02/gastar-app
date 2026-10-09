@@ -44,13 +44,14 @@ export function parseAmount(input: string): number | null {
 }
 
 /**
- * Cents to an editable string without grouping: "-1234" (whole ARS) or "-1234,56". Never rounds,
- * so editing shows the exact stored value; round-trips with parseAmount.
+ * Cents to an editable string with "." thousands grouping: "-1.234" (whole ARS) or "-1.234,56".
+ * Never rounds, so editing shows the exact stored value; round-trips with parseAmount.
  */
 export function formatAmountInput(cents: number, currency: Currency): string {
 	const abs = Math.abs(cents);
 	const dec = currency === 'ARS' && abs % 100 === 0 ? '' : `,${String(abs % 100).padStart(2, '0')}`;
-	return `${cents < 0 ? '-' : ''}${Math.trunc(abs / 100)}${dec}`;
+	const int = String(Math.trunc(abs / 100)).replace(/\B(?=(\d{3})+$)/g, '.');
+	return `${cents < 0 ? '-' : ''}${int}${dec}`;
 }
 
 /**

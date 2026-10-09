@@ -182,7 +182,7 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		await page.getByRole('link', { name: 'Registrar pago' }).click();
 		await expect(page.getByRole('heading', { level: 1, name: 'Registrar pago' })).toBeVisible();
 		await expect(page.locator('input[name="description"]')).toHaveValue(description);
-		await expect(page.locator('input[name="amount"]')).toHaveValue('1500');
+		await expect(page.locator('input[name="amount"]')).toHaveValue('1.500');
 		await expect(page.locator('input[name="recurringId"]')).toHaveCount(1);
 		await expect(page.getByText(`Registrás el pago de ${description} de este mes.`)).toBeVisible();
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
