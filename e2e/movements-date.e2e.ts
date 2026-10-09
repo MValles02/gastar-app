@@ -176,7 +176,7 @@ test('a legacy non-midnight row uses its Buenos Aires date everywhere', async ({
 	await page.goto(`${list}&from=2025-03-14&to=2025-03-14`);
 	await expect(page.getByText('Legado fin del día')).toBeVisible();
 	await page.goto(`${list}&from=2025-03-15&to=2025-03-15`);
-	await expect(page.getByText('No hay movimientos que coincidan con los filtros.')).toBeVisible();
+	await expect(page.getByText('Sin resultados.')).toBeVisible();
 
 	await page.goto(list);
 	await page.getByText('Legado fin del día').click();

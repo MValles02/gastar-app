@@ -162,7 +162,7 @@ test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate
 	await save(page);
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 	await openDetail(page, desc, 'USD');
-	expect(norm(await detailValue(page, 'Monto en destino').textContent())).toBe('$ 12.352');
+	expect(norm(await detailValue(page, 'En destino').textContent())).toBe('$ 12.352');
 });
 
 test('account initial balance: ARS whole only, USD keeps cents, edit prefills the stored value', async ({
