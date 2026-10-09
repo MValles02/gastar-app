@@ -1,20 +1,20 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
+import { notFoundHelpers } from '$lib/server/not-found';
 import { toIconKey, toSwatchKey } from '$lib/appearance';
 import { formatAmountInput } from '$lib/money';
-import { isUuid } from '$lib/server/db/util';
 import { getAccount, listAccounts } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
 import { localDay } from '$lib/server/month';
 import { parseMovementForm, resolveMovement, UNAVAILABLE_MESSAGE } from '$lib/server/movements';
 import { getMovement, updateMovement } from '$lib/server/movements-queries';
 
-const notFound = () => error(404, 'Movimiento no encontrado.');
+const { notFound, requireId } = notFoundHelpers('Movimiento no encontrado.');
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const userId = locals.user!.id;
-	if (!isUuid(params.id)) notFound();
+	requireId(params.id);
 	const [m] = await getMovement(userId, params.id);
 	if (!m) notFound();
 
@@ -62,7 +62,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 export const actions: Actions = {
 	default: async ({ request, locals, params }) => {
 		const userId = locals.user!.id;
-		if (!isUuid(params.id)) notFound();
+		requireId(params.id);
 		const [m] = await getMovement(userId, params.id);
 		if (!m) notFound();
 

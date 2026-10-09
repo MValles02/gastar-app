@@ -51,8 +51,8 @@
 
 	.ring {
 		display: block;
-		width: 2.75rem;
-		height: 2.75rem;
+		width: var(--tap-target);
+		height: var(--tap-target);
 		border-radius: var(--radius-pill);
 		outline: 2px solid transparent;
 		outline-offset: 2px;

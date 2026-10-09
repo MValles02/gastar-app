@@ -21,7 +21,7 @@
 		flex-direction: row;
 		align-items: center;
 		gap: var(--space-3);
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		font-size: var(--font-size-base);
 		color: var(--text);
 		cursor: pointer;

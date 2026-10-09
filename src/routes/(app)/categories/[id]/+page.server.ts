@@ -1,8 +1,8 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
+import { notFoundHelpers } from '$lib/server/not-found';
 import { accountActions } from '$lib/server/accounts';
-import { isUuid } from '$lib/server/db/util';
 import { DELETE_REFERENCED_MESSAGE, toCurrencyNets } from '$lib/server/categories';
 import {
 	categoryMonthNet,
@@ -13,11 +13,11 @@ import {
 } from '$lib/server/categories-queries';
 import { currentMonth, monthLabel, monthRange, parseMonth, shiftMonth } from '$lib/server/month';
 
-const notFound = () => error(404, 'Categoría no encontrada.');
+const { notFound, requireId } = notFoundHelpers('Categoría no encontrada.');
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const userId = locals.user!.id;
-	if (!isUuid(params.id)) notFound();
+	requireId(params.id);
 	const [category] = await getCategory(userId, params.id);
 	if (!category) notFound();
 
@@ -46,7 +46,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 const archiveAction =
 	(archive: boolean): Actions[string] =>
 	async ({ locals, params }) => {
-		if (!isUuid(params.id)) notFound();
+		requireId(params.id);
 		const rows = await setCategoryArchived(locals.user!.id, params.id, archive ? new Date() : null);
 		if (rows.length === 0) notFound();
 		return { done: true };
@@ -57,7 +57,7 @@ export const actions: Actions = {
 	unarchive: archiveAction(false),
 	delete: async ({ locals, params }) => {
 		const userId = locals.user!.id;
-		if (!isUuid(params.id)) notFound();
+		requireId(params.id);
 		if ((await categoryReferenced(userId, params.id)).length > 0)
 			return fail(409, { error: DELETE_REFERENCED_MESSAGE });
 		let rows;

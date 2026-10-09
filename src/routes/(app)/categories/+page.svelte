@@ -84,7 +84,7 @@
 	.clear {
 		display: inline-flex;
 		align-items: center;
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		font-weight: 500;
 		color: var(--text);
 		text-decoration: underline;

@@ -153,7 +153,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		font-size: var(--font-size-sm);
 		font-weight: 500;
 		color: var(--text);

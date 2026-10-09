@@ -120,8 +120,8 @@
 	.back {
 		display: grid;
 		place-items: center;
-		width: 2.75rem;
-		height: 2.75rem;
+		width: var(--tap-target);
+		height: var(--tap-target);
 		margin-left: calc(-1 * var(--space-3));
 		color: var(--text);
 	}
@@ -156,14 +156,14 @@
 	}
 
 	.control input {
-		padding-right: 2.75rem;
+		padding-right: var(--tap-target);
 	}
 
 	.eye {
 		position: absolute;
 		top: 0;
 		right: 0;
-		width: 2.75rem;
+		width: var(--tap-target);
 		height: 100%;
 		padding: 0;
 		background: none;
@@ -239,7 +239,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		min-height: 2.75rem;
+		min-height: var(--tap-target);
 		font-size: var(--font-size-sm);
 		font-weight: 500;
 		color: var(--text);
