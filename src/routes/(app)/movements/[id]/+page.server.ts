@@ -1,15 +1,11 @@
-import { error, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { isUuid } from '$lib/server/db/util';
 import { fullDateLabel } from '$lib/server/month';
-import { deleteMovement, getMovement } from '$lib/server/movements-queries';
-
-const notFound = () => error(404, 'Movimiento no encontrado.');
+import { deleteMovement } from '$lib/server/movements-queries';
+import { findMovement, notFound } from '../form.server';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!isUuid(params.id)) notFound();
-	const [m] = await getMovement(locals.user!.id, params.id);
-	if (!m) notFound();
+	const m = await findMovement(locals.user!.id, params.id);
 	return {
 		movement: {
 			id: m.id,
@@ -36,8 +32,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 export const actions: Actions = {
 	delete: async ({ locals, params }) => {
 		const userId = locals.user!.id;
-		if (!isUuid(params.id)) notFound();
-		if ((await getMovement(userId, params.id)).length === 0) notFound();
+		await findMovement(userId, params.id);
 		if ((await deleteMovement(userId, params.id)).length === 0) notFound();
 		redirect(303, '/movements');
 	}
