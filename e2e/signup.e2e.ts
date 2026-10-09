@@ -1,10 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 import { latestMail, waitForLink } from './outbox';
+import { SEED_EMAIL } from './helpers';
 
 // Rate limits are in-memory (sign-up 10/h/IP, reset 5/15min/IP, 3/15min/email, resend 5/15min/IP).
 // One full run uses 3 sign-ups (1 hour window) and 2 reset requests (15 min window), so re-running
 // the suite more than 3 times within an hour can hit them; restarting the dev server resets the counters.
-const seededEmail = process.env.SEED_EMAIL || 'demo@gastar.local';
 const password = 'e2e-pass-1234';
 let n = 0;
 const uniqueEmail = () => `e2e+${Date.now()}-${n++}@gastar.local`;
@@ -76,11 +76,11 @@ test('reset and sign-up do not reveal which emails exist', async ({ page, reques
 	expect(await latestMail(request, unknown)).toBeNull();
 
 	// A stale entry from an earlier run must not satisfy the assertion: require a newer id.
-	const beforeId = (await latestMail(request, seededEmail))?.id ?? 0;
-	await signUp(page, seededEmail);
+	const beforeId = (await latestMail(request, SEED_EMAIL))?.id ?? 0;
+	await signUp(page, SEED_EMAIL);
 	await expect
 		.poll(async () => {
-			const mail = await latestMail(request, seededEmail);
+			const mail = await latestMail(request, SEED_EMAIL);
 			return mail !== null && mail.id > beforeId && /Ya tenés una cuenta/.test(mail.subject);
 		})
 		.toBe(true);

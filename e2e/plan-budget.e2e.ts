@@ -1,14 +1,17 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
+import {
+	APP_TZ,
+	MOVEMENT_DETAIL_RE,
+	OTHER_EMAIL,
+	SEED_EMAIL,
+	SEED_PASSWORD,
+	WHOLE_PESOS_ERROR
+} from './helpers';
 
-// Same defaults as scripts/seed.js (local demo users, not secrets).
-const email = process.env.SEED_EMAIL || 'demo@gastar.local';
-const password = process.env.SEED_PASSWORD || 'demo1234';
-const otherEmail = 'otro@gastar.local';
-
-async function login(page: Page, as = email) {
+async function login(page: Page, as = SEED_EMAIL) {
 	await page.goto('/login', { waitUntil: 'networkidle' });
 	await page.getByLabel('Email').fill(as);
-	await page.getByLabel('Contraseña').fill(password);
+	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 	await expect(page).toHaveURL(/\/$/);
 }
@@ -27,7 +30,7 @@ async function foreignIds(browser: Browser, baseURL: string) {
 	const context = await browser.newContext({ baseURL });
 	try {
 		const page = await context.newPage();
-		await login(page, otherEmail);
+		await login(page, OTHER_EMAIL);
 		await page.goto('/categories', { waitUntil: 'networkidle' });
 		const category = await page
 			.getByRole('link', { name: /Ajena/ })
@@ -86,7 +89,7 @@ async function withOutcome(
 			await page
 				.locator('a[href*="movements/"]')
 				.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href))
-		).filter((h) => /\/movements\/[0-9a-f-]{36}$/.test(h));
+		).filter((h) => MOVEMENT_DETAIL_RE.test(h));
 	};
 	try {
 		await page.goto('/movements/new', { waitUntil: 'networkidle' });
@@ -94,7 +97,7 @@ async function withOutcome(
 		// The 1st of the Buenos Aires month: still this month, but not the newest movement, so specs
 		// that open "the first outcome" in parallel never pick (and lose) this transient one.
 		const first = new Date().toLocaleDateString('en-CA', {
-			timeZone: 'America/Argentina/Buenos_Aires'
+			timeZone: APP_TZ
 		});
 		await page.locator('input[name="occurredAt"]').fill(`${first.slice(0, 8)}01`);
 		await page.locator('input[name="amount"]').fill(o.amount);
@@ -185,7 +188,7 @@ test('ARS decimals are rejected in extra income and in limits', async ({ page })
 	await toStep(page, 4);
 	await savePlan(page);
 	await expect(page.getByRole('alert')).toContainText('Otros ingresos');
-	await expect(page.getByRole('alert')).toContainText('Los montos en pesos van sin decimales.');
+	await expect(page.getByRole('alert')).toContainText(WHOLE_PESOS_ERROR);
 	await expect(page).toHaveURL(/\/plan\/setup$/);
 
 	await openSetup(page);
@@ -193,7 +196,7 @@ test('ARS decimals are rejected in extra income and in limits', async ({ page })
 	await step(page, 4).getByLabel('Supermercado').fill('100,5');
 	await savePlan(page);
 	await expect(page.getByRole('alert')).toContainText('límite de Supermercado');
-	await expect(page.getByRole('alert')).toContainText('Los montos en pesos van sin decimales.');
+	await expect(page.getByRole('alert')).toContainText(WHOLE_PESOS_ERROR);
 	await expect(page).toHaveURL(/\/plan\/setup$/);
 });
 
@@ -251,7 +254,7 @@ test("another user cannot attach a limit to the demo user's category", async ({
 	const context = await browser.newContext({ baseURL });
 	try {
 		const other = await context.newPage();
-		await login(other, otherEmail);
+		await login(other, OTHER_EMAIL);
 		await setCurrency(other, 'USD', baseURL!);
 		const before = await figures(other);
 		await openSetup(other);
@@ -449,7 +452,7 @@ test('Disponible = Ingresos - Pagos fijos - Ahorro - Gastado on one page load', 
 // disturb the demo user's totals (currency.e2e.ts) or Disponible.
 test.describe('as another user', () => {
 	test.beforeEach(async ({ page, baseURL }) => {
-		await login(page, otherEmail);
+		await login(page, OTHER_EMAIL);
 		await setCurrency(page, 'USD', baseURL!);
 	});
 

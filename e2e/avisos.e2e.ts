@@ -1,8 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-
-// Same defaults as scripts/seed.js (local demo users, not secrets).
-const password = process.env.SEED_PASSWORD || 'demo1234';
-const otherEmail = 'otro@gastar.local';
+import { APP_TZ, MOVEMENT_DETAIL_RE, OTHER_EMAIL, SEED_PASSWORD } from './helpers';
 
 // Every test that writes runs as `otro` (ARS account "Otra cuenta pesos", category "Ajena"). Other specs
 // change his data too, so every assertion is about one uniquely named row, never a count.
@@ -10,8 +7,8 @@ test.describe.configure({ timeout: 60_000 });
 
 async function login(page: Page) {
 	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(otherEmail);
-	await page.getByLabel('Contraseña').fill(password);
+	await page.getByLabel('Email').fill(OTHER_EMAIL);
+	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 	await expect(page).toHaveURL(/\/$/);
 }
@@ -25,11 +22,7 @@ const pesos = (page: Page) => page.getByRole('region', { name: 'Pesos' });
 const alertRow = (page: Page, text: string) => pesos(page).locator('li', { hasText: text });
 
 const todayDay = () =>
-	Number(
-		new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
-			.format(new Date())
-			.slice(8)
-	);
+	Number(new Intl.DateTimeFormat('en-CA', { timeZone: APP_TZ }).format(new Date()).slice(8));
 
 async function pick(page: Page, legend: string, name: string) {
 	await page.getByRole('button', { name: new RegExp(legend) }).click();
@@ -74,7 +67,7 @@ test('a payment due today alerts until it is registered', async ({ page, baseURL
 		const movements = await page
 			.locator('a[href*="movements/"]')
 			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of movements.filter((h) => /\/movements\/[0-9a-f-]{36}$/.test(h)))
+		for (const href of movements.filter((h) => MOVEMENT_DETAIL_RE.test(h)))
 			await del(page, baseURL!, href);
 		await page.goto('/plan');
 		const rules = await page

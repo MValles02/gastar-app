@@ -1,13 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
-
-// Same defaults as scripts/seed.js (local demo user, not a secret).
-const email = process.env.SEED_EMAIL || 'demo@gastar.local';
-const password = process.env.SEED_PASSWORD || 'demo1234';
+import { MIN_TARGET_PX, SEED_EMAIL, SEED_PASSWORD, SMALL_PHONE } from './helpers';
 
 async function login(page: Page) {
 	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(email);
-	await page.getByLabel('Contraseña').fill(password);
+	await page.getByLabel('Email').fill(SEED_EMAIL);
+	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 	await expect(page).toHaveURL(/\/$/);
 }
@@ -130,7 +127,7 @@ test('USD current month shows no spending and no pesos', async ({ page, baseURL 
 test('six month links carry a text equivalent and fit at 320px with 200% text', async ({
 	page
 }) => {
-	await page.setViewportSize({ width: 320, height: 640 });
+	await page.setViewportSize(SMALL_PHONE);
 	await login(page);
 	await page.goto('/reports', { waitUntil: 'networkidle' });
 	const links = page.locator('ul.bars a');
@@ -141,7 +138,7 @@ test('six month links carry a text equivalent and fit at 320px with 200% text', 
 	for (const box of await links.evaluateAll((els) =>
 		els.map((el) => el.getBoundingClientRect().width)
 	))
-		expect(box).toBeGreaterThanOrEqual(44);
+		expect(box).toBeGreaterThanOrEqual(MIN_TARGET_PX);
 
 	await page.evaluate(() => (document.documentElement.style.fontSize = '32px'));
 	const { scrollWidth, clientWidth } = await page.evaluate(() => ({

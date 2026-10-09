@@ -1,13 +1,18 @@
 import { expect, test, type Page } from '@playwright/test';
+import {
+	MOVEMENT_DETAIL_RE,
+	OTHER_EMAIL,
+	PHONE,
+	SEED_EMAIL,
+	SEED_PASSWORD,
+	SMALL_PHONE,
+	WHOLE_PESOS_ERROR
+} from './helpers';
 
-// Same defaults as scripts/seed.js (local demo user, not a secret).
-const email = process.env.SEED_EMAIL || 'demo@gastar.local';
-const password = process.env.SEED_PASSWORD || 'demo1234';
-
-async function login(page: Page, as = email) {
+async function login(page: Page, as = SEED_EMAIL) {
 	await page.goto('/login', { waitUntil: 'networkidle' });
 	await page.getByLabel('Email').fill(as);
-	await page.getByLabel('Contraseña').fill(password);
+	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 	await expect(page).toHaveURL(/\/$/);
 }
@@ -71,7 +76,7 @@ test('a rule on an archived account can be edited and stays inactive', async ({ 
 });
 
 test('rule rows sit flush in the list card at 390px', async ({ page }) => {
-	await page.setViewportSize({ width: 390, height: 844 });
+	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	const row = page.locator('li.rule').first();
@@ -82,7 +87,7 @@ test('rule rows sit flush in the list card at 390px', async ({ page }) => {
 });
 
 test('rule text does not wrap per character at 320px and 200% text', async ({ page }) => {
-	await page.setViewportSize({ width: 320, height: 640 });
+	await page.setViewportSize(SMALL_PHONE);
 	await login(page);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await page.evaluate(() => (document.documentElement.style.fontSize = '32px'));
@@ -192,7 +197,7 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		await pick(page, 'Cuenta', 'Mercado Pago');
 		await pick(page, 'Categoría', 'Regalos');
 		await page.getByRole('button', { name: 'Guardar' }).click();
-		await expect(page.getByText('Los montos en pesos van sin decimales.')).toBeVisible();
+		await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
 		await expect(page.locator('input[name="amount"]')).toHaveValue('1.500,50');
 		await expect(page).toHaveURL(/\/plan\/recurring\/new$/);
 
@@ -221,8 +226,7 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		const movementHrefs = await page
 			.locator('a[href*="movements/"]')
 			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of movementHrefs.filter((h) => /\/movements\/[0-9a-f-]{36}$/.test(h)))
-			await post(href);
+		for (const href of movementHrefs.filter((h) => MOVEMENT_DETAIL_RE.test(h))) await post(href);
 		await page.goto('/plan');
 		const ruleHrefs = await rule(page, description)
 			.locator('a.row')
@@ -245,7 +249,7 @@ test("another user's rule is a 404", async ({ page, browser, baseURL }) => {
 	let id: string;
 	try {
 		const op = await other.newPage();
-		await login(op, 'otro@gastar.local');
+		await login(op, OTHER_EMAIL);
 		await other.addCookies([{ name: 'currency', value: 'USD', url: baseURL! }]);
 		await op.goto('/plan', { waitUntil: 'networkidle' });
 		id = await op

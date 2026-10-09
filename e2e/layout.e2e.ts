@@ -1,8 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-
-// Same defaults as scripts/seed.js (local demo user, not a secret).
-const email = process.env.SEED_EMAIL || 'demo@gastar.local';
-const password = process.env.SEED_PASSWORD || 'demo1234';
+import { MIN_TARGET_PX, PHONE, SEED_EMAIL, SEED_PASSWORD, SMALL_PHONE } from './helpers';
 
 const widths = [320, 390, 1280];
 const routes = [
@@ -21,8 +18,8 @@ const routes = [
 
 async function login(page: Page) {
 	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(email);
-	await page.getByLabel('Contraseña').fill(password);
+	await page.getByLabel('Email').fill(SEED_EMAIL);
+	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 	await expect(page).toHaveURL(/\/$/);
 }
@@ -81,8 +78,8 @@ test('the bell to Avisos is at least 44px at 320px', async ({ page }) => {
 	await login(page);
 	const bell = page.locator('header.top-bar a[aria-label^="Avisos"]');
 	const box = await bell.boundingBox();
-	expect(box!.width).toBeGreaterThanOrEqual(44);
-	expect(box!.height).toBeGreaterThanOrEqual(44);
+	expect(box!.width).toBeGreaterThanOrEqual(MIN_TARGET_PX);
+	expect(box!.height).toBeGreaterThanOrEqual(MIN_TARGET_PX);
 	await bell.click();
 	await expect(page).toHaveURL(/\/notifications$/);
 	await expect(bell).toHaveAttribute('aria-current', 'page');
@@ -101,7 +98,7 @@ test('detail pages have no horizontal overflow at 320px', async ({ page }) => {
 });
 
 test('h1 top is identical across pages at 390x844', async ({ page }) => {
-	await page.setViewportSize({ width: 390, height: 844 });
+	await page.setViewportSize(PHONE);
 	await login(page);
 	const account = await firstDetailHref(page, 'accounts');
 	const urls = [
@@ -134,7 +131,7 @@ for (const route of ['/accounts/new', '/movements/new']) {
 }
 
 test('movement form controls share one height of at least 44px at 390x844', async ({ page }) => {
-	await page.setViewportSize({ width: 390, height: 844 });
+	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
 	// The amount field is intentionally larger and excluded.
@@ -142,7 +139,7 @@ test('movement form controls share one height of at least 44px at 390x844', asyn
 		.locator('input[name="description"], input[name="occurredAt"], select, button.trigger')
 		.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
 	expect(heights.length).toBeGreaterThan(1);
-	for (const h of heights) expect(h).toBeGreaterThanOrEqual(44);
+	for (const h of heights) expect(h).toBeGreaterThanOrEqual(MIN_TARGET_PX);
 	expect(new Set(heights.map((h) => Math.round(h))).size).toBe(1);
 });
 
@@ -171,7 +168,7 @@ for (const width of [320, 360]) {
 test('Inicio hero amount scales with text and never breaks inside a digit group at 320px', async ({
 	page
 }) => {
-	await page.setViewportSize({ width: 320, height: 640 });
+	await page.setViewportSize(SMALL_PHONE);
 	await login(page);
 	await page.goto('/', { waitUntil: 'networkidle' });
 	const hero = page.locator('.hero-amount');
@@ -219,7 +216,7 @@ test('category detail navigates months', async ({ page }) => {
 });
 
 test('top bar is sticky and shows a hairline once scrolled at 390x844', async ({ page }) => {
-	await page.setViewportSize({ width: 390, height: 844 });
+	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/movements');
 	const bar = page.locator('header.top-bar');
@@ -333,7 +330,7 @@ test('outcomes are not coloured red on detail pages', async ({ page }) => {
 test('the tab bar is absent on the new-movement form and a focused submit stays in view at 390x844', async ({
 	page
 }) => {
-	await page.setViewportSize({ width: 390, height: 844 });
+	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
 	await page.locator('input[name="occurredAt"]').focus();
@@ -346,5 +343,5 @@ test('the tab bar is absent on the new-movement form and a focused submit stays 
 	await expect(submit).toBeInViewport();
 	await expect
 		.poll(async () => (await submit.boundingBox())!.y + (await submit.boundingBox())!.height)
-		.toBeLessThanOrEqual(844);
+		.toBeLessThanOrEqual(PHONE.height);
 });

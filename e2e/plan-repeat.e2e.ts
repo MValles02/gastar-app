@@ -1,19 +1,21 @@
 import { expect, test, type Page } from '@playwright/test';
-
-// Same defaults as scripts/seed.js (local demo users, not secrets).
-const email = process.env.SEED_EMAIL || 'demo@gastar.local';
-const password = process.env.SEED_PASSWORD || 'demo1234';
-const otherEmail = 'otro@gastar.local';
-const WHOLE_PESOS = 'Los montos en pesos van sin decimales.';
+import {
+	APP_TZ,
+	MOVEMENT_DETAIL_RE,
+	OTHER_EMAIL,
+	SEED_EMAIL,
+	SEED_PASSWORD,
+	WHOLE_PESOS_ERROR
+} from './helpers';
 
 // Every test that writes runs as `otro` (ARS account "Otra cuenta pesos", category "Ajena"): no other spec
 // reads his ARS totals, so parallel workers stay independent.
 test.describe.configure({ timeout: 60_000 });
 
-async function login(page: Page, as = email) {
+async function login(page: Page, as = SEED_EMAIL) {
 	await page.goto('/login', { waitUntil: 'networkidle' });
 	await page.getByLabel('Email').fill(as);
-	await page.getByLabel('Contraseña').fill(password);
+	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 	await expect(page).toHaveURL(/\/$/);
 }
@@ -25,10 +27,7 @@ test.afterEach(async ({ context, baseURL }) => {
 
 const rule = (page: Page, text: string) => page.locator('li.rule', { hasText: text });
 const checkbox = (page: Page) => page.getByRole('checkbox', { name: 'Repetir cada mes' });
-const todayBA = () =>
-	new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(
-		new Date()
-	);
+const todayBA = () => new Intl.DateTimeFormat('en-CA', { timeZone: APP_TZ }).format(new Date());
 
 async function pick(page: Page, legend: string, name: string) {
 	await page.getByRole('button', { name: new RegExp(legend) }).click();
@@ -49,7 +48,7 @@ async function cleanupMovements(page: Page, baseURL: string, description: string
 	const movementHrefs = await page
 		.locator('a[href*="movements/"]')
 		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-	for (const href of movementHrefs.filter((h) => /\/movements\/[0-9a-f-]{36}$/.test(h)))
+	for (const href of movementHrefs.filter((h) => MOVEMENT_DETAIL_RE.test(h)))
 		await page.request.post(`${href}?/delete`, {
 			form: {},
 			headers: { origin: baseURL, accept: 'text/html' }
@@ -67,8 +66,7 @@ async function cleanup(page: Page, baseURL: string, description: string) {
 	const movementHrefs = await page
 		.locator('a[href*="movements/"]')
 		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-	for (const href of movementHrefs.filter((h) => /\/movements\/[0-9a-f-]{36}$/.test(h)))
-		await del(href);
+	for (const href of movementHrefs.filter((h) => MOVEMENT_DETAIL_RE.test(h))) await del(href);
 	await page.goto('/plan');
 	const ruleHrefs = await rule(page, description)
 		.locator('a.row')
@@ -83,7 +81,7 @@ const movementCount = async (page: Page, description: string) => {
 
 test('Repetir cada mes creates the rule and a movement linked to it', async ({ page, baseURL }) => {
 	const description = 'Repite e2e';
-	await login(page, otherEmail);
+	await login(page, OTHER_EMAIL);
 	try {
 		await fillOutcome(page, description, '1.000');
 		await expect(checkbox(page)).not.toBeChecked();
@@ -107,7 +105,7 @@ test('Repetir cada mes creates the rule and a movement linked to it', async ({ p
 
 test('unchecked creates no rule', async ({ page, baseURL }) => {
 	const description = 'Sin repetir e2e';
-	await login(page, otherEmail);
+	await login(page, OTHER_EMAIL);
 	try {
 		await fillOutcome(page, description, '1.000');
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
@@ -122,7 +120,7 @@ test('unchecked creates no rule', async ({ page, baseURL }) => {
 
 test('a transfer hides the checkbox and never creates a rule', async ({ page, baseURL }) => {
 	const description = 'Transferencia e2e';
-	await login(page, otherEmail);
+	await login(page, OTHER_EMAIL);
 	try {
 		await page.goto('/movements/new', { waitUntil: 'networkidle' });
 		await expect(checkbox(page)).toBeVisible();
@@ -169,7 +167,7 @@ test('a rejected post with the box checked writes no movement and no rule', asyn
 	baseURL
 }) => {
 	const description = 'Atómico e2e';
-	await login(page, otherEmail);
+	await login(page, OTHER_EMAIL);
 	const demo = await browser.newContext({ baseURL });
 	try {
 		const dp = await demo.newPage();
@@ -209,12 +207,12 @@ test('ARS decimals with the box checked: message, nothing written, box kept', as
 	baseURL
 }) => {
 	const description = 'Decimales e2e';
-	await login(page, otherEmail);
+	await login(page, OTHER_EMAIL);
 	try {
 		await fillOutcome(page, description, '1.500,50');
 		await checkbox(page).check();
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
-		await expect(page.getByText(WHOLE_PESOS)).toBeVisible();
+		await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
 		await expect(page).toHaveURL(/\/movements\/new$/);
 		await expect(checkbox(page)).toBeChecked();
 		expect(await movementCount(page, description)).toBe(0);
@@ -247,7 +245,7 @@ test('Inicio with a plan shows the same Disponible as /plan and links to it', as
 	baseURL
 }) => {
 	// otro's USD plan is mutated by no spec.
-	await login(page, otherEmail);
+	await login(page, OTHER_EMAIL);
 	await page.context().addCookies([{ name: 'currency', value: 'USD', url: baseURL! }]);
 	await page.goto('/', { waitUntil: 'networkidle' });
 	const card = page.getByRole('region', { name: 'Disponible', exact: true });
@@ -263,7 +261,7 @@ test('Inicio with a plan shows the same Disponible as /plan and links to it', as
 });
 
 test('Registrar pago hides Repetir cada mes', async ({ page, baseURL }) => {
-	await login(page, otherEmail);
+	await login(page, OTHER_EMAIL);
 	await page.context().addCookies([{ name: 'currency', value: 'USD', url: baseURL! }]);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	const id = await page
@@ -282,7 +280,7 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 	const description = 'Pago categoria e2e';
 	const extra = 'Otra categoria e2e';
 	const headers = { origin: baseURL!, accept: 'text/html' };
-	await login(page, otherEmail);
+	await login(page, OTHER_EMAIL);
 	let extraId: string | undefined;
 	try {
 		const created = await page.request.post('/categories/new', {

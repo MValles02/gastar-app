@@ -1,13 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
-
-// Same defaults as scripts/seed.js (local demo user, not a secret).
-const email = process.env.SEED_EMAIL || 'demo@gastar.local';
-const password = process.env.SEED_PASSWORD || 'demo1234';
+import { MOVEMENT_DETAIL_RE, SEED_EMAIL, SEED_PASSWORD, WHOLE_PESOS_ERROR } from './helpers';
 
 async function login(page: Page) {
 	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(email);
-	await page.getByLabel('Contraseña').fill(password);
+	await page.getByLabel('Email').fill(SEED_EMAIL);
+	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 	await expect(page).toHaveURL(/\/$/);
 }
@@ -32,7 +29,7 @@ test.afterEach(async ({ page, baseURL }) => {
 		const hrefs = await page
 			.locator('a[href*="movements/"]')
 			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of hrefs.filter((h) => /\/movements\/[0-9a-f-]{36}$/.test(h))) await post(href);
+		for (const href of hrefs.filter((h) => MOVEMENT_DETAIL_RE.test(h))) await post(href);
 	}
 	for (const href of createdAccounts.splice(0)) await post(href);
 });
@@ -74,7 +71,7 @@ const save = (page: Page) => page.getByRole('button', { name: 'Guardar movimient
 const openDetail = async (page: Page, desc: string, currency: 'ARS' | 'USD' = 'ARS') => {
 	await page.goto(`/movements?q=${encodeURIComponent(desc)}&currency=${currency}`);
 	await page.getByText(desc).click();
-	await expect(page).toHaveURL(/\/movements\/[0-9a-f-]{36}$/);
+	await expect(page).toHaveURL(MOVEMENT_DETAIL_RE);
 };
 const detailValue = (page: Page, term: string) =>
 	page.locator('dt', { hasText: term }).locator('+ dd');
@@ -89,7 +86,7 @@ test('an ARS amount with decimals is rejected and the value kept', async ({ page
 		category: 'Supermercado'
 	});
 	await save(page);
-	await expect(page.getByText('Los montos en pesos van sin decimales.')).toBeVisible();
+	await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
 	await expect(page.locator('input[name="amount"]')).toHaveValue('1.500,50');
 	await expect(page).toHaveURL(/\/movements\/new$/);
 });
@@ -128,7 +125,7 @@ test('an ARS whole amount shows without decimals everywhere', async ({ page }) =
 	expect(norm(await row.textContent())).toMatch(/^-\$\s1\.500$/);
 
 	await row.click();
-	await expect(page).toHaveURL(/\/movements\/[0-9a-f-]{36}$/);
+	await expect(page).toHaveURL(MOVEMENT_DETAIL_RE);
 	await expect(page.locator('main')).toContainText(/-\$\s1\.500/);
 	expect(norm(await page.locator('main').textContent())).toMatch(/-\$ 1\.500/);
 
@@ -178,7 +175,7 @@ test('account initial balance: ARS whole only, USD keeps cents, edit prefills th
 	};
 
 	await create(`ARS cuenta ${Date.now()}`, 'ARS', '100,50');
-	await expect(page.getByText('Los montos en pesos van sin decimales.')).toBeVisible();
+	await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
 	await expect(page.getByLabel('Saldo inicial')).toHaveValue('100,50');
 	await expect(page).toHaveURL(/\/accounts\/new$/);
 

@@ -1,13 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
-
-// Same defaults as scripts/seed.js (local demo user, not a secret).
-const email = process.env.SEED_EMAIL || 'demo@gastar.local';
-const password = process.env.SEED_PASSWORD || 'demo1234';
+import { SEED_EMAIL, SEED_PASSWORD } from './helpers';
 
 async function login(page: Page) {
 	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(email);
-	await page.getByLabel('Contraseña').fill(password);
+	await page.getByLabel('Email').fill(SEED_EMAIL);
+	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 	await expect(page).toHaveURL(/\/$/);
 }

@@ -1,8 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-
-// Same defaults as scripts/seed.js (local demo user, not a secret).
-const email = process.env.SEED_EMAIL || 'demo@gastar.local';
-const password = process.env.SEED_PASSWORD || 'demo1234';
+import { MIN_TARGET_PX, SEED_EMAIL, SEED_PASSWORD } from './helpers';
 
 const tabs = [
 	{ route: '/', label: 'Inicio' },
@@ -17,8 +14,8 @@ test.use({ viewport: { width: 393, height: 852 } });
 
 test.beforeEach(async ({ page }) => {
 	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(email);
-	await page.getByLabel('Contraseña').fill(password);
+	await page.getByLabel('Email').fill(SEED_EMAIL);
+	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 	await expect(page).toHaveURL(/\/$/);
 });
@@ -44,8 +41,8 @@ test('tab routes mark the active tab, show icons only and keep 44px targets', as
 		for (const tab of await links.all()) {
 			await expect(tab, route).toHaveText('');
 			const box = await tab.boundingBox();
-			expect(box!.height, route).toBeGreaterThanOrEqual(44);
-			expect(box!.width, route).toBeGreaterThanOrEqual(44);
+			expect(box!.height, route).toBeGreaterThanOrEqual(MIN_TARGET_PX);
+			expect(box!.width, route).toBeGreaterThanOrEqual(MIN_TARGET_PX);
 		}
 
 		const fab = nav(page).getByRole('link', { name: 'Nuevo movimiento' });

@@ -1,13 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
-
-// Same defaults as scripts/seed.js (local demo user, not a secret).
-const email = process.env.SEED_EMAIL || 'demo@gastar.local';
-const password = process.env.SEED_PASSWORD || 'demo1234';
+import { MOVEMENT_DETAIL_RE, SEED_EMAIL, SEED_PASSWORD } from './helpers';
 
 async function login(page: Page) {
 	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(email);
-	await page.getByLabel('Contraseña').fill(password);
+	await page.getByLabel('Email').fill(SEED_EMAIL);
+	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 	await expect(page).toHaveURL(/\/$/);
 }
@@ -26,7 +23,7 @@ test.afterEach(async ({ page, baseURL }) => {
 		const hrefs = await page
 			.locator('a[href*="movements/"]')
 			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of hrefs.filter((h) => /\/movements\/[0-9a-f-]{36}$/.test(h)))
+		for (const href of hrefs.filter((h) => MOVEMENT_DETAIL_RE.test(h)))
 			await page.request.post(`${href}?/delete`, {
 				form: {},
 				headers: { origin: baseURL!, accept: 'text/html' }
