@@ -187,7 +187,6 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		await expect(page.getByText(`Registrás el pago de ${description} de este mes.`)).toBeVisible();
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
 
-		await expect(page).toHaveURL(/\/plan\?saved=1$/);
 		await expect(page.getByText('Pago registrado.')).toBeVisible();
 		await expect(rule(page, description)).toContainText('Pagado');
 		await expect(rule(page, description).getByRole('link', { name: /Registrar/ })).toHaveCount(0);

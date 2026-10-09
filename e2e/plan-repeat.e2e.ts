@@ -50,7 +50,11 @@ test('Repetir cada mes creates the rule and a movement linked to it', async ({ p
 		).toBeVisible();
 		await checkbox(page).check();
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
-		await expect(page).toHaveURL(/\/movements\/new\?saved=1$/);
+		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
+		// The flag is stripped from the URL, so a reload does not toast again.
+		await expect(page).not.toHaveURL(/saved=/);
+		await page.reload();
+		await expect(page.getByText('Movimiento guardado.')).toHaveCount(0);
 
 		await page.goto('/plan', { waitUntil: 'networkidle' });
 		const row = rule(page, description);
@@ -69,7 +73,7 @@ test('unchecked creates no rule', async ({ page, baseURL }) => {
 	try {
 		await fillOutcome(page, description, '1.000');
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
-		await expect(page).toHaveURL(/\/movements\/new\?saved=1$/);
+		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		expect(await movementCount(page, description)).toBe(1);
 		await page.goto('/plan', { waitUntil: 'networkidle' });
 		await expect(rule(page, description)).toHaveCount(0);
@@ -250,7 +254,7 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 		await fillOutcome(page, description, '1.000');
 		await checkbox(page).check();
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
-		await expect(page).toHaveURL(/\/movements\/new\?saved=1$/);
+		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		await page.goto('/plan', { waitUntil: 'networkidle' });
 		const id = await linkId(rule(page, description).locator('a.row'));
 		// Drop the movement the rule was created with so this month's payment is still open.

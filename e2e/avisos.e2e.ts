@@ -42,7 +42,7 @@ test('a payment due today alerts until it is registered', async ({ page, baseURL
 		await row.getByRole('link').click();
 		await expect(page.getByRole('heading', { level: 1, name: 'Registrar pago' })).toBeVisible();
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
-		await expect(page).toHaveURL(/\/plan\?saved=1$/);
+		await expect(page.getByText('Pago registrado.')).toBeVisible();
 
 		await page.goto('/notifications');
 		await expect(alertRow(page, description)).toHaveCount(0);
@@ -73,7 +73,7 @@ test('a plan alert opens /plan in its currency, and the page works without JS', 
 		await page.getByRole('button', { name: 'Siguiente' }).click();
 		created = true; // none existed above, so whatever exists after this click is ours
 		await page.getByRole('button', { name: 'Guardar plan' }).click();
-		await expect(page).toHaveURL(/\/plan\?planSaved=1$/);
+		await expect(page.getByText('Plan guardado.')).toBeVisible();
 
 		// No JS: the server-rendered page carries plain links and a form that sets the currency.
 		const html = await (await page.request.get('/notifications')).text();

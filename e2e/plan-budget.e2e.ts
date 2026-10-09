@@ -79,7 +79,7 @@ async function withOutcome(
 			category: 'Ajena'
 		});
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
-		await expect(page).toHaveURL(/saved=1/);
+		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		// Look the movement up now so the delete in `finally` is just a POST: the shorter the movement
 		// exists, the less it can disturb specs that compare account totals in parallel.
 		await find();
@@ -260,7 +260,7 @@ test('deleting a category removes its limit', async ({ page, baseURL }) => {
 		await toStep(page, 4);
 		await page.locator(`input[name="limit_${id}"]`).fill('5.000');
 		await savePlan(page);
-		await expect(page).toHaveURL(/\/plan\?planSaved=1$/);
+		await expect(page.getByText('Plan guardado.')).toBeVisible();
 		const limits = page.getByRole('region', { name: 'Límites por categoría' });
 		await expect(limits).toContainText(name);
 		await expect(limits).toContainText('5.000');
@@ -305,7 +305,7 @@ test('a rule created after the wizard loaded stays active when the plan is saved
 		// Saving re-saves the demo plan as loaded (it never showed the new rule).
 		await toStep(page, 4);
 		await savePlan(page);
-		await expect(page).toHaveURL(/\/plan\?planSaved=1$/);
+		await expect(page.getByText('Plan guardado.')).toBeVisible();
 		await expect(page.locator('li.rule', { hasText: description })).toBeVisible();
 		await expect(page.getByRole('region', { name: 'Inactivos' })).not.toContainText(description);
 	} finally {
@@ -324,7 +324,6 @@ test('saving a USD plan shows the toast, accepts cents, and deleting it removes 
 		await step(page, 1).getByLabel('Otros ingresos del mes (opcional)').fill('10,50');
 		await toStep(page, 4);
 		await savePlan(page);
-		await expect(page).toHaveURL(/\/plan\?planSaved=1$/);
 		await expect(page.getByText('Plan guardado.')).toBeVisible();
 		await expect(
 			page.locator('dl.figures dt', { hasText: 'Ingresos' }).locator('+ dd')
