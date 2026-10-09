@@ -147,7 +147,10 @@ export const categories = pgTable(
 			.$onUpdate(() => new Date())
 			.notNull()
 	},
-	(table) => [uniqueIndex('categories_user_id_name_idx').on(table.userId, table.name)]
+	// Case-insensitive, matching categoryNameTaken; a concurrent duplicate surfaces as 23505.
+	(table) => [
+		uniqueIndex('categories_user_id_lower_name_idx').on(table.userId, sql`lower(${table.name})`)
+	]
 );
 
 export const recurringMovements = pgTable(

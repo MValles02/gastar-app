@@ -29,6 +29,13 @@
       "when": 1791499709090,
       "tag": "0003_verify_existing_users",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791515513401,
+      "tag": "0004_case_insensitive_category_names",
+      "breakpoints": true
     }
   ]
 }
