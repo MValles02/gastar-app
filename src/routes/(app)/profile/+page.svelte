@@ -112,7 +112,9 @@
 	</section>
 
 	<form method="POST" action="/logout">
-		<Button type="submit" variant="secondary" block>Cerrar sesión</Button>
+		<Button type="submit" variant="secondary" block
+			><Icon name="logout" size="1.25rem" />Cerrar sesión</Button
+		>
 	</form>
 </div>
 

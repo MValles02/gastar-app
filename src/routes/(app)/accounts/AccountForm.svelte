@@ -5,6 +5,7 @@
 	import Button from '$lib/components/Button.svelte';
 	import Card from '$lib/components/Card.svelte';
 	import ColorPicker from '$lib/components/ColorPicker.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import IconPicker from '$lib/components/IconPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import type { AccountIconKey, SwatchKey } from '$lib/appearance';
@@ -65,7 +66,9 @@
 				/>
 			</label>
 			{#if errors.name}
-				<p class="error et" id="name-error" role="alert">{errors.name}</p>
+				<p class="error et" id="name-error" role="alert">
+					<Icon name="alert" size="1rem" />{errors.name}
+				</p>
 			{/if}
 		</li>
 
@@ -83,7 +86,7 @@
 				</div>
 			</div>
 			{#if errors.currency}
-				<p class="error et" role="alert">{errors.currency}</p>
+				<p class="error et" role="alert"><Icon name="alert" size="1rem" />{errors.currency}</p>
 			{/if}
 		</li>
 
@@ -103,7 +106,9 @@
 				/>
 			</label>
 			{#if errors.initialBalance}
-				<p class="error et" id="balance-error" role="alert">{errors.initialBalance}</p>
+				<p class="error et" id="balance-error" role="alert">
+					<Icon name="alert" size="1rem" />{errors.initialBalance}
+				</p>
 			{/if}
 		</li>
 	</ul>
@@ -115,14 +120,18 @@
 		<Card>
 			<IconPicker name="icon" legend="Ícono" bind:value={icon} {color} />
 		</Card>
-		{#if errors.icon}<p class="error pad" role="alert">{errors.icon}</p>{/if}
+		{#if errors.icon}<p class="error pad" role="alert">
+				<Icon name="alert" size="1rem" />{errors.icon}
+			</p>{/if}
 	</div>
 
 	<div>
 		<Card>
 			<ColorPicker name="color" legend="Color" bind:value={color} />
 		</Card>
-		{#if errors.color}<p class="error pad" role="alert">{errors.color}</p>{/if}
+		{#if errors.color}<p class="error pad" role="alert">
+				<Icon name="alert" size="1rem" />{errors.color}
+			</p>{/if}
 	</div>
 
 	<div class="bar">
@@ -221,6 +230,9 @@
 	}
 
 	.error {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--space-2);
 		color: var(--negative);
 		font-size: var(--font-size-sm);
 	}

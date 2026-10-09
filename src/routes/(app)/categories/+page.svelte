@@ -5,10 +5,10 @@
 	import Checkbox from '$lib/components/Checkbox.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
-	import Icon from '$lib/components/Icon.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -43,19 +43,29 @@
 		{:else}
 			<ul class="list-card">
 				{#each data.categories as c (c.id)}
-					<li>
+					<li class:archived={c.archivedAt}>
 						<ListRow href={resolve(`/categories/${c.id}`)}>
 							{#snippet leading()}
-								<IconBadge icon="categories" color={toSwatchKey(c.color)} />
+								<IconBadge letter={c.name[0]} color={toSwatchKey(c.color)} />
 							{/snippet}
 							{#snippet title()}{c.name}{/snippet}
 							{#snippet subtitle()}{c.archivedAt ? 'Archivada' : ''}{/snippet}
+							{#snippet trailing()}
+								<span class="chev"><Icon name="chevron-right" size="1.25rem" /></span>
+							{/snippet}
 						</ListRow>
 					</li>
 				{/each}
 			</ul>
 		{/if}
-		<a class="add-row" href={resolve('/categories/new')}><Icon name="plus" />Nueva categoría</a>
+		<ul class="list-card">
+			<li>
+				<ListRow href={resolve('/categories/new')}>
+					{#snippet leading()}<IconBadge icon="plus" color={null} neutral />{/snippet}
+					{#snippet title()}Nueva categoría{/snippet}
+				</ListRow>
+			</li>
+		</ul>
 	{/if}
 </div>
 
@@ -78,5 +88,19 @@
 		font-weight: 500;
 		color: var(--text);
 		text-decoration: underline;
+	}
+
+	.chev {
+		display: inline-flex;
+		color: var(--text-muted);
+	}
+
+	/* Archived: dimmed badge and muted name; the "Archivada" subtitle keeps it from relying on colour. */
+	.archived :global(.badge) {
+		opacity: 0.5;
+	}
+
+	.archived :global(.title) {
+		color: var(--text-muted);
 	}
 </style>
