@@ -21,6 +21,7 @@ test.afterEach(async ({ page, baseURL }) => {
 const option = (page: Page, group: 'Cuenta' | 'Categoría', name: RegExp) =>
 	page.getByRole('group', { name: group, exact: true }).getByRole('radio', { name });
 
+/** Creates a 1-peso outcome dated `date` through the no-JS form. */
 async function create(page: Page, description: string, date: string) {
 	await page.goto('/movements/new');
 	await page.locator('input[name="amount"]').fill('1');

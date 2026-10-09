@@ -99,10 +99,15 @@ test('ARS biggest outcome is the rent in the current month and two months back',
 for (const currency of ['ARS', 'USD'] as const) {
 	test(`${currency} Resultado equals the Inicio month balance`, async ({ page, baseURL }) => {
 		await setCurrencyCookie(page, baseURL!, currency);
-		await page.goto('/', { waitUntil: 'networkidle' });
-		const inicio = norm(await page.locator('.net').textContent());
-		await page.goto('/reports', { waitUntil: 'networkidle' });
-		expect(norm(await total(page, 'Resultado').textContent())).toBe(inicio);
+		// Specs running in parallel briefly add current-month movements to the demo user (e.g.
+		// ars-whole.e2e.ts, plan.e2e.ts), which can land between the two reads: retry both reads
+		// together until they see the same data.
+		await expect(async () => {
+			await page.goto('/', { waitUntil: 'networkidle' });
+			const inicio = norm(await page.locator('.net').textContent());
+			await page.goto('/reports', { waitUntil: 'networkidle' });
+			expect(norm(await total(page, 'Resultado').textContent())).toBe(inicio);
+		}).toPass({ timeout: 20_000 });
 	});
 }
 
