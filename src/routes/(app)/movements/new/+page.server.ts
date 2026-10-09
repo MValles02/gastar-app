@@ -13,6 +13,10 @@ import { createMovement } from '$lib/server/movements-queries';
 import { isRecurringActive } from '$lib/server/plan';
 import { createMovementWithRule, listRecurring } from '$lib/server/plan-queries';
 
+/** Remembers the account of the last saved movement as the next form's default. */
+const LAST_ACCOUNT_COOKIE = 'last_account';
+const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
+
 /** An active recurring rule owned by the user, or undefined (inactive, foreign and invalid ids alike). */
 async function findRule(userId: string, id: FormDataEntryValue | null) {
 	if (typeof id !== 'string' || !isUuid(id)) return undefined;
@@ -41,7 +45,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		color: toSwatchKey(c.color)
 	}));
 	const rule = await findRule(userId, url.searchParams.get('recurring'));
-	const last = cookies.get('last_account');
+	const last = cookies.get(LAST_ACCOUNT_COOKIE);
 	const defaultAccountId = accounts.some((a) => a.id === last)
 		? last!
 		: accounts.length === 1
@@ -142,9 +146,9 @@ export const actions: Actions = {
 				return fail(400, { values, errors: { accountId: UNAVAILABLE_MESSAGE } });
 			throw e;
 		}
-		cookies.set('last_account', data.accountId, {
+		cookies.set(LAST_ACCOUNT_COOKIE, data.accountId, {
 			path: '/',
-			maxAge: 60 * 60 * 24 * 365,
+			maxAge: ONE_YEAR_SECONDS,
 			sameSite: 'lax',
 			httpOnly: true,
 			secure: !dev

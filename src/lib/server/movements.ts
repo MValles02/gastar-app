@@ -44,11 +44,18 @@ export type MovementResolveResult =
 
 export const UNAVAILABLE_MESSAGE = 'La cuenta o la categoría ya no está disponible.';
 
+const DESCRIPTION_MAX_LENGTH = 60;
+/** Earliest movement date (the form's date input uses the same `min`). */
+const MIN_DAY = '2000-01-01';
+// A longer search term cannot match any description, so it is dropped.
+const QUERY_MAX_LENGTH = DESCRIPTION_MAX_LENGTH;
+const MAX_PAGE = 10000;
+
 const MSG = {
 	type: 'Elegí un tipo de movimiento.',
 	date: 'Ingresá una fecha válida.',
 	descEmpty: 'Ingresá una descripción.',
-	descLong: 'La descripción puede tener hasta 60 caracteres.',
+	descLong: `La descripción puede tener hasta ${DESCRIPTION_MAX_LENGTH} caracteres.`,
 	amount: `Ingresá un monto mayor a cero ${AMOUNT_EXAMPLE}.`,
 	account: 'Elegí una cuenta.',
 	archivedAccount: 'Esa cuenta está archivada. Elegí otra.',
@@ -86,12 +93,12 @@ export function parseMovementForm(fd: FormData): MovementFormResult {
 	if (!type) errors.type = MSG.type;
 
 	const day = values.occurredAt;
-	const occurredAt = day.slice(0, 4) >= '2000' && validDay(day) ? dayStart(day) : null;
+	const occurredAt = validDay(day) && day >= MIN_DAY ? dayStart(day) : null;
 	if (!occurredAt) errors.occurredAt = MSG.date;
 
 	const description = values.description.trim();
 	if (!description) errors.description = MSG.descEmpty;
-	else if (description.length > 60) errors.description = MSG.descLong;
+	else if (description.length > DESCRIPTION_MAX_LENGTH) errors.description = MSG.descLong;
 
 	const amount = parseAmount(values.amount);
 	if (amount === null || amount <= 0) errors.amount = MSG.amount;
@@ -212,7 +219,7 @@ export function parseMovementFilters(sp: URLSearchParams) {
 	if (from && to && from > to) [from, to] = [to, from];
 	const q = get('q').trim();
 	const query: MovementFilterQuery = {
-		q: q.length > 60 ? '' : q,
+		q: q.length > QUERY_MAX_LENGTH ? '' : q,
 		from,
 		to,
 		type: TYPES.find((t) => t === get('type')) ?? '',
@@ -221,7 +228,7 @@ export function parseMovementFilters(sp: URLSearchParams) {
 		currency: CURRENCIES.find((c) => c === get('currency')) ?? ''
 	};
 	const n = Number(get('page'));
-	const page = Number.isSafeInteger(n) && n >= 1 && n <= 10000 ? n : 1;
+	const page = Number.isSafeInteger(n) && n >= 1 && n <= MAX_PAGE ? n : 1;
 	// currency is a segmented control outside the filters disclosure: kept in `values`, not counted in `activeCount`.
 	const shown: Record<string, string> = { ...query };
 	const activeCount = Object.values({ ...shown, currency: '' }).filter(Boolean).length;
