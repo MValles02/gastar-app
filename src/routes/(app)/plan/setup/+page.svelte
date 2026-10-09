@@ -86,8 +86,13 @@
 	const forSpending = $derived(income - bills - savings);
 	const limitTotal = $derived(Object.values(limits).reduce((a, v) => a + cents(v), 0));
 
+	// Income categories are hidden unless they already have a limit (saving would drop a hidden one).
+	const limitCategories = $derived(
+		data.categories.filter((c) => c.kind !== 'income' || c.limit !== null)
+	);
+
 	function useSuggested() {
-		for (const c of data.categories)
+		for (const c of limitCategories)
 			if (c.suggested > 0) limits[c.id] = formatAmountInput(c.suggested, data.currency);
 	}
 
@@ -197,7 +202,9 @@
 					<Field label="Categoría">
 						<select name="new_categoryId" bind:value={row.categoryId}>
 							<option value="">Elegir</option>
-							{#each data.categories as c (c.id)}<option value={c.id}>{c.name}</option>{/each}
+							{#each data.categories.filter((c) => c.kind === null || c.kind === type) as c (c.id)}<option
+									value={c.id}>{c.name}</option
+								>{/each}
 						</select>
 					</Field>
 				</div>
@@ -314,12 +321,12 @@
 
 		<div class="section-head">
 			<h3>Límites por categoría (opcional)</h3>
-			{#if js && data.categories.some((c) => c.suggested > 0)}
+			{#if js && limitCategories.some((c) => c.suggested > 0)}
 				<button type="button" class="link" onclick={useSuggested}>Usar sugeridos</button>
 			{/if}
 		</div>
 		<ul class="list-card limits">
-			{#each data.categories as c (c.id)}
+			{#each limitCategories as c (c.id)}
 				<li>
 					<label>
 						<span class="limit-name">

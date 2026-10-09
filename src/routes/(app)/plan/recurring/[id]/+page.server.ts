@@ -39,7 +39,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			id: rule.categoryId,
 			name: rule.categoryName,
 			icon: 'categories' as const,
-			color: null
+			color: null,
+			kind: null
 		});
 	return {
 		...pickers,

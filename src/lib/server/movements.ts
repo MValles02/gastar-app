@@ -69,7 +69,11 @@ const MSG = {
 	zero: 'El monto convertido da 0. Revisá el monto o la cotización.',
 	overflow: 'El monto convertido es demasiado grande.',
 	category: 'Elegí una categoría.',
-	archivedCategory: 'Esa categoría está archivada. Elegí otra.'
+	archivedCategory: 'Esa categoría está archivada. Elegí otra.',
+	kindMismatch: {
+		income: 'Esa categoría es de ingresos. Elegí otra.',
+		outcome: 'Esa categoría es de gastos. Elegí otra.'
+	}
 };
 
 const TYPES: MovementType[] = ['income', 'outcome', 'transfer'];
@@ -124,7 +128,7 @@ export function parseMovementForm(fd: FormData): MovementFormResult {
 }
 
 type AccountRef = { id: string; currency: Currency; archivedAt: Date | null };
-type CategoryRef = { id: string; archivedAt: Date | null };
+type CategoryRef = { id: string; archivedAt: Date | null; kind: MovementType | null };
 
 /** Pure over looked-up (owner-checked) rows; undefined means not found / not owned. */
 export function resolveMovement(
@@ -150,6 +154,12 @@ export function resolveMovement(
 		if (!category) errors.categoryId = MSG.category;
 		else if (category.archivedAt && category.id !== keep.categoryId)
 			errors.categoryId = MSG.archivedCategory;
+		else if (
+			(category.kind === 'income' || category.kind === 'outcome') &&
+			category.kind !== data.type &&
+			category.id !== keep.categoryId
+		)
+			errors.categoryId = MSG.kindMismatch[category.kind];
 		if (Object.keys(errors).length > 0) return { ok: false, errors };
 		return {
 			ok: true,

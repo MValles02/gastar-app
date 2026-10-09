@@ -55,6 +55,7 @@ export async function movementPickers(userId: string, keep?: KeptRefs) {
 				name: c.name,
 				icon: 'categories' as const,
 				color: toSwatchKey(c.color),
+				kind: c.kind,
 				archived: c.archivedAt !== null
 			}))
 	};

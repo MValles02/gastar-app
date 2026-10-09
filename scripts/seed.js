@@ -87,16 +87,16 @@ const accountDefs = [
 	}
 ];
 const categoryDefs = [
-	{ key: 'super', name: 'Supermercado', color: 'orange' },
-	{ key: 'rent', name: 'Alquiler', color: 'violet' },
-	{ key: 'bills', name: 'Servicios', color: 'blue' },
-	{ key: 'transport', name: 'Transporte', color: 'ochre' },
-	{ key: 'out', name: 'Salidas', color: 'plum' },
-	{ key: 'health', name: 'Salud', color: 'green' },
-	{ key: 'salary', name: 'Sueldo', color: 'teal' },
-	{ key: 'freelance', name: 'Freelance', color: 'blue' },
+	{ key: 'super', name: 'Supermercado', color: 'orange', kind: 'outcome' },
+	{ key: 'rent', name: 'Alquiler', color: 'violet', kind: 'outcome' },
+	{ key: 'bills', name: 'Servicios', color: 'blue', kind: 'outcome' },
+	{ key: 'transport', name: 'Transporte', color: 'ochre', kind: 'outcome' },
+	{ key: 'out', name: 'Salidas', color: 'plum', kind: 'outcome' },
+	{ key: 'health', name: 'Salud', color: 'green', kind: 'outcome' },
+	{ key: 'salary', name: 'Sueldo', color: 'teal', kind: 'income' },
+	{ key: 'freelance', name: 'Freelance', color: 'blue', kind: 'income' },
 	{ key: 'gifts', name: 'Regalos', color: 'red' },
-	{ key: 'gym', name: 'Gimnasio (viejo)', color: 'violet', archived: true }
+	{ key: 'gym', name: 'Gimnasio (viejo)', color: 'violet', kind: 'outcome', archived: true }
 ];
 const acc = Object.fromEntries(accountDefs.map((a) => [a.key, { ...a, id: randomUUID() }]));
 const cat = Object.fromEntries(categoryDefs.map((c) => [c.key, { ...c, id: randomUUID() }]));
@@ -317,6 +317,7 @@ try {
 				user_id: userId,
 				name: c.name,
 				color: c.color,
+				kind: c.kind ?? null,
 				archived_at: c.archived ? now : null
 			}))
 		)}`;

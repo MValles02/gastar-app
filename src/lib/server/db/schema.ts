@@ -140,6 +140,8 @@ export const categories = pgTable(
 			.references(() => user.id),
 		name: text('name').notNull(),
 		color: text('color'),
+		// NULL = both income and outcome.
+		kind: movementTypeEnum('kind'),
 		archivedAt: timestamp('archived_at', { withTimezone: true }),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp('updated_at', { withTimezone: true })
@@ -149,7 +151,8 @@ export const categories = pgTable(
 	},
 	// Case-insensitive, matching categoryNameTaken; a concurrent duplicate surfaces as 23505.
 	(table) => [
-		uniqueIndex('categories_user_id_lower_name_idx').on(table.userId, sql`lower(${table.name})`)
+		uniqueIndex('categories_user_id_lower_name_idx').on(table.userId, sql`lower(${table.name})`),
+		check('categories_kind_check', sql`${table.kind} <> 'transfer'`)
 	]
 );
 

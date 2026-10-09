@@ -6,10 +6,11 @@
 	import Button from '$lib/components/Button.svelte';
 	import Card from '$lib/components/Card.svelte';
 	import ColorPicker from '$lib/components/ColorPicker.svelte';
+	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import type { SwatchKey } from '$lib/appearance';
 
-	type Values = Partial<Record<'name' | 'color', string | null>>;
+	type Values = Partial<Record<'name' | 'color' | 'kind', string | null>>;
 
 	let {
 		initial,
@@ -25,6 +26,12 @@
 
 	let name = $state(untrack(() => initial.name ?? ''));
 	let color = $state(untrack(() => (initial.color ?? 'green') as SwatchKey));
+	let kind = $state(untrack(() => initial.kind ?? ''));
+	const kindOptions = [
+		{ value: 'outcome', label: 'Gasto' },
+		{ value: 'income', label: 'Ingreso' },
+		{ value: '', label: 'Ambos' }
+	];
 
 	// After a failed submit, move focus to the first field marked invalid.
 	$effect(() => {
@@ -59,6 +66,14 @@
 			{/if}
 		</li>
 	</ul>
+
+	<div class="field">
+		<span id="kind-label" class="k">Tipo</span>
+		<SegmentedControl name="kind" options={kindOptions} bind:value={kind} labelledby="kind-label" />
+		{#if errors.kind}
+			<p class="error" role="alert"><Icon name="alert" size="1rem" />{errors.kind}</p>
+		{/if}
+	</div>
 
 	<div>
 		<Card>
@@ -133,6 +148,18 @@
 	.row input::placeholder {
 		color: var(--text-muted);
 		opacity: 1;
+	}
+
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
+	.field .k {
+		padding: 0 var(--space-4);
+		font-size: var(--font-size-sm);
+		color: var(--text-muted);
 	}
 
 	.error {
