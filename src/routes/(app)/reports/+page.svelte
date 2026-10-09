@@ -13,6 +13,10 @@
 	let { data }: { data: PageData } = $props();
 
 	const money = (c: number) => formatMoney(c, data.currency);
+	// Spending shows with a minus sign; zero stays unsigned.
+	const neg = (c: number) => (c === 0 ? 0 : -c);
+	// Past 11 characters ("$ 12.345.678") the hero steps down so it never wraps or truncates.
+	const heroSmall = (c: number) => formatMoney(c, data.currency).length > 11;
 	const SLICE_COLORS = [
 		'var(--swatch-green)',
 		'var(--swatch-orange)',
@@ -49,26 +53,18 @@
 	</nav>
 
 	{#if !data.hasCurrency}
-		<EmptyState icon="accounts">No tenés cuentas en {data.currency}.</EmptyState>
+		<EmptyState icon="accounts">Sin cuentas en {data.currency}.</EmptyState>
 		<div class="empty-action">
 			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 		</div>
 	{:else}
 		{@const max = Math.max(1, ...data.bars.flatMap((b) => [b.income, b.outcome]))}
 		<section aria-label="Totales del mes">
-			<Card>
+			<Card flush>
 				<dl class="totals">
-					<div>
-						<dt>Ingresos</dt>
-						<dd><Money cents={data.income} currency={data.currency} kind="income" /></dd>
-					</div>
-					<div>
-						<dt>Gastos</dt>
-						<dd><Money cents={data.outcome} currency={data.currency} /></dd>
-					</div>
-					<div>
-						<dt>Resultado</dt>
-						<dd>
+					<div class="box">
+						<dt class="eyebrow">Resultado</dt>
+						<dd class="hero" class:small={heroSmall(data.net)}>
 							<Money
 								cents={data.net}
 								currency={data.currency}
@@ -76,12 +72,20 @@
 							/>
 						</dd>
 					</div>
+					<div class="kv">
+						<dt class="k">Ingresos</dt>
+						<dd class="am"><Money cents={data.income} currency={data.currency} kind="income" /></dd>
+					</div>
+					<div class="kv">
+						<dt class="k">Gastos</dt>
+						<dd class="am"><Money cents={neg(data.outcome)} currency={data.currency} /></dd>
+					</div>
 				</dl>
 			</Card>
 		</section>
 
 		<section aria-labelledby="flow-heading">
-			<h2 id="flow-heading">Ingresos y gastos, 6 meses</h2>
+			<h2 id="flow-heading">6 meses</h2>
 			<Card>
 				<ul class="bars">
 					{#each data.bars as b (b.ym)}
@@ -89,7 +93,7 @@
 							<a
 								href={resolve(`/reports?month=${b.ym}`)}
 								aria-current={b.ym === data.nav.ym ? 'true' : undefined}
-								aria-label="{b.name}: ingresos {money(b.income)}, gastos {money(b.outcome)}"
+								aria-label="{b.name}: ingresos {money(b.income)}, gastos {money(neg(b.outcome))}"
 							>
 								<span class="cols" aria-hidden="true">
 									<span class="bar in" style:height="{(b.income / max) * 100}%"></span>
@@ -108,55 +112,63 @@
 		</section>
 
 		<section aria-labelledby="cat-heading">
-			<h2 id="cat-heading">Gastos por categoría</h2>
+			<h2 id="cat-heading">Categorías</h2>
 			{#if data.slices.length === 0}
-				<p class="muted">No hay gastos con categoría en {data.nav.label.toLowerCase()}.</p>
+				<Card flush>
+					<p class="empty-inline">No hay gastos con categoría en {data.nav.label.toLowerCase()}.</p>
+				</Card>
 			{:else}
-				<Card>
-					<div class="donut-card">
-						<svg viewBox="0 0 42 42" class="donut" aria-hidden="true">
-							{#each data.slices as s, i (s.id)}
-								{@const offset = data.slices.slice(0, i).reduce((a, x) => a + x.share * 100, 0)}
-								<circle
-									cx="21"
-									cy="21"
-									r="15.915"
-									fill="none"
-									stroke={sliceColor(s.id, i)}
-									stroke-width="6"
-									pathLength="100"
-									stroke-dasharray="{s.share * 100} {100 - s.share * 100}"
-									stroke-dashoffset={25 - offset}
-								/>
-							{/each}
-						</svg>
-						<ul class="slices">
-							{#each data.slices as s, i (s.id)}
-								<li>
-									<i style:background={sliceColor(s.id, i)} aria-hidden="true"></i>
-									<span class="name">{s.name}</span>
-									<span class="pct">{s.percent} %</span>
-									<span class="amt"><Money cents={s.amount} currency={data.currency} /></span>
-								</li>
-							{/each}
-						</ul>
-					</div>
+				<Card flush>
+					<svg viewBox="0 0 42 42" class="donut" aria-hidden="true">
+						{#each data.slices as s, i (s.id)}
+							{@const offset = data.slices.slice(0, i).reduce((a, x) => a + x.share * 100, 0)}
+							{@const len = s.share * 100 - (data.slices.length > 1 ? 0.6 : 0)}
+							<circle
+								cx="21"
+								cy="21"
+								r="17.6"
+								fill="none"
+								stroke={sliceColor(s.id, i)}
+								stroke-width="6.8"
+								pathLength="100"
+								stroke-dasharray="{len} {100 - len}"
+								stroke-dashoffset={25 - offset}
+							/>
+						{/each}
+					</svg>
+					<ul class="slices">
+						{#each data.slices as s, i (s.id)}
+							<li>
+								<i style:background={sliceColor(s.id, i)} aria-hidden="true"></i>
+								<span class="name">{s.name}</span>
+								<span class="pct">{s.percent} %</span>
+								<span class="amt"><Money cents={s.amount} currency={data.currency} /></span>
+							</li>
+						{/each}
+					</ul>
 				</Card>
 			{/if}
 		</section>
 
-		<section class="facts" aria-label="Datos del mes">
+		<section class="facts" class:one={!data.biggest} aria-label="Datos del mes">
 			<Card>
-				<p class="label">Promedio diario</p>
-				<p class="fact"><Money cents={data.dailyAverage} currency={data.currency} /></p>
-				<p class="label">en {data.days} {data.days === 1 ? 'día' : 'días'}</p>
+				<div class="fact-card">
+					<p class="eyebrow">Por día</p>
+					<p class="fact"><Money cents={data.dailyAverage} currency={data.currency} /></p>
+					<p class="label">{data.days} {data.days === 1 ? 'día' : 'días'}</p>
+				</div>
 			</Card>
 			{#if data.biggest}
 				<a class="fact-link" href={resolve(`/movements/${data.biggest.id}`)}>
 					<Card>
-						<p class="label">Gasto más grande</p>
-						<p class="fact"><Money cents={data.biggest.amount} currency={data.currency} /></p>
-						<p class="label ellipsis">{data.biggest.description} · {data.biggest.date}</p>
+						<div class="fact-card">
+							<p class="eyebrow">Gasto más grande</p>
+							<Icon name="chevron-right" size="1rem" />
+							<p class="fact">
+								<Money cents={neg(data.biggest.amount)} currency={data.currency} />
+							</p>
+							<p class="label ellipsis">{data.biggest.description} · {data.biggest.date}</p>
+						</div>
 					</Card>
 				</a>
 			{/if}
@@ -182,23 +194,29 @@
 		margin-bottom: var(--space-2);
 	}
 
-	.muted,
 	.label {
 		color: var(--text-muted);
+		font-size: var(--font-size-sm);
 	}
 
-	.label {
-		font-size: var(--font-size-sm);
+	.eyebrow {
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
 	}
 
 	.nav {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		margin: calc(-1 * var(--space-2));
 	}
 
 	.month-label {
-		font-weight: 500;
+		font-size: var(--font-size-base);
+		font-weight: 600;
 	}
 
 	.arrow {
@@ -209,38 +227,73 @@
 		height: 2.75rem;
 		border-radius: var(--radius-pill);
 		color: var(--text);
-		transition: background-color 0.15s ease;
+		transition: background-color 0.12s ease;
 	}
 
 	.arrow.disabled {
-		opacity: 0.4;
+		opacity: 0.35;
 		cursor: not-allowed;
 	}
 
-	a.arrow:hover {
-		background: color-mix(in srgb, var(--primary) 8%, transparent);
+	a.arrow:active {
+		background: var(--muted);
 	}
 
+	@media (hover: hover) {
+		a.arrow:hover {
+			background: var(--muted);
+		}
+	}
+
+	/* Resultado card: same shape as Disponible on Inicio and Plan. */
 	.totals {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-2) var(--space-4);
 		margin: 0;
 	}
 
-	.totals > div {
-		flex: 1 1 6rem;
-		min-width: 0;
+	.box {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+		padding: 1.25rem 1.25rem var(--space-4);
 	}
 
-	.totals dt {
+	.hero {
+		margin: var(--space-1) 0 0;
+		max-width: 100%;
+		font-family: var(--font-display);
+		font-size: 2.75rem;
+		font-weight: 500;
+		letter-spacing: -0.02em;
+		line-height: 1.1;
+		overflow-wrap: anywhere;
+	}
+
+	.hero.small {
+		font-size: 2.25rem;
+	}
+
+	.kv {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 0 var(--space-3);
+		min-height: 3rem;
+		padding: 0 1.25rem;
+		border-top: 1px solid var(--border);
+	}
+
+	.k {
 		font-size: var(--font-size-sm);
+		font-weight: 500;
 		color: var(--text-muted);
 	}
 
-	.totals dd {
+	.am {
 		margin: 0;
+		font-size: 1.0625rem;
 		font-weight: 600;
+		font-variant-numeric: tabular-nums;
 		overflow-wrap: anywhere;
 	}
 
@@ -253,31 +306,40 @@
 		padding: 0;
 	}
 
-	.bars li {
-		height: 9rem;
-	}
-
 	.bars a {
 		display: flex;
 		flex-direction: column;
-		height: 100%;
-		gap: var(--space-1);
+		align-items: center;
+		gap: var(--space-2);
+		min-height: 2.75rem;
+		padding: var(--space-2) 0 0.375rem;
+		border-radius: 0.75rem;
 		text-decoration: none;
 		color: var(--text-muted);
+		transition: background-color 0.12s ease;
+	}
+
+	.bars a:active {
+		background: var(--muted);
 	}
 
 	.cols {
-		flex: 1;
 		display: flex;
 		align-items: flex-end;
 		justify-content: center;
-		gap: 3px;
+		gap: 4px;
+		height: 7.5rem;
+		opacity: 0.38;
+	}
+
+	.current .cols {
+		opacity: 1;
 	}
 
 	.bar {
-		width: 30%;
+		width: 10px;
 		min-height: 2px;
-		border-radius: 3px 3px 0 0;
+		border-radius: 4px 4px 1px 1px;
 	}
 
 	.in {
@@ -285,11 +347,12 @@
 	}
 
 	.out {
-		background: var(--text-muted);
+		background: var(--text);
 	}
 
 	.bar-label {
 		font-size: var(--font-size-xs);
+		font-weight: 500;
 		text-align: center;
 	}
 
@@ -302,76 +365,94 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-1) var(--space-4);
-		margin-top: var(--space-3);
+		margin-top: var(--space-1);
 		font-size: var(--font-size-xs);
+		font-weight: 500;
 		color: var(--text-muted);
 	}
 
 	.legend span {
 		display: inline-flex;
 		align-items: center;
-		gap: var(--space-1);
+		gap: 6px;
 	}
 
 	.legend i,
 	.slices i {
 		display: inline-block;
-		width: 10px;
-		height: 10px;
-		border-radius: 2px;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
 	}
 
-	.donut-card {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: center;
-		align-items: center;
-		gap: var(--space-4);
+	.slices i {
+		width: 10px;
+		height: 10px;
 	}
 
 	.donut {
-		flex: none;
-		width: 7rem;
-		height: 7rem;
+		display: block;
+		width: 8.5rem;
+		height: 8.5rem;
+		margin: 1.25rem auto var(--space-2);
 	}
 
 	.slices {
-		flex: 1 1 10rem;
-		min-width: 0;
 		list-style: none;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-		font-size: var(--font-size-sm);
+		margin: 0;
+		padding: 0 var(--space-4) 0.25rem;
 	}
 
 	.slices li {
 		display: grid;
-		grid-template-columns: auto minmax(0, 1fr) auto;
+		grid-template-columns: 10px minmax(0, 1fr) auto auto;
 		align-items: center;
-		column-gap: var(--space-2);
+		gap: 0.625rem;
+		min-height: 3rem;
+	}
+
+	.slices li + li {
+		border-top: 1px solid var(--border);
 	}
 
 	.name {
-		overflow-wrap: anywhere;
+		min-width: 0;
+		font-weight: 500;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.pct {
 		color: var(--text-muted);
-		font-size: var(--font-size-xs);
+		font-size: var(--font-size-sm);
+		text-align: right;
+		white-space: nowrap;
 	}
 
 	.amt {
-		grid-column: 2 / -1;
-		font-size: var(--font-size-xs);
+		font-family: var(--font-display);
+		text-align: right;
+		overflow-wrap: anywhere;
+	}
+
+	.empty-inline {
+		display: flex;
+		align-items: center;
+		min-height: 3.5rem;
+		padding: 0 var(--space-4);
+		font-size: var(--font-size-sm);
 		color: var(--text-muted);
 	}
 
 	.facts {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: var(--space-3);
+	}
+
+	.facts.one {
+		grid-template-columns: minmax(0, 1fr);
 	}
 
 	.fact-link {
@@ -382,14 +463,38 @@
 		border-radius: var(--radius-card);
 	}
 
+	.fact-link:active :global(.card) {
+		background: var(--muted);
+	}
+
+	.fact-card {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+		min-width: 0;
+	}
+
+	.fact-card :global(svg) {
+		position: absolute;
+		top: -2px;
+		right: -4px;
+		color: var(--border-strong);
+	}
+
 	.fact {
-		margin: var(--space-1) 0;
-		font-size: var(--font-size-lg);
-		font-weight: 600;
+		margin-top: 2px;
+		font-family: var(--font-display);
+		font-size: 1.5rem;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+		line-height: 1.2;
 		overflow-wrap: anywhere;
 	}
 
 	.ellipsis {
-		overflow-wrap: anywhere;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 </style>
