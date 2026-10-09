@@ -6,21 +6,21 @@
 	import CheckEmail from '$lib/components/CheckEmail.svelte';
 	import ErrorText from '$lib/components/ErrorText.svelte';
 	import StatusMessage from '$lib/components/StatusMessage.svelte';
-	import type { ActionData, PageData } from './$types';
+	import type { ActionData } from './$types';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	let { form }: { form: ActionData } = $props();
 
 	let busy = $state(false);
 	let formEl: HTMLFormElement | undefined = $state();
 </script>
 
 <svelte:head>
-	<title>{data.expired ? 'Enlace vencido' : 'Email confirmado'} · Gastar</title>
+	<title>Enlace vencido · Gastar</title>
 </svelte:head>
 
 {#if form?.checkEmail}
 	<CheckEmail email={form.checkEmail} />
-{:else if data.expired}
+{:else}
 	<StatusMessage icon="clock" title="Enlace vencido">
 		<p class="body">Pedí uno nuevo.</p>
 		<form
@@ -60,13 +60,6 @@
 			<Button type="submit" block disabled={busy}>Reenviar</Button>
 			<a class="link" href={resolve('/login')}>Ir a Ingresar</a>
 		</form>
-	</StatusMessage>
-{:else}
-	<StatusMessage icon="check" title="Email confirmado">
-		<p class="body">Ya podés ingresar a Gastar.</p>
-		<div class="actions">
-			<Button href={resolve('/login')} block>Ir a Ingresar</Button>
-		</div>
 	</StatusMessage>
 {/if}
 
