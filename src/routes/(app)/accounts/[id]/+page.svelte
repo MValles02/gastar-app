@@ -10,7 +10,6 @@
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { formatMoney } from '$lib/money';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -45,7 +44,7 @@
 		</div>
 		<div class="item">
 			<dt>Saldo inicial</dt>
-			<dd class="amount">{formatMoney(a.initialBalance, a.currency)}</dd>
+			<dd class="amount"><Money cents={a.initialBalance} currency={a.currency} /></dd>
 		</div>
 		<div class="item">
 			<dt>Ícono y color</dt>

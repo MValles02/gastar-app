@@ -26,8 +26,8 @@ colors:
   positive-dark: '#4ade80'
   negative: '#b91c1c'
   negative-dark: '#f87171'
-  transfer: '#57534e'
-  transfer-dark: '#a8a29e'
+  transfer: '#2c5d8a'
+  transfer-dark: '#8db8e6'
   swatch-green: '#2f6b45'
   swatch-green-dark: '#7fc79a'
   swatch-teal: '#1f6a6a'
@@ -63,11 +63,6 @@ typography:
     fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif"
     fontSize: '0.875rem'
     fontWeight: 400
-    lineHeight: 1.5
-  nav-label:
-    fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif"
-    fontSize: '0.75rem'
-    fontWeight: 500
     lineHeight: 1.5
 rounded:
   md: '0.625rem'
@@ -111,7 +106,6 @@ components:
     width: '360px'
   nav-item:
     textColor: '{colors.text-muted}'
-    typography: '{typography.nav-label}'
     height: '2.75rem'
   nav-item-active:
     textColor: '{colors.text}'
@@ -189,8 +183,8 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 ### Semantic
 
 - **Positive** (`positive`): Income amounts. Dark: `positive-dark`.
-- **Negative** (`negative`): Error messages and destructive actions only; outcome amounts use the text colour with a minus sign. Dark: `negative-dark`.
-- **Transfer** (`transfer`): Transfer amounts (neutral stone). Dark: `transfer-dark`.
+- **Negative** (`negative`): Outcome amounts (and negative balances), error messages and destructive actions. Dark: `negative-dark`.
+- **Transfer** (`transfer`): Transfer amounts (blue). Dark: `transfer-dark`.
 
 ### Swatches
 
@@ -198,7 +192,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 
 ### Named Rules
 
-**The Action Colour Rule.** Primary marks actions, selection and focus only: button fills, the FAB, the active nav icon and the focus ring. Never use it for link text; links and the active nav label use the text color (links underlined).
+**The Action Colour Rule.** Primary marks actions, selection and focus only: button fills, the FAB, the active nav icon and the focus ring. Never use it for link text; links use the text color (links underlined).
 
 **The Control Edge Rule.** Controls are identified by their edge: inputs, selects and the option picker trigger use `border-strong`. Cards, bars and dividers stay on the hairline `border`. The segmented track is a `muted` fill with no edge.
 
@@ -219,7 +213,6 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 - **Body** (400, 1rem, 1.5): Default text and fields.
 - **Label** (400, 0.875rem): Form labels in muted stone, and error text in the negative color. Buttons use 0.875rem at weight 500.
 - **Hero** (`--font-size-hero`, 2.25rem): The large balance or amount figure on the dashboard, account detail and movement detail, sized `clamp(1.5rem, 9vw, var(--font-size-hero))` so it shrinks on narrow screens.
-- **Nav label** (500, 0.75rem via `--font-size-xs`; 0.6875rem under 22rem wide): Bottom navigation labels. The 0.6875rem size is a deliberate off-scale exception so "Movimientos" fits in the five-slot nav at 320px.
 
 ### Named Rules
 
@@ -227,7 +220,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 
 ## Layout
 
-Mobile-first single column with no layout breakpoints; one narrow-width tweak (nav label font size). `.content` shares the `--content-width` (560px) column with the bottom nav; the nav spans the full width with a border (translucent: `--bg` at 92% with a 12px backdrop blur) and its inner items are inset (inline padding of `space-5` inside the column, as page content). `.content` sets `--gutter` (`space-5`) as its inline padding; the page top bar bleeds out to the content edges with a negative `--gutter` margin. The segmented control options shrink (`min-width: 0`, `space-1` side padding), wrap labels with `overflow-wrap: anywhere` instead of clipping, and keep the 2.75rem hit area. The page top bar is sticky (z-index 9, inside `.content`) only on viewports at least 40em tall (`@media (min-height: 40em)`; `em` is the browser text size, so large text or zoom turns it off and the bar scrolls away); under the same query `html` has a `scroll-padding-top` so focused elements stay clear of it, and the bottom nav is fixed with a `safe-area-inset-bottom` allowance (z-index 10). Content bottom padding is `calc(space-8 + 4.5rem + env(safe-area-inset-bottom))` so nothing hides under the nav. The login screen is a centered column with safe-area padding on all four sides. Spacing is a short rem scale (`space-1` to `space-6`, plus `space-8`); page padding is `space-5`. The browser theme color follows the page background (Stone 50 / Stone 950), the PWA manifest `theme_color` is Forest (`#14532d`) and its background is Stone 50.
+Mobile-first single column with no layout breakpoints; no narrow-width tweaks. `.content` shares the `--content-width` (560px) column with the bottom nav; the nav spans the full width with a border (translucent: `--bg` at 92% with a 12px backdrop blur) and its inner items are inset (inline padding of `space-5` inside the column, as page content). `.content` sets `--gutter` (`space-5`) as its inline padding; the page top bar bleeds out to the content edges with a negative `--gutter` margin. The segmented control options shrink (`min-width: 0`, `space-1` side padding), wrap labels with `overflow-wrap: anywhere` instead of clipping, and keep the 2.75rem hit area. The page top bar is sticky (z-index 9, inside `.content`) only on viewports at least 40em tall (`@media (min-height: 40em)`; `em` is the browser text size, so large text or zoom turns it off and the bar scrolls away); under the same query `html` has a `scroll-padding-top` so focused elements stay clear of it, and the bottom nav is fixed with a `safe-area-inset-bottom` allowance (z-index 10). Content bottom padding is `calc(space-8 + 4.5rem + env(safe-area-inset-bottom))` so nothing hides under the nav. The login screen is a centered column with safe-area padding on all four sides. Spacing is a short rem scale (`space-1` to `space-6`, plus `space-8`); page padding is `space-5`. The browser theme color follows the page background (Stone 50 / Stone 950), the PWA manifest `theme_color` is Forest (`#14532d`) and its background is Stone 50.
 
 ## Elevation & Depth
 
@@ -291,16 +284,16 @@ A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) of radio option
 - **DetailHeader:** Used on account, category and movement detail. Renders `PageHeader` with `back`, then a hero `Card`. Props: `title`, `back`, `label` (muted small caption), optional `icon` and `color` (IconBadge), `value` (hero figure, 600, `clamp` hero size), `tone` (`positive`, `negative` or `transfer` colour for the value), `context` (muted small line) and a children snippet for extra content (such as the category per-currency nets).
 - **Secondary link row:** "Ver movimientos" on account and category detail is a single `ListRow` with a trailing chevron-right in a surface container (hairline border, `--shadow-1`), not an underlined text link.
 - **Add row (`.add-row`):** A dashed-border, `radius-card` link row (min 3.5rem tall, muted 0.875rem weight-500 text with a plus icon) after a list ("+ Nueva cuenta", "+ Nueva categoría"); hover turns the text to the text colour and the border primary. It replaces header action buttons.
-- **Detail tone:** Detail hero amounts colour only income (`positive`, with "+"). Outcomes use the text colour with "-" (never `negative`), transfers use `transfer`. Category net is shown as a cash flow (spend "-", net income "+" in `positive`).
+- **Detail tone:** Amounts never show a visible "+" or "-"; colour carries the direction: income `positive`, outcome `negative`, transfer `transfer`. Category net is shown as a cash flow (spend `negative`, net income `positive`).
 - **Destructive cue:** The confirm-delete trigger ("Eliminar") in the detail actions uses the `negative` text colour and a 50% `negative` border; other actions stay neutral.
 - **FilterBar:** Wrapping flex form with `space-2` by `space-3` gaps. The search field takes the full first row (search icon inset left); a segmented control or filters disclosure takes its own full row; a checkbox label stays compact (auto width) and shares a row when it fits. On the movements list the filters `summary` is an inline pill (surface fill, hairline border, 2.75rem tall).
 - **List day headings:** Movements group by day under a small heading (0.875rem, 600, muted text, `space-4` inline padding) rather than a body-size title.
 - **CurrencyTabs:** `ARS | USD` `SegmentedControl` in a form posting to `/currency` (cookie `currency`); a failure shows a `role="alert"` line under it, and focus returns to the checked radio after switching.
-- **Money:** An amount with the decimals dimmed for USD only (ARS has no decimal part; 70% opacity, text-colour amounts only, to keep 4.5:1; coloured decimals stay full), `tabular-nums`, the number breaks only after the symbol gap and at thousands separators (`<wbr>` after each `.`), never inside a digit group; `kind` colours it (`income` positive with a `+`, `transfer` transfer colour, `outcome`/`plain` text colour). Font size and weight come from the parent.
+- **Money:** An amount with the decimals dimmed for USD only (ARS has no decimal part; 70% opacity, text-colour amounts only, to keep 4.5:1; coloured decimals stay full), `tabular-nums`, the number breaks only after the symbol gap and at thousands separators (`<wbr>` after each `.`), never inside a digit group; no visible sign: `kind` colours it (`income` positive, `outcome` negative, `transfer` transfer colour, `plain` text colour, or negative when the amount is below zero); a visually hidden "-"/"+" keeps the direction for screen readers. Font size and weight come from the parent.
 - **MovementRow:** A `ListRow` with a leading `.row-icon` (2.25rem muted square: description initial, or the transfer icon), title, subtitle and a trailing `Money` (`.row-amount`).
 - **Section head:** `.section-head` (global): a wrapping flex row, heading left and a link or `Money` total right, baseline-aligned.
 - **Profile:** One `Card` groups the user name and email, an "Administrar" link section (a `nav` with the "Cuentas" and "Categorías" links: 2.75rem tall, text colour, weight 500), the theme control and the "Cerrar sesión" button as sections separated by hairline dividers.
-- **Reportes charts:** The 6-month income and outcome bars and the category donut are `aria-hidden` SVG/CSS; their text equivalents are the per-month link `aria-label` ("{mes}: ingresos X, gastos Y") and the visible slice list (name, %, amount). Tokens: income bar `--positive`, outcome bar `--text-muted` (income always left, outcome right, as in the legend, so colour is not the only cue), slices `--swatch-green`, `--swatch-orange`, `--swatch-blue`, `--swatch-plum` and `--transfer` for "Otros". Bars keep full opacity (non-text 3:1); the selected month has a bold label and `aria-current="true"`. The bar row bleeds to the card edges so each month link is at least 2.75rem wide at 320px.
+- **Reportes charts:** The 6-month income and outcome bars and the category donut are `aria-hidden` SVG/CSS; their text equivalents are the per-month link `aria-label` ("{mes}: ingresos X, gastos Y") and the visible slice list (name, %, amount). Tokens: income bar `--positive`, outcome bar `--negative` (income always left, outcome right, as in the legend, so colour is not the only cue), slices `--swatch-green`, `--swatch-orange`, `--swatch-blue`, `--swatch-plum` and `--text-muted` for "Otros". Bars keep full opacity (non-text 3:1); the selected month has a bold label and `aria-current="true"`. The bar row bleeds to the card edges so each month link is at least 2.75rem wide at 320px.
 - **Plan rule row (`/plan`):** A list card (surface, hairline border, `radius-card`) of rows; each row is a link (min 2.75rem, `ListRow` padding) with the description (0.875rem, 500), a muted 0.75rem line "status · Día N · account" and a trailing `Money`. An unpaid active rule adds a separate "Registrar" link (text colour, underlined, 600, 2.75rem tall) that wraps under the row at large text sizes. Status is always text, never colour alone.
 - **EmptyState:** A centered column: a 3.5rem pill circle tinted with `color-mix(in srgb, var(--primary) 8%, transparent)` holding a primary-colored icon, over muted text. Used by the placeholder pages.
 
@@ -323,8 +316,8 @@ Radio groups of round swatches (the icon picker shows the ten account icons in I
 
 ### Navigation
 
-- **Style:** Fixed translucent bottom bar (`--bg` at 92% with a 12px backdrop blur) with a top hairline, no gap, and `space-2` vertical padding plus the bottom safe-area inset. Five equal slots: two items, the FAB, two items. Each item is an icon over a 0.75rem weight-500 label (0.6875rem under 22rem), muted by default, at least 2.75rem tall.
-- **Item states:** Hover and `aria-current='page'` turn the label the text color; the active item's icon turns primary. Press scales to 0.96. Items have no horizontal padding; labels truncate with an ellipsis.
+- **Style:** Fixed translucent bottom bar (`--bg` at 92% with a 12px backdrop blur) with a top hairline, no gap, and `space-2` vertical padding plus the bottom safe-area inset. Five equal slots: two items, the FAB, two items. Each item is an icon only (no visible label; the Spanish name is its `aria-label` and `title`), muted by default, at least 2.75rem tall.
+- **Item states:** `aria-current='page'` gives the item a `muted` pill and turns its icon primary. Press scales to 0.96.
 - **Top bar:** See PageHeader above. The bottom nav stays Inicio | Movimientos | + | Plan | Reportes (Cuentas and Categorías live in Profile).
 
 ### Plan Summary and Limit Row
@@ -346,7 +339,7 @@ A 3.25rem primary square with the 0.875rem card radius and a 24px plus icon, cen
 ### Do:
 
 - **Do** use the theme tokens for every color, radius and spacing value.
-- **Do** put `tabular-nums` on every amount; only income is coloured (`positive`, with `+`); outcomes use the text colour with a minus sign and transfers the neutral `transfer` colour.
+- **Do** put `tabular-nums` on every amount; never show "+" or "-": income is `positive` (green), outcome `negative` (red), transfer `transfer` (blue).
 - **Do** use `--radius` for buttons and fields and `--radius-card` for cards and the FAB.
 - **Do** group lists and sections into surface cards (`Card` or `.list-card`) and pick the lowest elevation token that works; keep `--shadow-lift` for the FAB.
 - **Do** keep primary for actions, selection and focus; use `border-strong` on control edges.

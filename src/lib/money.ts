@@ -1,18 +1,14 @@
 const NBSP = '\u00A0';
 const intFmt = new Intl.NumberFormat('es-AR');
 
-export function formatMoney(
-	cents: number,
-	currency: 'ARS' | 'USD',
-	opts: { sign?: 'auto' | 'always' } = {}
-): string {
+/** Unsigned display ("$ 1.234", "US$ 1.234,56"): direction is shown by colour, never by a sign. */
+export function formatMoney(cents: number, currency: 'ARS' | 'USD'): string {
 	// ARS is shown in whole pesos (rounded half up on the magnitude); only USD shows cents.
 	const abs = currency === 'ARS' ? Math.round(Math.abs(cents) / 100) * 100 : Math.abs(cents);
 	const int = intFmt.format(Math.trunc(abs / 100));
 	const dec = currency === 'USD' ? `,${String(abs % 100).padStart(2, '0')}` : '';
 	const symbol = currency === 'USD' ? 'US$' : '$';
-	const sign = abs === 0 ? '' : cents < 0 ? '-' : opts.sign === 'always' ? '+' : '';
-	return `${sign}${symbol}${NBSP}${int}${dec}`;
+	return `${symbol}${NBSP}${int}${dec}`;
 }
 
 export const ARS_WHOLE_MESSAGE = 'Los montos en pesos van sin decimales.';

@@ -13,7 +13,7 @@
 	let { data }: { data: PageData } = $props();
 
 	const money = (c: number) => formatMoney(c, data.currency);
-	// Spending shows with a minus sign; zero stays unsigned.
+	// Spending is negated so Money shows it as an outcome (red); zero stays neutral.
 	const neg = (c: number) => (c === 0 ? 0 : -c);
 	// Past 11 characters ("$ 12.345.678") the hero steps down so it never wraps or truncates.
 	const heroSmall = (c: number) => formatMoney(c, data.currency).length > 11;
@@ -24,7 +24,7 @@
 		'var(--swatch-plum)'
 	];
 	const sliceColor = (id: string, i: number) =>
-		id === 'other' ? 'var(--transfer)' : SLICE_COLORS[i];
+		id === 'other' ? 'var(--text-muted)' : SLICE_COLORS[i];
 </script>
 
 <svelte:head>
@@ -93,7 +93,7 @@
 							<a
 								href={resolve(`/reports?month=${b.ym}`)}
 								aria-current={b.ym === data.nav.ym ? 'true' : undefined}
-								aria-label="{b.name}: ingresos {money(b.income)}, gastos {money(neg(b.outcome))}"
+								aria-label="{b.name}: ingresos {money(b.income)}, gastos {money(b.outcome)}"
 							>
 								<span class="cols" aria-hidden="true">
 									<span class="bar in" style:height="{(b.income / max) * 100}%"></span>
@@ -347,7 +347,7 @@
 	}
 
 	.out {
-		background: var(--text);
+		background: var(--negative);
 	}
 
 	.bar-label {

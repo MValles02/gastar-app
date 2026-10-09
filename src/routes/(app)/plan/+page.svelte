@@ -209,7 +209,7 @@
 								<Money
 									cents={r.type === 'income' ? r.amount : -r.amount}
 									currency={data.currency}
-									kind={r.type === 'income' ? 'income' : 'plain'}
+									kind={r.type === 'income' ? 'income' : 'outcome'}
 								/>
 							</span>
 						{/snippet}

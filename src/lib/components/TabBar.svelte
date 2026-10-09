@@ -26,9 +26,14 @@
 <nav aria-label="Navegación principal">
 	<div class="tabs">
 		{#each navItems as item (item.href)}
-			<a href={item.href} class="tab" aria-current={isActive(item.path) ? 'page' : undefined}>
+			<a
+				href={item.href}
+				class="tab"
+				aria-label={item.label}
+				title={item.label}
+				aria-current={isActive(item.path) ? 'page' : undefined}
+			>
 				<item.icon size={24} strokeWidth={1.75} aria-hidden="true" />
-				<span>{item.label}</span>
 			</a>
 		{/each}
 	</div>
@@ -86,28 +91,16 @@
 		min-width: 0;
 		min-height: 2.75rem;
 		display: flex;
-		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 2px;
 		border-radius: 999px;
-		font-size: 0.75rem;
-		font-weight: 500;
 		text-decoration: none;
-		white-space: nowrap;
 		color: var(--text-muted);
-	}
-
-	.tab span {
-		max-width: 100%;
-		overflow: hidden;
-		text-overflow: ellipsis;
 	}
 
 	.tab[aria-current='page'] {
 		background: var(--muted);
 		color: var(--text);
-		font-weight: 600;
 	}
 
 	.tab[aria-current='page'] :global(svg) {
