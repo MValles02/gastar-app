@@ -7,6 +7,6 @@ if ! command -v docker >/dev/null 2>&1; then
 	exit 0
 fi
 
-# Git Bash on Windows rewrites the /repo argument into C:/Program Files/Git/repo
-export MSYS_NO_PATHCONV=1
-exec docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f git /repo --staged --redact --exit-code 1
+# Pipe the staged diff in so the container never reads .git (broken inside worktrees).
+# pipefail makes a git or docker failure block the commit.
+git diff --cached --no-color -U0 | docker run --rm -i ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f stdin --redact --exit-code 1
