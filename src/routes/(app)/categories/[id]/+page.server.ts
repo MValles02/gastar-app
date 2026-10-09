@@ -3,7 +3,11 @@ import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
 import { accountActions } from '$lib/server/accounts';
 import { isUuid } from '$lib/server/db/util';
-import { DELETE_REFERENCED_MESSAGE, toCurrencyNets } from '$lib/server/categories';
+import {
+	DELETE_REFERENCED_MESSAGE,
+	NOT_FOUND_MESSAGE,
+	toCurrencyNets
+} from '$lib/server/categories';
 import {
 	categoryMonthNet,
 	categoryReferenced,
@@ -13,7 +17,7 @@ import {
 } from '$lib/server/categories-queries';
 import { currentMonth, monthLabel, monthRange, parseMonth, shiftMonth } from '$lib/server/month';
 
-const notFound = () => error(404, 'Categoría no encontrada.');
+const notFound = () => error(404, NOT_FOUND_MESSAGE);
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const userId = locals.user!.id;
@@ -58,14 +62,15 @@ export const actions: Actions = {
 	delete: async ({ locals, params }) => {
 		const userId = locals.user!.id;
 		if (!isUuid(params.id)) notFound();
-		if ((await categoryReferenced(userId, params.id)).length > 0)
-			return fail(409, { error: DELETE_REFERENCED_MESSAGE });
+		const referenced = () => fail(409, { error: DELETE_REFERENCED_MESSAGE });
+
+		// Pre-check for the friendly error; ON DELETE RESTRICT still catches a movement added meanwhile.
+		if ((await categoryReferenced(userId, params.id)).length > 0) return referenced();
 		let rows;
 		try {
 			rows = await deleteCategory(userId, params.id);
 		} catch (e) {
-			const code = pgErrorCode(e);
-			if (code === PG_FOREIGN_KEY_VIOLATION) return fail(409, { error: DELETE_REFERENCED_MESSAGE });
+			if (pgErrorCode(e) === PG_FOREIGN_KEY_VIOLATION) return referenced();
 			throw e;
 		}
 		if (rows.length === 0) notFound();

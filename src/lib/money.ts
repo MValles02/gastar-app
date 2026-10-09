@@ -24,13 +24,15 @@ export const isWholeFor = (cents: number, currency: Currency) =>
 	currency === 'USD' || cents % 100 === 0;
 
 const AMOUNT_RE = /^(-?)(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}))?$/;
+/** Integer digits accepted by parseAmount; keeps the cents within Number.MAX_SAFE_INTEGER. */
+const MAX_INT_DIGITS = 13;
 
 /** Parses es-AR user input ("-1.234,56") into integer cents; null when invalid. */
 export function parseAmount(input: string): number | null {
 	const m = AMOUNT_RE.exec(input.trim());
 	if (!m) return null;
 	const int = m[2].replaceAll('.', '');
-	if (int.length > 13) return null;
+	if (int.length > MAX_INT_DIGITS) return null;
 	const cents = Number(int) * 100 + Number((m[3] ?? '').padEnd(2, '0'));
 	return cents === 0 ? 0 : m[1] ? -cents : cents;
 }

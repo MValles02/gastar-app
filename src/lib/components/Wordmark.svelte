@@ -24,11 +24,7 @@
 	}
 
 	.text {
-		font-family:
-			'DM Sans',
-			system-ui,
-			-apple-system,
-			sans-serif;
+		font-family: var(--font-body);
 		font-size: var(--font-size-lg);
 		font-weight: 600;
 		line-height: 1;

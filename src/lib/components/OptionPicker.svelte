@@ -51,6 +51,7 @@
 
 	onMount(() => (mounted = true));
 
+	const isRow = $derived(variant === 'row');
 	const visible = $derived(items.filter((item) => item.id !== excludeId));
 	const selected = $derived(visible.find((item) => item.id === value));
 
@@ -73,14 +74,22 @@
 	}
 </script>
 
+{#snippet label()}
+	<span class="label" id={labelId}>{legend}</span>
+{/snippet}
+
+{#snippet option(item: Item)}
+	<IconBadge icon={item.icon} color={item.color} />
+	<span class="name">{item.name}</span>
+	{#if item.meta || item.archived}
+		<span class="meta">{item.meta ?? ''}{item.archived ? ' · Archivada' : ''}</span>
+	{/if}
+{/snippet}
+
 {#snippet current()}
 	<span id="{labelId}-value" class="current" class:placeholder={!selected}>
 		{#if selected}
-			<IconBadge
-				icon={selected.icon}
-				color={selected.color}
-				size={variant === 'row' ? '1.5rem' : '2rem'}
-			/>
+			<IconBadge icon={selected.icon} color={selected.color} size={isRow ? '1.5rem' : '2rem'} />
 			<span class="name">{selected.name}</span>
 		{:else}
 			{placeholder}
@@ -91,35 +100,22 @@
 {#if visible.length === 0}
 	{@render empty()}
 {:else if mounted}
-	<div class="field" class:row={variant === 'row'}>
-		{#if variant === 'row'}
-			<button
-				type="button"
-				class="trigger"
-				aria-haspopup="dialog"
-				aria-labelledby="{labelId} {labelId}-value"
-				aria-describedby={error ? errorId : undefined}
-				bind:this={trigger}
-				onclick={openSheet}
-			>
-				<span class="label" id={labelId}>{legend}</span>
-				{@render current()}
-				<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="chev" />
-			</button>
-		{:else}
-			<span class="label" id={labelId}>{legend}</span>
-			<button
-				type="button"
-				class="trigger"
-				aria-haspopup="dialog"
-				aria-labelledby="{labelId} {labelId}-value"
-				aria-describedby={error ? errorId : undefined}
-				bind:this={trigger}
-				onclick={openSheet}
-			>
-				{@render current()}
-			</button>
-		{/if}
+	<div class="field" class:row={isRow}>
+		<!-- The row variant puts the label inside the trigger, the field variant above it. -->
+		{#if !isRow}{@render label()}{/if}
+		<button
+			type="button"
+			class="trigger"
+			aria-haspopup="dialog"
+			aria-labelledby="{labelId} {labelId}-value"
+			aria-describedby={error ? errorId : undefined}
+			bind:this={trigger}
+			onclick={openSheet}
+		>
+			{#if isRow}{@render label()}{/if}
+			{@render current()}
+			{#if isRow}<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="chev" />{/if}
+		</button>
 		<!-- The Drawer is portaled out of the form, so the value submits through this input. -->
 		<input type="hidden" {name} {value} disabled={!value} bind:this={hidden} />
 		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
@@ -134,11 +130,7 @@
 					aria-pressed={item.id === value}
 					onclick={() => choose(item.id)}
 				>
-					<IconBadge icon={item.icon} color={item.color} />
-					<span class="name">{item.name}</span>
-					{#if item.meta || item.archived}
-						<span class="meta">{item.meta ?? ''}{item.archived ? ' · Archivada' : ''}</span>
-					{/if}
+					{@render option(item)}
 					{#if item.id === value}<Check size={20} strokeWidth={1.75} aria-hidden="true" />{/if}
 				</button>
 			{/each}
@@ -151,11 +143,7 @@
 			{#each visible as item (item.id)}
 				<label class="pre">
 					<input class="visually-hidden" type="radio" {name} value={item.id} bind:group={value} />
-					<IconBadge icon={item.icon} color={item.color} />
-					<span class="name">{item.name}</span>
-					{#if item.meta || item.archived}
-						<span class="meta">{item.meta ?? ''}{item.archived ? ' · Archivada' : ''}</span>
-					{/if}
+					{@render option(item)}
 				</label>
 			{/each}
 		</fieldset>

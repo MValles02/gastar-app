@@ -16,6 +16,6 @@
 <CategoryForm
 	mode="create"
 	cancelHref="/categories"
-	initial={form?.values ?? { name: '', color: 'green' }}
+	initial={form?.values ?? {}}
 	errors={form?.errors}
 />
