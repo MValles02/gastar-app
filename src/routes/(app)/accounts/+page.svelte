@@ -10,6 +10,7 @@
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import { CURRENCIES } from '$lib/money';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -18,8 +19,7 @@
 	let currency = $derived<string>(data.filters.currency);
 	const currencyOptions = [
 		{ value: '', label: 'Ambas' },
-		{ value: 'ARS', label: 'ARS' },
-		{ value: 'USD', label: 'USD' }
+		...CURRENCIES.map((c) => ({ value: c, label: c }))
 	];
 </script>
 

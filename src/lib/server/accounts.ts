@@ -1,11 +1,19 @@
-import { AMOUNT_EXAMPLE, ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '../money';
-import { ACCOUNT_ICONS, SWATCHES } from '../appearance';
-import type { Currency } from '$lib/money';
+import {
+	AMOUNT_EXAMPLE,
+	ARS_WHOLE_MESSAGE,
+	CURRENCIES,
+	isWholeFor,
+	parseAmount,
+	type Currency
+} from '$lib/money';
+import { ACCOUNT_ICONS, SWATCHES } from '$lib/appearance';
 import { totalBalance, type MovementType } from './dashboard';
 
 export const CURRENCY_LOCKED_MESSAGE =
 	'No podés cambiar la moneda porque la cuenta tiene movimientos.';
 export const DELETE_REFERENCED_MESSAGE = 'Esta cuenta tiene movimientos. Podés archivarla.';
+
+const NAME_MAX_LENGTH = 40;
 
 export type AccountData = {
 	name: string;
@@ -37,11 +45,13 @@ export function parseAccountForm(fd: FormData, mode: 'create' | 'edit'): Account
 
 	const name = values.name.trim();
 	if (!name) errors.name = 'Ingresá un nombre.';
-	else if (name.length > 40) errors.name = 'El nombre puede tener hasta 40 caracteres.';
+	else if (name.length > NAME_MAX_LENGTH)
+		errors.name = `El nombre puede tener hasta ${NAME_MAX_LENGTH} caracteres.`;
 
-	let currency: Currency | undefined;
-	if (values.currency === 'ARS' || values.currency === 'USD') currency = values.currency;
-	else if (!(mode === 'edit' && values.currency === '')) errors.currency = 'Elegí una moneda.';
+	const currency = CURRENCIES.find((c) => c === values.currency);
+	// A locked currency control is disabled, so edit submits none: the stored currency stays.
+	const currencyOmitted = mode === 'edit' && values.currency === '';
+	if (!currency && !currencyOmitted) errors.currency = 'Elegí una moneda.';
 
 	const rawBalance = values.initialBalance.trim();
 	const initialBalance = rawBalance === '' ? 0 : parseAmount(rawBalance);

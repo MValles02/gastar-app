@@ -9,6 +9,7 @@
 	import IconPicker from '$lib/components/IconPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import type { AccountIconKey, SwatchKey } from '$lib/appearance';
+	import { CURRENCIES } from '$lib/money';
 
 	type Values = Partial<
 		Record<'name' | 'currency' | 'initialBalance' | 'icon' | 'color', string | null>
@@ -34,10 +35,7 @@
 	let icon = $state(untrack(() => (initial.icon ?? 'wallet') as AccountIconKey));
 	let color = $state(untrack(() => (initial.color ?? 'green') as SwatchKey));
 
-	const currencyOptions = [
-		{ value: 'ARS', label: 'ARS' },
-		{ value: 'USD', label: 'USD' }
-	];
+	const currencyOptions = CURRENCIES.map((c) => ({ value: c, label: c }));
 
 	// After a failed submit, move focus to the first field marked invalid.
 	$effect(() => {
