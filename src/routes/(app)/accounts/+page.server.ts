@@ -23,11 +23,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		accountTransfersIn(userId)
 	]);
 
-	const withBal = withBalances(
-		accounts,
-		sums,
-		ins.flatMap((t) => (t.accountId ? [{ ...t, accountId: t.accountId }] : []))
-	);
+	const withBal = withBalances(accounts, sums, ins);
 	const groups = CURRENCY_GROUPS.flatMap(([cur, label]) => {
 		const items = withBal.filter((a) => a.currency === cur);
 		if (items.length === 0) return [];

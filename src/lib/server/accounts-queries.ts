@@ -9,6 +9,9 @@ import { escapeLike } from './db/util';
 
 const dest = alias(financialAccounts, 'dest');
 const total = (col: unknown) => sql<number>`coalesce(sum(${col}), 0)`.mapWith(Number);
+const ownedAccount = (userId: string, id: string) =>
+	and(eq(financialAccounts.id, id), canAccessAccount(userId));
+const returningId = { id: financialAccounts.id };
 
 export function listAccounts(
 	userId: string,
@@ -29,11 +32,7 @@ export function listAccounts(
 }
 
 export function getAccount(userId: string, id: string) {
-	return db
-		.select()
-		.from(financialAccounts)
-		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId)))
-		.limit(1);
+	return db.select().from(financialAccounts).where(ownedAccount(userId, id)).limit(1);
 }
 
 export function accountOriginSums(userId: string, id?: string) {
@@ -79,7 +78,7 @@ export function accountReferenced(userId: string, id: string) {
 				eq(movements.destinationAccountId, financialAccounts.id)
 			)
 		)
-		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId)))
+		.where(ownedAccount(userId, id))
 		.limit(1);
 }
 
@@ -87,7 +86,7 @@ export function createAccount(userId: string, data: AccountData & { currency: Cu
 	return db
 		.insert(financialAccounts)
 		.values({ ...data, ...ownedBy(userId) })
-		.returning({ id: financialAccounts.id });
+		.returning(returningId);
 }
 
 /**
@@ -105,21 +104,18 @@ export function updateAccount(userId: string, id: string, data: AccountData) {
 	return db
 		.update(financialAccounts)
 		.set(data)
-		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId), lock))
-		.returning({ id: financialAccounts.id });
+		.where(and(ownedAccount(userId, id), lock))
+		.returning(returningId);
 }
 
 export function deleteAccount(userId: string, id: string) {
-	return db
-		.delete(financialAccounts)
-		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId)))
-		.returning({ id: financialAccounts.id });
+	return db.delete(financialAccounts).where(ownedAccount(userId, id)).returning(returningId);
 }
 
 export function setArchived(userId: string, id: string, at: Date | null) {
 	return db
 		.update(financialAccounts)
 		.set({ archivedAt: at })
-		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId)))
-		.returning({ id: financialAccounts.id });
+		.where(ownedAccount(userId, id))
+		.returning(returningId);
 }

@@ -3,7 +3,8 @@ import type { Actions, PageServerLoad } from './$types';
 import {
 	CURRENCY_LOCKED_MESSAGE,
 	currencyChangeAllowed,
-	parseAccountForm
+	parseAccountForm,
+	type AccountFormErrors
 } from '$lib/server/accounts';
 import { isUuid } from '$lib/server/db/util';
 import { accountReferenced, getAccount, updateAccount } from '$lib/server/accounts-queries';
@@ -35,25 +36,16 @@ export const actions: Actions = {
 	default: async ({ request, locals, params }) => {
 		const userId = locals.user!.id;
 		if (!isUuid(params.id)) notFound();
-		const fd = await request.formData();
-		const parsed = parseAccountForm(fd, 'edit');
+		const parsed = parseAccountForm(await request.formData(), 'edit');
 		if (!parsed.ok) return fail(400, { values: parsed.values, errors: parsed.errors });
 
 		const [account] = await getAccount(userId, params.id);
 		if (!account) notFound();
-		const failWith = (errors: Record<string, string>) =>
-			fail(400, {
-				values: {
-					name: String(fd.get('name') ?? ''),
-					currency: parsed.data.currency ?? account.currency,
-					initialBalance: String(fd.get('initialBalance') ?? ''),
-					icon: parsed.data.icon,
-					color: parsed.data.color
-				},
-				errors
-			});
+		const currency = parsed.data.currency ?? account.currency;
+		const failWith = (errors: AccountFormErrors) =>
+			fail(400, { values: { ...parsed.values, currency }, errors });
 		const lockedFail = () => failWith({ currency: CURRENCY_LOCKED_MESSAGE });
-		if (!isWholeFor(parsed.data.initialBalance, parsed.data.currency ?? account.currency))
+		if (!isWholeFor(parsed.data.initialBalance, currency))
 			return failWith({ initialBalance: ARS_WHOLE_MESSAGE });
 
 		if (parsed.data.currency) {

@@ -25,11 +25,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		accountTransfersIn(userId, account.id),
 		accountReferenced(userId, account.id)
 	]);
-	const [{ balance }] = withBalances(
-		[account],
-		sums,
-		ins.flatMap((t) => (t.accountId ? [{ ...t, accountId: t.accountId }] : []))
-	);
+	const [{ balance }] = withBalances([account], sums, ins);
 	const { archivedAt, ...rest } = account;
 	const archived = archivedAt !== null;
 

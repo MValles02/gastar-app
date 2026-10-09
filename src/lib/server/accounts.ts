@@ -24,9 +24,10 @@ export type AccountData = {
 	color: string;
 };
 export type AccountFormErrors = Partial<Record<keyof AccountData, string>>;
-export type AccountFormResult =
-	| { ok: true; data: AccountData }
-	| { ok: false; values: Record<string, string>; errors: AccountFormErrors };
+/** `values` are the raw submitted strings, for re-rendering the form after a failure. */
+export type AccountFormResult = { values: Record<string, string> } & (
+	{ ok: true; data: AccountData } | { ok: false; errors: AccountFormErrors }
+);
 
 const str = (fd: FormData, key: string) => {
 	const v = fd.get(key);
@@ -66,6 +67,7 @@ export function parseAccountForm(fd: FormData, mode: 'create' | 'edit'): Account
 	if (Object.keys(errors).length > 0) return { ok: false, values, errors };
 	return {
 		ok: true,
+		values,
 		data: {
 			name,
 			currency,
@@ -92,7 +94,8 @@ export const accountActions = ({
 });
 
 export type OriginSum = { accountId: string; type: MovementType; amount: number };
-export type TransferIn = { accountId: string; amount: number };
+/** `accountId` is the destination account (null never matches an account). */
+export type TransferIn = { accountId: string | null; amount: number };
 
 /** Balance per account, same formula as the dashboard total (all movements, archived included). */
 export function withBalances<A extends { id: string; initialBalance: number }>(
