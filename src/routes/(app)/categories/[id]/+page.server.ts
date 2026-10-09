@@ -62,14 +62,15 @@ export const actions: Actions = {
 	delete: async ({ locals, params }) => {
 		const userId = locals.user!.id;
 		if (!isUuid(params.id)) notFound();
-		if ((await categoryReferenced(userId, params.id)).length > 0)
-			return fail(409, { error: DELETE_REFERENCED_MESSAGE });
+		const referenced = () => fail(409, { error: DELETE_REFERENCED_MESSAGE });
+
+		// Pre-check for the friendly error; ON DELETE RESTRICT still catches a movement added meanwhile.
+		if ((await categoryReferenced(userId, params.id)).length > 0) return referenced();
 		let rows;
 		try {
 			rows = await deleteCategory(userId, params.id);
 		} catch (e) {
-			const code = pgErrorCode(e);
-			if (code === PG_FOREIGN_KEY_VIOLATION) return fail(409, { error: DELETE_REFERENCED_MESSAGE });
+			if (pgErrorCode(e) === PG_FOREIGN_KEY_VIOLATION) return referenced();
 			throw e;
 		}
 		if (rows.length === 0) notFound();
