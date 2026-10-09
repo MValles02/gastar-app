@@ -1,21 +1,16 @@
 import { expect, test, type Page } from '@playwright/test';
 import {
-	MOVEMENT_DETAIL_RE,
+	deleteMovements,
+	deleteRules,
+	fillRule,
+	linkId,
+	login,
 	OTHER_EMAIL,
 	PHONE,
-	SEED_EMAIL,
-	SEED_PASSWORD,
+	setCurrencyCookie,
 	SMALL_PHONE,
 	WHOLE_PESOS_ERROR
 } from './helpers';
-
-async function login(page: Page, as = SEED_EMAIL) {
-	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(as);
-	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
-	await page.getByRole('button', { name: 'Ingresar' }).click();
-	await expect(page).toHaveURL(/\/$/);
-}
 
 // Each test context sets its own cookie; reset it so specs stay independent.
 test.afterEach(async ({ context, baseURL }) => {
@@ -23,11 +18,6 @@ test.afterEach(async ({ context, baseURL }) => {
 });
 
 const rule = (page: Page, text: string) => page.locator('li.rule', { hasText: text });
-
-async function pick(page: Page, legend: string, name: string) {
-	await page.getByRole('button', { name: new RegExp(legend) }).click();
-	await page.getByRole('dialog').getByText(name, { exact: true }).click();
-}
 
 test('seeded rules: rent is paid, the gym is inactive and cannot be registered', async ({
 	page
@@ -42,10 +32,7 @@ test('seeded rules: rent is paid, the gym is inactive and cannot be registered',
 	const inactive = page.getByRole('region', { name: 'Inactivos' });
 	await expect(inactive).toContainText('Gimnasio');
 	await expect(inactive).toContainText('Cuenta archivada');
-	const href = await inactive
-		.getByRole('link', { name: /Gimnasio/ })
-		.evaluate((a: HTMLAnchorElement) => a.pathname);
-	const id = href.split('/').pop()!;
+	const id = await linkId(inactive.getByRole('link', { name: /Gimnasio/ }));
 	await page.goto(`/movements/new?recurring=${id}`, { waitUntil: 'networkidle' });
 	await expect(page.getByRole('heading', { level: 1, name: 'Nuevo movimiento' })).toBeVisible();
 	await expect(page.locator('input[name="recurringId"]')).toHaveCount(0);
@@ -123,12 +110,13 @@ test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
 	await login(page);
 	const description = 'Ciclo e2e';
 	try {
-		await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
-		await page.locator('input[name="description"]').fill(description);
-		await page.locator('input[name="amount"]').fill('900');
-		await page.locator('input[name="dayOfMonth"]').fill('20');
-		await pick(page, 'Cuenta', 'Mercado Pago');
-		await pick(page, 'Categoría', 'Regalos');
+		await fillRule(page, {
+			description,
+			amount: '900',
+			day: '20',
+			account: 'Mercado Pago',
+			category: 'Regalos'
+		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		const inactive = page.getByRole('region', { name: 'Inactivos' });
@@ -159,22 +147,13 @@ test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(page.getByText(description)).toHaveCount(0);
 	} finally {
-		await page.goto('/plan');
-		const hrefs = await page
-			.locator('li.rule', { hasText: description })
-			.locator('a.row')
-			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of hrefs)
-			await page.request.post(`${href}?/delete`, {
-				form: {},
-				headers: { origin: baseURL!, accept: 'text/html' }
-			});
+		await deleteRules(page, baseURL!, description);
 	}
 });
 
 test('USD tab shows the empty state', async ({ page, baseURL }) => {
 	await login(page);
-	await page.context().addCookies([{ name: 'currency', value: 'USD', url: baseURL! }]);
+	await setCurrencyCookie(page, baseURL!, 'USD');
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await expect(page.getByText('No tenés pagos ni ingresos fijos en dólares.')).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Agregar pago fijo' })).toBeVisible();
@@ -184,18 +163,14 @@ test('USD tab shows the empty state', async ({ page, baseURL }) => {
 test('create a rule, register its payment and clean up', async ({ page, baseURL }) => {
 	await login(page);
 	const description = 'Prueba e2e';
-	const post = (href: string) =>
-		page.request.post(`${href}?/delete`, {
-			form: {},
-			headers: { origin: baseURL!, accept: 'text/html' }
-		});
 	try {
-		await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
-		await page.locator('input[name="description"]').fill(description);
-		await page.locator('input[name="amount"]').fill('1.500,50');
-		await page.locator('input[name="dayOfMonth"]').fill('15');
-		await pick(page, 'Cuenta', 'Mercado Pago');
-		await pick(page, 'Categoría', 'Regalos');
+		await fillRule(page, {
+			description,
+			amount: '1.500,50',
+			day: '15',
+			account: 'Mercado Pago',
+			category: 'Regalos'
+		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
 		await expect(page.locator('input[name="amount"]')).toHaveValue('1.500,50');
@@ -222,16 +197,8 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		await expect(rule(page, description)).toContainText('Pagado');
 		await expect(rule(page, description).getByRole('link', { name: /Registrar/ })).toHaveCount(0);
 	} finally {
-		await page.goto(`/movements?q=${encodeURIComponent(description)}`);
-		const movementHrefs = await page
-			.locator('a[href*="movements/"]')
-			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of movementHrefs.filter((h) => MOVEMENT_DETAIL_RE.test(h))) await post(href);
-		await page.goto('/plan');
-		const ruleHrefs = await rule(page, description)
-			.locator('a.row')
-			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of ruleHrefs) await post(href);
+		await deleteMovements(page, baseURL!, description);
+		await deleteRules(page, baseURL!, description);
 	}
 });
 
@@ -250,12 +217,9 @@ test("another user's rule is a 404", async ({ page, browser, baseURL }) => {
 	try {
 		const op = await other.newPage();
 		await login(op, OTHER_EMAIL);
-		await other.addCookies([{ name: 'currency', value: 'USD', url: baseURL! }]);
+		await setCurrencyCookie(op, baseURL!, 'USD');
 		await op.goto('/plan', { waitUntil: 'networkidle' });
-		id = await op
-			.getByRole('link', { name: /Regla ajena/ })
-			.first()
-			.evaluate((a: HTMLAnchorElement) => a.pathname.split('/').pop()!);
+		id = await linkId(op.getByRole('link', { name: /Regla ajena/ }).first());
 	} finally {
 		await other.close();
 	}

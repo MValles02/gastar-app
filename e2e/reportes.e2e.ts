@@ -1,18 +1,35 @@
 import { expect, test, type Page } from '@playwright/test';
-import { MIN_TARGET_PX, SEED_EMAIL, SEED_PASSWORD, SMALL_PHONE } from './helpers';
-
-async function login(page: Page) {
-	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(SEED_EMAIL);
-	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
-	await page.getByRole('button', { name: 'Ingresar' }).click();
-	await expect(page).toHaveURL(/\/$/);
-}
+import {
+	expectNoHorizontalOverflow,
+	login,
+	MIN_TARGET_PX,
+	setCurrencyCookie,
+	SMALL_PHONE
+} from './helpers';
 
 const norm = (s: string | null) => (s ?? '').replace(/\s+/g, ' ').trim();
 
-const setCurrency = (page: Page, baseURL: string | undefined, value: 'ARS' | 'USD') =>
-	page.context().addCookies([{ name: 'currency', value, url: baseURL! }]);
+/** The value cell of a Reportes month total ("Ingresos", "Gastos", "Resultado"). */
+const total = (page: Page, name: string) =>
+	page.locator('dl.totals > div').filter({ hasText: name }).locator('dd');
+
+const amountOf = (s: string | null) => Number(norm(s).replace(/[^\d]/g, ''));
+
+/** Goes `n` months back from the current Reportes month and returns that month (YYYY-MM). */
+async function monthsBack(page: Page, n: number) {
+	await page.goto('/reports', { waitUntil: 'networkidle' });
+	for (let i = 0; i < n; i++) {
+		const before = page.url();
+		await page.getByRole('link', { name: 'Mes anterior' }).click();
+		await expect(page).not.toHaveURL(before);
+		await page.waitForLoadState('networkidle');
+	}
+	return new URL(page.url()).searchParams.get('month')!;
+}
+
+test.beforeEach(async ({ page }) => {
+	await login(page);
+});
 
 // Each test context sets its own cookie; reset it so specs stay independent.
 test.afterEach(async ({ context, baseURL }) => {
@@ -22,7 +39,6 @@ test.afterEach(async ({ context, baseURL }) => {
 test('tab bar is Inicio, Movimientos, Plan, Reportes plus the Nuevo movimiento button and Profile links to Cuentas and Categorías', async ({
 	page
 }) => {
-	await login(page);
 	await page.goto('/reports', { waitUntil: 'networkidle' });
 	const nav = page.getByRole('navigation', { name: 'Navegación principal' });
 	const links = nav.getByRole('link');
@@ -56,7 +72,6 @@ test('tab bar is Inicio, Movimientos, Plan, Reportes plus the Nuevo movimiento b
 });
 
 test('a future or invalid month falls back to the current month', async ({ page }) => {
-	await login(page);
 	await page.goto('/reports', { waitUntil: 'networkidle' });
 	const current = norm(await page.locator('.month-label').textContent());
 	for (const month of ['2999-01', 'x']) {
@@ -78,7 +93,6 @@ test('a future or invalid month falls back to the current month', async ({ page 
 test('ARS biggest outcome is the rent in the current month and two months back', async ({
 	page
 }) => {
-	await login(page);
 	for (const url of ['/reports', '/reports?month=' + (await monthsBack(page, 2))]) {
 		await page.goto(url, { waitUntil: 'networkidle' });
 		const card = page.getByRole('link', { name: /Gasto más grande/ });
@@ -87,39 +101,21 @@ test('ARS biggest outcome is the rent in the current month and two months back',
 	}
 });
 
-async function monthsBack(page: Page, n: number) {
-	await page.goto('/reports', { waitUntil: 'networkidle' });
-	for (let i = 0; i < n; i++) {
-		const before = page.url();
-		await page.getByRole('link', { name: 'Mes anterior' }).click();
-		await expect(page).not.toHaveURL(before);
-		await page.waitForLoadState('networkidle');
-	}
-	return new URL(page.url()).searchParams.get('month')!;
-}
-
 for (const currency of ['ARS', 'USD'] as const) {
 	test(`${currency} Resultado equals the Inicio month balance`, async ({ page, baseURL }) => {
-		await login(page);
-		await setCurrency(page, baseURL, currency);
+		await setCurrencyCookie(page, baseURL!, currency);
 		await page.goto('/', { waitUntil: 'networkidle' });
 		const inicio = norm(await page.locator('.net').textContent());
 		await page.goto('/reports', { waitUntil: 'networkidle' });
-		const resultado = page
-			.locator('dl.totals > div')
-			.filter({ hasText: 'Resultado' })
-			.locator('dd');
-		expect(norm(await resultado.textContent())).toBe(inicio);
+		expect(norm(await total(page, 'Resultado').textContent())).toBe(inicio);
 	});
 }
 
 // The seed has no USD outcomes (USD only receives income and transfers).
 test('USD current month shows no spending and no pesos', async ({ page, baseURL }) => {
-	await login(page);
-	await setCurrency(page, baseURL, 'USD');
+	await setCurrencyCookie(page, baseURL!, 'USD');
 	await page.goto('/reports', { waitUntil: 'networkidle' });
-	const gastos = page.locator('dl.totals > div').filter({ hasText: 'Gastos' }).locator('dd');
-	expect(norm(await gastos.textContent())).toBe('US$ 0,00');
+	expect(norm(await total(page, 'Gastos').textContent())).toBe('US$ 0,00');
 	await expect(page.getByText(/^No hay gastos con categoría en /)).toBeVisible();
 	expect(norm(await page.locator('main').innerText())).not.toMatch(/(^|[^S])\$ /);
 });
@@ -128,7 +124,6 @@ test('six month links carry a text equivalent and fit at 320px with 200% text', 
 	page
 }) => {
 	await page.setViewportSize(SMALL_PHONE);
-	await login(page);
 	await page.goto('/reports', { waitUntil: 'networkidle' });
 	const links = page.locator('ul.bars a');
 	await expect(links).toHaveCount(6);
@@ -141,17 +136,10 @@ test('six month links carry a text equivalent and fit at 320px with 200% text', 
 		expect(box).toBeGreaterThanOrEqual(MIN_TARGET_PX);
 
 	await page.evaluate(() => (document.documentElement.style.fontSize = '32px'));
-	const { scrollWidth, clientWidth } = await page.evaluate(() => ({
-		scrollWidth: document.documentElement.scrollWidth,
-		clientWidth: document.documentElement.clientWidth
-	}));
-	expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+	await expectNoHorizontalOverflow(page);
 });
 
-const amountOf = (s: string | null) => Number(norm(s).replace(/[^\d]/g, ''));
-
 test('switching currency keeps the selected past month', async ({ page }) => {
-	await login(page);
 	const month = await monthsBack(page, 1);
 	await page.getByRole('radio', { name: 'USD' }).check({ force: true });
 	await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
@@ -160,34 +148,25 @@ test('switching currency keeps the selected past month', async ({ page }) => {
 });
 
 test('past month totals match its six-month link', async ({ page }) => {
-	await login(page);
 	await monthsBack(page, 1);
 	const label = (await page.locator('ul.bars a[aria-current="true"]').getAttribute('aria-label'))!;
 	const [, ingresos, gastos] = /ingresos (.*), gastos (.*)$/.exec(norm(label))!;
-	const dd = (name: string) =>
-		page.locator('dl.totals > div').filter({ hasText: name }).locator('dd');
 	// Strip the visually hidden sign Money keeps for screen readers.
-	expect(norm(await dd('Ingresos').textContent()).replace(/^\+/, '')).toBe(ingresos);
-	expect(norm(await dd('Gastos').textContent()).replace(/^-/, '')).toBe(gastos);
+	expect(norm(await total(page, 'Ingresos').textContent()).replace(/^\+/, '')).toBe(ingresos);
+	expect(norm(await total(page, 'Gastos').textContent()).replace(/^-/, '')).toBe(gastos);
 });
 
 test('category slices sum to 100 % and to the month spending', async ({ page }) => {
-	await login(page);
 	await page.goto('/reports', { waitUntil: 'networkidle' });
 	const pcts = await page.locator('.slices .pct').allTextContents();
 	expect(pcts.length).toBeGreaterThan(0);
 	expect(pcts.reduce((a, p) => a + amountOf(p), 0)).toBe(100);
 	const amts = await page.locator('.slices .amt').allTextContents();
-	const gastos = await page
-		.locator('dl.totals > div')
-		.filter({ hasText: 'Gastos' })
-		.locator('dd')
-		.textContent();
+	const gastos = await total(page, 'Gastos').textContent();
 	expect(amts.reduce((a, t) => a + amountOf(t), 0)).toBe(amountOf(gastos));
 });
 
 test('Perfil, Categorías and back returns to Perfil', async ({ page }) => {
-	await login(page);
 	await page.getByRole('link', { name: 'Perfil' }).click();
 	await expect(page).toHaveURL(/\/profile$/);
 	await page.getByRole('link', { name: 'Categorías' }).click();

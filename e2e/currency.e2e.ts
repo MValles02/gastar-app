@@ -1,13 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { SEED_EMAIL, SEED_PASSWORD } from './helpers';
-
-async function login(page: Page) {
-	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(SEED_EMAIL);
-	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
-	await page.getByRole('button', { name: 'Ingresar' }).click();
-	await expect(page).toHaveURL(/\/$/);
-}
+import { login, setCurrencyCookie } from './helpers';
 
 async function choose(page: Page, label: 'ARS' | 'USD') {
 	await page.getByRole('radio', { name: label }).check({ force: true });
@@ -21,8 +13,9 @@ async function choose(page: Page, label: 'ARS' | 'USD') {
 		.toBe(label);
 }
 
-const setCookie = (page: Page, baseURL: string | undefined, value: string) =>
-	page.context().addCookies([{ name: 'currency', value, url: baseURL! }]);
+test.beforeEach(async ({ page }) => {
+	await login(page);
+});
 
 // Each test context sets its own cookie; reset it so specs stay independent.
 test.afterEach(async ({ context, baseURL }) => {
@@ -30,7 +23,6 @@ test.afterEach(async ({ context, baseURL }) => {
 });
 
 test('top bar has no currency control', async ({ page }) => {
-	await login(page);
 	for (const path of [
 		'/',
 		'/accounts',
@@ -46,14 +38,12 @@ test('top bar has no currency control', async ({ page }) => {
 });
 
 test('Inicio defaults to ARS without a cookie', async ({ page }) => {
-	await login(page);
 	await page.context().clearCookies({ name: 'currency' });
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
 });
 
 test('Inicio tab choice survives a reload', async ({ page }) => {
-	await login(page);
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await choose(page, 'USD');
 	await page.reload({ waitUntil: 'networkidle' });
@@ -63,14 +53,12 @@ test('Inicio tab choice survives a reload', async ({ page }) => {
 });
 
 test('an unknown currency cookie reads as ARS on Inicio', async ({ page, baseURL }) => {
-	await login(page);
-	await setCookie(page, baseURL, 'EUR');
+	await setCurrencyCookie(page, baseURL!, 'EUR');
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
 });
 
 test('invalid currency shows one alert under the tabs and clears on success', async ({ page }) => {
-	await login(page);
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await page.getByRole('radio', { name: 'USD' }).evaluate((el) => {
 		const input = el as HTMLInputElement;
@@ -87,14 +75,12 @@ test('invalid currency shows one alert under the tabs and clears on success', as
 });
 
 test('checked tab keeps focus after switching', async ({ page }) => {
-	await login(page);
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await choose(page, 'USD');
 	await expect(page.getByRole('radio', { name: 'USD' })).toBeFocused();
 });
 
 test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
-	await login(page);
 	await page.goto('/movements?currency=USD', { waitUntil: 'networkidle' });
 	await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
 	await expect(page.getByText('US$').first()).toBeVisible();
@@ -106,7 +92,6 @@ test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
 });
 
 test('an account filter on /movements wins over ?currency=USD', async ({ page }) => {
-	await login(page);
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
 	await page.getByRole('link', { name: /Efectivo/ }).click();
 	await expect(page).toHaveURL(/\/accounts\/[^/]+$/);
@@ -118,7 +103,6 @@ test('an account filter on /movements wins over ?currency=USD', async ({ page })
 });
 
 test('picking an account in the /movements filter applies it', async ({ page }) => {
-	await login(page);
 	await page.goto('/movements', { waitUntil: 'networkidle' });
 	await page.getByRole('button', { name: /^Filtros/ }).click();
 	await page.getByRole('button', { name: /Cuenta/ }).click();
@@ -127,7 +111,6 @@ test('picking an account in the /movements filter applies it', async ({ page }) 
 });
 
 test('accounts are grouped into Pesos and Dólares', async ({ page }) => {
-	await login(page);
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
 	await expect(page.getByRole('heading', { name: 'Pesos' })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Dólares' })).toBeVisible();
@@ -136,7 +119,6 @@ test('accounts are grouped into Pesos and Dólares', async ({ page }) => {
 });
 
 test('accounts ?currency=USD shows only Dólares', async ({ page }) => {
-	await login(page);
 	await page.goto('/accounts?currency=USD', { waitUntil: 'networkidle' });
 	await expect(page.getByRole('heading', { name: 'Dólares' })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Pesos' })).toHaveCount(0);
@@ -145,7 +127,6 @@ test('accounts ?currency=USD shows only Dólares', async ({ page }) => {
 });
 
 test('Inicio "Ver todos" links to the selected currency', async ({ page }) => {
-	await login(page);
 	for (const c of ['ARS', 'USD'] as const) {
 		await page.goto('/', { waitUntil: 'networkidle' });
 		await choose(page, c);
@@ -157,7 +138,6 @@ test('Inicio "Ver todos" links to the selected currency', async ({ page }) => {
 });
 
 test('archived accounts are listed without changing the group totals', async ({ page }) => {
-	await login(page);
 	const totals = async () =>
 		page.locator('.section-head').evaluateAll((els) => els.map((el) => el.textContent?.trim()));
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
@@ -174,7 +154,6 @@ test.describe('without JavaScript', () => {
 	test('Guardar switches the Inicio currency and the Movimientos filter applies it', async ({
 		page
 	}) => {
-		await login(page);
 		await page.goto('/');
 		await page.getByRole('radio', { name: 'USD' }).check({ force: true });
 		await page.getByRole('button', { name: 'Guardar' }).click();
@@ -189,8 +168,7 @@ test.describe('without JavaScript', () => {
 });
 
 test('movements and accounts ignore the currency cookie', async ({ page, baseURL }) => {
-	await login(page);
-	await setCookie(page, baseURL, 'USD');
+	await setCurrencyCookie(page, baseURL!, 'USD');
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
 	await expect(page.getByText('Efectivo')).toBeVisible();
 	await page.goto('/movements', { waitUntil: 'networkidle' });

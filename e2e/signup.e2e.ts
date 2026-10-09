@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
+import { SEED_EMAIL, submitLogin } from './helpers';
 import { latestMail, waitForLink } from './outbox';
-import { SEED_EMAIL } from './helpers';
 
 // Rate limits are in-memory (sign-up 10/h/IP, reset 5/15min/IP, 3/15min/email, resend 5/15min/IP).
 // One full run uses 3 sign-ups (1 hour window) and 2 reset requests (15 min window), so re-running
@@ -9,34 +9,41 @@ const password = 'e2e-pass-1234';
 let n = 0;
 const uniqueEmail = () => `e2e+${Date.now()}-${n++}@gastar.local`;
 
+const expectCheckEmail = (page: Page) =>
+	expect(page.getByRole('heading', { name: 'Revisá tu email' })).toBeVisible();
+
 async function signUp(page: Page, email: string) {
 	await page.goto('/signup', { waitUntil: 'networkidle' });
 	await page.getByLabel('Nombre').fill('E2E');
 	await page.getByLabel('Email').fill(email);
 	await page.getByLabel('Contraseña', { exact: true }).fill(password);
 	await page.getByRole('button', { name: 'Crear cuenta' }).click();
-	await expect(page.getByRole('heading', { name: 'Revisá tu email' })).toBeVisible();
+	await expectCheckEmail(page);
 }
 
-async function logIn(page: Page, email: string, pass: string) {
-	await page.goto('/login', { waitUntil: 'networkidle' });
+async function requestReset(page: Page, email: string) {
+	await page.goto('/forgot-password', { waitUntil: 'networkidle' });
 	await page.getByLabel('Email').fill(email);
-	await page.getByLabel('Contraseña', { exact: true }).fill(pass);
-	await page.getByRole('button', { name: 'Ingresar' }).click();
+	await page.getByRole('button', { name: 'Enviar enlace' }).click();
+	await expectCheckEmail(page);
 }
+
+const expectHome = async (page: Page) => {
+	await expect(page).toHaveURL(/\/$/);
+	await expect(page.getByRole('heading', { level: 1, name: /^Hola, / })).toBeAttached();
+};
 
 test('sign-up requires email verification before signing in', async ({ page, request }) => {
 	const email = uniqueEmail();
 	await signUp(page, email);
 	const { link } = await waitForLink(request, email, /Confirmá/);
 
-	await logIn(page, email, password);
-	await expect(page.getByRole('heading', { name: 'Revisá tu email' })).toBeVisible();
+	await submitLogin(page, email, password);
+	await expectCheckEmail(page);
 	await expect(page).not.toHaveURL(/\/$/);
 
 	await page.goto(link);
-	await expect(page).toHaveURL(/\/$/);
-	await expect(page.getByRole('heading', { level: 1, name: /^Hola, / })).toBeAttached();
+	await expectHome(page);
 });
 
 test('password reset by link', async ({ page, request }) => {
@@ -46,10 +53,7 @@ test('password reset by link', async ({ page, request }) => {
 	await expect(page).toHaveURL(/\/$/);
 	await page.context().clearCookies();
 
-	await page.goto('/forgot-password', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(email);
-	await page.getByRole('button', { name: 'Enviar enlace' }).click();
-	await expect(page.getByRole('heading', { name: 'Revisá tu email' })).toBeVisible();
+	await requestReset(page, email);
 
 	const { link } = await waitForLink(request, email, /Restablecé/);
 	await page.goto(link);
@@ -62,17 +66,13 @@ test('password reset by link', async ({ page, request }) => {
 	await expect(page).toHaveURL(/\/login/);
 	await expect(page.getByText('Contraseña actualizada.')).toBeVisible();
 
-	await logIn(page, email, newPassword);
-	await expect(page).toHaveURL(/\/$/);
-	await expect(page.getByRole('heading', { level: 1, name: /^Hola, / })).toBeAttached();
+	await submitLogin(page, email, newPassword);
+	await expectHome(page);
 });
 
 test('reset and sign-up do not reveal which emails exist', async ({ page, request }) => {
 	const unknown = uniqueEmail();
-	await page.goto('/forgot-password', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(unknown);
-	await page.getByRole('button', { name: 'Enviar enlace' }).click();
-	await expect(page.getByRole('heading', { name: 'Revisá tu email' })).toBeVisible();
+	await requestReset(page, unknown);
 	expect(await latestMail(request, unknown)).toBeNull();
 
 	// A stale entry from an earlier run must not satisfy the assertion: require a newer id.

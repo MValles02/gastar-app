@@ -1,29 +1,20 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import {
-	APP_TZ,
-	MOVEMENT_DETAIL_RE,
+	deleteRules,
+	fillMovement,
+	fillRule,
+	findMovements,
+	linkId,
+	login,
 	OTHER_EMAIL,
-	SEED_EMAIL,
-	SEED_PASSWORD,
+	postDelete,
+	setCurrencyCookie,
+	todayInAppTz,
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
-async function login(page: Page, as = SEED_EMAIL) {
-	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(as);
-	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
-	await page.getByRole('button', { name: 'Ingresar' }).click();
-	await expect(page).toHaveURL(/\/$/);
-}
-
-const setCurrency = (page: Page, value: 'ARS' | 'USD', baseURL: string) =>
-	page.context().addCookies([{ name: 'currency', value, url: baseURL }]);
-
-const post = (page: Page, baseURL: string, href: string) =>
-	page.request.post(`${href}?/delete`, {
-		form: {},
-		headers: { origin: baseURL, accept: 'text/html' }
-	});
+const INVALID_LIMIT_ERROR = 'Elegí una categoría válida para cada límite.';
+const NO_USD_PLAN = 'Todavía no tenés un plan en dólares.';
 
 /** The other seeded user's category id and rule id, read from a second logged-in context. */
 async function foreignIds(browser: Browser, baseURL: string) {
@@ -32,15 +23,10 @@ async function foreignIds(browser: Browser, baseURL: string) {
 		const page = await context.newPage();
 		await login(page, OTHER_EMAIL);
 		await page.goto('/categories', { waitUntil: 'networkidle' });
-		const category = await page
-			.getByRole('link', { name: /Ajena/ })
-			.evaluate((a: HTMLAnchorElement) => a.pathname.split('/').pop()!);
-		await setCurrency(page, 'USD', baseURL);
+		const category = await linkId(page.getByRole('link', { name: /Ajena/ }));
+		await setCurrencyCookie(page, baseURL, 'USD');
 		await page.goto('/plan', { waitUntil: 'networkidle' });
-		const rule = await page
-			.getByRole('link', { name: /Regla ajena/ })
-			.first()
-			.evaluate((a: HTMLAnchorElement) => a.pathname.split('/').pop()!);
+		const rule = await linkId(page.getByRole('link', { name: /Regla ajena/ }).first());
 		return { category, rule };
 	} finally {
 		await context.close();
@@ -69,11 +55,6 @@ const injectLimit = (page: Page, categoryId: string) =>
 		form.appendChild(input);
 	}, categoryId);
 
-const pick = async (page: Page, legend: string, name: string) => {
-	await page.getByRole('button', { name: new RegExp(legend) }).click();
-	await page.getByRole('dialog').getByText(name, { exact: true }).click();
-};
-
 /** Creates an outcome through the form, runs `fn`, and always deletes the movement afterwards. */
 async function withOutcome(
 	page: Page,
@@ -84,26 +65,19 @@ async function withOutcome(
 	const description = `Plan e2e ${Date.now()}`;
 	let hrefs: string[] = [];
 	const find = async () => {
-		await page.goto(`/movements?q=${encodeURIComponent(description)}&currency=${o.currency}`);
-		hrefs = (
-			await page
-				.locator('a[href*="movements/"]')
-				.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href))
-		).filter((h) => MOVEMENT_DETAIL_RE.test(h));
+		hrefs = await findMovements(page, description, o.currency);
 	};
 	try {
-		await page.goto('/movements/new', { waitUntil: 'networkidle' });
-		await page.getByRole('radio', { name: 'Gasto' }).check({ force: true });
-		// The 1st of the Buenos Aires month: still this month, but not the newest movement, so specs
-		// that open "the first outcome" in parallel never pick (and lose) this transient one.
-		const first = new Date().toLocaleDateString('en-CA', {
-			timeZone: APP_TZ
+		await fillMovement(page, {
+			type: 'Gasto',
+			// The 1st of the Buenos Aires month: still this month, but not the newest movement, so specs
+			// that open "the first outcome" in parallel never pick (and lose) this transient one.
+			date: `${todayInAppTz().slice(0, 8)}01`,
+			amount: o.amount,
+			description,
+			account: o.account,
+			category: 'Ajena'
 		});
-		await page.locator('input[name="occurredAt"]').fill(`${first.slice(0, 8)}01`);
-		await page.locator('input[name="amount"]').fill(o.amount);
-		await page.locator('input[name="description"]').fill(description);
-		await pick(page, 'Cuenta', o.account);
-		await pick(page, 'Categoría', 'Ajena');
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
 		await expect(page).toHaveURL(/saved=1/);
 		// Look the movement up now so the delete in `finally` is just a POST: the shorter the movement
@@ -112,7 +86,7 @@ async function withOutcome(
 		await fn();
 	} finally {
 		if (hrefs.length === 0) await find();
-		for (const href of hrefs) await post(page, baseURL, href);
+		for (const href of hrefs) await postDelete(page, baseURL, href);
 	}
 }
 
@@ -141,11 +115,8 @@ async function figures(page: Page) {
 
 /** Deletes the demo user's USD plan (the demo has none in the seed). */
 async function dropUsdPlan(page: Page, baseURL: string) {
-	await setCurrency(page, 'USD', baseURL);
-	await page.request.post(`${baseURL}/plan/setup?/delete`, {
-		form: {},
-		headers: { origin: baseURL, accept: 'text/html' }
-	});
+	await setCurrencyCookie(page, baseURL, 'USD');
+	await postDelete(page, baseURL, `${baseURL}/plan/setup`);
 }
 
 test('a rejected save writes nothing: the plan, its limits and new rules roll back together', async ({
@@ -155,7 +126,7 @@ test('a rejected save writes nothing: the plan, its limits and new rules roll ba
 }) => {
 	const { category } = await foreignIds(browser, baseURL!);
 	await login(page);
-	await setCurrency(page, 'USD', baseURL!);
+	await setCurrencyCookie(page, baseURL!, 'USD');
 	try {
 		await openSetup(page);
 
@@ -170,11 +141,9 @@ test('a rejected save writes nothing: the plan, its limits and new rules roll ba
 		await toStep(page, 3);
 		await savePlan(page);
 
-		await expect(page.getByRole('alert')).toHaveText(
-			'Elegí una categoría válida para cada límite.'
-		);
+		await expect(page.getByRole('alert')).toHaveText(INVALID_LIMIT_ERROR);
 		await page.goto('/plan', { waitUntil: 'networkidle' });
-		await expect(page.getByText('Todavía no tenés un plan en dólares.')).toBeVisible();
+		await expect(page.getByText(NO_USD_PLAN)).toBeVisible();
 		await expect(page.getByText('Atómico e2e')).toHaveCount(0);
 	} finally {
 		await dropUsdPlan(page, baseURL!);
@@ -209,15 +178,15 @@ test("another user's category, plan and rule never leak or get written", async (
 	await login(page);
 
 	for (const currency of ['ARS', 'USD'] as const) {
-		await setCurrency(page, currency, baseURL!);
+		await setCurrencyCookie(page, baseURL!, currency);
 		await openSetup(page);
 		await expect(page.getByText('Ajena')).toHaveCount(0);
 		await expect(page.locator(`input[name="limit_${category}"]`)).toHaveCount(0);
 	}
 
-	await setCurrency(page, 'USD', baseURL!);
+	await setCurrencyCookie(page, baseURL!, 'USD');
 	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await expect(page.getByText('Todavía no tenés un plan en dólares.')).toBeVisible();
+	await expect(page.getByText(NO_USD_PLAN)).toBeVisible();
 	await expect(page.getByText('Regla ajena')).toHaveCount(0);
 
 	try {
@@ -225,11 +194,9 @@ test("another user's category, plan and rule never leak or get written", async (
 		await injectLimit(page, category);
 		await toStep(page, 4);
 		await savePlan(page);
-		await expect(page.getByRole('alert')).toHaveText(
-			'Elegí una categoría válida para cada límite.'
-		);
+		await expect(page.getByRole('alert')).toHaveText(INVALID_LIMIT_ERROR);
 		await page.goto('/plan', { waitUntil: 'networkidle' });
-		await expect(page.getByText('Todavía no tenés un plan en dólares.')).toBeVisible();
+		await expect(page.getByText(NO_USD_PLAN)).toBeVisible();
 	} finally {
 		await dropUsdPlan(page, baseURL!);
 	}
@@ -245,25 +212,20 @@ test("another user cannot attach a limit to the demo user's category", async ({
 }) => {
 	await login(page);
 	await page.goto('/categories', { waitUntil: 'networkidle' });
-	const superId = await page
-		.getByRole('link', { name: /Supermercado/ })
-		.first()
-		.evaluate((a: HTMLAnchorElement) => a.pathname.split('/').pop()!);
+	const superId = await linkId(page.getByRole('link', { name: /Supermercado/ }).first());
 	const demoBefore = await figures(page);
 
 	const context = await browser.newContext({ baseURL });
 	try {
 		const other = await context.newPage();
 		await login(other, OTHER_EMAIL);
-		await setCurrency(other, 'USD', baseURL!);
+		await setCurrencyCookie(other, baseURL!, 'USD');
 		const before = await figures(other);
 		await openSetup(other);
 		await injectLimit(other, superId);
 		await toStep(other, 4);
 		await savePlan(other);
-		await expect(other.getByRole('alert')).toHaveText(
-			'Elegí una categoría válida para cada límite.'
-		);
+		await expect(other.getByRole('alert')).toHaveText(INVALID_LIMIT_ERROR);
 		const after = await figures(other);
 		expect(after).toEqual(before);
 		await expect(other.getByRole('region', { name: 'Límites por categoría' })).toHaveCount(0);
@@ -314,7 +276,7 @@ test('deleting a category removes its limit', async ({ page, baseURL }) => {
 		await openSetup(page);
 		await expect(page.locator(`input[name="limit_${id}"]`)).toHaveCount(0);
 	} finally {
-		if (categoryPath) await post(page, baseURL!, `${baseURL}${categoryPath}`);
+		if (categoryPath) await postDelete(page, baseURL!, `${baseURL}${categoryPath}`);
 	}
 });
 
@@ -329,12 +291,13 @@ test('a rule created after the wizard loaded stays active when the plan is saved
 
 		// Another tab creates a rule while this wizard is open.
 		const tab = await page.context().newPage();
-		await tab.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
-		await tab.locator('input[name="description"]').fill(description);
-		await tab.locator('input[name="amount"]').fill('900');
-		await tab.locator('input[name="dayOfMonth"]').fill('21');
-		await pick(tab, 'Cuenta', 'Mercado Pago');
-		await pick(tab, 'Categoría', 'Regalos');
+		await fillRule(tab, {
+			description,
+			amount: '900',
+			day: '21',
+			account: 'Mercado Pago',
+			category: 'Regalos'
+		});
 		await tab.getByRole('button', { name: 'Guardar' }).click();
 		await expect(tab).toHaveURL(/\/plan$/);
 		await tab.close();
@@ -346,12 +309,7 @@ test('a rule created after the wizard loaded stays active when the plan is saved
 		await expect(page.locator('li.rule', { hasText: description })).toBeVisible();
 		await expect(page.getByRole('region', { name: 'Inactivos' })).not.toContainText(description);
 	} finally {
-		await page.goto('/plan');
-		const hrefs = await page
-			.locator('li.rule', { hasText: description })
-			.locator('a.row')
-			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of hrefs) await post(page, baseURL!, href);
+		await deleteRules(page, baseURL!, description);
 	}
 });
 
@@ -360,7 +318,7 @@ test('saving a USD plan shows the toast, accepts cents, and deleting it removes 
 	baseURL
 }) => {
 	await login(page);
-	await setCurrency(page, 'USD', baseURL!);
+	await setCurrencyCookie(page, baseURL!, 'USD');
 	try {
 		await openSetup(page);
 		await step(page, 1).getByLabel('Otros ingresos del mes (opcional)').fill('10,50');
@@ -376,7 +334,7 @@ test('saving a USD plan shows the toast, accepts cents, and deleting it removes 
 		await page.getByRole('button', { name: 'Eliminar plan' }).click();
 		await page.getByRole('dialog').getByRole('button', { name: 'Eliminar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
-		await expect(page.getByText('Todavía no tenés un plan en dólares.')).toBeVisible();
+		await expect(page.getByText(NO_USD_PLAN)).toBeVisible();
 	} finally {
 		await dropUsdPlan(page, baseURL!);
 	}
@@ -398,15 +356,12 @@ test('invalid savings are rejected with a message', async ({ page }) => {
 test('a limit on an archived category is rejected and nothing is written', async ({ page }) => {
 	await login(page);
 	await page.goto('/categories?archived=1', { waitUntil: 'networkidle' });
-	const archived = await page
-		.getByRole('link', { name: /Gimnasio/ })
-		.first()
-		.evaluate((a: HTMLAnchorElement) => a.pathname.split('/').pop()!);
+	const archived = await linkId(page.getByRole('link', { name: /Gimnasio/ }).first());
 	await openSetup(page);
 	await injectLimit(page, archived);
 	await toStep(page, 4);
 	await savePlan(page);
-	await expect(page.getByRole('alert')).toHaveText('Elegí una categoría válida para cada límite.');
+	await expect(page.getByRole('alert')).toHaveText(INVALID_LIMIT_ERROR);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	const limits = page.getByRole('region', { name: 'Límites por categoría' });
 	await expect(limits).toContainText('Supermercado');
@@ -453,7 +408,7 @@ test('Disponible = Ingresos - Pagos fijos - Ahorro - Gastado on one page load', 
 test.describe('as another user', () => {
 	test.beforeEach(async ({ page, baseURL }) => {
 		await login(page, OTHER_EMAIL);
-		await setCurrency(page, 'USD', baseURL!);
+		await setCurrencyCookie(page, baseURL!, 'USD');
 	});
 
 	test('a USD outcome lowers the USD Disponible by exactly that amount', async ({

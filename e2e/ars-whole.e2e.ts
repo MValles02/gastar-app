@@ -1,13 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
-import { MOVEMENT_DETAIL_RE, SEED_EMAIL, SEED_PASSWORD, WHOLE_PESOS_ERROR } from './helpers';
-
-async function login(page: Page) {
-	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(SEED_EMAIL);
-	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
-	await page.getByRole('button', { name: 'Ingresar' }).click();
-	await expect(page).toHaveURL(/\/$/);
-}
+import {
+	deleteMovements,
+	fillMovement,
+	login,
+	MOVEMENT_DETAIL_RE,
+	pick,
+	postDelete,
+	WHOLE_PESOS_ERROR
+} from './helpers';
 
 // Descriptions of movements and URLs of accounts this spec may have created; removed in afterEach.
 const created: string[] = [];
@@ -18,54 +18,16 @@ const unique = (prefix: string) => {
 	return d;
 };
 
+test.beforeEach(async ({ page }) => {
+	await login(page);
+});
+
 test.afterEach(async ({ page, baseURL }) => {
-	const post = (href: string) =>
-		page.request.post(`${href}?/delete`, {
-			form: {},
-			headers: { origin: baseURL!, accept: 'text/html' }
-		});
-	for (const prefix of created.splice(0)) {
-		await page.goto(`/movements?q=${encodeURIComponent(prefix)}`);
-		const hrefs = await page
-			.locator('a[href*="movements/"]')
-			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
-		for (const href of hrefs.filter((h) => MOVEMENT_DETAIL_RE.test(h))) await post(href);
-	}
-	for (const href of createdAccounts.splice(0)) await post(href);
+	for (const prefix of created.splice(0)) await deleteMovements(page, baseURL!, prefix);
+	for (const href of createdAccounts.splice(0)) await postDelete(page, baseURL!, href);
 });
 
 const norm = (s: string | null) => (s ?? '').replace(/[\u00A0\u200B]/g, ' ').trim();
-
-async function pick(page: Page, legend: string, name: string) {
-	await page.getByRole('button', { name: new RegExp(legend) }).click();
-	await page.getByRole('dialog').getByText(name, { exact: true }).click();
-}
-
-async function pickCategory(page: Page, name: string) {
-	await pick(page, 'Categoría', name);
-}
-
-async function fillMovement(
-	page: Page,
-	o: {
-		type: 'Ingreso' | 'Gasto' | 'Transferencia';
-		amount: string;
-		description: string;
-		account: string;
-		category?: string;
-		destination?: string;
-		rate?: string;
-	}
-) {
-	await page.goto('/movements/new', { waitUntil: 'networkidle' });
-	await page.getByRole('radio', { name: o.type }).check({ force: true });
-	await page.locator('input[name="amount"]').fill(o.amount);
-	await page.locator('input[name="description"]').fill(o.description);
-	await pick(page, o.destination ? 'Cuenta de origen' : 'Cuenta', o.account);
-	if (o.category) await pickCategory(page, o.category);
-	if (o.destination) await pick(page, 'Cuenta de destino', o.destination);
-	if (o.rate !== undefined) await page.locator('input[name="exchangeRate"]').fill(o.rate);
-}
 
 const save = (page: Page) => page.getByRole('button', { name: 'Guardar movimiento' }).click();
 const openDetail = async (page: Page, desc: string, currency: 'ARS' | 'USD' = 'ARS') => {
@@ -77,7 +39,6 @@ const detailValue = (page: Page, term: string) =>
 	page.locator('dt', { hasText: term }).locator('+ dd');
 
 test('an ARS amount with decimals is rejected and the value kept', async ({ page }) => {
-	await login(page);
 	await fillMovement(page, {
 		type: 'Gasto',
 		amount: '1.500,50',
@@ -92,7 +53,6 @@ test('an ARS amount with decimals is rejected and the value kept', async ({ page
 });
 
 test('USD keeps its cents', async ({ page }) => {
-	await login(page);
 	const desc = unique('USD centavos');
 	await fillMovement(page, {
 		type: 'Ingreso',
@@ -108,7 +68,6 @@ test('USD keeps its cents', async ({ page }) => {
 });
 
 test('an ARS whole amount shows without decimals everywhere', async ({ page }) => {
-	await login(page);
 	const desc = unique('ARS entero');
 	await fillMovement(page, {
 		type: 'Gasto',
@@ -140,7 +99,6 @@ test('an ARS whole amount shows without decimals everywhere', async ({ page }) =
 test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate', async ({
 	page
 }) => {
-	await login(page);
 	const desc = unique('Transferencia entera');
 	await fillMovement(page, {
 		type: 'Transferencia',
@@ -165,7 +123,6 @@ test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate
 test('account initial balance: ARS whole only, USD keeps cents, edit prefills the stored value', async ({
 	page
 }) => {
-	await login(page);
 	const create = async (name: string, currency: 'ARS' | 'USD', balance: string) => {
 		await page.goto('/accounts/new', { waitUntil: 'networkidle' });
 		await page.getByLabel('Nombre').fill(name);
@@ -191,7 +148,6 @@ test('account initial balance: ARS whole only, USD keeps cents, edit prefills th
 });
 
 test('the transfer preview rounds half up into ARS and keeps cents into USD', async ({ page }) => {
-	await login(page);
 	await fillMovement(page, {
 		type: 'Transferencia',
 		amount: '0,01',
@@ -214,7 +170,6 @@ test('the transfer preview rounds half up into ARS and keeps cents into USD', as
 });
 
 test('movement form inputs follow the origin currency', async ({ page }) => {
-	await login(page);
 	await fillMovement(page, {
 		type: 'Transferencia',
 		amount: '',
@@ -238,7 +193,6 @@ test('movement form inputs follow the origin currency', async ({ page }) => {
 });
 
 test('account form initial balance placeholder follows the currency', async ({ page }) => {
-	await login(page);
 	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
 	const balance = page.getByLabel('Saldo inicial');
 	await page.getByRole('radio', { name: 'ARS' }).check({ force: true });

@@ -1,5 +1,5 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
-import { MIN_TARGET_PX, SEED_EMAIL, SEED_PASSWORD } from './helpers';
+import { expect, test, type Page } from '@playwright/test';
+import { firstDetailHref, login, MIN_TARGET_PX, pathOf } from './helpers';
 
 const tabs = [
 	{ route: '/', label: 'Inicio' },
@@ -13,22 +13,8 @@ const nav = (page: Page) => page.getByRole('navigation', { name: 'Navegación pr
 test.use({ viewport: { width: 393, height: 852 } });
 
 test.beforeEach(async ({ page }) => {
-	await page.goto('/login', { waitUntil: 'networkidle' });
-	await page.getByLabel('Email').fill(SEED_EMAIL);
-	await page.getByLabel('Contraseña').fill(SEED_PASSWORD);
-	await page.getByRole('button', { name: 'Ingresar' }).click();
-	await expect(page).toHaveURL(/\/$/);
+	await login(page);
 });
-
-// Path + query of a link as the browser resolves it (SSR hrefs are relative).
-const pathOf = (link: Locator) => link.evaluate((a: HTMLAnchorElement) => a.pathname + a.search);
-
-// First detail link of an entity list, or null when the seed has no rows.
-async function firstDetailHref(page: Page, entity: string) {
-	await page.goto(`/${entity}`);
-	const link = page.locator(`main a[href*="${entity}/"]:not([href$="/new"])`).first();
-	return (await link.count()) ? pathOf(link) : null;
-}
 
 test('tab routes mark the active tab, show icons only and keep 44px targets', async ({ page }) => {
 	for (const { route, label } of tabs) {
