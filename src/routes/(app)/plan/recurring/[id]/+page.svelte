@@ -5,7 +5,8 @@
 	import Card from '$lib/components/Card.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { formatMoney, parseAmount } from '$lib/money';
+	import Money from '$lib/components/Money.svelte';
+	import { parseAmount } from '$lib/money';
 	import RecurringForm from '../RecurringForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -13,9 +14,7 @@
 
 	const account = $derived(data.accounts.find((a) => a.id === data.values.accountId));
 	const category = $derived(data.categories.find((c) => c.id === data.values.categoryId));
-	const shown = $derived(
-		formatMoney(parseAmount(data.values.amount) ?? 0, account?.meta === 'USD' ? 'USD' : 'ARS')
-	);
+	const amount = $derived(parseAmount(data.values.amount) ?? 0);
 </script>
 
 <svelte:head>
@@ -29,8 +28,12 @@
 />
 
 <div class="detail">
-	<p class="amount hero-amount" class:income={data.values.type === 'income'}>
-		{data.values.type === 'income' ? '' : '−'}{shown}
+	<p class="amount hero-amount">
+		<Money
+			cents={data.values.type === 'income' ? amount : -amount}
+			currency={account?.meta === 'USD' ? 'USD' : 'ARS'}
+			kind={data.values.type === 'income' ? 'income' : 'outcome'}
+		/>
 	</p>
 
 	<Card flush>
@@ -102,10 +105,6 @@
 		letter-spacing: -0.02em;
 		line-height: 1.1;
 		overflow-wrap: anywhere;
-	}
-
-	.income {
-		color: var(--positive);
 	}
 
 	.facts {

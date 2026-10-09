@@ -28,7 +28,16 @@ test('tab bar is Inicio, Movimientos, Plan, Reportes plus the Nuevo movimiento b
 	await login(page);
 	await page.goto('/reports', { waitUntil: 'networkidle' });
 	const nav = page.getByRole('navigation', { name: 'Navegación principal' });
-	await expect(nav.getByRole('link')).toHaveText(['Inicio', 'Movimientos', 'Plan', 'Reportes', '']);
+	const links = nav.getByRole('link');
+	await expect(links).toHaveText(['', '', '', '', '']);
+	for (const [i, name] of [
+		'Inicio',
+		'Movimientos',
+		'Plan',
+		'Reportes',
+		'Nuevo movimiento'
+	].entries())
+		await expect(links.nth(i)).toHaveAccessibleName(name);
 	await expect(nav.getByRole('link', { name: 'Nuevo movimiento' })).toHaveAttribute(
 		'href',
 		'/movements/new'
@@ -160,8 +169,9 @@ test('past month totals match its six-month link', async ({ page }) => {
 	const [, ingresos, gastos] = /ingresos (.*), gastos (.*)$/.exec(norm(label))!;
 	const dd = (name: string) =>
 		page.locator('dl.totals > div').filter({ hasText: name }).locator('dd');
+	// Strip the visually hidden sign Money keeps for screen readers.
 	expect(norm(await dd('Ingresos').textContent()).replace(/^\+/, '')).toBe(ingresos);
-	expect(norm(await dd('Gastos').textContent())).toBe(gastos);
+	expect(norm(await dd('Gastos').textContent()).replace(/^-/, '')).toBe(gastos);
 });
 
 test('category slices sum to 100 % and to the month spending', async ({ page }) => {

@@ -9,7 +9,7 @@
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { formatMoney } from '$lib/money';
+	import Money from '$lib/components/Money.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -18,10 +18,12 @@
 	const colorLabel = $derived(SWATCHES.find((s) => s.key === c.color)?.label ?? c.color);
 	const single = $derived(data.nets.length === 1 ? data.nets[0] : null);
 	const labelId = $props.id();
-	// Net spend (outcomes - incomes) shown as a cash flow, like movement rows: spend "-", income "+".
-	const flow = (net: number, currency: 'ARS' | 'USD') =>
-		formatMoney(-net, currency, { sign: 'always' });
 </script>
+
+<!-- Net spend (outcomes - incomes) as a cash flow: spend in red, net income in green. -->
+{#snippet flow(net: number, currency: 'ARS' | 'USD')}
+	<Money cents={-net} {currency} kind={net < 0 ? 'income' : 'plain'} />
+{/snippet}
 
 <svelte:head>
 	<title>{c.name} · Gastar</title>
@@ -63,7 +65,7 @@
 				<IconBadge letter={c.name[0]} color={toSwatchKey(c.color)} size="3rem" />
 				<p id={labelId} class="label">{data.month.isCurrent ? 'Este mes' : 'Balance del mes'}</p>
 				{#if single}
-					<p class="value" class:income={single.net < 0}>{flow(single.net, single.currency)}</p>
+					<p class="value">{@render flow(single.net, single.currency)}</p>
 				{:else if data.nets.length === 0}
 					<p class="muted">Sin movimientos en este mes.</p>
 				{:else}
@@ -71,7 +73,7 @@
 						{#each data.nets as n (n.currency)}
 							<div>
 								<dt>{n.currency}</dt>
-								<dd class="amount" class:income={n.net < 0}>{flow(n.net, n.currency)}</dd>
+								<dd class="amount">{@render flow(n.net, n.currency)}</dd>
 							</div>
 						{/each}
 					</dl>
@@ -190,7 +192,6 @@
 		font-size: var(--font-size-sm);
 	}
 
-	/* Spending stays in the text colour; only income (a negative net) is green. */
 	.value {
 		max-width: 100%;
 		font-family: var(--font-display);
@@ -198,10 +199,6 @@
 		font-weight: 500;
 		line-height: 1.2;
 		overflow-wrap: anywhere;
-	}
-
-	.income {
-		color: var(--positive);
 	}
 
 	.duo {

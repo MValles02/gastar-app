@@ -348,7 +348,10 @@
 		</ul>
 		{#if limitTotal > 0}
 			<p class="muted xs">
-				Asignado {money(limitTotal)} · sin asignar {money(forSpending - limitTotal)}
+				Asignado {money(limitTotal)} · sin asignar <Money
+					cents={forSpending - limitTotal}
+					currency={data.currency}
+				/>
 			</p>
 		{/if}
 	</section>

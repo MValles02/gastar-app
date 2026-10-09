@@ -33,17 +33,16 @@ async function firstDetailHref(page: Page, entity: string) {
 	return (await link.count()) ? pathOf(link) : null;
 }
 
-test('tab routes mark the active tab, fit labels and keep 44px targets', async ({ page }) => {
+test('tab routes mark the active tab, show icons only and keep 44px targets', async ({ page }) => {
 	for (const { route, label } of tabs) {
 		await page.goto(route);
 		const links = nav(page).locator('.tab');
 		await expect(links).toHaveCount(4);
-		await expect(nav(page).locator('.tab[aria-current="page"]'), route).toHaveText(label);
+		await expect(nav(page).locator('.tab[aria-current="page"]'), route).toHaveAccessibleName(label);
 		await expect(nav(page).locator('[aria-current="page"]')).toHaveCount(1);
 
 		for (const tab of await links.all()) {
-			const fits = await tab.locator('span').evaluate((el) => el.scrollWidth <= el.clientWidth);
-			expect(fits, `${route} label ${await tab.textContent()}`).toBe(true);
+			await expect(tab, route).toHaveText('');
 			const box = await tab.boundingBox();
 			expect(box!.height, route).toBeGreaterThanOrEqual(44);
 			expect(box!.width, route).toBeGreaterThanOrEqual(44);
