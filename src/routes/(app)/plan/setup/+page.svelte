@@ -490,6 +490,7 @@
 
 	.check-row {
 		flex-direction: row;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-3);
 		min-height: 3rem;
@@ -527,10 +528,6 @@
 	.amount {
 		font-size: var(--font-size-sm);
 		text-align: end;
-	}
-
-	.check-row {
-		flex-wrap: wrap;
 	}
 
 	.new-row {

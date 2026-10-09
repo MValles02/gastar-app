@@ -25,6 +25,13 @@ import { HISTORY_MONTHS, PLAN_STEP } from './plan';
 
 type Range = { start: Date; end: Date };
 
+const occurredIn = (range: Range) =>
+	and(gte(movements.occurredAt, range.start), lt(movements.occurredAt, range.end));
+
+/** The rule `id`, only if the user may access it. */
+const ownRule = (userId: string, id: string) =>
+	and(eq(recurringMovements.id, id), canAccessRecurring(userId));
+
 // TZ is inlined as a literal: a bound parameter makes SELECT and GROUP BY different expressions.
 const tzLiteral = sql.raw(`'${TZ}'`);
 const localMonth = sql<string>`to_char(${movements.occurredAt} at time zone ${tzLiteral}, 'YYYY-MM')`;
@@ -81,14 +88,7 @@ export function paidRecurring(userId: string, range: Range) {
 		.selectDistinct({ recurringId: movements.recurringId })
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.where(
-			and(
-				canAccessMovement(userId),
-				isNotNull(movements.recurringId),
-				gte(movements.occurredAt, range.start),
-				lt(movements.occurredAt, range.end)
-			)
-		);
+		.where(and(canAccessMovement(userId), isNotNull(movements.recurringId), occurredIn(range)));
 }
 
 export function createRecurring(userId: string, row: RecurringRow) {
@@ -120,7 +120,7 @@ export function updateRecurring(userId: string, id: string, row: RecurringRow) {
 	return db
 		.update(recurringMovements)
 		.set({ ...row, updatedAt: new Date() })
-		.where(and(eq(recurringMovements.id, id), canAccessRecurring(userId)))
+		.where(ownRule(userId, id))
 		.returning({ id: recurringMovements.id });
 }
 
@@ -128,14 +128,14 @@ export function setRecurringArchived(userId: string, id: string, archived: boole
 	return db
 		.update(recurringMovements)
 		.set({ archivedAt: archived ? new Date() : null, updatedAt: new Date() })
-		.where(and(eq(recurringMovements.id, id), canAccessRecurring(userId)))
+		.where(ownRule(userId, id))
 		.returning({ id: recurringMovements.id });
 }
 
 export function deleteRecurring(userId: string, id: string) {
 	return db
 		.delete(recurringMovements)
-		.where(and(eq(recurringMovements.id, id), canAccessRecurring(userId)))
+		.where(ownRule(userId, id))
 		.returning({ id: recurringMovements.id });
 }
 
@@ -165,8 +165,7 @@ export function recurringCandidates(userId: string, cur: Currency, range: Range)
 				isNull(financialAccounts.archivedAt),
 				isNull(movements.recurringId),
 				or(eq(movements.type, 'income'), eq(movements.type, 'outcome')),
-				gte(movements.occurredAt, range.start),
-				lt(movements.occurredAt, range.end)
+				occurredIn(range)
 			)
 		)
 		.groupBy(
@@ -232,8 +231,7 @@ export function monthOutcomes(userId: string, cur: Currency, range: Range) {
 				canAccessMovement(userId),
 				eq(financialAccounts.currency, cur),
 				eq(movements.type, 'outcome'),
-				gte(movements.occurredAt, range.start),
-				lt(movements.occurredAt, range.end)
+				occurredIn(range)
 			)
 		)
 		.groupBy(movements.categoryId, movements.recurringId);

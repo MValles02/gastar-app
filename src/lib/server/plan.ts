@@ -46,6 +46,18 @@ export function isRecurringActive(r: {
 	return !r.archivedAt && !r.accountArchivedAt && !r.categoryArchivedAt;
 }
 
+/** Why a rule is inactive (the rule itself first, then its account, then its category); null when active. */
+export function inactiveReason(r: {
+	archivedAt: Date | null;
+	accountArchivedAt: Date | null;
+	categoryArchivedAt: Date | null;
+}): string | null {
+	if (r.archivedAt) return 'Archivado';
+	if (r.accountArchivedAt) return 'Cuenta archivada';
+	if (r.categoryArchivedAt) return 'Categoría archivada';
+	return null;
+}
+
 export type PlanStatus = 'ok' | 'warn' | 'over';
 
 export const PLAN_STATUS_LABEL: Record<PlanStatus, string> = {
