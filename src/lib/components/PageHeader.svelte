@@ -1,18 +1,30 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import Icon from './Icon.svelte';
+	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+	import Bell from '@lucide/svelte/icons/bell';
+	import X from '@lucide/svelte/icons/x';
 
-	/** Sticky top bar: [back] [eyebrow + title] [avisos] [profile]. The eyebrow defaults to today's date. */
+	/**
+	 * Sticky top bar: [back] [eyebrow + title] [avisos] [profile]. The eyebrow defaults to today's date.
+	 * `compact` drops the eyebrow and shrinks the title; `close` shows an X instead of back, hides the
+	 * bell and avatar, is always compact and wins over `back`.
+	 */
 	let {
 		title,
 		eyebrow,
-		back
+		back,
+		variant = 'large',
+		close
 	}: {
 		title: string;
 		eyebrow?: string;
 		back?: { href: string; label: string };
+		variant?: 'large' | 'compact';
+		close?: { href: string; label: string };
 	} = $props();
+
+	const compact = $derived(variant === 'compact' || !!close);
 
 	// From the (app) layout load; missing only if that load failed (error page).
 	const header = $derived(page.data.header as { date: string; initials: string } | undefined);
@@ -21,24 +33,29 @@
 </script>
 
 <header class="top-bar">
-	{#if back}
+	{#if close}
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass an already resolved href -->
+		<a class="back" href={close.href} aria-label={close.label}>
+			<X size={24} strokeWidth={1.75} aria-hidden="true" />
+		</a>
+	{:else if back}
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass an already resolved href -->
 		<a class="back" href={back.href} aria-label={back.label}>
-			<Icon name="chevron-left" />
+			<ChevronLeft size={24} strokeWidth={1.75} aria-hidden="true" />
 		</a>
 	{/if}
 	<div class="titles">
-		{#if kicker}<p class="eyebrow">{kicker}</p>{/if}
-		<h1>{title}</h1>
+		{#if kicker && !compact}<p class="eyebrow">{kicker}</p>{/if}
+		<h1 class:compact>{title}</h1>
 	</div>
-	{#if header}
+	{#if header && !close}
 		<a
 			class="bell"
 			href={resolve('/notifications')}
 			aria-current={page.url.pathname === '/notifications' ? 'page' : undefined}
 			aria-label={alertCount > 0 ? `Avisos: ${alertCount}` : 'Avisos'}
 		>
-			<Icon name="bell" size="1.25rem" />
+			<Bell size={20} strokeWidth={1.75} aria-hidden="true" />
 			{#if alertCount > 0}<span class="badge" aria-hidden="true"
 					>{alertCount > 9 ? '9+' : alertCount}</span
 				>{/if}
@@ -62,7 +79,8 @@
 		margin: 0 calc(var(--gutter) * -1) var(--space-4);
 		padding: calc(var(--space-4) + env(safe-area-inset-top)) var(--gutter) var(--space-3);
 		background: color-mix(in srgb, var(--bg) 92%, transparent);
-		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(16px);
+		backdrop-filter: blur(16px);
 		border-bottom: 1px solid transparent;
 	}
 
@@ -103,9 +121,19 @@
 
 	h1 {
 		overflow-wrap: anywhere;
+		font-family: var(--font-display);
 		font-size: var(--font-size-xl);
 		font-weight: 500;
+		letter-spacing: -0.015em;
 		line-height: 1.2;
+	}
+
+	h1.compact {
+		overflow: hidden;
+		overflow-wrap: normal;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-size: 1.0625rem;
 	}
 
 	.back,

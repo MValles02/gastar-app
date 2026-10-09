@@ -329,7 +329,7 @@ test('outcomes are not coloured red on detail pages', async ({ page }) => {
 	await expectOutcomeTone(page);
 });
 
-test('a keyboard-focused submit button stays clear of the bottom nav at 390x844', async ({
+test('the tab bar is absent on the new-movement form and a focused submit stays in view at 390x844', async ({
 	page
 }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
@@ -341,8 +341,9 @@ test('a keyboard-focused submit button stays clear of the bottom nav at 390x844'
 	for (let i = 0; i < 6 && !(await submit.evaluate((el) => el === document.activeElement)); i++)
 		await page.keyboard.press('Tab');
 	await expect(submit).toBeFocused();
-	const nav = await page.getByRole('navigation', { name: 'Navegación principal' }).boundingBox();
+	await expect(page.getByRole('navigation', { name: 'Navegación principal' })).toHaveCount(0);
+	await expect(submit).toBeInViewport();
 	await expect
 		.poll(async () => (await submit.boundingBox())!.y + (await submit.boundingBox())!.height)
-		.toBeLessThanOrEqual(nav!.y);
+		.toBeLessThanOrEqual(844);
 });

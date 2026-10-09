@@ -22,13 +22,13 @@ test.afterEach(async ({ context, baseURL }) => {
 	await context.addCookies([{ name: 'currency', value: 'ARS', url: baseURL! }]);
 });
 
-test('bottom nav is Inicio, Movimientos, Nuevo movimiento, Plan, Reportes and Profile links to Cuentas and Categorías', async ({
+test('tab bar is Inicio, Movimientos, Plan, Reportes plus the Nuevo movimiento button and Profile links to Cuentas and Categorías', async ({
 	page
 }) => {
 	await login(page);
 	await page.goto('/reports', { waitUntil: 'networkidle' });
 	const nav = page.getByRole('navigation', { name: 'Navegación principal' });
-	await expect(nav.getByRole('link')).toHaveText(['Inicio', 'Movimientos', '', 'Plan', 'Reportes']);
+	await expect(nav.getByRole('link')).toHaveText(['Inicio', 'Movimientos', 'Plan', 'Reportes', '']);
 	await expect(nav.getByRole('link', { name: 'Nuevo movimiento' })).toHaveAttribute(
 		'href',
 		'/movements/new'
