@@ -3,12 +3,15 @@ import {
 	deleteMovements,
 	fillMovement,
 	login,
+	OTHER_EMAIL,
 	MOVEMENT_DETAIL_RE,
 	pick,
 	postDelete,
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
+// Runs as otro: the demo user's current month must stay untouched (Reportes/Inicio compare its totals), and
+// every write is dated in the past so other specs' otro totals are not disturbed either.
 // Descriptions of movements and URLs of accounts this spec may have created; removed in afterEach.
 const created: string[] = [];
 const createdAccounts: string[] = [];
@@ -19,7 +22,7 @@ const unique = (prefix: string) => {
 };
 
 test.beforeEach(async ({ page }) => {
-	await login(page);
+	await login(page, OTHER_EMAIL);
 });
 
 test.afterEach(async ({ page, baseURL }) => {
@@ -43,8 +46,8 @@ test('an ARS amount with decimals is rejected and the value kept', async ({ page
 		type: 'Gasto',
 		amount: '1.500,50',
 		description: unique('ARS decimales'),
-		account: 'Banco Galicia',
-		category: 'Supermercado'
+		account: 'Otra cuenta pesos',
+		category: 'Ajena'
 	});
 	await save(page);
 	await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
@@ -57,9 +60,10 @@ test('USD keeps its cents', async ({ page }) => {
 	await fillMovement(page, {
 		type: 'Ingreso',
 		amount: '12,34',
+		date: '2024-02-29',
 		description: desc,
-		account: 'Ahorro USD',
-		category: 'Freelance'
+		account: 'Otra cuenta',
+		category: 'Ajena'
 	});
 	await save(page);
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
@@ -72,9 +76,10 @@ test('an ARS whole amount shows without decimals everywhere', async ({ page }) =
 	await fillMovement(page, {
 		type: 'Gasto',
 		amount: '1500',
+		date: '2024-02-29',
 		description: desc,
-		account: 'Banco Galicia',
-		category: 'Supermercado'
+		account: 'Otra cuenta pesos',
+		category: 'Ajena'
 	});
 	await save(page);
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
@@ -92,7 +97,7 @@ test('an ARS whole amount shows without decimals everywhere', async ({ page }) =
 	expect(norm(await page.locator('.hero-amount').textContent())).toMatch(/^\$\s[\d.]+$/);
 
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
-	const acct = page.locator('li', { hasText: 'Banco Galicia' }).locator('.row-amount');
+	const acct = page.locator('li', { hasText: 'Otra cuenta pesos' }).locator('.row-amount');
 	expect(norm(await acct.textContent())).toMatch(/^\$\s[\d.]+$/);
 });
 
@@ -103,9 +108,10 @@ test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate
 	await fillMovement(page, {
 		type: 'Transferencia',
 		amount: '10,01',
+		date: '2024-02-29',
 		description: desc,
-		account: 'Ahorro USD',
-		destination: 'Banco Galicia',
+		account: 'Otra cuenta',
+		destination: 'Otra cuenta pesos',
 		rate: '1234,5'
 	});
 	await save(page);
@@ -141,10 +147,10 @@ test('account initial balance: ARS whole only, USD keeps cents, edit prefills th
 	createdAccounts.push(page.url());
 
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
-	await page.getByRole('link', { name: /Banco Galicia/ }).click();
+	await page.getByRole('link', { name: /Otra cuenta pesos/ }).click();
 	await page.getByRole('link', { name: 'Editar' }).click();
-	// scripts/seed.js: Banco Galicia starts at 650_000_00 cents.
-	await expect(page.getByLabel('Saldo inicial')).toHaveValue('650.000');
+	// scripts/seed.js: Otra cuenta pesos starts at 500_000_00 cents.
+	await expect(page.getByLabel('Saldo inicial')).toHaveValue('500.000');
 	// The grouped prefill saves unchanged.
 	await page.getByRole('button', { name: 'Guardar cambios' }).click();
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
@@ -155,8 +161,8 @@ test('the transfer preview rounds half up into ARS and keeps cents into USD', as
 		type: 'Transferencia',
 		amount: '0,01',
 		description: 'Vista previa',
-		account: 'Ahorro USD',
-		destination: 'Banco Galicia',
+		account: 'Otra cuenta',
+		destination: 'Otra cuenta pesos',
 		rate: '50'
 	});
 	await expect(page.getByText('Monto en destino: $ 1', { exact: true })).toBeVisible();
@@ -165,8 +171,8 @@ test('the transfer preview rounds half up into ARS and keeps cents into USD', as
 		type: 'Transferencia',
 		amount: '12352',
 		description: 'Vista previa',
-		account: 'Banco Galicia',
-		destination: 'Ahorro USD',
+		account: 'Otra cuenta pesos',
+		destination: 'Otra cuenta',
 		rate: '1234'
 	});
 	await expect(page.getByText('Monto en destino: US$ 10,01', { exact: true })).toBeVisible();
@@ -177,8 +183,8 @@ test('movement form inputs follow the origin currency', async ({ page }) => {
 		type: 'Transferencia',
 		amount: '',
 		description: 'Atributos',
-		account: 'Banco Galicia',
-		destination: 'Ahorro USD'
+		account: 'Otra cuenta pesos',
+		destination: 'Otra cuenta'
 	});
 	const amount = page.locator('input[name="amount"]');
 	const rate = page.locator('input[name="exchangeRate"]');
@@ -187,8 +193,8 @@ test('movement form inputs follow the origin currency', async ({ page }) => {
 	await expect(rate).toHaveAttribute('inputmode', 'numeric');
 	await expect(rate).toHaveAttribute('placeholder', '0');
 
-	await pick(page, 'Cuenta de origen', 'Ahorro USD');
-	await pick(page, 'Cuenta de destino', 'Banco Galicia');
+	await pick(page, 'Cuenta de origen', 'Otra cuenta');
+	await pick(page, 'Cuenta de destino', 'Otra cuenta pesos');
 	await expect(amount).toHaveAttribute('inputmode', 'decimal');
 	await expect(amount).toHaveAttribute('placeholder', '0,00');
 	await expect(rate).toHaveAttribute('inputmode', 'numeric');

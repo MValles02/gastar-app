@@ -54,6 +54,7 @@ test('a payment due today alerts until it is registered', async ({ page, baseURL
 
 test('a plan alert opens /plan in its currency, and the page works without JS', async ({
 	page,
+	browser,
 	baseURL
 }) => {
 	await login(page, OTHER_EMAIL);
@@ -76,10 +77,24 @@ test('a plan alert opens /plan in its currency, and the page works without JS', 
 		await expect(page.getByText('Plan guardado.')).toBeVisible();
 
 		// No JS: the server-rendered page carries plain links and a form that sets the currency.
-		const html = await (await page.request.get('/notifications')).text();
-		expect(html).toContain('Te pasaste del plan en pesos');
-		expect(html).toMatch(/<form[^>]*method="POST"[^>]*action="\.?\/currency"/);
-		expect(html).toMatch(/name="redirectTo"[^>]*value="\/plan"/);
+		const noJs = await browser.newContext({
+			baseURL,
+			javaScriptEnabled: false,
+			storageState: await page.context().storageState()
+		});
+		try {
+			const bare = await noJs.newPage();
+			await bare.goto('/notifications');
+			const planAlert = alertRow(bare, 'Faltan');
+			await expect(planAlert).toBeVisible();
+			await expect(planAlert).toContainText('Te pasaste');
+			const form = planAlert.locator('form');
+			await expect(form).toHaveAttribute('method', 'POST');
+			await expect(form).toHaveAttribute('action', /\/currency$/);
+			await expect(form.locator('input[name="redirectTo"]')).toHaveValue('/plan');
+		} finally {
+			await noJs.close();
+		}
 
 		// The cookie says USD; the alert's form switches it to ARS.
 		await setCurrencyCookie(page, baseURL!, 'USD');
