@@ -21,6 +21,9 @@ export function monthNet(sums: TypeSum[]): number {
 	return sumOf(sums, 'income') - sumOf(sums, 'outcome');
 }
 
+/** How many categories the home screen ranks. */
+const TOP_CATEGORIES = 3;
+
 export function topCategories(
 	rows: { id: string; name: string; outcome: number; income: number }[]
 ): { id: string; name: string; net: number; share: number }[] {
@@ -30,7 +33,7 @@ export function topCategories(
 	const total = positive.reduce((a, r) => a + r.net, 0);
 	return positive
 		.sort((a, b) => b.net - a.net || a.name.localeCompare(b.name))
-		.slice(0, 3)
+		.slice(0, TOP_CATEGORIES)
 		.map((r) => ({ ...r, share: r.net / total }));
 }
 

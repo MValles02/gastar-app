@@ -15,6 +15,11 @@ import {
 } from '$lib/server/month';
 import { biggestOutcome, monthlyFlows } from '$lib/server/reports-queries';
 
+/** Months in the flow chart, ending at the selected one. */
+const FLOW_MONTHS = 6;
+/** Categories drawn as their own donut slice; the rest are summed into "Otros". */
+const DONUT_TOP = 4;
+
 export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const userId = locals.user!.id;
 	const currency = singleCurrency(cookies.get('currency'));
@@ -34,7 +39,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	if (!summary.some((s) => s.currency === currency && s.count > 0))
 		return { currency, nav, hasCurrency: false as const };
 
-	const months = lastMonths(ym, 6);
+	const months = lastMonths(ym, FLOW_MONTHS);
 	const range = monthRange(ym);
 	const [flows, cats, [biggest]] = await Promise.all([
 		monthlyFlows(userId, currency, { start: monthRange(months[0]).start, end: range.end }),
@@ -54,14 +59,14 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	});
 	const month = bars[bars.length - 1];
 
-	// Donut: net spending per category (integer cents), top 4 plus "Otros".
+	// Donut: net spending per category (integer cents), top DONUT_TOP plus "Otros".
 	const spent = cats
 		.map((c) => ({ id: c.id, name: c.name, amount: c.outcome - c.income }))
 		.filter((c) => c.amount > 0)
 		.sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, 'es'));
 	const totalSpent = spent.reduce((a, c) => a + c.amount, 0);
-	const slices = spent.slice(0, 4);
-	const rest = spent.slice(4).reduce((a, c) => a + c.amount, 0);
+	const slices = spent.slice(0, DONUT_TOP);
+	const rest = spent.slice(DONUT_TOP).reduce((a, c) => a + c.amount, 0);
 	if (rest > 0) slices.push({ id: 'other', name: 'Otros', amount: rest });
 
 	// Largest-remainder rounding on integer cents so the shown percentages sum to 100.

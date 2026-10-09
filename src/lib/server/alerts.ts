@@ -1,8 +1,7 @@
 import { and, inArray } from 'drizzle-orm';
 import { toSwatchKey, type SwatchKey } from '../appearance';
-import { formatMoney } from '../money';
+import { CURRENCIES, formatMoney, type Currency } from '../money';
 import { canAccessCategory } from './access';
-import type { Currency } from '$lib/money';
 import { accountSummary } from './dashboard-queries';
 import { db } from './db';
 import { categories } from './db/schema';
@@ -13,6 +12,9 @@ import { planView } from './plan-view';
 
 /** An unpaid fixed payment is an alert once it is overdue or due within this many days. */
 const DUE_WINDOW_DAYS = 3;
+
+/** Currency name inside alert titles ("Te pasaste del plan en pesos"). */
+const CURRENCY_NAME = { ARS: 'pesos', USD: 'dólares' } as const satisfies Record<Currency, string>;
 
 export type AlertItem = {
 	id: string;
@@ -54,9 +56,7 @@ export async function alerts(userId: string, now = new Date()) {
 		paidRecurring(userId, monthRange(ym))
 	]);
 	const paidIds = new Set(paid.map((p) => p.recurringId));
-	const currencies = (['ARS', 'USD'] as const).filter((c) =>
-		summary.some((s) => s.currency === c && s.count > 0)
-	);
+	const currencies = CURRENCIES.filter((c) => summary.some((s) => s.currency === c && s.count > 0));
 
 	return Promise.all(
 		currencies.map(async (currency: Currency) => {
@@ -92,7 +92,7 @@ export async function alerts(userId: string, now = new Date()) {
 				});
 
 			if (plan) {
-				const name = currency === 'ARS' ? 'pesos' : 'dólares';
+				const name = CURRENCY_NAME[currency];
 				const spentOf = `${formatMoney(plan.spent, currency)} de ${formatMoney(plan.forSpending, currency)}`;
 				if (plan.status === 'over')
 					items.push({

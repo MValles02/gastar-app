@@ -4,6 +4,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 const THEMES = ['light', 'dark', 'system'] as const;
 type Theme = (typeof THEMES)[number];
+const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 function parseTheme(value: string | undefined): Theme {
 	return (THEMES as readonly string[]).includes(value ?? '') ? (value as Theme) : 'system';
@@ -28,7 +29,7 @@ export const actions: Actions = {
 
 		cookies.set('theme', value, {
 			path: '/',
-			maxAge: 60 * 60 * 24 * 365,
+			maxAge: ONE_YEAR_SECONDS,
 			sameSite: 'lax',
 			httpOnly: true,
 			secure: !dev

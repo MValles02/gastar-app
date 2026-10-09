@@ -22,7 +22,8 @@
 	const statusIcon = { ok: Check, warn: Clock, over: CircleAlert } as const;
 
 	// Past 11 characters ("$ 12.345.678") the hero steps down so it never wraps or truncates.
-	const heroSmall = (cents: number) => formatMoney(cents, data.currency).length > 11;
+	const HERO_MAX_CHARS = 11;
+	const heroSmall = (cents: number) => formatMoney(cents, data.currency).length > HERO_MAX_CHARS;
 </script>
 
 <svelte:head>

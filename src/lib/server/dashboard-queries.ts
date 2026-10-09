@@ -7,6 +7,9 @@ import { canAccessAccount, canAccessCategory, canAccessMovement } from './access
 
 type Range = { start: Date; end: Date };
 
+/** Movements listed under "Movimientos" on the home screen. */
+const RECENT_LIMIT = 10;
+
 const dest = alias(financialAccounts, 'dest');
 const total = (col: unknown) => sql<number>`coalesce(sum(${col}), 0)`.mapWith(Number);
 
@@ -107,5 +110,5 @@ export function recentMovements(userId: string, cur?: Currency) {
 			)
 		)
 		.orderBy(desc(movements.occurredAt), desc(movements.createdAt), desc(movements.id))
-		.limit(10);
+		.limit(RECENT_LIMIT);
 }
