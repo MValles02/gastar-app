@@ -53,6 +53,9 @@
 	};
 	const firstPageQuery = $derived(filterParams().toString());
 
+	// The search term is not a filter: the badge and Limpiar count only the drawer filters.
+	const filterCount = $derived(data.activeCount - (data.filters.q ? 1 : 0));
+
 	let filtersOpen = $state(false);
 	let drawerForm: HTMLFormElement | null = $state(null);
 
@@ -124,13 +127,13 @@
 			<button
 				type="button"
 				class="filters-btn"
-				class:active={data.activeCount > 0}
+				class:active={filterCount > 0}
 				aria-haspopup="dialog"
 				onclick={() => (filtersOpen = true)}
 			>
 				<SlidersHorizontal size={18} strokeWidth={1.75} aria-hidden="true" />
 				Filtros
-				{#if data.activeCount > 0}<span class="count">{data.activeCount}</span>{/if}
+				{#if filterCount > 0}<span class="count">{filterCount}</span>{/if}
 			</button>
 		{/snippet}
 		<span id="currency-label" class="visually-hidden">Moneda</span>
@@ -172,7 +175,7 @@
 				<input type="hidden" name="currency" value={data.filters.currency} />
 			{/if}
 			{@render fields()}
-			{#if data.activeCount > 0}
+			{#if filterCount > 0}
 				<Button type="button" variant="secondary" block onclick={clearFilters}>
 					Limpiar filtros
 				</Button>
@@ -232,11 +235,7 @@
 					</Button>
 				{/if}
 				{#if data.hasNext}
-					<Button
-						href={resolve(`/movements?${pageQuery(data.page + 1)}`)}
-						variant="secondary"
-						class={data.page > 1 ? '' : 'one'}
-					>
+					<Button href={resolve(`/movements?${pageQuery(data.page + 1)}`)} variant="secondary">
 						Más antiguos<ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
 					</Button>
 				{/if}
@@ -366,7 +365,7 @@
 		gap: var(--space-1);
 	}
 
-	.pager :global(.one) {
+	.pager :global(.btn:only-child) {
 		grid-column: 1 / 3;
 	}
 </style>

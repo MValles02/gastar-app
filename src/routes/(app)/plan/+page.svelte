@@ -1,9 +1,18 @@
 <script lang="ts">
+	import Check from '@lucide/svelte/icons/check';
+	import CircleAlert from '@lucide/svelte/icons/circle-alert';
+	import Clock from '@lucide/svelte/icons/clock';
+	import { onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
+	import { afterNavigate, replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import Button from '$lib/components/Button.svelte';
 	import Card from '$lib/components/Card.svelte';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import Icon from '$lib/components/Icon.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { formatMoney } from '$lib/money';
@@ -12,6 +21,33 @@
 	let { data }: { data: PageData } = $props();
 
 	const currencyName = { ARS: 'pesos', USD: 'dólares' } as const;
+	const statusIcon = { ok: Check, warn: Clock, over: CircleAlert } as const;
+	// Row pill by due status: paid is green, today is orange, overdue is inverted (never red).
+	const dueIcon = { paid: Check, today: Clock, overdue: CircleAlert, upcoming: null } as const;
+	const dueClass = { paid: 'ok', today: 'warn', overdue: 'over', upcoming: '' } as const;
+
+	// Past 11 characters ("$ 12.345.678") the hero steps down so it never wraps or truncates.
+	const heroSmall = (cents: number) => formatMoney(cents, data.currency).length > 11;
+
+	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
+	let hydrated = $state(false);
+	onMount(() => (hydrated = true));
+	// Toast once per saved redirect. The history entry is marked (state only, the URL keeps its
+	// query) so back-nav to it does not re-fire; a new save is a new entry. Runs in afterNavigate
+	// because replaceState throws before the router is initialized (hard load of ?saved=1).
+	const markToasted = () => {
+		try {
+			replaceState('', { toasted: true } as App.PageState);
+		} catch {
+			setTimeout(markToasted, 50);
+		}
+	};
+	afterNavigate(() => {
+		if ((data.saved || data.planSaved) && !(page.state as { toasted?: boolean }).toasted) {
+			toast.success(data.saved ? 'Pago registrado.' : 'Plan guardado.');
+			markToasted();
+		}
+	});
 </script>
 
 <svelte:head>
@@ -22,8 +58,10 @@
 
 <div class="page">
 	<CurrencyTabs value={data.currency} />
-	{#if data.saved}<p role="status" class="saved">Pago registrado.</p>{/if}
-	{#if data.planSaved}<p role="status" class="saved">Plan guardado.</p>{/if}
+	{#if !hydrated}
+		{#if data.saved}<p role="status">Pago registrado.</p>{/if}
+		{#if data.planSaved}<p role="status">Plan guardado.</p>{/if}
+	{/if}
 
 	{#if !data.hasCurrency}
 		<EmptyState icon="accounts">No tenés cuentas en {currencyName[data.currency]}.</EmptyState>
@@ -31,42 +69,55 @@
 	{:else}
 		{#if data.plan.summary}
 			{@const s = data.plan.summary}
+			{@const Status = statusIcon[s.status]}
 			<section class="summary" aria-labelledby="summary-heading">
-				<Card>
-					<h2 id="summary-heading">Disponible · {data.plan.monthName}</h2>
-					<p class="hero"><Money cents={s.available} currency={data.currency} /></p>
-					<p class="status {s.status}">{data.plan.statusLabel}</p>
-					<p class="per-day">
-						<Money cents={s.perDay} currency={data.currency} /> por día · quedan {s.daysLeft}
-						{s.daysLeft === 1 ? 'día' : 'días'}
-					</p>
+				<Card flush>
+					<div class="box">
+						<div class="top">
+							<h2 id="summary-heading" class="eyebrow">Disponible · {data.plan.monthName}</h2>
+							<span class="pill {s.status}">
+								<Status size={14} strokeWidth={2} />
+								{data.plan.statusLabel}
+							</span>
+						</div>
+						<p class="hero hero-amount" class:small={heroSmall(s.available)}>
+							<Money cents={s.available} currency={data.currency} />
+						</p>
+						<p class="per-day">
+							<Money cents={s.perDay} currency={data.currency} />/día · {s.daysLeft}
+							{s.daysLeft === 1 ? 'día' : 'días'}
+						</p>
+					</div>
 					<dl class="figures">
-						<div>
+						<div class="kv">
 							<dt>Ingresos</dt>
-							<dd><Money cents={s.income} currency={data.currency} /></dd>
+							<dd><Money cents={s.income} currency={data.currency} kind="income" /></dd>
 						</div>
-						<div>
+						<div class="kv">
 							<dt>Pagos fijos</dt>
-							<dd><Money cents={s.bills} currency={data.currency} /></dd>
+							<dd><Money cents={-s.bills} currency={data.currency} /></dd>
 						</div>
-						<div>
+						<div class="kv">
 							<dt>Ahorro</dt>
-							<dd><Money cents={s.savings} currency={data.currency} /></dd>
+							<dd><Money cents={-s.savings} currency={data.currency} /></dd>
 						</div>
-						<div class="sum">
+						<div class="kv sum">
 							<dt>Para gastar</dt>
 							<dd><Money cents={s.forSpending} currency={data.currency} /></dd>
 						</div>
-						<div>
+						<div class="kv">
 							<dt>Gastado</dt>
-							<dd><Money cents={s.spent} currency={data.currency} /></dd>
+							<dd><Money cents={-s.spent} currency={data.currency} /></dd>
 						</div>
-						<div class="sum">
+						<div class="kv sum">
 							<dt>Disponible</dt>
 							<dd><Money cents={s.available} currency={data.currency} /></dd>
 						</div>
 					</dl>
-					<a class="edit-link" href={resolve('/plan/setup')}>Editar plan</a>
+					<a class="footer" href={resolve('/plan/setup')}>
+						Editar plan
+						<Icon name="chevron-right" size="1.25rem" />
+					</a>
 				</Card>
 			</section>
 
@@ -77,16 +128,20 @@
 						{#each s.limits as l (l.categoryId)}
 							{@const pct = Math.min(100, Math.floor((l.spent * 100) / l.amount))}
 							<li class="limit">
-								<span class="title">{l.name}</span>
+								<span class="name">
+									<span class="title">{l.name}</span>
+									{#if l.over}
+										<span class="pill over"
+											><CircleAlert size={14} strokeWidth={2} />Te pasaste</span
+										>
+									{:else if l.fast}
+										<span class="pill warn"><Clock size={14} strokeWidth={2} />Vas rápido</span>
+									{/if}
+								</span>
 								<span class="of">
-									<Money cents={l.spent} currency={data.currency} /> de
+									<span class="spent"><Money cents={l.spent} currency={data.currency} /></span> de
 									<Money cents={l.amount} currency={data.currency} />
 								</span>
-								{#if l.over}
-									<span class="flag">Te pasaste</span>
-								{:else if l.fast}
-									<span class="flag">Vas rápido</span>
-								{/if}
 								<div
 									class="bar"
 									role="meter"
@@ -99,7 +154,7 @@
 										data.currency
 									)}"
 								>
-									<span class="fill" class:over={l.over} style:width="{pct}%"></span>
+									<span class="fill" style:width="{pct}%"></span>
 								</div>
 							</li>
 						{/each}
@@ -108,14 +163,16 @@
 			{/if}
 		{:else}
 			<Card>
-				{#if data.plan.endedMonthName}
-					<p class="ended">Tu plan de {data.plan.endedMonthName} terminó.</p>
-				{/if}
-				<p class="no-plan">Todavía no tenés un plan en {currencyName[data.currency]}.</p>
-				<p class="muted">
-					Sumá tus ingresos, restá pagos fijos y ahorro, y te decimos cuánto podés gastar por día.
-				</p>
-				<Button href={resolve('/plan/setup')}>Crear plan</Button>
+				<div class="no-plan">
+					{#if data.plan.endedMonthName}
+						<p class="strong">Tu plan de {data.plan.endedMonthName} terminó.</p>
+					{/if}
+					<p class="strong">Todavía no tenés un plan en {currencyName[data.currency]}.</p>
+					<p class="muted">
+						Sumá tus ingresos, restá pagos fijos y ahorro, y te decimos cuánto podés gastar por día.
+					</p>
+					<Button href={resolve('/plan/setup')}>Crear plan</Button>
+				</div>
 			</Card>
 		{/if}
 
@@ -130,35 +187,40 @@
 				</Button>
 			</div>
 		{:else}
+			<!-- Each row opens the detail, where "Registrar pago" lives. -->
 			{#snippet rule(r: (typeof data.incomes)[number])}
+				{@const DueIcon = dueIcon[r.status]}
 				<li class="rule">
-					<a class="main" href={resolve(`/plan/recurring/${r.id}`)}>
-						<span class="text">
-							<span class="title">{r.description}</span>
-							<span class="sub">{r.label} · Día {r.day} · {r.accountName}</span>
-						</span>
-						<span class="amount-col">
-							<Money
-								cents={r.amount}
-								currency={data.currency}
-								kind={r.type === 'income' ? 'income' : 'plain'}
-							/>
-						</span>
-					</a>
-					{#if r.status !== 'paid'}
-						<a
-							class="register"
-							href={resolve(`/movements/new?recurring=${r.id}`)}
-							aria-label="Registrar {r.description}">Registrar</a
-						>
-					{/if}
+					<ListRow href={resolve(`/plan/recurring/${r.id}`)}>
+						{#snippet leading()}
+							<span class="lead" aria-hidden="true">{r.description.charAt(0).toUpperCase()}</span>
+						{/snippet}
+						{#snippet title()}{r.description}{/snippet}
+						{#snippet subtitle()}
+							<span class="sub">
+								<span class="pill {dueClass[r.status]}">
+									{#if DueIcon}<DueIcon size={14} strokeWidth={2} />{/if}{r.label}
+								</span>
+								<span class="sub-text">Día {r.day} · {r.accountName}</span>
+							</span>
+						{/snippet}
+						{#snippet trailing()}
+							<span class="amount-col">
+								<Money
+									cents={r.type === 'income' ? r.amount : -r.amount}
+									currency={data.currency}
+									kind={r.type === 'income' ? 'income' : 'plain'}
+								/>
+							</span>
+						{/snippet}
+					</ListRow>
 				</li>
 			{/snippet}
 
 			<section aria-labelledby="income-heading">
 				<div class="section-head">
 					<h2 id="income-heading">Ingresos fijos</h2>
-					<a href={resolve('/plan/recurring/new?type=income')}>Agregar</a>
+					<a class="add" href={resolve('/plan/recurring/new?type=income')}>Agregar</a>
 				</div>
 				{#if data.incomes.length}
 					<ul class="list-card">
@@ -172,7 +234,7 @@
 			<section aria-labelledby="outcome-heading">
 				<div class="section-head">
 					<h2 id="outcome-heading">Pagos fijos</h2>
-					<a href={resolve('/plan/recurring/new')}>Agregar</a>
+					<a class="add" href={resolve('/plan/recurring/new')}>Agregar</a>
 				</div>
 				{#if data.outcomes.length}
 					<ul class="list-card">
@@ -188,16 +250,26 @@
 					<div class="section-head"><h2 id="inactive-heading">Inactivos</h2></div>
 					<ul class="list-card">
 						{#each data.inactive as r (r.id)}
-							<li class="rule">
-								<a class="main" href={resolve(`/plan/recurring/${r.id}`)}>
-									<span class="text">
-										<span class="title">{r.description}</span>
-										<span class="sub">{r.reason} · Día {r.day} · {r.accountName}</span>
-									</span>
-									<span class="amount-col muted">
-										<Money cents={r.amount} currency={data.currency} />
-									</span>
-								</a>
+							<li class="rule inactive">
+								<ListRow href={resolve(`/plan/recurring/${r.id}`)}>
+									{#snippet leading()}
+										<span class="lead" aria-hidden="true"
+											>{r.description.charAt(0).toUpperCase()}</span
+										>
+									{/snippet}
+									{#snippet title()}{r.description}{/snippet}
+									{#snippet subtitle()}
+										<span class="sub">
+											<span class="pill">{r.reason}</span>
+											<span class="sub-text">Día {r.day} · {r.accountName}</span>
+										</span>
+									{/snippet}
+									{#snippet trailing()}
+										<span class="amount-col">
+											<Money cents={r.amount} currency={data.currency} />
+										</span>
+									{/snippet}
+								</ListRow>
 							</li>
 						{/each}
 					</ul>
@@ -224,13 +296,28 @@
 		gap: var(--space-3);
 	}
 
-	.saved {
-		align-self: flex-start;
-		color: var(--positive);
+	h2 {
+		font-size: var(--font-size-lg);
+		font-weight: 600;
+	}
+
+	.eyebrow {
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.muted {
+		color: var(--text-muted);
+	}
+
+	.strong {
 		font-weight: 500;
 	}
 
-	.section-head a {
+	.section-head .add {
 		display: inline-flex;
 		align-items: center;
 		min-height: 2.75rem;
@@ -239,40 +326,34 @@
 		text-decoration: underline;
 	}
 
-	h2 {
-		font-size: var(--font-size-lg);
-		font-weight: 600;
-	}
-
-	.muted {
-		color: var(--text-muted);
-	}
-
-	.summary :global(.card),
-	.page > :global(.card) {
+	/* Disponible card: hero, then the plan's equation, then the Editar footer. */
+	.box {
 		display: flex;
 		flex-direction: column;
+		gap: 0.375rem;
+		padding: 1.25rem 1.25rem var(--space-4);
+	}
+
+	.top {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 		gap: var(--space-3);
-		align-items: flex-start;
+		min-height: 1.375rem;
 	}
 
 	.hero {
-		font-size: clamp(1.5rem, 9vw, var(--font-size-hero));
-		font-weight: 600;
+		margin-top: var(--space-1);
+		max-width: 100%;
+		font-family: var(--font-display);
+		font-size: 2.75rem;
+		font-weight: 500;
+		letter-spacing: -0.02em;
 		line-height: 1.1;
 	}
 
-	.status {
-		padding: var(--space-1) var(--space-3);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius-pill);
-		font-size: var(--font-size-sm);
-		font-weight: 600;
-	}
-
-	.status.over {
-		border-color: var(--negative);
-		color: var(--negative);
+	.hero.small {
+		font-size: 2.25rem;
 	}
 
 	.per-day {
@@ -280,22 +361,56 @@
 		color: var(--text-muted);
 	}
 
+	.pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.125rem 0.625rem;
+		border-radius: var(--radius-pill);
+		background: var(--muted);
+		color: var(--text-muted);
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		white-space: nowrap;
+	}
+
+	.pill.ok {
+		background: color-mix(in srgb, var(--positive) 14%, transparent);
+		color: var(--positive);
+	}
+
+	.pill.warn {
+		background: color-mix(in srgb, var(--swatch-orange) 14%, transparent);
+		color: var(--swatch-orange);
+	}
+
+	/* Over budget or overdue is information, not an error: inverted fill, never red. */
+	.pill.over {
+		background: var(--text);
+		color: var(--bg);
+	}
+
 	.figures {
-		align-self: stretch;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
+		padding: 0 1.25rem;
+		border-top: 1px solid var(--border);
 		font-size: var(--font-size-sm);
 	}
 
-	.figures div {
+	.kv {
 		display: flex;
-		flex-wrap: wrap;
+		align-items: center;
 		justify-content: space-between;
-		gap: var(--space-1) var(--space-3);
+		flex-wrap: wrap;
+		gap: 0 var(--space-3);
+		min-height: 3rem;
+	}
+
+	.kv + .kv {
+		border-top: 1px solid var(--border);
 	}
 
 	.figures dt {
+		font-weight: 500;
 		color: var(--text-muted);
 	}
 
@@ -304,34 +419,63 @@
 		margin-inline-start: auto;
 		text-align: end;
 		font-weight: 500;
+		font-variant-numeric: tabular-nums;
 	}
 
-	.figures .sum {
-		padding-top: var(--space-2);
-		border-top: 1px solid var(--border);
+	.figures .sum dt {
+		color: var(--text);
 		font-weight: 600;
 	}
 
-	.edit-link {
-		display: inline-flex;
+	.figures .sum dd {
+		font-weight: 600;
+	}
+
+	.footer {
+		display: flex;
 		align-items: center;
-		min-height: 2.75rem;
-		font-size: var(--font-size-sm);
+		justify-content: space-between;
+		min-height: 3rem;
+		padding: 0 var(--space-3) 0 1.25rem;
+		border-top: 1px solid var(--border);
 		font-weight: 500;
-		text-decoration: underline;
+		text-decoration: none;
+		color: var(--text);
 	}
 
-	.ended,
+	.footer :global(svg) {
+		color: var(--border-strong);
+	}
+
+	@media (hover: hover) {
+		.footer:hover {
+			background: var(--muted);
+		}
+	}
+
+	.footer:active {
+		background: var(--muted);
+	}
+
+	.footer:focus-visible {
+		outline-offset: -2px;
+	}
+
 	.no-plan {
-		font-weight: 600;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--space-2);
 	}
 
+	/* Límites */
 	.limit {
 		display: flex;
 		flex-wrap: wrap;
-		align-items: baseline;
+		align-items: center;
+		justify-content: space-between;
 		gap: var(--space-1) var(--space-3);
-		padding: var(--space-3) var(--space-4);
+		padding: 0.875rem var(--space-4);
 		border-bottom: 1px solid var(--border);
 	}
 
@@ -339,8 +483,16 @@
 		border-bottom: 0;
 	}
 
-	.limit .title {
-		flex: 1 1 8rem;
+	.name {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-width: 0;
+		font-weight: 500;
+	}
+
+	.title {
+		overflow-wrap: anywhere;
 	}
 
 	.of {
@@ -348,95 +500,64 @@
 		color: var(--text-muted);
 	}
 
-	.flag {
-		flex: 1 0 100%;
-		font-size: var(--font-size-xs);
+	.spent {
+		color: var(--text);
 		font-weight: 600;
 	}
 
 	.bar {
 		flex: 1 0 100%;
-		height: 0.5rem;
+		height: 0.375rem;
+		margin-top: var(--space-2);
 		overflow: hidden;
 		background: var(--muted);
-		border: 1px solid var(--border-strong);
 		border-radius: var(--radius-pill);
 	}
 
 	.fill {
 		display: block;
 		height: 100%;
-		background: var(--primary);
+		background: var(--text);
+		border-radius: var(--radius-pill);
 	}
 
-	.fill.over {
-		background: var(--negative);
-	}
-
-	.rule {
-		display: flex;
-		flex-wrap: wrap;
+	/* Fixed rows: neutral letter badge, amount, due pill. */
+	.lead {
+		flex: none;
+		display: inline-flex;
 		align-items: center;
-		border-bottom: 1px solid var(--border);
-	}
-
-	.rule:last-child {
-		border-bottom: 0;
-	}
-
-	.main {
-		flex: 1 1 14rem;
-		min-width: 0;
-		min-height: 2.75rem;
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--space-4);
-		text-decoration: none;
-		color: inherit;
-	}
-
-	@media (hover: hover) {
-		.main:hover {
-			background: var(--muted);
-		}
-	}
-
-	.text {
-		flex: 1 1 8rem;
-		min-width: 0;
-		display: flex;
-		flex-direction: column;
-	}
-
-	.title {
-		font-size: var(--font-size-sm);
-		font-weight: 500;
-		overflow-wrap: anywhere;
+		justify-content: center;
+		width: 2.25rem;
+		height: 2.25rem;
+		border-radius: var(--radius);
+		background: var(--muted);
+		color: var(--text);
+		font-size: 0.9375rem;
+		font-weight: 600;
 	}
 
 	.sub {
-		font-size: var(--font-size-xs);
-		color: var(--text-muted);
-		overflow-wrap: anywhere;
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-width: 0;
+		margin-top: 0.25rem;
+	}
+
+	.sub-text {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.amount-col {
-		flex: 0 1 auto;
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-base);
 		font-weight: 600;
+		font-variant-numeric: tabular-nums;
 		text-align: right;
 	}
 
-	.register {
-		display: inline-flex;
-		align-items: center;
-		min-height: 2.75rem;
-		padding: 0 var(--space-4);
-		font-size: var(--font-size-sm);
-		font-weight: 600;
-		color: var(--text);
-		text-decoration: underline;
+	.inactive .amount-col {
+		color: var(--text-muted);
 	}
 </style>

@@ -51,7 +51,7 @@
 		flex-direction: row;
 		align-items: center;
 		justify-content: center;
-		min-height: 2.25rem;
+		min-height: 2.75rem;
 		border-radius: calc(var(--radius) - 3px);
 		font-size: var(--font-size-sm);
 		font-weight: 500;
@@ -70,9 +70,9 @@
 
 	.option input {
 		position: absolute;
-		inset: -4px 0;
+		inset: 0;
 		width: 100%;
-		height: calc(100% + 8px);
+		height: 100%;
 		margin: 0;
 		padding: 0;
 		opacity: 0;

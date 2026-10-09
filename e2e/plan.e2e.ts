@@ -76,7 +76,7 @@ test('rule rows sit flush in the list card at 390px', async ({ page }) => {
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	const row = page.locator('li.rule').first();
 	const list = await row.locator('xpath=..').boundingBox();
-	const main = await row.locator('a.main').boundingBox();
+	const main = await row.locator('a.row').boundingBox();
 	// 1px list border, no extra padding.
 	expect(main!.x - list!.x).toBeLessThanOrEqual(2);
 });
@@ -135,7 +135,7 @@ test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
 				.click();
 		};
 
-		await rule(page, description).locator('a.main').click();
+		await rule(page, description).locator('a.row').click();
 		await page.getByRole('button', { name: 'Archivar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(inactive).toContainText(description);
@@ -157,7 +157,7 @@ test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
 		await page.goto('/plan');
 		const hrefs = await page
 			.locator('li.rule', { hasText: description })
-			.locator('a.main')
+			.locator('a.row')
 			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
 		for (const href of hrefs)
 			await page.request.post(`${href}?/delete`, {
@@ -203,7 +203,8 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		await expect(row).toBeVisible();
 		await expect(row).toContainText('Día 15');
 
-		await row.getByRole('link', { name: /Registrar/ }).click();
+		await row.getByRole('link').click();
+		await page.getByRole('link', { name: 'Registrar pago' }).click();
 		await expect(page.getByRole('heading', { level: 1, name: 'Registrar pago' })).toBeVisible();
 		await expect(page.locator('input[name="description"]')).toHaveValue(description);
 		await expect(page.locator('input[name="amount"]')).toHaveValue('1500');
@@ -224,7 +225,7 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 			await post(href);
 		await page.goto('/plan');
 		const ruleHrefs = await rule(page, description)
-			.locator('a.main')
+			.locator('a.row')
 			.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
 		for (const href of ruleHrefs) await post(href);
 	}

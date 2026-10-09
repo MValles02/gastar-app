@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, tick, untrack } from 'svelte';
+	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/Button.svelte';
@@ -111,7 +112,7 @@
 
 <PageHeader
 	title={data.plan?.current ? 'Editar plan' : 'Crear plan'}
-	back={{ href: resolve('/plan'), label: 'Volver al plan' }}
+	close={{ href: resolve('/plan'), label: 'Cerrar' }}
 />
 
 {#snippet fixedStep(type: Kind)}
@@ -231,7 +232,7 @@
 					class:current={i + 1 === step}
 					aria-current={i + 1 === step ? 'step' : undefined}
 				>
-					<span>{i + 1}</span>{label}
+					<span class="visually-hidden">{i + 1}. {label}</span>
 				</li>
 			{/each}
 		</ol>
@@ -240,6 +241,7 @@
 	{#if form?.message}<p class="message" role="alert">{form.message}</p>{/if}
 
 	<section class="step" hidden={js && step !== 1} aria-labelledby="s1">
+		<p class="eyebrow">Paso 1 de 4</p>
 		<h2 id="s1" tabindex="-1">¿Cuánto cobrás por mes en {data.currency}?</h2>
 		{@render fixedStep('income')}
 		<Field label="Otros ingresos del mes (opcional)">
@@ -255,6 +257,7 @@
 	</section>
 
 	<section class="step" hidden={js && step !== 2} aria-labelledby="s2">
+		<p class="eyebrow">Paso 2 de 4</p>
 		<h2 id="s2" tabindex="-1">¿Qué pagos fijos tenés?</h2>
 		{@render fixedStep('outcome')}
 		<p class="total">
@@ -263,6 +266,7 @@
 	</section>
 
 	<section class="step" hidden={js && step !== 3} aria-labelledby="s3">
+		<p class="eyebrow">Paso 3 de 4</p>
 		<h2 id="s3" tabindex="-1">¿Cuánto querés ahorrar?</h2>
 		<p class="muted small">Lo apartamos antes de calcular cuánto podés gastar.</p>
 		<SegmentedControl
@@ -286,6 +290,7 @@
 	</section>
 
 	<section class="step" hidden={js && step !== 4} aria-labelledby="s4">
+		<p class="eyebrow">Paso 4 de 4</p>
 		<h2 id="s4" tabindex="-1">Tu plan para {data.monthName}</h2>
 		<dl class="list-card equation">
 			<div>
@@ -306,7 +311,10 @@
 			</div>
 		</dl>
 		{#if forSpending < 0}
-			<p class="warn">Tus pagos y ahorro superan tus ingresos.</p>
+			<p class="warn">
+				<CircleAlert size={18} strokeWidth={1.75} aria-hidden="true" />Tus pagos y ahorro superan
+				tus ingresos.
+			</p>
 		{/if}
 
 		<Checkbox name="repeat" label="Usar este plan todos los meses" bind:checked={repeat} />
@@ -345,18 +353,23 @@
 		{/if}
 	</section>
 
-	<div class="actions">
-		{#if !js || step === 4}
-			<Button type="submit" block>Guardar plan</Button>
-		{:else}
-			<Button type="button" block onclick={() => go(step + 1)}>Siguiente</Button>
-		{/if}
-		{#if js && step > 1}
-			<Button type="button" variant="secondary" block onclick={() => go(step - 1)}>Atrás</Button>
-		{:else}
-			<Button href={resolve('/plan')} variant="secondary" block>Cancelar</Button>
-		{/if}
+	<div class="bar">
+		<div class="actions">
+			{#if js && step > 1}
+				<Button type="button" variant="secondary" onclick={() => go(step - 1)}>Atrás</Button>
+			{/if}
+			{#if !js || step === 4}
+				<Button type="submit">Guardar plan</Button>
+			{:else}
+				<Button type="button" onclick={() => go(step + 1)}>Siguiente</Button>
+			{/if}
+		</div>
 	</div>
+	{#if !js || step === 1}
+		<div class="cancel">
+			<Button href={resolve('/plan')} variant="secondary">Cancelar</Button>
+		</div>
+	{/if}
 </form>
 
 {#if data.plan}
@@ -385,45 +398,46 @@
 		display: none;
 	}
 
+	.eyebrow {
+		margin-bottom: calc(var(--space-3) * -1);
+		font-size: var(--font-size-xs);
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
 	h2 {
-		font-size: var(--font-size-lg);
+		font-family: var(--font-display);
+		font-size: 1.75rem;
+		font-weight: 500;
+		letter-spacing: -0.015em;
+		line-height: 1.15;
 	}
 
 	h2:focus {
 		outline: none;
 	}
 
+	/* Four-bar progress in the text colour (selection is primary, progress is not). */
 	.steps {
 		list-style: none;
+		margin: 0;
 		padding: 0;
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
-		gap: var(--space-2);
-		font-size: var(--font-size-xs);
-		color: var(--text-muted);
+		grid-template-columns: repeat(4, 1fr);
+		gap: 6px;
 	}
 
 	.steps li {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
-		padding-top: var(--space-2);
-		border-top: 3px solid var(--border);
-		overflow-wrap: anywhere;
+		height: 4px;
+		border-radius: 2px;
+		background: var(--muted);
 	}
 
-	.steps li span {
-		font-weight: 600;
-	}
-
-	.steps .done {
-		border-color: var(--primary);
-	}
-
+	.steps .done,
 	.steps .current {
-		border-color: var(--primary);
-		color: var(--text);
-		font-weight: 500;
+		background: var(--text);
 	}
 
 	.message {
@@ -435,9 +449,16 @@
 		font-weight: 500;
 	}
 
+	/* A warning, not an error: muted box, alert icon in the text colour. */
 	.warn {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-3) var(--space-4);
+		border-radius: var(--radius);
+		background: var(--muted);
 		font-size: var(--font-size-sm);
-		font-weight: 600;
+		font-weight: 500;
 	}
 
 	.muted {
@@ -605,15 +626,36 @@
 	}
 
 	.limits input {
-		flex: 1 1 8rem;
-		min-width: 0;
+		flex: none;
+		width: 8rem;
+		max-width: 100%;
 		text-align: right;
+	}
+
+	/* Sticky bar: full-bleed, pinned to the bottom of the viewport (no tab bar on this screen). */
+	.bar {
+		position: sticky;
+		bottom: 0;
+		z-index: 2;
+		margin-inline: calc(var(--gutter, var(--space-5)) * -1);
+		padding: var(--space-3) var(--gutter, var(--space-5))
+			calc(var(--space-3) + env(safe-area-inset-bottom));
+		background: var(--bg);
+		box-shadow: 0 -1px 0 var(--border);
 	}
 
 	.actions {
 		display: flex;
-		flex-direction: column;
 		gap: var(--space-3);
+	}
+
+	.actions :global(.btn) {
+		flex: 1;
+	}
+
+	.cancel {
+		display: flex;
+		justify-content: center;
 	}
 
 	.delete {
