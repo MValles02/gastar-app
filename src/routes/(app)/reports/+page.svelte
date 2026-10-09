@@ -17,15 +17,13 @@
 	const money = (c: number) => formatMoney(c, data.currency);
 	// Spending is negated so Money shows it as an outcome (red); zero stays neutral.
 	const neg = (c: number) => (c === 0 ? 0 : -c);
-	// Past 11 characters ("$ 12.345.678") the hero steps down so it never wraps or truncates.
-	const SLICE_COLORS = [
-		'var(--swatch-green)',
-		'var(--swatch-orange)',
-		'var(--swatch-blue)',
-		'var(--swatch-plum)'
-	];
-	const sliceColor = (id: string, i: number) =>
-		id === 'other' ? 'var(--text-muted)' : SLICE_COLORS[i];
+	// The category's own swatch, as in the Categorías list (no colour = the badge default); "Otros" is neutral.
+	const sliceColor = (s: { id: string; color: string | null }) =>
+		s.id === 'other'
+			? 'var(--text-muted)'
+			: s.color
+				? `var(--swatch-${s.color})`
+				: 'var(--primary)';
 </script>
 
 <svelte:head>
@@ -120,7 +118,7 @@
 								cy="21"
 								r="17.6"
 								fill="none"
-								stroke={sliceColor(s.id, i)}
+								stroke={sliceColor(s)}
 								stroke-width="6.8"
 								pathLength="100"
 								stroke-dasharray="{len} {100 - len}"
@@ -129,9 +127,9 @@
 						{/each}
 					</svg>
 					<ul class="slices">
-						{#each data.slices as s, i (s.id)}
+						{#each data.slices as s (s.id)}
 							<li>
-								<i style:background={sliceColor(s.id, i)} aria-hidden="true"></i>
+								<i style:background={sliceColor(s)} aria-hidden="true"></i>
 								<span class="name">{s.name}</span>
 								<span class="pct">{s.percent} %</span>
 								<span class="amt"><Money cents={s.amount} currency={data.currency} /></span>
