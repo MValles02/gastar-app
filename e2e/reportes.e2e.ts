@@ -99,15 +99,11 @@ test('ARS biggest outcome is the rent in the current month and two months back',
 for (const currency of ['ARS', 'USD'] as const) {
 	test(`${currency} Resultado equals the Inicio month balance`, async ({ page, baseURL }) => {
 		await setCurrencyCookie(page, baseURL!, currency);
-		// Specs running in parallel briefly add current-month movements to the demo user (e.g.
-		// ars-whole.e2e.ts, plan.e2e.ts), which can land between the two reads: retry both reads
-		// together until they see the same data.
-		await expect(async () => {
-			await page.goto('/', { waitUntil: 'networkidle' });
-			const inicio = norm(await page.locator('.net').textContent());
-			await page.goto('/reports', { waitUntil: 'networkidle' });
-			expect(norm(await total(page, 'Resultado').textContent())).toBe(inicio);
-		}).toPass({ timeout: 20_000 });
+		// Specs that write current-month movements run as OTHER_EMAIL, so the demo user's month is stable.
+		await page.goto('/', { waitUntil: 'networkidle' });
+		const inicio = norm(await page.locator('.net').textContent());
+		await page.goto('/reports', { waitUntil: 'networkidle' });
+		expect(norm(await total(page, 'Resultado').textContent())).toBe(inicio);
 	});
 }
 
@@ -156,6 +152,8 @@ test('past month totals match its six-month link', async ({ page }) => {
 	expect(norm(await total(page, 'Gastos').textContent()).replace(/^-/, '')).toBe(gastos);
 });
 
+// No rounding tolerance needed: the ARS slice amounts are whole pesos (formatMoney shows them exactly) and
+// the percentages use largest-remainder rounding, so they always total exactly 100.
 test('category slices sum to 100 % and to the month spending', async ({ page }) => {
 	await page.goto('/reports', { waitUntil: 'networkidle' });
 	const pcts = await page.locator('.slices .pct').allTextContents();

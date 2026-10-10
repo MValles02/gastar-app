@@ -102,15 +102,15 @@ test('empty new rule form shows every required-field message', async ({ page }) 
 });
 
 test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
-	await login(page);
+	await login(page, OTHER_EMAIL);
 	const description = 'Ciclo e2e';
 	try {
 		await fillRule(page, {
 			description,
 			amount: '900',
 			day: '20',
-			account: 'Mercado Pago',
-			category: 'Regalos'
+			account: 'Otra cuenta pesos',
+			category: 'Ajena'
 		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
@@ -133,7 +133,9 @@ test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
 		await page.getByRole('button', { name: 'Reactivar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(rule(page, description)).toBeVisible();
-		await expect(page.getByRole('region', { name: 'Inactivos' })).not.toContainText(description);
+		await expect(
+			page.getByRole('region', { name: 'Inactivos' }).filter({ hasText: description })
+		).toHaveCount(0);
 
 		await open();
 		await page.getByRole('button', { name: 'Eliminar' }).click();
@@ -156,15 +158,15 @@ test('USD tab shows the empty state', async ({ page, baseURL }) => {
 });
 
 test('create a rule, register its payment and clean up', async ({ page, baseURL }) => {
-	await login(page);
+	await login(page, OTHER_EMAIL);
 	const description = 'Prueba e2e';
 	try {
 		await fillRule(page, {
 			description,
 			amount: '1.500,50',
 			day: '15',
-			account: 'Mercado Pago',
-			category: 'Regalos'
+			account: 'Otra cuenta pesos',
+			category: 'Ajena'
 		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
