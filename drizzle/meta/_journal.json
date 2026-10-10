@@ -36,6 +36,13 @@
       "when": 1791515513401,
       "tag": "0004_case_insensitive_category_names",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791585127625,
+      "tag": "0005_cold_dragon_lord",
+      "breakpoints": true
     }
   ]
 }

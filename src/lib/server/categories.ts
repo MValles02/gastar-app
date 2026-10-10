@@ -6,7 +6,7 @@ export const NOT_FOUND_MESSAGE = 'Categoría no encontrada.';
 export const DUPLICATE_NAME_MESSAGE = 'Ya tenés una categoría con ese nombre.';
 export const DELETE_REFERENCED_MESSAGE = 'Esta categoría tiene movimientos. Podés archivarla.';
 
-export type CategoryData = { name: string; color: string };
+export type CategoryData = { name: string; color: string; kind: 'income' | 'outcome' | null };
 export type CategoryFormErrors = Partial<Record<keyof CategoryData, string>>;
 export type CategoryFormResult =
 	| { ok: true; data: CategoryData }
@@ -18,7 +18,7 @@ const str = (fd: FormData, key: string) => {
 };
 
 export function parseCategoryForm(fd: FormData): CategoryFormResult {
-	const values = { name: str(fd, 'name'), color: str(fd, 'color') };
+	const values = { name: str(fd, 'name'), color: str(fd, 'color'), kind: str(fd, 'kind') };
 	const errors: CategoryFormErrors = {};
 
 	const name = values.name.trim();
@@ -26,9 +26,12 @@ export function parseCategoryForm(fd: FormData): CategoryFormResult {
 	else if (name.length > NAME_MAX_LENGTH)
 		errors.name = `El nombre puede tener hasta ${NAME_MAX_LENGTH} caracteres.`;
 	if (!SWATCHES.some((s) => s.key === values.color)) errors.color = 'Elegí un color.';
+	// '' (or a missing field) means both.
+	const kind = values.kind === 'income' || values.kind === 'outcome' ? values.kind : null;
+	if (values.kind !== '' && !kind) errors.kind = 'Elegí un tipo.';
 
 	if (Object.keys(errors).length > 0) return { ok: false, values, errors };
-	return { ok: true, data: { name, color: values.color } };
+	return { ok: true, data: { name, color: values.color, kind } };
 }
 
 /** Net per currency (outcomes minus incomes), ARS first. Never sums across currencies. */

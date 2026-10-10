@@ -23,7 +23,8 @@ export async function recurringPickers(userId: string) {
 			id: c.id,
 			name: c.name,
 			icon: 'categories' as const,
-			color: toSwatchKey(c.color)
+			color: toSwatchKey(c.color),
+			kind: c.kind
 		}))
 	};
 }
@@ -47,6 +48,15 @@ export async function readRecurringForm(
 	else if (!isWholeFor(parsed.data.amount, account.currency)) errors.amount = ARS_WHOLE_MESSAGE;
 	if (!category || (category.archivedAt && category.id !== current?.categoryId))
 		errors.categoryId = 'Elegí una categoría activa.';
+	else if (
+		category.kind &&
+		category.kind !== parsed.data.type &&
+		category.id !== current?.categoryId
+	)
+		errors.categoryId =
+			parsed.data.type === 'income'
+				? 'Elegí una categoría de ingresos.'
+				: 'Elegí una categoría de gastos.';
 	if (Object.keys(errors).length > 0)
 		return { failure: fail(400, { values: parsed.values, errors }) };
 	return { data: parsed.data };

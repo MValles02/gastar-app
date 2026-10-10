@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
-	import { tick, untrack, type ComponentProps } from 'svelte';
+	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/Button.svelte';
@@ -22,7 +22,7 @@
 		initial: Record<Fields, string>;
 		errors?: Partial<Record<Fields, string>>;
 		accounts: Picker[];
-		categories: Picker[];
+		categories: (Picker & { kind: string | null })[];
 		action?: string;
 		submitLabel: string;
 		/** Embedded in a screen with the tab bar and its own hero: amount as a row, save bar not pinned. */
@@ -33,6 +33,22 @@
 	let accountId = $state(untrack(() => initial.accountId));
 	let amount = $state(untrack(() => initial.amount));
 	let categoryId = $state(untrack(() => initial.categoryId));
+	let mounted = $state(false);
+	onMount(() => (mounted = true));
+
+	// Without JS the type changes without a reload, so every category is listed (the server validates).
+	// The rule's own saved category stays pickable.
+	const pickableCategories = $derived(
+		mounted
+			? categories.filter(
+					(c) => c.kind === null || c.kind === type || c.id === untrack(() => initial.categoryId)
+				)
+			: categories
+	);
+	$effect(() => {
+		if (categoryId && !pickableCategories.some((c) => c.id === categoryId)) categoryId = '';
+	});
+
 	const typeOptions = [
 		{ value: 'outcome', label: 'Pago' },
 		{ value: 'income', label: 'Ingreso' }
@@ -169,7 +185,7 @@
 				name="categoryId"
 				legend="Categoría"
 				title="Elegí la categoría"
-				items={categories}
+				items={pickableCategories}
 				bind:value={categoryId}
 				placeholder="Elegir categoría"
 				error={errors.categoryId}

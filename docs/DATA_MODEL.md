@@ -49,6 +49,7 @@ Constraints: currency is immutable once the account has ≥1 movement (app-level
 | `user_id` | fk → `user.id` | |
 | `name` | text | |
 | `color` | text | |
+| `kind` | enum('income','outcome','transfer'), nullable | null = both; never `transfer` (CHECK `categories_kind_check`) |
 | `archived_at` | timestamptz, nullable | null = active |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
@@ -84,6 +85,7 @@ Constraints: `UNIQUE (user_id, name)`.
 - `exchange_rate IS NOT NULL` **iff** `account.currency <> destination_account.currency` for a transfer.
 - If the two accounts share a currency, `destination_amount = amount`.
 - A movement cannot be created with an archived account or category, and new selections while editing exclude archived ones. Exception: editing a movement keeps an archived account or category it already references (`resolveMovement`'s `keep` argument in `src/lib/server/movements.ts`).
+- A movement or recurring rule cannot select a category whose non-null `kind` differs from its type; editing may keep the category it already has (`keep` argument; a recurring payment keeps its rule's category). `kind` does not affect category net, Reportes or Inicio, which aggregate by `movements.type`.
 
 #### Foreign keys
 

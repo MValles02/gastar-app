@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!category) notFound();
 	return {
 		id: category.id,
-		values: { name: category.name, color: category.color }
+		values: { name: category.name, color: category.color, kind: category.kind }
 	};
 };
 

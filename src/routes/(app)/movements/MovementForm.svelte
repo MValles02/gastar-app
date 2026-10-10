@@ -36,7 +36,7 @@
 		initial: Record<Fields, string>;
 		errors?: Partial<Record<Fields, string>>;
 		accounts: (Picker & { currency: Currency })[];
-		categories: Picker[];
+		categories: (Picker & { kind: string | null })[];
 		submitLabel: string;
 		cancelHref: string;
 		/** Registering a payment of this recurring rule. */
@@ -84,6 +84,19 @@
 
 	$effect(() => {
 		if (destinationId && destinationId === accountId) destinationId = '';
+	});
+
+	// Without JS the type changes without a reload, so every category is listed (the server validates).
+	// A category already saved on this movement or rule stays pickable.
+	const pickableCategories = $derived(
+		!mounted || isTransfer
+			? categories
+			: categories.filter(
+					(c) => c.kind === null || c.kind === type || c.id === untrack(() => initial.categoryId)
+				)
+	);
+	$effect(() => {
+		if (categoryId && !pickableCategories.some((c) => c.id === categoryId)) categoryId = '';
 	});
 
 	const originCurrency = $derived(accounts.find((a) => a.id === accountId)?.currency);
@@ -260,7 +273,7 @@
 						name="categoryId"
 						legend="Categoría"
 						title="Elegí la categoría"
-						items={categories}
+						items={pickableCategories}
 						bind:value={categoryId}
 						placeholder="Elegir categoría"
 						error={errors.categoryId}

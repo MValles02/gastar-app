@@ -94,6 +94,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		categories: ctx.categories.map((c) => ({
 			id: c.id,
 			name: c.name,
+			kind: c.kind,
 			suggested: monthlyAverage(spent.byCategory.get(c.id) ?? 0),
 			limit: limits.find((l) => l.categoryId === c.id)?.amount ?? null
 		})),
@@ -188,7 +189,11 @@ function typedRules(
 		const { data } = parsed;
 		if (!ctx.accounts.some((a) => a.id === data.accountId))
 			return reject(`Elegí una cuenta en ${currency} para “${data.description}”.`);
-		if (!ctx.categories.some((c) => c.id === data.categoryId))
+		if (
+			!ctx.categories.some(
+				(c) => c.id === data.categoryId && (c.kind === null || c.kind === data.type)
+			)
+		)
 			return reject(`Elegí una categoría para “${data.description}”.`);
 		if (!isWholeFor(data.amount, currency))
 			return reject(`Revisá “${data.description}”: ${ARS_WHOLE_MESSAGE}`);

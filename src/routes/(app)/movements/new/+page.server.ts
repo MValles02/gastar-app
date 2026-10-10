@@ -71,7 +71,12 @@ export const actions: Actions = {
 		if (!parsed.ok) return fail(400, { values, errors: parsed.errors });
 		const { data } = parsed;
 
-		const { origin, resolved } = await resolvePostedMovement(userId, data);
+		// The rule's category is forced on its payment, so it stays valid whatever its kind.
+		const { origin, resolved } = await resolvePostedMovement(
+			userId,
+			data,
+			rule ? { accountIds: [], categoryId: rule.categoryId } : undefined
+		);
 		if (!resolved.ok) return fail(400, { values, errors: resolved.errors });
 
 		if (rule) {
