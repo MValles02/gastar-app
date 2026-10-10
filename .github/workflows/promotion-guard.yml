@@ -1,0 +1,26 @@
+name: Promotion guard
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  develop-only:
+    name: develop-only
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      # GitHub rulesets cannot restrict a PR's source branch, so this required
+      # check does: only develop of this repository may be merged into main.
+      - name: Require develop as the PR source
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          if [ "$HEAD_REF" != "develop" ] || [ "$HEAD_REPO" != "$THIS_REPO" ]; then
+            echo "::error::Only develop of $THIS_REPO can be merged into main (got $HEAD_REPO:$HEAD_REF)."
+            exit 1
+          fi
