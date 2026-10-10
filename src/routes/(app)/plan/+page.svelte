@@ -31,20 +31,23 @@
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
 	let hydrated = $state(false);
 	onMount(() => (hydrated = true));
-	// Toast once per saved redirect. The history entry is marked (state only, the URL keeps its
-	// query) so back-nav to it does not re-fire; a new save is a new entry. Runs in afterNavigate
-	// because replaceState throws before the router is initialized (hard load of ?saved=1).
-	const markToasted = () => {
+	// Toast once per saved redirect, then strip the flags from the URL so a reload does not toast
+	// again. Runs in afterNavigate because replaceState throws before the router is initialized
+	// (hard load of ?saved=1), hence the retry.
+	const stripFlags = () => {
 		try {
-			replaceState('', { toasted: true } as App.PageState);
+			const url = new URL(page.url);
+			url.searchParams.delete('saved');
+			url.searchParams.delete('planSaved');
+			replaceState(resolve((url.pathname + url.search + url.hash) as '/'), {});
 		} catch {
-			setTimeout(markToasted, 50);
+			setTimeout(stripFlags, 50);
 		}
 	};
 	afterNavigate(() => {
-		if ((data.saved || data.planSaved) && !(page.state as { toasted?: boolean }).toasted) {
+		if (data.saved || data.planSaved) {
 			toast.success(data.saved ? 'Pago registrado.' : 'Plan guardado.');
-			markToasted();
+			stripFlags();
 		}
 	});
 </script>
