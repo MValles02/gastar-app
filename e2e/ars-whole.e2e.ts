@@ -144,7 +144,10 @@ test('account initial balance: ARS whole only, USD keeps cents, edit prefills th
 	await page.getByRole('link', { name: /Banco Galicia/ }).click();
 	await page.getByRole('link', { name: 'Editar' }).click();
 	// scripts/seed.js: Banco Galicia starts at 650_000_00 cents.
-	await expect(page.getByLabel('Saldo inicial')).toHaveValue('650000');
+	await expect(page.getByLabel('Saldo inicial')).toHaveValue('650.000');
+	// The grouped prefill saves unchanged.
+	await page.getByRole('button', { name: 'Guardar cambios' }).click();
+	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 });
 
 test('the transfer preview rounds half up into ARS and keeps cents into USD', async ({ page }) => {
