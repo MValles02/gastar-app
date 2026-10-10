@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { toSwatchKey } from '$lib/appearance';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import { hasAccountsIn } from '$lib/server/dashboard';
 import { accountSummary, categorySums } from '$lib/server/dashboard-queries';
@@ -83,18 +84,29 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	};
 };
 
-type CategorySum = { id: string; name: string; outcome: number; income: number };
+type CategorySum = {
+	id: string;
+	name: string;
+	color: string | null;
+	outcome: number;
+	income: number;
+};
 
 /** Donut: net spending per category (integer cents), the top DONUT_TOP plus "Otros". */
 function donutSlices(cats: CategorySum[]) {
 	const spent = cats
-		.map((c) => ({ id: c.id, name: c.name, amount: c.outcome - c.income }))
+		.map((c) => ({
+			id: c.id,
+			name: c.name,
+			color: toSwatchKey(c.color),
+			amount: c.outcome - c.income
+		}))
 		.filter((c) => c.amount > 0)
 		.sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, 'es'));
 	const totalSpent = spent.reduce((a, c) => a + c.amount, 0);
 	const slices = spent.slice(0, DONUT_TOP);
 	const rest = spent.slice(DONUT_TOP).reduce((a, c) => a + c.amount, 0);
-	if (rest > 0) slices.push({ id: 'other', name: 'Otros', amount: rest });
+	if (rest > 0) slices.push({ id: 'other', name: 'Otros', color: null, amount: rest });
 
 	const percents = wholePercents(
 		slices.map((s) => s.amount),

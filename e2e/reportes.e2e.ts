@@ -174,3 +174,19 @@ test('Perfil, Categorías and back returns to Perfil', async ({ page }) => {
 	await page.getByRole('link', { name: 'Volver al perfil' }).click();
 	await expect(page).toHaveURL(/\/profile$/);
 });
+
+// The seed colours "Alquiler" violet and it is the biggest outcome, so it leads the donut.
+test('donut legend dots use the category colour, not their position', async ({ page }) => {
+	await page.goto('/reports', { waitUntil: 'networkidle' });
+	const row = page.locator('.slices li').filter({ hasText: 'Alquiler' });
+	const dot = await row.locator('i').evaluate((el) => getComputedStyle(el).backgroundColor);
+	const violet = await page.evaluate(() => {
+		const probe = document.createElement('i');
+		probe.style.background = 'var(--swatch-violet)';
+		document.body.append(probe);
+		const color = getComputedStyle(probe).backgroundColor;
+		probe.remove();
+		return color;
+	});
+	expect(dot).toBe(violet);
+});
