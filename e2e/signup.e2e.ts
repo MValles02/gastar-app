@@ -92,3 +92,34 @@ test('expired links show "Enlace vencido"', async ({ page }) => {
 		await expect(page.getByRole('heading', { name: 'Enlace vencido' })).toBeVisible();
 	}
 });
+
+test('/verify-email without a token or error goes to the login page', async ({ page }) => {
+	await page.goto('/verify-email');
+	await expect(page).toHaveURL(/\/login$/);
+	await expect(page.getByText('Email confirmado')).toHaveCount(0);
+});
+
+test('an expired verification link offers a resend that shows the check-email screen', async ({
+	page
+}) => {
+	await page.goto('/verify-email?error=INVALID_TOKEN', { waitUntil: 'networkidle' });
+	await expect(page.getByRole('heading', { name: 'Enlace vencido' })).toBeVisible();
+	await page.getByLabel('Email').fill(uniqueEmail());
+	await page.getByRole('button', { name: 'Reenviar' }).click();
+	await expect(page.getByRole('heading', { name: 'Revisá tu email' })).toBeVisible();
+});
+
+test.describe('without JavaScript', () => {
+	test.use({ javaScriptEnabled: false });
+
+	test('an empty resend keeps the form and the error, never "Email confirmado"', async ({
+		page
+	}) => {
+		await page.goto('/verify-email?error=INVALID_TOKEN');
+		await page.getByRole('button', { name: 'Reenviar' }).click();
+		await expect(page.getByText('Ingresá tu email.')).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Enlace vencido' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Reenviar' })).toBeVisible();
+		await expect(page.getByText('Email confirmado')).toHaveCount(0);
+	});
+});
