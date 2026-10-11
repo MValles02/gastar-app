@@ -8,6 +8,7 @@ import { listCategories } from '$lib/server/categories-queries';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import type { Currency } from '$lib/money';
 import { isUuid } from '$lib/server/db/util';
+import { kindMismatchMessage } from '$lib/server/movements';
 import { currentMonth, monthLabel } from '$lib/server/month';
 import {
 	HISTORY_MONTHS,
@@ -68,7 +69,11 @@ async function setupContext(userId: string, cur: Currency, ym: string) {
 			accountName: accountRows.find((a) => a.id === c.accountId)?.name ?? '',
 			categoryName: categories.find((k) => k.id === c.categoryId)?.name ?? ''
 		}))
-		.filter((c) => c.amount > 0 && c.accountName && c.categoryName);
+		.filter((c) => c.amount > 0 && c.accountName && c.categoryName)
+		.filter((c) => {
+			const kind = categories.find((k) => k.id === c.categoryId)?.kind;
+			return !kind || kind === c.type;
+		});
 	return { accounts: accountRows, categories, active, candidates };
 }
 
@@ -189,12 +194,10 @@ function typedRules(
 		const { data } = parsed;
 		if (!ctx.accounts.some((a) => a.id === data.accountId))
 			return reject(`Elegí una cuenta en ${currency} para “${data.description}”.`);
-		if (
-			!ctx.categories.some(
-				(c) => c.id === data.categoryId && (c.kind === null || c.kind === data.type)
-			)
-		)
-			return reject(`Elegí una categoría para “${data.description}”.`);
+		const category = ctx.categories.find((c) => c.id === data.categoryId);
+		if (!category) return reject(`Elegí una categoría para “${data.description}”.`);
+		if ((category.kind === 'income' || category.kind === 'outcome') && category.kind !== data.type)
+			return reject(`Revisá “${data.description}”: ${kindMismatchMessage(category.kind)}`);
 		if (!isWholeFor(data.amount, currency))
 			return reject(`Revisá “${data.description}”: ${ARS_WHOLE_MESSAGE}`);
 		rules.push(data);

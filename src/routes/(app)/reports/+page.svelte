@@ -10,6 +10,7 @@
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { formatMoney } from '$lib/money';
+	import { swatchVar } from '$lib/appearance';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -19,11 +20,7 @@
 	const neg = (c: number) => (c === 0 ? 0 : -c);
 	// The category's own swatch, as in the Categorías list (no colour = the badge default); "Otros" is neutral.
 	const sliceColor = (s: { id: string; color: string | null }) =>
-		s.id === 'other'
-			? 'var(--text-muted)'
-			: s.color
-				? `var(--swatch-${s.color})`
-				: 'var(--primary)';
+		s.id === 'other' ? 'var(--text-muted)' : swatchVar(s.color);
 </script>
 
 <svelte:head>

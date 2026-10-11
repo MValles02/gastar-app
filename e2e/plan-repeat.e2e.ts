@@ -42,6 +42,7 @@ const movementCount = async (page: Page, description: string) => {
 test('Repetir cada mes creates the rule and a movement linked to it', async ({ page, baseURL }) => {
 	const description = 'Repite e2e';
 	await login(page, OTHER_EMAIL);
+	await cleanup(page, baseURL!, description);
 	try {
 		await fillOutcome(page, description, '1.000');
 		await expect(checkbox(page)).not.toBeChecked();
@@ -70,6 +71,7 @@ test('Repetir cada mes creates the rule and a movement linked to it', async ({ p
 test('unchecked creates no rule', async ({ page, baseURL }) => {
 	const description = 'Sin repetir e2e';
 	await login(page, OTHER_EMAIL);
+	await cleanup(page, baseURL!, description);
 	try {
 		await fillOutcome(page, description, '1.000');
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
@@ -85,6 +87,7 @@ test('unchecked creates no rule', async ({ page, baseURL }) => {
 test('a transfer hides the checkbox and never creates a rule', async ({ page, baseURL }) => {
 	const description = 'Transferencia e2e';
 	await login(page, OTHER_EMAIL);
+	await cleanup(page, baseURL!, description);
 	try {
 		await page.goto('/movements/new', { waitUntil: 'networkidle' });
 		await expect(checkbox(page)).toBeVisible();
@@ -132,6 +135,7 @@ test('a rejected post with the box checked writes no movement and no rule', asyn
 }) => {
 	const description = 'Atómico e2e';
 	await login(page, OTHER_EMAIL);
+	await cleanup(page, baseURL!, description);
 	const demoContext = await browser.newContext({ baseURL });
 	try {
 		const demoPage = await demoContext.newPage();
@@ -172,6 +176,7 @@ test('ARS decimals with the box checked: message, nothing written, box kept', as
 }) => {
 	const description = 'Decimales e2e';
 	await login(page, OTHER_EMAIL);
+	await cleanup(page, baseURL!, description);
 	try {
 		await fillOutcome(page, description, '1.500,50');
 		await checkbox(page).check();
@@ -243,6 +248,13 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 	const headers = { origin: baseURL!, accept: 'text/html' };
 	await login(page, OTHER_EMAIL);
 	let extraId: string | undefined;
+	// Leftovers of an interrupted run: a same-name category would make the create below fail.
+	await cleanup(page, baseURL!, description);
+	await page.goto('/categories', { waitUntil: 'networkidle' });
+	const stale = await page
+		.getByRole('link', { name: new RegExp(extra) })
+		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).pathname));
+	for (const path of stale) await postDelete(page, baseURL!, path);
 	try {
 		const created = await page.request.post('/categories/new', {
 			form: { name: extra, color: 'green' },
