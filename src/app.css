@@ -76,6 +76,15 @@
 		box-sizing: border-box;
 	}
 
+	/* Hide scrollbars app-wide; scrolling still works (wheel, touch, keyboard). */
+	* {
+		scrollbar-width: none;
+	}
+
+	*::-webkit-scrollbar {
+		display: none;
+	}
+
 	* {
 		margin: 0;
 	}
