@@ -8,6 +8,7 @@
 	import Lock from '@lucide/svelte/icons/lock';
 	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
+	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import * as Field from '$lib/components/ui/field/index.js';
@@ -136,7 +137,7 @@
 			>
 				<SlidersHorizontal size={18} strokeWidth={1.75} aria-hidden="true" />
 				Filtros
-				{#if filterCount > 0}<span class="count">{filterCount}</span>{/if}
+				{#if filterCount > 0}<Badge>{filterCount}</Badge>{/if}
 			</Button>
 		{/snippet}
 		<span id="currency-label" class="visually-hidden">Moneda</span>
@@ -267,20 +268,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-	}
-
-	/* Active-filter count: text in an inverted fill, never a colour signal. */
-	.count {
-		display: grid;
-		place-items: center;
-		min-width: 1.25rem;
-		height: 1.25rem;
-		padding: 0 var(--space-2);
-		border-radius: var(--radius-pill);
-		background: var(--text);
-		color: var(--bg);
-		font-size: var(--font-size-xs);
-		font-weight: 600;
 	}
 
 	.lock {

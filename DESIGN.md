@@ -305,11 +305,11 @@ A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) of radio option
 
 ### Bottom Drawer
 
-A modal bottom drawer (`BottomDrawer`, built on vaul-svelte via `ui/drawer`): full width up to 35rem, max height 85dvh, raised-surface fill, top corners rounded `--radius-card`, `--shadow-2`, bottom safe-area padding, over the `--scrim` backdrop. A grab handle sits above a header with the title (`--font-size-lg`, 600) and a 2.75rem "Cerrar" icon button; dragging down, clicking the backdrop or pressing Escape closes it.
+A modal bottom drawer (`BottomDrawer`) composed only of the generated shadcn-svelte `Drawer` (vaul-svelte) parts with stock styling: `Drawer.Root`, `Drawer.Content` (popover fill, top corners `rounded-t-xl`, max height 80vh, centred up to 35rem, stock overlay and grab handle), `Drawer.Header` as a row with `Drawer.Title` and a `Drawer.Close` rendered as a ghost icon `Button` (`aria-label="Cerrar"`), then a scrolling body with bottom safe-area padding. The dialog is named by its title; dragging down, clicking the backdrop or pressing Escape closes it.
 
 ### Option Picker
 
-A field that opens a Bottom Drawer of radio rows. The trigger looks like an input (2.75rem minimum height, 1px control-edge border, 0.625rem radius, padding `space-2` by `space-3`) showing the selected row or a muted placeholder. Each row is an icon badge, a name (weight 500, truncated) and optional muted meta text (such as " · Archivada"), at least 2.75rem tall with a hairline divider. Hover fills the row `muted`; the selected row has a 2px primary outline; focus-visible a 2px primary outline at 2px offset. Choosing a row closes the drawer and returns focus to the trigger. Without JavaScript the rows render inline as a plain radio group.
+A field that opens a Bottom Drawer of radio rows. The trigger is a stock `Button` (`outline`, full width, content left-aligned) showing the selected row or a muted placeholder; the `row` variant is a 3.5rem `ghost` button with the label left and value plus chevron right. Each drawer row is a stock `Item` button: `Item.Media` with the icon badge, `Item.Title` (the name) and an optional `Item.Description` (such as " · Archivada"); the selected row (`aria-pressed`) shows a trailing check in `Item.Actions`. Hover fills the row `muted`; focus-visible is the stock 3px ring. Choosing a row closes the drawer and returns focus to the trigger. Without JavaScript the rows render inline as a plain radio group.
 
 ### Icon and Color Pickers
 
