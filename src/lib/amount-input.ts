@@ -12,8 +12,12 @@ export function groupedAmount(node: HTMLInputElement) {
 		node.dispatchEvent(new Event('input', { bubbles: true }));
 	};
 	const onFocus = () => {
-		if (node.value.includes('.') && parseAmount(node.value) !== null)
-			set(node.value.replaceAll('.', ''));
+		const { value, selectionStart: s, selectionEnd: e } = node;
+		if (!value.includes('.') || parseAmount(value) === null) return;
+		set(value.replaceAll('.', ''));
+		// Keep the selection (a full selection stays full) so typing/fill replaces as expected.
+		const dots = (pos: number | null) => value.slice(0, pos ?? 0).replaceAll('.', '').length;
+		if (s !== null && e !== null) node.setSelectionRange(dots(s), dots(e));
 	};
 	const onBlur = () => {
 		const m = /^(-?)(\d+)(,\d+)?$/.exec(node.value);

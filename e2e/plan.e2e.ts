@@ -170,7 +170,7 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
-		await expect(page.locator('input[name="amount"]')).toHaveValue('1.500,50');
+		await expect(page.locator('input[name="amount"]')).toHaveValue(/^1\.?500,50$/);
 		await expect(page).toHaveURL(/\/plan\/recurring\/new$/);
 
 		await page.locator('input[name="amount"]').fill('1.500');

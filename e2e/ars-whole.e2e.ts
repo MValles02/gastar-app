@@ -51,7 +51,7 @@ test('an ARS amount with decimals is rejected and the value kept', async ({ page
 	});
 	await save(page);
 	await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
-	await expect(page.locator('input[name="amount"]')).toHaveValue('1.500,50');
+	await expect(page.locator('input[name="amount"]')).toHaveValue(/^1\.?500,50$/);
 	await expect(page).toHaveURL(/\/movements\/new$/);
 });
 
