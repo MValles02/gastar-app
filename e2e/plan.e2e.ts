@@ -63,7 +63,7 @@ test('rule rows sit flush in the list card at 390px', async ({ page }) => {
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	const row = page.locator('li.rule').first();
 	const list = await row.locator('xpath=..').boundingBox();
-	const main = await row.locator('a.row').boundingBox();
+	const main = await row.locator('a[data-slot="item"]').boundingBox();
 	// 1px list border, no extra padding.
 	expect(main!.x - list!.x).toBeLessThanOrEqual(2);
 });
@@ -73,7 +73,7 @@ test('rule text does not wrap per character at 320px and 200% text', async ({ pa
 	await login(page);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await page.evaluate(() => (document.documentElement.style.fontSize = '32px'));
-	const title = rule(page, 'Alquiler').locator('.title');
+	const title = rule(page, 'Alquiler').locator('[data-slot="item-title"]');
 	const { height, lineHeight } = await title.evaluate((el) => {
 		const cs = getComputedStyle(el);
 		const fs = parseFloat(cs.fontSize);
@@ -123,7 +123,7 @@ test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
 				.click();
 		};
 
-		await rule(page, description).locator('a.row').click();
+		await rule(page, description).locator('a[data-slot="item"]').click();
 		await page.getByRole('button', { name: 'Archivar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(inactive).toContainText(description);

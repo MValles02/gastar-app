@@ -3,7 +3,7 @@
 	import { enhance } from '$app/forms';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import ListRow from '$lib/components/ListRow.svelte';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -63,18 +63,26 @@
 		<Card.Root class="gap-0 overflow-hidden py-0">
 			<ul class="links">
 				<li>
-					<ListRow href={resolve('/accounts')}>
-						{#snippet leading()}<IconBadge icon="accounts" color={null} neutral />{/snippet}
-						{#snippet title()}Cuentas{/snippet}
-						{#snippet trailing()}<Icon name="chevron-right" size="1.25rem" />{/snippet}
-					</ListRow>
+					<Item.Root>
+						{#snippet child({ props })}
+							<a href={resolve('/accounts')} {...props}>
+								<Item.Media><IconBadge icon="accounts" color={null} neutral /></Item.Media>
+								<Item.Content><Item.Title>Cuentas</Item.Title></Item.Content>
+								<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
+							</a>
+						{/snippet}
+					</Item.Root>
 				</li>
 				<li>
-					<ListRow href={resolve('/categories')}>
-						{#snippet leading()}<IconBadge icon="categories" color={null} neutral />{/snippet}
-						{#snippet title()}Categorías{/snippet}
-						{#snippet trailing()}<Icon name="chevron-right" size="1.25rem" />{/snippet}
-					</ListRow>
+					<Item.Root>
+						{#snippet child({ props })}
+							<a href={resolve('/categories')} {...props}>
+								<Item.Media><IconBadge icon="categories" color={null} neutral /></Item.Media>
+								<Item.Content><Item.Title>Categorías</Item.Title></Item.Content>
+								<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
+							</a>
+						{/snippet}
+					</Item.Root>
 				</li>
 			</ul>
 		</Card.Root>
@@ -167,10 +175,6 @@
 		list-style: none;
 		margin: 0;
 		padding: 0;
-	}
-
-	.links li:last-child :global(.row) {
-		border-bottom: 0;
 	}
 
 	h2 {

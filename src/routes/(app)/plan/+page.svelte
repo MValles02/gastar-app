@@ -13,7 +13,7 @@
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import Money from '$lib/components/Money.svelte';
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -204,29 +204,37 @@
 			{#snippet rule(r: (typeof data.incomes)[number])}
 				{@const DueIcon = dueIcon[r.status]}
 				<li class="rule">
-					<ListRow href={resolve(`/plan/recurring/${r.id}`)}>
-						{#snippet leading()}
-							<span class="lead" aria-hidden="true">{r.description.charAt(0).toUpperCase()}</span>
+					<Item.Root>
+						{#snippet child({ props })}
+							<a href={resolve(`/plan/recurring/${r.id}`)} {...props}>
+								<Item.Media>
+									<span class="lead" aria-hidden="true"
+										>{r.description.charAt(0).toUpperCase()}</span
+									>
+								</Item.Media>
+								<Item.Content>
+									<Item.Title>{r.description}</Item.Title>
+									<Item.Description>
+										<span class="sub">
+											<span class="pill {dueClass[r.status]}">
+												{#if DueIcon}<DueIcon size={14} strokeWidth={2} />{/if}{r.label}
+											</span>
+											<span class="sub-text">Día {r.day} · {r.accountName}</span>
+										</span>
+									</Item.Description>
+								</Item.Content>
+								<Item.Actions>
+									<span class="amount-col">
+										<Money
+											cents={r.type === 'income' ? r.amount : -r.amount}
+											currency={data.currency}
+											kind={r.type === 'income' ? 'income' : 'outcome'}
+										/>
+									</span>
+								</Item.Actions>
+							</a>
 						{/snippet}
-						{#snippet title()}{r.description}{/snippet}
-						{#snippet subtitle()}
-							<span class="sub">
-								<span class="pill {dueClass[r.status]}">
-									{#if DueIcon}<DueIcon size={14} strokeWidth={2} />{/if}{r.label}
-								</span>
-								<span class="sub-text">Día {r.day} · {r.accountName}</span>
-							</span>
-						{/snippet}
-						{#snippet trailing()}
-							<span class="amount-col">
-								<Money
-									cents={r.type === 'income' ? r.amount : -r.amount}
-									currency={data.currency}
-									kind={r.type === 'income' ? 'income' : 'outcome'}
-								/>
-							</span>
-						{/snippet}
-					</ListRow>
+					</Item.Root>
 				</li>
 			{/snippet}
 
@@ -264,25 +272,31 @@
 					<ul class="list-card">
 						{#each data.inactive as r (r.id)}
 							<li class="rule inactive">
-								<ListRow href={resolve(`/plan/recurring/${r.id}`)}>
-									{#snippet leading()}
-										<span class="lead" aria-hidden="true"
-											>{r.description.charAt(0).toUpperCase()}</span
-										>
+								<Item.Root>
+									{#snippet child({ props })}
+										<a href={resolve(`/plan/recurring/${r.id}`)} {...props}>
+											<Item.Media>
+												<span class="lead" aria-hidden="true">
+													{r.description.charAt(0).toUpperCase()}
+												</span>
+											</Item.Media>
+											<Item.Content>
+												<Item.Title>{r.description}</Item.Title>
+												<Item.Description>
+													<span class="sub">
+														<span class="pill">{r.reason}</span>
+														<span class="sub-text">Día {r.day} · {r.accountName}</span>
+													</span>
+												</Item.Description>
+											</Item.Content>
+											<Item.Actions>
+												<span class="amount-col">
+													<Money cents={r.amount} currency={data.currency} />
+												</span>
+											</Item.Actions>
+										</a>
 									{/snippet}
-									{#snippet title()}{r.description}{/snippet}
-									{#snippet subtitle()}
-										<span class="sub">
-											<span class="pill">{r.reason}</span>
-											<span class="sub-text">Día {r.day} · {r.accountName}</span>
-										</span>
-									{/snippet}
-									{#snippet trailing()}
-										<span class="amount-col">
-											<Money cents={r.amount} currency={data.currency} />
-										</span>
-									{/snippet}
-								</ListRow>
+								</Item.Root>
 							</li>
 						{/each}
 					</ul>

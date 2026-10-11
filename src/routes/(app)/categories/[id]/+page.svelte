@@ -9,7 +9,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import MonthNav from '$lib/components/MonthNav.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -88,10 +88,14 @@
 
 	<ul class="list-card">
 		<li>
-			<ListRow href={resolve(`/movements?category=${c.id}`)}>
-				{#snippet title()}Ver movimientos{/snippet}
-				{#snippet trailing()}<Icon name="chevron-right" />{/snippet}
-			</ListRow>
+			<Item.Root>
+				{#snippet child({ props })}
+					<a href={resolve(`/movements?category=${c.id}`)} {...props}>
+						<Item.Content><Item.Title>Ver movimientos</Item.Title></Item.Content>
+						<Item.Actions><Icon name="chevron-right" /></Item.Actions>
+					</a>
+				{/snippet}
+			</Item.Root>
 		</li>
 	</ul>
 

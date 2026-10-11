@@ -6,7 +6,7 @@
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import type { PageData } from './$types';
@@ -54,26 +54,36 @@
 			<ul class="list-card">
 				{#each data.categories as c (c.id)}
 					<li class:archived={c.archivedAt}>
-						<ListRow href={resolve(`/categories/${c.id}`)}>
-							{#snippet leading()}
-								<IconBadge letter={c.name[0]} color={toSwatchKey(c.color)} />
+						<Item.Root>
+							{#snippet child({ props })}
+								<a href={resolve(`/categories/${c.id}`)} {...props}>
+									<Item.Media>
+										<IconBadge letter={c.name[0]} color={toSwatchKey(c.color)} />
+									</Item.Media>
+									<Item.Content>
+										<Item.Title>{c.name}</Item.Title>
+										<Item.Description>{c.archivedAt ? 'Archivada' : ''}</Item.Description>
+									</Item.Content>
+									<Item.Actions>
+										<span class="chev"><Icon name="chevron-right" size="1.25rem" /></span>
+									</Item.Actions>
+								</a>
 							{/snippet}
-							{#snippet title()}{c.name}{/snippet}
-							{#snippet subtitle()}{c.archivedAt ? 'Archivada' : ''}{/snippet}
-							{#snippet trailing()}
-								<span class="chev"><Icon name="chevron-right" size="1.25rem" /></span>
-							{/snippet}
-						</ListRow>
+						</Item.Root>
 					</li>
 				{/each}
 			</ul>
 		{/if}
 		<ul class="list-card">
 			<li>
-				<ListRow href={resolve('/categories/new')}>
-					{#snippet leading()}<IconBadge icon="plus" color={null} neutral />{/snippet}
-					{#snippet title()}Nueva categoría{/snippet}
-				</ListRow>
+				<Item.Root>
+					{#snippet child({ props })}
+						<a href={resolve('/categories/new')} {...props}>
+							<Item.Media><IconBadge icon="plus" color={null} neutral /></Item.Media>
+							<Item.Content><Item.Title>Nueva categoría</Item.Title></Item.Content>
+						</a>
+					{/snippet}
+				</Item.Root>
 			</li>
 		</ul>
 	{/if}
@@ -110,7 +120,7 @@
 		opacity: 0.5;
 	}
 
-	.archived :global(.title) {
+	.archived :global([data-slot='item-title']) {
 		color: var(--text-muted);
 	}
 </style>

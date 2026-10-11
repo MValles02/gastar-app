@@ -303,7 +303,7 @@
 	border: 0;
 }
 
-/* Shared list container: a surface card holding a <ul> of ListRow items. */
+/* Shared list container: a surface card holding a <ul> of Item rows. */
 .list-card {
 	list-style: none;
 	padding: 0;
@@ -312,10 +312,6 @@
 	border: 1px solid var(--border);
 	border-radius: var(--radius-card);
 	box-shadow: var(--shadow-1);
-}
-
-.list-card > li:last-child > a {
-	border-bottom: 0;
 }
 
 /* "+ Nueva …" row at the end of a list (Cuentas, Categorías). */
@@ -350,21 +346,6 @@
 	gap: var(--space-2);
 	margin-bottom: var(--space-2);
 	min-width: 0;
-}
-
-/* 36px muted square leading a list row (initial or icon). */
-.row-icon {
-	flex: none;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 2.25rem;
-	height: 2.25rem;
-	border-radius: var(--radius);
-	background: var(--muted);
-	color: var(--text);
-	font-size: var(--font-size-sm);
-	font-weight: 600;
 }
 
 .row-amount {
