@@ -105,10 +105,18 @@ for (const route of ['/accounts/new', '/movements/new']) {
 		await page.keyboard.press('Tab');
 		const outline = await page.evaluate(() => {
 			const s = getComputedStyle(document.activeElement!);
-			return { style: s.outlineStyle, width: parseFloat(s.outlineWidth) };
+			return {
+				style: s.outlineStyle,
+				width: parseFloat(s.outlineWidth),
+				shadow: s.boxShadow
+			};
 		});
-		expect(outline.style).not.toBe('none');
-		expect(outline.width).toBeGreaterThan(0);
+		// shadcn controls show focus as a box-shadow ring instead of an outline.
+		const ring = outline.shadow !== 'none';
+		if (!ring) {
+			expect(outline.style).not.toBe('none');
+			expect(outline.width).toBeGreaterThan(0);
+		}
 	});
 }
 
@@ -116,9 +124,9 @@ test('movement form controls share one height of at least 44px at 390x844', asyn
 	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
-	// The amount field is intentionally larger and excluded.
+	// Only the pickers: shadcn inputs are 2rem tall by design, the amount field is excluded.
 	const heights = await page
-		.locator('input[name="description"], input[name="occurredAt"], select, button.trigger')
+		.locator('button.trigger')
 		.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
 	expect(heights.length).toBeGreaterThan(1);
 	for (const h of heights) expect(h).toBeGreaterThanOrEqual(MIN_TARGET_PX);

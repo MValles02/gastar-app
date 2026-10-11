@@ -4,6 +4,9 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
+	import * as InputGroup from '$lib/components/ui/input-group/index.js';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 
@@ -69,18 +72,27 @@
 	});
 </script>
 
-{#snippet amountInput()}
-	<input
-		class="amount-input"
-		name="amount"
-		type="text"
-		inputmode={currency === 'USD' ? 'decimal' : 'numeric'}
-		placeholder={currency === 'USD' ? '0,00' : '0'}
-		autocomplete="off"
-		bind:value={amount}
-		aria-invalid={errors.amount ? 'true' : undefined}
-		aria-describedby={errors.amount ? 'ramount-error' : undefined}
-	/>
+{#snippet amountField(cls: string)}
+	<Field.Field class={cls}>
+		<Field.Label for="ramount">Monto</Field.Label>
+		<InputGroup.Root>
+			{#if currency}
+				<InputGroup.Addon><InputGroup.Text>{symbol}</InputGroup.Text></InputGroup.Addon>
+			{/if}
+			<InputGroup.Input
+				id="ramount"
+				name="amount"
+				type="text"
+				inputmode={currency === 'USD' ? 'decimal' : 'numeric'}
+				placeholder={currency === 'USD' ? '0,00' : '0'}
+				autocomplete="off"
+				bind:value={amount}
+				aria-invalid={errors.amount ? 'true' : undefined}
+				aria-describedby={errors.amount ? 'ramount-error' : undefined}
+			/>
+		</InputGroup.Root>
+		{#if errors.amount}<Field.Error id="ramount-error">{errors.amount}</Field.Error>{/if}
+	</Field.Field>
 {/snippet}
 
 <form method="POST" {action} use:enhance class="form" novalidate>
@@ -96,34 +108,21 @@
 	</div>
 
 	{#if !inline}
-		<div class="amount-block">
-			<label class="amount" class:sm={amount.length > 11}>
-				<span class="visually-hidden">Monto</span>
-				{#if currency}<span class="currency">{symbol}</span>{/if}
-				{@render amountInput()}
-			</label>
-			{#if errors.amount}<p class="error" id="ramount-error" role="alert">{errors.amount}</p>{/if}
-		</div>
+		{@render amountField('')}
 	{/if}
 
 	<ul class="card">
 		{#if inline}
 			<li class:bad={errors.amount}>
-				<label class="row">
-					<span class="k">Monto</span>
-					{#if currency}<span class="cur">{symbol}</span>{/if}
-					{@render amountInput()}
-				</label>
-				{#if errors.amount}
-					<p class="error et" id="ramount-error" role="alert">{errors.amount}</p>
-				{/if}
+				{@render amountField('p-4')}
 			</li>
 		{/if}
 
 		<li class:bad={errors.description}>
-			<label class="row">
-				<span class="k">Descripción</span>
-				<input
+			<Field.Field class="p-4">
+				<Field.Label for="rdescription">Descripción</Field.Label>
+				<Input
+					id="rdescription"
 					name="description"
 					type="text"
 					maxlength={DESCRIPTION_MAX_LENGTH}
@@ -134,16 +133,17 @@
 					aria-invalid={errors.description ? 'true' : undefined}
 					aria-describedby={errors.description ? 'rdesc-error' : undefined}
 				/>
-			</label>
-			{#if errors.description}
-				<p class="error et" id="rdesc-error" role="alert">{errors.description}</p>
-			{/if}
+				{#if errors.description}
+					<Field.Error id="rdesc-error">{errors.description}</Field.Error>
+				{/if}
+			</Field.Field>
 		</li>
 
 		<li class:bad={errors.dayOfMonth}>
-			<label class="row">
-				<span class="k">Día del mes</span>
-				<input
+			<Field.Field class="p-4">
+				<Field.Label for="rday">Día del mes</Field.Label>
+				<Input
+					id="rday"
 					name="dayOfMonth"
 					type="number"
 					inputmode="numeric"
@@ -153,10 +153,10 @@
 					aria-invalid={errors.dayOfMonth ? 'true' : undefined}
 					aria-describedby="rday-hint{errors.dayOfMonth ? ' rday-error' : ''}"
 				/>
-			</label>
-			{#if errors.dayOfMonth}
-				<p class="error et" id="rday-error" role="alert">{errors.dayOfMonth}</p>
-			{/if}
+				{#if errors.dayOfMonth}
+					<Field.Error id="rday-error">{errors.dayOfMonth}</Field.Error>
+				{/if}
+			</Field.Field>
 		</li>
 
 		<li class:bad={errors.accountId}>
@@ -223,70 +223,6 @@
 		gap: var(--space-1);
 	}
 
-	.amount-block {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: var(--space-1);
-	}
-
-	.amount {
-		flex-direction: row;
-		align-items: baseline;
-		justify-content: center;
-		gap: var(--space-2);
-		max-width: 100%;
-		padding: var(--space-4) 0 var(--space-1);
-		color: var(--text);
-	}
-
-	.currency {
-		font-family: var(--font-display);
-		font-size: 1.75rem;
-		font-weight: 500;
-		color: var(--text-muted);
-	}
-
-	.amount .amount-input {
-		flex: 0 1 auto;
-		width: auto;
-		min-width: 2ch;
-		max-width: 100%;
-		field-sizing: content;
-		min-height: 3.5rem;
-		padding: 0 var(--space-1);
-		border: 0;
-		background: transparent;
-		font-family: var(--font-display);
-		font-size: 2.75rem;
-		font-weight: 500;
-		text-align: center;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.amount.sm .amount-input {
-		font-size: var(--font-size-hero);
-	}
-
-	.amount .amount-input::placeholder,
-	.row input::placeholder {
-		color: var(--text-muted);
-		opacity: 1;
-	}
-
-	.amount-block .error {
-		text-align: center;
-	}
-
-	.cur {
-		margin-inline-start: auto;
-		color: var(--text-muted);
-	}
-
-	.cur + :global(input) {
-		flex: 0 1 8rem;
-	}
-
 	.card {
 		list-style: none;
 		margin: 0;
@@ -306,36 +242,6 @@
 		box-shadow: inset 3px 0 0 var(--negative);
 	}
 
-	.row {
-		display: flex;
-		flex-direction: row;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--space-1) var(--space-3);
-		min-height: 3.5rem;
-		padding: 0 var(--space-4);
-		font-size: var(--font-size-base);
-		color: var(--text);
-		cursor: text;
-	}
-
-	.row input {
-		flex: 1 1 4rem;
-		min-width: 0;
-		width: auto;
-		min-height: 3.5rem;
-		padding: 0;
-		border: 0;
-		border-radius: 0;
-		background: transparent;
-		text-align: right;
-		scroll-margin-bottom: 6rem;
-	}
-
-	.row input:focus-visible {
-		outline-offset: -2px;
-	}
-
 	.hint {
 		color: var(--text-muted);
 		font-size: var(--font-size-sm);
@@ -353,10 +259,6 @@
 	.error {
 		color: var(--negative);
 		font-size: var(--font-size-sm);
-	}
-
-	.et {
-		padding: 0 var(--space-4) var(--space-3);
 	}
 
 	/* Sticky save bar: full-bleed, pinned to the bottom of the viewport (no tab bar on this screen). */

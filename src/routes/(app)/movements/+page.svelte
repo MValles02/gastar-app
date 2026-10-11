@@ -10,6 +10,8 @@
 	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
@@ -111,14 +113,14 @@
 		>
 			{#snippet empty()}{/snippet}
 		</OptionPicker>
-		<label class="date-row">
-			<span>Desde</span>
-			<input type="date" name="from" bind:value={from} />
-		</label>
-		<label class="date-row">
-			<span>Hasta</span>
-			<input type="date" name="to" bind:value={to} />
-		</label>
+		<Field.Field class="p-4">
+			<Field.Label for="from">Desde</Field.Label>
+			<Input id="from" type="date" name="from" bind:value={from} />
+		</Field.Field>
+		<Field.Field class="p-4">
+			<Field.Label for="to">Hasta</Field.Label>
+			<Input id="to" type="date" name="to" bind:value={to} />
+		</Field.Field>
 	</div>
 {/snippet}
 
@@ -307,24 +309,6 @@
 
 	.group > :global(* + *) {
 		border-top: 1px solid var(--border);
-	}
-
-	.date-row {
-		flex-direction: row;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-		min-height: 3.5rem;
-		padding: var(--space-2) var(--space-4);
-		font-size: var(--font-size-base);
-	}
-
-	.date-row input {
-		width: auto;
-		min-width: 0;
-		border: 0;
-		background: transparent;
-		text-align: right;
 	}
 
 	.groups {

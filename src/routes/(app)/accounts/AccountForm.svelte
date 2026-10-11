@@ -5,6 +5,8 @@
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
 	import ColorPicker from '$lib/components/ColorPicker.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import IconPicker from '$lib/components/IconPicker.svelte';
@@ -50,9 +52,10 @@
 <form method="POST" use:enhance class="form" novalidate>
 	<ul class="card">
 		<li class:bad={errors.name}>
-			<label class="row">
-				<span class="k">Nombre</span>
-				<input
+			<Field.Field class="p-4">
+				<Field.Label for="name">Nombre</Field.Label>
+				<Input
+					id="name"
 					name="name"
 					type="text"
 					maxlength={NAME_MAX_LENGTH}
@@ -63,12 +66,12 @@
 					aria-invalid={errors.name ? 'true' : undefined}
 					aria-describedby={errors.name ? 'name-error' : undefined}
 				/>
-			</label>
-			{#if errors.name}
-				<p class="error et" id="name-error" role="alert">
-					<Icon name="alert" size="1rem" />{errors.name}
-				</p>
-			{/if}
+				{#if errors.name}
+					<Field.Error id="name-error" class="flex items-start gap-2">
+						<Icon name="alert" size="1rem" />{errors.name}
+					</Field.Error>
+				{/if}
+			</Field.Field>
 		</li>
 
 		<li class:bad={errors.currency}>
@@ -90,10 +93,10 @@
 		</li>
 
 		<li class:bad={errors.initialBalance}>
-			<label class="row">
-				<span class="k">Saldo inicial</span>
-				<input
-					class="balance"
+			<Field.Field class="p-4">
+				<Field.Label for="initialBalance">Saldo inicial</Field.Label>
+				<Input
+					id="initialBalance"
 					name="initialBalance"
 					type="text"
 					inputmode="decimal"
@@ -103,12 +106,12 @@
 					aria-invalid={errors.initialBalance ? 'true' : undefined}
 					aria-describedby={errors.initialBalance ? 'balance-error' : undefined}
 				/>
-			</label>
-			{#if errors.initialBalance}
-				<p class="error et" id="balance-error" role="alert">
-					<Icon name="alert" size="1rem" />{errors.initialBalance}
-				</p>
-			{/if}
+				{#if errors.initialBalance}
+					<Field.Error id="balance-error" class="flex items-start gap-2">
+						<Icon name="alert" size="1rem" />{errors.initialBalance}
+					</Field.Error>
+				{/if}
+			</Field.Field>
 		</li>
 	</ul>
 	{#if currencyLocked}
@@ -184,37 +187,6 @@
 		padding: 0 var(--space-4);
 		font-size: var(--font-size-base);
 		color: var(--text);
-		cursor: text;
-	}
-
-	.row input[name='name'],
-	.row input.balance {
-		flex: 1 1 4rem;
-		min-width: 0;
-		width: auto;
-		min-height: 3.5rem;
-		padding: 0;
-		border: 0;
-		border-radius: 0;
-		background: transparent;
-		text-align: right;
-		scroll-margin-bottom: 6rem;
-	}
-
-	.row input.balance {
-		font-family: var(--font-display);
-		font-size: var(--font-size-lg);
-		font-weight: 500;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.row input:focus-visible {
-		outline-offset: -2px;
-	}
-
-	.row input::placeholder {
-		color: var(--text-muted);
-		opacity: 1;
 	}
 
 	.seg {

@@ -92,12 +92,12 @@ components:
     padding: '0 0.625rem'
     height: '2rem'
   input:
-    backgroundColor: '{colors.surface}'
+    backgroundColor: '{colors.background}'
     textColor: '{colors.text}'
     typography: '{typography.body}'
     rounded: '{rounded.md}'
-    padding: '0.5rem 0.75rem'
-    height: '2.75rem'
+    padding: '0.25rem 0.625rem'
+    height: '2rem'
   card:
     backgroundColor: '{colors.surface}'
     textColor: '{colors.text}'
@@ -273,9 +273,7 @@ Shared components live in `src/lib/components/`.
 
 ### Inputs / Fields
 
-- **Input style:** Surface background, 1px control-edge border, 0.625rem radius, padding `space-2` by `space-3`, full width, 2.75rem minimum height (inputs and selects).
-- **Focus-visible:** Border turns primary and a 2px primary outline sits at 1px offset .
-- **Field:** A label (flex column, `space-1` gap, small muted text) wrapping the control, plus an optional error line below: small text in the negative color with `role="alert"`, linked by an optional `errorId`.
+- **App forms:** The same generated shadcn parts with stock styling as the auth forms, stacked (label above control): `Field.Field` with `Field.Label for=` and `Input` (text, number and date), `InputGroup` for the amount (currency symbol as an inline-start addon) and the FilterBar search (search icon addon, `aria-label`), and `NativeSelect` (+ `NativeSelect.Option`) for native selects. Errors are `Field.Error` (`role="alert"`, linked by `aria-describedby`); fields inside the list cards of the account, category, movement and recurring forms sit in a `Field.Field` with `p-4`. `OptionPicker`, `SegmentedControl`, `Checkbox` and the pickers keep their custom styling until migrated.
 - **Auth forms:** Use the generated shadcn parts with stock styling: `Field.Field` per field with `Field.Label for=`, `Input` (2rem tall, `border-input`, 3px ring on focus), `Field.Error` (`role="alert"`, destructive text, linked by `aria-describedby`) and `Field.Description` for hints. `PasswordInput` is an `InputGroup` with an inline-end ghost icon `InputGroup.Button` toggling visibility (`aria-pressed`).
 
 ### Segmented Control
