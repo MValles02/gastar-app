@@ -3,11 +3,11 @@
 	import { resolve } from '$app/paths';
 	import AuthForm from '$lib/components/AuthForm.svelte';
 	import AuthPage from '$lib/components/AuthPage.svelte';
-	import Button from '$lib/components/Button.svelte';
-	import ErrorText from '$lib/components/ErrorText.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
-	import StatusMessage from '$lib/components/StatusMessage.svelte';
+	import * as Empty from '$lib/components/ui/empty/index.js';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -22,13 +22,23 @@
 </svelte:head>
 
 {#if expired}
-	<StatusMessage icon="clock" title="Enlace vencido">
-		<p class="body">Pedí uno nuevo.</p>
-		<div class="actions">
-			<Button href={resolve('/forgot-password')} block>Pedir otro</Button>
-			<a class="link" href={resolve('/login')}>Ir a Ingresar</a>
-		</div>
-	</StatusMessage>
+	<main>
+		<Empty.Root class="min-h-dvh">
+			<Empty.Header>
+				<Empty.Media variant="icon" aria-hidden="true"
+					><Icon name="clock" size="1rem" /></Empty.Media
+				>
+				<Empty.Title role="heading" aria-level={1}>Enlace vencido</Empty.Title>
+			</Empty.Header>
+			<Empty.Content>
+				<p class="body">Pedí uno nuevo.</p>
+				<div class="actions">
+					<Button href={resolve('/forgot-password')} class="w-full">Pedir otro</Button>
+					<a class="link" href={resolve('/login')}>Ir a Ingresar</a>
+				</div>
+			</Empty.Content>
+		</Empty.Root>
+	</main>
 {:else}
 	<AuthPage>
 		<a class="back" href={resolve('/login')}>
@@ -40,8 +50,8 @@
 
 		<AuthForm action="?/reset" submitLabel="Guardar" onupdated={() => (password = '')}>
 			<input type="hidden" name="token" value={data.token} />
-			<div class="field">
-				<label for="password">Contraseña</label>
+			<Field.Field>
+				<Field.Label for="password">Contraseña</Field.Label>
 				<PasswordInput
 					bind:value={password}
 					autocomplete="new-password"
@@ -50,11 +60,11 @@
 					describedby={form?.passwordError ? 'password-error' : 'password-hint'}
 				/>
 				{#if form?.passwordError}
-					<ErrorText id="password-error" message={form.passwordError} />
+					<Field.Error id="password-error">{form.passwordError}</Field.Error>
 				{:else}
-					<p class="hint" id="password-hint">Mínimo 8 caracteres.</p>
+					<Field.Description id="password-hint">Mínimo 8 caracteres.</Field.Description>
 				{/if}
-			</div>
+			</Field.Field>
 		</AuthForm>
 	</AuthPage>
 {/if}

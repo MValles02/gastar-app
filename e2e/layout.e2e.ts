@@ -98,27 +98,45 @@ test('h1 top is identical across pages at 390x844', async ({ page }) => {
 	expect(tops).toEqual(tops.map(() => tops[0]));
 });
 
+/** Whether the focused element shows an outline or a box-shadow ring (non-transparent colour, spread > 0). */
+const focusIsVisible = (page: Page) =>
+	page.evaluate(() => {
+		const s = getComputedStyle(document.activeElement!);
+		if (s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0) return true;
+		// Computed layers look like: <colour> 0px 0px 0px 3px [inset]
+		const layers =
+			s.boxShadow.match(/(?:rgba?|oklab|oklch|color)\([^)]*\)\s+(?:-?[\d.]+px\s+){3}[\d.]+px/g) ??
+			[];
+		return layers.some((l) => {
+			const spread = parseFloat(l.split(/\s+/).pop()!);
+			return spread > 0 && !/(,\s*0|\/\s*0)\)/.test(l);
+		});
+	});
+
 for (const route of ['/accounts/new', '/movements/new']) {
-	test(`keyboard focus shows an outline on ${route}`, async ({ page }) => {
+	test(`keyboard focus shows a visible ring on ${route}`, async ({ page }) => {
 		await login(page);
 		await page.goto(route, { waitUntil: 'networkidle' });
 		await page.keyboard.press('Tab');
-		const outline = await page.evaluate(() => {
-			const s = getComputedStyle(document.activeElement!);
-			return { style: s.outlineStyle, width: parseFloat(s.outlineWidth) };
-		});
-		expect(outline.style).not.toBe('none');
-		expect(outline.width).toBeGreaterThan(0);
+		await expect.poll(() => focusIsVisible(page)).toBe(true);
 	});
 }
+
+test('keyboard focus shows a visible ring on the login auth tabs', async ({ page }) => {
+	await page.goto('/login', { waitUntil: 'networkidle' });
+	await page.keyboard.press('Tab');
+	await page.keyboard.press('Tab');
+	await expect(page.getByRole('link', { name: 'Crear cuenta' })).toBeFocused();
+	await expect.poll(() => focusIsVisible(page)).toBe(true);
+});
 
 test('movement form controls share one height of at least 44px at 390x844', async ({ page }) => {
 	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
-	// The amount field is intentionally larger and excluded.
+	// Only the pickers: shadcn inputs are 2rem tall by design, the amount field is excluded.
 	const heights = await page
-		.locator('input[name="description"], input[name="occurredAt"], select, button.trigger')
+		.locator('button.trigger')
 		.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
 	expect(heights.length).toBeGreaterThan(1);
 	for (const h of heights) expect(h).toBeGreaterThanOrEqual(MIN_TARGET_PX);

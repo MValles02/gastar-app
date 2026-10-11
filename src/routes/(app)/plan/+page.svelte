@@ -8,12 +8,12 @@
 	import { afterNavigate, replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import Button from '$lib/components/Button.svelte';
-	import Card from '$lib/components/Card.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
+	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import Money from '$lib/components/Money.svelte';
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -66,14 +66,19 @@
 	{/if}
 
 	{#if !data.hasCurrency}
-		<EmptyState icon="accounts">No tenés cuentas en {CURRENCY_NAME[data.currency]}.</EmptyState>
+		<Empty.Root>
+			<Empty.Header>
+				<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
+				<Empty.Description>No tenés cuentas en {CURRENCY_NAME[data.currency]}.</Empty.Description>
+			</Empty.Header>
+		</Empty.Root>
 		<div class="center"><Button href={resolve('/accounts/new')}>Crear cuenta</Button></div>
 	{:else}
 		{#if data.plan.summary}
 			{@const s = data.plan.summary}
 			{@const Status = statusIcon[s.status]}
 			<section class="summary" aria-labelledby="summary-heading">
-				<Card flush>
+				<Card.Root class="gap-0 overflow-hidden py-0">
 					<div class="box">
 						<div class="top">
 							<h2 id="summary-heading" class="eyebrow">Disponible · {data.plan.monthName}</h2>
@@ -118,7 +123,7 @@
 						Editar plan
 						<Icon name="chevron-right" size="1.25rem" />
 					</a>
-				</Card>
+				</Card.Root>
 			</section>
 
 			{#if s.limits.length}
@@ -162,27 +167,35 @@
 				</section>
 			{/if}
 		{:else}
-			<Card>
-				<div class="no-plan">
-					{#if data.plan.endedMonthName}
-						<p class="strong">Tu plan de {data.plan.endedMonthName} terminó.</p>
-					{/if}
-					<p class="strong">Todavía no tenés un plan en {CURRENCY_NAME[data.currency]}.</p>
-					<p class="muted">
-						Sumá tus ingresos, restá pagos fijos y ahorro, y te decimos cuánto podés gastar por día.
-					</p>
-					<Button href={resolve('/plan/setup')}>Crear plan</Button>
-				</div>
-			</Card>
+			<Card.Root>
+				<Card.Content>
+					<div class="no-plan">
+						{#if data.plan.endedMonthName}
+							<p class="strong">Tu plan de {data.plan.endedMonthName} terminó.</p>
+						{/if}
+						<p class="strong">Todavía no tenés un plan en {CURRENCY_NAME[data.currency]}.</p>
+						<p class="muted">
+							Sumá tus ingresos, restá pagos fijos y ahorro, y te decimos cuánto podés gastar por
+							día.
+						</p>
+						<Button href={resolve('/plan/setup')}>Crear plan</Button>
+					</div>
+				</Card.Content>
+			</Card.Root>
 		{/if}
 
 		{#if !data.incomes.length && !data.outcomes.length && !data.inactive.length}
-			<EmptyState icon="plan">
-				No tenés pagos ni ingresos fijos en {CURRENCY_NAME[data.currency]}.
-			</EmptyState>
+			<Empty.Root>
+				<Empty.Header>
+					<Empty.Media variant="icon"><Icon name="plan" size="1rem" /></Empty.Media>
+					<Empty.Description
+						>No tenés pagos ni ingresos fijos en {CURRENCY_NAME[data.currency]}.</Empty.Description
+					>
+				</Empty.Header>
+			</Empty.Root>
 			<div class="center actions">
 				<Button href={resolve('/plan/recurring/new')}>Agregar pago fijo</Button>
-				<Button href={resolve('/plan/recurring/new?type=income')} variant="secondary">
+				<Button href={resolve('/plan/recurring/new?type=income')} variant="outline">
 					Agregar ingreso fijo
 				</Button>
 			</div>
@@ -191,29 +204,37 @@
 			{#snippet rule(r: (typeof data.incomes)[number])}
 				{@const DueIcon = dueIcon[r.status]}
 				<li class="rule">
-					<ListRow href={resolve(`/plan/recurring/${r.id}`)}>
-						{#snippet leading()}
-							<span class="lead" aria-hidden="true">{r.description.charAt(0).toUpperCase()}</span>
+					<Item.Root>
+						{#snippet child({ props })}
+							<a href={resolve(`/plan/recurring/${r.id}`)} {...props}>
+								<Item.Media>
+									<span class="lead" aria-hidden="true"
+										>{r.description.charAt(0).toUpperCase()}</span
+									>
+								</Item.Media>
+								<Item.Content>
+									<Item.Title>{r.description}</Item.Title>
+									<Item.Description>
+										<span class="sub">
+											<span class="pill {dueClass[r.status]}">
+												{#if DueIcon}<DueIcon size={14} strokeWidth={2} />{/if}{r.label}
+											</span>
+											<span class="sub-text">Día {r.day} · {r.accountName}</span>
+										</span>
+									</Item.Description>
+								</Item.Content>
+								<Item.Actions>
+									<span class="amount-col">
+										<Money
+											cents={r.type === 'income' ? r.amount : -r.amount}
+											currency={data.currency}
+											kind={r.type === 'income' ? 'income' : 'outcome'}
+										/>
+									</span>
+								</Item.Actions>
+							</a>
 						{/snippet}
-						{#snippet title()}{r.description}{/snippet}
-						{#snippet subtitle()}
-							<span class="sub">
-								<span class="pill {dueClass[r.status]}">
-									{#if DueIcon}<DueIcon size={14} strokeWidth={2} />{/if}{r.label}
-								</span>
-								<span class="sub-text">Día {r.day} · {r.accountName}</span>
-							</span>
-						{/snippet}
-						{#snippet trailing()}
-							<span class="amount-col">
-								<Money
-									cents={r.type === 'income' ? r.amount : -r.amount}
-									currency={data.currency}
-									kind={r.type === 'income' ? 'income' : 'outcome'}
-								/>
-							</span>
-						{/snippet}
-					</ListRow>
+					</Item.Root>
 				</li>
 			{/snippet}
 
@@ -251,25 +272,31 @@
 					<ul class="list-card">
 						{#each data.inactive as r (r.id)}
 							<li class="rule inactive">
-								<ListRow href={resolve(`/plan/recurring/${r.id}`)}>
-									{#snippet leading()}
-										<span class="lead" aria-hidden="true"
-											>{r.description.charAt(0).toUpperCase()}</span
-										>
+								<Item.Root>
+									{#snippet child({ props })}
+										<a href={resolve(`/plan/recurring/${r.id}`)} {...props}>
+											<Item.Media>
+												<span class="lead" aria-hidden="true">
+													{r.description.charAt(0).toUpperCase()}
+												</span>
+											</Item.Media>
+											<Item.Content>
+												<Item.Title>{r.description}</Item.Title>
+												<Item.Description>
+													<span class="sub">
+														<span class="pill">{r.reason}</span>
+														<span class="sub-text">Día {r.day} · {r.accountName}</span>
+													</span>
+												</Item.Description>
+											</Item.Content>
+											<Item.Actions>
+												<span class="amount-col">
+													<Money cents={r.amount} currency={data.currency} />
+												</span>
+											</Item.Actions>
+										</a>
 									{/snippet}
-									{#snippet title()}{r.description}{/snippet}
-									{#snippet subtitle()}
-										<span class="sub">
-											<span class="pill">{r.reason}</span>
-											<span class="sub-text">Día {r.day} · {r.accountName}</span>
-										</span>
-									{/snippet}
-									{#snippet trailing()}
-										<span class="amount-col">
-											<Money cents={r.amount} currency={data.currency} />
-										</span>
-									{/snippet}
-								</ListRow>
+								</Item.Root>
 							</li>
 						{/each}
 					</ul>

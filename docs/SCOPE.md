@@ -54,8 +54,8 @@ Personal finance PWA for Argentina. Answers two questions:
   - Pill (fully rounded) buttons, light font weights.
   - Palette: deep green `#00301c`, off-white `#f4ece6`, taupe `#776d65`, lime accent `#f0ff9c`, burgundy `#3e0f00`, blue `#5db3e8`.
 - Light and dark themes required.
-- Theme: **Pampa** (forest green + lime on warm stone), light and dark, with the shadcn/ui visual language (stone neutrals, hairline borders, small radii).
-- Typeface: **DM Sans** (@fontsource/dm-sans, weights 400/500/600).
+- Theme: shadcn/ui preset (bJMUTPE2), adapted: warm cream neutrals (no pure white in light), emerald primary, stone near-black dark mode, hairline borders, small radii.
+- Typeface: **Geist Mono** (@fontsource-variable/geist-mono) for everything, amounts included.
 - List interaction pattern: tapping a list item opens a detail page with Edit and Delete actions — no inline row actions. Create and edit share the same form.
 
 ## Screens (MVP)

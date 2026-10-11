@@ -1,8 +1,5 @@
 <script lang="ts">
-	import '@fontsource/dm-sans/400.css';
-	import '@fontsource/dm-sans/500.css';
-	import '@fontsource/dm-sans/600.css';
-	import '@fontsource/newsreader/latin-500.css';
+	import '@fontsource-variable/geist-mono';
 	import '../app.css';
 	import { page } from '$app/state';
 	import { FORM_ROUTES } from '$lib/form-routes';

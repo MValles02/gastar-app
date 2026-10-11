@@ -256,7 +256,7 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		await page.goto('/plan', { waitUntil: 'networkidle' });
-		const id = await linkId(rule(page, description).locator('a.row'));
+		const id = await linkId(rule(page, description).locator('a[data-slot="item"]'));
 		// Drop the movement the rule was created with so this month's payment is still open.
 		await deleteMovements(page, baseURL!, description);
 

@@ -113,7 +113,7 @@ export async function deleteRules(page: Page, baseURL: string, description: stri
 	await page.goto('/plan');
 	const hrefs = await page
 		.locator('li.rule', { hasText: description })
-		.locator('a.row')
+		.locator('a[data-slot="item"]')
 		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
 	for (const href of hrefs) await postDelete(page, baseURL, href);
 }

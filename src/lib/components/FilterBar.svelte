@@ -1,5 +1,7 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { tick, type Snippet } from 'svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as InputGroup from '$lib/components/ui/input-group/index.js';
 	import Icon from './Icon.svelte';
 
 	/**
@@ -19,7 +21,7 @@
 		label?: string;
 		hidden?: Record<string, string>;
 		trailing?: Snippet;
-		children?: Snippet;
+		children?: Snippet<[() => void]>;
 	} = $props();
 
 	let form: HTMLFormElement;
@@ -29,7 +31,8 @@
 	const onformdata = (e: FormDataEvent) => {
 		for (const [k, v] of [...e.formData]) if (v === '') e.formData.delete(k);
 	};
-	const submit = () => form.requestSubmit();
+	// Handed to the children snippet: Bits radios and checkboxes fire no native change event, so they call it from their value callbacks.
+	const submit = () => tick().then(() => form.requestSubmit());
 	const debounced = () => {
 		clearTimeout(timer);
 		timer = setTimeout(submit, 300);
@@ -48,15 +51,23 @@
 		{#if v}<input type="hidden" name={k} value={v} />{/if}
 	{/each}
 	<div class="tools">
-		<label class="search">
-			<span class="visually-hidden">{label}</span>
-			<span class="icon"><Icon name="search" size="1.25rem" /></span>
-			<input type="search" name="q" value={q} {placeholder} oninput={debounced} />
-		</label>
+		<InputGroup.Root class="flex-1">
+			<InputGroup.Addon>
+				<Icon name="search" size="1.25rem" />
+			</InputGroup.Addon>
+			<InputGroup.Input
+				type="search"
+				name="q"
+				value={q}
+				{placeholder}
+				aria-label={label}
+				oninput={debounced}
+			/>
+		</InputGroup.Root>
 		{#if trailing}{@render trailing()}{/if}
 	</div>
-	{#if children}{@render children()}{/if}
-	<noscript><button type="submit">Filtrar</button></noscript>
+	{#if children}{@render children(submit)}{/if}
+	<noscript><Button type="submit">Filtrar</Button></noscript>
 </form>
 
 <style>
@@ -70,25 +81,5 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-	}
-
-	.search {
-		position: relative;
-		flex: 1;
-		min-width: 0;
-	}
-
-	.icon {
-		position: absolute;
-		top: 50%;
-		left: var(--space-4);
-		transform: translateY(-50%);
-		display: inline-flex;
-		color: var(--text-muted);
-		pointer-events: none;
-	}
-
-	.search input {
-		padding-left: calc(var(--space-4) + 1.25rem + var(--space-2));
 	}
 </style>

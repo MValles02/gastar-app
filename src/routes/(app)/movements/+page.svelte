@@ -8,8 +8,12 @@
 	import Lock from '@lucide/svelte/icons/lock';
 	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
-	import Button from '$lib/components/Button.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
+	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Empty from '$lib/components/ui/empty/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
+	import Icon from '$lib/components/Icon.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
@@ -86,7 +90,14 @@
 <PageHeader title="Movimientos" />
 
 {#snippet fields()}
-	<SegmentedControl name="type" options={typeOptions} bind:value={type} />
+	<span id="type-label" class="visually-hidden">Tipo</span>
+	<SegmentedControl
+		name="type"
+		options={typeOptions}
+		bind:value={type}
+		labelledby="type-label"
+		onchange={() => drawerForm?.requestSubmit()}
+	/>
 	<div class="group">
 		<OptionPicker
 			name="account"
@@ -110,45 +121,48 @@
 		>
 			{#snippet empty()}{/snippet}
 		</OptionPicker>
-		<label class="date-row">
-			<span>Desde</span>
-			<input type="date" name="from" bind:value={from} />
-		</label>
-		<label class="date-row">
-			<span>Hasta</span>
-			<input type="date" name="to" bind:value={to} />
-		</label>
+		<Field.Field class="p-4">
+			<Field.Label for="from">Desde</Field.Label>
+			<Input id="from" type="date" name="from" bind:value={from} />
+		</Field.Field>
+		<Field.Field class="p-4">
+			<Field.Label for="to">Hasta</Field.Label>
+			<Input id="to" type="date" name="to" bind:value={to} />
+		</Field.Field>
 	</div>
 {/snippet}
 
 <div class="page">
 	<FilterBar q={data.filters.q} label="Buscar" placeholder="Buscar" hidden={kept}>
 		{#snippet trailing()}
-			<button
+			<Button
 				type="button"
-				class="filters-btn"
-				class:active={filterCount > 0}
+				variant="outline"
+				class={['shrink-0', filterCount > 0 && 'border-foreground']}
 				aria-haspopup="dialog"
 				onclick={() => (filtersOpen = true)}
 			>
 				<SlidersHorizontal size={18} strokeWidth={1.75} aria-hidden="true" />
 				Filtros
-				{#if filterCount > 0}<span class="count">{filterCount}</span>{/if}
-			</button>
+				{#if filterCount > 0}<Badge>{filterCount}</Badge>{/if}
+			</Button>
 		{/snippet}
-		<span id="currency-label" class="visually-hidden">Moneda</span>
-		<SegmentedControl
-			name="currency"
-			options={currencyOptions}
-			bind:value={currency}
-			labelledby="currency-label"
-			disabled={data.lockedCurrency !== null}
-		/>
-		{#if data.lockedCurrency !== null}
-			<p class="lock">
-				<Lock size={14} strokeWidth={1.75} aria-hidden="true" />Moneda de la cuenta
-			</p>
-		{/if}
+		{#snippet children(submit)}
+			<span id="currency-label" class="visually-hidden">Moneda</span>
+			<SegmentedControl
+				name="currency"
+				options={currencyOptions}
+				bind:value={currency}
+				labelledby="currency-label"
+				disabled={data.lockedCurrency !== null}
+				onchange={submit}
+			/>
+			{#if data.lockedCurrency !== null}
+				<p class="lock">
+					<Lock size={14} strokeWidth={1.75} aria-hidden="true" />Moneda de la cuenta
+				</p>
+			{/if}
+		{/snippet}
 	</FilterBar>
 
 	<noscript>
@@ -158,7 +172,7 @@
 				<input type="hidden" name="currency" value={data.filters.currency} />
 			{/if}
 			{@render fields()}
-			<button type="submit">Aplicar filtros</button>
+			<Button type="submit">Aplicar filtros</Button>
 		</form>
 	</noscript>
 
@@ -176,7 +190,7 @@
 			{/if}
 			{@render fields()}
 			{#if filterCount > 0}
-				<Button type="button" variant="secondary" block onclick={clearFilters}>
+				<Button type="button" variant="outline" class="w-full" onclick={clearFilters}>
 					Limpiar filtros
 				</Button>
 			{/if}
@@ -185,21 +199,36 @@
 
 	{#if data.groups.length === 0}
 		{#if data.page > 1}
-			<EmptyState icon="search">Sin más movimientos.</EmptyState>
+			<Empty.Root>
+				<Empty.Header>
+					<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
+					<Empty.Description>Sin más movimientos.</Empty.Description>
+				</Empty.Header>
+			</Empty.Root>
 			<div class="empty-action">
-				<Button href={resolve(`/movements?${firstPageQuery}`)} variant="secondary">
+				<Button href={resolve(`/movements?${firstPageQuery}`)} variant="outline">
 					Ir a la primera página
 				</Button>
 			</div>
 		{:else if data.activeCount === 0}
-			<EmptyState icon="movements">Sin movimientos.</EmptyState>
+			<Empty.Root>
+				<Empty.Header>
+					<Empty.Media variant="icon"><Icon name="movements" size="1rem" /></Empty.Media>
+					<Empty.Description>Sin movimientos.</Empty.Description>
+				</Empty.Header>
+			</Empty.Root>
 			<div class="empty-action">
 				<Button href={resolve('/movements/new')}>Nuevo movimiento</Button>
 			</div>
 		{:else}
-			<EmptyState icon="search">Sin resultados.</EmptyState>
+			<Empty.Root>
+				<Empty.Header>
+					<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
+					<Empty.Description>Sin resultados.</Empty.Description>
+				</Empty.Header>
+			</Empty.Root>
 			<div class="empty-action">
-				<Button href={resolve('/movements')} variant="secondary">Limpiar filtros</Button>
+				<Button href={resolve('/movements')} variant="outline">Limpiar filtros</Button>
 			</div>
 		{/if}
 	{:else}
@@ -230,12 +259,12 @@
 		{#if data.page > 1 || data.hasNext}
 			<nav class="pager" aria-label="Paginación">
 				{#if data.page > 1}
-					<Button href={resolve(`/movements?${pageQuery(data.page - 1)}`)} variant="secondary">
+					<Button href={resolve(`/movements?${pageQuery(data.page - 1)}`)} variant="outline">
 						<ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />Más recientes
 					</Button>
 				{/if}
 				{#if data.hasNext}
-					<Button href={resolve(`/movements?${pageQuery(data.page + 1)}`)} variant="secondary">
+					<Button href={resolve(`/movements?${pageQuery(data.page + 1)}`)} variant="outline">
 						Más antiguos<ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
 					</Button>
 				{/if}
@@ -249,39 +278,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-	}
-
-	.filters-btn {
-		flex: none;
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		min-height: var(--tap-target);
-		padding: 0 var(--space-4);
-		background: var(--surface);
-		color: var(--text);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-pill);
-		font-size: var(--font-size-sm);
-		font-weight: 500;
-	}
-
-	.filters-btn.active {
-		border-color: var(--text);
-	}
-
-	/* Active-filter count: text in an inverted fill, never a colour signal. */
-	.count {
-		display: grid;
-		place-items: center;
-		min-width: 1.25rem;
-		height: 1.25rem;
-		padding: 0 var(--space-2);
-		border-radius: var(--radius-pill);
-		background: var(--text);
-		color: var(--bg);
-		font-size: var(--font-size-xs);
-		font-weight: 600;
 	}
 
 	.lock {
@@ -310,24 +306,6 @@
 
 	.group > :global(* + *) {
 		border-top: 1px solid var(--border);
-	}
-
-	.date-row {
-		flex-direction: row;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-		min-height: 3.5rem;
-		padding: var(--space-2) var(--space-4);
-		font-size: var(--font-size-base);
-	}
-
-	.date-row input {
-		width: auto;
-		min-width: 0;
-		border: 0;
-		background: transparent;
-		text-align: right;
 	}
 
 	.groups {

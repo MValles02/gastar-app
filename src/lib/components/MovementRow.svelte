@@ -2,7 +2,7 @@
 	import type { Currency } from '$lib/money';
 	import { resolve } from '$app/paths';
 	import Icon from './Icon.svelte';
-	import ListRow from './ListRow.svelte';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import Money from './Money.svelte';
 
 	let {
@@ -19,20 +19,28 @@
 	} = $props();
 </script>
 
-<ListRow href={resolve(`/movements/${m.id}`)}>
-	{#snippet leading()}
-		<span class="lead" aria-hidden="true">
-			{#if m.type === 'transfer'}<Icon name="transfer" size="1.25rem" />{:else}{m.description
-					.charAt(0)
-					.toUpperCase()}{/if}
-		</span>
+<Item.Root>
+	{#snippet child({ props })}
+		<a href={resolve(`/movements/${m.id}`)} {...props}>
+			<Item.Media>
+				<span class="lead" aria-hidden="true">
+					{#if m.type === 'transfer'}<Icon name="transfer" size="1.25rem" />{:else}{m.description
+							.charAt(0)
+							.toUpperCase()}{/if}
+				</span>
+			</Item.Media>
+			<Item.Content>
+				<Item.Title>{m.description}</Item.Title>
+				<Item.Description>{m.subtitle}</Item.Description>
+			</Item.Content>
+			<Item.Actions>
+				<span class="row-amount">
+					<Money cents={m.amount} currency={m.currency} kind={m.type} />
+				</span>
+			</Item.Actions>
+		</a>
 	{/snippet}
-	{#snippet title()}{m.description}{/snippet}
-	{#snippet subtitle()}{m.subtitle}{/snippet}
-	{#snippet trailing()}
-		<span class="row-amount"><Money cents={m.amount} currency={m.currency} kind={m.type} /></span>
-	{/snippet}
-</ListRow>
+</Item.Root>
 
 <style>
 	/* Neutral letter badge: the movement carries no category colour here. */

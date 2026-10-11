@@ -267,7 +267,7 @@ test('deleting a category removes its limit', async ({ page, baseURL }) => {
 
 		await page.goto(categoryPath, { waitUntil: 'networkidle' });
 		await page.getByRole('button', { name: 'Eliminar' }).click();
-		await page.getByRole('dialog').getByRole('button', { name: 'Eliminar' }).click();
+		await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
 		await expect(page).toHaveURL(/\/categories$/);
 		categoryPath = '';
 
@@ -331,7 +331,7 @@ test('saving a USD plan shows the toast, accepts cents, and deleting it removes 
 
 		await openSetup(page);
 		await page.getByRole('button', { name: 'Eliminar plan' }).click();
-		await page.getByRole('dialog').getByRole('button', { name: 'Eliminar' }).click();
+		await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(page.getByText(NO_USD_PLAN)).toBeVisible();
 	} finally {

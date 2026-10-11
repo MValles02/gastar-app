@@ -3,8 +3,10 @@
 	import { tick, untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import Button from '$lib/components/Button.svelte';
-	import Card from '$lib/components/Card.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
 	import ColorPicker from '$lib/components/ColorPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -45,9 +47,10 @@
 <form method="POST" use:enhance class="form" novalidate>
 	<ul class="card">
 		<li class:bad={errors.name}>
-			<label class="row">
-				<span class="k">Nombre</span>
-				<input
+			<Field.Field class="p-4">
+				<Field.Label for="name">Nombre</Field.Label>
+				<Input
+					id="name"
 					name="name"
 					type="text"
 					maxlength={NAME_MAX_LENGTH}
@@ -58,12 +61,12 @@
 					aria-invalid={errors.name ? 'true' : undefined}
 					aria-describedby={errors.name ? 'name-error' : undefined}
 				/>
-			</label>
-			{#if errors.name}
-				<p class="error et" id="name-error" role="alert">
-					<Icon name="alert" size="1rem" />{errors.name}
-				</p>
-			{/if}
+				{#if errors.name}
+					<Field.Error id="name-error" class="flex items-start gap-2">
+						<Icon name="alert" size="1rem" />{errors.name}
+					</Field.Error>
+				{/if}
+			</Field.Field>
 		</li>
 	</ul>
 
@@ -76,19 +79,23 @@
 	</div>
 
 	<div>
-		<Card>
-			<ColorPicker name="color" legend="Color" bind:value={color} />
-		</Card>
+		<Card.Root>
+			<Card.Content>
+				<ColorPicker name="color" legend="Color" bind:value={color} />
+			</Card.Content>
+		</Card.Root>
 		{#if errors.color}
 			<p class="error pad" role="alert"><Icon name="alert" size="1rem" />{errors.color}</p>
 		{/if}
 	</div>
 
 	<div class="bar">
-		<Button type="submit" block>{mode === 'create' ? 'Crear categoría' : 'Guardar cambios'}</Button>
+		<Button type="submit" class="w-full"
+			>{mode === 'create' ? 'Crear categoría' : 'Guardar cambios'}</Button
+		>
 	</div>
 	<div class="cancel">
-		<Button href={resolve(cancelHref as '/categories')} variant="secondary">Cancelar</Button>
+		<Button href={resolve(cancelHref as '/categories')} variant="outline">Cancelar</Button>
 	</div>
 </form>
 
@@ -115,41 +122,6 @@
 		box-shadow: inset 3px 0 0 var(--negative);
 	}
 
-	.row {
-		display: flex;
-		flex-direction: row;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--space-1) var(--space-3);
-		min-height: 3.5rem;
-		padding: 0 var(--space-4);
-		font-size: var(--font-size-base);
-		color: var(--text);
-		cursor: text;
-	}
-
-	.row input[name='name'] {
-		flex: 1 1 4rem;
-		min-width: 0;
-		width: auto;
-		min-height: 3.5rem;
-		padding: 0;
-		border: 0;
-		border-radius: 0;
-		background: transparent;
-		text-align: right;
-		scroll-margin-bottom: 6rem;
-	}
-
-	.row input:focus-visible {
-		outline-offset: -2px;
-	}
-
-	.row input::placeholder {
-		color: var(--text-muted);
-		opacity: 1;
-	}
-
 	.field {
 		display: flex;
 		flex-direction: column;
@@ -168,10 +140,6 @@
 		gap: var(--space-2);
 		color: var(--negative);
 		font-size: var(--font-size-sm);
-	}
-
-	.et {
-		padding: 0 var(--space-4) var(--space-3);
 	}
 
 	.pad {

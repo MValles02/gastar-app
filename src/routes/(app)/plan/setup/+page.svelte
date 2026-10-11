@@ -4,10 +4,12 @@
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import Button from '$lib/components/Button.svelte';
-	import Checkbox from '$lib/components/Checkbox.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import Field from '$lib/components/Field.svelte';
+	import * as Field from '$lib/components/ui/field/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
+	import * as NativeSelect from '$lib/components/ui/native-select/index.js';
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
@@ -129,7 +131,7 @@
 				<li>
 					<label class="check-row">
 						<input type="hidden" name="shown" value={r.id} />
-						<input type="checkbox" name="keep" value={r.id} bind:checked={keep[r.id]} />
+						<Checkbox name="keep" value={r.id} bind:checked={keep[r.id]} />
 						<span class="text">
 							<span class="title">{r.description}</span>
 							<span class="sub">Día {r.dayOfMonth} · {r.accountName}</span>
@@ -147,7 +149,7 @@
 			{#each candidates as c (c.key)}
 				<li>
 					<label class="check-row">
-						<input type="checkbox" name="candidate" value={c.key} bind:checked={accepted[c.key]} />
+						<Checkbox name="candidate" value={c.key} bind:checked={accepted[c.key]} />
 						<span class="text">
 							<span class="title">{c.description}</span>
 							<span class="sub">Últimos 3 meses · día {c.dayOfMonth} · {c.categoryName}</span>
@@ -164,62 +166,92 @@
 			<fieldset class="new-row">
 				<legend class="visually-hidden">Nuevo {noun}</legend>
 				<input type="hidden" name="new_type" value={row.type} />
-				<Field label="Descripción">
-					<input
+				<Field.Field>
+					<Field.Label for="new_description_{i}">Descripción</Field.Label>
+					<Input
+						id="new_description_{i}"
 						name="new_description"
 						maxlength={DESCRIPTION_MAX_LENGTH}
 						autocomplete="off"
 						bind:value={row.description}
 					/>
-				</Field>
+				</Field.Field>
 				<div class="pair">
-					<Field label="Monto">
-						<input
+					<Field.Field>
+						<Field.Label for="new_amount_{i}">Monto</Field.Label>
+						<Input
+							id="new_amount_{i}"
 							name="new_amount"
 							inputmode="decimal"
 							placeholder={zero}
 							autocomplete="off"
 							bind:value={row.amount}
 						/>
-					</Field>
-					<Field label="Día">
-						<input
+					</Field.Field>
+					<Field.Field>
+						<Field.Label for="new_dayOfMonth_{i}">Día</Field.Label>
+						<Input
+							id="new_dayOfMonth_{i}"
 							name="new_dayOfMonth"
 							type="number"
 							min="1"
 							max="31"
 							bind:value={row.dayOfMonth}
 						/>
-					</Field>
+					</Field.Field>
 				</div>
 				<div class="pair">
-					<Field label="Cuenta">
-						<select name="new_accountId" bind:value={row.accountId}>
-							<option value="">Elegir</option>
-							{#each data.accounts as a (a.id)}<option value={a.id}>{a.name}</option>{/each}
-						</select>
-					</Field>
-					<Field label="Categoría">
-						<select name="new_categoryId" bind:value={row.categoryId}>
-							<option value="">Elegir</option>
-							{#each data.categories.filter((c) => c.kind === null || c.kind === type) as c (c.id)}<option
-									value={c.id}>{c.name}</option
-								>{/each}
-						</select>
-					</Field>
+					<Field.Field>
+						<Field.Label for="new_accountId_{i}">Cuenta</Field.Label>
+						<NativeSelect.Root
+							id="new_accountId_{i}"
+							name="new_accountId"
+							class="w-full"
+							bind:value={row.accountId}
+						>
+							<NativeSelect.Option value="">Elegir</NativeSelect.Option>
+							{#each data.accounts as a (a.id)}
+								<NativeSelect.Option value={a.id}>{a.name}</NativeSelect.Option>
+							{/each}
+						</NativeSelect.Root>
+					</Field.Field>
+					<Field.Field>
+						<Field.Label for="new_categoryId_{i}">Categoría</Field.Label>
+						<NativeSelect.Root
+							id="new_categoryId_{i}"
+							name="new_categoryId"
+							class="w-full"
+							bind:value={row.categoryId}
+						>
+							<NativeSelect.Option value="">Elegir</NativeSelect.Option>
+							{#each data.categories.filter((c) => c.kind === null || c.kind === type) as c (c.id)}
+								<NativeSelect.Option value={c.id}>{c.name}</NativeSelect.Option>
+							{/each}
+						</NativeSelect.Root>
+					</Field.Field>
 				</div>
 				{#if js}
-					<button type="button" class="link danger" onclick={() => rows.splice(i, 1)}>
+					<Button
+						type="button"
+						variant="link"
+						class="self-start text-destructive"
+						onclick={() => rows.splice(i, 1)}
+					>
 						Quitar {noun}
-					</button>
+					</Button>
 				{/if}
 			</fieldset>
 		{/if}
 	{/each}
 	{#if js}
-		<button type="button" class="link" onclick={() => rows.push(blankRow(type))}>
+		<Button
+			type="button"
+			variant="link"
+			class="self-start"
+			onclick={() => rows.push(blankRow(type))}
+		>
 			+ Agregar {noun}
-		</button>
+		</Button>
 	{/if}
 {/snippet}
 
@@ -244,15 +276,17 @@
 		<p class="eyebrow">Paso 1 de {STEPS.length}</p>
 		<h2 id="s1" tabindex="-1">¿Cuánto cobrás por mes en {data.currency}?</h2>
 		{@render fixedStep('income')}
-		<Field label="Otros ingresos del mes (opcional)">
-			<input
+		<Field.Field>
+			<Field.Label for="extraIncome">Otros ingresos del mes (opcional)</Field.Label>
+			<Input
+				id="extraIncome"
 				name="extraIncome"
 				inputmode="decimal"
 				placeholder={zero}
 				autocomplete="off"
 				bind:value={extraIncome}
 			/>
-		</Field>
+		</Field.Field>
 		<p class="total">Ingresos <strong><Money cents={income} currency={data.currency} /></strong></p>
 	</section>
 
@@ -276,15 +310,17 @@
 			labelledby="s3"
 		/>
 		{#if savingsOption === 'fixed' || !js}
-			<Field label="Monto a ahorrar">
-				<input
+			<Field.Field>
+				<Field.Label for="savingsFixed">Monto a ahorrar</Field.Label>
+				<Input
+					id="savingsFixed"
 					name="savingsFixed"
 					inputmode="decimal"
 					placeholder={zero}
 					autocomplete="off"
 					bind:value={savingsFixed}
 				/>
-			</Field>
+			</Field.Field>
 		{/if}
 		<p class="total">Ahorro <strong><Money cents={savings} currency={data.currency} /></strong></p>
 	</section>
@@ -317,32 +353,38 @@
 			</p>
 		{/if}
 
-		<Checkbox name="repeat" label="Usar este plan todos los meses" bind:checked={repeat} />
+		<Field.Field orientation="horizontal" class="min-h-11">
+			<Checkbox id="repeat" name="repeat" value="on" bind:checked={repeat} />
+			<Field.Label for="repeat">Usar este plan todos los meses</Field.Label>
+		</Field.Field>
 
 		<div class="section-head">
 			<h3>Límites por categoría (opcional)</h3>
 			{#if js && limitCategories.some((c) => c.suggested > 0)}
-				<button type="button" class="link" onclick={useSuggested}>Usar sugeridos</button>
+				<Button type="button" variant="link" onclick={useSuggested}>Usar sugeridos</Button>
 			{/if}
 		</div>
 		<ul class="list-card limits">
 			{#each limitCategories as c (c.id)}
 				<li>
-					<label>
-						<span class="limit-name">
-							{c.name}
-							{#if c.suggested > 0}
-								<span class="limit-hint">Promedio {money(c.suggested)}</span>
-							{/if}
-						</span>
-						<input
+					<Field.Field class="p-4">
+						<Field.Label for="limit_{c.id}">
+							<span class="limit-name">
+								{c.name}
+								{#if c.suggested > 0}
+									<span class="limit-hint">Promedio {money(c.suggested)}</span>
+								{/if}
+							</span>
+						</Field.Label>
+						<Input
+							id="limit_{c.id}"
 							name="limit_{c.id}"
 							inputmode="decimal"
 							autocomplete="off"
 							placeholder="Sin límite"
 							bind:value={limits[c.id]}
 						/>
-					</label>
+					</Field.Field>
 				</li>
 			{/each}
 		</ul>
@@ -359,7 +401,7 @@
 	<div class="bar">
 		<div class="actions">
 			{#if js && step > 1}
-				<Button type="button" variant="secondary" onclick={() => go(step - 1)}>Atrás</Button>
+				<Button type="button" variant="outline" onclick={() => go(step - 1)}>Atrás</Button>
 			{/if}
 			{#if !js || step === STEPS.length}
 				<Button type="submit">Guardar plan</Button>
@@ -370,7 +412,7 @@
 	</div>
 	{#if !js || step === 1}
 		<div class="cancel">
-			<Button href={resolve('/plan')} variant="secondary">Cancelar</Button>
+			<Button href={resolve('/plan')} variant="outline">Cancelar</Button>
 		</div>
 	{/if}
 </form>
@@ -379,7 +421,7 @@
 	<div class="delete">
 		<ConfirmDialog
 			triggerLabel="Eliminar plan"
-			triggerVariant="danger"
+			triggerVariant="destructive"
 			title="¿Eliminar este plan?"
 			confirmLabel="Eliminar"
 			action="?/delete"
@@ -499,13 +541,6 @@
 		cursor: pointer;
 	}
 
-	.check-row input {
-		flex: none;
-		width: 1.25rem;
-		height: 1.25rem;
-		accent-color: var(--primary);
-	}
-
 	.text {
 		flex: 1 1 6rem;
 		min-width: 0;
@@ -545,22 +580,6 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
 		gap: var(--space-3);
-	}
-
-	.link {
-		align-self: flex-start;
-		min-height: var(--tap-target);
-		padding: 0;
-		background: none;
-		border: 0;
-		color: var(--text);
-		font-size: var(--font-size-sm);
-		font-weight: 500;
-		text-decoration: underline;
-	}
-
-	.link.danger {
-		color: var(--negative);
 	}
 
 	.total {
@@ -604,32 +623,14 @@
 		font-weight: 600;
 	}
 
-	.limits label {
-		flex-direction: row;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--space-2) var(--space-3);
-		padding: var(--space-2) var(--space-4);
-	}
-
 	.limit-name {
-		flex: 1 1 8rem;
-		min-width: 0;
 		overflow-wrap: anywhere;
-		color: var(--text);
 	}
 
 	.limit-hint {
 		display: block;
 		font-size: var(--font-size-xs);
 		color: var(--text-muted);
-	}
-
-	.limits input {
-		flex: none;
-		width: 8rem;
-		max-width: 100%;
-		text-align: right;
 	}
 
 	/* Sticky bar: full-bleed, pinned to the bottom of the viewport (no tab bar on this screen). */

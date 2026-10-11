@@ -5,8 +5,11 @@
 	import Lock from '@lucide/svelte/icons/lock';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import Button from '$lib/components/Button.svelte';
-	import Checkbox from '$lib/components/Checkbox.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
+	import * as InputGroup from '$lib/components/ui/input-group/index.js';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { convertAmount, formatMoney, parseAmount } from '$lib/money';
@@ -141,14 +144,16 @@
 		{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
 	</div>
 
-	<div class="amount-block">
-		<label class="amount" class:sm={amount.length > 11}>
-			<span class="visually-hidden">Monto</span>
-			{#if originCurrency}<span class="currency">{originCurrency === 'USD' ? 'US$' : '$'}</span
-				>{/if}
-			<!-- svelte-ignore a11y_autofocus -->
-			<input
-				class="amount-input"
+	<Field.Field>
+		<Field.Label for="amount">Monto</Field.Label>
+		<InputGroup.Root>
+			{#if originCurrency}
+				<InputGroup.Addon>
+					<InputGroup.Text>{originCurrency === 'USD' ? 'US$' : '$'}</InputGroup.Text>
+				</InputGroup.Addon>
+			{/if}
+			<InputGroup.Input
+				id="amount"
 				name="amount"
 				type="text"
 				inputmode={originCurrency === 'USD' ? 'decimal' : 'numeric'}
@@ -159,15 +164,16 @@
 				aria-invalid={errors.amount ? 'true' : undefined}
 				aria-describedby={errors.amount ? 'amount-error' : undefined}
 			/>
-		</label>
-		{#if errors.amount}<p class="error" id="amount-error" role="alert">{errors.amount}</p>{/if}
-	</div>
+		</InputGroup.Root>
+		{#if errors.amount}<Field.Error id="amount-error">{errors.amount}</Field.Error>{/if}
+	</Field.Field>
 
 	<ul class="card">
 		<li class:bad={errors.description}>
-			<label class="row">
-				<span class="k">Descripción</span>
-				<input
+			<Field.Field class="p-4">
+				<Field.Label for="description">Descripción</Field.Label>
+				<Input
+					id="description"
 					name="description"
 					type="text"
 					maxlength={DESCRIPTION_MAX_LENGTH}
@@ -178,10 +184,10 @@
 					aria-invalid={errors.description ? 'true' : undefined}
 					aria-describedby={errors.description ? 'description-error' : undefined}
 				/>
-			</label>
-			{#if errors.description}
-				<p class="error et" id="description-error" role="alert">{errors.description}</p>
-			{/if}
+				{#if errors.description}
+					<Field.Error id="description-error">{errors.description}</Field.Error>
+				{/if}
+			</Field.Field>
 		</li>
 
 		<li class:bad={errors.accountId}>
@@ -223,9 +229,10 @@
 		{#if !mounted || showRate}
 			<li class:bad={errors.exchangeRate}>
 				{#if !mounted}<p class="hint pad">Solo para transferencias entre monedas distintas</p>{/if}
-				<label class="row">
-					<span class="k">Cotización (1 USD en ARS)</span>
-					<input
+				<Field.Field class="p-4">
+					<Field.Label for="exchangeRate">Cotización (1 USD en ARS)</Field.Label>
+					<Input
+						id="exchangeRate"
 						name="exchangeRate"
 						type="text"
 						inputmode="numeric"
@@ -235,10 +242,10 @@
 						aria-invalid={errors.exchangeRate ? 'true' : undefined}
 						aria-describedby={errors.exchangeRate ? 'rate-error' : undefined}
 					/>
-				</label>
-				{#if errors.exchangeRate}
-					<p class="error et" id="rate-error" role="alert">{errors.exchangeRate}</p>
-				{/if}
+					{#if errors.exchangeRate}
+						<Field.Error id="rate-error">{errors.exchangeRate}</Field.Error>
+					{/if}
+				</Field.Field>
 			</li>
 			{#if mounted}
 				<li>
@@ -291,9 +298,10 @@
 		{/if}
 
 		<li class:bad={errors.occurredAt}>
-			<label class="row">
-				<span class="k">Fecha</span>
-				<input
+			<Field.Field class="p-4">
+				<Field.Label for="occurredAt">Fecha</Field.Label>
+				<Input
+					id="occurredAt"
 					name="occurredAt"
 					type="date"
 					min="2000-01-01"
@@ -301,10 +309,10 @@
 					aria-invalid={errors.occurredAt ? 'true' : undefined}
 					aria-describedby={errors.occurredAt ? 'date-error' : undefined}
 				/>
-			</label>
-			{#if errors.occurredAt}
-				<p class="error et" id="date-error" role="alert">{errors.occurredAt}</p>
-			{/if}
+				{#if errors.occurredAt}
+					<Field.Error id="date-error">{errors.occurredAt}</Field.Error>
+				{/if}
+			</Field.Field>
 		</li>
 	</ul>
 
@@ -312,12 +320,16 @@
 		<div class="group">
 			<ul class="card">
 				<li class="check">
-					<Checkbox
-						name="repeat"
-						label="Repetir cada mes"
-						checked={repeatChecked}
-						aria-describedby="repeat-hint"
-					/>
+					<Field.Field orientation="horizontal" class="min-h-11">
+						<Checkbox
+							id="repeat"
+							name="repeat"
+							value="on"
+							checked={repeatChecked}
+							aria-describedby="repeat-hint"
+						/>
+						<Field.Label for="repeat">Repetir cada mes</Field.Label>
+					</Field.Field>
 				</li>
 			</ul>
 			<p id="repeat-hint" class="hint pad">
@@ -327,12 +339,17 @@
 	{/if}
 
 	<div class="bar">
-		<Button type="submit" block disabled={submitting} aria-busy={submitting ? 'true' : undefined}>
+		<Button
+			type="submit"
+			class="w-full"
+			disabled={submitting}
+			aria-busy={submitting ? 'true' : undefined}
+		>
 			{#if submitting}<span class="spin" aria-hidden="true"></span>{/if}{submitLabel}
 		</Button>
 	</div>
 	<div class="cancel">
-		<Button href={resolve(cancelHref as '/')} variant="secondary">Cancelar</Button>
+		<Button href={resolve(cancelHref as '/')} variant="outline">Cancelar</Button>
 	</div>
 </form>
 
@@ -356,61 +373,6 @@
 
 	.note {
 		margin-bottom: calc(var(--space-3) * -1);
-		text-align: center;
-	}
-
-	.amount-block {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: var(--space-1);
-	}
-
-	.amount {
-		flex-direction: row;
-		align-items: baseline;
-		justify-content: center;
-		gap: var(--space-2);
-		max-width: 100%;
-		padding: var(--space-4) 0 var(--space-1);
-		color: var(--text);
-	}
-
-	.currency {
-		font-family: var(--font-display);
-		font-size: 1.75rem;
-		font-weight: 500;
-		color: var(--text-muted);
-	}
-
-	.amount .amount-input {
-		flex: 0 1 auto;
-		width: auto;
-		min-width: 2ch;
-		max-width: 100%;
-		field-sizing: content;
-		min-height: 3.5rem;
-		padding: 0 var(--space-1);
-		border: 0;
-		background: transparent;
-		font-family: var(--font-display);
-		font-size: 2.75rem;
-		font-weight: 500;
-		text-align: center;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.amount.sm .amount-input {
-		font-size: var(--font-size-hero);
-	}
-
-	.amount .amount-input::placeholder,
-	.row input::placeholder {
-		color: var(--text-muted);
-		opacity: 1;
-	}
-
-	.amount-block .error {
 		text-align: center;
 	}
 
@@ -445,27 +407,6 @@
 		color: var(--text);
 	}
 
-	label.row {
-		cursor: text;
-	}
-
-	.row input {
-		flex: 1 1 4rem;
-		min-width: 0;
-		width: auto;
-		min-height: 3.5rem;
-		padding: 0;
-		border: 0;
-		border-radius: 0;
-		background: transparent;
-		text-align: right;
-		scroll-margin-bottom: 6rem;
-	}
-
-	.row input:focus-visible {
-		outline-offset: -2px;
-	}
-
 	.locked {
 		justify-content: space-between;
 		color: var(--text-muted);
@@ -498,10 +439,6 @@
 	.error {
 		color: var(--negative);
 		font-size: var(--font-size-sm);
-	}
-
-	.et {
-		padding: 0 var(--space-4) var(--space-3);
 	}
 
 	/* Sticky Guardar: full-bleed bar pinned to the bottom of the viewport (no tab bar on this screen). */

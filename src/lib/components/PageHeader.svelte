@@ -4,6 +4,9 @@
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import Bell from '@lucide/svelte/icons/bell';
 	import X from '@lucide/svelte/icons/x';
+	import * as Avatar from '$lib/components/ui/avatar/index.js';
+	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
 
 	/**
 	 * Sticky top bar: [back] [eyebrow + title] [avisos] [profile]. The eyebrow defaults to today's date.
@@ -52,15 +55,13 @@
 		<span class="spacer" aria-hidden="true"></span>
 	{/if}
 	{#if close}
-		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass an already resolved href -->
-		<a class="back" href={close.href} aria-label={close.label}>
-			<X size={24} strokeWidth={1.75} aria-hidden="true" />
-		</a>
+		<Button class="-ml-2" href={close.href} variant="ghost" size="icon" aria-label={close.label}>
+			<X aria-hidden="true" />
+		</Button>
 	{:else if back}
-		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass an already resolved href -->
-		<a class="back" href={back.href} aria-label={back.label}>
-			<ChevronLeft size={24} strokeWidth={1.75} aria-hidden="true" />
-		</a>
+		<Button class="-ml-2" href={back.href} variant="ghost" size="icon" aria-label={back.label}>
+			<ChevronLeft aria-hidden="true" />
+		</Button>
 	{/if}
 	<div class="titles">
 		{#if kicker && !compact}<p class="eyebrow">{kicker}</p>{/if}
@@ -74,16 +75,20 @@
 			aria-label={alertCount > 0 ? `Avisos: ${alertCount}` : 'Avisos'}
 		>
 			<Bell size={20} strokeWidth={1.75} aria-hidden="true" />
-			{#if alertCount > 0}<span class="badge" aria-hidden="true"
-					>{alertCount > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : alertCount}</span
+			{#if alertCount > 0}<Badge
+					class="absolute -top-1.5 -right-1.5 min-w-5 px-1"
+					aria-hidden="true"
+					>{alertCount > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : alertCount}</Badge
 				>{/if}
 		</a>
 		<a
 			class="avatar"
 			href={resolve('/profile')}
 			aria-current={page.url.pathname === '/profile' ? 'page' : undefined}
-			aria-label="Perfil">{header.initials}</a
+			aria-label="Perfil"
 		>
+			<Avatar.Root><Avatar.Fallback>{header.initials}</Avatar.Fallback></Avatar.Root>
+		</a>
 	{/if}
 </header>
 
@@ -187,7 +192,6 @@
 		font-size: 1.0625rem;
 	}
 
-	.back,
 	.bell,
 	.avatar {
 		position: relative;
@@ -201,47 +205,14 @@
 		color: var(--text);
 	}
 
-	.back {
-		margin-left: calc(var(--space-2) * -1);
-		border-radius: var(--radius-pill);
-	}
-
-	@media (hover: hover) {
-		.back:hover {
-			background: color-mix(in srgb, var(--primary) 8%, transparent);
-		}
-	}
-
 	.bell {
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
 		background: var(--surface);
 	}
 
-	/* The count as text (capped at 9+); the link's aria-label carries it for screen readers. */
-	.badge {
-		position: absolute;
-		top: -0.3125rem;
-		right: -0.3125rem;
-		min-width: 1.25rem;
-		height: 1.25rem;
-		padding: 0 var(--space-1);
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: var(--radius-pill);
-		background: var(--primary);
-		color: var(--on-primary);
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		line-height: 1;
-	}
-
 	.avatar {
 		border-radius: 50%;
-		background: var(--muted);
-		font-size: var(--font-size-sm);
-		font-weight: 600;
 	}
 
 	.bell[aria-current='page'],

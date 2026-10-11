@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import Button from '$lib/components/Button.svelte';
-	import Card from '$lib/components/Card.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import Money from '$lib/components/Money.svelte';
@@ -36,7 +36,7 @@
 		/>
 	</p>
 
-	<Card flush>
+	<Card.Root class="gap-0 overflow-hidden py-0">
 		<dl class="facts">
 			<div class="kv">
 				<dt>Cuenta</dt>
@@ -55,7 +55,7 @@
 				<dd><span class="pill">{data.inactiveReason ?? 'Activo'}</span></dd>
 			</div>
 		</dl>
-	</Card>
+	</Card.Root>
 
 	{#if data.inactiveReason}
 		<p class="inactive">No se puede registrar.</p>
@@ -77,11 +77,11 @@
 
 	<div class="more">
 		<form method="POST" action="?/archive" use:enhance>
-			<Button type="submit" variant="secondary">{data.archived ? 'Reactivar' : 'Archivar'}</Button>
+			<Button type="submit" variant="outline">{data.archived ? 'Reactivar' : 'Archivar'}</Button>
 		</form>
 		<ConfirmDialog
 			triggerLabel="Eliminar"
-			triggerVariant="danger"
+			triggerVariant="destructive"
 			title="¿Eliminar este movimiento fijo?"
 			confirmLabel="Eliminar"
 			action="?/delete"

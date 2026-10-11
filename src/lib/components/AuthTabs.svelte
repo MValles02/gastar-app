@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Wordmark from '$lib/components/Wordmark.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
 
 	// Wordmark heading plus the Ingresar / Crear cuenta switch at the top of /login and /signup.
 	let { current }: { current: 'login' | 'signup' } = $props();
@@ -10,11 +12,21 @@
 	<Wordmark size="2.25rem" />
 </h1>
 
-<nav class="seg" aria-label="Acceso">
-	<a href={resolve('/login')} aria-current={current === 'login' ? 'page' : undefined}>Ingresar</a>
-	<a href={resolve('/signup')} aria-current={current === 'signup' ? 'page' : undefined}
-		>Crear cuenta</a
-	>
+<nav aria-label="Acceso">
+	<ButtonGroup.Root class="w-full">
+		<Button
+			href={resolve('/login')}
+			variant={current === 'login' ? 'default' : 'outline'}
+			class="flex-1"
+			aria-current={current === 'login' ? 'page' : undefined}>Ingresar</Button
+		>
+		<Button
+			href={resolve('/signup')}
+			variant={current === 'signup' ? 'default' : 'outline'}
+			class="flex-1"
+			aria-current={current === 'signup' ? 'page' : undefined}>Crear cuenta</Button
+		>
+	</ButtonGroup.Root>
 </nav>
 
 <style>
@@ -22,31 +34,5 @@
 		margin: 0;
 		font: inherit;
 		text-align: center;
-	}
-
-	.seg {
-		display: flex;
-		gap: 2px;
-		padding: 3px;
-		background: var(--muted);
-		border-radius: var(--radius);
-	}
-
-	.seg a {
-		flex: 1;
-		display: grid;
-		place-items: center;
-		min-height: var(--tap-target);
-		border-radius: calc(var(--radius) - 3px);
-		font-size: var(--font-size-sm);
-		font-weight: 500;
-		color: var(--text-muted);
-		text-decoration: none;
-	}
-
-	.seg a[aria-current='page'] {
-		background: var(--segment-selected);
-		color: var(--text);
-		box-shadow: var(--shadow-1);
 	}
 </style>

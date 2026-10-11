@@ -2,11 +2,11 @@
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import Card from '$lib/components/Card.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
+	import * as Card from '$lib/components/ui/card/index.js';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import Icon from '$lib/components/Icon.svelte';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { themeColors } from '$lib/theme';
 	import type { ActionData, PageData } from './$types';
@@ -60,24 +60,32 @@
 	</section>
 
 	<nav aria-label="Administrar">
-		<Card flush>
+		<Card.Root class="gap-0 overflow-hidden py-0">
 			<ul class="links">
 				<li>
-					<ListRow href={resolve('/accounts')}>
-						{#snippet leading()}<IconBadge icon="accounts" color={null} neutral />{/snippet}
-						{#snippet title()}Cuentas{/snippet}
-						{#snippet trailing()}<Icon name="chevron-right" size="1.25rem" />{/snippet}
-					</ListRow>
+					<Item.Root>
+						{#snippet child({ props })}
+							<a href={resolve('/accounts')} {...props}>
+								<Item.Media><IconBadge icon="accounts" color={null} neutral /></Item.Media>
+								<Item.Content><Item.Title>Cuentas</Item.Title></Item.Content>
+								<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
+							</a>
+						{/snippet}
+					</Item.Root>
 				</li>
 				<li>
-					<ListRow href={resolve('/categories')}>
-						{#snippet leading()}<IconBadge icon="categories" color={null} neutral />{/snippet}
-						{#snippet title()}Categorías{/snippet}
-						{#snippet trailing()}<Icon name="chevron-right" size="1.25rem" />{/snippet}
-					</ListRow>
+					<Item.Root>
+						{#snippet child({ props })}
+							<a href={resolve('/categories')} {...props}>
+								<Item.Media><IconBadge icon="categories" color={null} neutral /></Item.Media>
+								<Item.Content><Item.Title>Categorías</Item.Title></Item.Content>
+								<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
+							</a>
+						{/snippet}
+					</Item.Root>
 				</li>
 			</ul>
-		</Card>
+		</Card.Root>
 	</nav>
 
 	<section class="theme">
@@ -107,12 +115,12 @@
 				<p class="error" role="alert">{form.error}</p>
 			{/if}
 
-			<noscript><Button type="submit" variant="secondary">Guardar</Button></noscript>
+			<noscript><Button type="submit" variant="outline">Guardar</Button></noscript>
 		</form>
 	</section>
 
 	<form method="POST" action="/logout">
-		<Button type="submit" variant="secondary" block
+		<Button type="submit" variant="outline" class="w-full"
 			><Icon name="logout" size="1.25rem" />Cerrar sesión</Button
 		>
 	</form>
@@ -169,10 +177,6 @@
 		padding: 0;
 	}
 
-	.links li:last-child :global(.row) {
-		border-bottom: 0;
-	}
-
 	h2 {
 		font-size: var(--font-size-sm);
 		font-weight: 600;
@@ -187,10 +191,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
-	}
-
-	.theme-form :global(.btn) {
-		align-self: flex-start;
 	}
 
 	.error {
