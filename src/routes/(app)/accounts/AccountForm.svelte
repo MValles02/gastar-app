@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { groupedAmount } from '$lib/amount-input';
 	import { NAME_MAX_LENGTH } from '$lib/limits';
 	import { tick, untrack } from 'svelte';
 	import { enhance } from '$app/forms';
@@ -103,6 +104,7 @@
 					placeholder={currency === 'USD' ? '0,00' : '0'}
 					autocomplete="off"
 					bind:value={initialBalance}
+					{@attach groupedAmount}
 					aria-invalid={errors.initialBalance ? 'true' : undefined}
 					aria-describedby={errors.initialBalance ? 'balance-error' : undefined}
 				/>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { groupedAmount } from '$lib/amount-input';
 	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 	import type { Currency } from '$lib/money';
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
@@ -161,6 +162,7 @@
 				autocomplete="off"
 				autofocus
 				bind:value={amount}
+				{@attach groupedAmount}
 				aria-invalid={errors.amount ? 'true' : undefined}
 				aria-describedby={errors.amount ? 'amount-error' : undefined}
 			/>
@@ -239,6 +241,7 @@
 						placeholder="0"
 						autocomplete="off"
 						bind:value={rate}
+						{@attach groupedAmount}
 						aria-invalid={errors.exchangeRate ? 'true' : undefined}
 						aria-describedby={errors.exchangeRate ? 'rate-error' : undefined}
 					/>
