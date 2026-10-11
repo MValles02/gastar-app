@@ -33,8 +33,8 @@ SvelteKit 2 + TypeScript, Drizzle ORM + Postgres (`src/lib/server/db/schema.ts`)
 - All account/movement access checks go through one server-side ownership helper (e.g. `canAccessAccount`); no other code path checks ownership (`docs/DATA_MODEL.md`).
 - Migrations: generate with `pnpm db:generate` and commit the files; never hand-edit or edit an already-applied migration (`docs/WORKFLOW.md`).
 - Migrations and rollouts: deploys are start-first (the new container starts while the old one still serves, both on the same DB) and migrations run at container start, so every migration must be backward-compatible with the previous release. Expand/contract: add nullable/defaulted columns first; drop or rename only in a later release, once no running code uses them (`docs/WORKFLOW.md`).
-- Branches: `feat/`, `fix/`, `chore/` or `docs/` prefix; merge to `main` via PR, squash only; PR titles follow Conventional Commits (`docs/WORKFLOW.md`).
-- `main` auto-deploys on merge (`docs/WORKFLOW.md`).
+- Branches: `feat/`, `fix/`, `chore/` or `docs/` prefix; feature branches squash-merge into `develop` via PR; `develop` is promoted to `main` by a merge-commit PR (never squash); PR titles follow Conventional Commits (`docs/WORKFLOW.md`).
+- `develop` auto-deploys dev.gastar.app on merge; `main` auto-deploys production (web.gastar.app) on merge (`docs/WORKFLOW.md`).
 - Testing: unit tests are not required and are not kept in the repo; cover behavior with integration tests or Playwright E2E (`e2e/`).
 
 ## Commands
