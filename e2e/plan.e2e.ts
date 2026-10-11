@@ -140,7 +140,7 @@ test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
 		await open();
 		await page.getByRole('button', { name: 'Eliminar' }).click();
 		await expect(page.getByText('¿Eliminar este movimiento fijo?')).toBeVisible();
-		await page.getByRole('dialog').getByRole('button', { name: 'Eliminar' }).click();
+		await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(page.getByText(description)).toHaveCount(0);
 	} finally {
