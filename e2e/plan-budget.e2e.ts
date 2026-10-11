@@ -113,6 +113,36 @@ async function figures(page: Page) {
 	return out;
 }
 
+/**
+ * Re-saves the demo user's seeded ARS plan (scripts/seed.js: extra income 1.500.000, savings 150.000,
+ * Supermercado limit 300.000) through the wizard's save action, so a run interrupted mid-test
+ * cannot leave a modified plan behind. Logged in as the demo user.
+ */
+async function restoreDemoPlan(page: Page, baseURL: string) {
+	await setCurrencyCookie(page, baseURL, 'ARS');
+	await page.goto('/categories', { waitUntil: 'networkidle' });
+	const superId = await linkId(page.getByRole('link', { name: /Supermercado/ }).first());
+	await page.request.post('/plan/setup?/save', {
+		form: {
+			extraIncome: '1.500.000',
+			savingsOption: 'fixed',
+			savingsFixed: '150.000',
+			repeat: 'on',
+			[`limit_${superId}`]: '300.000'
+		},
+		headers: { origin: baseURL, accept: 'text/html' }
+	});
+}
+
+/** Deletes every category of the signed-in user named `name` (leftovers of an interrupted run). */
+async function deleteCategories(page: Page, baseURL: string, name: string) {
+	await page.goto('/categories', { waitUntil: 'networkidle' });
+	const paths = await page
+		.getByRole('link', { name: new RegExp(name) })
+		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).pathname));
+	for (const path of paths) await postDelete(page, baseURL, path);
+}
+
 /** Deletes the demo user's USD plan (the demo has none in the seed). */
 async function dropUsdPlan(page: Page, baseURL: string) {
 	await setCurrencyCookie(page, baseURL, 'USD');
@@ -126,7 +156,7 @@ test('a rejected save writes nothing: the plan, its limits and new rules roll ba
 }) => {
 	const { category } = await foreignIds(browser, baseURL!);
 	await login(page);
-	await setCurrencyCookie(page, baseURL!, 'USD');
+	await dropUsdPlan(page, baseURL!);
 	try {
 		await openSetup(page);
 
@@ -176,6 +206,7 @@ test("another user's category, plan and rule never leak or get written", async (
 }) => {
 	const { category, rule } = await foreignIds(browser, baseURL!);
 	await login(page);
+	await dropUsdPlan(page, baseURL!);
 
 	for (const currency of ['ARS', 'USD'] as const) {
 		await setCurrencyCookie(page, baseURL!, currency);
@@ -211,6 +242,7 @@ test("another user cannot attach a limit to the demo user's category", async ({
 	baseURL
 }) => {
 	await login(page);
+	await restoreDemoPlan(page, baseURL!);
 	await page.goto('/categories', { waitUntil: 'networkidle' });
 	const superId = await linkId(page.getByRole('link', { name: /Supermercado/ }).first());
 	const demoBefore = await figures(page);
@@ -245,7 +277,9 @@ test("another user cannot attach a limit to the demo user's category", async ({
 
 test('deleting a category removes its limit', async ({ page, baseURL }) => {
 	await login(page);
+	await restoreDemoPlan(page, baseURL!);
 	const name = 'Límite e2e';
+	await deleteCategories(page, baseURL!, name);
 	let categoryPath = '';
 	try {
 		await page.goto('/categories/new', { waitUntil: 'networkidle' });
@@ -286,6 +320,8 @@ test('a rule created after the wizard loaded stays active when the plan is saved
 }) => {
 	await login(page);
 	const description = 'Tardía e2e';
+	await restoreDemoPlan(page, baseURL!);
+	await deleteRules(page, baseURL!, description);
 	try {
 		await openSetup(page);
 
@@ -318,7 +354,7 @@ test('saving a USD plan shows the toast, accepts cents, and deleting it removes 
 	baseURL
 }) => {
 	await login(page);
-	await setCurrencyCookie(page, baseURL!, 'USD');
+	await dropUsdPlan(page, baseURL!);
 	try {
 		await openSetup(page);
 		await step(page, 1).getByLabel('Otros ingresos del mes (opcional)').fill('10,50');
@@ -352,8 +388,12 @@ test('invalid savings are rejected with a message', async ({ page }) => {
 	}
 });
 
-test('a limit on an archived category is rejected and nothing is written', async ({ page }) => {
+test('a limit on an archived category is rejected and nothing is written', async ({
+	page,
+	baseURL
+}) => {
 	await login(page);
+	await restoreDemoPlan(page, baseURL!);
 	await page.goto('/categories?archived=1', { waitUntil: 'networkidle' });
 	const archived = await linkId(page.getByRole('link', { name: /Gimnasio/ }).first());
 	await openSetup(page);
@@ -386,9 +426,11 @@ test.describe('without JavaScript', () => {
 });
 
 test('Disponible = Ingresos - Pagos fijos - Ahorro - Gastado on one page load', async ({
-	page
+	page,
+	baseURL
 }) => {
 	await login(page);
+	await restoreDemoPlan(page, baseURL!);
 	// Specs running in parallel add and remove ARS rules and movements, so nothing here relies on an
 	// exact global total: every check is made on the figures of a single page load.
 	await expect(async () => {
