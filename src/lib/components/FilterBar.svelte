@@ -21,7 +21,7 @@
 		label?: string;
 		hidden?: Record<string, string>;
 		trailing?: Snippet;
-		children?: Snippet;
+		children?: Snippet<[() => void]>;
 	} = $props();
 
 	let form: HTMLFormElement;
@@ -31,17 +31,8 @@
 	const onformdata = (e: FormDataEvent) => {
 		for (const [k, v] of [...e.formData]) if (v === '') e.formData.delete(k);
 	};
-	const submit = () => form.requestSubmit();
-	// Bits checkboxes and radios are buttons: they fire no native `change`, so submit after their click.
-	const onclick = (e: MouseEvent) => {
-		if ((e.target as Element).closest('[role="checkbox"], [role="radio"]')) tick().then(submit);
-	};
-	// Radios also select from the keyboard (Space, arrows) without a click.
-	const onkeyup = (e: KeyboardEvent) => {
-		if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
-			if ((e.target as Element).closest('[role="radio"]')) tick().then(submit);
-		}
-	};
+	// Handed to the children snippet: Bits radios and checkboxes fire no native change event, so they call it from their value callbacks.
+	const submit = () => tick().then(() => form.requestSubmit());
 	const debounced = () => {
 		clearTimeout(timer);
 		timer = setTimeout(submit, 300);
@@ -54,8 +45,6 @@
 	data-sveltekit-replacestate
 	bind:this={form}
 	onchange={submit}
-	{onclick}
-	{onkeyup}
 	{onformdata}
 >
 	{#each Object.entries(hidden) as [k, v] (k)}
@@ -77,7 +66,7 @@
 		</InputGroup.Root>
 		{#if trailing}{@render trailing()}{/if}
 	</div>
-	{#if children}{@render children()}{/if}
+	{#if children}{@render children(submit)}{/if}
 	<noscript><Button type="submit">Filtrar</Button></noscript>
 </form>
 

@@ -38,10 +38,18 @@
 		</div>
 	{:else}
 		<FilterBar q={data.filters.q} label="Buscar categorías" placeholder="Buscar categorías">
-			<Field.Field orientation="horizontal" class="min-h-11 w-auto">
-				<Checkbox id="archived" name="archived" value="1" bind:checked={archived} />
-				<Field.Label for="archived">Mostrar archivadas</Field.Label>
-			</Field.Field>
+			{#snippet children(submit)}
+				<Field.Field orientation="horizontal" class="min-h-11 w-auto">
+					<Checkbox
+						id="archived"
+						name="archived"
+						value="1"
+						bind:checked={archived}
+						onCheckedChange={submit}
+					/>
+					<Field.Label for="archived">Mostrar archivadas</Field.Label>
+				</Field.Field>
+			{/snippet}
 		</FilterBar>
 
 		{#if data.categories.length === 0}

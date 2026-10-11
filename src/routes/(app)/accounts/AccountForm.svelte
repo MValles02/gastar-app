@@ -76,7 +76,7 @@
 
 		<li class:bad={errors.currency}>
 			<div class="row">
-				<span id="currency-label" class="k">Moneda</span>
+				<Field.Label id="currency-label">Moneda</Field.Label>
 				<div class="seg">
 					<SegmentedControl
 						name="currency"

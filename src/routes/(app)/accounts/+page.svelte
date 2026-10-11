@@ -46,17 +46,26 @@
 		</div>
 	{:else}
 		<FilterBar q={data.filters.q} label="Buscar cuentas" placeholder="Buscar cuentas">
-			<span id="currency-label" class="visually-hidden">Moneda</span>
-			<SegmentedControl
-				name="currency"
-				options={currencyOptions}
-				bind:value={currency}
-				labelledby="currency-label"
-			/>
-			<Field.Field orientation="horizontal" class="min-h-11 w-auto">
-				<Checkbox id="archived" name="archived" value="1" bind:checked={archived} />
-				<Field.Label for="archived">Mostrar archivadas</Field.Label>
-			</Field.Field>
+			{#snippet children(submit)}
+				<span id="currency-label" class="visually-hidden">Moneda</span>
+				<SegmentedControl
+					name="currency"
+					options={currencyOptions}
+					bind:value={currency}
+					labelledby="currency-label"
+					onchange={submit}
+				/>
+				<Field.Field orientation="horizontal" class="min-h-11 w-auto">
+					<Checkbox
+						id="archived"
+						name="archived"
+						value="1"
+						bind:checked={archived}
+						onCheckedChange={submit}
+					/>
+					<Field.Label for="archived">Mostrar archivadas</Field.Label>
+				</Field.Field>
+			{/snippet}
 		</FilterBar>
 
 		{#if data.groups.length === 0}

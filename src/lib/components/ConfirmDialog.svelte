@@ -49,7 +49,7 @@
 					}}
 			>
 				<AlertDialog.Footer>
-					<AlertDialog.Cancel>Cancelar</AlertDialog.Cancel>
+					<AlertDialog.Cancel type="button">Cancelar</AlertDialog.Cancel>
 					<AlertDialog.Action type="submit">{confirmLabel}</AlertDialog.Action>
 				</AlertDialog.Footer>
 			</form>

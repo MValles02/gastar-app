@@ -58,6 +58,10 @@
 		border: 0 solid var(--border);
 	}
 
+	a[data-slot] {
+		text-decoration: none;
+	}
+
 	:is(button, input, select, textarea)[data-slot] {
 		font: inherit;
 		color: inherit;

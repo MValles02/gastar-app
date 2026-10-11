@@ -90,7 +90,14 @@
 <PageHeader title="Movimientos" />
 
 {#snippet fields()}
-	<SegmentedControl name="type" options={typeOptions} bind:value={type} />
+	<span id="type-label" class="visually-hidden">Tipo</span>
+	<SegmentedControl
+		name="type"
+		options={typeOptions}
+		bind:value={type}
+		labelledby="type-label"
+		onchange={() => drawerForm?.requestSubmit()}
+	/>
 	<div class="group">
 		<OptionPicker
 			name="account"
@@ -140,19 +147,22 @@
 				{#if filterCount > 0}<Badge>{filterCount}</Badge>{/if}
 			</Button>
 		{/snippet}
-		<span id="currency-label" class="visually-hidden">Moneda</span>
-		<SegmentedControl
-			name="currency"
-			options={currencyOptions}
-			bind:value={currency}
-			labelledby="currency-label"
-			disabled={data.lockedCurrency !== null}
-		/>
-		{#if data.lockedCurrency !== null}
-			<p class="lock">
-				<Lock size={14} strokeWidth={1.75} aria-hidden="true" />Moneda de la cuenta
-			</p>
-		{/if}
+		{#snippet children(submit)}
+			<span id="currency-label" class="visually-hidden">Moneda</span>
+			<SegmentedControl
+				name="currency"
+				options={currencyOptions}
+				bind:value={currency}
+				labelledby="currency-label"
+				disabled={data.lockedCurrency !== null}
+				onchange={submit}
+			/>
+			{#if data.lockedCurrency !== null}
+				<p class="lock">
+					<Lock size={14} strokeWidth={1.75} aria-hidden="true" />Moneda de la cuenta
+				</p>
+			{/if}
+		{/snippet}
 	</FilterBar>
 
 	<noscript>

@@ -30,3 +30,22 @@ test('keyboard selection on the accounts currency control submits the filter', a
 	await page.keyboard.press('Space');
 	await expect(page).toHaveURL(/currency=/);
 });
+
+test('the movements drawer type control applies the filter', async ({ page }) => {
+	await page.goto('/movements', { waitUntil: 'networkidle' });
+	await page.getByRole('button', { name: 'Filtros' }).click();
+	await page.getByRole('dialog').getByText('Ingresos', { exact: true }).click();
+	await expect(page).toHaveURL(/type=income/);
+});
+
+test('arrow + space on a segmented control navigates once', async ({ page }) => {
+	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	let navs = 0;
+	page.on('framenavigated', () => navs++);
+	await page.locator('[role="radio"][aria-checked="true"]').focus();
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.press('Space');
+	await expect(page).toHaveURL(/currency=/);
+	await page.waitForTimeout(800);
+	expect(navs).toBe(1);
+});

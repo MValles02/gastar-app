@@ -20,7 +20,7 @@
 </script>
 
 <div class="flex flex-col gap-2">
-	<span id="{name}-legend" class="text-muted-foreground text-sm">{legend}</span>
+	<span id="{name}-legend" class="text-sm leading-none font-medium select-none">{legend}</span>
 	<RadioGroup.Root
 		{name}
 		bind:value

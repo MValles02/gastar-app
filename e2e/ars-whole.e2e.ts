@@ -209,3 +209,30 @@ test('account form initial balance placeholder follows the currency', async ({ p
 	await page.getByRole('radio', { name: 'USD' }).check({ force: true });
 	await expect(balance).toHaveAttribute('placeholder', '0,00');
 });
+
+test('Cancelar in the delete confirm closes it and keeps the movement', async ({ page }) => {
+	const desc = unique('Cancelar borrar');
+	await fillMovement(page, {
+		type: 'Gasto',
+		amount: '100',
+		date: '2024-02-29',
+		description: desc,
+		account: 'Otra cuenta pesos',
+		category: 'Ajena'
+	});
+	await save(page);
+	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
+	await openDetail(page, desc);
+	const detail = page.url();
+
+	await page.getByRole('button', { name: 'Eliminar' }).click();
+	await page.getByRole('button', { name: 'Cancelar' }).click();
+	await expect(page.getByRole('alertdialog')).toBeHidden();
+	await page.waitForTimeout(500);
+	await page.goto(detail);
+	await expect(page.getByText(desc).first()).toBeVisible();
+
+	await page.getByRole('button', { name: 'Eliminar' }).click();
+	await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
+	await expect(page).toHaveURL(/\/movements$/);
+});
