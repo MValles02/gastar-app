@@ -76,6 +76,8 @@ const MSG = {
 	}
 };
 
+export const kindMismatchMessage = (kind: 'income' | 'outcome') => MSG.kindMismatch[kind];
+
 const TYPES: MovementType[] = ['income', 'outcome', 'transfer'];
 
 export function parseMovementForm(fd: FormData): MovementFormResult {
