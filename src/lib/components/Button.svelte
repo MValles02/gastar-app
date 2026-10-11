@@ -15,11 +15,11 @@
 
 {#if href}
 	<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass an already resolved href -->
-	<a {href} class="btn {variant}" class:block {...rest as HTMLAnchorAttributes}>
+	<a {href} class="btn {variant}" class:full={block} {...rest as HTMLAnchorAttributes}>
 		{@render children()}
 	</a>
 {:else}
-	<button class="btn {variant}" class:block {...rest as HTMLButtonAttributes}>
+	<button class="btn {variant}" class:full={block} {...rest as HTMLButtonAttributes}>
 		{@render children()}
 	</button>
 {/if}
@@ -76,7 +76,7 @@
 		background: var(--muted);
 	}
 
-	.block {
+	.full {
 		width: 100%;
 	}
 

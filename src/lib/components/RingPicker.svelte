@@ -23,7 +23,7 @@
 		{#each options as option (option.key)}
 			<label class="option">
 				<input class="visually-hidden" type="radio" {name} value={option.key} bind:group={value} />
-				<span class="ring">{@render swatch(option.key)}</span>
+				<span class="swatch-ring">{@render swatch(option.key)}</span>
 				<span class="visually-hidden">{option.label}</span>
 			</label>
 		{/each}
@@ -56,20 +56,20 @@
 		cursor: pointer;
 	}
 
-	.ring {
+	.swatch-ring {
 		display: block;
 		border-radius: var(--radius-pill);
 		outline: 2px solid transparent;
 		outline-offset: 2px;
 	}
 
-	.option:has(input:checked) .ring {
+	.option:has(input:checked) .swatch-ring {
 		box-shadow:
 			0 0 0 2px var(--surface),
 			0 0 0 4px var(--text);
 	}
 
-	.option:has(input:focus-visible) .ring {
+	.option:has(input:focus-visible) .swatch-ring {
 		outline-color: var(--primary);
 		outline-offset: 4px;
 	}

@@ -201,7 +201,7 @@
 	</ul>
 	<p id="rday-hint" class="hint after">Si el mes es más corto, vence el último día.</p>
 
-	<div class="bar" class:sticky={!inline}>
+	<div class="bar" class:is-sticky={!inline}>
 		<Button type="submit" block>{submitLabel}</Button>
 	</div>
 	<div class="cancel">
@@ -360,7 +360,7 @@
 	}
 
 	/* Sticky save bar: full-bleed, pinned to the bottom of the viewport (no tab bar on this screen). */
-	.bar.sticky {
+	.bar.is-sticky {
 		position: sticky;
 		bottom: 0;
 		z-index: 2;

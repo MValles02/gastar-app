@@ -2,13 +2,15 @@
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities) source(none);
 @import 'tw-animate-css';
-@source "./lib/components/ui";
+@source "./lib";
+@source "./routes";
 
 /*
- * Tailwind is used only inside shadcn components; no preflight, the rules below stay unlayered.
- * source(none) disables auto-detection: it scanned every file and emitted utilities that collide
- * with app classes (e.g. .ring in IconPicker/ColorPicker). The @source line re-enables scanning
- * for the shadcn components only, so just the utilities they use are generated.
+ * Tailwind is used by shadcn components; no full preflight. Element rules live in @layer base
+ * (button/input/select/label skip [data-slot] elements); global class rules stay unlayered.
+ * source(none) disables auto-detection; the @source lines scan src/lib and src/routes only.
+ * Hand-written classes must not reuse Tailwind utility names (e.g. ring, block, sticky), or
+ * utility CSS gets generated for them.
  */
 @custom-variant dark {
 	&:where([data-theme='dark'], [data-theme='dark'] *, .dark, .dark *) {
@@ -50,42 +52,139 @@
 	--radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Reset-lite */
-*,
-*::before,
-*::after {
-	box-sizing: border-box;
-}
-
-* {
-	margin: 0;
-}
-
-html {
-	-webkit-text-size-adjust: 100%;
-	/* Keeps focused/anchored elements clear of the floating tab bar. */
-	scroll-padding-bottom: var(--tabbar-clearance);
-}
-
-/* Keeps focused/anchored elements clear of the sticky top bar (sticky only under the same query). */
-@media (min-height: 40em) {
-	html {
-		scroll-padding-top: 9.5rem;
+@layer base {
+	/* Scoped preflight for generated shadcn parts only. */
+	[data-slot] {
+		border: 0 solid var(--border);
 	}
-}
 
-body {
-	min-height: 100vh;
-	min-height: 100dvh;
-	line-height: 1.5;
-	-webkit-font-smoothing: antialiased;
-}
+	:is(button, input, select, textarea)[data-slot] {
+		font: inherit;
+		color: inherit;
+		background: transparent;
+		padding: 0;
+	}
 
-img,
-picture,
-svg {
-	display: block;
-	max-width: 100%;
+	/* Reset-lite */
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+
+	* {
+		margin: 0;
+	}
+
+	html {
+		-webkit-text-size-adjust: 100%;
+		/* Keeps focused/anchored elements clear of the floating tab bar. */
+		scroll-padding-bottom: var(--tabbar-clearance);
+	}
+
+	/* Keeps focused/anchored elements clear of the sticky top bar (sticky only under the same query). */
+	@media (min-height: 40em) {
+		html {
+			scroll-padding-top: 9.5rem;
+		}
+	}
+
+	body {
+		min-height: 100vh;
+		min-height: 100dvh;
+		line-height: 1.5;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	img,
+	picture,
+	svg {
+		display: block;
+		max-width: 100%;
+	}
+
+	body {
+		background: var(--bg);
+		color: var(--text);
+		font-family: var(--font-body);
+		font-weight: 400;
+	}
+
+	h1,
+	h2,
+	h3 {
+		font-weight: 600;
+		line-height: 1.2;
+		letter-spacing: -0.01em;
+	}
+
+	a {
+		color: inherit;
+	}
+
+	/* Buttons */
+	button:not([data-slot]) {
+		font-family: inherit;
+		font-size: var(--font-size-base);
+		font-weight: 500;
+		border-radius: var(--radius);
+		border: 1px solid transparent;
+		padding: var(--space-2) var(--space-4);
+		min-height: var(--tap-target);
+		background: var(--primary);
+		color: var(--on-primary);
+		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-2);
+		transition:
+			opacity var(--ease-fast),
+			background-color var(--ease-fast);
+	}
+
+	button:not([data-slot]):hover {
+		opacity: 0.9;
+	}
+
+	button:not([data-slot]):disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	/* Form controls */
+	input:not([type='radio'], [type='checkbox'], [data-slot]),
+	select:not([data-slot]) {
+		font-family: inherit;
+		font-size: var(--font-size-base);
+		color: var(--text);
+		background: var(--surface);
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius);
+		padding: var(--space-2) var(--space-3);
+		width: 100%;
+		min-height: var(--tap-target);
+	}
+
+	input:not([type='radio'], [type='checkbox'], [data-slot]):focus-visible,
+	select:not([data-slot]):focus-visible {
+		border-color: var(--primary);
+		outline: 2px solid var(--primary);
+		outline-offset: 1px;
+	}
+
+	label:not([data-slot]) {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+		font-size: var(--font-size-sm);
+		color: var(--text-muted);
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: 2px;
+	}
 }
 
 /* Colour tokens are light-dark(light, dark); color-scheme in :root / [data-theme] picks the side. */
@@ -188,25 +287,6 @@ svg {
 	color-scheme: dark;
 }
 
-body {
-	background: var(--bg);
-	color: var(--text);
-	font-family: var(--font-body);
-	font-weight: 400;
-}
-
-h1,
-h2,
-h3 {
-	font-weight: 600;
-	line-height: 1.2;
-	letter-spacing: -0.01em;
-}
-
-a {
-	color: inherit;
-}
-
 .amount {
 	font-variant-numeric: tabular-nums;
 }
@@ -221,70 +301,6 @@ a {
 	clip-path: inset(50%);
 	white-space: nowrap;
 	border: 0;
-}
-
-/* Buttons */
-button {
-	font-family: inherit;
-	font-size: var(--font-size-base);
-	font-weight: 500;
-	border-radius: var(--radius);
-	border: 1px solid transparent;
-	padding: var(--space-2) var(--space-4);
-	min-height: var(--tap-target);
-	background: var(--primary);
-	color: var(--on-primary);
-	cursor: pointer;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: var(--space-2);
-	transition:
-		opacity var(--ease-fast),
-		background-color var(--ease-fast);
-}
-
-button:hover {
-	opacity: 0.9;
-}
-
-button:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-}
-
-/* Form controls */
-input:not([type='radio'], [type='checkbox']),
-select {
-	font-family: inherit;
-	font-size: var(--font-size-base);
-	color: var(--text);
-	background: var(--surface);
-	border: 1px solid var(--border-strong);
-	border-radius: var(--radius);
-	padding: var(--space-2) var(--space-3);
-	width: 100%;
-	min-height: var(--tap-target);
-}
-
-input:not([type='radio'], [type='checkbox']):focus-visible,
-select:focus-visible {
-	border-color: var(--primary);
-	outline: 2px solid var(--primary);
-	outline-offset: 1px;
-}
-
-label {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-1);
-	font-size: var(--font-size-sm);
-	color: var(--text-muted);
-}
-
-:focus-visible {
-	outline: 2px solid var(--primary);
-	outline-offset: 2px;
 }
 
 /* Shared list container: a surface card holding a <ul> of ListRow items. */
