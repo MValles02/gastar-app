@@ -63,9 +63,11 @@
 				<a class="clear" href={resolve('/categories')}>Limpiar filtros</a>
 			</div>
 		{:else}
-			<ul class="list-card">
+			<Item.Group
+				class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+			>
 				{#each data.categories as c (c.id)}
-					<li class:archived={c.archivedAt}>
+					<div role="listitem" class:archived={c.archivedAt}>
 						<Item.Root>
 							{#snippet child({ props })}
 								<a href={resolve(`/categories/${c.id}`)} {...props}>
@@ -82,12 +84,14 @@
 								</a>
 							{/snippet}
 						</Item.Root>
-					</li>
+					</div>
 				{/each}
-			</ul>
+			</Item.Group>
 		{/if}
-		<ul class="list-card">
-			<li>
+		<Item.Group
+			class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+		>
+			<div role="listitem">
 				<Item.Root>
 					{#snippet child({ props })}
 						<a href={resolve('/categories/new')} {...props}>
@@ -96,8 +100,8 @@
 						</a>
 					{/snippet}
 				</Item.Root>
-			</li>
-		</ul>
+			</div>
+		</Item.Group>
 	{/if}
 </div>
 

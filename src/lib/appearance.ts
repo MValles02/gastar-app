@@ -30,3 +30,6 @@ export const toIconKey = (s: string | null): AccountIconKey =>
 	ACCOUNT_ICONS.some((i) => i.key === s) ? (s as AccountIconKey) : 'wallet';
 export const toSwatchKey = (s: string | null): SwatchKey | null =>
 	SWATCHES.some((w) => w.key === s) ? (s as SwatchKey) : null;
+/** CSS colour for a category/account swatch; no colour falls back to the primary tone app-wide. */
+export const swatchVar = (c: string | null | undefined) =>
+	c ? `var(--swatch-${c})` : 'var(--primary)';

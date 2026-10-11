@@ -3,6 +3,7 @@ import { toIconKey, toSwatchKey } from '$lib/appearance';
 import { getAccount, listAccounts } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
 import { ARS_WHOLE_MESSAGE, isWholeFor } from '$lib/money';
+import { kindMismatchMessage } from '$lib/server/movements';
 import { parseRecurringForm } from '$lib/server/plan';
 
 /** Active accounts and categories for the pickers. */
@@ -49,14 +50,11 @@ export async function readRecurringForm(
 	if (!category || (category.archivedAt && category.id !== current?.categoryId))
 		errors.categoryId = 'Elegí una categoría activa.';
 	else if (
-		category.kind &&
+		(category.kind === 'income' || category.kind === 'outcome') &&
 		category.kind !== parsed.data.type &&
 		category.id !== current?.categoryId
 	)
-		errors.categoryId =
-			parsed.data.type === 'income'
-				? 'Elegí una categoría de ingresos.'
-				: 'Elegí una categoría de gastos.';
+		errors.categoryId = kindMismatchMessage(category.kind);
 	if (Object.keys(errors).length > 0)
 		return { failure: fail(400, { values: parsed.values, errors }) };
 	return { data: parsed.data };

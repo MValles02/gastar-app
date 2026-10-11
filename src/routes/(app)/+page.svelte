@@ -15,6 +15,8 @@
 	import MovementRow from '$lib/components/MovementRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { formatMoney } from '$lib/money';
+	import * as Item from '$lib/components/ui/item/index.js';
+	import { swatchVar } from '$lib/appearance';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -128,10 +130,7 @@
 						<Card.Content>
 							<ul class="list">
 								{#each data.topCategories as cat (cat.id)}
-									<li
-										class="cat"
-										style:--tone={cat.color ? `var(--swatch-${cat.color})` : 'var(--text)'}
-									>
+									<li class="cat" style:--tone={swatchVar(cat.color)}>
 										<div class="cat-row">
 											<span class="dot" aria-hidden="true"></span>
 											<span class="ellipsis">{cat.name}</span>
@@ -161,9 +160,11 @@
 						<Card.Content><p class="muted inline-empty">Sin movimientos</p></Card.Content>
 					</Card.Root>
 				{:else}
-					<ul class="list-card">
+					<Item.Group
+						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+					>
 						{#each data.recent as m (m.id)}
-							<li>
+							<div role="listitem">
 								<MovementRow
 									m={{
 										...m,
@@ -174,9 +175,9 @@
 										}${m.categoryName ? ` · ${m.categoryName}` : ''}`
 									}}
 								/>
-							</li>
+							</div>
 						{/each}
-					</ul>
+					</Item.Group>
 				{/if}
 			</section>
 		{/if}

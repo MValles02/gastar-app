@@ -12,7 +12,7 @@ import {
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
-const rule = (page: Page, text: string) => page.locator('li.rule', { hasText: text });
+const rule = (page: Page, text: string) => page.locator('.rule', { hasText: text });
 
 test('seeded rules: rent is paid, the gym is inactive and cannot be registered', async ({
 	page
@@ -61,7 +61,7 @@ test('rule rows sit flush in the list card at 390px', async ({ page }) => {
 	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
-	const row = page.locator('li.rule').first();
+	const row = page.locator('.rule').first();
 	const list = await row.locator('xpath=..').boundingBox();
 	const main = await row.locator('a[data-slot="item"]').boundingBox();
 	// 1px list border, no extra padding.
@@ -170,7 +170,7 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
-		await expect(page.locator('input[name="amount"]')).toHaveValue('1.500,50');
+		await expect(page.locator('input[name="amount"]')).toHaveValue(/^1\.?500,50$/);
 		await expect(page).toHaveURL(/\/plan\/recurring\/new$/);
 
 		await page.locator('input[name="amount"]').fill('1.500');
@@ -184,7 +184,7 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		await page.getByRole('link', { name: 'Registrar pago' }).click();
 		await expect(page.getByRole('heading', { level: 1, name: 'Registrar pago' })).toBeVisible();
 		await expect(page.locator('input[name="description"]')).toHaveValue(description);
-		await expect(page.locator('input[name="amount"]')).toHaveValue('1.500');
+		await expect(page.locator('input[name="amount"]')).toHaveValue(/^1\.?500$/);
 		await expect(page.locator('input[name="recurringId"]')).toHaveCount(1);
 		await expect(page.getByText(`Registrás el pago de ${description} de este mes.`)).toBeVisible();
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();

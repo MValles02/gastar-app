@@ -16,7 +16,8 @@ test.describe.configure({ timeout: 60_000 });
 
 const bell = (page: Page) => page.locator('header.top-bar a[aria-label^="Avisos"]');
 const pesos = (page: Page) => page.getByRole('region', { name: 'Pesos' });
-const alertRow = (page: Page, text: string) => pesos(page).locator('li', { hasText: text });
+const alertRow = (page: Page, text: string) =>
+	pesos(page).locator('[role="listitem"]', { hasText: text });
 
 test('a payment due today alerts until it is registered', async ({ page, baseURL }) => {
 	await login(page, OTHER_EMAIL);

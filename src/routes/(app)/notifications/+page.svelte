@@ -32,9 +32,11 @@
 		{#each data.groups as g (g.currency)}
 			<section class="group" aria-labelledby="alerts-{g.currency}">
 				<h2 id="alerts-{g.currency}">{currencyName[g.currency]}</h2>
-				<ul class="list-card">
+				<Item.Group
+					class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+				>
 					{#each g.items as n (n.id)}
-						<li>
+						<div role="listitem">
 							{#snippet row()}
 								<Item.Media>
 									<span
@@ -88,9 +90,9 @@
 									</Item.Root>
 								</form>
 							{/if}
-						</li>
+						</div>
 					{/each}
-				</ul>
+				</Item.Group>
 			</section>
 		{/each}
 	{/if}

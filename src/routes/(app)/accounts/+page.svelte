@@ -86,9 +86,11 @@
 						<h2 id="group-{g.currency}">{g.label}</h2>
 						<span class="group-total"><Money cents={g.total} currency={g.currency} /></span>
 					</div>
-					<ul class="list-card">
+					<Item.Group
+						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+					>
 						{#each g.accounts as a (a.id)}
-							<li class:archived={a.archivedAt}>
+							<div role="listitem" class:archived={a.archivedAt}>
 								<Item.Root>
 									{#snippet child({ props })}
 										<a href={resolve(`/accounts/${a.id}`)} {...props}>
@@ -109,14 +111,16 @@
 										</a>
 									{/snippet}
 								</Item.Root>
-							</li>
+							</div>
 						{/each}
-					</ul>
+					</Item.Group>
 				</section>
 			{/each}
 		{/if}
-		<ul class="list-card">
-			<li>
+		<Item.Group
+			class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+		>
+			<div role="listitem">
 				<Item.Root>
 					{#snippet child({ props })}
 						<a href={resolve('/accounts/new')} {...props}>
@@ -125,8 +129,8 @@
 						</a>
 					{/snippet}
 				</Item.Root>
-			</li>
-		</ul>
+			</div>
+		</Item.Group>
 	{/if}
 </div>
 

@@ -78,7 +78,7 @@ test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
 	await page.goto('/movements?currency=USD', { waitUntil: 'networkidle' });
 	await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
 	await expect(page.getByText('US$').first()).toBeVisible();
-	await expect(page.locator('.list-card').getByText(/^[-+]?\$/)).toHaveCount(0);
+	await expect(page.locator('[data-slot="item-group"]').getByText(/^[-+]?\$/)).toHaveCount(0);
 
 	await page.goto('/movements?currency=ARS', { waitUntil: 'networkidle' });
 	await expect(page.getByText('$').first()).toBeVisible();
