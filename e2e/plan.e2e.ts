@@ -12,7 +12,7 @@ import {
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
-const rule = (page: Page, text: string) => page.locator('li.rule', { hasText: text });
+const rule = (page: Page, text: string) => page.locator('.rule', { hasText: text });
 
 test('seeded rules: rent is paid, the gym is inactive and cannot be registered', async ({
 	page
@@ -61,7 +61,7 @@ test('rule rows sit flush in the list card at 390px', async ({ page }) => {
 	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
-	const row = page.locator('li.rule').first();
+	const row = page.locator('.rule').first();
 	const list = await row.locator('xpath=..').boundingBox();
 	const main = await row.locator('a[data-slot="item"]').boundingBox();
 	// 1px list border, no extra padding.

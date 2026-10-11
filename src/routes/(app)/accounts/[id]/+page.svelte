@@ -39,7 +39,7 @@
 		</Card.Root>
 	</section>
 
-	<dl class="list-card data">
+	<dl class="detail-card data">
 		<div class="item">
 			<dt>Moneda</dt>
 			<dd>{a.currency}</dd>
@@ -61,8 +61,10 @@
 		</div>
 	</dl>
 
-	<ul class="list-card">
-		<li>
+	<Item.Group
+		class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+	>
+		<div role="listitem">
 			<Item.Root>
 				{#snippet child({ props })}
 					<a href={resolve(`/movements?account=${a.id}`)} {...props}>
@@ -71,8 +73,8 @@
 					</a>
 				{/snippet}
 			</Item.Root>
-		</li>
-	</ul>
+		</div>
+	</Item.Group>
 
 	{#if form?.error}
 		<p class="error" role="alert"><Icon name="alert" size="1rem" />{form.error}</p>

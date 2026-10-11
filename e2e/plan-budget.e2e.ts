@@ -107,7 +107,7 @@ async function figures(page: Page) {
 	// Same page load: the amounts of the active "Pagos fijos" rule rows, which Pagos fijos must equal.
 	const rows = await page
 		.getByRole('region', { name: 'Pagos fijos' })
-		.locator('li.rule .amount-col')
+		.locator('.rule .amount-col')
 		.allInnerTexts();
 	out['Reglas'] = rows.reduce((a, v) => a + Number(v.replace(/\D/g, '')), 0);
 	return out;
@@ -306,7 +306,7 @@ test('a rule created after the wizard loaded stays active when the plan is saved
 		await toStep(page, 4);
 		await savePlan(page);
 		await expect(page.getByText('Plan guardado.')).toBeVisible();
-		await expect(page.locator('li.rule', { hasText: description })).toBeVisible();
+		await expect(page.locator('.rule', { hasText: description })).toBeVisible();
 		await expect(page.getByRole('region', { name: 'Inactivos' })).not.toContainText(description);
 	} finally {
 		await deleteRules(page, baseURL!, description);
@@ -399,7 +399,7 @@ test('Disponible = Ingresos - Pagos fijos - Ahorro - Gastado on one page load', 
 		expect(g['Pagos fijos']).toBe(g['Reglas']);
 		expect(g['Disponible']).toBe(g['Ingresos'] - g['Pagos fijos'] - g['Ahorro'] - g['Gastado']);
 	}).toPass({ timeout: 30_000 });
-	await expect(page.locator('li.rule', { hasText: 'Alquiler' })).toContainText('380.000');
+	await expect(page.locator('.rule', { hasText: 'Alquiler' })).toContainText('380.000');
 });
 
 // The tests that create movements run as `otro`: no other spec reads its data, so they cannot
