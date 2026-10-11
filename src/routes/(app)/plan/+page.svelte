@@ -9,7 +9,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import Card from '$lib/components/Card.svelte';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -73,7 +73,7 @@
 			{@const s = data.plan.summary}
 			{@const Status = statusIcon[s.status]}
 			<section class="summary" aria-labelledby="summary-heading">
-				<Card flush>
+				<Card.Root class="gap-0 overflow-hidden py-0">
 					<div class="box">
 						<div class="top">
 							<h2 id="summary-heading" class="eyebrow">Disponible · {data.plan.monthName}</h2>
@@ -118,7 +118,7 @@
 						Editar plan
 						<Icon name="chevron-right" size="1.25rem" />
 					</a>
-				</Card>
+				</Card.Root>
 			</section>
 
 			{#if s.limits.length}
@@ -162,18 +162,21 @@
 				</section>
 			{/if}
 		{:else}
-			<Card>
-				<div class="no-plan">
-					{#if data.plan.endedMonthName}
-						<p class="strong">Tu plan de {data.plan.endedMonthName} terminó.</p>
-					{/if}
-					<p class="strong">Todavía no tenés un plan en {CURRENCY_NAME[data.currency]}.</p>
-					<p class="muted">
-						Sumá tus ingresos, restá pagos fijos y ahorro, y te decimos cuánto podés gastar por día.
-					</p>
-					<Button href={resolve('/plan/setup')}>Crear plan</Button>
-				</div>
-			</Card>
+			<Card.Root>
+				<Card.Content>
+					<div class="no-plan">
+						{#if data.plan.endedMonthName}
+							<p class="strong">Tu plan de {data.plan.endedMonthName} terminó.</p>
+						{/if}
+						<p class="strong">Todavía no tenés un plan en {CURRENCY_NAME[data.currency]}.</p>
+						<p class="muted">
+							Sumá tus ingresos, restá pagos fijos y ahorro, y te decimos cuánto podés gastar por
+							día.
+						</p>
+						<Button href={resolve('/plan/setup')}>Crear plan</Button>
+					</div>
+				</Card.Content>
+			</Card.Root>
 		{/if}
 
 		{#if !data.incomes.length && !data.outcomes.length && !data.inactive.length}

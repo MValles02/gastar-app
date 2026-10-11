@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import Card from '$lib/components/Card.svelte';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -51,7 +51,7 @@
 	{:else}
 		{@const max = Math.max(1, ...data.bars.flatMap((b) => [b.income, b.outcome]))}
 		<section aria-label="Totales del mes">
-			<Card flush>
+			<Card.Root class="gap-0 overflow-hidden py-0">
 				<dl class="totals">
 					<div class="box">
 						<dt class="eyebrow">Resultado</dt>
@@ -71,44 +71,46 @@
 						<dd class="am"><Money cents={neg(data.outcome)} currency={data.currency} /></dd>
 					</div>
 				</dl>
-			</Card>
+			</Card.Root>
 		</section>
 
 		<section aria-labelledby="flow-heading">
 			<h2 id="flow-heading">6 meses</h2>
-			<Card>
-				<ul class="bars">
-					{#each data.bars as b (b.ym)}
-						<li class:current={b.ym === data.nav.ym}>
-							<a
-								href={resolve(`/reports?month=${b.ym}`)}
-								aria-current={b.ym === data.nav.ym ? 'true' : undefined}
-								aria-label="{b.name}: ingresos {money(b.income)}, gastos {money(b.outcome)}"
-							>
-								<span class="cols" aria-hidden="true">
-									<span class="bar in" style:height="{(b.income / max) * 100}%"></span>
-									<span class="bar out" style:height="{(b.outcome / max) * 100}%"></span>
-								</span>
-								<span class="bar-label" aria-hidden="true">{b.label}</span>
-							</a>
-						</li>
-					{/each}
-				</ul>
-				<p class="legend" aria-hidden="true">
-					<span><i class="in"></i>Ingresos</span>
-					<span><i class="out"></i>Gastos</span>
-				</p>
-			</Card>
+			<Card.Root>
+				<Card.Content>
+					<ul class="bars">
+						{#each data.bars as b (b.ym)}
+							<li class:current={b.ym === data.nav.ym}>
+								<a
+									href={resolve(`/reports?month=${b.ym}`)}
+									aria-current={b.ym === data.nav.ym ? 'true' : undefined}
+									aria-label="{b.name}: ingresos {money(b.income)}, gastos {money(b.outcome)}"
+								>
+									<span class="cols" aria-hidden="true">
+										<span class="bar in" style:height="{(b.income / max) * 100}%"></span>
+										<span class="bar out" style:height="{(b.outcome / max) * 100}%"></span>
+									</span>
+									<span class="bar-label" aria-hidden="true">{b.label}</span>
+								</a>
+							</li>
+						{/each}
+					</ul>
+					<p class="legend" aria-hidden="true">
+						<span><i class="in"></i>Ingresos</span>
+						<span><i class="out"></i>Gastos</span>
+					</p>
+				</Card.Content>
+			</Card.Root>
 		</section>
 
 		<section aria-labelledby="cat-heading">
 			<h2 id="cat-heading">Categorías</h2>
 			{#if data.slices.length === 0}
-				<Card flush>
+				<Card.Root class="gap-0 overflow-hidden py-0">
 					<p class="empty-inline">No hay gastos con categoría en {data.nav.label.toLowerCase()}.</p>
-				</Card>
+				</Card.Root>
 			{:else}
-				<Card flush>
+				<Card.Root class="gap-0 overflow-hidden py-0">
 					<svg viewBox="0 0 42 42" class="donut" aria-hidden="true">
 						{#each data.slices as s, i (s.id)}
 							{@const offset = data.slices.slice(0, i).reduce((a, x) => a + x.share * 100, 0)}
@@ -136,30 +138,34 @@
 							</li>
 						{/each}
 					</ul>
-				</Card>
+				</Card.Root>
 			{/if}
 		</section>
 
 		<section class="facts" class:one={!data.biggest} aria-label="Datos del mes">
-			<Card>
-				<div class="fact-card">
-					<p class="eyebrow">Por día</p>
-					<p class="fact"><Money cents={data.dailyAverage} currency={data.currency} /></p>
-					<p class="label">{data.days} {data.days === 1 ? 'día' : 'días'}</p>
-				</div>
-			</Card>
+			<Card.Root>
+				<Card.Content>
+					<div class="fact-card">
+						<p class="eyebrow">Por día</p>
+						<p class="fact"><Money cents={data.dailyAverage} currency={data.currency} /></p>
+						<p class="label">{data.days} {data.days === 1 ? 'día' : 'días'}</p>
+					</div>
+				</Card.Content>
+			</Card.Root>
 			{#if data.biggest}
 				<a class="fact-link" href={resolve(`/movements/${data.biggest.id}`)}>
-					<Card>
-						<div class="fact-card">
-							<p class="eyebrow">Gasto más grande</p>
-							<Icon name="chevron-right" size="1rem" />
-							<p class="fact">
-								<Money cents={neg(data.biggest.amount)} currency={data.currency} />
-							</p>
-							<p class="label ellipsis">{data.biggest.description} · {data.biggest.date}</p>
-						</div>
-					</Card>
+					<Card.Root>
+						<Card.Content>
+							<div class="fact-card">
+								<p class="eyebrow">Gasto más grande</p>
+								<Icon name="chevron-right" size="1rem" />
+								<p class="fact">
+									<Money cents={neg(data.biggest.amount)} currency={data.currency} />
+								</p>
+								<p class="label ellipsis">{data.biggest.description} · {data.biggest.date}</p>
+							</div>
+						</Card.Content>
+					</Card.Root>
 				</a>
 			{/if}
 		</section>

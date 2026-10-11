@@ -4,7 +4,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import Card from '$lib/components/Card.svelte';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import ColorPicker from '$lib/components/ColorPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -76,9 +76,11 @@
 	</div>
 
 	<div>
-		<Card>
-			<ColorPicker name="color" legend="Color" bind:value={color} />
-		</Card>
+		<Card.Root>
+			<Card.Content>
+				<ColorPicker name="color" legend="Color" bind:value={color} />
+			</Card.Content>
+		</Card.Root>
 		{#if errors.color}
 			<p class="error pad" role="alert"><Icon name="alert" size="1rem" />{errors.color}</p>
 		{/if}

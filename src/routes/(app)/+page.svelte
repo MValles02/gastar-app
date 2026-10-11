@@ -6,7 +6,7 @@
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import Clock from '@lucide/svelte/icons/clock';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import Card from '$lib/components/Card.svelte';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -60,7 +60,7 @@
 			{/snippet}
 
 			<section aria-labelledby="summary-heading">
-				<Card flush>
+				<Card.Root class="gap-0 overflow-hidden py-0">
 					{#if data.plan?.summary}
 						{@const s = data.plan.summary}
 						{@const Status = statusIcon[s.status]}
@@ -104,34 +104,38 @@
 							<Button href={resolve('/plan/setup')} variant="outline">Crear plan</Button>
 						</div>
 					{/if}
-				</Card>
+				</Card.Root>
 			</section>
 
 			<section aria-labelledby="categories-heading">
 				<div class="section-head"><h2 id="categories-heading">Categorías</h2></div>
 				{#if data.topCategories.length === 0}
-					<Card><p class="muted inline-empty">Sin gastos</p></Card>
+					<Card.Root>
+						<Card.Content><p class="muted inline-empty">Sin gastos</p></Card.Content>
+					</Card.Root>
 				{:else}
-					<Card>
-						<ul class="list">
-							{#each data.topCategories as cat (cat.id)}
-								<li
-									class="cat"
-									style:--tone={cat.color ? `var(--swatch-${cat.color})` : 'var(--text)'}
-								>
-									<div class="cat-row">
-										<span class="dot" aria-hidden="true"></span>
-										<span class="ellipsis">{cat.name}</span>
-										<span class="amount cat-amount">{formatMoney(cat.net, data.currency)}</span>
-										<span class="amount muted pct">{percent.format(cat.share)}</span>
-									</div>
-									<div class="track">
-										<div class="fill" style:width={`${cat.share * 100}%`}></div>
-									</div>
-								</li>
-							{/each}
-						</ul>
-					</Card>
+					<Card.Root>
+						<Card.Content>
+							<ul class="list">
+								{#each data.topCategories as cat (cat.id)}
+									<li
+										class="cat"
+										style:--tone={cat.color ? `var(--swatch-${cat.color})` : 'var(--text)'}
+									>
+										<div class="cat-row">
+											<span class="dot" aria-hidden="true"></span>
+											<span class="ellipsis">{cat.name}</span>
+											<span class="amount cat-amount">{formatMoney(cat.net, data.currency)}</span>
+											<span class="amount muted pct">{percent.format(cat.share)}</span>
+										</div>
+										<div class="track">
+											<div class="fill" style:width={`${cat.share * 100}%`}></div>
+										</div>
+									</li>
+								{/each}
+							</ul>
+						</Card.Content>
+					</Card.Root>
 				{/if}
 			</section>
 
@@ -143,7 +147,9 @@
 					{/if}
 				</div>
 				{#if data.recent.length === 0}
-					<Card><p class="muted inline-empty">Sin movimientos</p></Card>
+					<Card.Root>
+						<Card.Content><p class="muted inline-empty">Sin movimientos</p></Card.Content>
+					</Card.Root>
 				{:else}
 					<ul class="list-card">
 						{#each data.recent as m (m.id)}

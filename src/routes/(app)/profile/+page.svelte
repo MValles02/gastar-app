@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import Card from '$lib/components/Card.svelte';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -60,7 +60,7 @@
 	</section>
 
 	<nav aria-label="Administrar">
-		<Card flush>
+		<Card.Root class="gap-0 overflow-hidden py-0">
 			<ul class="links">
 				<li>
 					<ListRow href={resolve('/accounts')}>
@@ -77,7 +77,7 @@
 					</ListRow>
 				</li>
 			</ul>
-		</Card>
+		</Card.Root>
 	</nav>
 
 	<section class="theme">
@@ -187,10 +187,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
-	}
-
-	.theme-form :global(.btn) {
-		align-self: flex-start;
 	}
 
 	.error {

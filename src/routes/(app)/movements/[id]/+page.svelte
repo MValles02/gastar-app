@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { toIconKey, toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import Card from '$lib/components/Card.svelte';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import Money from '$lib/components/Money.svelte';
@@ -39,23 +39,25 @@
 	/>
 
 	<section aria-label="Monto">
-		<Card>
-			<div class="hero">
-				<IconBadge
-					icon={toIconKey(m.accountIcon)}
-					color={toSwatchKey(m.accountColor)}
-					size="3rem"
-				/>
-				<p class="value">
-					<Money
-						cents={m.type === 'outcome' ? -m.amount : m.amount}
-						currency={m.accountCurrency}
-						kind={m.type}
+		<Card.Root>
+			<Card.Content>
+				<div class="hero">
+					<IconBadge
+						icon={toIconKey(m.accountIcon)}
+						color={toSwatchKey(m.accountColor)}
+						size="3rem"
 					/>
-				</p>
-				<p class="type">{typeLabel}</p>
-			</div>
-		</Card>
+					<p class="value">
+						<Money
+							cents={m.type === 'outcome' ? -m.amount : m.amount}
+							currency={m.accountCurrency}
+							kind={m.type}
+						/>
+					</p>
+					<p class="type">{typeLabel}</p>
+				</div>
+			</Card.Content>
+		</Card.Root>
 	</section>
 
 	<dl class="data">

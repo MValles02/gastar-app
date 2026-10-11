@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { ACCOUNT_ICONS, SWATCHES, toIconKey, toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import Card from '$lib/components/Card.svelte';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
@@ -28,13 +28,15 @@
 	<PageHeader title={a.name} back={{ href: resolve('/accounts'), label: 'Volver a cuentas' }} />
 
 	<section aria-labelledby={labelId}>
-		<Card>
-			<div class="hero">
-				<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} size="3rem" />
-				<p class="value"><Money cents={data.balance} currency={a.currency} /></p>
-				<p id={labelId} class="label">Saldo</p>
-			</div>
-		</Card>
+		<Card.Root>
+			<Card.Content>
+				<div class="hero">
+					<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} size="3rem" />
+					<p class="value"><Money cents={data.balance} currency={a.currency} /></p>
+					<p id={labelId} class="label">Saldo</p>
+				</div>
+			</Card.Content>
+		</Card.Root>
 	</section>
 
 	<dl class="list-card data">

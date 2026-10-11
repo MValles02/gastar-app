@@ -4,7 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { SWATCHES, toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import Card from '$lib/components/Card.svelte';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import MonthNav from '$lib/components/MonthNav.svelte';
@@ -38,36 +38,38 @@
 	/>
 
 	<section aria-labelledby={labelId}>
-		<Card>
-			<div class="month-nav">
-				<MonthNav
-					label={data.month.label}
-					prevHref={resolve(`/categories/${c.id}?month=${data.month.prev}`)}
-					nextHref={data.month.isCurrent
-						? null
-						: resolve(`/categories/${c.id}?month=${data.month.next}`)}
-				/>
-			</div>
+		<Card.Root>
+			<Card.Content>
+				<div class="month-nav">
+					<MonthNav
+						label={data.month.label}
+						prevHref={resolve(`/categories/${c.id}?month=${data.month.prev}`)}
+						nextHref={data.month.isCurrent
+							? null
+							: resolve(`/categories/${c.id}?month=${data.month.next}`)}
+					/>
+				</div>
 
-			<div class="hero">
-				<IconBadge letter={c.name[0]} color={toSwatchKey(c.color)} size="3rem" />
-				<p id={labelId} class="label">{data.month.isCurrent ? 'Este mes' : 'Balance del mes'}</p>
-				{#if single}
-					<p class="value">{@render flow(single.net, single.currency)}</p>
-				{:else if data.nets.length === 0}
-					<p class="muted">Sin movimientos en este mes.</p>
-				{:else}
-					<dl class="duo">
-						{#each data.nets as n (n.currency)}
-							<div>
-								<dt>{n.currency}</dt>
-								<dd class="amount">{@render flow(n.net, n.currency)}</dd>
-							</div>
-						{/each}
-					</dl>
-				{/if}
-			</div>
-		</Card>
+				<div class="hero">
+					<IconBadge letter={c.name[0]} color={toSwatchKey(c.color)} size="3rem" />
+					<p id={labelId} class="label">{data.month.isCurrent ? 'Este mes' : 'Balance del mes'}</p>
+					{#if single}
+						<p class="value">{@render flow(single.net, single.currency)}</p>
+					{:else if data.nets.length === 0}
+						<p class="muted">Sin movimientos en este mes.</p>
+					{:else}
+						<dl class="duo">
+							{#each data.nets as n (n.currency)}
+								<div>
+									<dt>{n.currency}</dt>
+									<dd class="amount">{@render flow(n.net, n.currency)}</dd>
+								</div>
+							{/each}
+						</dl>
+					{/if}
+				</div>
+			</Card.Content>
+		</Card.Root>
 	</section>
 
 	<dl class="list-card data">

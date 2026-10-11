@@ -103,7 +103,6 @@ components:
     textColor: '{colors.text}'
     rounded: '{rounded.card}'
     padding: '1rem'
-    width: '360px'
   nav-item:
     textColor: '{colors.text-muted}'
     height: '2.75rem'
@@ -265,10 +264,11 @@ Shared components live in `src/lib/components/`.
 
 ### Cards / Containers
 
-- **Corner Style:** 0.875rem (`--radius-card`).
-- **Background:** Surface with a 1px border and `--shadow-1`.
+- **Source:** the generated shadcn-svelte `Card` (`$lib/components/ui/card`) with stock styling: `Card.Root` plus `Card.Content` (and `Header`/`Title` where a heading is part of the card).
+- **Corner Style:** 0.875rem (`rounded-xl`, equal to `--radius-card`).
+- **Background:** `card` (surface) with a 1px foreground 10% ring and no shadow.
 - **List container:** `.list-card` (global class in `app.css`) on a `<ul>` of `ListRow` items; the shared way to group rows.
-- **Internal Padding:** `space-4`; full width, with an optional `maxWidth` (360px on the login card).
+- **Internal Padding:** 1rem (`--card-spacing`) vertically on the root and horizontally on `Card.Content`. Cards that lay out their own sections use `Card.Root` with `class="gap-0 overflow-hidden py-0"` and no `Card.Content`.
 
 ### Inputs / Fields
 
@@ -293,7 +293,7 @@ A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) of radio option
 - **Money:** An amount with the decimals dimmed for USD only (ARS has no decimal part; 70% opacity, text-colour amounts only, to keep 4.5:1; coloured decimals stay full), `tabular-nums`, the number breaks only after the symbol gap and at thousands separators (`<wbr>` after each `.`), never inside a digit group; no visible sign: `kind` colours it (`income` positive, `outcome` negative, `transfer` transfer colour, `plain` text colour, or negative when the amount is below zero); a visually hidden "-"/"+" keeps the direction for screen readers. Font size and weight come from the parent.
 - **MovementRow:** A `ListRow` with a leading `.row-icon` (2.25rem muted square: description initial, or the transfer icon), title, subtitle and a trailing `Money` (`.row-amount`).
 - **Section head:** `.section-head` (global): a wrapping flex row, heading left and a link or `Money` total right, baseline-aligned.
-- **Profile:** One `Card` groups the user name and email, an "Administrar" link section (a `nav` with the "Cuentas" and "Categorías" links: 2.75rem tall, text colour, weight 500), the theme control and the "Cerrar sesión" button as sections separated by hairline dividers.
+- **Profile:** One `Card` groups the user name and email, an "Administrar" link section (a `nav` with the "Cuentas" and "Categorías" links: 2.75rem tall, text colour, weight 500), the theme control and the "Cerrar sesión" button as separate sections.
 - **Reportes charts:** The 6-month income and outcome bars and the category donut are `aria-hidden` SVG/CSS; their text equivalents are the per-month link `aria-label` ("{mes}: ingresos X, gastos Y") and the visible slice list (name, %, amount). Tokens: income bar `--positive`, outcome bar `--negative` (income always left, outcome right, as in the legend, so colour is not the only cue), slices `--swatch-green`, `--swatch-orange`, `--swatch-blue`, `--swatch-plum` and `--text-muted` for "Otros". Bars keep full opacity (non-text 3:1); the selected month has a bold label and `aria-current="true"`. The bar row bleeds to the card edges so each month link is at least 2.75rem wide at 320px.
 - **Plan rule row (`/plan`):** A list card (surface, hairline border, `radius-card`) of rows; each row is a link (min 2.75rem, `ListRow` padding) with the description (0.875rem, 500), a muted 0.75rem line "status · Día N · account" and a trailing `Money`. An unpaid active rule adds a separate "Registrar" link (text colour, underlined, 600, 2.75rem tall) that wraps under the row at large text sizes. Status is always text, never colour alone.
 - **EmptyState:** A centered column: a 3.5rem pill circle tinted with `color-mix(in srgb, var(--primary) 8%, transparent)` holding a primary-colored icon, over muted text. Used by the placeholder pages.

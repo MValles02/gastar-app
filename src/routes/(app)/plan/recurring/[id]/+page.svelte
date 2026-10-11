@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import Card from '$lib/components/Card.svelte';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import Money from '$lib/components/Money.svelte';
@@ -36,7 +36,7 @@
 		/>
 	</p>
 
-	<Card flush>
+	<Card.Root class="gap-0 overflow-hidden py-0">
 		<dl class="facts">
 			<div class="kv">
 				<dt>Cuenta</dt>
@@ -55,7 +55,7 @@
 				<dd><span class="pill">{data.inactiveReason ?? 'Activo'}</span></dd>
 			</div>
 		</dl>
-	</Card>
+	</Card.Root>
 
 	{#if data.inactiveReason}
 		<p class="inactive">No se puede registrar.</p>
