@@ -5,7 +5,7 @@
 	import Check from '@lucide/svelte/icons/check';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import Clock from '@lucide/svelte/icons/clock';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import Card from '$lib/components/Card.svelte';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
@@ -101,7 +101,7 @@
 								<p class="strong">Terminó el plan de {data.plan.endedMonthName}.</p>
 							{/if}
 							<p class="strong">Sin plan en {CURRENCY_NAME[data.currency]}.</p>
-							<Button href={resolve('/plan/setup')} variant="secondary">Crear plan</Button>
+							<Button href={resolve('/plan/setup')} variant="outline">Crear plan</Button>
 						</div>
 					{/if}
 				</Card>

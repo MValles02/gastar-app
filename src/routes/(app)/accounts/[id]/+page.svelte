@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { ACCOUNT_ICONS, SWATCHES, toIconKey, toSwatchKey } from '$lib/appearance';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import Card from '$lib/components/Card.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -78,21 +78,21 @@
 				Tiene movimientos, así que no se puede eliminar. Podés archivarla para ocultarla.
 			</p>
 		{/if}
-		<Button href={resolve(`/accounts/${a.id}/edit`)} block>Editar</Button>
+		<Button href={resolve(`/accounts/${a.id}/edit`)} class="w-full">Editar</Button>
 		{#if data.actions.canArchive}
 			<form method="POST" action="?/archive" use:enhance>
-				<Button type="submit" variant="secondary" block>Archivar</Button>
+				<Button type="submit" variant="outline" class="w-full">Archivar</Button>
 			</form>
 		{/if}
 		{#if data.actions.canUnarchive}
 			<form method="POST" action="?/unarchive" use:enhance>
-				<Button type="submit" variant="secondary" block>Desarchivar</Button>
+				<Button type="submit" variant="outline" class="w-full">Desarchivar</Button>
 			</form>
 		{/if}
 		{#if data.actions.canDelete}
 			<ConfirmDialog
 				triggerLabel="Eliminar"
-				triggerVariant="danger"
+				triggerVariant="destructive"
 				title="¿Eliminar esta cuenta?"
 				confirmLabel="Eliminar"
 				action="?/delete"

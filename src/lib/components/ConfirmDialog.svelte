@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
 	import { enhance } from '$app/forms';
-	import Button from './Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 
 	let {
 		triggerLabel,
-		triggerVariant = 'secondary',
+		triggerVariant = 'outline',
 		title,
 		confirmLabel,
 		action,
 		children
 	}: {
 		triggerLabel: string;
-		triggerVariant?: 'primary' | 'secondary' | 'danger';
+		triggerVariant?: 'default' | 'outline' | 'destructive';
 		title: string;
 		confirmLabel: string;
 		action: string;
@@ -42,7 +42,7 @@
 					await update();
 				}}
 		>
-			<Button type="button" variant="secondary" onclick={() => dialog?.close()}>Cancelar</Button>
+			<Button type="button" variant="outline" onclick={() => dialog?.close()}>Cancelar</Button>
 			<Button type="submit">{confirmLabel}</Button>
 		</form>
 	</dialog>

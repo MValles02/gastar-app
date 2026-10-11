@@ -6,7 +6,7 @@
 	import ListRow from '$lib/components/ListRow.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import Icon from '$lib/components/Icon.svelte';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { themeColors } from '$lib/theme';
 	import type { ActionData, PageData } from './$types';
@@ -107,12 +107,12 @@
 				<p class="error" role="alert">{form.error}</p>
 			{/if}
 
-			<noscript><Button type="submit" variant="secondary">Guardar</Button></noscript>
+			<noscript><Button type="submit" variant="outline">Guardar</Button></noscript>
 		</form>
 	</section>
 
 	<form method="POST" action="/logout">
-		<Button type="submit" variant="secondary" block
+		<Button type="submit" variant="outline" class="w-full"
 			><Icon name="logout" size="1.25rem" />Cerrar sesión</Button
 		>
 	</form>

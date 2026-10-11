@@ -8,7 +8,7 @@
 	import { afterNavigate, replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import Card from '$lib/components/Card.svelte';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
@@ -182,7 +182,7 @@
 			</EmptyState>
 			<div class="center actions">
 				<Button href={resolve('/plan/recurring/new')}>Agregar pago fijo</Button>
-				<Button href={resolve('/plan/recurring/new?type=income')} variant="secondary">
+				<Button href={resolve('/plan/recurring/new?type=income')} variant="outline">
 					Agregar ingreso fijo
 				</Button>
 			</div>

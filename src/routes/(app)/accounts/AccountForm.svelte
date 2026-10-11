@@ -3,7 +3,7 @@
 	import { tick, untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import Card from '$lib/components/Card.svelte';
 	import ColorPicker from '$lib/components/ColorPicker.svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -134,10 +134,12 @@
 	</div>
 
 	<div class="bar">
-		<Button type="submit" block>{mode === 'create' ? 'Crear cuenta' : 'Guardar cambios'}</Button>
+		<Button type="submit" class="w-full"
+			>{mode === 'create' ? 'Crear cuenta' : 'Guardar cambios'}</Button
+		>
 	</div>
 	<div class="cancel">
-		<Button href={resolve(cancelHref as '/accounts')} variant="secondary">Cancelar</Button>
+		<Button href={resolve(cancelHref as '/accounts')} variant="outline">Cancelar</Button>
 	</div>
 </form>
 

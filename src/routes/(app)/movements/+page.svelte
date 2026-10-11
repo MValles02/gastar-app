@@ -8,7 +8,7 @@
 	import Lock from '@lucide/svelte/icons/lock';
 	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
@@ -124,17 +124,17 @@
 <div class="page">
 	<FilterBar q={data.filters.q} label="Buscar" placeholder="Buscar" hidden={kept}>
 		{#snippet trailing()}
-			<button
+			<Button
 				type="button"
-				class="filters-btn"
-				class:active={filterCount > 0}
+				variant="outline"
+				class={['shrink-0', filterCount > 0 && 'border-foreground']}
 				aria-haspopup="dialog"
 				onclick={() => (filtersOpen = true)}
 			>
 				<SlidersHorizontal size={18} strokeWidth={1.75} aria-hidden="true" />
 				Filtros
 				{#if filterCount > 0}<span class="count">{filterCount}</span>{/if}
-			</button>
+			</Button>
 		{/snippet}
 		<span id="currency-label" class="visually-hidden">Moneda</span>
 		<SegmentedControl
@@ -158,7 +158,7 @@
 				<input type="hidden" name="currency" value={data.filters.currency} />
 			{/if}
 			{@render fields()}
-			<button type="submit">Aplicar filtros</button>
+			<Button type="submit">Aplicar filtros</Button>
 		</form>
 	</noscript>
 
@@ -176,7 +176,7 @@
 			{/if}
 			{@render fields()}
 			{#if filterCount > 0}
-				<Button type="button" variant="secondary" block onclick={clearFilters}>
+				<Button type="button" variant="outline" class="w-full" onclick={clearFilters}>
 					Limpiar filtros
 				</Button>
 			{/if}
@@ -187,7 +187,7 @@
 		{#if data.page > 1}
 			<EmptyState icon="search">Sin más movimientos.</EmptyState>
 			<div class="empty-action">
-				<Button href={resolve(`/movements?${firstPageQuery}`)} variant="secondary">
+				<Button href={resolve(`/movements?${firstPageQuery}`)} variant="outline">
 					Ir a la primera página
 				</Button>
 			</div>
@@ -199,7 +199,7 @@
 		{:else}
 			<EmptyState icon="search">Sin resultados.</EmptyState>
 			<div class="empty-action">
-				<Button href={resolve('/movements')} variant="secondary">Limpiar filtros</Button>
+				<Button href={resolve('/movements')} variant="outline">Limpiar filtros</Button>
 			</div>
 		{/if}
 	{:else}
@@ -230,12 +230,12 @@
 		{#if data.page > 1 || data.hasNext}
 			<nav class="pager" aria-label="Paginación">
 				{#if data.page > 1}
-					<Button href={resolve(`/movements?${pageQuery(data.page - 1)}`)} variant="secondary">
+					<Button href={resolve(`/movements?${pageQuery(data.page - 1)}`)} variant="outline">
 						<ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />Más recientes
 					</Button>
 				{/if}
 				{#if data.hasNext}
-					<Button href={resolve(`/movements?${pageQuery(data.page + 1)}`)} variant="secondary">
+					<Button href={resolve(`/movements?${pageQuery(data.page + 1)}`)} variant="outline">
 						Más antiguos<ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
 					</Button>
 				{/if}
@@ -249,25 +249,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-	}
-
-	.filters-btn {
-		flex: none;
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		min-height: var(--tap-target);
-		padding: 0 var(--space-4);
-		background: var(--surface);
-		color: var(--text);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-pill);
-		font-size: var(--font-size-sm);
-		font-weight: 500;
-	}
-
-	.filters-btn.active {
-		border-color: var(--text);
 	}
 
 	/* Active-filter count: text in an inverted fill, never a colour signal. */

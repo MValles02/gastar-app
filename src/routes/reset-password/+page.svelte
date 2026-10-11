@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import AuthForm from '$lib/components/AuthForm.svelte';
 	import AuthPage from '$lib/components/AuthPage.svelte';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import ErrorText from '$lib/components/ErrorText.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
@@ -25,7 +25,7 @@
 	<StatusMessage icon="clock" title="Enlace vencido">
 		<p class="body">Pedí uno nuevo.</p>
 		<div class="actions">
-			<Button href={resolve('/forgot-password')} block>Pedir otro</Button>
+			<Button href={resolve('/forgot-password')} class="w-full">Pedir otro</Button>
 			<a class="link" href={resolve('/login')}>Ir a Ingresar</a>
 		</div>
 	</StatusMessage>

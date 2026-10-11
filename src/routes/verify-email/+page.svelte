@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { tick } from 'svelte';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import CheckEmail from '$lib/components/CheckEmail.svelte';
 	import ErrorText from '$lib/components/ErrorText.svelte';
 	import StatusMessage from '$lib/components/StatusMessage.svelte';
@@ -57,7 +57,7 @@
 					<ErrorText id="email-error" message={form.emailError} />
 				{/if}
 			</div>
-			<Button type="submit" block disabled={busy}>Reenviar</Button>
+			<Button type="submit" class="w-full" disabled={busy}>Reenviar</Button>
 			<a class="link" href={resolve('/login')}>Ir a Ingresar</a>
 		</form>
 	</StatusMessage>

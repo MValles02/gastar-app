@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { toIconKey, toSwatchKey } from '$lib/appearance';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import Card from '$lib/components/Card.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
@@ -93,10 +93,10 @@
 	</dl>
 
 	<div class="actions">
-		<Button href={resolve(`/movements/${data.movement.id}/edit`)} block>Editar</Button>
+		<Button href={resolve(`/movements/${data.movement.id}/edit`)} class="w-full">Editar</Button>
 		<ConfirmDialog
 			triggerLabel="Eliminar"
-			triggerVariant="danger"
+			triggerVariant="destructive"
 			title="¿Eliminar movimiento?"
 			confirmLabel="Eliminar"
 			action="?/delete"

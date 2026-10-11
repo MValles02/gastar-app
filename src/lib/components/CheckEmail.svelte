@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import StatusMessage from '$lib/components/StatusMessage.svelte';
 
 	// Shared "Revisá tu email" state. The page that renders it must have a `resend` action.
@@ -44,7 +44,7 @@
 		}}
 	>
 		<input type="hidden" name="email" value={email} />
-		<Button type="submit" variant="secondary" block aria-disabled={seconds > 0}>
+		<Button type="submit" variant="outline" class="w-full" aria-disabled={seconds > 0}>
 			{seconds > 0 ? `Reenviar en ${clock}` : 'Reenviar'}
 		</Button>
 		{#if sent}

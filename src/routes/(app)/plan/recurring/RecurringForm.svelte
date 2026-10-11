@@ -3,7 +3,7 @@
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 
@@ -202,10 +202,10 @@
 	<p id="rday-hint" class="hint after">Si el mes es más corto, vence el último día.</p>
 
 	<div class="bar" class:is-sticky={!inline}>
-		<Button type="submit" block>{submitLabel}</Button>
+		<Button type="submit" class="w-full">{submitLabel}</Button>
 	</div>
 	<div class="cancel">
-		<Button href={resolve('/plan')} variant="secondary">Cancelar</Button>
+		<Button href={resolve('/plan')} variant="outline">Cancelar</Button>
 	</div>
 </form>
 

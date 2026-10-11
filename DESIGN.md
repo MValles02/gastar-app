@@ -77,20 +77,20 @@ spacing:
   space-6: '2rem'
   space-8: '3rem'
 components:
-  button-primary:
+  button-default:
     backgroundColor: '{colors.primary}'
     textColor: '{colors.on-primary}'
     typography: '{typography.label}'
     rounded: '{rounded.md}'
-    padding: '0.5rem 1rem'
-    height: '2.75rem'
-  button-secondary:
-    backgroundColor: '{colors.surface}'
+    padding: '0 0.625rem'
+    height: '2rem'
+  button-outline:
+    backgroundColor: '{colors.background}'
     textColor: '{colors.text}'
     typography: '{typography.label}'
     rounded: '{rounded.md}'
-    padding: '0.5rem 1rem'
-    height: '2.75rem'
+    padding: '0 0.625rem'
+    height: '2rem'
   input:
     backgroundColor: '{colors.surface}'
     textColor: '{colors.text}'
@@ -255,11 +255,13 @@ Shared components live in `src/lib/components/`.
 
 ### Buttons
 
-- **Shape:** 0.625rem radius, 2.75rem minimum height, `space-2` by `space-4` padding, 0.875rem weight-500 label, inline-flex with a `space-2` gap. Renders as an `<a>` when given an `href`, otherwise a `<button>`.
-- **Primary:** Primary fill, on-primary text. Hover drops opacity to 0.9.
-- **Secondary:** Surface fill, text color, hairline border. Hover keeps full opacity and fills `muted`. The `block` variant is full width.
-- **Danger:** As secondary with negative text and a 50% negative border.
-- **States:** Disabled (and `aria-disabled='true'`) is 0.5 opacity with a not-allowed cursor. Active (not disabled) scales to 0.98. Focus-visible is the global 2px primary outline with 2px offset .
+- **Source:** the generated shadcn-svelte `Button` (`$lib/components/ui/button`), used with its stock styling. It renders an `<a>` when given an `href`, otherwise a `<button>` (type `button` unless set).
+- **Shape (default size):** 0.625rem radius, 2rem tall, 0.625rem horizontal padding, 0.875rem weight-500 label, inline-flex. Full width is `class="w-full"`.
+- **`default`:** Primary fill, on-primary text; hover fills primary at 80%. Used for the main action.
+- **`outline`:** Page-background fill, hairline border, text colour; hover fills `muted`. Used for secondary actions (Cancelar, Archivar, filter trigger).
+- **`destructive`:** Tinted negative fill (10%), negative text. Used for delete triggers.
+- **`link`:** Primary text, underline on hover; inline actions such as "Quitar" and "Usar sugeridos" (destructive ones add `text-destructive`).
+- **States:** Disabled is 0.5 opacity and non-interactive. Focus-visible is a 3px ring (`ring-ring/50`) with a ring-coloured border. Active (not disabled) nudges down 1px.
 
 ### Cards / Containers
 

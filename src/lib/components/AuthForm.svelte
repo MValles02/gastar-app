@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { tick } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { Button } from '$lib/components/ui/button/index.js';
 
 	// Auth page form: progressive enhancement, busy state, and focus on the first invalid
 	// field after a failed submit. Children are the fields; the submit button comes last.
@@ -43,7 +44,7 @@
 >
 	{@render children()}
 
-	<button type="submit" class="submit" disabled={busy}>{submitLabel}</button>
+	<Button type="submit" class="mt-2 w-full" disabled={busy}>{submitLabel}</Button>
 </form>
 
 <style>
@@ -67,10 +68,5 @@
 		margin: 0;
 		font-size: var(--font-size-sm);
 		color: var(--text-muted);
-	}
-
-	.submit {
-		width: 100%;
-		margin-top: var(--space-2);
 	}
 </style>

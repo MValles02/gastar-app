@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import Icon from './Icon.svelte';
 
 	/**
@@ -56,7 +57,7 @@
 		{#if trailing}{@render trailing()}{/if}
 	</div>
 	{#if children}{@render children()}{/if}
-	<noscript><button type="submit">Filtrar</button></noscript>
+	<noscript><Button type="submit">Filtrar</Button></noscript>
 </form>
 
 <style>

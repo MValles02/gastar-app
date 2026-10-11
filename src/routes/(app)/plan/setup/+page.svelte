@@ -4,7 +4,7 @@
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import Checkbox from '$lib/components/Checkbox.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import Field from '$lib/components/Field.svelte';
@@ -209,17 +209,27 @@
 					</Field>
 				</div>
 				{#if js}
-					<button type="button" class="link danger" onclick={() => rows.splice(i, 1)}>
+					<Button
+						type="button"
+						variant="link"
+						class="self-start text-destructive"
+						onclick={() => rows.splice(i, 1)}
+					>
 						Quitar {noun}
-					</button>
+					</Button>
 				{/if}
 			</fieldset>
 		{/if}
 	{/each}
 	{#if js}
-		<button type="button" class="link" onclick={() => rows.push(blankRow(type))}>
+		<Button
+			type="button"
+			variant="link"
+			class="self-start"
+			onclick={() => rows.push(blankRow(type))}
+		>
 			+ Agregar {noun}
-		</button>
+		</Button>
 	{/if}
 {/snippet}
 
@@ -322,7 +332,7 @@
 		<div class="section-head">
 			<h3>Límites por categoría (opcional)</h3>
 			{#if js && limitCategories.some((c) => c.suggested > 0)}
-				<button type="button" class="link" onclick={useSuggested}>Usar sugeridos</button>
+				<Button type="button" variant="link" onclick={useSuggested}>Usar sugeridos</Button>
 			{/if}
 		</div>
 		<ul class="list-card limits">
@@ -359,7 +369,7 @@
 	<div class="bar">
 		<div class="actions">
 			{#if js && step > 1}
-				<Button type="button" variant="secondary" onclick={() => go(step - 1)}>Atrás</Button>
+				<Button type="button" variant="outline" onclick={() => go(step - 1)}>Atrás</Button>
 			{/if}
 			{#if !js || step === STEPS.length}
 				<Button type="submit">Guardar plan</Button>
@@ -370,7 +380,7 @@
 	</div>
 	{#if !js || step === 1}
 		<div class="cancel">
-			<Button href={resolve('/plan')} variant="secondary">Cancelar</Button>
+			<Button href={resolve('/plan')} variant="outline">Cancelar</Button>
 		</div>
 	{/if}
 </form>
@@ -379,7 +389,7 @@
 	<div class="delete">
 		<ConfirmDialog
 			triggerLabel="Eliminar plan"
-			triggerVariant="danger"
+			triggerVariant="destructive"
 			title="¿Eliminar este plan?"
 			confirmLabel="Eliminar"
 			action="?/delete"
@@ -545,22 +555,6 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
 		gap: var(--space-3);
-	}
-
-	.link {
-		align-self: flex-start;
-		min-height: var(--tap-target);
-		padding: 0;
-		background: none;
-		border: 0;
-		color: var(--text);
-		font-size: var(--font-size-sm);
-		font-weight: 500;
-		text-decoration: underline;
-	}
-
-	.link.danger {
-		color: var(--negative);
 	}
 
 	.total {

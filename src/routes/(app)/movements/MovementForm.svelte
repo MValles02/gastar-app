@@ -5,7 +5,7 @@
 	import Lock from '@lucide/svelte/icons/lock';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import Checkbox from '$lib/components/Checkbox.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
@@ -327,12 +327,17 @@
 	{/if}
 
 	<div class="bar">
-		<Button type="submit" block disabled={submitting} aria-busy={submitting ? 'true' : undefined}>
+		<Button
+			type="submit"
+			class="w-full"
+			disabled={submitting}
+			aria-busy={submitting ? 'true' : undefined}
+		>
 			{#if submitting}<span class="spin" aria-hidden="true"></span>{/if}{submitLabel}
 		</Button>
 	</div>
 	<div class="cancel">
-		<Button href={resolve(cancelHref as '/')} variant="secondary">Cancelar</Button>
+		<Button href={resolve(cancelHref as '/')} variant="outline">Cancelar</Button>
 	</div>
 </form>
 
