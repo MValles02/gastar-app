@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
 	import type { ComponentProps } from 'svelte';
-	import type { SwatchKey } from '$lib/appearance';
+	import { swatchVar, type SwatchKey } from '$lib/appearance';
 
 	let {
 		icon,
@@ -19,9 +19,7 @@
 		neutral?: boolean;
 	} = $props();
 
-	const tone = $derived(
-		color ? `var(--swatch-${color})` : neutral ? 'var(--text)' : 'var(--primary)'
-	);
+	const tone = $derived(!color && neutral ? 'var(--text)' : swatchVar(color));
 </script>
 
 <span
