@@ -1,5 +1,7 @@
 <script lang="ts" generics="Key extends string">
 	import type { Snippet } from 'svelte';
+	import * as RadioGroup from '$lib/components/ui/radio-group/index.js';
+	import { Label } from '$lib/components/ui/label/index.js';
 
 	/** Radio group of round swatches (IconPicker, ColorPicker); the label is for screen readers only. */
 	let {
@@ -17,60 +19,25 @@
 	} = $props();
 </script>
 
-<fieldset>
-	<legend>{legend}</legend>
-	<div class="options">
+<div class="flex flex-col gap-2">
+	<span id="{name}-legend" class="text-muted-foreground text-sm">{legend}</span>
+	<RadioGroup.Root
+		{name}
+		bind:value
+		aria-labelledby="{name}-legend"
+		class="flex w-auto flex-wrap gap-2"
+	>
 		{#each options as option (option.key)}
-			<label class="option">
-				<input class="visually-hidden" type="radio" {name} value={option.key} bind:group={value} />
-				<span class="swatch-ring">{@render swatch(option.key)}</span>
-				<span class="visually-hidden">{option.label}</span>
-			</label>
+			<Label
+				class="has-data-[state=checked]:ring-foreground has-data-[state=checked]:ring-offset-background has-focus-visible:outline-ring relative block cursor-pointer rounded-full has-data-[state=checked]:ring-2 has-data-[state=checked]:ring-offset-2 has-focus-visible:outline-2 has-focus-visible:outline-offset-4"
+			>
+				<RadioGroup.Item
+					value={option.key}
+					aria-label={option.label}
+					class="absolute inset-0 size-full rounded-full border-0 opacity-0"
+				/>
+				{@render swatch(option.key)}
+			</Label>
 		{/each}
-	</div>
-</fieldset>
-
-<style>
-	fieldset {
-		border: 0;
-		padding: 0;
-		min-width: 0;
-	}
-
-	legend {
-		padding: 0;
-		margin-bottom: var(--space-2);
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
-	}
-
-	.options {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-2);
-	}
-
-	.option {
-		position: relative;
-		display: block;
-		cursor: pointer;
-	}
-
-	.swatch-ring {
-		display: block;
-		border-radius: var(--radius-pill);
-		outline: 2px solid transparent;
-		outline-offset: 2px;
-	}
-
-	.option:has(input:checked) .swatch-ring {
-		box-shadow:
-			0 0 0 2px var(--surface),
-			0 0 0 4px var(--text);
-	}
-
-	.option:has(input:focus-visible) .swatch-ring {
-		outline-color: var(--primary);
-		outline-offset: 4px;
-	}
-</style>
+	</RadioGroup.Root>
+</div>

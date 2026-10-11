@@ -55,17 +55,16 @@ test('an unknown currency cookie reads as ARS on Inicio', async ({ page, baseURL
 
 test('invalid currency shows one alert under the tabs and clears on success', async ({ page }) => {
 	await page.goto('/', { waitUntil: 'networkidle' });
-	await page.getByRole('radio', { name: 'USD' }).evaluate((el) => {
+	await page.locator('input[name="currency"]').evaluate((el) => {
 		const input = el as HTMLInputElement;
 		input.value = 'invalid';
-		input.checked = true;
 		input.form!.requestSubmit();
 	});
 	await expect(page.getByRole('alert')).toHaveText('Moneda inválida.');
 	await expect(page.getByRole('alert')).toHaveCount(1);
 	await expect(page).toHaveURL(/\/$/);
 
-	await choose(page, 'ARS');
+	await choose(page, 'USD');
 	await expect(page.getByRole('alert')).toHaveCount(0);
 });
 
@@ -141,25 +140,6 @@ test('archived accounts are listed without changing the group totals', async ({ 
 	await page.goto('/accounts?archived=1', { waitUntil: 'networkidle' });
 	await expect(page.getByText('Cuenta Santander (cerrada)')).toBeVisible();
 	expect(await totals()).toEqual(before);
-});
-
-test.describe('without JavaScript', () => {
-	test.use({ javaScriptEnabled: false });
-
-	test('Guardar switches the Inicio currency and the Movimientos filter applies it', async ({
-		page
-	}) => {
-		await page.goto('/');
-		await page.getByRole('radio', { name: 'USD' }).check({ force: true });
-		await page.getByRole('button', { name: 'Guardar' }).click();
-		await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
-
-		await page.goto('/movements');
-		await page.getByRole('radio', { name: 'USD', exact: true }).check({ force: true });
-		await page.getByRole('button', { name: 'Filtrar' }).click();
-		await expect(page).toHaveURL(/currency=USD/);
-		await expect(page.getByRole('radio', { name: 'USD', exact: true })).toBeChecked();
-	});
 });
 
 test('movements and accounts ignore the currency cookie', async ({ page, baseURL }) => {

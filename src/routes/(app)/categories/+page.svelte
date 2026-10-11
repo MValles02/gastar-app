@@ -2,7 +2,8 @@
 	import { resolve } from '$app/paths';
 	import { toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import Checkbox from '$lib/components/Checkbox.svelte';
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
@@ -37,7 +38,10 @@
 		</div>
 	{:else}
 		<FilterBar q={data.filters.q} label="Buscar categorías" placeholder="Buscar categorías">
-			<Checkbox name="archived" value="1" label="Mostrar archivadas" bind:checked={archived} />
+			<Field.Field orientation="horizontal" class="min-h-11 w-auto">
+				<Checkbox id="archived" name="archived" value="1" bind:checked={archived} />
+				<Field.Label for="archived">Mostrar archivadas</Field.Label>
+			</Field.Field>
 		</FilterBar>
 
 		{#if data.categories.length === 0}

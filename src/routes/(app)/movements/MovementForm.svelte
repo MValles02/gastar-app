@@ -6,7 +6,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import Checkbox from '$lib/components/Checkbox.svelte';
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import * as Field from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import * as InputGroup from '$lib/components/ui/input-group/index.js';
@@ -320,12 +320,16 @@
 		<div class="group">
 			<ul class="card">
 				<li class="check">
-					<Checkbox
-						name="repeat"
-						label="Repetir cada mes"
-						checked={repeatChecked}
-						aria-describedby="repeat-hint"
-					/>
+					<Field.Field orientation="horizontal" class="min-h-11">
+						<Checkbox
+							id="repeat"
+							name="repeat"
+							value="on"
+							checked={repeatChecked}
+							aria-describedby="repeat-hint"
+						/>
+						<Field.Label for="repeat">Repetir cada mes</Field.Label>
+					</Field.Field>
 				</li>
 			</ul>
 			<p id="repeat-hint" class="hint pad">

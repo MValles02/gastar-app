@@ -5,7 +5,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import Checkbox from '$lib/components/Checkbox.svelte';
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import * as Field from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -131,7 +131,7 @@
 				<li>
 					<label class="check-row">
 						<input type="hidden" name="shown" value={r.id} />
-						<input type="checkbox" name="keep" value={r.id} bind:checked={keep[r.id]} />
+						<Checkbox name="keep" value={r.id} bind:checked={keep[r.id]} />
 						<span class="text">
 							<span class="title">{r.description}</span>
 							<span class="sub">Día {r.dayOfMonth} · {r.accountName}</span>
@@ -149,7 +149,7 @@
 			{#each candidates as c (c.key)}
 				<li>
 					<label class="check-row">
-						<input type="checkbox" name="candidate" value={c.key} bind:checked={accepted[c.key]} />
+						<Checkbox name="candidate" value={c.key} bind:checked={accepted[c.key]} />
 						<span class="text">
 							<span class="title">{c.description}</span>
 							<span class="sub">Últimos 3 meses · día {c.dayOfMonth} · {c.categoryName}</span>
@@ -353,7 +353,10 @@
 			</p>
 		{/if}
 
-		<Checkbox name="repeat" label="Usar este plan todos los meses" bind:checked={repeat} />
+		<Field.Field orientation="horizontal" class="min-h-11">
+			<Checkbox id="repeat" name="repeat" value="on" bind:checked={repeat} />
+			<Field.Label for="repeat">Usar este plan todos los meses</Field.Label>
+		</Field.Field>
 
 		<div class="section-head">
 			<h3>Límites por categoría (opcional)</h3>
@@ -536,13 +539,6 @@
 		padding: var(--space-2) var(--space-4);
 		color: var(--text);
 		cursor: pointer;
-	}
-
-	.check-row input {
-		flex: none;
-		width: 1.25rem;
-		height: 1.25rem;
-		accent-color: var(--primary);
 	}
 
 	.text {

@@ -28,7 +28,7 @@
 			} else if (result.type === 'redirect') {
 				// eslint-disable-next-line svelte/no-navigation-without-resolve -- server-validated same-origin redirect location
 				await goto(result.location, { invalidateAll: true, keepFocus: true, noScroll: true });
-				form.querySelector<HTMLInputElement>('input[name="currency"]:checked')?.focus();
+				form.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.focus();
 			} else {
 				await update({ reset: false });
 			}
@@ -44,7 +44,6 @@
 		labelledby="currency-tabs-label"
 		onchange={() => form.requestSubmit()}
 	/>
-	<noscript><button type="submit">Guardar</button></noscript>
 	{#if error}
 		<p class="error" role="alert">{error}</p>
 	{/if}

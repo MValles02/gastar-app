@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { tick, type Snippet } from 'svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as InputGroup from '$lib/components/ui/input-group/index.js';
 	import Icon from './Icon.svelte';
@@ -32,6 +32,16 @@
 		for (const [k, v] of [...e.formData]) if (v === '') e.formData.delete(k);
 	};
 	const submit = () => form.requestSubmit();
+	// Bits checkboxes and radios are buttons: they fire no native `change`, so submit after their click.
+	const onclick = (e: MouseEvent) => {
+		if ((e.target as Element).closest('[role="checkbox"], [role="radio"]')) tick().then(submit);
+	};
+	// Radios also select from the keyboard (Space, arrows) without a click.
+	const onkeyup = (e: KeyboardEvent) => {
+		if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+			if ((e.target as Element).closest('[role="radio"]')) tick().then(submit);
+		}
+	};
 	const debounced = () => {
 		clearTimeout(timer);
 		timer = setTimeout(submit, 300);
@@ -44,6 +54,8 @@
 	data-sveltekit-replacestate
 	bind:this={form}
 	onchange={submit}
+	{onclick}
+	{onkeyup}
 	{onformdata}
 >
 	{#each Object.entries(hidden) as [k, v] (k)}
