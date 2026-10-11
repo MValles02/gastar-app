@@ -2,13 +2,31 @@
 
 ## Branching & PRs
 
-- `main` is production; it auto-deploys on every merge (skipped for
-  doc-only changes).
+- `develop` is the integration branch; every push auto-deploys
+  https://dev.gastar.app (image tag `:develop`, `development` GitHub
+  environment). Dependabot PRs target `develop`.
+- `main` is production (https://web.gastar.app, `production` GitHub
+  environment); it auto-deploys on every merge (skipped for doc-only changes).
 - All work happens on feature branches, named `feat/`, `fix/`, `chore/`, or
   `docs/` (e.g. `feat/expense-filters`).
-- Branches merge to `main` via pull request, **squash merge only**.
+- Feature branches merge into `develop` via pull request, **squash merge
+  only**.
 - PR titles follow Conventional Commits (`feat: ...`, `fix: ...`,
   `chore: ...`, `docs: ...`) since the squash commit uses the PR title.
+- `develop` is promoted to `main` through a pull request with a **merge
+  commit**. Never squash the promotion: it creates a commit on `main` that
+  `develop` does not have, so the branches diverge.
+
+Open the promotion PR with the template, then paste the changelog under
+`## Changelog`:
+
+```bash
+gh pr create --base main --head develop --template .github/PULL_REQUEST_TEMPLATE/promotion.md
+git log --first-parent --format='- %s' origin/main..origin/develop
+```
+
+`gh pr create --template` takes a file path, not a template name. In the web UI
+use `?template=promotion.md` in the compare URL instead.
 
 ## Design
 
@@ -21,9 +39,16 @@
 
 ## CI gate
 
-A GitHub ruleset on `main` requires the `checks` and `gitleaks` status checks
-and only allows merges through pull requests (squash), so this is a hard
-block, not just convention:
+Two GitHub rulesets make this a hard block, not just convention. Force push
+and deletion are blocked on both branches:
+
+- `develop`: pull requests only, squash merge only, required status checks
+  `checks` and `gitleaks`.
+- `main`: pull requests only, merge commit only, required status checks
+  `checks`, `gitleaks` and `develop-only`. `develop-only` comes from
+  `.github/workflows/promotion-guard.yml`: rulesets cannot restrict a PR's
+  source branch, so this check fails unless the PR head is `develop` of this
+  repository.
 
 - `.github/workflows/ci.yml` runs on every pull request: install, lint,
   check, build, Playwright E2E, and a `docker build` (no push).
@@ -33,15 +58,20 @@ block, not just convention:
 
 ## Deploy pipeline
 
-On push to `main` (or manual `workflow_dispatch`):
+On push to `main` or `develop` (or manual `workflow_dispatch` from either):
 
 1. `checks` — re-runs CI.
 2. `publish` — builds the Docker image and pushes it to GHCR as
-   `ghcr.io/mvalles02/gastar-app:latest` and
+   `ghcr.io/mvalles02/gastar-app:latest` (main) or
+   `ghcr.io/mvalles02/gastar-app:develop` (develop), plus
    `ghcr.io/mvalles02/gastar-app:sha-<full sha>`.
 3. `deploy` — calls the Dokploy deploy webhook to redeploy the application.
+   Push to `main` uses the `production` environment and `HEALTH_URL`; push to
+   `develop` uses the `development` environment and `DEV_HEALTH_URL`
+   (`https://dev.gastar.app/health`). Environment branch policies limit
+   `production` to `main` and `development` to `develop`.
 
-Required GitHub secrets (in the `production` environment):
+Each environment (`production`, `development`) holds its own secrets:
 
 - `DOKPLOY_WEBHOOK_URL` — the app's deploy webhook URL (Dokploy → app →
   Deployments → Webhook URL); it can only redeploy this app, and you can
@@ -53,11 +83,12 @@ Required GitHub secrets (in the `production` environment):
   `dokploy.mateovalles.cloud/api/deploy*` is protected by Cloudflare Access.
   The step fails if any of these three secrets is missing.
 
-Required GitHub variable:
+Required GitHub variables:
 
-- `HEALTH_URL` — the health check URL the `deploy` job polls after
-  triggering the webhook, waiting for it to report the new commit SHA before
-  smoke-testing the site's home page. The job fails if it is not set.
+- `HEALTH_URL` (main) / `DEV_HEALTH_URL` (develop) — the health check URL the
+  `deploy` job polls after triggering the webhook, waiting for it to report
+  the new commit SHA before smoke-testing the site's home page. The job fails
+  if the one for its branch is not set.
 
 (`GITHUB_TOKEN` is provided automatically and used to push to GHCR.)
 
@@ -68,6 +99,14 @@ Required GitHub variable:
 - Health check path: `/health`.
 - Rollbacks enabled.
 - Runtime env vars: see the Production section of the [README](../README.md).
+
+Development uses a separate Dokploy app, `gastar-app-dev`:
+
+- Image: `ghcr.io/mvalles02/gastar-app:develop`.
+- Its own Postgres database — never the production DB.
+- Domain `dev.gastar.app`; `BETTER_AUTH_URL` and `ORIGIN` are
+  `https://dev.gastar.app`.
+- Its own `BETTER_AUTH_SECRET`; other env vars as in the README.
 
 ## Migrations
 
