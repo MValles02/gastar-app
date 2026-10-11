@@ -3,8 +3,10 @@
 set -euo pipefail
 
 if ! command -v docker >/dev/null 2>&1; then
-	echo "pre-commit: docker not found, skipping gitleaks scan" >&2
-	exit 0
+	# Fail closed: an unscanned commit must be a deliberate `git commit --no-verify`.
+	echo "pre-commit: docker not found, cannot run the gitleaks scan." >&2
+	echo "Install docker, or bypass deliberately with: git commit --no-verify" >&2
+	exit 1
 fi
 
 # Pipe the staged diff in so the container never reads .git (broken inside worktrees).
