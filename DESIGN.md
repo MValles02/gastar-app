@@ -2,30 +2,30 @@
 name: Gastar
 description: Private personal ledger for Argentina.
 colors:
-  primary: '#14532d'
-  primary-dark: '#bef264'
-  on-primary: '#f7fee7'
-  on-primary-dark: '#1a2e05'
-  background: '#fafaf9'
-  background-dark: '#0c0a09'
-  surface: '#ffffff'
-  surface-dark: '#1c1917'
-  surface-raised: '#ffffff'
-  surface-raised-dark: '#292524'
-  muted: '#f5f5f4'
-  muted-dark: '#292524'
-  text: '#1c1917'
-  text-dark: '#fafaf9'
-  text-muted: '#6b6560'
-  text-muted-dark: '#a8a29e'
-  border: '#e7e5e4'
-  border-dark: '#292524'
-  border-strong: '#8a837d'
-  border-strong-dark: '#78716c'
-  positive: '#15803d'
-  positive-dark: '#4ade80'
-  negative: '#b91c1c'
-  negative-dark: '#f87171'
+  primary: 'oklch(0.508 0.118 165.612)'
+  primary-dark: 'oklch(0.432 0.095 166.913)'
+  on-primary: 'oklch(0.979 0.021 166.113)'
+  on-primary-dark: 'oklch(0.979 0.021 166.113)'
+  background: 'oklch(0.955 0.02 85)'
+  background-dark: 'oklch(0.147 0.004 49.25)'
+  surface: 'oklch(0.98 0.012 85)'
+  surface-dark: 'oklch(0.216 0.006 56.043)'
+  surface-raised: 'oklch(0.98 0.012 85)'
+  surface-raised-dark: 'oklch(0.216 0.006 56.043)'
+  muted: 'oklch(0.925 0.022 82)'
+  muted-dark: 'oklch(0.268 0.007 34.298)'
+  text: 'oklch(0.18 0.012 60)'
+  text-dark: 'oklch(0.985 0.001 106.423)'
+  text-muted: 'oklch(0.52 0.022 70)'
+  text-muted-dark: 'oklch(0.709 0.01 56.259)'
+  border: 'oklch(0.895 0.02 80)'
+  border-dark: 'oklch(1 0 0 / 10%)'
+  border-strong: 'oklch(0.68 0.025 70)'
+  border-strong-dark: 'oklch(0.553 0.013 58.071)'
+  positive: '#2e6b34'
+  positive-dark: '#8bd68f'
+  negative: 'oklch(0.577 0.245 27.325)'
+  negative-dark: 'oklch(0.704 0.191 22.216)'
   transfer: '#2c5d8a'
   transfer-dark: '#8db8e6'
   swatch-green: '#2f6b45'
@@ -46,21 +46,21 @@ colors:
   swatch-ochre-dark: '#d9c46e'
 typography:
   body:
-    fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif"
+    fontFamily: "'Geist Mono Variable', ui-monospace, monospace"
     fontSize: '1rem'
     fontWeight: 400
     lineHeight: 1.5
   headline:
-    fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif"
+    fontFamily: "'Geist Mono Variable', ui-monospace, monospace"
     fontWeight: 600
     lineHeight: 1.2
   title:
-    fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif"
+    fontFamily: "'Geist Mono Variable', ui-monospace, monospace"
     fontSize: '1.25rem'
     fontWeight: 600
     lineHeight: 1.5
   label:
-    fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif"
+    fontFamily: "'Geist Mono Variable', ui-monospace, monospace"
     fontSize: '0.875rem'
     fontWeight: 400
     lineHeight: 1.5
@@ -146,36 +146,36 @@ components:
 
 **Creative North Star: "The Private Ledger"**
 
-Gastar is a calm, precise, personal book of accounts. Numbers lead, and color appears only at moments that matter. The tone is the classic, serious-bank feel from PRODUCT.md, a durable brand commitment rather than a style option. The single theme is **Pampa**: forest green and lime on warm stone, light and dark, both first-class. The visual language is shadcn/ui-like: stone neutrals, hairline borders, small radii and compact controls.
+Gastar is a calm, precise, personal book of accounts. Numbers lead, and color appears only at moments that matter. The tone is the classic, serious-bank feel from PRODUCT.md, a durable brand commitment rather than a style option. The single theme comes from the shadcn/ui preset bJMUTPE2, adapted: light is warm cream (a cream page with lighter-cream cards, no pure white anywhere), dark is stone near-black, the primary is emerald, and both themes are first-class. The app keeps its own positive, transfer and swatch colours, a primary-coloured focus ring, and a stronger `border-strong` for form-control contrast. The visual language is shadcn/ui-like: hairline borders, small radii and compact controls.
 
 The system is quiet and layered. Tonal surfaces, hairline borders and a small three-step elevation scale carry structure, type weight carries hierarchy, and the FAB marks the primary action. Buttons and navigation are compact and confident: small radii, a firm 2px focus ring, a slight press scale, and a clear dimmed disabled state.
 
 **Key Characteristics:**
 
-- Stone neutrals with a forest-green primary in light and a lime primary in dark, switched by token swap only (`light-dark()` in `app.css`).
-- One typeface (DM Sans) with weight, not size, doing most of the hierarchy work.
+- Warm cream neutrals with an emerald primary in light, stone near-black with a deeper emerald primary in dark, switched by token swap only (`light-dark()` in `app.css`).
+- One typeface (Geist Mono) everywhere, body, headings, titles and amounts, with weight, not size, doing most of the hierarchy work.
 - Lists and sections sit on surface cards over the page; a three-step elevation scale (`--shadow-1`, `--shadow-2`, `--shadow-lift`).
 - 0.625rem radius buttons and fields, 0.875rem cards and FAB; pills only for the top-bar avatar and bell badge and the empty-state badge.
 - Tabular numerals for every amount.
 
 ## Colors
 
-Pampa: forest green and lime on warm stone, plus three semantic tones for money direction.
+Warm cream neutrals and an emerald primary, plus three semantic tones for money direction.
 
-The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent for system), with `prefers-color-scheme` as the fallback when the attribute is absent. In dark, primary becomes Lime (`#bef264`) with a dark-green on-primary. The `-dark` tokens in the frontmatter are the dark-theme values of the same roles.
+The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent for system), with `prefers-color-scheme` as the fallback when the attribute is absent. In dark, the neutrals are stone near-black and the primary is a deeper emerald (`primary-dark`) with the same pale on-primary. The `-dark` tokens in the frontmatter are the dark-theme values of the same roles.
 
 ### Primary
 
-- **Forest** (`primary`): Primary buttons, the center FAB, the wordmark, the active nav icon and the focus ring. Dark: **Lime** (`primary-dark`).
+- **Emerald** (`primary`): Primary buttons, the center FAB, the wordmark, the active nav icon and the focus ring. Dark: deeper emerald (`primary-dark`).
 
-### Neutral (stone)
+### Neutral (cream, stone in dark)
 
-- **Stone 50** (`background`): Page background, the selected segment and the translucent bottom nav. Dark counterpart: Stone 950 (`background-dark`).
-- **Page White** (`surface`): Cards and fields. Dark counterpart: Stone 900 (`surface-dark`).
-- **Raised White** (`surface-raised`): Layers above a surface, such as the BottomDrawer and ConfirmDialog. Dark counterpart: `surface-raised-dark`.
-- **Muted** (`muted`): The segmented track, hover fills (rows, secondary button, top-bar avatar). Dark counterpart: `muted-dark`.
+- **Cream** (`background`): Page background and the translucent bottom nav. Dark counterpart: stone near-black (`background-dark`).
+- **Light Cream** (`surface`): Cards and fields, lighter than the page; never pure white. Dark counterpart: `surface-dark`.
+- **Raised Cream** (`surface-raised`): Layers above a surface, such as the BottomDrawer and ConfirmDialog. Dark counterpart: `surface-raised-dark`.
+- **Muted** (`muted`): A warm-tinted fill for the segmented track, hover fills (rows, secondary button, top-bar avatar). Dark counterpart: `muted-dark`.
 - **Ledger Ink** (`text`): Body text. Dark counterpart: `text-dark`.
-- **Muted Stone** (`text-muted`): Labels and inactive nav items. Dark counterpart: `text-muted-dark`.
+- **Muted Ink** (`text-muted`): Labels and inactive nav items. Dark counterpart: `text-muted-dark`.
 - **Hairline** (`border`): 1px borders on bars, cards and dividers. Dark counterpart: `border-dark`.
 - **Control Edge** (`border-strong`): 1px edges of form controls, at least 3:1 against the surface. Dark counterpart: `border-strong-dark`.
 - **On primary** (`on-primary`): Text on primary fills. Dark counterpart: `on-primary-dark`.
@@ -201,9 +201,9 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 ## Typography
 
 **Display Font:** none
-**Body Font:** DM Sans (with system-ui, -apple-system, sans-serif), weights 400, 500, 600 loaded via @fontsource/dm-sans.
+**Body Font:** Geist Mono (with ui-monospace, monospace fallback), a variable font loaded via @fontsource-variable/geist-mono, used for body, headings, titles and amounts.
 
-**Character:** A single clean humanist sans. Hierarchy comes from weight and a short size scale (0.75rem `--font-size-xs`, 0.875rem `--font-size-sm`, 1rem `--font-size-base`, 1.25rem `--font-size-lg`, 1.75rem `--font-size-xl`, plus the 2.25rem hero step) rather than a second family.
+**Character:** A single monospaced family, so amounts and columns align naturally. Hierarchy comes from weight and a short size scale (0.75rem `--font-size-xs`, 0.875rem `--font-size-sm`, 1rem `--font-size-base`, 1.25rem `--font-size-lg`, 1.75rem `--font-size-xl`, plus the 2.25rem hero step) rather than a second family.
 
 ### Hierarchy
 
@@ -211,7 +211,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 - **Title** (600, 1.25rem): The "Gastar" wordmark text on the login screen.
 - **Page title** (500, 1.75rem, 1.2): The `PageHeader` h1 on every screen.
 - **Body** (400, 1rem, 1.5): Default text and fields.
-- **Label** (400, 0.875rem): Form labels in muted stone, and error text in the negative color. Buttons use 0.875rem at weight 500.
+- **Label** (400, 0.875rem): Form labels in muted ink, and error text in the negative color. Buttons use 0.875rem at weight 500.
 - **Hero** (`--font-size-hero`, 2.25rem): The large balance or amount figure on the dashboard, account detail and movement detail, sized `clamp(1.5rem, 9vw, var(--font-size-hero))` so it shrinks on narrow screens.
 
 ### Named Rules
@@ -220,11 +220,11 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 
 ## Layout
 
-Mobile-first single column with no layout breakpoints; no narrow-width tweaks. `.content` shares the `--content-width` (560px) column with the bottom nav; the nav spans the full width with a border (translucent: `--bg` at 92% with a 12px backdrop blur) and its inner items are inset (inline padding of `space-5` inside the column, as page content). `.content` sets `--gutter` (`space-5`) as its inline padding; the page top bar bleeds out to the content edges with a negative `--gutter` margin. The segmented control options shrink (`min-width: 0`, `space-1` side padding), wrap labels with `overflow-wrap: anywhere` instead of clipping, and keep the 2.75rem hit area. The page top bar is sticky (z-index 9, inside `.content`) only on viewports at least 40em tall (`@media (min-height: 40em)`; `em` is the browser text size, so large text or zoom turns it off and the bar scrolls away); under the same query `html` has a `scroll-padding-top` so focused elements stay clear of it, and the bottom nav is fixed with a `safe-area-inset-bottom` allowance (z-index 10). Content bottom padding is `calc(space-8 + 4.5rem + env(safe-area-inset-bottom))` so nothing hides under the nav. The login screen is a centered column with safe-area padding on all four sides. Spacing is a short rem scale (`space-1` to `space-6`, plus `space-8`); page padding is `space-5`. The browser theme color follows the page background (Stone 50 / Stone 950), the PWA manifest `theme_color` is Forest (`#14532d`) and its background is Stone 50.
+Mobile-first single column with no layout breakpoints; no narrow-width tweaks. `.content` shares the `--content-width` (560px) column with the bottom nav; the nav spans the full width with a border (translucent: `--bg` at 92% with a 12px backdrop blur) and its inner items are inset (inline padding of `space-5` inside the column, as page content). `.content` sets `--gutter` (`space-5`) as its inline padding; the page top bar bleeds out to the content edges with a negative `--gutter` margin. The segmented control options shrink (`min-width: 0`, `space-1` side padding), wrap labels with `overflow-wrap: anywhere` instead of clipping, and keep the 2.75rem hit area. The page top bar is sticky (z-index 9, inside `.content`) only on viewports at least 40em tall (`@media (min-height: 40em)`; `em` is the browser text size, so large text or zoom turns it off and the bar scrolls away); under the same query `html` has a `scroll-padding-top` so focused elements stay clear of it, and the bottom nav is fixed with a `safe-area-inset-bottom` allowance (z-index 10). Content bottom padding is `calc(space-8 + 4.5rem + env(safe-area-inset-bottom))` so nothing hides under the nav. The login screen is a centered column with safe-area padding on all four sides. Spacing is a short rem scale (`space-1` to `space-6`, plus `space-8`); page padding is `space-5`. The browser theme color follows the page background (cream / stone near-black); the PWA manifest `theme_color` is a cream (`#f6efe1`).
 
 ## Elevation & Depth
 
-Depth comes from layering first, shadow second. The page (Stone 50) is the base; lists and sections sit on surface cards (Page White) with a 1px hairline border; sheets sit on the raised surface. Shadows are soft and small, and money direction colours are never affected by them.
+Depth comes from layering first, shadow second. The page (cream) is the base; lists and sections sit on surface cards (lighter cream) with a 1px hairline border; sheets sit on the raised surface. Shadows are soft and small, and money direction colours are never affected by them.
 
 ### Elevation Scale
 
@@ -235,7 +235,7 @@ Depth comes from layering first, shadow second. The page (Stone 50) is the base;
 
 ### Dark Theme
 
-Dark does not rely on black shadows, which vanish on dark backgrounds. Elevation is expressed by lighter surface steps (`--bg` < `--surface` < `--surface-raised`), the hairline border as a subtle edge, and a faint inset top highlight on raised layers; the drop shadows are kept light-touch except the FAB lift.
+Dark (stone near-black with emerald primary) does not rely on black shadows, which vanish on dark backgrounds. Elevation is expressed by lighter surface steps (`--bg` < `--surface` < `--surface-raised`), the hairline border as a subtle edge, and a faint inset top highlight on raised layers; the drop shadows are kept light-touch except the FAB lift.
 
 ### Row Feedback
 
