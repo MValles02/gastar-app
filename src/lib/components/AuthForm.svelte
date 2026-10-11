@@ -57,16 +57,4 @@
 	.form.busy {
 		opacity: 0.55;
 	}
-
-	.form :global(.field) {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
-	}
-
-	.form :global(.hint) {
-		margin: 0;
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
-	}
 </style>

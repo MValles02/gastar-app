@@ -51,7 +51,12 @@
 				}}
 			>
 				<input type="hidden" name="email" value={email} />
-				<Button type="submit" variant="outline" class="w-full" aria-disabled={seconds > 0}>
+				<Button
+					type="submit"
+					variant="outline"
+					class="w-full aria-disabled:opacity-50"
+					aria-disabled={seconds > 0}
+				>
 					{seconds > 0 ? `Reenviar en ${clock}` : 'Reenviar'}
 				</Button>
 				{#if sent}

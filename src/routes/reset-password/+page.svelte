@@ -4,7 +4,7 @@
 	import AuthForm from '$lib/components/AuthForm.svelte';
 	import AuthPage from '$lib/components/AuthPage.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import ErrorText from '$lib/components/ErrorText.svelte';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
 	import * as Empty from '$lib/components/ui/empty/index.js';
@@ -50,8 +50,8 @@
 
 		<AuthForm action="?/reset" submitLabel="Guardar" onupdated={() => (password = '')}>
 			<input type="hidden" name="token" value={data.token} />
-			<div class="field">
-				<label for="password">Contraseña</label>
+			<Field.Field>
+				<Field.Label for="password">Contraseña</Field.Label>
 				<PasswordInput
 					bind:value={password}
 					autocomplete="new-password"
@@ -60,11 +60,11 @@
 					describedby={form?.passwordError ? 'password-error' : 'password-hint'}
 				/>
 				{#if form?.passwordError}
-					<ErrorText id="password-error" message={form.passwordError} />
+					<Field.Error id="password-error">{form.passwordError}</Field.Error>
 				{:else}
-					<p class="hint" id="password-hint">Mínimo 8 caracteres.</p>
+					<Field.Description id="password-hint">Mínimo 8 caracteres.</Field.Description>
 				{/if}
-			</div>
+			</Field.Field>
 		</AuthForm>
 	</AuthPage>
 {/if}

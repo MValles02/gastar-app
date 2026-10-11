@@ -276,6 +276,7 @@ Shared components live in `src/lib/components/`.
 - **Input style:** Surface background, 1px control-edge border, 0.625rem radius, padding `space-2` by `space-3`, full width, 2.75rem minimum height (inputs and selects).
 - **Focus-visible:** Border turns primary and a 2px primary outline sits at 1px offset .
 - **Field:** A label (flex column, `space-1` gap, small muted text) wrapping the control, plus an optional error line below: small text in the negative color with `role="alert"`, linked by an optional `errorId`.
+- **Auth forms:** Use the generated shadcn parts with stock styling: `Field.Field` per field with `Field.Label for=`, `Input` (2rem tall, `border-input`, 3px ring on focus), `Field.Error` (`role="alert"`, destructive text, linked by `aria-describedby`) and `Field.Description` for hints. `PasswordInput` is an `InputGroup` with an inline-end ghost icon `InputGroup.Button` toggling visibility (`aria-pressed`).
 
 ### Segmented Control
 
