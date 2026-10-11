@@ -19,6 +19,7 @@
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -236,9 +237,11 @@
 			{#each data.groups as g (g.day)}
 				<section aria-labelledby="day-{g.day}">
 					<h2 id="day-{g.day}">{g.heading}</h2>
-					<ul class="list-card">
+					<Item.Group
+						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+					>
 						{#each g.items as m (m.id)}
-							<li>
+							<div role="listitem">
 								<MovementRow
 									m={{
 										...m,
@@ -249,9 +252,9 @@
 										}${m.categoryName ? ` · ${m.categoryName}` : ''}`
 									}}
 								/>
-							</li>
+							</div>
 						{/each}
-					</ul>
+					</Item.Group>
 				</section>
 			{/each}
 		</div>

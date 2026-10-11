@@ -129,10 +129,12 @@
 			{#if s.limits.length}
 				<section aria-labelledby="limits-heading">
 					<div class="section-head"><h2 id="limits-heading">Límites por categoría</h2></div>
-					<ul class="list-card">
+					<Item.Group
+						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+					>
 						{#each s.limits as l (l.categoryId)}
 							{@const pct = Math.min(100, Math.floor((l.spent * 100) / l.amount))}
-							<li class="limit">
+							<div role="listitem" class="limit">
 								<span class="name">
 									<span class="title">{l.name}</span>
 									{#if l.over}
@@ -161,9 +163,9 @@
 								>
 									<span class="fill" style:width="{pct}%"></span>
 								</div>
-							</li>
+							</div>
 						{/each}
-					</ul>
+					</Item.Group>
 				</section>
 			{/if}
 		{:else}
@@ -203,7 +205,7 @@
 			<!-- Each row opens the detail, where "Registrar pago" lives. -->
 			{#snippet rule(r: (typeof data.incomes)[number])}
 				{@const DueIcon = dueIcon[r.status]}
-				<li class="rule">
+				<div role="listitem" class="rule">
 					<Item.Root>
 						{#snippet child({ props })}
 							<a href={resolve(`/plan/recurring/${r.id}`)} {...props}>
@@ -235,7 +237,7 @@
 							</a>
 						{/snippet}
 					</Item.Root>
-				</li>
+				</div>
 			{/snippet}
 
 			<section aria-labelledby="income-heading">
@@ -244,9 +246,11 @@
 					<a class="add" href={resolve('/plan/recurring/new?type=income')}>Agregar</a>
 				</div>
 				{#if data.incomes.length}
-					<ul class="list-card">
+					<Item.Group
+						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+					>
 						{#each data.incomes as r (r.id)}{@render rule(r)}{/each}
-					</ul>
+					</Item.Group>
 				{:else}
 					<p class="muted">Sin ingresos fijos.</p>
 				{/if}
@@ -258,9 +262,11 @@
 					<a class="add" href={resolve('/plan/recurring/new')}>Agregar</a>
 				</div>
 				{#if data.outcomes.length}
-					<ul class="list-card">
+					<Item.Group
+						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+					>
 						{#each data.outcomes as r (r.id)}{@render rule(r)}{/each}
-					</ul>
+					</Item.Group>
 				{:else}
 					<p class="muted">Sin pagos fijos.</p>
 				{/if}
@@ -269,9 +275,11 @@
 			{#if data.inactive.length}
 				<section aria-labelledby="inactive-heading">
 					<div class="section-head"><h2 id="inactive-heading">Inactivos</h2></div>
-					<ul class="list-card">
+					<Item.Group
+						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+					>
 						{#each data.inactive as r (r.id)}
-							<li class="rule inactive">
+							<div role="listitem" class="rule inactive">
 								<Item.Root>
 									{#snippet child({ props })}
 										<a href={resolve(`/plan/recurring/${r.id}`)} {...props}>
@@ -297,9 +305,9 @@
 										</a>
 									{/snippet}
 								</Item.Root>
-							</li>
+							</div>
 						{/each}
-					</ul>
+					</Item.Group>
 				</section>
 			{/if}
 		{/if}

@@ -97,7 +97,9 @@ test('an ARS whole amount shows without decimals everywhere', async ({ page }) =
 	expect(norm(await page.locator('.hero-amount').textContent())).toMatch(/^\$\s[\d.]+$/);
 
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
-	const acct = page.locator('li', { hasText: 'Otra cuenta pesos' }).locator('.row-amount');
+	const acct = page
+		.locator('[role="listitem"]', { hasText: 'Otra cuenta pesos' })
+		.locator('.row-amount');
 	expect(norm(await acct.textContent())).toMatch(/^\$\s[\d.]+$/);
 });
 

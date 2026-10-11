@@ -16,7 +16,7 @@ import {
 // reads his ARS totals, so parallel workers stay independent.
 test.describe.configure({ timeout: 60_000 });
 
-const rule = (page: Page, text: string) => page.locator('li.rule', { hasText: text });
+const rule = (page: Page, text: string) => page.locator('.rule', { hasText: text });
 const checkbox = (page: Page) => page.getByRole('checkbox', { name: 'Repetir cada mes' });
 /** A uniquely described ARS outcome as `otro`, filled but not submitted. */
 const fillOutcome = (page: Page, description: string, amount: string) =>

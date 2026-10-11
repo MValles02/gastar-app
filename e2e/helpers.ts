@@ -112,7 +112,7 @@ export async function deleteMovements(page: Page, baseURL: string, query: string
 export async function deleteRules(page: Page, baseURL: string, description: string) {
 	await page.goto('/plan');
 	const hrefs = await page
-		.locator('li.rule', { hasText: description })
+		.locator('.rule', { hasText: description })
 		.locator('a[data-slot="item"]')
 		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
 	for (const href of hrefs) await postDelete(page, baseURL, href);

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as Item from '$lib/components/ui/item/index.js';
 	import { groupedAmount } from '$lib/amount-input';
 	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 	import { onMount, tick, untrack } from 'svelte';
@@ -127,9 +128,11 @@
 	</p>
 
 	{#if fixedRules.length > 0}
-		<ul class="list-card checks">
+		<Item.Group
+			class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1) divide-y divide-(--border)"
+		>
 			{#each fixedRules as r (r.id)}
-				<li>
+				<div role="listitem">
 					<label class="check-row">
 						<input type="hidden" name="shown" value={r.id} />
 						<Checkbox name="keep" value={r.id} bind:checked={keep[r.id]} />
@@ -139,16 +142,18 @@
 						</span>
 						<span class="amount"><Money cents={r.amount} currency={data.currency} /></span>
 					</label>
-				</li>
+				</div>
 			{/each}
-		</ul>
+		</Item.Group>
 	{/if}
 
 	{#if candidates.length > 0}
 		<h3 class="sub-head">Detectamos que se repiten</h3>
-		<ul class="list-card checks">
+		<Item.Group
+			class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1) divide-y divide-(--border)"
+		>
 			{#each candidates as c (c.key)}
-				<li>
+				<div role="listitem">
 					<label class="check-row">
 						<Checkbox name="candidate" value={c.key} bind:checked={accepted[c.key]} />
 						<span class="text">
@@ -157,9 +162,9 @@
 						</span>
 						<span class="amount"><Money cents={c.amount} currency={data.currency} /></span>
 					</label>
-				</li>
+				</div>
 			{/each}
-		</ul>
+		</Item.Group>
 	{/if}
 
 	{#each rows as row, i (i)}
@@ -332,7 +337,7 @@
 	<section class="step" hidden={js && step !== 4} aria-labelledby="s4">
 		<p class="eyebrow">Paso 4 de {STEPS.length}</p>
 		<h2 id="s4" tabindex="-1">Tu plan para {data.monthName}</h2>
-		<dl class="list-card equation">
+		<dl class="detail-card equation">
 			<div>
 				<dt>Ingresos</dt>
 				<dd><Money cents={income} currency={data.currency} kind="income" /></dd>
@@ -368,9 +373,11 @@
 				<Button type="button" variant="link" onclick={useSuggested}>Usar sugeridos</Button>
 			{/if}
 		</div>
-		<ul class="list-card limits">
+		<Item.Group
+			class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1) divide-y divide-(--border)"
+		>
 			{#each limitCategories as c (c.id)}
-				<li>
+				<div role="listitem">
 					<Field.Field class="p-4">
 						<Field.Label for="limit_{c.id}">
 							<span class="limit-name">
@@ -390,9 +397,9 @@
 							{@attach groupedAmount}
 						/>
 					</Field.Field>
-				</li>
+				</div>
 			{/each}
-		</ul>
+		</Item.Group>
 		{#if limitTotal > 0}
 			<p class="muted xs">
 				Asignado {money(limitTotal)} · sin asignar <Money
@@ -528,11 +535,6 @@
 	h3 {
 		font-size: var(--font-size-sm);
 		font-weight: 600;
-	}
-
-	.checks li + li,
-	.limits li + li {
-		border-top: 1px solid var(--border);
 	}
 
 	.check-row {

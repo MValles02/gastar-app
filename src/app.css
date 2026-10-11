@@ -307,8 +307,8 @@
 	border: 0;
 }
 
-/* Shared list container: a surface card holding a <ul> of Item rows. */
-.list-card {
+/* Surface card for <dl> detail lists */
+.detail-card {
 	list-style: none;
 	padding: 0;
 	overflow: hidden;
@@ -316,29 +316,6 @@
 	border: 1px solid var(--border);
 	border-radius: var(--radius-card);
 	box-shadow: var(--shadow-1);
-}
-
-/* "+ Nueva …" row at the end of a list (Cuentas, Categorías). */
-.add-row {
-	display: flex;
-	align-items: center;
-	gap: var(--space-3);
-	min-height: 3.5rem;
-	margin-top: var(--space-3);
-	padding: var(--space-2) var(--space-4);
-	border: 1px dashed var(--border);
-	border-radius: var(--radius-card);
-	color: var(--text-muted);
-	font-size: var(--font-size-sm);
-	font-weight: 500;
-	text-decoration: none;
-}
-
-@media (hover: hover) {
-	.add-row:hover {
-		color: var(--text);
-		border-color: var(--primary);
-	}
 }
 
 /* Section heading with a trailing item (link or total). */
