@@ -3,7 +3,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
+	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import MonthNav from '$lib/components/MonthNav.svelte';
 	import Money from '$lib/components/Money.svelte';
@@ -44,7 +44,12 @@
 	</div>
 
 	{#if !data.hasCurrency}
-		<EmptyState icon="accounts">Sin cuentas en {data.currency}.</EmptyState>
+		<Empty.Root>
+			<Empty.Header>
+				<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
+				<Empty.Description>Sin cuentas en {data.currency}.</Empty.Description>
+			</Empty.Header>
+		</Empty.Root>
 		<div class="empty-action">
 			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 		</div>

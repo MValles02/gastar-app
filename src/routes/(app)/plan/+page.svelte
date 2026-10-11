@@ -11,7 +11,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
+	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
@@ -66,7 +66,12 @@
 	{/if}
 
 	{#if !data.hasCurrency}
-		<EmptyState icon="accounts">No tenés cuentas en {CURRENCY_NAME[data.currency]}.</EmptyState>
+		<Empty.Root>
+			<Empty.Header>
+				<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
+				<Empty.Description>No tenés cuentas en {CURRENCY_NAME[data.currency]}.</Empty.Description>
+			</Empty.Header>
+		</Empty.Root>
 		<div class="center"><Button href={resolve('/accounts/new')}>Crear cuenta</Button></div>
 	{:else}
 		{#if data.plan.summary}
@@ -180,9 +185,14 @@
 		{/if}
 
 		{#if !data.incomes.length && !data.outcomes.length && !data.inactive.length}
-			<EmptyState icon="plan">
-				No tenés pagos ni ingresos fijos en {CURRENCY_NAME[data.currency]}.
-			</EmptyState>
+			<Empty.Root>
+				<Empty.Header>
+					<Empty.Media variant="icon"><Icon name="plan" size="1rem" /></Empty.Media>
+					<Empty.Description
+						>No tenés pagos ni ingresos fijos en {CURRENCY_NAME[data.currency]}.</Empty.Description
+					>
+				</Empty.Header>
+			</Empty.Root>
 			<div class="center actions">
 				<Button href={resolve('/plan/recurring/new')}>Agregar pago fijo</Button>
 				<Button href={resolve('/plan/recurring/new?type=income')} variant="outline">

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import EmptyState from '$lib/components/EmptyState.svelte';
+	import * as Empty from '$lib/components/ui/empty/index.js';
 	import AlertCircle from '@lucide/svelte/icons/circle-alert';
 	import Clock from '@lucide/svelte/icons/clock';
 	import Icon from '$lib/components/Icon.svelte';
@@ -21,7 +21,12 @@
 
 <div class="page">
 	{#if data.groups.length === 0}
-		<EmptyState icon="bell">Estás al día.</EmptyState>
+		<Empty.Root>
+			<Empty.Header>
+				<Empty.Media variant="icon"><Icon name="bell" size="1rem" /></Empty.Media>
+				<Empty.Description>Estás al día.</Empty.Description>
+			</Empty.Header>
+		</Empty.Root>
 	{:else}
 		{#each data.groups as g (g.currency)}
 			<section class="group" aria-labelledby="alerts-{g.currency}">

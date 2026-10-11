@@ -128,10 +128,11 @@ components:
     backgroundColor: '{colors.background}'
     textColor: '{colors.text}'
     height: '2.25rem'
-  empty-state-badge:
-    textColor: '{colors.primary}'
-    rounded: '{rounded.pill}'
-    size: '3.5rem'
+  empty-media-icon:
+    backgroundColor: '{colors.muted}'
+    textColor: '{colors.text}'
+    rounded: '{rounded.md}'
+    size: '2rem'
   top-bar:
     backgroundColor: '{colors.background}'
     textColor: '{colors.text}'
@@ -154,7 +155,7 @@ The system is quiet and layered. Tonal surfaces, hairline borders and a small th
 - Warm cream neutrals with an emerald primary in light, stone near-black with a deeper emerald primary in dark, switched by token swap only (`light-dark()` in `app.css`).
 - One typeface (Geist Mono) everywhere, body, headings, titles and amounts, with weight, not size, doing most of the hierarchy work.
 - Lists and sections sit on surface cards over the page; a three-step elevation scale (`--shadow-1`, `--shadow-2`, `--shadow-lift`).
-- 0.625rem radius buttons and fields, 0.875rem cards and FAB; pills only for the top-bar avatar and bell badge and the empty-state badge.
+- 0.625rem radius buttons and fields, 0.875rem cards and FAB; pills only for the top-bar avatar and bell badge.
 - Tabular numerals for every amount.
 
 ## Colors
@@ -296,7 +297,7 @@ A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) of radio option
 - **Profile:** One `Card` groups the user name and email, an "Administrar" link section (a `nav` with the "Cuentas" and "Categorías" links: 2.75rem tall, text colour, weight 500), the theme control and the "Cerrar sesión" button as separate sections.
 - **Reportes charts:** The 6-month income and outcome bars and the category donut are `aria-hidden` SVG/CSS; their text equivalents are the per-month link `aria-label` ("{mes}: ingresos X, gastos Y") and the visible slice list (name, %, amount). Tokens: income bar `--positive`, outcome bar `--negative` (income always left, outcome right, as in the legend, so colour is not the only cue), slices `--swatch-green`, `--swatch-orange`, `--swatch-blue`, `--swatch-plum` and `--text-muted` for "Otros". Bars keep full opacity (non-text 3:1); the selected month has a bold label and `aria-current="true"`. The bar row bleeds to the card edges so each month link is at least 2.75rem wide at 320px.
 - **Plan rule row (`/plan`):** A list card (surface, hairline border, `radius-card`) of rows; each row is a link (min 2.75rem, `ListRow` padding) with the description (0.875rem, 500), a muted 0.75rem line "status · Día N · account" and a trailing `Money`. An unpaid active rule adds a separate "Registrar" link (text colour, underlined, 600, 2.75rem tall) that wraps under the row at large text sizes. Status is always text, never colour alone.
-- **EmptyState:** A centered column: a 3.5rem pill circle tinted with `color-mix(in srgb, var(--primary) 8%, transparent)` holding a primary-colored icon, over muted text. Used by the placeholder pages.
+- **Empty (shadcn `Empty`):** `Empty.Root > Empty.Header > Empty.Media variant="icon"` (2rem muted rounded square, 1rem icon) plus `Empty.Description` (muted text), centered; action `Button`s sit below it. Full-screen status pages (check email, expired link) wrap `Empty.Root class="min-h-dvh"` in a `main`, with `Empty.Title` as the level-1 heading and the actions in `Empty.Content`.
 
 ### Icon and Wordmark
 

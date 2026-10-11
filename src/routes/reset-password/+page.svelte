@@ -7,7 +7,7 @@
 	import ErrorText from '$lib/components/ErrorText.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
-	import StatusMessage from '$lib/components/StatusMessage.svelte';
+	import * as Empty from '$lib/components/ui/empty/index.js';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -22,13 +22,23 @@
 </svelte:head>
 
 {#if expired}
-	<StatusMessage icon="clock" title="Enlace vencido">
-		<p class="body">Pedí uno nuevo.</p>
-		<div class="actions">
-			<Button href={resolve('/forgot-password')} class="w-full">Pedir otro</Button>
-			<a class="link" href={resolve('/login')}>Ir a Ingresar</a>
-		</div>
-	</StatusMessage>
+	<main>
+		<Empty.Root class="min-h-dvh">
+			<Empty.Header>
+				<Empty.Media variant="icon" aria-hidden="true"
+					><Icon name="clock" size="1rem" /></Empty.Media
+				>
+				<Empty.Title role="heading" aria-level={1}>Enlace vencido</Empty.Title>
+			</Empty.Header>
+			<Empty.Content>
+				<p class="body">Pedí uno nuevo.</p>
+				<div class="actions">
+					<Button href={resolve('/forgot-password')} class="w-full">Pedir otro</Button>
+					<a class="link" href={resolve('/login')}>Ir a Ingresar</a>
+				</div>
+			</Empty.Content>
+		</Empty.Root>
+	</main>
 {:else}
 	<AuthPage>
 		<a class="back" href={resolve('/login')}>

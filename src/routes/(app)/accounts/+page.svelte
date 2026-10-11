@@ -3,7 +3,8 @@
 	import { toIconKey, toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import Checkbox from '$lib/components/Checkbox.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
+	import * as Empty from '$lib/components/ui/empty/index.js';
+	import Icon from '$lib/components/Icon.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
@@ -31,9 +32,14 @@
 
 <div class="page">
 	{#if !data.hasAnyAccount}
-		<EmptyState icon="accounts">
-			Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos.
-		</EmptyState>
+		<Empty.Root>
+			<Empty.Header>
+				<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
+				<Empty.Description
+					>Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos.</Empty.Description
+				>
+			</Empty.Header>
+		</Empty.Root>
 		<div class="empty-action">
 			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 		</div>
@@ -50,7 +56,12 @@
 		</FilterBar>
 
 		{#if data.groups.length === 0}
-			<EmptyState icon="search">No hay cuentas que coincidan con los filtros.</EmptyState>
+			<Empty.Root>
+				<Empty.Header>
+					<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
+					<Empty.Description>No hay cuentas que coincidan con los filtros.</Empty.Description>
+				</Empty.Header>
+			</Empty.Root>
 			<div class="empty-action">
 				<a class="clear" href={resolve('/accounts')}>Limpiar filtros</a>
 			</div>

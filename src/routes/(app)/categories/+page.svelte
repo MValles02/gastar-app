@@ -3,7 +3,7 @@
 	import { toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import Checkbox from '$lib/components/Checkbox.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
+	import * as Empty from '$lib/components/ui/empty/index.js';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
@@ -24,9 +24,14 @@
 
 <div class="page">
 	{#if !data.hasAnyCategory}
-		<EmptyState icon="categories">
-			Todavía no tenés categorías. Creá la primera para clasificar tus movimientos.
-		</EmptyState>
+		<Empty.Root>
+			<Empty.Header>
+				<Empty.Media variant="icon"><Icon name="categories" size="1rem" /></Empty.Media>
+				<Empty.Description
+					>Todavía no tenés categorías. Creá la primera para clasificar tus movimientos.</Empty.Description
+				>
+			</Empty.Header>
+		</Empty.Root>
 		<div class="empty-action">
 			<Button href={resolve('/categories/new')}>Crear categoría</Button>
 		</div>
@@ -36,7 +41,12 @@
 		</FilterBar>
 
 		{#if data.categories.length === 0}
-			<EmptyState icon="search">No hay categorías que coincidan con la búsqueda.</EmptyState>
+			<Empty.Root>
+				<Empty.Header>
+					<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
+					<Empty.Description>No hay categorías que coincidan con la búsqueda.</Empty.Description>
+				</Empty.Header>
+			</Empty.Root>
 			<div class="empty-action">
 				<a class="clear" href={resolve('/categories')}>Limpiar filtros</a>
 			</div>

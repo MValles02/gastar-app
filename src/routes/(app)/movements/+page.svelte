@@ -9,7 +9,8 @@
 	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import EmptyState from '$lib/components/EmptyState.svelte';
+	import * as Empty from '$lib/components/ui/empty/index.js';
+	import Icon from '$lib/components/Icon.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
@@ -185,19 +186,34 @@
 
 	{#if data.groups.length === 0}
 		{#if data.page > 1}
-			<EmptyState icon="search">Sin más movimientos.</EmptyState>
+			<Empty.Root>
+				<Empty.Header>
+					<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
+					<Empty.Description>Sin más movimientos.</Empty.Description>
+				</Empty.Header>
+			</Empty.Root>
 			<div class="empty-action">
 				<Button href={resolve(`/movements?${firstPageQuery}`)} variant="outline">
 					Ir a la primera página
 				</Button>
 			</div>
 		{:else if data.activeCount === 0}
-			<EmptyState icon="movements">Sin movimientos.</EmptyState>
+			<Empty.Root>
+				<Empty.Header>
+					<Empty.Media variant="icon"><Icon name="movements" size="1rem" /></Empty.Media>
+					<Empty.Description>Sin movimientos.</Empty.Description>
+				</Empty.Header>
+			</Empty.Root>
 			<div class="empty-action">
 				<Button href={resolve('/movements/new')}>Nuevo movimiento</Button>
 			</div>
 		{:else}
-			<EmptyState icon="search">Sin resultados.</EmptyState>
+			<Empty.Root>
+				<Empty.Header>
+					<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
+					<Empty.Description>Sin resultados.</Empty.Description>
+				</Empty.Header>
+			</Empty.Root>
 			<div class="empty-action">
 				<Button href={resolve('/movements')} variant="outline">Limpiar filtros</Button>
 			</div>
