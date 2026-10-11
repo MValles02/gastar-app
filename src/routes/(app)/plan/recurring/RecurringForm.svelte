@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { groupedAmount } from '$lib/amount-input';
 	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import { enhance } from '$app/forms';
@@ -87,6 +88,7 @@
 				placeholder={currency === 'USD' ? '0,00' : '0'}
 				autocomplete="off"
 				bind:value={amount}
+				{@attach groupedAmount}
 				aria-invalid={errors.amount ? 'true' : undefined}
 				aria-describedby={errors.amount ? 'ramount-error' : undefined}
 			/>

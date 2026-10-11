@@ -51,7 +51,7 @@ test('an ARS amount with decimals is rejected and the value kept', async ({ page
 	});
 	await save(page);
 	await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
-	await expect(page.locator('input[name="amount"]')).toHaveValue('1.500,50');
+	await expect(page.locator('input[name="amount"]')).toHaveValue(/^1\.?500,50$/);
 	await expect(page).toHaveURL(/\/movements\/new$/);
 });
 
@@ -154,6 +154,23 @@ test('account initial balance: ARS whole only, USD keeps cents, edit prefills th
 	// The grouped prefill saves unchanged.
 	await page.getByRole('button', { name: 'Guardar cambios' }).click();
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
+});
+
+test('typing into a grouped amount ungroups it and blur regroups it', async ({ page }) => {
+	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	await page.getByRole('link', { name: /Otra cuenta pesos/ }).click();
+	await page.getByRole('link', { name: 'Editar' }).click();
+	const balance = page.getByLabel('Saldo inicial');
+	// JS-only enhancement; nothing is saved, so the seeded 500.000 stays.
+	await balance.click();
+	await page.keyboard.press('End');
+	await page.keyboard.type('1');
+	await expect(balance).toHaveValue('5000001');
+	await page.keyboard.press('Tab');
+	await expect(balance).toHaveValue('5.000.001');
+	// Replacing a selected grouped value (as fill does) replaces it, it does not prepend.
+	await balance.fill('1.000');
+	await expect(balance).toHaveValue('1.000');
 });
 
 test('the transfer preview rounds half up into ARS and keeps cents into USD', async ({ page }) => {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { groupedAmount } from '$lib/amount-input';
 	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 	import { onMount, tick, untrack } from 'svelte';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
@@ -186,6 +187,7 @@
 							placeholder={zero}
 							autocomplete="off"
 							bind:value={row.amount}
+							{@attach groupedAmount}
 						/>
 					</Field.Field>
 					<Field.Field>
@@ -285,6 +287,7 @@
 				placeholder={zero}
 				autocomplete="off"
 				bind:value={extraIncome}
+				{@attach groupedAmount}
 			/>
 		</Field.Field>
 		<p class="total">Ingresos <strong><Money cents={income} currency={data.currency} /></strong></p>
@@ -319,6 +322,7 @@
 					placeholder={zero}
 					autocomplete="off"
 					bind:value={savingsFixed}
+					{@attach groupedAmount}
 				/>
 			</Field.Field>
 		{/if}
@@ -383,6 +387,7 @@
 							autocomplete="off"
 							placeholder="Sin límite"
 							bind:value={limits[c.id]}
+							{@attach groupedAmount}
 						/>
 					</Field.Field>
 				</li>
