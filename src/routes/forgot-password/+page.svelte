@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
 	import AuthForm from '$lib/components/AuthForm.svelte';
 	import AuthPage from '$lib/components/AuthPage.svelte';
 	import CheckEmail from '$lib/components/CheckEmail.svelte';
@@ -11,7 +10,8 @@
 
 	let { form }: { form: ActionData } = $props();
 
-	const initialEmail = $derived(form?.email ?? page.url.searchParams.get('email') ?? '');
+	// Never read the email from the URL: it would land in access logs and history.
+	const initialEmail = $derived(form?.email ?? '');
 </script>
 
 <svelte:head>
