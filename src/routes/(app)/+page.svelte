@@ -16,6 +16,7 @@
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { formatMoney } from '$lib/money';
 	import * as Item from '$lib/components/ui/item/index.js';
+	import { swatchVar } from '$lib/appearance';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -129,10 +130,7 @@
 						<Card.Content>
 							<ul class="list">
 								{#each data.topCategories as cat (cat.id)}
-									<li
-										class="cat"
-										style:--tone={cat.color ? `var(--swatch-${cat.color})` : 'var(--text)'}
-									>
+									<li class="cat" style:--tone={swatchVar(cat.color)}>
 										<div class="cat-row">
 											<span class="dot" aria-hidden="true"></span>
 											<span class="ellipsis">{cat.name}</span>
