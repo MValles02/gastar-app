@@ -2,13 +2,11 @@
 	import { NAME_MAX_LENGTH } from '$lib/limits';
 	import { tick, untrack } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { resolve } from '$app/paths';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Field from '$lib/components/ui/field/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
 	import ColorPicker from '$lib/components/ColorPicker.svelte';
+	import FormActions from '$lib/components/FormActions.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import TextRow from '$lib/components/TextRow.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import type { SwatchKey } from '$lib/appearance';
 
@@ -47,56 +45,48 @@
 <form method="POST" use:enhance class="form" novalidate>
 	<ul class="card">
 		<li class:bad={errors.name}>
-			<Field.Field class="p-4">
-				<Field.Label for="name">Nombre</Field.Label>
-				<Input
-					id="name"
-					name="name"
-					type="text"
-					maxlength={NAME_MAX_LENGTH}
-					required
-					autocomplete="off"
-					placeholder="Agregar"
-					bind:value={name}
-					aria-invalid={errors.name ? 'true' : undefined}
-					aria-describedby={errors.name ? 'name-error' : undefined}
-				/>
-				{#if errors.name}
-					<Field.Error id="name-error" class="flex items-start gap-2">
-						<Icon name="alert" size="1rem" />{errors.name}
-					</Field.Error>
-				{/if}
-			</Field.Field>
+			<TextRow
+				id="name"
+				name="name"
+				label="Nombre"
+				bind:value={name}
+				placeholder="Agregar"
+				maxlength={NAME_MAX_LENGTH}
+				required
+				error={errors.name}
+				errorId="name-error"
+			/>
+		</li>
+
+		<li class:bad={errors.kind}>
+			<div class="row">
+				<Field.Label id="kind-label" class="text-base font-normal">Tipo</Field.Label>
+				<div class="seg">
+					<SegmentedControl
+						name="kind"
+						options={kindOptions}
+						bind:value={kind}
+						labelledby="kind-label"
+					/>
+				</div>
+			</div>
+			{#if errors.kind}
+				<p class="error et" role="alert"><Icon name="alert" size="1rem" />{errors.kind}</p>
+			{/if}
+		</li>
+
+		<li class:bad={errors.color}>
+			<ColorPicker name="color" legend="Color" bind:value={color} />
+			{#if errors.color}
+				<p class="error et" role="alert"><Icon name="alert" size="1rem" />{errors.color}</p>
+			{/if}
 		</li>
 	</ul>
 
-	<div class="field">
-		<span id="kind-label" class="k">Tipo</span>
-		<SegmentedControl name="kind" options={kindOptions} bind:value={kind} labelledby="kind-label" />
-		{#if errors.kind}
-			<p class="error" role="alert"><Icon name="alert" size="1rem" />{errors.kind}</p>
-		{/if}
-	</div>
-
-	<div>
-		<Card.Root>
-			<Card.Content>
-				<ColorPicker name="color" legend="Color" bind:value={color} />
-			</Card.Content>
-		</Card.Root>
-		{#if errors.color}
-			<p class="error pad" role="alert"><Icon name="alert" size="1rem" />{errors.color}</p>
-		{/if}
-	</div>
-
-	<div class="bar">
-		<Button type="submit" class="w-full"
-			>{mode === 'create' ? 'Crear categoría' : 'Guardar cambios'}</Button
-		>
-	</div>
-	<div class="cancel">
-		<Button href={resolve(cancelHref as '/categories')} variant="outline">Cancelar</Button>
-	</div>
+	<FormActions
+		{cancelHref}
+		submitLabel={mode === 'create' ? 'Crear categoría' : 'Guardar cambios'}
+	/>
 </form>
 
 <style>
@@ -118,20 +108,29 @@
 		box-shadow: var(--shadow-1);
 	}
 
+	.card > li + li {
+		border-top: 1px solid var(--border);
+	}
+
 	.card > li.bad {
 		box-shadow: inset 3px 0 0 var(--negative);
 	}
 
-	.field {
+	.row {
 		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
+		align-items: center;
+		gap: var(--space-3);
+		min-height: 3.5rem;
+		padding: 0 var(--space-4);
+		font-size: var(--font-size-base);
+		color: var(--text);
 	}
 
-	.field .k {
-		padding: 0 var(--space-4);
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
+	.seg {
+		margin-inline-start: auto;
+		flex: 0 1 15rem;
+		min-width: 0;
+		padding-block: var(--space-1);
 	}
 
 	.error {
@@ -142,24 +141,7 @@
 		font-size: var(--font-size-sm);
 	}
 
-	.pad {
-		padding: var(--space-2) var(--space-4) 0;
-	}
-
-	/* Sticky save bar: full-bleed, pinned to the bottom of the viewport (no tab bar on this screen). */
-	.bar {
-		position: sticky;
-		bottom: 0;
-		z-index: 2;
-		margin-inline: calc(var(--gutter, var(--space-5)) * -1);
-		padding: var(--space-3) var(--gutter, var(--space-5))
-			calc(var(--space-3) + env(safe-area-inset-bottom));
-		background: var(--bg);
-		box-shadow: 0 -1px 0 var(--border);
-	}
-
-	.cancel {
-		display: flex;
-		justify-content: center;
+	.et {
+		padding: 0 var(--space-4) var(--space-3);
 	}
 </style>

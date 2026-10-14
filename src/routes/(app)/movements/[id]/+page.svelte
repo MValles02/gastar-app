@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { toIconKey, toSwatchKey } from '$lib/appearance';
+	import { swatchVar, toIconKey, toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
@@ -66,12 +66,26 @@
 		</div>
 		<div class="item">
 			<dt>{m.type === 'transfer' ? 'Desde' : 'Cuenta'}</dt>
-			<dd>{m.accountName}{@render archivedTag(m.accountArchived)}</dd>
+			<dd class="with-chip">
+				<IconBadge
+					icon={toIconKey(m.accountIcon)}
+					color={toSwatchKey(m.accountColor)}
+					size="1.5rem"
+				/>
+				<span>{m.accountName}{@render archivedTag(m.accountArchived)}</span>
+			</dd>
 		</div>
 		{#if m.type === 'transfer'}
 			<div class="item">
 				<dt>Hacia</dt>
-				<dd>{m.destinationName}{@render archivedTag(m.destinationArchived)}</dd>
+				<dd class="with-chip">
+					<IconBadge
+						icon={toIconKey(m.destinationIcon)}
+						color={toSwatchKey(m.destinationColor)}
+						size="1.5rem"
+					/>
+					<span>{m.destinationName}{@render archivedTag(m.destinationArchived)}</span>
+				</dd>
 			</div>
 			{#if m.destinationAmount !== null && m.destinationCurrency}
 				<div class="item">
@@ -88,13 +102,16 @@
 		{:else}
 			<div class="item">
 				<dt>Categoría</dt>
-				<dd>{m.categoryName}{@render archivedTag(m.categoryArchived)}</dd>
+				<dd class="with-chip">
+					<span class="dot" style:--tone={swatchVar(m.categoryColor)} aria-hidden="true"></span>
+					<span>{m.categoryName}{@render archivedTag(m.categoryArchived)}</span>
+				</dd>
 			</div>
 		{/if}
 	</dl>
 
 	<div class="actions">
-		<Button href={resolve(`/movements/${data.movement.id}/edit`)} class="w-full">Editar</Button>
+		<Button href={resolve(`/movements/${data.movement.id}/edit`)}>Editar</Button>
 		<ConfirmDialog
 			triggerLabel="Eliminar"
 			triggerVariant="destructive"
@@ -177,14 +194,29 @@
 		white-space: nowrap;
 	}
 
-	/* ConfirmDialog renders its own trigger button: stack both full width. */
-	.actions {
+	.with-chip {
 		display: flex;
-		flex-direction: column;
+		align-items: center;
+		justify-content: flex-end;
+		gap: var(--space-2);
+	}
+
+	.dot {
+		flex: none;
+		width: 0.75rem;
+		height: 0.75rem;
+		border-radius: 50%;
+		background: var(--tone);
+	}
+
+	/* Editar + Eliminar side by side, equal width (ConfirmDialog renders its own trigger button). */
+	.actions {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
 		gap: var(--space-3);
 	}
 
-	.actions > :global(.btn) {
+	.actions > :global(*) {
 		width: 100%;
 	}
 </style>

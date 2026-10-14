@@ -21,9 +21,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			accountCurrency: m.accountCurrency,
 			accountArchived: m.accountArchivedAt !== null,
 			destinationName: m.destinationName,
+			destinationIcon: m.destinationIcon,
+			destinationColor: m.destinationColor,
 			destinationCurrency: m.destinationCurrency,
 			destinationArchived: m.destinationArchivedAt !== null,
 			categoryName: m.categoryName,
+			categoryColor: m.categoryColor,
 			categoryArchived: m.categoryArchivedAt !== null
 		}
 	};

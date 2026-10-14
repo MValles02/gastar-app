@@ -1,19 +1,18 @@
 <script lang="ts">
-	import { groupedAmount } from '$lib/amount-input';
 	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 	import type { Currency } from '$lib/money';
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import Lock from '@lucide/svelte/icons/lock';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { Button } from '$lib/components/ui/button/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import * as Field from '$lib/components/ui/field/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
-	import * as InputGroup from '$lib/components/ui/input-group/index.js';
+	import AmountHero from '$lib/components/AmountHero.svelte';
 	import DatePicker from '$lib/components/DatePicker.svelte';
+	import FormActions from '$lib/components/FormActions.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import TextRow from '$lib/components/TextRow.svelte';
 	import { convertAmount, formatMoney, parseAmount } from '$lib/money';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
@@ -55,7 +54,7 @@
 	const typeOptions = [
 		{ value: 'income', label: 'Ingreso' },
 		{ value: 'outcome', label: 'Gasto' },
-		{ value: 'transfer', label: 'Transferencia' }
+		{ value: 'transfer', label: 'Transf.' }
 	];
 
 	let submitting = $state(false);
@@ -146,51 +145,21 @@
 		{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
 	</div>
 
-	<Field.Field>
-		<Field.Label for="amount">Monto</Field.Label>
-		<InputGroup.Root>
-			{#if originCurrency}
-				<InputGroup.Addon>
-					<InputGroup.Text>{originCurrency === 'USD' ? 'US$' : '$'}</InputGroup.Text>
-				</InputGroup.Addon>
-			{/if}
-			<InputGroup.Input
-				id="amount"
-				name="amount"
-				type="text"
-				inputmode={originCurrency === 'USD' ? 'decimal' : 'numeric'}
-				placeholder={originCurrency === 'USD' ? '0,00' : '0'}
-				autocomplete="off"
-				autofocus
-				bind:value={amount}
-				{@attach groupedAmount}
-				aria-invalid={errors.amount ? 'true' : undefined}
-				aria-describedby={errors.amount ? 'amount-error' : undefined}
-			/>
-		</InputGroup.Root>
-		{#if errors.amount}<Field.Error id="amount-error">{errors.amount}</Field.Error>{/if}
-	</Field.Field>
+	<AmountHero bind:value={amount} currency={originCurrency} error={errors.amount} autofocus />
 
 	<ul class="card">
 		<li class:bad={errors.description}>
-			<Field.Field class="p-4">
-				<Field.Label for="description">Descripción</Field.Label>
-				<Input
-					id="description"
-					name="description"
-					type="text"
-					maxlength={DESCRIPTION_MAX_LENGTH}
-					required
-					autocomplete="off"
-					placeholder="Agregar"
-					bind:value={description}
-					aria-invalid={errors.description ? 'true' : undefined}
-					aria-describedby={errors.description ? 'description-error' : undefined}
-				/>
-				{#if errors.description}
-					<Field.Error id="description-error">{errors.description}</Field.Error>
-				{/if}
-			</Field.Field>
+			<TextRow
+				id="description"
+				name="description"
+				label="Descripción"
+				bind:value={description}
+				placeholder="Agregar"
+				maxlength={DESCRIPTION_MAX_LENGTH}
+				required
+				error={errors.description}
+				errorId="description-error"
+			/>
 		</li>
 
 		<li class:bad={errors.accountId}>
@@ -232,24 +201,17 @@
 		{#if !mounted || showRate}
 			<li class:bad={errors.exchangeRate}>
 				{#if !mounted}<p class="hint pad">Solo para transferencias entre monedas distintas</p>{/if}
-				<Field.Field class="p-4">
-					<Field.Label for="exchangeRate">Cotización (1 USD en ARS)</Field.Label>
-					<Input
-						id="exchangeRate"
-						name="exchangeRate"
-						type="text"
-						inputmode="numeric"
-						placeholder="0"
-						autocomplete="off"
-						bind:value={rate}
-						{@attach groupedAmount}
-						aria-invalid={errors.exchangeRate ? 'true' : undefined}
-						aria-describedby={errors.exchangeRate ? 'rate-error' : undefined}
-					/>
-					{#if errors.exchangeRate}
-						<Field.Error id="rate-error">{errors.exchangeRate}</Field.Error>
-					{/if}
-				</Field.Field>
+				<TextRow
+					id="exchangeRate"
+					name="exchangeRate"
+					label="Cotización (1 USD en ARS)"
+					bind:value={rate}
+					placeholder="0"
+					inputmode="numeric"
+					amount
+					error={errors.exchangeRate}
+					errorId="rate-error"
+				/>
 			</li>
 			{#if mounted}
 				<li>
@@ -335,19 +297,7 @@
 		</div>
 	{/if}
 
-	<div class="bar">
-		<Button
-			type="submit"
-			class="w-full"
-			disabled={submitting}
-			aria-busy={submitting ? 'true' : undefined}
-		>
-			{#if submitting}<span class="spin" aria-hidden="true"></span>{/if}{submitLabel}
-		</Button>
-	</div>
-	<div class="cancel">
-		<Button href={resolve(cancelHref as '/')} variant="outline">Cancelar</Button>
-	</div>
+	<FormActions {cancelHref} {submitLabel} {submitting} />
 </form>
 
 <style>
@@ -358,7 +308,7 @@
 		padding-top: var(--space-1);
 	}
 
-	.form.submitting > :not(.bar) {
+	.form.submitting > :not(:global(.bar)) {
 		opacity: 0.55;
 	}
 
@@ -436,43 +386,5 @@
 	.error {
 		color: var(--negative);
 		font-size: var(--font-size-sm);
-	}
-
-	/* Sticky Guardar: full-bleed bar pinned to the bottom of the viewport (no tab bar on this screen). */
-	.bar {
-		position: sticky;
-		bottom: 0;
-		z-index: 2;
-		margin-inline: calc(var(--gutter, var(--space-5)) * -1);
-		padding: var(--space-3) var(--gutter, var(--space-5))
-			calc(var(--space-3) + env(safe-area-inset-bottom));
-		background: var(--bg);
-		box-shadow: 0 -1px 0 var(--border);
-	}
-
-	.spin {
-		width: 1rem;
-		height: 1rem;
-		border: 2px solid currentColor;
-		border-right-color: transparent;
-		border-radius: 50%;
-		animation: spin 0.8s linear infinite;
-	}
-
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.spin {
-			animation-duration: 2.4s;
-		}
-	}
-
-	.cancel {
-		display: flex;
-		justify-content: center;
 	}
 </style>

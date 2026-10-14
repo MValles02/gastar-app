@@ -48,11 +48,11 @@
 			<dt>Saldo inicial</dt>
 			<dd class="amount"><Money cents={a.initialBalance} currency={a.currency} kind="signed" /></dd>
 		</div>
-		<div class="item">
+		<div class="item nowrap">
 			<dt>Ícono y color</dt>
 			<dd class="appearance">
-				<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} size="1.75rem" />
-				<span>{iconLabel} · {colorLabel}</span>
+				<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} size="1.5rem" />
+				<span class="truncate">{iconLabel} · {colorLabel}</span>
 			</dd>
 		</div>
 		<div class="item">
@@ -81,32 +81,34 @@
 	{/if}
 
 	<div class="actions">
+		<div class="buttons">
+			<Button href={resolve(`/accounts/${a.id}/edit`)}>Editar</Button>
+			{#if data.actions.canArchive}
+				<form method="POST" action="?/archive" use:enhance>
+					<Button type="submit" variant="outline" class="w-full">Archivar</Button>
+				</form>
+			{/if}
+			{#if data.actions.canUnarchive}
+				<form method="POST" action="?/unarchive" use:enhance>
+					<Button type="submit" variant="outline" class="w-full">Desarchivar</Button>
+				</form>
+			{/if}
+			{#if data.actions.canDelete}
+				<ConfirmDialog
+					triggerLabel="Eliminar"
+					triggerVariant="destructive"
+					title="¿Eliminar esta cuenta?"
+					confirmLabel="Eliminar"
+					action="?/delete"
+				>
+					Esta acción no se puede deshacer.
+				</ConfirmDialog>
+			{/if}
+		</div>
 		{#if data.actions.canArchive}
 			<p class="muted">
 				Tiene movimientos, así que no se puede eliminar. Podés archivarla para ocultarla.
 			</p>
-		{/if}
-		<Button href={resolve(`/accounts/${a.id}/edit`)} class="w-full">Editar</Button>
-		{#if data.actions.canArchive}
-			<form method="POST" action="?/archive" use:enhance>
-				<Button type="submit" variant="outline" class="w-full">Archivar</Button>
-			</form>
-		{/if}
-		{#if data.actions.canUnarchive}
-			<form method="POST" action="?/unarchive" use:enhance>
-				<Button type="submit" variant="outline" class="w-full">Desarchivar</Button>
-			</form>
-		{/if}
-		{#if data.actions.canDelete}
-			<ConfirmDialog
-				triggerLabel="Eliminar"
-				triggerVariant="destructive"
-				title="¿Eliminar esta cuenta?"
-				confirmLabel="Eliminar"
-				action="?/delete"
-			>
-				Esta acción no se puede deshacer.
-			</ConfirmDialog>
 		{/if}
 	</div>
 </div>
@@ -185,6 +187,7 @@
 	.appearance {
 		display: flex;
 		align-items: center;
+		justify-content: flex-end;
 		gap: var(--space-2);
 	}
 
@@ -203,7 +206,38 @@
 		margin-top: var(--space-2);
 	}
 
-	.actions :global(.btn) {
+	/* Editar + the state action side by side, equal width. */
+	.buttons {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: var(--space-3);
+	}
+
+	.buttons > :global(*) {
 		width: 100%;
+	}
+
+	.nowrap {
+		flex-wrap: nowrap;
+	}
+
+	.nowrap {
+		gap: var(--space-2);
+	}
+
+	.nowrap dd {
+		flex: 1;
+	}
+
+	.nowrap dt {
+		flex: none;
+	}
+
+	.truncate {
+		font-size: var(--font-size-sm);
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 </style>

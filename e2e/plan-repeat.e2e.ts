@@ -91,7 +91,7 @@ test('a transfer hides the checkbox and never creates a rule', async ({ page, ba
 	try {
 		await page.goto('/movements/new', { waitUntil: 'networkidle' });
 		await expect(checkbox(page)).toBeVisible();
-		await page.getByRole('radio', { name: 'Transferencia' }).check({ force: true });
+		await page.getByRole('radio', { name: 'Transf.' }).check({ force: true });
 		await expect(checkbox(page)).toHaveCount(0);
 
 		// A crafted post (what a no-JS form sends) with the box checked: the server ignores it.
