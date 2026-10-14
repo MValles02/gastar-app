@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, ilike, inArray, isNull, lt, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, ilike, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
 import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
 import { canAccessCategory, canAccessMovement, categoryOwnedBy } from './access';
@@ -6,7 +6,10 @@ import { PG_UNIQUE_VIOLATION, pgErrorCode } from './db/errors';
 import { escapeLike } from './db/util';
 import type { CategoryData } from './categories';
 
-export function listCategories(userId: string, opts: { q?: string; archived?: boolean } = {}) {
+export function listCategories(
+	userId: string,
+	opts: { q?: string; archived?: boolean; kind?: 'income' | 'outcome' } = {}
+) {
 	return db
 		.select()
 		.from(categories)
@@ -14,6 +17,7 @@ export function listCategories(userId: string, opts: { q?: string; archived?: bo
 			and(
 				canAccessCategory(userId),
 				opts.archived ? undefined : isNull(categories.archivedAt),
+				opts.kind ? or(eq(categories.kind, opts.kind), isNull(categories.kind)) : undefined,
 				opts.q ? ilike(categories.name, `%${escapeLike(opts.q)}%`) : undefined
 			)
 		)

@@ -11,6 +11,7 @@
 	import * as Field from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import * as InputGroup from '$lib/components/ui/input-group/index.js';
+	import DatePicker from '$lib/components/DatePicker.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { convertAmount, formatMoney, parseAmount } from '$lib/money';
@@ -301,21 +302,14 @@
 		{/if}
 
 		<li class:bad={errors.occurredAt}>
-			<Field.Field class="p-4">
-				<Field.Label for="occurredAt">Fecha</Field.Label>
-				<Input
-					id="occurredAt"
-					name="occurredAt"
-					type="date"
-					min="2000-01-01"
-					bind:value={occurredAt}
-					aria-invalid={errors.occurredAt ? 'true' : undefined}
-					aria-describedby={errors.occurredAt ? 'date-error' : undefined}
-				/>
-				{#if errors.occurredAt}
-					<Field.Error id="date-error">{errors.occurredAt}</Field.Error>
-				{/if}
-			</Field.Field>
+			<DatePicker
+				name="occurredAt"
+				label="Fecha"
+				min="2000-01-01"
+				bind:value={occurredAt}
+				error={errors.occurredAt}
+				errorId="date-error"
+			/>
 		</li>
 	</ul>
 

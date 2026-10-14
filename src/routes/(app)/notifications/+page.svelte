@@ -50,17 +50,17 @@
 												.toUpperCase()}{/if}
 									</span>
 								</Item.Media>
-								<Item.Content>
-									<Item.Title>{n.name}</Item.Title>
-									<Item.Description>
-										<span class="sub-line">
-											<span class="pill {n.pill.tone}">
-												{#if n.pill.tone === 'over'}<AlertCircle size={14} strokeWidth={2} />
-												{:else if n.pill.tone === 'due'}<Clock size={14} strokeWidth={2} />{/if}
-												{n.pill.label}
-											</span>
-											<span class="sub">{n.detail}</span>
+								<Item.Content class="min-w-0">
+									<span class="title-line">
+										<Item.Title class="block min-w-0 truncate">{n.name}</Item.Title>
+										<span class="pill {n.pill.tone}">
+											{#if n.pill.tone === 'over'}<AlertCircle size={14} strokeWidth={2} />
+											{:else if n.pill.tone === 'due'}<Clock size={14} strokeWidth={2} />{/if}
+											{n.pill.label}
 										</span>
+									</span>
+									<Item.Description class="line-clamp-none min-w-0">
+										<span class="sub">{n.detail}</span>
 									</Item.Description>
 								</Item.Content>
 								{#if n.amount !== null}
@@ -139,10 +139,11 @@
 		background: color-mix(in srgb, var(--tone) 14%, transparent);
 	}
 
-	.sub-line {
+	.title-line {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
+		min-width: 0;
 	}
 
 	.am {
@@ -177,9 +178,12 @@
 	}
 
 	.sub {
+		display: block;
 		min-width: 0;
 		font-size: var(--font-size-sm);
 		color: var(--text-muted);
-		overflow-wrap: anywhere;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 </style>

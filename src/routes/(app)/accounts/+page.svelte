@@ -45,8 +45,14 @@
 			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 		</div>
 	{:else}
-		<FilterBar q={data.filters.q} label="Buscar cuentas" placeholder="Buscar cuentas">
-			{#snippet children(submit)}
+		<FilterBar
+			q={data.filters.q}
+			label="Buscar cuentas"
+			placeholder="Buscar cuentas"
+			path="/accounts"
+			active={(data.filters.currency ? 1 : 0) + (data.filters.archived ? 1 : 0)}
+		>
+			{#snippet filters(submit)}
 				<span id="currency-label" class="visually-hidden">Moneda</span>
 				<SegmentedControl
 					name="currency"
@@ -99,9 +105,7 @@
 											</Item.Media>
 											<Item.Content>
 												<Item.Title>{a.name}</Item.Title>
-												<Item.Description>
-													{a.currency}{a.archivedAt ? ' · Archivada' : ''}
-												</Item.Description>
+												{#if a.archivedAt}<Item.Description>Archivada</Item.Description>{/if}
 											</Item.Content>
 											<Item.Actions>
 												<span class="row-amount">

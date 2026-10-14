@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { fullDateLabel } from '$lib/server/month';
+import { dateLabel } from '$lib/server/month';
 import { deleteMovement } from '$lib/server/movements-queries';
 import { findMovement, notFound } from '../form.server';
 
@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		movement: {
 			id: m.id,
 			type: m.type,
-			dateLabel: fullDateLabel(m.occurredAt),
+			dateLabel: dateLabel(m.occurredAt),
 			description: m.description,
 			amount: m.amount,
 			destinationAmount: m.destinationAmount,

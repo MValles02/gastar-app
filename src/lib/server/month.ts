@@ -1,4 +1,4 @@
-import { LOCALE } from '$lib/locale';
+import { formatDay, LOCALE } from '$lib/locale';
 
 export const TZ = 'America/Argentina/Buenos_Aires';
 
@@ -73,9 +73,7 @@ export function shortMonth(ym: string): string {
 }
 
 export function dateLabel(d: Date): string {
-	return new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short', timeZone: TZ }).format(
-		d
-	);
+	return formatDay(localDay(d));
 }
 
 /** Start (00:00 Buenos Aires) of a "YYYY-MM-DD" day; null for impossible dates. */
@@ -119,8 +117,4 @@ export function dayHeading(ymd: string, todayYmd: string): string {
 			.format(new Date(at(ymd)))
 			.replace(',', '')
 	);
-}
-
-export function fullDateLabel(d: Date): string {
-	return new Intl.DateTimeFormat(LOCALE, { dateStyle: 'full', timeZone: TZ }).format(d);
 }

@@ -38,6 +38,7 @@ Personal finance PWA for Argentina. Answers two questions:
 - Amount colors: green = positive, red = negative, blue = transfer, never a minus sign. Group totals are neutral (red when negative); savings and informational figures (per day, limits) are neutral.
 - Amount input: comma as decimal separator (USD only).
 - ARS amounts and exchange rates are whole pesos; USD amounts have up to 2 decimals.
+- Dates: `dd/mm/aaaa` (e.g. `29/02/2024`); date inputs are a custom calendar (week starts Monday, Spanish), never the native date input.
 - Timezone for "month" boundaries and default dates: `America/Argentina/Buenos_Aires`.
 
 ## Layout
@@ -112,8 +113,8 @@ Personal finance PWA for Argentina. Answers two questions:
 ### Accounts
 
 - Reached from Profile (back link "Volver al perfil").
-- List with search + filter on top: show archived (archived hidden by default). Currency filter `?currency=ARS|USD` (default both); accounts are grouped under Pesos / Dólares, each with the total of its active (non-archived) accounts.
-- Each row: icon, color, name, currency, computed balance.
+- List with a search field and a "Filtros" button (bottom drawer, applies on change; the button shows the number of non-default filters). Filters: currency `?currency=ARS|USD` (default both) and "Mostrar archivadas" (archived hidden by default). Accounts are grouped under Pesos / Dólares, each with the total of its active (non-archived) accounts.
+- Each row: icon, color, name ("Archivada" when archived), computed balance.
 - Tap → detail page with Edit / Delete.
 
 ### Create movement
@@ -131,12 +132,12 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ### Movements
 
-- List with search (description) + filters: date range, type, account, category. Currency filter `?currency=ARS|USD` (default Ambas = merged list, each amount in its own currency); when an `?account=` filter is set, that account's own currency wins. Grouped by day.
+- List with a search field (description) and a "Filtros" button (bottom drawer, applies on change; badge = number of non-default filters). Filters: currency, type, account, category and one date range (`from`/`to`, a single range calendar). Currency `?currency=ARS|USD` (default Ambas = merged list, each amount in its own currency; non-default counts as active); when an `?account=` filter is set, that account's own currency wins and is not counted. Grouped by day.
 - Tap → detail page with Edit / Delete.
 
 ### Categories
 
-- List with search + filter: show archived.
+- List with a search field and a "Filtros" button (bottom drawer): "Mostrar archivadas" and kind `Todas | Gastos | Ingresos` (`?kind=outcome|income`; Gastos / Ingresos also list categories with no kind). The button badge counts both.
 - Tap → detail page with Edit / Delete.
 
 ## Rules

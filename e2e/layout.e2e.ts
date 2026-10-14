@@ -68,6 +68,62 @@ test('the bell to Avisos is at least 44px at 320px', async ({ page }) => {
 	await expect(bell).toHaveCount(0);
 });
 
+test('list rows keep a single-line title and never overflow at 320px', async ({ page }) => {
+	await page.setViewportSize({ width: 320, height: 800 });
+	await login(page);
+	for (const route of ['/', '/movements', '/plan', '/notifications']) {
+		await page.goto(route, { waitUntil: 'networkidle' });
+		const titles = page.locator('[role="listitem"] [data-slot="item-title"]');
+		const count = await titles.count();
+		for (let i = 0; i < count; i++) {
+			const { height, lineHeight } = await titles.nth(i).evaluate((el) => {
+				const cs = getComputedStyle(el);
+				return { height: el.getBoundingClientRect().height, lineHeight: parseFloat(cs.lineHeight) };
+			});
+			expect(height, `${route} row ${i}`).toBeLessThanOrEqual(lineHeight * 1.1);
+		}
+		// Line 2 (chips included) fits one text line: two wrapped lines would be at least 2x its line height.
+		const lines = page.locator('[role="listitem"] [data-slot="item-description"]');
+		const lineCount = await lines.count();
+		for (let i = 0; i < lineCount; i++) {
+			const { height, lineHeight } = await lines.nth(i).evaluate((el) => {
+				const cs = getComputedStyle(el);
+				return { height: el.getBoundingClientRect().height, lineHeight: parseFloat(cs.lineHeight) };
+			});
+			expect(height, `${route} line 2 of row ${i}`).toBeLessThan(lineHeight * 1.7);
+		}
+		await expectNoHorizontalOverflow(page);
+	}
+});
+
+test('movement row line 2 truncates the account before the category at 375px', async ({ page }) => {
+	await page.setViewportSize({ width: 375, height: 800 });
+	await login(page);
+	await page.goto('/movements', { waitUntil: 'networkidle' });
+	const rows = await page.locator('[role="listitem"]').evaluateAll((els) =>
+		els.flatMap((el) => {
+			const category = el.querySelector<HTMLElement>('.slot.category');
+			const account = el.querySelector<HTMLElement>('.slot.account');
+			if (!category || !account) return [];
+			return [
+				{
+					categoryTruncated: category.scrollWidth > category.clientWidth,
+					accountWidth: account.clientWidth
+				}
+			];
+		})
+	);
+	expect(rows.length).toBeGreaterThan(0);
+	for (const r of rows) if (r.categoryTruncated) expect(r.accountWidth).toBeLessThanOrEqual(40);
+
+	await page.goto('/movements?q=Proyecto%20freelance', { waitUntil: 'networkidle' });
+	const category = page
+		.locator('[role="listitem"] .slot.category', { hasText: 'Freelance' })
+		.first();
+	await expect(category).toBeVisible();
+	expect(await category.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+});
+
 test('detail pages have no horizontal overflow at 320px', async ({ page }) => {
 	await page.setViewportSize({ width: 320, height: 800 });
 	await login(page);
@@ -330,9 +386,8 @@ test('the tab bar is absent on the new-movement form and a focused submit stays 
 	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
-	await page.locator('input[name="occurredAt"]').focus();
+	await page.getByRole('button', { name: /Fecha/ }).focus();
 	const submit = page.getByRole('button', { name: 'Guardar movimiento' });
-	// The date input has several tab stops (day, month, year, picker).
 	for (let i = 0; i < 6 && !(await submit.evaluate((el) => el === document.activeElement)); i++)
 		await page.keyboard.press('Tab');
 	await expect(submit).toBeFocused();

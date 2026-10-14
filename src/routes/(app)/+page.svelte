@@ -166,16 +166,7 @@
 					>
 						{#each data.recent as m (m.id)}
 							<div role="listitem">
-								<MovementRow
-									m={{
-										...m,
-										subtitle: `${m.dateLabel} · ${
-											m.type === 'transfer'
-												? `${m.accountName} → ${m.destinationAccountName}`
-												: m.accountName
-										}${m.categoryName ? ` · ${m.categoryName}` : ''}`
-									}}
-								/>
+								<MovementRow {m} date={m.dateLabel} />
 							</div>
 						{/each}
 					</Item.Group>
