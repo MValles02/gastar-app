@@ -45,7 +45,9 @@ Personal finance PWA for Argentina. Answers two questions:
 
 - Top bar (sticky, every app screen): optional back link, today's date as an eyebrow above the screen title, a bell linking to Avisos (with the alert count as a badge) and an avatar (initials) linking to Profile. Bottom-nav tabs have no back; every other screen has an "up" back to its parent (new-movement returns to the screen it was opened from). Screens have no action buttons under the bar; Accounts and Categories end their list with a "+ Nueva …" row. No currency control: each screen states its own currency, and amounts are never converted or summed across currencies.
 - Bottom nav: Inicio | Movimientos | Create movement (center "+") | Plan | Reportes.
-- Profile page: "Cuentas" and "Categorías" links (both are reached from Profile and link back to it), theme toggle (light / dark / system) + logout.
+- Profile page: "Cuentas" and "Categorías" links (both are reached from Profile and link back to it), theme toggle (light / dark / system), logout, and the account rows:
+  - "Nombre" (edit page, updates the user name) and "Cambiar contraseña" (current + new password, min 8; revokes all other sessions, this one stays signed in).
+  - "Eliminar cuenta" (below logout): re-enter the password + confirm; see Deletion.
 
 ## Design
 
@@ -166,6 +168,7 @@ Personal finance PWA for Argentina. Answers two questions:
   - Archived items: cannot be selected for new movements; movements that already reference them keep showing them and can be edited without losing the reference; can be unarchived.
   - Archived accounts still count toward total balance.
   - Movements: hard delete, with confirmation.
+  - User account: hard delete, immediate and irreversible, of the user and all their data (movements, recurring rules, plans and limits, categories, accounts, sessions) in one transaction; then sign-out to the login page.
 
 ## Out of MVP
 

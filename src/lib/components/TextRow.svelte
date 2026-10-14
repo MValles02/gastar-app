@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { groupedAmount } from '$lib/amount-input';
+	import Icon from '$lib/components/Icon.svelte';
 
 	/** Inline form row: label left, borderless right-aligned input right (G6). */
 	let {
@@ -13,7 +14,11 @@
 		required = false,
 		error,
 		errorId,
-		amount = false
+		amount = false,
+		password = false,
+		autocomplete = 'off',
+		minlength,
+		form
 	}: {
 		id: string;
 		name: string;
@@ -27,7 +32,15 @@
 		errorId?: string;
 		/** Group thousands as the user types (whole-pesos / decimal amounts). */
 		amount?: boolean;
+		/** Password row: masked, with a show/hide toggle. */
+		password?: boolean;
+		autocomplete?: 'off' | 'current-password' | 'new-password';
+		minlength?: number;
+		/** `id` of a `<form>` elsewhere in the page this input submits with. */
+		form?: string;
 	} = $props();
+
+	let shown = $state(false);
 </script>
 
 <div class="wrap">
@@ -36,17 +49,30 @@
 		<input
 			{id}
 			{name}
-			type="text"
+			{form}
+			type={password && !shown ? 'password' : 'text'}
 			{maxlength}
+			{minlength}
 			{inputmode}
 			{required}
 			{placeholder}
-			autocomplete="off"
+			{autocomplete}
 			bind:value
 			{@attach (node) => (amount ? groupedAmount(node) : undefined)}
 			aria-invalid={error ? 'true' : undefined}
 			aria-describedby={error ? errorId : undefined}
 		/>
+		{#if password}
+			<button
+				type="button"
+				class="toggle"
+				aria-pressed={shown}
+				aria-label={shown ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+				onclick={() => (shown = !shown)}
+			>
+				<Icon name={shown ? 'eye-off' : 'eye'} size="1.25rem" />
+			</button>
+		{/if}
 	</label>
 	{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
 </div>
@@ -88,6 +114,19 @@
 
 	.row input:focus-visible {
 		outline-offset: -2px;
+	}
+
+	.toggle {
+		display: grid;
+		place-items: center;
+		flex: none;
+		min-width: 2.75rem;
+		min-height: 2.75rem;
+		margin-inline-end: calc(var(--space-2) * -1);
+		padding: 0;
+		border: 0;
+		background: transparent;
+		color: var(--text-muted);
 	}
 
 	.error {

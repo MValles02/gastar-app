@@ -5,12 +5,11 @@ import {
 	ignoreApiError,
 	isValidPasswordLength,
 	resendAction,
+	userNameError,
 	VERIFY_EMAIL_PATH
 } from '$lib/server/auth-forms';
 import { isBlocked, record } from '$lib/server/rate-limit';
 import type { Actions } from './$types';
-
-const NAME_MAX_LENGTH = 80;
 
 export const actions: Actions = {
 	signup: async ({ request, getClientAddress }) => {
@@ -29,8 +28,7 @@ export const actions: Actions = {
 		}
 
 		const errors: { name?: string; email?: string; password?: string } = {};
-		if (!name) errors.name = 'Falta el nombre.';
-		else if (name.length > NAME_MAX_LENGTH) errors.name = 'Usá un nombre de hasta 80 caracteres.';
+		errors.name = userNameError(name);
 		if (!EMAIL_RE.test(email)) errors.email = 'Email inválido.';
 		if (!isValidPasswordLength(password)) errors.password = 'Mínimo 8 caracteres.';
 		if (errors.name || errors.email || errors.password) {
