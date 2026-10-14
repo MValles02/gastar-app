@@ -45,10 +45,11 @@ test('a rule on an archived account can be edited and stays inactive', async ({ 
 		.getByRole('link', { name: /Gimnasio/ });
 	const href = await link.evaluate((a: HTMLAnchorElement) => a.pathname);
 	const edit = async (description: string) => {
-		await page.goto(href, { waitUntil: 'networkidle' });
+		await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
 		await page.locator('input[name="description"]').fill(description);
 		await page.getByRole('button', { name: 'Guardar cambios' }).click();
-		await expect(page).toHaveURL(/\/plan$/);
+		await expect(page).toHaveURL(href);
+		await page.goto('/plan', { waitUntil: 'networkidle' });
 		await expect(
 			page.getByRole('region', { name: 'Inactivos' }).getByText(description)
 		).toBeVisible();
@@ -104,7 +105,7 @@ test('empty new rule form shows every required-field message', async ({ page }) 
 		await expect(page.getByText(message)).toBeVisible();
 });
 
-test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
+test('deactivate, activate and delete a rule', async ({ page, baseURL }) => {
 	await login(page, OTHER_EMAIL);
 	const description = 'Ciclo e2e';
 	try {
@@ -127,13 +128,13 @@ test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
 		};
 
 		await rule(page, description).locator('a[data-slot="item"]').click();
-		await page.getByRole('button', { name: 'Archivar' }).click();
+		await page.getByRole('button', { name: 'Desactivar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(inactive).toContainText(description);
-		await expect(inactive).toContainText('Archivado');
+		await expect(inactive).toContainText('Desactivado');
 
 		await open();
-		await page.getByRole('button', { name: 'Reactivar' }).click();
+		await page.getByRole('button', { name: 'Activar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(rule(page, description)).toBeVisible();
 		await expect(

@@ -111,6 +111,17 @@ export async function fillRule(
 	await pick(page, 'Categoría', o.category);
 }
 
+/** Sets the Ahorro fields (toggle, then value and unit for "Otro"); the caller submits. */
+export async function fillSavings(
+	page: Page,
+	o: { option: 'Nada' | '10 %' | '20 %' | 'Otro'; value?: string; unit?: '%' | '$' }
+) {
+	await page.getByRole('radio', { name: o.option, exact: true }).click();
+	if (o.option !== 'Otro') return;
+	if (o.unit) await page.getByRole('radio', { name: o.unit, exact: true }).click();
+	await page.locator('input[name="savingsValue"]').fill(o.value ?? '');
+}
+
 /** Posts the `delete` form action of `href` the way a no-JS form would. */
 export const postDelete = (page: Page, baseURL: string, href: string) =>
 	page.request.post(`${href}?/delete`, {

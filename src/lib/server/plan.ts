@@ -1,16 +1,14 @@
 import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 import type { Currency } from '$lib/money';
 import type { MovementType } from './dashboard';
-import { AMOUNT_EXAMPLE, parseAmount } from '../money';
+import { AMOUNT_EXAMPLE, ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '../money';
+import { savingsFromPercent } from '../savings';
 import { isUuid } from './db/util';
 import { daysInMonth, elapsedDays, lastMonths, monthRange, shiftMonth } from './month';
 
 /** Full months of history behind suggested rules and limits; a suggested rule appears in each of them. */
 export const HISTORY_MONTHS = 3;
 export const MAX_DAY_OF_MONTH = 31;
-
-/** Setup wizard steps, as shown to the user (1-based); errors send the user back to one of them. */
-export const PLAN_STEP = { income: 1, bills: 2, savings: 3, summary: 4 } as const;
 
 export type RecurringStatus = 'paid' | 'overdue' | 'today' | 'upcoming';
 
@@ -51,7 +49,7 @@ export function inactiveReason(r: {
 	accountArchivedAt: Date | null;
 	categoryArchivedAt: Date | null;
 }): string | null {
-	if (r.archivedAt) return 'Archivado';
+	if (r.archivedAt) return 'Desactivado';
 	if (r.accountArchivedAt) return 'Cuenta archivada';
 	if (r.categoryArchivedAt) return 'Categoría archivada';
 	return null;
@@ -93,7 +91,6 @@ export function planSpent(
 export type PlanInput = {
 	/** Sum of active recurring incomes. */
 	recurringIncome: number;
-	extraIncome: number;
 	/** Sum of active recurring outcomes. */
 	bills: number;
 	savings: number;
@@ -106,7 +103,7 @@ export type PlanInput = {
 
 /** All inputs must be in `currency`; nothing here converts or sums across currencies. */
 export function planSummary(p: PlanInput & { currency: Currency }) {
-	const income = p.recurringIncome + p.extraIncome;
+	const income = p.recurringIncome;
 	const forSpending = income - p.bills - p.savings;
 	const available = forSpending - p.spent;
 	const days = daysInMonth(p.ym);
@@ -210,4 +207,41 @@ export function parseRecurringForm(fd: FormData): RecurringFormResult {
 			dayOfMonth: day
 		}
 	};
+}
+
+export type SavingsFormResult =
+	{ ok: true; savings: number; savingsPercent: number | null } | { ok: false; message: string };
+
+/**
+ * Pure: reads the savings fields (`savingsOption` none|10|20|other, `savingsValue`, `savingsUnit`
+ * percent|amount). A percentage is stored too (percent x 100) so savings follows income; `savings`
+ * always holds the amount it gives for `income`.
+ */
+export function parseSavingsForm(
+	fd: FormData,
+	income: number,
+	currency: Currency
+): SavingsFormResult {
+	const get = (k: string) => {
+		const v = fd.get(k);
+		return typeof v === 'string' ? v : '';
+	};
+	const option = get('savingsOption');
+	if (option === '10' || option === '20') {
+		const savingsPercent = Number(option) * 100;
+		return { ok: true, savings: savingsFromPercent(income, savingsPercent), savingsPercent };
+	}
+	if (option !== 'other') return { ok: true, savings: 0, savingsPercent: null };
+
+	const value = parseAmount(get('savingsValue'));
+	if (get('savingsUnit') === 'percent') {
+		if (value === null || value <= 0 || value > 10000)
+			return { ok: false, message: 'Ingresá un porcentaje entre 0 y 100.' };
+		return { ok: true, savings: savingsFromPercent(income, value), savingsPercent: value };
+	}
+	if (value === null || value < 0)
+		return { ok: false, message: 'Ingresá un monto de ahorro válido.' };
+	if (!isWholeFor(value, currency))
+		return { ok: false, message: `Revisá “Monto a ahorrar”: ${ARS_WHOLE_MESSAGE}` };
+	return { ok: true, savings: value, savingsPercent: null };
 }

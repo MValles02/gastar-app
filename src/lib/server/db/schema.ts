@@ -4,6 +4,7 @@ import {
 	boolean,
 	check,
 	index,
+	integer,
 	pgEnum,
 	pgTable,
 	primaryKey,
@@ -199,6 +200,8 @@ export const spendingPlans = pgTable(
 		currency: currencyEnum('currency').notNull(),
 		extraIncome: bigint('extra_income', { mode: 'number' }).default(0).notNull(),
 		savings: bigint('savings', { mode: 'number' }).default(0).notNull(),
+		// Percent x 100 (1000 = 10 %); NULL = fixed `savings` amount.
+		savingsPercent: integer('savings_percent'),
 		// NULL = every month; 'YYYY-MM' = that month only.
 		month: varchar('month', { length: 7 }),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -210,6 +213,10 @@ export const spendingPlans = pgTable(
 	(table) => [
 		uniqueIndex('spending_plans_user_id_currency_idx').on(table.userId, table.currency),
 		check('spending_plans_amounts_check', sql`${table.extraIncome} >= 0 AND ${table.savings} >= 0`),
+		check(
+			'spending_plans_savings_percent_check',
+			sql`${table.savingsPercent} IS NULL OR ${table.savingsPercent} BETWEEN 0 AND 10000`
+		),
 		check(
 			'spending_plans_month_check',
 			sql`${table.month} IS NULL OR ${table.month} ~ '^\\d{4}-(0[1-9]|1[0-2])$'`

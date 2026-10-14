@@ -13,19 +13,18 @@
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import Money from '$lib/components/Money.svelte';
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { formatMoney } from '$lib/money';
+	import LimitList from './LimitList.svelte';
+	import RecurringRow from './RecurringRow.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	const statusIcon = { ok: Check, warn: Clock, over: CircleAlert } as const;
-	// Row pill by due status: paid is green, today is orange, overdue is inverted (never red).
-	const dueIcon = { paid: Check, today: Clock, overdue: CircleAlert, upcoming: null } as const;
-	const dueClass = { paid: 'ok', today: 'warn', overdue: 'over', upcoming: '' } as const;
 
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
 	let hydrated = $state(false);
@@ -101,9 +100,12 @@
 							<dt>Pagos fijos</dt>
 							<dd><Money cents={-s.bills} currency={data.currency} kind="outcome" /></dd>
 						</div>
-						<div class="kv">
-							<dt>Ahorro</dt>
-							<dd><Money cents={s.savings} currency={data.currency} /></dd>
+						<div class="kv link">
+							<dt><a href={resolve('/plan/savings')}>Ahorro</a></dt>
+							<dd>
+								<Money cents={s.savings} currency={data.currency} />
+								<Icon name="chevron-right" size="1.25rem" />
+							</dd>
 						</div>
 						<div class="kv sum">
 							<dt>Para gastar</dt>
@@ -118,55 +120,16 @@
 							<dd><Money cents={s.available} currency={data.currency} /></dd>
 						</div>
 					</dl>
-					<a class="footer" href={resolve('/plan/setup')}>
-						Editar plan
-						<Icon name="chevron-right" size="1.25rem" />
-					</a>
 				</Card.Root>
 			</section>
 
-			{#if s.limits.length}
-				<section aria-labelledby="limits-heading">
-					<div class="section-head"><h2 id="limits-heading">Límites por categoría</h2></div>
-					<Item.Group
-						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-					>
-						{#each s.limits as l (l.categoryId)}
-							{@const pct = Math.min(100, Math.floor((l.spent * 100) / l.amount))}
-							<div role="listitem" class="limit">
-								<span class="name">
-									<span class="title">{l.name}</span>
-									{#if l.over}
-										<span class="pill over"
-											><CircleAlert size={14} strokeWidth={2} />Te pasaste</span
-										>
-									{:else if l.fast}
-										<span class="pill warn"><Clock size={14} strokeWidth={2} />Vas rápido</span>
-									{/if}
-								</span>
-								<span class="of">
-									<span class="spent"><Money cents={l.spent} currency={data.currency} /></span> de
-									<Money cents={l.amount} currency={data.currency} />
-								</span>
-								<div
-									class="bar"
-									role="meter"
-									aria-label="Límite de {l.name}"
-									aria-valuemin="0"
-									aria-valuemax="100"
-									aria-valuenow={pct}
-									aria-valuetext="{formatMoney(l.spent, data.currency)} de {formatMoney(
-										l.amount,
-										data.currency
-									)}"
-								>
-									<span class="fill" style:width="{pct}%"></span>
-								</div>
-							</div>
-						{/each}
-					</Item.Group>
-				</section>
-			{/if}
+			<section aria-labelledby="limits-heading">
+				<div class="section-head">
+					<h2 id="limits-heading">Límites por categoría</h2>
+					<a class="add" href={resolve('/plan/limits/new')}>Agregar</a>
+				</div>
+				<LimitList limits={s.limits} currency={data.currency} />
+			</section>
 		{:else}
 			<Card.Root>
 				<Card.Content>
@@ -201,44 +164,6 @@
 				</Button>
 			</div>
 		{:else}
-			<!-- Each row opens the detail, where "Registrar pago" lives. -->
-			{#snippet rule(r: (typeof data.incomes)[number])}
-				{@const DueIcon = dueIcon[r.status]}
-				<div role="listitem" class="rule">
-					<Item.Root>
-						{#snippet child({ props })}
-							<a href={resolve(`/plan/recurring/${r.id}`)} {...props}>
-								<Item.Media>
-									<span class="lead" aria-hidden="true"
-										>{r.description.charAt(0).toUpperCase()}</span
-									>
-								</Item.Media>
-								<Item.Content class="min-w-0">
-									<Item.Title class="block w-full min-w-0 truncate">{r.description}</Item.Title>
-									<Item.Description class="line-clamp-none min-w-0">
-										<span class="sub">
-											<span class="pill {dueClass[r.status]}">
-												{#if DueIcon}<DueIcon size={14} strokeWidth={2} />{/if}{r.label}
-											</span>
-											<span class="sub-text">Día {r.day} · {r.accountName}</span>
-										</span>
-									</Item.Description>
-								</Item.Content>
-								<Item.Actions>
-									<span class="amount-col">
-										<Money
-											cents={r.type === 'income' ? r.amount : -r.amount}
-											currency={data.currency}
-											kind={r.type === 'income' ? 'income' : 'outcome'}
-										/>
-									</span>
-								</Item.Actions>
-							</a>
-						{/snippet}
-					</Item.Root>
-				</div>
-			{/snippet}
-
 			<section aria-labelledby="income-heading">
 				<div class="section-head">
 					<h2 id="income-heading">Ingresos fijos</h2>
@@ -248,7 +173,7 @@
 					<Item.Group
 						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
 					>
-						{#each data.incomes as r (r.id)}{@render rule(r)}{/each}
+						{#each data.incomes as r (r.id)}<RecurringRow row={r} currency={data.currency} />{/each}
 					</Item.Group>
 				{:else}
 					<p class="muted">Sin ingresos fijos.</p>
@@ -264,7 +189,10 @@
 					<Item.Group
 						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
 					>
-						{#each data.outcomes as r (r.id)}{@render rule(r)}{/each}
+						{#each data.outcomes as r (r.id)}<RecurringRow
+								row={r}
+								currency={data.currency}
+							/>{/each}
 					</Item.Group>
 				{:else}
 					<p class="muted">Sin pagos fijos.</p>
@@ -277,40 +205,27 @@
 					<Item.Group
 						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
 					>
-						{#each data.inactive as r (r.id)}
-							<div role="listitem" class="rule inactive">
-								<Item.Root>
-									{#snippet child({ props })}
-										<a href={resolve(`/plan/recurring/${r.id}`)} {...props}>
-											<Item.Media>
-												<span class="lead" aria-hidden="true">
-													{r.description.charAt(0).toUpperCase()}
-												</span>
-											</Item.Media>
-											<Item.Content class="min-w-0">
-												<Item.Title class="block w-full min-w-0 truncate"
-													>{r.description}</Item.Title
-												>
-												<Item.Description class="line-clamp-none min-w-0">
-													<span class="sub">
-														<span class="pill">{r.reason}</span>
-														<span class="sub-text">Día {r.day} · {r.accountName}</span>
-													</span>
-												</Item.Description>
-											</Item.Content>
-											<Item.Actions>
-												<span class="amount-col">
-													<Money cents={r.amount} currency={data.currency} />
-												</span>
-											</Item.Actions>
-										</a>
-									{/snippet}
-								</Item.Root>
-							</div>
-						{/each}
+						{#each data.inactive as r (r.id)}<RecurringRow
+								row={r}
+								currency={data.currency}
+							/>{/each}
 					</Item.Group>
 				</section>
 			{/if}
+		{/if}
+
+		{#if data.plan.summary}
+			<div class="center">
+				<ConfirmDialog
+					triggerLabel="Eliminar plan"
+					triggerVariant="destructive"
+					title="¿Eliminar este plan?"
+					confirmLabel="Eliminar"
+					action="?/delete"
+				>
+					Se borran el plan y sus límites. Tus ingresos y pagos fijos se mantienen.
+				</ConfirmDialog>
+			</div>
 		{/if}
 	{/if}
 </div>
@@ -362,7 +277,7 @@
 		text-decoration: underline;
 	}
 
-	/* Disponible card: hero, then the plan's equation, then the Editar footer. */
+	/* Disponible card: hero, then the plan's equation, then the Ahorro link. */
 	.box {
 		display: flex;
 		flex-direction: column;
@@ -453,34 +368,40 @@
 		font-weight: 600;
 	}
 
-	.footer {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		min-height: 3rem;
-		padding: 0 var(--space-3) 0 1.25rem;
-		border-top: 1px solid var(--border);
-		font-weight: 500;
-		text-decoration: none;
-		color: var(--text);
+	.kv.link {
+		position: relative;
 	}
 
-	.footer :global(svg) {
+	.kv.link a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	/* The whole row is the tap target. */
+	.kv.link a::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+	}
+
+	.kv.link dd {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+	}
+
+	.kv.link dd :global(svg) {
 		color: var(--border-strong);
 	}
 
 	@media (hover: hover) {
-		.footer:hover {
+		.kv.link:hover {
 			background: var(--muted);
 		}
 	}
 
-	.footer:active {
+	.kv.link:active {
 		background: var(--muted);
-	}
-
-	.footer:focus-visible {
-		outline-offset: -2px;
 	}
 
 	.no-plan {
@@ -488,103 +409,5 @@
 		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--space-2);
-	}
-
-	/* Límites */
-	.limit {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-1) var(--space-3);
-		padding: 0.875rem var(--space-4);
-		border-bottom: 1px solid var(--border);
-	}
-
-	.limit:last-child {
-		border-bottom: 0;
-	}
-
-	.name {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		min-width: 0;
-		font-weight: 500;
-	}
-
-	.title {
-		overflow-wrap: anywhere;
-	}
-
-	.of {
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
-	}
-
-	.spent {
-		color: var(--text);
-		font-weight: 600;
-	}
-
-	.bar {
-		flex: 1 0 100%;
-		height: 0.375rem;
-		margin-top: var(--space-2);
-		overflow: hidden;
-		background: var(--muted);
-		border-radius: var(--radius-pill);
-	}
-
-	.fill {
-		display: block;
-		height: 100%;
-		background: var(--text);
-		border-radius: var(--radius-pill);
-	}
-
-	/* Fixed rows: neutral letter badge, amount, due pill. */
-	.lead {
-		flex: none;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 2.25rem;
-		height: 2.25rem;
-		border-radius: var(--radius);
-		background: var(--muted);
-		color: var(--text);
-		font-size: 0.9375rem;
-		font-weight: 600;
-	}
-
-	.sub {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		min-width: 0;
-		margin-top: 0.25rem;
-	}
-
-	.sub .pill {
-		flex: none;
-	}
-
-	.sub-text {
-		min-width: 0;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.amount-col {
-		font-size: var(--font-size-base);
-		font-weight: 600;
-		font-variant-numeric: tabular-nums;
-		text-align: right;
-	}
-
-	.inactive .amount-col {
-		color: var(--text-muted);
 	}
 </style>

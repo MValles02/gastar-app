@@ -50,6 +50,13 @@
       "when": 1791987176832,
       "tag": "0006_unknown_juggernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791990987227,
+      "tag": "0007_simple_luke_cage",
+      "breakpoints": true
     }
   ]
 }

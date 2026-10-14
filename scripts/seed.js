@@ -341,6 +341,16 @@ try {
 				account_id: acc.old.id,
 				category_id: cat.gym.id,
 				day_of_month: 2
+			},
+			{
+				id: randomUUID(),
+				user_id: userId,
+				type: 'income',
+				description: 'Sueldo',
+				amount: 1_500_000_00,
+				account_id: acc.bank.id,
+				category_id: cat.salary.id,
+				day_of_month: 5
 			}
 		])}`;
 		await tx`insert into movements ${tx(movements, ...cols)}`;
@@ -348,8 +358,8 @@ try {
 		// Demo ARS plan: repeats every month, one Supermercado limit.
 		const planId = randomUUID();
 		await tx`
-			insert into spending_plans (id, user_id, currency, extra_income, savings, month)
-			values (${planId}, ${userId}, 'ARS', ${1_500_000_00}, ${150_000_00}, null)
+			insert into spending_plans (id, user_id, currency, savings, month)
+			values (${planId}, ${userId}, 'ARS', ${150_000_00}, null)
 		`;
 		await tx`
 			insert into plan_category_limits (plan_id, category_id, amount)
@@ -384,8 +394,8 @@ try {
 			values (${otherCategoryId}, ${otherId}, 'Ajena', 'blue')
 		`;
 		await tx`
-			insert into spending_plans (id, user_id, currency, extra_income, savings)
-			values (${randomUUID()}, ${otherId}, 'USD', ${1_000_00}, 0)
+			insert into spending_plans (id, user_id, currency, savings)
+			values (${randomUUID()}, ${otherId}, 'USD', 0)
 		`;
 		await tx`
 			insert into recurring_movements (id, user_id, type, description, amount, account_id, category_id, day_of_month)

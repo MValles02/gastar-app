@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { resolve } from '$app/paths';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import RecurringForm from '../RecurringForm.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -16,7 +15,7 @@
 	<title>{title} · Gastar</title>
 </svelte:head>
 
-<PageHeader {title} close={{ href: resolve('/plan'), label: 'Cerrar' }} />
+<PageHeader {title} close={{ href: data.returnHref, label: 'Cerrar' }} />
 
 <RecurringForm
 	initial={form?.values ?? {
@@ -31,5 +30,6 @@
 	accounts={data.accounts}
 	categories={data.categories}
 	submitLabel="Guardar"
+	cancelHref={data.returnHref}
 	bind:type
 />
