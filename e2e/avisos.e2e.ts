@@ -3,6 +3,7 @@ import {
 	deleteMovements,
 	deleteRules,
 	fillRule,
+	fillSavings,
 	login,
 	OTHER_EMAIL,
 	postDelete,
@@ -70,14 +71,12 @@ test('a plan alert opens /plan in its currency, and the page works without JS', 
 	let created = false;
 	try {
 		// Savings far above any income his ARS rules could add: over from the first day.
-		await page.goto('/plan/setup', { waitUntil: 'networkidle' });
-		await expect(page.getByRole('list', { name: 'Pasos' })).toBeVisible();
-		for (let i = 1; i < 3; i++) await page.getByRole('button', { name: 'Siguiente' }).click();
-		const step3 = page.locator('section.step').nth(2);
-		await step3.getByRole('radio', { name: 'Monto' }).check({ force: true });
-		await step3.getByLabel('Monto a ahorrar').fill('99.999.999');
+		await page.goto('/plan/setup?step=3', { waitUntil: 'networkidle' });
+		await fillSavings(page, { option: 'Otro', unit: '$', value: '99.999.999' });
 		await page.getByRole('button', { name: 'Siguiente' }).click();
 		created = true; // none existed above, so whatever exists after this click is ours
+		await expect(page).toHaveURL(/\/plan\/setup\?step=4$/);
+		await page.getByRole('link', { name: 'Siguiente' }).click();
 		await page.getByRole('button', { name: 'Guardar plan' }).click();
 		await expect(page.getByText('Plan guardado.')).toBeVisible();
 
@@ -111,6 +110,6 @@ test('a plan alert opens /plan in its currency, and the page works without JS', 
 		await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
 	} finally {
 		await setCurrencyCookie(page, baseURL!, 'ARS');
-		if (created) await postDelete(page, baseURL!, `${baseURL}/plan/setup`);
+		if (created) await postDelete(page, baseURL!, `${baseURL}/plan`);
 	}
 });

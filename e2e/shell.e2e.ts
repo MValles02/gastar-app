@@ -52,7 +52,7 @@ test('form routes do not render the tab bar', async ({ page }) => {
 		'/categories/new',
 		`${category}/edit`,
 		'/plan/recurring/new',
-		'/plan/setup'
+		'/plan/setup?step=1'
 	];
 	for (const route of routes) {
 		await page.goto(route);

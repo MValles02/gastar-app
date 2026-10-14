@@ -130,8 +130,9 @@ At most one plan per user and currency. The currency is stored because a plan ha
 | `id` | pk | |
 | `user_id` | fk → `user.id` | |
 | `currency` | enum('ARS','USD') | |
-| `extra_income` | bigint, >= 0, default 0 | minor units |
+| `extra_income` | bigint, >= 0, default 0 | deprecated: not read or written; dropped in a later release |
 | `savings` | bigint, >= 0, default 0 | minor units |
+| `savings_percent` | integer, nullable, CHECK 0..10000 | percent x 100 (1000 = 10 %); set → savings = `floor(income / 1_000_000 * percent_x100)` whole units, computed at read time from the income; null → the `savings` amount |
 | `month` | varchar(7), nullable | null = every month; `YYYY-MM` = that month only (CHECK) |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
@@ -157,7 +158,7 @@ Constraints: PK `(plan_id, category_id)`.
 All inputs are in the plan's currency; nothing is converted or summed across currencies.
 
 ```
-income      = sum(active recurring incomes) + extra_income
+income      = sum(active recurring incomes)
 forSpending = income - sum(active recurring bills) - savings
 available   = forSpending - spent        -- spent: see below
 perDay      = available > 0 ? floor(available / daysLeft / unit) * unit : 0
@@ -167,7 +168,7 @@ unassigned  = forSpending - sum(limits)
 
 - Spent: outcomes in the current Buenos Aires month on accounts in the plan currency (archived accounts included), transfers excluded; outcomes linked to an active rule are excluded (the rule is already in the bills), outcomes linked to an inactive or deleted rule are counted.
 - Status: `over` if `available < 0`; `warn` if `spent / forSpending > elapsed / days`; otherwise `ok`. When `forSpending <= 0`, any spending counts as fully spent (share 1), so status is `warn`, or `over` if `available < 0`; no spending gives `ok`. Each limit shows its own progress the same way.
-- Savings presets: 10 % = `floor(income / 1000) * 100`, 20 % = `floor(income / 500) * 100`.
+- Savings: if `savings_percent` is set, savings = `floor(income * percent_x100 / 1_000_000) * 100` (whole units), computed at read time and never relied on from storage; saves also write that computed amount to `savings` for rollout compatibility (older releases read only `savings`). If null, savings is the `savings` amount.
 - Rule status: `paid` if a linked movement exists in the month; otherwise `overdue` for any past month, or by due day (clamped to the month's length) within the current/future month: `overdue` / `today` / `upcoming`.
 
 ### Account balance (always computed, never stored)
@@ -233,5 +234,5 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 18. `movements.occurred_at` is the Buenos Aires local midnight of the movement's date; readers derive the date in Buenos Aires and tolerate non-midnight legacy values.
 19. New and edited ARS amounts, initial balances and all exchange rates are multiples of 100 (whole pesos); existing non-whole values are tolerated and displayed rounded half-up.
 20. Recurring-rule and plan amounts are in the account's or plan's currency and are never summed across currencies. ARS values are whole pesos, validated in the actions.
-21. Plan figures (income, for spending, available, per day, status, limit progress) are computed at read time, never persisted. Plan setup writes the plan, its limits and any rules it creates or archives in one transaction. Creating a movement with "Repetir cada mes" writes the rule and the movement (linked by `recurring_id`) in one transaction.
+21. Plan figures (income, for spending, available, per day, status, limit progress) are computed at read time, never persisted. The plan setup wizard writes step by step (savings creates the plan, each limit and rule is saved on its own screen, the last step sets the plan month); nothing is staged across steps. Creating a movement with "Repetir cada mes" writes the rule and the movement (linked by `recurring_id`) in one transaction.
 22. Deletion: hard-deleting an unreferenced account or category cascades to its recurring rules and plan limits. Deleting a recurring rule sets the linked movements' `recurring_id` to NULL, so history is kept. Archiving does not touch plan rows; rules on an archived account or category are inactive (excluded from plan sums, cannot be logged).

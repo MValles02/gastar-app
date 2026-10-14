@@ -337,6 +337,7 @@ test('back links go up to a fixed parent and tabs have none', async ({ page }) =
 		['/categories', '/profile'],
 		['/plan/recurring/new', '/plan'],
 		[ruleHref, '/plan'],
+		[`${ruleHref}/edit`, ruleHref],
 		['/accounts/new', '/accounts'],
 		['/categories/new', '/categories'],
 		['/movements/new', '/'],

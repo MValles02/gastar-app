@@ -223,7 +223,10 @@ test('Inicio with a plan shows the same Disponible as /plan and links to it', as
 	await card.getByRole('link', { name: 'Ver plan' }).click();
 	await expect(page).toHaveURL(/\/plan$/);
 	const summary = page.getByRole('region', { name: /^Disponible · / });
-	await expect(summary.locator('.hero')).toHaveText(onHome);
+	// Inicio renders a negative amount as "-" + newline + amount: compare without whitespace.
+	expect((await summary.locator('.hero').innerText()).replace(/\s/g, '')).toBe(
+		onHome.replace(/\s/g, '')
+	);
 });
 
 test('Registrar pago hides Repetir cada mes', async ({ page, baseURL }) => {

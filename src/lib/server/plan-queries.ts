@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull, lt, sql } from 'drizzle-orm';
 import { db } from './db';
 import {
 	categories,
@@ -19,9 +19,8 @@ import {
 	recurringOwnedBy
 } from './access';
 import type { Currency } from '$lib/money';
-import { TZ } from './month';
 import type { MovementRow } from './movements';
-import { HISTORY_MONTHS, PLAN_STEP } from './plan';
+import { isRecurringActive } from './plan';
 
 type Range = { start: Date; end: Date };
 
@@ -31,10 +30,6 @@ const occurredIn = (range: Range) =>
 /** The rule `id`, only if the user may access it. */
 const ownRule = (userId: string, id: string) =>
 	and(eq(recurringMovements.id, id), canAccessRecurring(userId));
-
-// TZ is inlined as a literal: a bound parameter makes SELECT and GROUP BY different expressions.
-const tzLiteral = sql.raw(`'${TZ}'`);
-const localMonth = sql<string>`to_char(${movements.occurredAt} at time zone ${tzLiteral}, 'YYYY-MM')`;
 
 export type RecurringRow = {
 	type: 'income' | 'outcome';
@@ -139,44 +134,6 @@ export function deleteRecurring(userId: string, id: string) {
 		.returning({ id: recurringMovements.id });
 }
 
-/**
- * Unlinked incomes/outcomes that happened in each of the `HISTORY_MONTHS` months of `range` with the same
- * description, account and category: likely recurring, suggested when setting up a plan.
- */
-export function recurringCandidates(userId: string, cur: Currency, range: Range) {
-	return db
-		.select({
-			type: movements.type,
-			description: sql<string>`min(${movements.description})`,
-			amount: sql<number>`round(avg(${movements.amount}))`.mapWith(Number),
-			dayOfMonth:
-				sql<number>`extract(day from max(${movements.occurredAt}) at time zone ${tzLiteral})`.mapWith(
-					Number
-				),
-			accountId: movements.accountId,
-			categoryId: movements.categoryId
-		})
-		.from(movements)
-		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.where(
-			and(
-				canAccessMovement(userId),
-				eq(financialAccounts.currency, cur),
-				isNull(financialAccounts.archivedAt),
-				isNull(movements.recurringId),
-				or(eq(movements.type, 'income'), eq(movements.type, 'outcome')),
-				occurredIn(range)
-			)
-		)
-		.groupBy(
-			sql`lower(${movements.description})`,
-			movements.type,
-			movements.accountId,
-			movements.categoryId
-		)
-		.having(sql`count(distinct ${localMonth}) >= ${HISTORY_MONTHS}`);
-}
-
 // --- Spending plans ---
 
 export function getPlan(userId: string, cur: Currency) {
@@ -184,8 +141,8 @@ export function getPlan(userId: string, cur: Currency) {
 		.select({
 			id: spendingPlans.id,
 			currency: spendingPlans.currency,
-			extraIncome: spendingPlans.extraIncome,
 			savings: spendingPlans.savings,
+			savingsPercent: spendingPlans.savingsPercent,
 			month: spendingPlans.month
 		})
 		.from(spendingPlans)
@@ -198,6 +155,8 @@ export function planLimits(userId: string, planId: string) {
 		.select({
 			categoryId: planCategoryLimits.categoryId,
 			name: categories.name,
+			color: categories.color,
+			icon: categories.icon,
 			amount: planCategoryLimits.amount
 		})
 		.from(planCategoryLimits)
@@ -237,114 +196,85 @@ export function monthOutcomes(userId: string, cur: Currency, range: Range) {
 		.groupBy(movements.categoryId, movements.recurringId);
 }
 
-/** Thrown inside the `savePlan` transaction to roll everything back; `step` is the wizard step to show. */
-export class PlanRejected extends Error {
-	constructor(
-		readonly step: number,
-		message: string
-	) {
-		super(message);
-	}
-}
-
-export type PlanSave = {
-	extraIncome: number;
-	savings: number;
-	month: string | null;
-	limits: { categoryId: string; amount: number }[];
-	newRules: RecurringRow[];
-	archiveIds: string[];
-};
-
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-/** Inserts the rules the wizard creates once every account (active, in `cur`) and category (active) is the user's. */
-async function insertRules(tx: Tx, userId: string, cur: Currency, rules: RecurringRow[]) {
-	if (rules.length === 0) return;
-	const accountIds = [...new Set(rules.map((r) => r.accountId))];
-	const categoryIds = [...new Set(rules.map((r) => r.categoryId))];
-	const [accountRows, categoryRows] = await Promise.all([
-		tx
-			.select({ id: financialAccounts.id })
-			.from(financialAccounts)
-			.where(
-				and(
-					inArray(financialAccounts.id, accountIds),
-					canAccessAccount(userId),
-					eq(financialAccounts.currency, cur),
-					isNull(financialAccounts.archivedAt)
-				)
-			),
-		tx
-			.select({ id: categories.id })
-			.from(categories)
-			.where(
-				and(
-					inArray(categories.id, categoryIds),
-					canAccessCategory(userId),
-					isNull(categories.archivedAt)
-				)
-			)
-	]);
-	if (accountRows.length !== accountIds.length || categoryRows.length !== categoryIds.length)
-		throw new PlanRejected(
-			PLAN_STEP.income,
-			'Elegí una cuenta y una categoría válidas para cada fila.'
-		);
-	await tx
-		.insert(recurringMovements)
-		.values(rules.map((r) => ({ ...r, ...recurringOwnedBy(userId) })));
-}
-
-/** Replaces the plan's limits; every category must be the user's and active. */
-async function replaceLimits(tx: Tx, userId: string, planId: string, limits: PlanSave['limits']) {
-	await tx.delete(planCategoryLimits).where(eq(planCategoryLimits.planId, planId));
-	if (limits.length === 0) return;
-	const ids = limits.map((l) => l.categoryId);
-	const owned = await tx
-		.select({ id: categories.id })
-		.from(categories)
-		.where(
-			and(inArray(categories.id, ids), canAccessCategory(userId), isNull(categories.archivedAt))
-		);
-	if (owned.length !== ids.length)
-		throw new PlanRejected(PLAN_STEP.summary, 'Elegí una categoría válida para cada límite.');
-	await tx.insert(planCategoryLimits).values(limits.map((l) => ({ ...l, planId })));
-}
-
-/**
- * Writes the user's plan for `cur`, its limits and any rules it creates or archives in ONE transaction.
- * Every account and category id is checked against the user inside it; a bad one throws `PlanRejected`
- * and nothing is written.
- */
-export function savePlan(userId: string, cur: Currency, v: PlanSave) {
-	return db.transaction(async (tx) => {
-		await insertRules(tx, userId, cur, v.newRules);
-
-		if (v.archiveIds.length > 0)
-			await tx
-				.update(recurringMovements)
-				.set({ archivedAt: new Date(), updatedAt: new Date() })
-				.where(and(inArray(recurringMovements.id, v.archiveIds), canAccessRecurring(userId)));
-
-		const fields = { extraIncome: v.extraIncome, savings: v.savings, month: v.month };
-		const [plan] = await tx
-			.insert(spendingPlans)
-			.values({ ...fields, currency: cur, ...planOwnedBy(userId) })
-			.onConflictDoUpdate({
-				target: [spendingPlans.userId, spendingPlans.currency],
-				set: { ...fields, updatedAt: new Date() }
-			})
-			.returning({ id: spendingPlans.id });
-
-		await replaceLimits(tx, userId, plan.id, v.limits);
-		return plan.id;
-	});
-}
+/** Thrown inside `upsertLimits` to roll it back; the message is shown to the user. */
+export class PlanRejected extends Error {}
 
 export function deletePlan(userId: string, cur: Currency) {
 	return db
 		.delete(spendingPlans)
 		.where(and(canAccessPlan(userId), eq(spendingPlans.currency, cur)))
 		.returning({ id: spendingPlans.id });
+}
+
+/** Sum of the user's active recurring incomes in `cur` (the same definition `planView` uses). */
+export async function planIncome(userId: string, cur: Currency) {
+	const rules = await listRecurring(userId, cur);
+	return rules
+		.filter((r) => r.type === 'income' && isRecurringActive(r))
+		.reduce((a, r) => a + r.amount, 0);
+}
+
+export type PlanSavings = { savings: number; savingsPercent: number | null; month: string | null };
+
+/** Creates the user's plan for `cur`, or overwrites its savings and month when one exists. */
+export function upsertPlan(userId: string, cur: Currency, v: PlanSavings) {
+	return db
+		.insert(spendingPlans)
+		.values({ ...v, currency: cur, ...planOwnedBy(userId) })
+		.onConflictDoUpdate({
+			target: [spendingPlans.userId, spendingPlans.currency],
+			set: { ...v, updatedAt: new Date() }
+		})
+		.returning({ id: spendingPlans.id });
+}
+
+/** Patches the user's existing plan for `cur`. */
+export function updatePlan(userId: string, cur: Currency, patch: Partial<PlanSavings>) {
+	return db
+		.update(spendingPlans)
+		.set({ ...patch, updatedAt: new Date() })
+		.where(and(canAccessPlan(userId), eq(spendingPlans.currency, cur)))
+		.returning({ id: spendingPlans.id });
+}
+
+/** Sets the limits of the user's plan `planId` (insert or overwrite per category), in one transaction. */
+export function upsertLimits(
+	userId: string,
+	planId: string,
+	limits: { categoryId: string; amount: number }[]
+) {
+	return db.transaction(async (tx) => {
+		const [plan] = await tx
+			.select({ id: spendingPlans.id })
+			.from(spendingPlans)
+			.where(and(eq(spendingPlans.id, planId), canAccessPlan(userId)));
+		if (!plan) throw new PlanRejected('Plan no encontrado.');
+		const ids = limits.map((l) => l.categoryId);
+		const owned = await tx
+			.select({ id: categories.id })
+			.from(categories)
+			.where(and(inArray(categories.id, ids), canAccessCategory(userId)));
+		if (owned.length !== new Set(ids).size) throw new PlanRejected('Elegí una categoría válida.');
+		for (const l of limits)
+			await tx
+				.insert(planCategoryLimits)
+				.values({ ...l, planId })
+				.onConflictDoUpdate({
+					target: [planCategoryLimits.planId, planCategoryLimits.categoryId],
+					set: { amount: l.amount }
+				});
+	});
+}
+
+/** Removes one category limit from the user's plan `planId`. */
+export async function deleteLimit(userId: string, planId: string, categoryId: string) {
+	const plans = db
+		.select({ id: spendingPlans.id })
+		.from(spendingPlans)
+		.where(and(eq(spendingPlans.id, planId), canAccessPlan(userId)));
+	await db
+		.delete(planCategoryLimits)
+		.where(
+			and(eq(planCategoryLimits.categoryId, categoryId), inArray(planCategoryLimits.planId, plans))
+		);
 }

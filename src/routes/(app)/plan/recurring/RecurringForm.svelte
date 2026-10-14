@@ -22,6 +22,7 @@
 		categories,
 		action = '',
 		submitLabel,
+		cancelHref = '/plan',
 		inline = false,
 		type = $bindable(untrack(() => initial.type || 'outcome'))
 	}: {
@@ -31,6 +32,7 @@
 		categories: (Picker & { kind: string | null })[];
 		action?: string;
 		submitLabel: string;
+		cancelHref?: string;
 		/** Embedded in a screen with the tab bar and its own hero: amount as a row, save bar not pinned. */
 		inline?: boolean;
 		/** `income` or `outcome`; bindable so the screen title can follow the toggle. */
@@ -239,7 +241,7 @@
 			<p class="hint drawer-hint">Si el mes es más corto, vence el último día.</p>
 		</BottomDrawer>
 	{/if}
-	<FormActions cancelHref="/plan" {submitLabel} sticky={!inline} />
+	<FormActions {cancelHref} {submitLabel} sticky={!inline} />
 </form>
 
 <style>
