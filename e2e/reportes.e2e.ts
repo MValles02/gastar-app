@@ -188,3 +188,47 @@ test('donut legend dots use the category colour, not their position', async ({ p
 	});
 	expect(dot).toBe(violet);
 });
+
+for (const [name, viewport] of [
+	['320px', SMALL_PHONE],
+	['375px', { width: 375, height: 800 }]
+] as const) {
+	test(`biggest outcome amount stays on one line inside its card at ${name}`, async ({ page }) => {
+		await page.setViewportSize(viewport);
+		await page.goto('/reports', { waitUntil: 'networkidle' });
+		const card = page.getByRole('link', { name: /Gasto más grande/ });
+		const amount = card.locator('.fact');
+		await expect(amount).toContainText('$380.000');
+		const { height, lineHeight, right } = await amount.evaluate((el) => ({
+			height: el.getBoundingClientRect().height,
+			lineHeight: parseFloat(getComputedStyle(el).lineHeight),
+			right: el.scrollWidth + el.getBoundingClientRect().left
+		}));
+		expect(height).toBeLessThanOrEqual(lineHeight * 1.2);
+		expect(right).toBeLessThanOrEqual(
+			(await card.boundingBox())!.x + (await card.boundingBox())!.width
+		);
+		await expectNoHorizontalOverflow(page);
+	});
+}
+
+test('category legend rows link to the category for the selected month; Otros is not a link', async ({
+	page
+}) => {
+	const month = await monthsBack(page, 2);
+	const rows = page.locator('.slices li');
+	for (const row of await rows.all()) {
+		const link = row.locator('a');
+		if ((await row.locator('.name').textContent()) === 'Otros') await expect(link).toHaveCount(0);
+		else {
+			await expect(link).toHaveAttribute(
+				'href',
+				new RegExp(`^/categories/[^/?]+\\?month=${month}$`)
+			);
+			expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(MIN_TARGET_PX);
+		}
+	}
+	const href = (await rows.locator('a').first().getAttribute('href'))!;
+	await rows.locator('a').first().click();
+	await expect(page).toHaveURL(href);
+});

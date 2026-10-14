@@ -4,7 +4,6 @@
 	import Clock from '@lucide/svelte/icons/clock';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import Icon from '$lib/components/Icon.svelte';
-	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
@@ -60,18 +59,11 @@
 										</span>
 									</span>
 									<Item.Description class="line-clamp-none min-w-0">
-										<span class="sub">{n.detail}</span>
+										<span class="sub">{n.message}</span>
 									</Item.Description>
 								</Item.Content>
-								{#if n.amount !== null}
-									<Item.Actions>
-										<span class="am">
-											<Money cents={-n.amount} currency={g.currency} kind="outcome" />
-										</span>
-									</Item.Actions>
-								{/if}
 							{/snippet}
-							{#if n.href}
+							{#if !n.switchCurrency}
 								<Item.Root>
 									{#snippet child({ props })}
 										<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- server-built app path (with query) -->
@@ -79,10 +71,10 @@
 									{/snippet}
 								</Item.Root>
 							{:else}
-								<!-- Opens /plan in this currency: /plan reads it from the cookie, so switch it first. -->
+								<!-- Plan and limit pages read the currency from the cookie, so switch it first. -->
 								<form method="POST" action={resolve('/currency')}>
 									<input type="hidden" name="currency" value={g.currency} />
-									<input type="hidden" name="redirectTo" value="/plan" />
+									<input type="hidden" name="redirectTo" value={n.href} />
 									<Item.Root>
 										{#snippet child({ props })}
 											<button type="submit" {...props}>{@render row()}</button>
@@ -144,12 +136,6 @@
 		align-items: center;
 		gap: var(--space-2);
 		min-width: 0;
-	}
-
-	.am {
-		flex: none;
-		font-weight: 600;
-		font-variant-numeric: tabular-nums;
 	}
 
 	.pill {

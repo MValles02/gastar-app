@@ -23,6 +23,19 @@
 		s.id === 'other' ? 'var(--text-muted)' : swatchVar(s.color);
 </script>
 
+{#snippet sliceRow(s: {
+	id: string;
+	name: string;
+	percent: number;
+	amount: number;
+	color: string | null;
+})}
+	<i style:background={sliceColor(s)} aria-hidden="true"></i>
+	<span class="name">{s.name}</span>
+	<span class="pct">{s.percent} %</span>
+	<span class="amt"><Money cents={s.amount} currency={data.currency} /></span>
+{/snippet}
+
 <svelte:head>
 	<title>Reportes · Gastar</title>
 </svelte:head>
@@ -133,10 +146,13 @@
 					<ul class="slices">
 						{#each data.slices as s (s.id)}
 							<li>
-								<i style:background={sliceColor(s)} aria-hidden="true"></i>
-								<span class="name">{s.name}</span>
-								<span class="pct">{s.percent} %</span>
-								<span class="amt"><Money cents={s.amount} currency={data.currency} /></span>
+								{#if s.id === 'other'}
+									<div class="row">{@render sliceRow(s)}</div>
+								{:else}
+									<a class="row" href={resolve(`/categories/${s.id}?month=${data.nav.ym}`)}>
+										{@render sliceRow(s)}
+									</a>
+								{/if}
 							</li>
 						{/each}
 					</ul>
@@ -164,7 +180,7 @@
 								<p class="fact">
 									<Money cents={neg(data.biggest.amount)} currency={data.currency} />
 								</p>
-								<p class="label ellipsis">{data.biggest.description} · {data.biggest.date}</p>
+								<p class="label">{data.biggest.description} · {data.biggest.date}</p>
 							</div>
 						</Card.Content>
 					</Card.Root>
@@ -354,12 +370,24 @@
 		padding: 0 var(--space-4) 0.25rem;
 	}
 
-	.slices li {
+	.row {
 		display: grid;
 		grid-template-columns: 10px minmax(0, 1fr) auto auto;
 		align-items: center;
 		gap: 0.625rem;
 		min-height: 3rem;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	a.row:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: -2px;
+		border-radius: 0.5rem;
+	}
+
+	a.row:active {
+		background: var(--muted);
 	}
 
 	.slices li + li {
@@ -419,6 +447,7 @@
 	}
 
 	.fact-card {
+		container-type: inline-size;
 		position: relative;
 		display: flex;
 		flex-direction: column;
@@ -433,19 +462,26 @@
 		color: var(--border-strong);
 	}
 
+	/* Scales with the card so amounts never break; both cards share the size. */
+	.fact-card .eyebrow {
+		padding-right: 1.25rem;
+		font-size: clamp(0.625rem, 7cqi, var(--font-size-xs));
+		white-space: nowrap;
+	}
+
 	.fact {
 		margin-top: 2px;
 		font-family: var(--font-display);
-		font-size: 1.5rem;
+		font-size: clamp(0.875rem, 17cqi, 1.5rem);
 		font-weight: 500;
 		letter-spacing: -0.01em;
 		line-height: 1.2;
-		overflow-wrap: anywhere;
+		white-space: nowrap;
 	}
 
-	.ellipsis {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+	@media (max-width: 21rem) {
+		.facts {
+			grid-template-columns: minmax(0, 1fr);
+		}
 	}
 </style>
