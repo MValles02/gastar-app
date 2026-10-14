@@ -34,7 +34,8 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ## Locale & formatting
 
-- Currency display: `$ 1.234.568` (ARS), `US$ 1.234,56` (USD).
+- Currency display: `$1.234.568` (ARS), `US$1.234,56` (USD); no space after the symbol, ARS never shows decimals.
+- Amount colors: green = positive, red = negative, blue = transfer, never a minus sign. Group totals are neutral (red when negative); savings and informational figures (per day, limits) are neutral.
 - Amount input: comma as decimal separator (USD only).
 - ARS amounts and exchange rates are whole pesos; USD amounts have up to 2 decimals.
 - Timezone for "month" boundaries and default dates: `America/Argentina/Buenos_Aires`.

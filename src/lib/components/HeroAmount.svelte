@@ -2,7 +2,7 @@
 	import { formatMoney } from '$lib/money';
 	import Money from './Money.svelte';
 
-	/** The big display amount of Inicio, Plan and Reportes; steps down a size once the formatted amount passes 11 characters. */
+	/** The big display amount of Inicio, Plan and Reportes; shrinks only when the amount would overflow its box. */
 	let {
 		cents,
 		currency,
@@ -17,17 +17,18 @@
 		class?: string;
 	} = $props();
 
-	let small = $derived(formatMoney(cents, currency).length > 11);
+	let chars = $derived(formatMoney(cents, currency).length);
 </script>
 
-<svelte:element this={as} class="hero hero-amount {className}" class:small>
-	<Money {cents} {currency} {kind} />
+<svelte:element this={as} class="hero hero-amount {className}" style:--chars={chars}>
+	<span class="fit"><Money {cents} {currency} {kind} /></span>
 </svelte:element>
 
 <style>
 	.hero {
 		margin: var(--space-1) 0 0;
 		max-width: 100%;
+		container-type: inline-size;
 		font-family: var(--font-display);
 		font-size: 2.75rem;
 		font-weight: 500;
@@ -35,7 +36,8 @@
 		line-height: 1.1;
 	}
 
-	.hero.small {
-		font-size: 2.25rem;
+	/* Geist Mono advances 0.58em per glyph with the -0.02em tracking; 0.59 keeps a hair of margin. */
+	.fit {
+		font-size: min(2.75rem, calc(100cqi / (var(--chars) * 0.59)));
 	}
 </style>

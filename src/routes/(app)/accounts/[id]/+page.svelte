@@ -32,7 +32,7 @@
 			<Card.Content>
 				<div class="hero">
 					<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} size="3rem" />
-					<p class="value"><Money cents={data.balance} currency={a.currency} /></p>
+					<p class="value"><Money cents={data.balance} currency={a.currency} kind="signed" /></p>
 					<p id={labelId} class="label">Saldo</p>
 				</div>
 			</Card.Content>
@@ -46,7 +46,7 @@
 		</div>
 		<div class="item">
 			<dt>Saldo inicial</dt>
-			<dd class="amount"><Money cents={a.initialBalance} currency={a.currency} /></dd>
+			<dd class="amount"><Money cents={a.initialBalance} currency={a.currency} kind="signed" /></dd>
 		</div>
 		<div class="item">
 			<dt>Ícono y color</dt>

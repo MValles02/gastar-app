@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { CURRENCY_NAME } from '$lib/money';
 	import { LOCALE } from '$lib/locale';
 	import { resolve } from '$app/paths';
 	import Check from '@lucide/svelte/icons/check';
@@ -14,7 +13,6 @@
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { formatMoney } from '$lib/money';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import { swatchVar } from '$lib/appearance';
 	import type { PageData } from './$types';
@@ -23,15 +21,13 @@
 
 	const percent = new Intl.NumberFormat(LOCALE, { style: 'percent' });
 	const statusIcon = { ok: Check, warn: Clock, over: CircleAlert } as const;
-
-	// Past 11 characters ("$ 12.345.678") the hero steps down so it never wraps or truncates.
 </script>
 
 <svelte:head>
 	<title>Gastar</title>
 </svelte:head>
 
-<PageHeader title="Hola, {data.header.firstName}" collapse />
+<PageHeader title="Hola, {data.header.firstName}" />
 
 <div class="dashboard">
 	{#if !data.hasAnyAccount}
@@ -112,7 +108,6 @@
 							{#if data.plan?.endedMonthName}
 								<p class="strong">Terminó el plan de {data.plan.endedMonthName}.</p>
 							{/if}
-							<p class="strong">Sin plan en {CURRENCY_NAME[data.currency]}.</p>
 							<Button href={resolve('/plan/setup')} variant="outline">Crear plan</Button>
 						</div>
 					{/if}
@@ -134,7 +129,13 @@
 										<div class="cat-row">
 											<span class="dot" aria-hidden="true"></span>
 											<span class="ellipsis">{cat.name}</span>
-											<span class="amount cat-amount">{formatMoney(cat.net, data.currency)}</span>
+											<span class="amount cat-amount"
+												><Money
+													cents={cat.net}
+													currency={data.currency}
+													kind={cat.net < 0 ? 'income' : 'outcome'}
+												/></span
+											>
 											<span class="amount muted pct">{percent.format(cat.share)}</span>
 										</div>
 										<div class="track">

@@ -35,7 +35,6 @@
 	<PageHeader
 		title={m.description}
 		back={{ href: resolve('/movements'), label: 'Volver a movimientos' }}
-		variant="compact"
 	/>
 
 	<section aria-label="Monto">

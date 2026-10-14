@@ -9,6 +9,7 @@
 		triggerVariant = 'outline',
 		title,
 		confirmLabel,
+		confirmVariant = 'destructive',
 		action,
 		children
 	}: {
@@ -16,6 +17,8 @@
 		triggerVariant?: 'default' | 'outline' | 'destructive';
 		title: string;
 		confirmLabel: string;
+		/** Destructive by default; pass 'default' for a non-destructive confirm. */
+		confirmVariant?: 'default' | 'destructive';
 		action: string;
 		children?: Snippet;
 	} = $props();
@@ -48,9 +51,11 @@
 						await update();
 					}}
 			>
-				<AlertDialog.Footer>
-					<AlertDialog.Cancel type="button">Cancelar</AlertDialog.Cancel>
-					<AlertDialog.Action type="submit">{confirmLabel}</AlertDialog.Action>
+				<AlertDialog.Footer class="m-0 grid grid-cols-2 border-0 bg-transparent p-0">
+					<AlertDialog.Cancel type="button" class="w-full">Cancelar</AlertDialog.Cancel>
+					<AlertDialog.Action type="submit" variant={confirmVariant} class="w-full"
+						>{confirmLabel}</AlertDialog.Action
+					>
 				</AlertDialog.Footer>
 			</form>
 		</AlertDialog.Content>
@@ -62,7 +67,7 @@
 		<p class="title">{title}</p>
 		{#if children}<div class="body">{@render children()}</div>{/if}
 		<form method="POST" {action}>
-			<Button type="submit">{confirmLabel}</Button>
+			<Button type="submit" variant={confirmVariant}>{confirmLabel}</Button>
 		</form>
 	</details>
 {/if}
@@ -83,7 +88,7 @@
 		color: var(--text-muted);
 	}
 
-	form {
+	.fallback form {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: flex-end;

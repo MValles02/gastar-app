@@ -68,7 +68,7 @@ test('USD keeps its cents', async ({ page }) => {
 	await save(page);
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 	await openDetail(page, desc, 'USD');
-	await expect(page.locator('main')).toContainText(/US\$\s12,34/);
+	await expect(page.locator('main')).toContainText(/US\$12,34/);
 });
 
 test('an ARS whole amount shows without decimals everywhere', async ({ page }) => {
@@ -86,21 +86,21 @@ test('an ARS whole amount shows without decimals everywhere', async ({ page }) =
 
 	await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
 	const row = page.locator('a', { hasText: desc }).locator('.row-amount');
-	expect(norm(await row.textContent())).toMatch(/^-\$\s1\.500$/);
+	expect(norm(await row.textContent())).toMatch(/^-\$1\.500$/);
 
 	await row.click();
 	await expect(page).toHaveURL(MOVEMENT_DETAIL_RE);
-	await expect(page.locator('main')).toContainText(/-\$\s1\.500/);
-	expect(norm(await page.locator('main').textContent())).toMatch(/-\$ 1\.500/);
+	await expect(page.locator('main')).toContainText(/-\$1\.500/);
+	expect(norm(await page.locator('main').textContent())).toMatch(/-\$1\.500/);
 
 	await page.goto('/', { waitUntil: 'networkidle' });
-	expect(norm(await page.locator('.hero-amount').textContent())).toMatch(/^\$\s[\d.]+$/);
+	expect(norm(await page.locator('.hero-amount').textContent())).toMatch(/^\$[\d.]+$/);
 
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
 	const acct = page
 		.locator('[role="listitem"]', { hasText: 'Otra cuenta pesos' })
 		.locator('.row-amount');
-	expect(norm(await acct.textContent())).toMatch(/^\$\s[\d.]+$/);
+	expect(norm(await acct.textContent())).toMatch(/^\$[\d.]+$/);
 });
 
 test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate', async ({
@@ -121,11 +121,11 @@ test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate
 	await expect(page).toHaveURL(/\/movements\/new$/);
 
 	await page.locator('input[name="exchangeRate"]').fill('1234');
-	await expect(page.getByText('Monto en destino: $ 12.352')).toBeVisible();
+	await expect(page.getByText('Monto en destino: $12.352')).toBeVisible();
 	await save(page);
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 	await openDetail(page, desc, 'USD');
-	expect(norm(await detailValue(page, 'En destino').textContent())).toBe('$ 12.352');
+	expect(norm(await detailValue(page, 'En destino').textContent())).toBe('$12.352');
 });
 
 test('account initial balance: ARS whole only, USD keeps cents, edit prefills the stored value', async ({
@@ -184,7 +184,7 @@ test('the transfer preview rounds half up into ARS and keeps cents into USD', as
 		destination: 'Otra cuenta pesos',
 		rate: '50'
 	});
-	await expect(page.getByText('Monto en destino: $ 1', { exact: true })).toBeVisible();
+	await expect(page.getByText('Monto en destino: $1', { exact: true })).toBeVisible();
 
 	await fillMovement(page, {
 		type: 'Transferencia',
@@ -194,7 +194,7 @@ test('the transfer preview rounds half up into ARS and keeps cents into USD', as
 		destination: 'Otra cuenta',
 		rate: '1234'
 	});
-	await expect(page.getByText('Monto en destino: US$ 10,01', { exact: true })).toBeVisible();
+	await expect(page.getByText('Monto en destino: US$10,01', { exact: true })).toBeVisible();
 });
 
 test('movement form inputs follow the origin currency', async ({ page }) => {

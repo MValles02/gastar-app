@@ -9,37 +9,26 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 
 	/**
-	 * Sticky top bar: [back] [eyebrow + title] [avisos] [profile]. The eyebrow defaults to today's date.
-	 * `compact` drops the eyebrow and shrinks the title; `close` shows an X instead of back, hides the
-	 * bell and avatar, is always compact and wins over `back`.
-	 * `collapse` (Inicio) compacts the large header after 24px of scroll: no eyebrow, a centered 16px title.
+	 * Sticky top bar. Full (no `back` and no `close`; the 4 tab pages): [eyebrow + title] [avisos]
+	 * [profile], the eyebrow defaulting to today's date. Little (`back` chevron or `close` X): button +
+	 * one-line truncating title, no eyebrow, bell or avatar; `close` wins over `back`.
 	 */
 	let {
 		title,
 		eyebrow,
 		back,
-		variant = 'large',
-		close,
-		collapse = false
+		close
 	}: {
 		title: string;
 		eyebrow?: string;
 		back?: { href: string; label: string };
-		variant?: 'large' | 'compact';
 		close?: { href: string; label: string };
-		collapse?: boolean;
 	} = $props();
 
-	const COLLAPSE_AFTER_PX = 24;
 	/** Larger alert counts show as "9+". */
 	const MAX_BADGE_COUNT = 9;
 
-	let scrollY = $state(0);
-	const collapsed = $derived(
-		collapse && !close && !back && variant === 'large' && scrollY > COLLAPSE_AFTER_PX
-	);
-
-	const compact = $derived(variant === 'compact' || !!close);
+	const full = $derived(!back && !close);
 
 	// From the (app) layout load; missing only if that load failed (error page).
 	const header = $derived(page.data.header as { date: string; initials: string } | undefined);
@@ -47,13 +36,7 @@
 	const kicker = $derived(eyebrow ?? header?.date);
 </script>
 
-<svelte:window bind:scrollY />
-
-<header class="top-bar" class:collapsed>
-	{#if collapsed}
-		<!-- Mirrors the bell and avatar so the title stays centered. -->
-		<span class="spacer" aria-hidden="true"></span>
-	{/if}
+<header class="top-bar">
 	{#if close}
 		<Button class="-ml-2" href={close.href} variant="ghost" size="icon" aria-label={close.label}>
 			<X aria-hidden="true" />
@@ -64,10 +47,10 @@
 		</Button>
 	{/if}
 	<div class="titles">
-		{#if kicker && !compact}<p class="eyebrow">{kicker}</p>{/if}
-		<h1 class:compact>{title}</h1>
+		{#if kicker && full}<p class="eyebrow">{kicker}</p>{/if}
+		<h1 class:compact={!full}>{title}</h1>
 	</div>
-	{#if header && !close}
+	{#if header && full}
 		<a
 			class="bell"
 			href={resolve('/notifications')}
@@ -87,7 +70,9 @@
 			aria-current={page.url.pathname === '/profile' ? 'page' : undefined}
 			aria-label="Perfil"
 		>
-			<Avatar.Root><Avatar.Fallback>{header.initials}</Avatar.Fallback></Avatar.Root>
+			<Avatar.Root class="size-full"
+				><Avatar.Fallback>{header.initials}</Avatar.Fallback></Avatar.Root
+			>
 		</a>
 	{/if}
 </header>
@@ -128,39 +113,6 @@
 					border-bottom-color: var(--border);
 				}
 			}
-		}
-	}
-
-	.spacer {
-		display: none;
-	}
-
-	/* Only while the bar is pinned: a static bar scrolls away with the page. */
-	@media (min-height: 40em) {
-		.collapsed .spacer {
-			display: block;
-			flex: none;
-			width: 5.5rem;
-		}
-
-		.collapsed .eyebrow {
-			display: none;
-		}
-
-		.collapsed .titles {
-			text-align: center;
-		}
-
-		.collapsed h1 {
-			overflow: hidden;
-			overflow-wrap: normal;
-			text-overflow: ellipsis;
-			white-space: nowrap;
-			font-size: var(--font-size-base);
-		}
-
-		.collapsed {
-			border-bottom-color: var(--border);
 		}
 	}
 
