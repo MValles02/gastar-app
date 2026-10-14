@@ -140,6 +140,7 @@ export const categories = pgTable(
 			.references(() => user.id),
 		name: text('name').notNull(),
 		color: text('color'),
+		icon: text('icon'),
 		// NULL = both income and outcome.
 		kind: movementTypeEnum('kind'),
 		archivedAt: timestamp('archived_at', { withTimezone: true }),

@@ -21,4 +21,5 @@
 	cancelHref={`/categories/${data.id}`}
 	initial={form?.values ?? data.values}
 	errors={form?.errors}
+	disabledKinds={data.disabledKinds}
 />

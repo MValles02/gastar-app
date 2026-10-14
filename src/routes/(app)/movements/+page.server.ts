@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { toIconKey, toSwatchKey } from '$lib/appearance';
+import { toCategoryIconKey, toIconKey, toSwatchKey } from '$lib/appearance';
 import { listAccounts } from '$lib/server/accounts-queries';
 import { listCategories } from '$lib/server/categories-queries';
 import type { Currency } from '$lib/money';
@@ -63,7 +63,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			...categoryRows.map((c) => ({
 				id: c.id,
 				name: c.name,
-				icon: 'categories' as const,
+				icon: toCategoryIconKey(c.icon) ?? ('categories' as const),
 				color: toSwatchKey(c.color),
 				archived: c.archivedAt !== null
 			}))

@@ -43,6 +43,13 @@
       "when": 1791585127625,
       "tag": "0005_cold_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791987176832,
+      "tag": "0006_unknown_juggernaut",
+      "breakpoints": true
     }
   ]
 }

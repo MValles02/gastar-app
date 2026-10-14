@@ -14,7 +14,7 @@
 		size = 'default'
 	}: {
 		name: string;
-		options: { value: string; label: string }[];
+		options: { value: string; label: string; disabled?: boolean }[];
 		value: string;
 		labelledby?: string;
 		onchange?: () => void;
@@ -40,6 +40,7 @@
 		>
 			<RadioGroup.Item
 				value={option.value}
+				disabled={option.disabled}
 				class="absolute inset-0 size-full rounded-md border-0 opacity-0 data-checked:bg-transparent"
 			/>
 			{option.label}

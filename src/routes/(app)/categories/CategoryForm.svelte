@@ -8,30 +8,38 @@
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
 	import Icon from '$lib/components/Icon.svelte';
-	import type { SwatchKey } from '$lib/appearance';
+	import IconPicker from '$lib/components/IconPicker.svelte';
+	import { CATEGORY_ICONS, type CategoryIconKey, type SwatchKey } from '$lib/appearance';
 
-	type Values = Partial<Record<'name' | 'color' | 'kind', string | null>>;
+	type Values = Partial<Record<'name' | 'color' | 'icon' | 'kind', string | null>>;
 
 	let {
 		initial,
 		errors = {},
 		mode,
-		cancelHref
+		cancelHref,
+		disabledKinds = []
 	}: {
 		initial: Values;
 		errors?: Partial<Record<keyof Values, string>>;
 		mode: 'create' | 'edit';
 		cancelHref: string;
+		/** Kinds the category cannot change to (it has movements of the other type). */
+		disabledKinds?: string[];
 	} = $props();
 
 	let name = $state(untrack(() => initial.name ?? ''));
 	let color = $state(untrack(() => (initial.color ?? 'green') as SwatchKey));
+	// '' = no icon (the picker shows "Ninguno").
+	let icon = $state(untrack(() => (initial.icon ?? '') as CategoryIconKey | ''));
 	let kind = $state(untrack(() => initial.kind ?? ''));
-	const kindOptions = [
-		{ value: 'outcome', label: 'Gasto' },
-		{ value: 'income', label: 'Ingreso' },
+	const kindOptions = $derived([
+		{ value: 'outcome', label: 'Gasto', disabled: disabledKinds.includes('outcome') },
+		{ value: 'income', label: 'Ingreso', disabled: disabledKinds.includes('income') },
 		{ value: '', label: 'Ambos' }
-	];
+	]);
+
+	const KIND_LOCKED_HINT = 'Tiene movimientos, solo se puede cambiar a Ambos.';
 
 	// After a failed submit, move focus to the first field marked invalid.
 	$effect(() => {
@@ -72,6 +80,22 @@
 			</div>
 			{#if errors.kind}
 				<p class="error et" role="alert"><Icon name="alert" size="1rem" />{errors.kind}</p>
+			{:else if disabledKinds.length > 0}
+				<p class="hint et">{KIND_LOCKED_HINT}</p>
+			{/if}
+		</li>
+
+		<li class:bad={errors.icon}>
+			<IconPicker
+				name="icon"
+				legend="Ícono"
+				options={CATEGORY_ICONS}
+				bind:value={icon}
+				{color}
+				placeholder="Ninguno"
+			/>
+			{#if errors.icon}
+				<p class="error et" role="alert"><Icon name="alert" size="1rem" />{errors.icon}</p>
 			{/if}
 		</li>
 
@@ -138,6 +162,11 @@
 		align-items: flex-start;
 		gap: var(--space-2);
 		color: var(--negative);
+		font-size: var(--font-size-sm);
+	}
+
+	.hint {
+		color: var(--text-muted);
 		font-size: var(--font-size-sm);
 	}
 
