@@ -11,6 +11,8 @@
 		confirmLabel,
 		confirmVariant = 'destructive',
 		action,
+		formId,
+		closeOnFailure = false,
 		children
 	}: {
 		triggerLabel: string;
@@ -20,6 +22,10 @@
 		/** Destructive by default; pass 'default' for a non-destructive confirm. */
 		confirmVariant?: 'default' | 'destructive';
 		action: string;
+		/** `id` of the confirm form, so inputs elsewhere on the page can join it with `form=`. */
+		formId?: string;
+		/** Close the dialog on a failed action too, so the page behind shows its error. */
+		closeOnFailure?: boolean;
 		children?: Snippet;
 	} = $props();
 
@@ -43,11 +49,13 @@
 				{/if}
 			</AlertDialog.Header>
 			<form
+				id={formId}
 				method="POST"
 				{action}
 				use:enhance={() =>
 					async ({ result, update }) => {
-						if (result.type !== 'failure' && result.type !== 'error') open = false;
+						if (closeOnFailure || (result.type !== 'failure' && result.type !== 'error'))
+							open = false;
 						await update();
 					}}
 			>
@@ -66,7 +74,7 @@
 		<summary>{triggerLabel}</summary>
 		<p class="title">{title}</p>
 		{#if children}<div class="body">{@render children()}</div>{/if}
-		<form method="POST" {action}>
+		<form id={formId} method="POST" {action}>
 			<Button type="submit" variant={confirmVariant}>{confirmLabel}</Button>
 		</form>
 	</details>

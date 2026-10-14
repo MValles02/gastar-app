@@ -9,7 +9,9 @@ const LIMITS = {
 	signUp: { max: 10, windowMs: 60 * MINUTE_MS },
 	resetRequestIp: { max: 5, windowMs: 15 * MINUTE_MS },
 	resetRequestEmail: { max: 3, windowMs: 15 * MINUTE_MS },
-	resend: { max: 5, windowMs: 15 * MINUTE_MS }
+	resend: { max: 5, windowMs: 15 * MINUTE_MS },
+	changePassword: { max: 5, windowMs: 15 * MINUTE_MS },
+	deleteAccount: { max: 5, windowMs: 15 * MINUTE_MS }
 } as const;
 
 /** A key idle for the longest window holds no hits that count in any bucket. */

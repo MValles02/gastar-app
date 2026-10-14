@@ -1,5 +1,6 @@
 // Shared constants and steps for the E2E specs.
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
+import { waitForLink } from './outbox';
 
 // Same defaults as scripts/seed.js (local demo users, not secrets).
 export const SEED_EMAIL = process.env.SEED_EMAIL || 'demo@gastar.local';
@@ -30,6 +31,22 @@ export async function submitLogin(page: Page, email: string, password = SEED_PAS
 	await page.getByLabel('Email').fill(email);
 	await page.getByLabel('Contraseña', { exact: true }).fill(password);
 	await page.getByRole('button', { name: 'Ingresar' }).click();
+}
+
+/** Signs up a fresh user, follows the verification link (which signs them in) and waits for Inicio. */
+export async function signUpVerified(
+	page: Page,
+	request: APIRequestContext,
+	o: { email: string; password: string; name: string }
+) {
+	await page.goto('/signup', { waitUntil: 'networkidle' });
+	await page.getByLabel('Nombre').fill(o.name);
+	await page.getByLabel('Email').fill(o.email);
+	await page.getByLabel('Contraseña', { exact: true }).fill(o.password);
+	await page.getByRole('button', { name: 'Crear cuenta' }).click();
+	await expect(page.getByRole('heading', { name: 'Revisá tu email' })).toBeVisible();
+	await page.goto((await waitForLink(request, o.email, /Confirmá/)).link);
+	await expect(page).toHaveURL(/\/$/);
 }
 
 /** Logs a seeded user in and waits for Inicio. */
