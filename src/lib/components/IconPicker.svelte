@@ -15,4 +15,7 @@
 	{#snippet swatch(key)}
 		<IconBadge icon={key} {color} />
 	{/snippet}
+	{#snippet current(key)}
+		<IconBadge icon={key} {color} size="1.5rem" />
+	{/snippet}
 </RingPicker>

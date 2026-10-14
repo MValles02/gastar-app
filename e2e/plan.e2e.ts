@@ -92,7 +92,6 @@ test('rule text does not wrap per character at 320px and 200% text', async ({ pa
 test('empty new rule form shows every required-field message', async ({ page }) => {
 	await login(page);
 	await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
-	await page.locator('input[name="dayOfMonth"]').fill('');
 	await page.getByRole('button', { name: 'Guardar' }).click();
 	await expect(page).toHaveURL(/\/plan\/recurring\/new$/);
 	for (const message of [

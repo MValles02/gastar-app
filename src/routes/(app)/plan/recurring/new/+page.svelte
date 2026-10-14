@@ -1,17 +1,22 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { resolve } from '$app/paths';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import RecurringForm from '../RecurringForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+
+	// Follows the form's type toggle live.
+	let type = $state(untrack(() => form?.values?.type || data.type));
+	const title = $derived(type === 'income' ? 'Nuevo ingreso fijo' : 'Nuevo pago fijo');
 </script>
 
 <svelte:head>
-	<title>Nuevo fijo · Gastar</title>
+	<title>{title} · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Nuevo fijo" close={{ href: resolve('/plan'), label: 'Cerrar' }} />
+<PageHeader {title} close={{ href: resolve('/plan'), label: 'Cerrar' }} />
 
 <RecurringForm
 	initial={form?.values ?? {
@@ -26,4 +31,5 @@
 	accounts={data.accounts}
 	categories={data.categories}
 	submitLabel="Guardar"
+	bind:type
 />

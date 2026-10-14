@@ -80,7 +80,9 @@ export async function fillMovement(
 	}
 ) {
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
-	await page.getByRole('radio', { name: o.type }).check({ force: true });
+	await page
+		.getByRole('radio', { name: o.type === 'Transferencia' ? 'Transf.' : o.type })
+		.check({ force: true });
 	if (o.date !== undefined) await pickDate(page, 'Fecha', o.date);
 	await page.locator('input[name="amount"]').fill(o.amount);
 	await page.locator('input[name="description"]').fill(o.description);
@@ -88,6 +90,12 @@ export async function fillMovement(
 	if (o.category) await pick(page, 'Categoría', o.category);
 	if (o.destination) await pick(page, 'Cuenta de destino', o.destination);
 	if (o.rate !== undefined) await page.locator('input[name="exchangeRate"]').fill(o.rate);
+}
+
+/** Picks a day of the month in the "Día del mes" drawer of a rule form. */
+export async function pickDay(page: Page, day: string) {
+	await page.getByRole('button', { name: /^Día del mes/ }).click();
+	await page.getByRole('dialog').getByRole('button', { name: day, exact: true }).click();
 }
 
 /** Opens the new-rule form and fills it (JS pickers); the caller submits. */
@@ -98,7 +106,7 @@ export async function fillRule(
 	await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
 	await page.locator('input[name="description"]').fill(o.description);
 	await page.locator('input[name="amount"]').fill(o.amount);
-	await page.locator('input[name="dayOfMonth"]').fill(o.day);
+	await pickDay(page, o.day);
 	await pick(page, 'Cuenta', o.account);
 	await pick(page, 'Categoría', o.category);
 }

@@ -1,17 +1,15 @@
 <script lang="ts">
-	import { groupedAmount } from '$lib/amount-input';
 	import { NAME_MAX_LENGTH } from '$lib/limits';
 	import { tick, untrack } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { resolve } from '$app/paths';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
+	import Lock from '@lucide/svelte/icons/lock';
 	import * as Field from '$lib/components/ui/field/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
 	import ColorPicker from '$lib/components/ColorPicker.svelte';
+	import FormActions from '$lib/components/FormActions.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import IconPicker from '$lib/components/IconPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import TextRow from '$lib/components/TextRow.svelte';
 	import type { AccountIconKey, SwatchKey } from '$lib/appearance';
 	import { CURRENCIES } from '$lib/money';
 
@@ -53,103 +51,76 @@
 <form method="POST" use:enhance class="form" novalidate>
 	<ul class="card">
 		<li class:bad={errors.name}>
-			<Field.Field class="p-4">
-				<Field.Label for="name">Nombre</Field.Label>
-				<Input
-					id="name"
-					name="name"
-					type="text"
-					maxlength={NAME_MAX_LENGTH}
-					required
-					autocomplete="off"
-					placeholder="Agregar"
-					bind:value={name}
-					aria-invalid={errors.name ? 'true' : undefined}
-					aria-describedby={errors.name ? 'name-error' : undefined}
-				/>
-				{#if errors.name}
-					<Field.Error id="name-error" class="flex items-start gap-2">
-						<Icon name="alert" size="1rem" />{errors.name}
-					</Field.Error>
-				{/if}
-			</Field.Field>
+			<TextRow
+				id="name"
+				name="name"
+				label="Nombre"
+				bind:value={name}
+				placeholder="Agregar"
+				maxlength={NAME_MAX_LENGTH}
+				required
+				error={errors.name}
+				errorId="name-error"
+			/>
 		</li>
 
 		<li class:bad={errors.currency}>
-			<div class="row">
-				<Field.Label id="currency-label">Moneda</Field.Label>
-				<div class="seg">
-					<SegmentedControl
-						name="currency"
-						options={currencyOptions}
-						bind:value={currency}
-						labelledby="currency-label"
-						disabled={currencyLocked}
-					/>
+			{#if currencyLocked}
+				<p class="row locked">
+					<span>Moneda</span>
+					<span class="v">
+						{currency}
+						<Lock size={16} strokeWidth={1.75} aria-hidden="true" />
+					</span>
+				</p>
+				<p class="hint pad">No se puede cambiar porque la cuenta tiene movimientos.</p>
+			{:else}
+				<div class="row">
+					<Field.Label id="currency-label" class="text-base font-normal">Moneda</Field.Label>
+					<div class="seg">
+						<SegmentedControl
+							name="currency"
+							options={currencyOptions}
+							bind:value={currency}
+							labelledby="currency-label"
+						/>
+					</div>
 				</div>
-			</div>
+			{/if}
 			{#if errors.currency}
 				<p class="error et" role="alert"><Icon name="alert" size="1rem" />{errors.currency}</p>
 			{/if}
 		</li>
 
 		<li class:bad={errors.initialBalance}>
-			<Field.Field class="p-4">
-				<Field.Label for="initialBalance">Saldo inicial</Field.Label>
-				<Input
-					id="initialBalance"
-					name="initialBalance"
-					type="text"
-					inputmode="decimal"
-					placeholder={currency === 'USD' ? '0,00' : '0'}
-					autocomplete="off"
-					bind:value={initialBalance}
-					{@attach groupedAmount}
-					aria-invalid={errors.initialBalance ? 'true' : undefined}
-					aria-describedby={errors.initialBalance ? 'balance-error' : undefined}
-				/>
-				{#if errors.initialBalance}
-					<Field.Error id="balance-error" class="flex items-start gap-2">
-						<Icon name="alert" size="1rem" />{errors.initialBalance}
-					</Field.Error>
-				{/if}
-			</Field.Field>
+			<TextRow
+				id="initialBalance"
+				name="initialBalance"
+				label="Saldo inicial"
+				bind:value={initialBalance}
+				placeholder={currency === 'USD' ? '0,00' : '0'}
+				inputmode="decimal"
+				amount
+				error={errors.initialBalance}
+				errorId="balance-error"
+			/>
+		</li>
+
+		<li class:bad={errors.icon}>
+			<IconPicker name="icon" legend="Ícono" bind:value={icon} {color} />
+			{#if errors.icon}<p class="error et" role="alert">
+					<Icon name="alert" size="1rem" />{errors.icon}
+				</p>{/if}
+		</li>
+
+		<li class:bad={errors.color}>
+			<ColorPicker name="color" legend="Color" bind:value={color} />
+			{#if errors.color}<p class="error et" role="alert">
+					<Icon name="alert" size="1rem" />{errors.color}
+				</p>{/if}
 		</li>
 	</ul>
-	{#if currencyLocked}
-		<p class="hint after">No se puede cambiar porque la cuenta tiene movimientos.</p>
-	{/if}
-
-	<div>
-		<Card.Root>
-			<Card.Content>
-				<IconPicker name="icon" legend="Ícono" bind:value={icon} {color} />
-			</Card.Content>
-		</Card.Root>
-		{#if errors.icon}<p class="error pad" role="alert">
-				<Icon name="alert" size="1rem" />{errors.icon}
-			</p>{/if}
-	</div>
-
-	<div>
-		<Card.Root>
-			<Card.Content>
-				<ColorPicker name="color" legend="Color" bind:value={color} />
-			</Card.Content>
-		</Card.Root>
-		{#if errors.color}<p class="error pad" role="alert">
-				<Icon name="alert" size="1rem" />{errors.color}
-			</p>{/if}
-	</div>
-
-	<div class="bar">
-		<Button type="submit" class="w-full"
-			>{mode === 'create' ? 'Crear cuenta' : 'Guardar cambios'}</Button
-		>
-	</div>
-	<div class="cancel">
-		<Button href={resolve(cancelHref as '/accounts')} variant="outline">Cancelar</Button>
-	</div>
+	<FormActions {cancelHref} submitLabel={mode === 'create' ? 'Crear cuenta' : 'Guardar cambios'} />
 </form>
 
 <style>
@@ -203,9 +174,20 @@
 		font-size: var(--font-size-sm);
 	}
 
-	.hint.after {
-		margin-top: calc(var(--space-4) * -1);
-		padding-inline: var(--space-4);
+	.hint.pad {
+		padding: 0 var(--space-4) var(--space-3);
+	}
+
+	.locked {
+		justify-content: space-between;
+		color: var(--text-muted);
+	}
+
+	.locked .v {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		color: var(--text);
 	}
 
 	.error {
@@ -218,26 +200,5 @@
 
 	.et {
 		padding: 0 var(--space-4) var(--space-3);
-	}
-
-	.pad {
-		padding: var(--space-2) var(--space-4) 0;
-	}
-
-	/* Sticky save bar: full-bleed, pinned to the bottom of the viewport (no tab bar on this screen). */
-	.bar {
-		position: sticky;
-		bottom: 0;
-		z-index: 2;
-		margin-inline: calc(var(--gutter, var(--space-5)) * -1);
-		padding: var(--space-3) var(--gutter, var(--space-5))
-			calc(var(--space-3) + env(safe-area-inset-bottom));
-		background: var(--bg);
-		box-shadow: 0 -1px 0 var(--border);
-	}
-
-	.cancel {
-		display: flex;
-		justify-content: center;
 	}
 </style>

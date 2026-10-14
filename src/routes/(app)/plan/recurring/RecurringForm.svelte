@@ -1,15 +1,16 @@
 <script lang="ts">
-	import { groupedAmount } from '$lib/amount-input';
 	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Field from '$lib/components/ui/field/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
-	import * as InputGroup from '$lib/components/ui/input-group/index.js';
+	import AmountHero from '$lib/components/AmountHero.svelte';
+	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
+	import FormActions from '$lib/components/FormActions.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import TextRow from '$lib/components/TextRow.svelte';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 	type Fields = 'type' | 'description' | 'amount' | 'accountId' | 'categoryId' | 'dayOfMonth';
@@ -21,7 +22,8 @@
 		categories,
 		action = '',
 		submitLabel,
-		inline = false
+		inline = false,
+		type = $bindable(untrack(() => initial.type || 'outcome'))
 	}: {
 		initial: Record<Fields, string>;
 		errors?: Partial<Record<Fields, string>>;
@@ -31,11 +33,16 @@
 		submitLabel: string;
 		/** Embedded in a screen with the tab bar and its own hero: amount as a row, save bar not pinned. */
 		inline?: boolean;
+		/** `income` or `outcome`; bindable so the screen title can follow the toggle. */
+		type?: string;
 	} = $props();
 
-	let type = $state(untrack(() => initial.type || 'outcome'));
 	let accountId = $state(untrack(() => initial.accountId));
 	let amount = $state(untrack(() => initial.amount));
+	let description = $state(untrack(() => initial.description));
+	let day = $state(untrack(() => initial.dayOfMonth));
+	let dayOpen = $state(false);
+	let dayTrigger: HTMLButtonElement | null = $state(null);
 	let categoryId = $state(untrack(() => initial.categoryId));
 	let mounted = $state(false);
 	onMount(() => (mounted = true));
@@ -54,11 +61,21 @@
 	});
 
 	const typeOptions = [
-		{ value: 'outcome', label: 'Pago' },
-		{ value: 'income', label: 'Ingreso' }
+		{ value: 'income', label: 'Ingreso' },
+		{ value: 'outcome', label: 'Pago' }
 	];
-	const currency = $derived(accounts.find((a) => a.id === accountId)?.meta);
-	const symbol = $derived(currency === 'USD' ? 'US$' : '$');
+	const currency = $derived.by(() => {
+		const meta = accounts.find((a) => a.id === accountId)?.meta;
+		return meta === 'USD' ? 'USD' : meta === 'ARS' ? 'ARS' : undefined;
+	});
+	const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
+
+	async function chooseDay(d: string) {
+		day = d;
+		dayOpen = false;
+		await tick();
+		dayTrigger?.focus();
+	}
 
 	// After a failed submit, move focus to the first field marked invalid (inputs or picker triggers).
 	$effect(() => {
@@ -73,30 +90,6 @@
 	});
 </script>
 
-{#snippet amountField(cls: string)}
-	<Field.Field class={cls}>
-		<Field.Label for="ramount">Monto</Field.Label>
-		<InputGroup.Root>
-			{#if currency}
-				<InputGroup.Addon><InputGroup.Text>{symbol}</InputGroup.Text></InputGroup.Addon>
-			{/if}
-			<InputGroup.Input
-				id="ramount"
-				name="amount"
-				type="text"
-				inputmode={currency === 'USD' ? 'decimal' : 'numeric'}
-				placeholder={currency === 'USD' ? '0,00' : '0'}
-				autocomplete="off"
-				bind:value={amount}
-				{@attach groupedAmount}
-				aria-invalid={errors.amount ? 'true' : undefined}
-				aria-describedby={errors.amount ? 'ramount-error' : undefined}
-			/>
-		</InputGroup.Root>
-		{#if errors.amount}<Field.Error id="ramount-error">{errors.amount}</Field.Error>{/if}
-	</Field.Field>
-{/snippet}
-
 <form method="POST" {action} use:enhance class="form" novalidate>
 	<div class="field">
 		<span id="rtype-label" class="visually-hidden">Tipo</span>
@@ -110,55 +103,84 @@
 	</div>
 
 	{#if !inline}
-		{@render amountField('')}
+		<AmountHero bind:value={amount} {currency} error={errors.amount} id="ramount" />
 	{/if}
 
 	<ul class="card">
 		{#if inline}
 			<li class:bad={errors.amount}>
-				{@render amountField('p-4')}
+				<TextRow
+					id="ramount"
+					name="amount"
+					label="Monto"
+					bind:value={amount}
+					placeholder={currency === 'USD' ? '0,00' : '0'}
+					inputmode={currency === 'USD' ? 'decimal' : 'numeric'}
+					amount
+					error={errors.amount}
+					errorId="ramount-error"
+				/>
 			</li>
 		{/if}
 
 		<li class:bad={errors.description}>
-			<Field.Field class="p-4">
-				<Field.Label for="rdescription">Descripción</Field.Label>
-				<Input
-					id="rdescription"
-					name="description"
-					type="text"
-					maxlength={DESCRIPTION_MAX_LENGTH}
-					required
-					autocomplete="off"
-					placeholder={type === 'income' ? 'Sueldo' : 'Alquiler'}
-					value={initial.description}
-					aria-invalid={errors.description ? 'true' : undefined}
-					aria-describedby={errors.description ? 'rdesc-error' : undefined}
-				/>
-				{#if errors.description}
-					<Field.Error id="rdesc-error">{errors.description}</Field.Error>
-				{/if}
-			</Field.Field>
+			<TextRow
+				id="rdescription"
+				name="description"
+				label="Descripción"
+				bind:value={description}
+				placeholder={type === 'income' ? 'Sueldo' : 'Alquiler'}
+				maxlength={DESCRIPTION_MAX_LENGTH}
+				required
+				error={errors.description}
+				errorId="rdesc-error"
+			/>
 		</li>
 
 		<li class:bad={errors.dayOfMonth}>
-			<Field.Field class="p-4">
-				<Field.Label for="rday">Día del mes</Field.Label>
-				<Input
-					id="rday"
-					name="dayOfMonth"
-					type="number"
-					inputmode="numeric"
-					min="1"
-					max="31"
-					value={initial.dayOfMonth}
-					aria-invalid={errors.dayOfMonth ? 'true' : undefined}
+			{#if mounted}
+				<Button
+					variant="ghost"
+					class="h-14 w-full scroll-mb-24 justify-between gap-3 rounded-none px-4"
+					aria-haspopup="dialog"
+					aria-labelledby="rday-label rday-value"
 					aria-describedby="rday-hint{errors.dayOfMonth ? ' rday-error' : ''}"
-				/>
-				{#if errors.dayOfMonth}
-					<Field.Error id="rday-error">{errors.dayOfMonth}</Field.Error>
-				{/if}
-			</Field.Field>
+					bind:ref={dayTrigger}
+					onclick={() => (dayOpen = true)}
+				>
+					<span id="rday-label" class="text-base font-normal">Día del mes</span>
+					<span id="rday-value" class="flex-1 text-right" class:text-muted-foreground={!day}>
+						{day || 'Elegir'}
+					</span>
+					<ChevronRight
+						size={16}
+						strokeWidth={1.75}
+						aria-hidden="true"
+						class="text-muted-foreground"
+					/>
+				</Button>
+				<!-- The Drawer is portaled out of the form, so the value submits through this input. -->
+				<input type="hidden" name="dayOfMonth" value={day} />
+			{:else}
+				<label class="row" for="rday">
+					<span>Día del mes</span>
+					<input
+						id="rday"
+						name="dayOfMonth"
+						type="number"
+						inputmode="numeric"
+						min="1"
+						max="31"
+						value={day}
+						aria-invalid={errors.dayOfMonth ? 'true' : undefined}
+						aria-describedby="rday-hint{errors.dayOfMonth ? ' rday-error' : ''}"
+					/>
+				</label>
+			{/if}
+			<p id="rday-hint" class="hint pad">Si el mes es más corto, vence el último día.</p>
+			{#if errors.dayOfMonth}
+				<p class="error pad" id="rday-error" role="alert">{errors.dayOfMonth}</p>
+			{/if}
 		</li>
 
 		<li class:bad={errors.accountId}>
@@ -201,14 +223,23 @@
 			</OptionPicker>
 		</li>
 	</ul>
-	<p id="rday-hint" class="hint after">Si el mes es más corto, vence el último día.</p>
-
-	<div class="bar" class:is-sticky={!inline}>
-		<Button type="submit" class="w-full">{submitLabel}</Button>
-	</div>
-	<div class="cancel">
-		<Button href={resolve('/plan')} variant="outline">Cancelar</Button>
-	</div>
+	{#if mounted}
+		<BottomDrawer title="Día del mes" bind:open={dayOpen}>
+			<div class="days">
+				{#each days as d (d)}
+					<Button
+						type="button"
+						variant={d === day ? 'default' : 'outline'}
+						class="h-11 px-0"
+						aria-pressed={d === day}
+						onclick={() => chooseDay(d)}>{d}</Button
+					>
+				{/each}
+			</div>
+			<p class="hint drawer-hint">Si el mes es más corto, vence el último día.</p>
+		</BottomDrawer>
+	{/if}
+	<FormActions cancelHref="/plan" {submitLabel} sticky={!inline} />
 </form>
 
 <style>
@@ -249,11 +280,6 @@
 		font-size: var(--font-size-sm);
 	}
 
-	.hint.after {
-		margin-top: calc(var(--space-4) * -1);
-		padding-inline: var(--space-4);
-	}
-
 	.hint.pad {
 		padding: var(--space-3) var(--space-4);
 	}
@@ -263,20 +289,38 @@
 		font-size: var(--font-size-sm);
 	}
 
-	/* Sticky save bar: full-bleed, pinned to the bottom of the viewport (no tab bar on this screen). */
-	.bar.is-sticky {
-		position: sticky;
-		bottom: 0;
-		z-index: 2;
-		margin-inline: calc(var(--gutter, var(--space-5)) * -1);
-		padding: var(--space-3) var(--gutter, var(--space-5))
-			calc(var(--space-3) + env(safe-area-inset-bottom));
-		background: var(--bg);
-		box-shadow: 0 -1px 0 var(--border);
+	.error.pad {
+		padding-top: 0;
 	}
 
-	.cancel {
+	.row {
 		display: flex;
-		justify-content: center;
+		align-items: center;
+		gap: var(--space-3);
+		min-height: 3.5rem;
+		padding: 0 var(--space-4);
+		font-size: var(--font-size-base);
+	}
+
+	.row input {
+		flex: 1 1 4rem;
+		min-width: 0;
+		width: auto;
+		min-height: 3.5rem;
+		padding: 0;
+		border: 0;
+		border-radius: 0;
+		background: transparent;
+		text-align: right;
+	}
+
+	.days {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		gap: var(--space-2);
+	}
+
+	.drawer-hint {
+		margin-top: var(--space-3);
 	}
 </style>
