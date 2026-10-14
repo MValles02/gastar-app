@@ -1,18 +1,13 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { navigating } from '$app/state';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Lock from '@lucide/svelte/icons/lock';
-	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
-	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
-	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import DateRangePicker from '$lib/components/DateRangePicker.svelte';
 	import * as Empty from '$lib/components/ui/empty/index.js';
-	import * as Field from '$lib/components/ui/field/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
@@ -60,28 +55,6 @@
 
 	// The search term is not a filter: the badge and Limpiar count only the drawer filters.
 	const filterCount = $derived(data.activeCount - (data.filters.q ? 1 : 0));
-
-	let filtersOpen = $state(false);
-	let drawerForm: HTMLFormElement | null = $state(null);
-
-	// The drawer is portaled out of the app root, so SvelteKit does not intercept its GET form:
-	// navigate by hand (without JS the plain form in <noscript> submits natively).
-	const applyFilters = (e: SubmitEvent) => {
-		e.preventDefault();
-		const sp = new SvelteURLSearchParams();
-		for (const [k, v] of new FormData(drawerForm!)) if (typeof v === 'string' && v) sp.set(k, v);
-		void goto(resolve(`/movements?${sp}`), { keepFocus: true, replaceState: true });
-	};
-	const clearFilters = () => void goto(resolve('/movements'), { keepFocus: true });
-
-	// Params the search form keeps (it owns only q and currency).
-	const kept = $derived({
-		type: data.filters.type,
-		account: data.filters.account,
-		category: data.filters.category,
-		from: data.filters.from,
-		to: data.filters.to
-	});
 </script>
 
 <svelte:head>
@@ -90,14 +63,28 @@
 
 <PageHeader title="Movimientos" />
 
-{#snippet fields()}
+{#snippet fields(submit: () => void)}
+	<span id="currency-label" class="visually-hidden">Moneda</span>
+	<SegmentedControl
+		name="currency"
+		options={currencyOptions}
+		bind:value={currency}
+		labelledby="currency-label"
+		disabled={data.lockedCurrency !== null}
+		onchange={submit}
+	/>
+	{#if data.lockedCurrency !== null}
+		<p class="lock">
+			<Lock size={14} strokeWidth={1.75} aria-hidden="true" />Moneda de la cuenta
+		</p>
+	{/if}
 	<span id="type-label" class="visually-hidden">Tipo</span>
 	<SegmentedControl
 		name="type"
 		options={typeOptions}
 		bind:value={type}
 		labelledby="type-label"
-		onchange={() => drawerForm?.requestSubmit()}
+		onchange={submit}
 	/>
 	<div class="group">
 		<OptionPicker
@@ -122,81 +109,19 @@
 		>
 			{#snippet empty()}{/snippet}
 		</OptionPicker>
-		<Field.Field class="p-4">
-			<Field.Label for="from">Desde</Field.Label>
-			<Input id="from" type="date" name="from" bind:value={from} />
-		</Field.Field>
-		<Field.Field class="p-4">
-			<Field.Label for="to">Hasta</Field.Label>
-			<Input id="to" type="date" name="to" bind:value={to} />
-		</Field.Field>
+		<DateRangePicker legend="Fechas" bind:from bind:to />
 	</div>
 {/snippet}
 
 <div class="page">
-	<FilterBar q={data.filters.q} label="Buscar" placeholder="Buscar" hidden={kept}>
-		{#snippet trailing()}
-			<Button
-				type="button"
-				variant="outline"
-				class={['shrink-0', filterCount > 0 && 'border-foreground']}
-				aria-haspopup="dialog"
-				onclick={() => (filtersOpen = true)}
-			>
-				<SlidersHorizontal size={18} strokeWidth={1.75} aria-hidden="true" />
-				Filtros
-				{#if filterCount > 0}<Badge>{filterCount}</Badge>{/if}
-			</Button>
-		{/snippet}
-		{#snippet children(submit)}
-			<span id="currency-label" class="visually-hidden">Moneda</span>
-			<SegmentedControl
-				name="currency"
-				options={currencyOptions}
-				bind:value={currency}
-				labelledby="currency-label"
-				disabled={data.lockedCurrency !== null}
-				onchange={submit}
-			/>
-			{#if data.lockedCurrency !== null}
-				<p class="lock">
-					<Lock size={14} strokeWidth={1.75} aria-hidden="true" />Moneda de la cuenta
-				</p>
-			{/if}
-		{/snippet}
-	</FilterBar>
-
-	<noscript>
-		<form method="GET" class="plain">
-			{#if data.filters.q}<input type="hidden" name="q" value={data.filters.q} />{/if}
-			{#if data.filters.currency && data.lockedCurrency === null}
-				<input type="hidden" name="currency" value={data.filters.currency} />
-			{/if}
-			{@render fields()}
-			<Button type="submit">Aplicar filtros</Button>
-		</form>
-	</noscript>
-
-	<BottomDrawer title="Filtros" bind:open={filtersOpen}>
-		<form
-			method="GET"
-			class="drawer-form"
-			bind:this={drawerForm}
-			onchange={() => drawerForm?.requestSubmit()}
-			onsubmit={applyFilters}
-		>
-			{#if data.filters.q}<input type="hidden" name="q" value={data.filters.q} />{/if}
-			{#if data.filters.currency && data.lockedCurrency === null}
-				<input type="hidden" name="currency" value={data.filters.currency} />
-			{/if}
-			{@render fields()}
-			{#if filterCount > 0}
-				<Button type="button" variant="outline" class="w-full" onclick={clearFilters}>
-					Limpiar filtros
-				</Button>
-			{/if}
-		</form>
-	</BottomDrawer>
+	<FilterBar
+		q={data.filters.q}
+		label="Buscar"
+		placeholder="Buscar"
+		path="/movements"
+		active={filterCount}
+		filters={fields}
+	/>
 
 	{#if data.groups.length === 0}
 		{#if data.page > 1}
@@ -242,16 +167,7 @@
 					>
 						{#each g.items as m (m.id)}
 							<div role="listitem">
-								<MovementRow
-									m={{
-										...m,
-										subtitle: `${
-											m.type === 'transfer'
-												? `${m.accountName} → ${m.destinationAccountName}`
-												: m.accountName
-										}${m.categoryName ? ` · ${m.categoryName}` : ''}`
-									}}
-								/>
+								<MovementRow {m} />
 							</div>
 						{/each}
 					</Item.Group>
@@ -289,14 +205,6 @@
 		gap: var(--space-2);
 		font-size: var(--font-size-sm);
 		color: var(--text-muted);
-	}
-
-	/* Drawer content is portaled, so the form needs its own layout (scoped styles still apply to its own nodes). */
-	.drawer-form,
-	.plain {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
 	}
 
 	/* Rows of one card, like the movement form. */

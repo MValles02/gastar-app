@@ -6,16 +6,21 @@
 	import Money from './Money.svelte';
 
 	let {
-		m
+		m,
+		date
 	}: {
 		m: {
 			id: string;
 			type: 'income' | 'outcome' | 'transfer';
 			description: string;
-			subtitle: string;
 			amount: number;
 			currency: Currency;
+			accountName: string;
+			destinationAccountName: string | null;
+			categoryName: string | null;
 		};
+		/** Pre-formatted day; omitted where a group header already shows it. */
+		date?: string;
 	} = $props();
 </script>
 
@@ -29,9 +34,17 @@
 							.toUpperCase()}{/if}
 				</span>
 			</Item.Media>
-			<Item.Content>
-				<Item.Title>{m.description}</Item.Title>
-				<Item.Description>{m.subtitle}</Item.Description>
+			<Item.Content class="min-w-0">
+				<Item.Title class="block w-full min-w-0 truncate">{m.description}</Item.Title>
+				<Item.Description class="line-clamp-none flex min-w-0 gap-2">
+					{#if date}<span class="slot date">{date}</span>{/if}
+					{#if m.type === 'transfer'}
+						<span class="slot account">{m.accountName} → {m.destinationAccountName}</span>
+					{:else}
+						{#if m.categoryName}<span class="slot category">{m.categoryName}</span>{/if}
+						<span class="slot account end">{m.accountName}</span>
+					{/if}
+				</Item.Description>
 			</Item.Content>
 			<Item.Actions>
 				<span class="row-amount">
@@ -56,5 +69,31 @@
 		color: var(--text);
 		font-size: 0.9375rem;
 		font-weight: 600;
+	}
+
+	/* Line 2 never wraps: the account truncates first, then the category, then the date. */
+	.slot {
+		min-width: 0;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	/* Account has a zero basis, so it only gets leftover space and empties before the
+	   category shrinks; the date (fixed dd/mm/aaaa) shrinks last. */
+	.date {
+		flex: 0 1 auto;
+	}
+
+	.category {
+		flex: 0 1000 auto;
+	}
+
+	.account {
+		flex: 1 1 0;
+	}
+
+	.end {
+		text-align: end;
 	}
 </style>

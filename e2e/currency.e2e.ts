@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { login, setCurrencyCookie } from './helpers';
+import { login, openFilters, setCurrencyCookie } from './helpers';
 
 async function choose(page: Page, label: 'ARS' | 'USD') {
 	await page.getByRole('radio', { name: label }).check({ force: true });
@@ -76,7 +76,11 @@ test('checked tab keeps focus after switching', async ({ page }) => {
 
 test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
 	await page.goto('/movements?currency=USD', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
+	await expect(page.getByRole('button', { name: /^Filtros/ })).toContainText('1');
+	const dialog = await openFilters(page);
+	await expect(dialog.getByRole('radio', { name: 'USD' })).toBeChecked();
+	await page.keyboard.press('Escape');
+	await expect(dialog).toBeHidden();
 	await expect(page.getByText('US$').first()).toBeVisible();
 	await expect(page.locator('[data-slot="item-group"]').getByText(/^[-+]?\$/)).toHaveCount(0);
 
@@ -91,8 +95,9 @@ test('an account filter on /movements wins over ?currency=USD', async ({ page })
 	await expect(page).toHaveURL(/\/accounts\/[^/]+$/);
 	const id = page.url().split('/').pop()!;
 	await page.goto(`/movements?account=${id}&currency=USD`, { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
-	await expect(page.getByRole('radio', { name: 'ARS' })).toBeDisabled();
+	const dialog = await openFilters(page);
+	await expect(dialog.getByRole('radio', { name: 'ARS' })).toBeChecked();
+	await expect(dialog.getByRole('radio', { name: 'ARS' })).toBeDisabled();
 	await expect(page.getByText('No hay movimientos')).toHaveCount(0);
 });
 
@@ -147,5 +152,6 @@ test('movements and accounts ignore the currency cookie', async ({ page, baseURL
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
 	await expect(page.getByText('Efectivo')).toBeVisible();
 	await page.goto('/movements', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio', { name: 'Ambas' })).toBeChecked();
+	const dialog = await openFilters(page);
+	await expect(dialog.getByRole('radio', { name: 'Ambas' })).toBeChecked();
 });

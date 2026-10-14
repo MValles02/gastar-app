@@ -9,12 +9,19 @@
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	let archived = $derived(data.filters.archived);
+	let kind = $derived<string>(data.filters.kind);
+	const kindOptions = [
+		{ value: '', label: 'Todas' },
+		{ value: 'outcome', label: 'Gastos' },
+		{ value: 'income', label: 'Ingresos' }
+	];
 </script>
 
 <svelte:head>
@@ -37,8 +44,22 @@
 			<Button href={resolve('/categories/new')}>Crear categoría</Button>
 		</div>
 	{:else}
-		<FilterBar q={data.filters.q} label="Buscar categorías" placeholder="Buscar categorías">
-			{#snippet children(submit)}
+		<FilterBar
+			q={data.filters.q}
+			label="Buscar categorías"
+			placeholder="Buscar categorías"
+			path="/categories"
+			active={(data.filters.kind ? 1 : 0) + (data.filters.archived ? 1 : 0)}
+		>
+			{#snippet filters(submit)}
+				<span id="kind-label" class="visually-hidden">Tipo</span>
+				<SegmentedControl
+					name="kind"
+					options={kindOptions}
+					bind:value={kind}
+					labelledby="kind-label"
+					onchange={submit}
+				/>
 				<Field.Field orientation="horizontal" class="min-h-11 w-auto">
 					<Checkbox
 						id="archived"

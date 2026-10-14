@@ -42,10 +42,27 @@ export async function login(page: Page, email = SEED_EMAIL) {
 export const setCurrencyCookie = (page: Page, baseURL: string, value: string) =>
 	page.context().addCookies([{ name: 'currency', value, url: baseURL }]);
 
+/** Opens the Filtros drawer of a list page and returns its dialog. */
+export async function openFilters(page: Page) {
+	await page.getByRole('button', { name: /^Filtros/ }).click();
+	const dialog = page.getByRole('dialog');
+	await expect(dialog).toBeVisible();
+	return dialog;
+}
+
 /** Chooses `name` in the JS picker dialog opened by the button whose name matches `legend`. */
 export async function pick(page: Page, legend: string, name: string) {
 	await page.getByRole('button', { name: new RegExp(legend) }).click();
 	await page.getByRole('dialog').getByText(name, { exact: true }).click();
+}
+
+/** Picks `ymd` (YYYY-MM-DD) in the calendar dialog opened by the button whose name matches `label`. */
+export async function pickDate(page: Page, label: string, ymd: string) {
+	await page.getByRole('button', { name: new RegExp(label) }).click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Año').selectOption(String(Number(ymd.slice(0, 4))));
+	await dialog.getByLabel('Mes', { exact: true }).selectOption(String(Number(ymd.slice(5, 7))));
+	await dialog.locator(`[data-bits-day][data-value="${ymd}"]`).click();
 }
 
 /** Opens the new-movement form and fills it (JS pickers); the caller submits. */
@@ -64,7 +81,7 @@ export async function fillMovement(
 ) {
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
 	await page.getByRole('radio', { name: o.type }).check({ force: true });
-	if (o.date !== undefined) await page.locator('input[name="occurredAt"]').fill(o.date);
+	if (o.date !== undefined) await pickDate(page, 'Fecha', o.date);
 	await page.locator('input[name="amount"]').fill(o.amount);
 	await page.locator('input[name="description"]').fill(o.description);
 	await pick(page, o.destination ? 'Cuenta de origen' : 'Cuenta', o.account);

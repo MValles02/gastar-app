@@ -38,6 +38,7 @@ test('a payment due today alerts until it is registered', async ({ page, baseURL
 		const row = alertRow(page, description);
 		await expect(row).toContainText('Vence hoy');
 		await expect(row).toContainText('Otra cuenta pesos');
+		await expect(row.locator('.sub')).toHaveCSS('white-space', 'nowrap');
 		// The bell lives on the full header (tab pages) only.
 		await page.goto('/');
 		await expect(bell(page)).toHaveAttribute('aria-label', /Avisos: \d+/);

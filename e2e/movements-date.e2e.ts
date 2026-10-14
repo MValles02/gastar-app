@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { deleteMovements, login } from './helpers';
+import { deleteMovements, login, openFilters, pickDate } from './helpers';
 
 // Descriptions of movements this spec may have created; removed in afterEach.
 const created: string[] = [];
@@ -50,7 +50,7 @@ test.describe('without JavaScript', () => {
 				.getByText(desc)
 		).toBeVisible();
 		await page.getByText(desc).click();
-		await expect(dateOf(page)).toHaveText('jueves, 29 de febrero de 2024');
+		await expect(dateOf(page)).toHaveText('29/02/2024');
 		await expect(dateOf(page)).not.toHaveText(/\d:\d\d/);
 	});
 
@@ -62,7 +62,7 @@ test.describe('without JavaScript', () => {
 		await page.getByRole('link', { name: 'Editar' }).click();
 		await expect(page.locator('input[name="occurredAt"]')).toHaveValue('2024-02-29');
 		await page.getByRole('button', { name: 'Guardar cambios' }).click();
-		await expect(dateOf(page)).toHaveText('jueves, 29 de febrero de 2024');
+		await expect(dateOf(page)).toHaveText('29/02/2024');
 	});
 
 	test('an impossible date posted directly is rejected with the value kept', async ({
@@ -120,15 +120,48 @@ test.describe('without JavaScript', () => {
 	});
 });
 
-test('a date before 2000 shows the error and keeps the value', async ({ page }) => {
+test('the calendar is in Spanish and the week starts on Monday', async ({ page }) => {
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
-	await page.locator('input[name="amount"]').fill('1');
-	await page.locator('input[name="description"]').fill(unique('Fecha antigua'));
-	await page.locator('input[name="occurredAt"]').fill('1999-12-31');
-	await page.getByRole('button', { name: 'Guardar movimiento' }).click();
-	await expect(page.getByText('Ingresá una fecha válida.')).toBeVisible();
-	await expect(page.locator('input[name="occurredAt"]')).toHaveValue('1999-12-31');
-	await expect(page).toHaveURL(/\/movements\/new$/);
+	await page.getByRole('button', { name: /Fecha/ }).click();
+	const dialog = page.getByRole('dialog');
+	await expect(dialog.getByRole('columnheader').first()).toHaveText(/^lu/i);
+	await expect(dialog.getByRole('columnheader').last()).toHaveText(/^do/i);
+	for (const name of ['Mes anterior', 'Mes siguiente']) {
+		const nav = dialog.getByRole('button', { name, exact: true });
+		await expect(nav).toBeVisible();
+		await expect(nav).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+	}
+	const month = await dialog
+		.getByLabel('Mes', { exact: true })
+		.evaluate((el) => (el as HTMLSelectElement).selectedOptions[0].textContent!.trim());
+	expect(month).toMatch(
+		/^(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)$/i
+	);
+});
+
+test('the calendar offers no day before 2000', async ({ page }) => {
+	await page.goto('/movements/new', { waitUntil: 'networkidle' });
+	expect(await page.locator('input[type="date"]').count()).toBe(0);
+	await pickDate(page, 'Fecha', '2000-01-01');
+	await expect(page.locator('input[name="occurredAt"]')).toHaveValue('2000-01-01');
+	await page.getByRole('button', { name: /Fecha/ }).click();
+	const dialog = page.getByRole('dialog');
+	await expect(dialog.getByLabel('Año').locator('option[value="1999"]')).toHaveCount(0);
+	await expect(dialog.locator('[data-calendar-prev-button]')).toBeDisabled();
+});
+
+test('the Filtros range calendar sets from and to', async ({ page }) => {
+	await page.goto('/movements', { waitUntil: 'networkidle' });
+	const dialog = await openFilters(page);
+	await dialog.getByRole('button', { name: /Fechas/ }).click();
+	const picker = page.getByRole('dialog').last();
+	await picker.getByLabel('Año').selectOption('2025');
+	await picker.getByLabel('Mes', { exact: true }).selectOption('3');
+	await picker.locator('[data-bits-day][data-value="2025-03-10"]').click();
+	await picker.locator('[data-bits-day][data-value="2025-03-14"]').click();
+	await expect(page).toHaveURL(/from=2025-03-10&to=2025-03-14/);
+	await expect(page.getByRole('button', { name: /^Filtros/ })).toContainText('1');
+	await expect(page.getByText('Legado fin del día')).toBeVisible();
 });
 
 test('a legacy non-midnight row uses its Buenos Aires date everywhere', async ({ page }) => {
@@ -148,7 +181,7 @@ test('a legacy non-midnight row uses its Buenos Aires date everywhere', async ({
 
 	await page.goto(list);
 	await page.getByText('Legado fin del día').click();
-	await expect(dateOf(page)).toHaveText('viernes, 14 de marzo de 2025');
+	await expect(dateOf(page)).toHaveText('14/03/2025');
 	await page.getByRole('link', { name: 'Editar' }).click();
 	await expect(page.locator('input[name="occurredAt"]')).toHaveValue('2025-03-14');
 });

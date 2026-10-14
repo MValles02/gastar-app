@@ -213,9 +213,9 @@
 										>{r.description.charAt(0).toUpperCase()}</span
 									>
 								</Item.Media>
-								<Item.Content>
-									<Item.Title>{r.description}</Item.Title>
-									<Item.Description>
+								<Item.Content class="min-w-0">
+									<Item.Title class="block w-full min-w-0 truncate">{r.description}</Item.Title>
+									<Item.Description class="line-clamp-none min-w-0">
 										<span class="sub">
 											<span class="pill {dueClass[r.status]}">
 												{#if DueIcon}<DueIcon size={14} strokeWidth={2} />{/if}{r.label}
@@ -287,9 +287,11 @@
 													{r.description.charAt(0).toUpperCase()}
 												</span>
 											</Item.Media>
-											<Item.Content>
-												<Item.Title>{r.description}</Item.Title>
-												<Item.Description>
+											<Item.Content class="min-w-0">
+												<Item.Title class="block w-full min-w-0 truncate"
+													>{r.description}</Item.Title
+												>
+												<Item.Description class="line-clamp-none min-w-0">
 													<span class="sub">
 														<span class="pill">{r.reason}</span>
 														<span class="sub-text">Día {r.day} · {r.accountName}</span>
@@ -564,8 +566,13 @@
 		margin-top: 0.25rem;
 	}
 
+	.sub .pill {
+		flex: none;
+	}
+
 	.sub-text {
 		min-width: 0;
+		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
