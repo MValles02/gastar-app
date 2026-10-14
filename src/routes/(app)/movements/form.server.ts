@@ -1,5 +1,5 @@
 import { fail } from '@sveltejs/kit';
-import { toIconKey, toSwatchKey } from '$lib/appearance';
+import { toCategoryIconKey, toIconKey, toSwatchKey } from '$lib/appearance';
 import { getAccount, listAccounts } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
 import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
@@ -53,7 +53,7 @@ export async function movementPickers(userId: string, keep?: KeptRefs) {
 			.map((c) => ({
 				id: c.id,
 				name: c.name,
-				icon: 'categories' as const,
+				icon: toCategoryIconKey(c.icon) ?? ('categories' as const),
 				color: toSwatchKey(c.color),
 				kind: c.kind,
 				archived: c.archivedAt !== null

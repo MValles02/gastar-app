@@ -1,4 +1,4 @@
-import type { SwatchKey } from '$lib/appearance';
+import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
 import type { PageServerLoad } from './$types';
 import {
 	accountSummary,
@@ -11,9 +11,13 @@ import { monthNet, toRecentItem, topCategories, totalBalance } from '$lib/server
 import { preferredCurrency } from '$lib/server/currency-pref';
 import { currentMonth, dateLabel, monthRange } from '$lib/server/month';
 import { categorySwatches } from '$lib/server/alerts';
+import { toCategoryIconKey } from '$lib/appearance';
 import { planView } from '$lib/server/plan-view';
 
-type TopCategory = ReturnType<typeof topCategories>[number] & { color: SwatchKey | null };
+type TopCategory = ReturnType<typeof topCategories>[number] & {
+	color: SwatchKey | null;
+	icon: CategoryIconKey | null;
+};
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const userId = locals.user!.id;
@@ -53,6 +57,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		userId,
 		top.map((c) => c.id)
 	);
+	const icons = new Map(cats.map((c) => [c.id, toCategoryIconKey(c.icon)]));
 
 	return {
 		...base,
@@ -68,7 +73,11 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 				status: plan.summary.status
 			}
 		},
-		topCategories: top.map((c) => ({ ...c, color: swatches.get(c.id) ?? null })),
+		topCategories: top.map((c) => ({
+			...c,
+			color: swatches.get(c.id) ?? null,
+			icon: icons.get(c.id) ?? null
+		})),
 		recent: recent.map((r) => {
 			const { occurredAt, ...item } = toRecentItem(r, currency);
 			return { ...item, dateLabel: dateLabel(occurredAt) };

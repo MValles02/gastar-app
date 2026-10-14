@@ -9,12 +9,13 @@
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
+	import IconBadge from '$lib/components/IconBadge.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import * as Item from '$lib/components/ui/item/index.js';
-	import { swatchVar } from '$lib/appearance';
+	import { swatchVar, toSwatchKey } from '$lib/appearance';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -127,7 +128,11 @@
 								{#each data.topCategories as cat (cat.id)}
 									<li class="cat" style:--tone={swatchVar(cat.color)}>
 										<div class="cat-row">
-											<span class="dot" aria-hidden="true"></span>
+											{#if cat.icon}
+												<IconBadge icon={cat.icon} color={toSwatchKey(cat.color)} size="1.5rem" />
+											{:else}
+												<span class="dot" aria-hidden="true"></span>
+											{/if}
 											<span class="ellipsis">{cat.name}</span>
 											<span class="amount cat-amount"
 												><Money

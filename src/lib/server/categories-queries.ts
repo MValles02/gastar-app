@@ -111,6 +111,51 @@ export function categoryMonthNet(userId: string, id: string, range: { start: Dat
 		.groupBy(financialAccounts.currency);
 }
 
+/** Income and outcome totals per category and currency for a range, never summed across currencies. */
+export function categoryMonthTotals(userId: string, range: { start: Date; end: Date }) {
+	const sumOf = (type: 'outcome' | 'income') =>
+		sql<number>`coalesce(sum(${movements.amount}) filter (where ${movements.type} = ${type}), 0)`.mapWith(
+			Number
+		);
+	return db
+		.select({
+			categoryId: movements.categoryId,
+			currency: financialAccounts.currency,
+			outcome: sumOf('outcome'),
+			income: sumOf('income')
+		})
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.innerJoin(categories, eq(movements.categoryId, categories.id))
+		.where(
+			and(
+				canAccessMovement(userId),
+				canAccessCategory(userId),
+				inArray(movements.type, ['income', 'outcome']),
+				gte(movements.occurredAt, range.start),
+				lt(movements.occurredAt, range.end)
+			)
+		)
+		.groupBy(movements.categoryId, financialAccounts.currency);
+}
+
+/** Distinct income/outcome movement types recorded on a category (empty when it has none). */
+export function categoryMovementTypes(userId: string, id: string) {
+	return db
+		.selectDistinct({ type: movements.type })
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.innerJoin(categories, eq(movements.categoryId, categories.id))
+		.where(
+			and(
+				canAccessMovement(userId),
+				canAccessCategory(userId),
+				eq(categories.id, id),
+				inArray(movements.type, ['income', 'outcome'])
+			)
+		);
+}
+
 export function createCategory(userId: string, data: CategoryData) {
 	return db
 		.insert(categories)

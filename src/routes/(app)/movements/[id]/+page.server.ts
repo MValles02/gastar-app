@@ -27,6 +27,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			destinationArchived: m.destinationArchivedAt !== null,
 			categoryName: m.categoryName,
 			categoryColor: m.categoryColor,
+			categoryIcon: m.categoryIcon,
 			categoryArchived: m.categoryArchivedAt !== null
 		}
 	};

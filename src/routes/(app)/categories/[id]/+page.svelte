@@ -2,7 +2,7 @@
 	import type { Currency } from '$lib/money';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { SWATCHES, toSwatchKey } from '$lib/appearance';
+	import { CATEGORY_ICONS, SWATCHES, toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
@@ -17,9 +17,13 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const c = $derived(data.category);
+	const icon = $derived(toCategoryIconKey(c.icon));
+	const iconLabel = $derived(CATEGORY_ICONS.find((i) => i.key === icon)?.label);
 	const colorLabel = $derived(SWATCHES.find((s) => s.key === c.color)?.label ?? c.color);
+	const kindLabel = $derived(
+		c.kind === 'income' ? 'Ingreso' : c.kind === 'outcome' ? 'Gasto' : 'Ambos'
+	);
 	const single = $derived(data.nets.length === 1 ? data.nets[0] : null);
-	const labelId = $props.id();
 </script>
 
 <!-- Net spend (outcomes - incomes) as a cash flow: spend in red, net income in green. -->
@@ -37,7 +41,7 @@
 		back={{ href: resolve('/categories'), label: 'Volver a categorías' }}
 	/>
 
-	<section aria-labelledby={labelId}>
+	<section aria-label="Resumen del mes">
 		<Card.Root>
 			<Card.Content>
 				<div class="month-nav">
@@ -51,8 +55,12 @@
 				</div>
 
 				<div class="hero">
-					<IconBadge letter={c.name[0]} color={toSwatchKey(c.color)} size="3rem" />
-					<p id={labelId} class="label">{data.month.isCurrent ? 'Este mes' : 'Balance del mes'}</p>
+					<IconBadge
+						icon={icon ?? undefined}
+						letter={icon ? undefined : c.name[0]}
+						color={toSwatchKey(c.color)}
+						size="3rem"
+					/>
 					{#if single}
 						<p class="value">{@render flow(single.net, single.currency)}</p>
 					{:else if data.nets.length === 0}
@@ -74,10 +82,19 @@
 
 	<dl class="detail-card data">
 		<div class="item">
-			<dt>Color</dt>
+			<dt>Tipo</dt>
+			<dd>{kindLabel}</dd>
+		</div>
+		<div class="item nowrap">
+			<dt>Ícono y color</dt>
 			<dd class="appearance">
-				<IconBadge letter={c.name[0]} color={toSwatchKey(c.color)} size="1.75rem" />
-				<span>{colorLabel}</span>
+				<IconBadge
+					icon={icon ?? undefined}
+					letter={icon ? undefined : c.name[0]}
+					color={toSwatchKey(c.color)}
+					size="1.5rem"
+				/>
+				<span class="truncate">{iconLabel ? `${iconLabel} · ${colorLabel}` : colorLabel}</span>
 			</dd>
 		</div>
 		<div class="item">
@@ -106,32 +123,34 @@
 	{/if}
 
 	<div class="actions">
+		<div class="buttons">
+			<Button href={resolve(`/categories/${c.id}/edit`)}>Editar</Button>
+			{#if data.actions.canArchive}
+				<form method="POST" action="?/archive" use:enhance>
+					<Button type="submit" variant="outline" class="w-full">Archivar</Button>
+				</form>
+			{/if}
+			{#if data.actions.canUnarchive}
+				<form method="POST" action="?/unarchive" use:enhance>
+					<Button type="submit" variant="outline" class="w-full">Desarchivar</Button>
+				</form>
+			{/if}
+			{#if data.actions.canDelete}
+				<ConfirmDialog
+					triggerLabel="Eliminar"
+					triggerVariant="destructive"
+					title="¿Eliminar esta categoría?"
+					confirmLabel="Eliminar"
+					action="?/delete"
+				>
+					Esta acción no se puede deshacer.
+				</ConfirmDialog>
+			{/if}
+		</div>
 		{#if data.actions.canArchive}
 			<p class="muted small">
 				Tiene movimientos, así que no se puede eliminar. Podés archivarla para ocultarla.
 			</p>
-		{/if}
-		<Button href={resolve(`/categories/${c.id}/edit`)} class="w-full">Editar</Button>
-		{#if data.actions.canArchive}
-			<form method="POST" action="?/archive" use:enhance>
-				<Button type="submit" variant="outline" class="w-full">Archivar</Button>
-			</form>
-		{/if}
-		{#if data.actions.canUnarchive}
-			<form method="POST" action="?/unarchive" use:enhance>
-				<Button type="submit" variant="outline" class="w-full">Desarchivar</Button>
-			</form>
-		{/if}
-		{#if data.actions.canDelete}
-			<ConfirmDialog
-				triggerLabel="Eliminar"
-				triggerVariant="destructive"
-				title="¿Eliminar esta categoría?"
-				confirmLabel="Eliminar"
-				action="?/delete"
-			>
-				Esta acción no se puede deshacer.
-			</ConfirmDialog>
 		{/if}
 	</div>
 </div>
@@ -154,11 +173,6 @@
 		gap: var(--space-2);
 		padding-block: var(--space-2);
 		text-align: center;
-	}
-
-	.label {
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
 	}
 
 	.value {
@@ -234,6 +248,7 @@
 	.appearance {
 		display: flex;
 		align-items: center;
+		justify-content: flex-end;
 		gap: var(--space-2);
 		font-weight: 500;
 	}
@@ -253,7 +268,35 @@
 		margin-top: var(--space-2);
 	}
 
-	.actions :global(.btn) {
+	/* Editar + the state action side by side, equal width. */
+	.buttons {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: var(--space-3);
+	}
+
+	.buttons > :global(*) {
 		width: 100%;
+	}
+
+	.nowrap {
+		flex-wrap: nowrap;
+		gap: var(--space-2);
+	}
+
+	.nowrap dd {
+		flex: 1;
+	}
+
+	.nowrap dt {
+		flex: none;
+	}
+
+	.truncate {
+		font-size: var(--font-size-sm);
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 </style>

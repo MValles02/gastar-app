@@ -10,7 +10,7 @@
 	import IconPicker from '$lib/components/IconPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
-	import type { AccountIconKey, SwatchKey } from '$lib/appearance';
+	import { ACCOUNT_ICONS, type AccountIconKey, type SwatchKey } from '$lib/appearance';
 	import { CURRENCIES } from '$lib/money';
 
 	type Values = Partial<
@@ -107,7 +107,7 @@
 		</li>
 
 		<li class:bad={errors.icon}>
-			<IconPicker name="icon" legend="Ícono" bind:value={icon} {color} />
+			<IconPicker name="icon" legend="Ícono" options={ACCOUNT_ICONS} bind:value={icon} {color} />
 			{#if errors.icon}<p class="error et" role="alert">
 					<Icon name="alert" size="1rem" />{errors.icon}
 				</p>{/if}

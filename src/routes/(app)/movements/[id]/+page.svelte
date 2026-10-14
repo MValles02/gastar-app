@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { swatchVar, toIconKey, toSwatchKey } from '$lib/appearance';
+	import { swatchVar, toCategoryIconKey, toIconKey, toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
@@ -103,7 +103,15 @@
 			<div class="item">
 				<dt>Categoría</dt>
 				<dd class="with-chip">
-					<span class="dot" style:--tone={swatchVar(m.categoryColor)} aria-hidden="true"></span>
+					{#if toCategoryIconKey(m.categoryIcon)}
+						<IconBadge
+							icon={toCategoryIconKey(m.categoryIcon) ?? undefined}
+							color={toSwatchKey(m.categoryColor)}
+							size="1.5rem"
+						/>
+					{:else}
+						<span class="dot" style:--tone={swatchVar(m.categoryColor)} aria-hidden="true"></span>
+					{/if}
 					<span>{m.categoryName}{@render archivedTag(m.categoryArchived)}</span>
 				</dd>
 			</div>

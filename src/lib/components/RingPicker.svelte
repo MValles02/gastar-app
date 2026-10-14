@@ -17,7 +17,8 @@
 		value = $bindable(),
 		swatch,
 		current,
-		showLabel = false
+		showLabel = false,
+		placeholder
 	}: {
 		name: string;
 		legend: string;
@@ -28,6 +29,8 @@
 		current?: Snippet<[Key]>;
 		/** Show the selected option's label next to its swatch in the row (colors). */
 		showLabel?: boolean;
+		/** Text for the row when nothing is selected. */
+		placeholder?: string;
 	} = $props();
 
 	let mounted = $state(false);
@@ -83,6 +86,8 @@
 			{#if selected}
 				{#if current}{@render current(selected.key)}{:else}{@render swatch(selected.key)}{/if}
 				{#if showLabel}<span class="font-medium">{selected.label}</span>{/if}
+			{:else if placeholder}
+				<span class="text-muted-foreground">{placeholder}</span>
 			{/if}
 		</span>
 		<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="text-muted-foreground" />
