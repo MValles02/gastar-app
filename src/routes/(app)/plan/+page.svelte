@@ -27,7 +27,6 @@
 	const dueIcon = { paid: Check, today: Clock, overdue: CircleAlert, upcoming: null } as const;
 	const dueClass = { paid: 'ok', today: 'warn', overdue: 'over', upcoming: '' } as const;
 
-	// Past 11 characters ("$ 12.345.678") the hero steps down so it never wraps or truncates.
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
 	let hydrated = $state(false);
 	onMount(() => (hydrated = true));
@@ -100,11 +99,11 @@
 						</div>
 						<div class="kv">
 							<dt>Pagos fijos</dt>
-							<dd><Money cents={-s.bills} currency={data.currency} /></dd>
+							<dd><Money cents={-s.bills} currency={data.currency} kind="outcome" /></dd>
 						</div>
 						<div class="kv">
 							<dt>Ahorro</dt>
-							<dd><Money cents={-s.savings} currency={data.currency} /></dd>
+							<dd><Money cents={s.savings} currency={data.currency} /></dd>
 						</div>
 						<div class="kv sum">
 							<dt>Para gastar</dt>
@@ -112,7 +111,7 @@
 						</div>
 						<div class="kv">
 							<dt>Gastado</dt>
-							<dd><Money cents={-s.spent} currency={data.currency} /></dd>
+							<dd><Money cents={-s.spent} currency={data.currency} kind="outcome" /></dd>
 						</div>
 						<div class="kv sum">
 							<dt>Disponible</dt>

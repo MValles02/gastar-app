@@ -30,10 +30,7 @@
 	style:--badge-size={size}
 	aria-hidden="true"
 >
-	{#if letter}<span class="letter">{letter}</span>{:else if icon}<Icon
-			name={icon}
-			size="55%"
-		/>{/if}
+	{#if letter}<span class="letter">{letter}</span>{:else if icon}<Icon name={icon} />{/if}
 </span>
 
 <style>
@@ -45,6 +42,13 @@
 		border-radius: var(--radius-pill);
 		background: color-mix(in srgb, var(--tone) 14%, transparent);
 		color: var(--tone);
+	}
+
+	/* Absolute size from the badge: a percentage height inside the inline-flex box left the glyph off-center. */
+	.badge :global(svg) {
+		flex: none;
+		width: calc(var(--badge-size) * 0.55);
+		height: calc(var(--badge-size) * 0.55);
 	}
 
 	.letter {

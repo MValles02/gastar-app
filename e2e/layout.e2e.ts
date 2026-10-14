@@ -64,7 +64,8 @@ test('the bell to Avisos is at least 44px at 320px', async ({ page }) => {
 	expect(box!.height).toBeGreaterThanOrEqual(MIN_TARGET_PX);
 	await bell.click();
 	await expect(page).toHaveURL(/\/notifications$/);
-	await expect(bell).toHaveAttribute('aria-current', 'page');
+	// Sub-screens use the little header: no bell.
+	await expect(bell).toHaveCount(0);
 });
 
 test('detail pages have no horizontal overflow at 320px', async ({ page }) => {
@@ -79,23 +80,19 @@ test('detail pages have no horizontal overflow at 320px', async ({ page }) => {
 	}
 });
 
-test('h1 top is identical across pages at 390x844', async ({ page }) => {
+test('h1 top is identical across tab pages and across sub-pages at 390x844', async ({ page }) => {
 	await page.setViewportSize(PHONE);
 	await login(page);
 	const account = await firstDetailHref(page, 'accounts');
-	const urls = [
-		'/',
-		'/movements',
-		'/accounts',
-		'/categories',
-		'/reports',
-		'/plan',
-		'/profile',
-		...(account ? [account] : [])
+	const groups = [
+		['/', '/movements', '/reports', '/plan'],
+		['/accounts', '/categories', '/profile', ...(account ? [account] : [])]
 	];
-	const tops: number[] = [];
-	for (const url of urls) tops.push(await h1Top(page, url));
-	expect(tops).toEqual(tops.map(() => tops[0]));
+	for (const urls of groups) {
+		const tops: number[] = [];
+		for (const url of urls) tops.push(await h1Top(page, url));
+		expect(tops).toEqual(tops.map(() => tops[0]));
+	}
 });
 
 /** Whether the focused element shows an outline or a box-shadow ring (non-transparent colour, spread > 0). */

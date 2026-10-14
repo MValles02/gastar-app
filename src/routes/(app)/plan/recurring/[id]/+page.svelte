@@ -24,7 +24,6 @@
 <PageHeader
 	title={data.values.description}
 	back={{ href: resolve('/plan'), label: 'Volver al plan' }}
-	variant="compact"
 />
 
 <div class="detail">

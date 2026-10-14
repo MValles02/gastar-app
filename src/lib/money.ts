@@ -9,17 +9,16 @@ export const CURRENCY_NAME = { ARS: 'pesos', USD: 'dólares' } as const satisfie
 	string
 >;
 
-const NBSP = '\u00A0';
 const intFmt = new Intl.NumberFormat(LOCALE);
 
-/** Unsigned display ("$ 1.234", "US$ 1.234,56"): direction is shown by colour, never by a sign. */
+/** Unsigned display ("$1.234", "US$1.234,56"; no space after the symbol): direction is shown by colour, never by a sign. */
 export function formatMoney(cents: number, currency: Currency): string {
 	// ARS is shown in whole pesos (rounded half up on the magnitude); only USD shows cents.
 	const abs = currency === 'ARS' ? Math.round(Math.abs(cents) / 100) * 100 : Math.abs(cents);
 	const int = intFmt.format(Math.trunc(abs / 100));
 	const dec = currency === 'USD' ? `,${String(abs % 100).padStart(2, '0')}` : '';
 	const symbol = currency === 'USD' ? 'US$' : '$';
-	return `${symbol}${NBSP}${int}${dec}`;
+	return `${symbol}${int}${dec}`;
 }
 
 export const ARS_WHOLE_MESSAGE = 'Los montos en pesos van sin decimales.';

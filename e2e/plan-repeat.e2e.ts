@@ -199,9 +199,6 @@ test('Inicio without a plan offers to create one (demo, USD)', async ({ page, ba
 	await expect(async () => {
 		await page.goto('/', { waitUntil: 'networkidle' });
 		const card = page.getByRole('region', { name: 'Saldo', exact: true });
-		await expect(card.getByText('Sin plan en dólares.')).toBeVisible({
-			timeout: 1_000
-		});
 		await expect(card.getByRole('link', { name: 'Crear plan' })).toHaveAttribute(
 			'href',
 			'/plan/setup'

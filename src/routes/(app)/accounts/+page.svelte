@@ -105,7 +105,7 @@
 											</Item.Content>
 											<Item.Actions>
 												<span class="row-amount">
-													<Money cents={a.balance} currency={a.currency} />
+													<Money cents={a.balance} currency={a.currency} kind="signed" />
 												</span>
 											</Item.Actions>
 										</a>

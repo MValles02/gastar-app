@@ -295,7 +295,9 @@
 				{@attach groupedAmount}
 			/>
 		</Field.Field>
-		<p class="total">Ingresos <strong><Money cents={income} currency={data.currency} /></strong></p>
+		<p class="total">
+			Ingresos <strong><Money cents={income} currency={data.currency} kind="income" /></strong>
+		</p>
 	</section>
 
 	<section class="step" hidden={js && step !== 2} aria-labelledby="s2">
@@ -303,7 +305,7 @@
 		<h2 id="s2" tabindex="-1">¿Qué pagos fijos tenés?</h2>
 		{@render fixedStep('outcome')}
 		<p class="total">
-			Pagos fijos <strong><Money cents={bills} currency={data.currency} /></strong>
+			Pagos fijos <strong><Money cents={-bills} currency={data.currency} kind="outcome" /></strong>
 		</p>
 	</section>
 
@@ -344,7 +346,7 @@
 			</div>
 			<div>
 				<dt>Pagos fijos</dt>
-				<dd><Money cents={bills} currency={data.currency} /></dd>
+				<dd><Money cents={-bills} currency={data.currency} kind="outcome" /></dd>
 			</div>
 			<div>
 				<dt>Ahorro</dt>

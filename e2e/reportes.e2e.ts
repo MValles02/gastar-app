@@ -91,7 +91,7 @@ test('ARS biggest outcome is the rent in the current month and two months back',
 	for (const url of ['/reports', '/reports?month=' + (await monthsBack(page, 2))]) {
 		await page.goto(url, { waitUntil: 'networkidle' });
 		const card = page.getByRole('link', { name: /Gasto más grande/ });
-		await expect(card).toContainText('$ 380.000');
+		await expect(card).toContainText('$380.000');
 		await expect(card).toContainText('Alquiler');
 	}
 });
@@ -111,7 +111,7 @@ for (const currency of ['ARS', 'USD'] as const) {
 test('USD current month shows no spending and no pesos', async ({ page, baseURL }) => {
 	await setCurrencyCookie(page, baseURL!, 'USD');
 	await page.goto('/reports', { waitUntil: 'networkidle' });
-	expect(norm(await total(page, 'Gastos').textContent())).toBe('US$ 0,00');
+	expect(norm(await total(page, 'Gastos').textContent())).toBe('US$0,00');
 	await expect(page.getByText(/^No hay gastos con categoría en /)).toBeVisible();
 	expect(norm(await page.locator('main').innerText())).not.toMatch(/(^|[^S])\$ /);
 });
