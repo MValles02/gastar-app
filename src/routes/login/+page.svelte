@@ -5,7 +5,8 @@
 	import AuthPage from '$lib/components/AuthPage.svelte';
 	import AuthTabs from '$lib/components/AuthTabs.svelte';
 	import CheckEmail from '$lib/components/CheckEmail.svelte';
-	import ErrorText from '$lib/components/ErrorText.svelte';
+	import * as Field from '$lib/components/ui/field/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
 	import type { ActionData } from './$types';
@@ -34,9 +35,9 @@
 		{/if}
 
 		<AuthForm action="?/login" submitLabel="Ingresar" onupdated={() => (password = '')}>
-			<div class="field">
-				<label for="email">Email</label>
-				<input
+			<Field.Field>
+				<Field.Label for="email">Email</Field.Label>
+				<Input
 					id="email"
 					type="email"
 					name="email"
@@ -45,10 +46,10 @@
 					value={form?.email ?? ''}
 					required
 				/>
-			</div>
+			</Field.Field>
 
-			<div class="field">
-				<label for="password">Contraseña</label>
+			<Field.Field>
+				<Field.Label for="password">Contraseña</Field.Label>
 				<PasswordInput
 					bind:value={password}
 					autocomplete="current-password"
@@ -56,14 +57,14 @@
 					describedby={form?.passwordError ? 'password-error' : undefined}
 				/>
 				{#if form?.passwordError}
-					<ErrorText id="password-error" message={form.passwordError} />
+					<Field.Error id="password-error">{form.passwordError}</Field.Error>
 				{/if}
-			</div>
+			</Field.Field>
 
 			<a class="forgot" href={resolve('/forgot-password')}>Olvidé mi contraseña</a>
 
 			{#if form?.formError}
-				<ErrorText message={form.formError} />
+				<Field.Error>{form.formError}</Field.Error>
 			{/if}
 		</AuthForm>
 	</AuthPage>

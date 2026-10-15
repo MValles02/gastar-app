@@ -3,7 +3,8 @@
 	import AuthPage from '$lib/components/AuthPage.svelte';
 	import AuthTabs from '$lib/components/AuthTabs.svelte';
 	import CheckEmail from '$lib/components/CheckEmail.svelte';
-	import ErrorText from '$lib/components/ErrorText.svelte';
+	import * as Field from '$lib/components/ui/field/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
 	import type { ActionData } from './$types';
 
@@ -23,27 +24,27 @@
 		<AuthTabs current="signup" />
 
 		<AuthForm action="?/signup" submitLabel="Crear cuenta">
-			<div class="field">
-				<label for="name">Nombre</label>
-				<input
+			<Field.Field>
+				<Field.Label for="name">Nombre</Field.Label>
+				<Input
 					id="name"
 					type="text"
 					name="name"
 					autocomplete="name"
-					maxlength="80"
+					maxlength={80}
 					value={form?.name ?? ''}
 					required
 					aria-invalid={form?.errors?.name ? true : undefined}
 					aria-describedby={form?.errors?.name ? 'name-error' : undefined}
 				/>
 				{#if form?.errors?.name}
-					<ErrorText id="name-error" message={form.errors.name} />
+					<Field.Error id="name-error">{form.errors.name}</Field.Error>
 				{/if}
-			</div>
+			</Field.Field>
 
-			<div class="field">
-				<label for="email">Email</label>
-				<input
+			<Field.Field>
+				<Field.Label for="email">Email</Field.Label>
+				<Input
 					id="email"
 					type="email"
 					name="email"
@@ -55,12 +56,12 @@
 					aria-describedby={form?.errors?.email ? 'email-error' : undefined}
 				/>
 				{#if form?.errors?.email}
-					<ErrorText id="email-error" message={form.errors.email} />
+					<Field.Error id="email-error">{form.errors.email}</Field.Error>
 				{/if}
-			</div>
+			</Field.Field>
 
-			<div class="field">
-				<label for="password">Contraseña</label>
+			<Field.Field>
+				<Field.Label for="password">Contraseña</Field.Label>
 				<PasswordInput
 					bind:value={password}
 					autocomplete="new-password"
@@ -68,14 +69,14 @@
 					describedby="password-hint"
 				/>
 				{#if form?.errors?.password}
-					<ErrorText id="password-hint" message={form.errors.password} />
+					<Field.Error id="password-hint">{form.errors.password}</Field.Error>
 				{:else}
-					<p class="hint" id="password-hint">Mínimo 8 caracteres.</p>
+					<Field.Description id="password-hint">Mínimo 8 caracteres.</Field.Description>
 				{/if}
-			</div>
+			</Field.Field>
 
 			{#if form?.formError}
-				<ErrorText message={form.formError} />
+				<Field.Error>{form.formError}</Field.Error>
 			{/if}
 		</AuthForm>
 	</AuthPage>

@@ -76,6 +76,8 @@ const MSG = {
 	}
 };
 
+export const kindMismatchMessage = (kind: 'income' | 'outcome') => MSG.kindMismatch[kind];
+
 const TYPES: MovementType[] = ['income', 'outcome', 'transfer'];
 
 export function parseMovementForm(fd: FormData): MovementFormResult {
@@ -227,8 +229,13 @@ export function parseMovementFilters(sp: URLSearchParams) {
 	};
 	const n = Number(get('page'));
 	const page = Number.isSafeInteger(n) && n >= 1 && n <= MAX_PAGE ? n : 1;
-	// currency is a segmented control outside the filters disclosure: kept in `values`, not counted in `activeCount`.
+	// An account filter fixes the currency (its own), so currency only counts as active without one.
 	const shown: Record<string, string> = { ...query };
-	const activeCount = Object.values({ ...shown, currency: '' }).filter(Boolean).length;
+	const activeCount = Object.values({
+		...shown,
+		currency: query.account ? '' : query.currency,
+		// Desde + Hasta are one range selection in the UI.
+		to: query.from ? '' : query.to
+	}).filter(Boolean).length;
 	return { values: shown, query, page, activeCount };
 }

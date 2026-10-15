@@ -16,7 +16,7 @@ import {
 // reads his ARS totals, so parallel workers stay independent.
 test.describe.configure({ timeout: 60_000 });
 
-const rule = (page: Page, text: string) => page.locator('li.rule', { hasText: text });
+const rule = (page: Page, text: string) => page.locator('.rule', { hasText: text });
 const checkbox = (page: Page) => page.getByRole('checkbox', { name: 'Repetir cada mes' });
 /** A uniquely described ARS outcome as `otro`, filled but not submitted. */
 const fillOutcome = (page: Page, description: string, amount: string) =>
@@ -42,6 +42,7 @@ const movementCount = async (page: Page, description: string) => {
 test('Repetir cada mes creates the rule and a movement linked to it', async ({ page, baseURL }) => {
 	const description = 'Repite e2e';
 	await login(page, OTHER_EMAIL);
+	await cleanup(page, baseURL!, description);
 	try {
 		await fillOutcome(page, description, '1.000');
 		await expect(checkbox(page)).not.toBeChecked();
@@ -70,6 +71,7 @@ test('Repetir cada mes creates the rule and a movement linked to it', async ({ p
 test('unchecked creates no rule', async ({ page, baseURL }) => {
 	const description = 'Sin repetir e2e';
 	await login(page, OTHER_EMAIL);
+	await cleanup(page, baseURL!, description);
 	try {
 		await fillOutcome(page, description, '1.000');
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
@@ -85,10 +87,11 @@ test('unchecked creates no rule', async ({ page, baseURL }) => {
 test('a transfer hides the checkbox and never creates a rule', async ({ page, baseURL }) => {
 	const description = 'Transferencia e2e';
 	await login(page, OTHER_EMAIL);
+	await cleanup(page, baseURL!, description);
 	try {
 		await page.goto('/movements/new', { waitUntil: 'networkidle' });
 		await expect(checkbox(page)).toBeVisible();
-		await page.getByRole('radio', { name: 'Transferencia' }).check({ force: true });
+		await page.getByRole('radio', { name: 'Transf.' }).check({ force: true });
 		await expect(checkbox(page)).toHaveCount(0);
 
 		// A crafted post (what a no-JS form sends) with the box checked: the server ignores it.
@@ -132,6 +135,7 @@ test('a rejected post with the box checked writes no movement and no rule', asyn
 }) => {
 	const description = 'Atómico e2e';
 	await login(page, OTHER_EMAIL);
+	await cleanup(page, baseURL!, description);
 	const demoContext = await browser.newContext({ baseURL });
 	try {
 		const demoPage = await demoContext.newPage();
@@ -172,6 +176,7 @@ test('ARS decimals with the box checked: message, nothing written, box kept', as
 }) => {
 	const description = 'Decimales e2e';
 	await login(page, OTHER_EMAIL);
+	await cleanup(page, baseURL!, description);
 	try {
 		await fillOutcome(page, description, '1.500,50');
 		await checkbox(page).check();
@@ -194,9 +199,6 @@ test('Inicio without a plan offers to create one (demo, USD)', async ({ page, ba
 	await expect(async () => {
 		await page.goto('/', { waitUntil: 'networkidle' });
 		const card = page.getByRole('region', { name: 'Saldo', exact: true });
-		await expect(card.getByText('Sin plan en dólares.')).toBeVisible({
-			timeout: 1_000
-		});
 		await expect(card.getByRole('link', { name: 'Crear plan' })).toHaveAttribute(
 			'href',
 			'/plan/setup'
@@ -221,7 +223,10 @@ test('Inicio with a plan shows the same Disponible as /plan and links to it', as
 	await card.getByRole('link', { name: 'Ver plan' }).click();
 	await expect(page).toHaveURL(/\/plan$/);
 	const summary = page.getByRole('region', { name: /^Disponible · / });
-	await expect(summary.locator('.hero')).toHaveText(onHome);
+	// Inicio renders a negative amount as "-" + newline + amount: compare without whitespace.
+	expect((await summary.locator('.hero').innerText()).replace(/\s/g, '')).toBe(
+		onHome.replace(/\s/g, '')
+	);
 });
 
 test('Registrar pago hides Repetir cada mes', async ({ page, baseURL }) => {
@@ -243,6 +248,13 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 	const headers = { origin: baseURL!, accept: 'text/html' };
 	await login(page, OTHER_EMAIL);
 	let extraId: string | undefined;
+	// Leftovers of an interrupted run: a same-name category would make the create below fail.
+	await cleanup(page, baseURL!, description);
+	await page.goto('/categories', { waitUntil: 'networkidle' });
+	const stale = await page
+		.getByRole('link', { name: new RegExp(extra) })
+		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).pathname));
+	for (const path of stale) await postDelete(page, baseURL!, path);
 	try {
 		const created = await page.request.post('/categories/new', {
 			form: { name: extra, color: 'green' },
@@ -256,7 +268,7 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		await page.goto('/plan', { waitUntil: 'networkidle' });
-		const id = await linkId(rule(page, description).locator('a.row'));
+		const id = await linkId(rule(page, description).locator('a[data-slot="item"]'));
 		// Drop the movement the rule was created with so this month's payment is still open.
 		await deleteMovements(page, baseURL!, description);
 

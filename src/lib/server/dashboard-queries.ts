@@ -64,6 +64,7 @@ export function categorySums(userId: string, cur: Currency, range: Range) {
 			id: categories.id,
 			name: categories.name,
 			color: categories.color,
+			icon: categories.icon,
 			outcome: sumOfType('outcome'),
 			income: sumOfType('income')
 		})
@@ -78,7 +79,7 @@ export function categorySums(userId: string, cur: Currency, range: Range) {
 				inRange(range)
 			)
 		)
-		.groupBy(categories.id, categories.name, categories.color);
+		.groupBy(categories.id, categories.name, categories.color, categories.icon);
 }
 
 export function recentMovements(userId: string, cur?: Currency) {

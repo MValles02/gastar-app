@@ -9,6 +9,15 @@ export const VERIFY_EMAIL_PATH = '/verify-email';
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+export const USER_NAME_MAX_LENGTH = 80;
+
+/** Error for an invalid (already trimmed) person name, or undefined when valid. */
+export function userNameError(name: string): string | undefined {
+	if (!name) return 'Falta el nombre.';
+	if (name.length > USER_NAME_MAX_LENGTH)
+		return `Usá un nombre de hasta ${USER_NAME_MAX_LENGTH} caracteres.`;
+}
+
 export function isValidPasswordLength(password: string): boolean {
 	return password.length >= PASSWORD_MIN_LENGTH && password.length <= PASSWORD_MAX_LENGTH;
 }

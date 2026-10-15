@@ -51,7 +51,7 @@ test('an ARS amount with decimals is rejected and the value kept', async ({ page
 	});
 	await save(page);
 	await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
-	await expect(page.locator('input[name="amount"]')).toHaveValue('1.500,50');
+	await expect(page.locator('input[name="amount"]')).toHaveValue(/^1\.?500,50$/);
 	await expect(page).toHaveURL(/\/movements\/new$/);
 });
 
@@ -68,7 +68,7 @@ test('USD keeps its cents', async ({ page }) => {
 	await save(page);
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 	await openDetail(page, desc, 'USD');
-	await expect(page.locator('main')).toContainText(/US\$\s12,34/);
+	await expect(page.locator('main')).toContainText(/US\$12,34/);
 });
 
 test('an ARS whole amount shows without decimals everywhere', async ({ page }) => {
@@ -86,19 +86,21 @@ test('an ARS whole amount shows without decimals everywhere', async ({ page }) =
 
 	await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
 	const row = page.locator('a', { hasText: desc }).locator('.row-amount');
-	expect(norm(await row.textContent())).toMatch(/^-\$\s1\.500$/);
+	expect(norm(await row.textContent())).toMatch(/^-\$1\.500$/);
 
 	await row.click();
 	await expect(page).toHaveURL(MOVEMENT_DETAIL_RE);
-	await expect(page.locator('main')).toContainText(/-\$\s1\.500/);
-	expect(norm(await page.locator('main').textContent())).toMatch(/-\$ 1\.500/);
+	await expect(page.locator('main')).toContainText(/-\$1\.500/);
+	expect(norm(await page.locator('main').textContent())).toMatch(/-\$1\.500/);
 
 	await page.goto('/', { waitUntil: 'networkidle' });
-	expect(norm(await page.locator('.hero-amount').textContent())).toMatch(/^\$\s[\d.]+$/);
+	expect(norm(await page.locator('.hero-amount').textContent())).toMatch(/^\$[\d.]+$/);
 
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
-	const acct = page.locator('li', { hasText: 'Otra cuenta pesos' }).locator('.row-amount');
-	expect(norm(await acct.textContent())).toMatch(/^\$\s[\d.]+$/);
+	const acct = page
+		.locator('[role="listitem"]', { hasText: 'Otra cuenta pesos' })
+		.locator('.row-amount');
+	expect(norm(await acct.textContent())).toMatch(/^\$[\d.]+$/);
 });
 
 test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate', async ({
@@ -119,11 +121,11 @@ test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate
 	await expect(page).toHaveURL(/\/movements\/new$/);
 
 	await page.locator('input[name="exchangeRate"]').fill('1234');
-	await expect(page.getByText('Monto en destino: $ 12.352')).toBeVisible();
+	await expect(page.getByText('Monto en destino: $12.352')).toBeVisible();
 	await save(page);
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 	await openDetail(page, desc, 'USD');
-	expect(norm(await detailValue(page, 'En destino').textContent())).toBe('$ 12.352');
+	expect(norm(await detailValue(page, 'En destino').textContent())).toBe('$12.352');
 });
 
 test('account initial balance: ARS whole only, USD keeps cents, edit prefills the stored value', async ({
@@ -156,6 +158,23 @@ test('account initial balance: ARS whole only, USD keeps cents, edit prefills th
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 });
 
+test('typing into a grouped amount ungroups it and blur regroups it', async ({ page }) => {
+	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	await page.getByRole('link', { name: /Otra cuenta pesos/ }).click();
+	await page.getByRole('link', { name: 'Editar' }).click();
+	const balance = page.getByLabel('Saldo inicial');
+	// JS-only enhancement; nothing is saved, so the seeded 500.000 stays.
+	await balance.click();
+	await page.keyboard.press('End');
+	await page.keyboard.type('1');
+	await expect(balance).toHaveValue('5000001');
+	await page.keyboard.press('Tab');
+	await expect(balance).toHaveValue('5.000.001');
+	// Replacing a selected grouped value (as fill does) replaces it, it does not prepend.
+	await balance.fill('1.000');
+	await expect(balance).toHaveValue('1.000');
+});
+
 test('the transfer preview rounds half up into ARS and keeps cents into USD', async ({ page }) => {
 	await fillMovement(page, {
 		type: 'Transferencia',
@@ -165,7 +184,7 @@ test('the transfer preview rounds half up into ARS and keeps cents into USD', as
 		destination: 'Otra cuenta pesos',
 		rate: '50'
 	});
-	await expect(page.getByText('Monto en destino: $ 1', { exact: true })).toBeVisible();
+	await expect(page.getByText('Monto en destino: $1', { exact: true })).toBeVisible();
 
 	await fillMovement(page, {
 		type: 'Transferencia',
@@ -175,7 +194,7 @@ test('the transfer preview rounds half up into ARS and keeps cents into USD', as
 		destination: 'Otra cuenta',
 		rate: '1234'
 	});
-	await expect(page.getByText('Monto en destino: US$ 10,01', { exact: true })).toBeVisible();
+	await expect(page.getByText('Monto en destino: US$10,01', { exact: true })).toBeVisible();
 });
 
 test('movement form inputs follow the origin currency', async ({ page }) => {
@@ -208,4 +227,31 @@ test('account form initial balance placeholder follows the currency', async ({ p
 	await expect(balance).toHaveAttribute('placeholder', '0');
 	await page.getByRole('radio', { name: 'USD' }).check({ force: true });
 	await expect(balance).toHaveAttribute('placeholder', '0,00');
+});
+
+test('Cancelar in the delete confirm closes it and keeps the movement', async ({ page }) => {
+	const desc = unique('Cancelar borrar');
+	await fillMovement(page, {
+		type: 'Gasto',
+		amount: '100',
+		date: '2024-02-29',
+		description: desc,
+		account: 'Otra cuenta pesos',
+		category: 'Ajena'
+	});
+	await save(page);
+	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
+	await openDetail(page, desc);
+	const detail = page.url();
+
+	await page.getByRole('button', { name: 'Eliminar' }).click();
+	await page.getByRole('button', { name: 'Cancelar' }).click();
+	await expect(page.getByRole('alertdialog')).toBeHidden();
+	await page.waitForTimeout(500);
+	await page.goto(detail);
+	await expect(page.getByText(desc).first()).toBeVisible();
+
+	await page.getByRole('button', { name: 'Eliminar' }).click();
+	await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
+	await expect(page).toHaveURL(/\/movements$/);
 });

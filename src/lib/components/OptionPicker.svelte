@@ -4,6 +4,8 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import type { SwatchKey } from '$lib/appearance';
 	import BottomDrawer from './BottomDrawer.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import IconBadge from './IconBadge.svelte';
 
 	type Item = {
@@ -103,19 +105,21 @@
 	<div class="field" class:row={isRow}>
 		<!-- The row variant puts the label inside the trigger, the field variant above it. -->
 		{#if !isRow}{@render label()}{/if}
-		<button
-			type="button"
-			class="trigger"
+		<Button
+			variant={isRow ? 'ghost' : 'outline'}
+			class={isRow
+				? 'trigger h-14 w-full scroll-mb-24 justify-between gap-3 rounded-none px-4'
+				: 'trigger w-full justify-start'}
 			aria-haspopup="dialog"
 			aria-labelledby="{labelId} {labelId}-value"
 			aria-describedby={error ? errorId : undefined}
-			bind:this={trigger}
+			bind:ref={trigger}
 			onclick={openSheet}
 		>
 			{#if isRow}{@render label()}{/if}
 			{@render current()}
 			{#if isRow}<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="chev" />{/if}
-		</button>
+		</Button>
 		<!-- The Drawer is portaled out of the form, so the value submits through this input. -->
 		<input type="hidden" {name} {value} disabled={!value} bind:this={hidden} />
 		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
@@ -123,16 +127,33 @@
 	<BottomDrawer {title} bind:open>
 		<div class="options" bind:this={list}>
 			{#each visible as item (item.id)}
-				<button
-					type="button"
-					class="opt"
-					data-value={item.id}
-					aria-pressed={item.id === value}
-					onclick={() => choose(item.id)}
-				>
-					{@render option(item)}
-					{#if item.id === value}<Check size={20} strokeWidth={1.75} aria-hidden="true" />{/if}
-				</button>
+				<Item.Root>
+					{#snippet child({ props })}
+						<button
+							{...props}
+							type="button"
+							class="opt {props.class}"
+							data-value={item.id}
+							aria-pressed={item.id === value}
+							onclick={() => choose(item.id)}
+						>
+							<Item.Media><IconBadge icon={item.icon} color={item.color} /></Item.Media>
+							<Item.Content>
+								<Item.Title>{item.name}</Item.Title>
+								{#if item.meta || item.archived}
+									<Item.Description>
+										{item.meta ?? ''}{item.archived ? ' · Archivada' : ''}
+									</Item.Description>
+								{/if}
+							</Item.Content>
+							{#if item.id === value}
+								<Item.Actions
+									><Check size={20} strokeWidth={1.75} aria-hidden="true" /></Item.Actions
+								>
+							{/if}
+						</button>
+					{/snippet}
+				</Item.Root>
 			{/each}
 		</div>
 	</BottomDrawer>
@@ -171,41 +192,9 @@
 		min-width: 0;
 	}
 
-	.trigger {
-		justify-content: flex-start;
-		width: 100%;
-		min-height: var(--tap-target);
-		padding: var(--space-2) var(--space-3);
-		background: var(--surface);
-		color: var(--text);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius);
-		font-weight: 400;
-		text-align: left;
-	}
-
-	.trigger:hover {
-		opacity: 1;
-	}
-
-	/* Row variant: label left, value right, 56px tall, no own border (the card draws it). */
+	/* Row variant: label left, value right (trigger is a 56px ghost button; the card draws the border). */
 	.row {
 		gap: 0;
-	}
-
-	.row .trigger {
-		justify-content: space-between;
-		gap: var(--space-3);
-		min-height: 3.5rem;
-		padding: var(--space-2) var(--space-4);
-		background: transparent;
-		border: 0;
-		border-radius: 0;
-		scroll-margin-bottom: 6rem;
-	}
-
-	.row .trigger:active {
-		background: var(--muted);
 	}
 
 	.row .label {
@@ -266,31 +255,6 @@
 	.options {
 		display: flex;
 		flex-direction: column;
-	}
-
-	.opt {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		width: 100%;
-		min-height: 3.75rem;
-		padding: var(--space-2) 0;
-		background: transparent;
-		border: 0;
-		border-bottom: 1px solid var(--border);
-		color: var(--text);
-		font: inherit;
-		font-size: var(--font-size-base);
-		text-align: left;
-		cursor: pointer;
-	}
-
-	.opt:last-child {
-		border-bottom: 0;
-	}
-
-	.opt:active {
-		background: var(--muted);
 	}
 
 	.name {

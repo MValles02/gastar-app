@@ -1,10 +1,23 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
-	import type { AccountIconKey } from '$lib/appearance';
+	import type { AccountIconKey, CategoryIconKey } from '$lib/appearance';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import Banknote from '@lucide/svelte/icons/banknote';
+	import Bus from '@lucide/svelte/icons/bus';
+	import Car from '@lucide/svelte/icons/car';
+	import Clapperboard from '@lucide/svelte/icons/clapperboard';
+	import Gift from '@lucide/svelte/icons/gift';
+	import GraduationCap from '@lucide/svelte/icons/graduation-cap';
+	import HandCoins from '@lucide/svelte/icons/hand-coins';
+	import HeartPulse from '@lucide/svelte/icons/heart-pulse';
+	import PawPrint from '@lucide/svelte/icons/paw-print';
+	import Plane from '@lucide/svelte/icons/plane';
+	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
+	import Shirt from '@lucide/svelte/icons/shirt';
+	import Utensils from '@lucide/svelte/icons/utensils';
+	import Zap from '@lucide/svelte/icons/zap';
 	import Bell from '@lucide/svelte/icons/bell';
 	import Briefcase from '@lucide/svelte/icons/briefcase';
 	import CalendarCheck from '@lucide/svelte/icons/calendar-check';
@@ -33,6 +46,7 @@
 
 	type IconName =
 		| AccountIconKey
+		| CategoryIconKey
 		| 'search'
 		| 'home'
 		| 'accounts'
@@ -87,7 +101,20 @@
 		coins: Coins,
 		safe: Vault,
 		briefcase: Briefcase,
-		phone: Smartphone
+		phone: Smartphone,
+		cart: ShoppingCart,
+		food: Utensils,
+		transport: Bus,
+		car: Car,
+		health: HeartPulse,
+		education: GraduationCap,
+		entertainment: Clapperboard,
+		gift: Gift,
+		travel: Plane,
+		services: Zap,
+		clothing: Shirt,
+		pets: PawPrint,
+		salary: HandCoins
 	};
 
 	const Lucide = $derived(icons[name]);

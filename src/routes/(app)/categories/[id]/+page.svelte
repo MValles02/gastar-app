@@ -2,14 +2,14 @@
 	import type { Currency } from '$lib/money';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { SWATCHES, toSwatchKey } from '$lib/appearance';
-	import Button from '$lib/components/Button.svelte';
-	import Card from '$lib/components/Card.svelte';
+	import { CATEGORY_ICONS, SWATCHES, toCategoryIconKey, toSwatchKey } from '$lib/appearance';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import MonthNav from '$lib/components/MonthNav.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -17,9 +17,13 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const c = $derived(data.category);
+	const icon = $derived(toCategoryIconKey(c.icon));
+	const iconLabel = $derived(CATEGORY_ICONS.find((i) => i.key === icon)?.label);
 	const colorLabel = $derived(SWATCHES.find((s) => s.key === c.color)?.label ?? c.color);
+	const kindLabel = $derived(
+		c.kind === 'income' ? 'Ingreso' : c.kind === 'outcome' ? 'Gasto' : 'Ambos'
+	);
 	const single = $derived(data.nets.length === 1 ? data.nets[0] : null);
-	const labelId = $props.id();
 </script>
 
 <!-- Net spend (outcomes - incomes) as a cash flow: spend in red, net income in green. -->
@@ -37,45 +41,60 @@
 		back={{ href: resolve('/categories'), label: 'Volver a categorías' }}
 	/>
 
-	<section aria-labelledby={labelId}>
-		<Card>
-			<div class="month-nav">
-				<MonthNav
-					label={data.month.label}
-					prevHref={resolve(`/categories/${c.id}?month=${data.month.prev}`)}
-					nextHref={data.month.isCurrent
-						? null
-						: resolve(`/categories/${c.id}?month=${data.month.next}`)}
-				/>
-			</div>
+	<section aria-label="Resumen del mes">
+		<Card.Root>
+			<Card.Content>
+				<div class="month-nav">
+					<MonthNav
+						label={data.month.label}
+						prevHref={resolve(`/categories/${c.id}?month=${data.month.prev}`)}
+						nextHref={data.month.isCurrent
+							? null
+							: resolve(`/categories/${c.id}?month=${data.month.next}`)}
+					/>
+				</div>
 
-			<div class="hero">
-				<IconBadge letter={c.name[0]} color={toSwatchKey(c.color)} size="3rem" />
-				<p id={labelId} class="label">{data.month.isCurrent ? 'Este mes' : 'Balance del mes'}</p>
-				{#if single}
-					<p class="value">{@render flow(single.net, single.currency)}</p>
-				{:else if data.nets.length === 0}
-					<p class="muted">Sin movimientos en este mes.</p>
-				{:else}
-					<dl class="duo">
-						{#each data.nets as n (n.currency)}
-							<div>
-								<dt>{n.currency}</dt>
-								<dd class="amount">{@render flow(n.net, n.currency)}</dd>
-							</div>
-						{/each}
-					</dl>
-				{/if}
-			</div>
-		</Card>
+				<div class="hero">
+					<IconBadge
+						icon={icon ?? undefined}
+						letter={icon ? undefined : c.name[0]}
+						color={toSwatchKey(c.color)}
+						size="3rem"
+					/>
+					{#if single}
+						<p class="value">{@render flow(single.net, single.currency)}</p>
+					{:else if data.nets.length === 0}
+						<p class="muted">Sin movimientos en este mes.</p>
+					{:else}
+						<dl class="duo">
+							{#each data.nets as n (n.currency)}
+								<div>
+									<dt>{n.currency}</dt>
+									<dd class="amount">{@render flow(n.net, n.currency)}</dd>
+								</div>
+							{/each}
+						</dl>
+					{/if}
+				</div>
+			</Card.Content>
+		</Card.Root>
 	</section>
 
-	<dl class="list-card data">
+	<dl class="detail-card data">
 		<div class="item">
-			<dt>Color</dt>
+			<dt>Tipo</dt>
+			<dd>{kindLabel}</dd>
+		</div>
+		<div class="item nowrap">
+			<dt>Ícono y color</dt>
 			<dd class="appearance">
-				<IconBadge letter={c.name[0]} color={toSwatchKey(c.color)} size="1.75rem" />
-				<span>{colorLabel}</span>
+				<IconBadge
+					icon={icon ?? undefined}
+					letter={icon ? undefined : c.name[0]}
+					color={toSwatchKey(c.color)}
+					size="1.5rem"
+				/>
+				<span class="truncate">{iconLabel ? `${iconLabel} · ${colorLabel}` : colorLabel}</span>
 			</dd>
 		</div>
 		<div class="item">
@@ -84,46 +103,54 @@
 		</div>
 	</dl>
 
-	<ul class="list-card">
-		<li>
-			<ListRow href={resolve(`/movements?category=${c.id}`)}>
-				{#snippet title()}Ver movimientos{/snippet}
-				{#snippet trailing()}<Icon name="chevron-right" />{/snippet}
-			</ListRow>
-		</li>
-	</ul>
+	<Item.Group
+		class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+	>
+		<div role="listitem">
+			<Item.Root>
+				{#snippet child({ props })}
+					<a href={resolve(`/movements?category=${c.id}`)} {...props}>
+						<Item.Content><Item.Title>Ver movimientos</Item.Title></Item.Content>
+						<Item.Actions><Icon name="chevron-right" /></Item.Actions>
+					</a>
+				{/snippet}
+			</Item.Root>
+		</div>
+	</Item.Group>
 
 	{#if form?.error}
 		<p class="error" role="alert"><Icon name="alert" size="1rem" />{form.error}</p>
 	{/if}
 
 	<div class="actions">
+		<div class="buttons">
+			<Button href={resolve(`/categories/${c.id}/edit`)}>Editar</Button>
+			{#if data.actions.canArchive}
+				<form method="POST" action="?/archive" use:enhance>
+					<Button type="submit" variant="outline" class="w-full">Archivar</Button>
+				</form>
+			{/if}
+			{#if data.actions.canUnarchive}
+				<form method="POST" action="?/unarchive" use:enhance>
+					<Button type="submit" variant="outline" class="w-full">Desarchivar</Button>
+				</form>
+			{/if}
+			{#if data.actions.canDelete}
+				<ConfirmDialog
+					triggerLabel="Eliminar"
+					triggerVariant="destructive"
+					title="¿Eliminar esta categoría?"
+					confirmLabel="Eliminar"
+					action="?/delete"
+				>
+					Esta acción no se puede deshacer.
+				</ConfirmDialog>
+			{/if}
+		</div>
 		{#if data.actions.canArchive}
 			<p class="muted small">
 				Tiene movimientos, así que no se puede eliminar. Podés archivarla para ocultarla.
 			</p>
-		{/if}
-		<Button href={resolve(`/categories/${c.id}/edit`)} block>Editar</Button>
-		{#if data.actions.canArchive}
-			<form method="POST" action="?/archive" use:enhance>
-				<Button type="submit" variant="secondary" block>Archivar</Button>
-			</form>
-		{/if}
-		{#if data.actions.canUnarchive}
-			<form method="POST" action="?/unarchive" use:enhance>
-				<Button type="submit" variant="secondary" block>Desarchivar</Button>
-			</form>
-		{/if}
-		{#if data.actions.canDelete}
-			<ConfirmDialog
-				triggerLabel="Eliminar"
-				triggerVariant="danger"
-				title="¿Eliminar esta categoría?"
-				confirmLabel="Eliminar"
-				action="?/delete"
-			>
-				Esta acción no se puede deshacer.
-			</ConfirmDialog>
 		{/if}
 	</div>
 </div>
@@ -146,11 +173,6 @@
 		gap: var(--space-2);
 		padding-block: var(--space-2);
 		text-align: center;
-	}
-
-	.label {
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
 	}
 
 	.value {
@@ -226,6 +248,7 @@
 	.appearance {
 		display: flex;
 		align-items: center;
+		justify-content: flex-end;
 		gap: var(--space-2);
 		font-weight: 500;
 	}
@@ -245,7 +268,35 @@
 		margin-top: var(--space-2);
 	}
 
-	.actions :global(.btn) {
+	/* Editar + the state action side by side, equal width. */
+	.buttons {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: var(--space-3);
+	}
+
+	.buttons > :global(*) {
 		width: 100%;
+	}
+
+	.nowrap {
+		flex-wrap: nowrap;
+		gap: var(--space-2);
+	}
+
+	.nowrap dd {
+		flex: 1;
+	}
+
+	.nowrap dt {
+		flex: none;
+	}
+
+	.truncate {
+		font-size: var(--font-size-sm);
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 </style>

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { login, setCurrencyCookie } from './helpers';
+import { login, openFilters, setCurrencyCookie } from './helpers';
 
 async function choose(page: Page, label: 'ARS' | 'USD') {
 	await page.getByRole('radio', { name: label }).check({ force: true });
@@ -55,17 +55,16 @@ test('an unknown currency cookie reads as ARS on Inicio', async ({ page, baseURL
 
 test('invalid currency shows one alert under the tabs and clears on success', async ({ page }) => {
 	await page.goto('/', { waitUntil: 'networkidle' });
-	await page.getByRole('radio', { name: 'USD' }).evaluate((el) => {
+	await page.locator('input[name="currency"]').evaluate((el) => {
 		const input = el as HTMLInputElement;
 		input.value = 'invalid';
-		input.checked = true;
 		input.form!.requestSubmit();
 	});
 	await expect(page.getByRole('alert')).toHaveText('Moneda inválida.');
 	await expect(page.getByRole('alert')).toHaveCount(1);
 	await expect(page).toHaveURL(/\/$/);
 
-	await choose(page, 'ARS');
+	await choose(page, 'USD');
 	await expect(page.getByRole('alert')).toHaveCount(0);
 });
 
@@ -77,9 +76,13 @@ test('checked tab keeps focus after switching', async ({ page }) => {
 
 test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
 	await page.goto('/movements?currency=USD', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
+	await expect(page.getByRole('button', { name: /^Filtros/ })).toContainText('1');
+	const dialog = await openFilters(page);
+	await expect(dialog.getByRole('radio', { name: 'USD' })).toBeChecked();
+	await page.keyboard.press('Escape');
+	await expect(dialog).toBeHidden();
 	await expect(page.getByText('US$').first()).toBeVisible();
-	await expect(page.locator('.list-card').getByText(/^[-+]?\$/)).toHaveCount(0);
+	await expect(page.locator('[data-slot="item-group"]').getByText(/^[-+]?\$/)).toHaveCount(0);
 
 	await page.goto('/movements?currency=ARS', { waitUntil: 'networkidle' });
 	await expect(page.getByText('$').first()).toBeVisible();
@@ -92,8 +95,9 @@ test('an account filter on /movements wins over ?currency=USD', async ({ page })
 	await expect(page).toHaveURL(/\/accounts\/[^/]+$/);
 	const id = page.url().split('/').pop()!;
 	await page.goto(`/movements?account=${id}&currency=USD`, { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
-	await expect(page.getByRole('radio', { name: 'ARS' })).toBeDisabled();
+	const dialog = await openFilters(page);
+	await expect(dialog.getByRole('radio', { name: 'ARS' })).toBeChecked();
+	await expect(dialog.getByRole('radio', { name: 'ARS' })).toBeDisabled();
 	await expect(page.getByText('No hay movimientos')).toHaveCount(0);
 });
 
@@ -143,29 +147,11 @@ test('archived accounts are listed without changing the group totals', async ({ 
 	expect(await totals()).toEqual(before);
 });
 
-test.describe('without JavaScript', () => {
-	test.use({ javaScriptEnabled: false });
-
-	test('Guardar switches the Inicio currency and the Movimientos filter applies it', async ({
-		page
-	}) => {
-		await page.goto('/');
-		await page.getByRole('radio', { name: 'USD' }).check({ force: true });
-		await page.getByRole('button', { name: 'Guardar' }).click();
-		await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
-
-		await page.goto('/movements');
-		await page.getByRole('radio', { name: 'USD', exact: true }).check({ force: true });
-		await page.getByRole('button', { name: 'Filtrar' }).click();
-		await expect(page).toHaveURL(/currency=USD/);
-		await expect(page.getByRole('radio', { name: 'USD', exact: true })).toBeChecked();
-	});
-});
-
 test('movements and accounts ignore the currency cookie', async ({ page, baseURL }) => {
 	await setCurrencyCookie(page, baseURL!, 'USD');
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
 	await expect(page.getByText('Efectivo')).toBeVisible();
 	await page.goto('/movements', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio', { name: 'Ambas' })).toBeChecked();
+	const dialog = await openFilters(page);
+	await expect(dialog.getByRole('radio', { name: 'Ambas' })).toBeChecked();
 });

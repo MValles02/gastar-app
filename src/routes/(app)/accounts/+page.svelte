@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { toIconKey, toSwatchKey } from '$lib/appearance';
-	import Button from '$lib/components/Button.svelte';
-	import Checkbox from '$lib/components/Checkbox.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
+	import * as Empty from '$lib/components/ui/empty/index.js';
+	import Icon from '$lib/components/Icon.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
@@ -31,26 +33,54 @@
 
 <div class="page">
 	{#if !data.hasAnyAccount}
-		<EmptyState icon="accounts">
-			Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos.
-		</EmptyState>
+		<Empty.Root>
+			<Empty.Header>
+				<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
+				<Empty.Description
+					>Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos.</Empty.Description
+				>
+			</Empty.Header>
+		</Empty.Root>
 		<div class="empty-action">
 			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 		</div>
 	{:else}
-		<FilterBar q={data.filters.q} label="Buscar cuentas" placeholder="Buscar cuentas">
-			<span id="currency-label" class="visually-hidden">Moneda</span>
-			<SegmentedControl
-				name="currency"
-				options={currencyOptions}
-				bind:value={currency}
-				labelledby="currency-label"
-			/>
-			<Checkbox name="archived" value="1" label="Mostrar archivadas" bind:checked={archived} />
+		<FilterBar
+			q={data.filters.q}
+			label="Buscar cuentas"
+			placeholder="Buscar cuentas"
+			path="/accounts"
+			active={(data.filters.currency ? 1 : 0) + (data.filters.archived ? 1 : 0)}
+		>
+			{#snippet filters(submit)}
+				<span id="currency-label" class="visually-hidden">Moneda</span>
+				<SegmentedControl
+					name="currency"
+					options={currencyOptions}
+					bind:value={currency}
+					labelledby="currency-label"
+					onchange={submit}
+				/>
+				<Field.Field orientation="horizontal" class="min-h-11 w-auto">
+					<Checkbox
+						id="archived"
+						name="archived"
+						value="1"
+						bind:checked={archived}
+						onCheckedChange={submit}
+					/>
+					<Field.Label for="archived">Mostrar archivadas</Field.Label>
+				</Field.Field>
+			{/snippet}
 		</FilterBar>
 
 		{#if data.groups.length === 0}
-			<EmptyState icon="search">No hay cuentas que coincidan con los filtros.</EmptyState>
+			<Empty.Root>
+				<Empty.Header>
+					<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
+					<Empty.Description>No hay cuentas que coincidan con los filtros.</Empty.Description>
+				</Empty.Header>
+			</Empty.Root>
 			<div class="empty-action">
 				<a class="clear" href={resolve('/accounts')}>Limpiar filtros</a>
 			</div>
@@ -62,34 +92,49 @@
 						<h2 id="group-{g.currency}">{g.label}</h2>
 						<span class="group-total"><Money cents={g.total} currency={g.currency} /></span>
 					</div>
-					<ul class="list-card">
+					<Item.Group
+						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+					>
 						{#each g.accounts as a (a.id)}
-							<li class:archived={a.archivedAt}>
-								<ListRow href={resolve(`/accounts/${a.id}`)}>
-									{#snippet leading()}
-										<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} />
+							<div role="listitem" class:archived={a.archivedAt}>
+								<Item.Root>
+									{#snippet child({ props })}
+										<a href={resolve(`/accounts/${a.id}`)} {...props}>
+											<Item.Media>
+												<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} />
+											</Item.Media>
+											<Item.Content>
+												<Item.Title>{a.name}</Item.Title>
+												{#if a.archivedAt}<Item.Description>Archivada</Item.Description>{/if}
+											</Item.Content>
+											<Item.Actions>
+												<span class="row-amount">
+													<Money cents={a.balance} currency={a.currency} kind="signed" />
+												</span>
+											</Item.Actions>
+										</a>
 									{/snippet}
-									{#snippet title()}{a.name}{/snippet}
-									{#snippet subtitle()}{a.currency}{a.archivedAt ? ' · Archivada' : ''}{/snippet}
-									{#snippet trailing()}
-										<span class="row-amount"><Money cents={a.balance} currency={a.currency} /></span
-										>
-									{/snippet}
-								</ListRow>
-							</li>
+								</Item.Root>
+							</div>
 						{/each}
-					</ul>
+					</Item.Group>
 				</section>
 			{/each}
 		{/if}
-		<ul class="list-card">
-			<li>
-				<ListRow href={resolve('/accounts/new')}>
-					{#snippet leading()}<IconBadge icon="plus" color={null} neutral />{/snippet}
-					{#snippet title()}Nueva cuenta{/snippet}
-				</ListRow>
-			</li>
-		</ul>
+		<Item.Group
+			class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+		>
+			<div role="listitem">
+				<Item.Root>
+					{#snippet child({ props })}
+						<a href={resolve('/accounts/new')} {...props}>
+							<Item.Media><IconBadge icon="plus" color={null} neutral /></Item.Media>
+							<Item.Content><Item.Title>Nueva cuenta</Item.Title></Item.Content>
+						</a>
+					{/snippet}
+				</Item.Root>
+			</div>
+		</Item.Group>
 	{/if}
 </div>
 
@@ -142,7 +187,7 @@
 		opacity: 0.5;
 	}
 
-	.archived :global(.title),
+	.archived :global([data-slot='item-title']),
 	.archived .row-amount {
 		color: var(--text-muted);
 	}

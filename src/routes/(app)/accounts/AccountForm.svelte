@@ -2,14 +2,15 @@
 	import { NAME_MAX_LENGTH } from '$lib/limits';
 	import { tick, untrack } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { resolve } from '$app/paths';
-	import Button from '$lib/components/Button.svelte';
-	import Card from '$lib/components/Card.svelte';
+	import Lock from '@lucide/svelte/icons/lock';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import ColorPicker from '$lib/components/ColorPicker.svelte';
+	import FormActions from '$lib/components/FormActions.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import IconPicker from '$lib/components/IconPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import type { AccountIconKey, SwatchKey } from '$lib/appearance';
+	import TextRow from '$lib/components/TextRow.svelte';
+	import { ACCOUNT_ICONS, type AccountIconKey, type SwatchKey } from '$lib/appearance';
 	import { CURRENCIES } from '$lib/money';
 
 	type Values = Partial<
@@ -50,95 +51,76 @@
 <form method="POST" use:enhance class="form" novalidate>
 	<ul class="card">
 		<li class:bad={errors.name}>
-			<label class="row">
-				<span class="k">Nombre</span>
-				<input
-					name="name"
-					type="text"
-					maxlength={NAME_MAX_LENGTH}
-					required
-					autocomplete="off"
-					placeholder="Agregar"
-					bind:value={name}
-					aria-invalid={errors.name ? 'true' : undefined}
-					aria-describedby={errors.name ? 'name-error' : undefined}
-				/>
-			</label>
-			{#if errors.name}
-				<p class="error et" id="name-error" role="alert">
-					<Icon name="alert" size="1rem" />{errors.name}
-				</p>
-			{/if}
+			<TextRow
+				id="name"
+				name="name"
+				label="Nombre"
+				bind:value={name}
+				placeholder="Agregar"
+				maxlength={NAME_MAX_LENGTH}
+				required
+				error={errors.name}
+				errorId="name-error"
+			/>
 		</li>
 
 		<li class:bad={errors.currency}>
-			<div class="row">
-				<span id="currency-label" class="k">Moneda</span>
-				<div class="seg">
-					<SegmentedControl
-						name="currency"
-						options={currencyOptions}
-						bind:value={currency}
-						labelledby="currency-label"
-						disabled={currencyLocked}
-					/>
+			{#if currencyLocked}
+				<p class="row locked">
+					<span>Moneda</span>
+					<span class="v">
+						{currency}
+						<Lock size={16} strokeWidth={1.75} aria-hidden="true" />
+					</span>
+				</p>
+				<p class="hint pad">No se puede cambiar porque la cuenta tiene movimientos.</p>
+			{:else}
+				<div class="row">
+					<Field.Label id="currency-label" class="text-base font-normal">Moneda</Field.Label>
+					<div class="seg">
+						<SegmentedControl
+							name="currency"
+							options={currencyOptions}
+							bind:value={currency}
+							labelledby="currency-label"
+						/>
+					</div>
 				</div>
-			</div>
+			{/if}
 			{#if errors.currency}
 				<p class="error et" role="alert"><Icon name="alert" size="1rem" />{errors.currency}</p>
 			{/if}
 		</li>
 
 		<li class:bad={errors.initialBalance}>
-			<label class="row">
-				<span class="k">Saldo inicial</span>
-				<input
-					class="balance"
-					name="initialBalance"
-					type="text"
-					inputmode="decimal"
-					placeholder={currency === 'USD' ? '0,00' : '0'}
-					autocomplete="off"
-					bind:value={initialBalance}
-					aria-invalid={errors.initialBalance ? 'true' : undefined}
-					aria-describedby={errors.initialBalance ? 'balance-error' : undefined}
-				/>
-			</label>
-			{#if errors.initialBalance}
-				<p class="error et" id="balance-error" role="alert">
-					<Icon name="alert" size="1rem" />{errors.initialBalance}
-				</p>
-			{/if}
+			<TextRow
+				id="initialBalance"
+				name="initialBalance"
+				label="Saldo inicial"
+				bind:value={initialBalance}
+				placeholder={currency === 'USD' ? '0,00' : '0'}
+				inputmode="decimal"
+				amount
+				error={errors.initialBalance}
+				errorId="balance-error"
+			/>
+		</li>
+
+		<li class:bad={errors.icon}>
+			<IconPicker name="icon" legend="Ícono" options={ACCOUNT_ICONS} bind:value={icon} {color} />
+			{#if errors.icon}<p class="error et" role="alert">
+					<Icon name="alert" size="1rem" />{errors.icon}
+				</p>{/if}
+		</li>
+
+		<li class:bad={errors.color}>
+			<ColorPicker name="color" legend="Color" bind:value={color} />
+			{#if errors.color}<p class="error et" role="alert">
+					<Icon name="alert" size="1rem" />{errors.color}
+				</p>{/if}
 		</li>
 	</ul>
-	{#if currencyLocked}
-		<p class="hint after">No se puede cambiar porque la cuenta tiene movimientos.</p>
-	{/if}
-
-	<div>
-		<Card>
-			<IconPicker name="icon" legend="Ícono" bind:value={icon} {color} />
-		</Card>
-		{#if errors.icon}<p class="error pad" role="alert">
-				<Icon name="alert" size="1rem" />{errors.icon}
-			</p>{/if}
-	</div>
-
-	<div>
-		<Card>
-			<ColorPicker name="color" legend="Color" bind:value={color} />
-		</Card>
-		{#if errors.color}<p class="error pad" role="alert">
-				<Icon name="alert" size="1rem" />{errors.color}
-			</p>{/if}
-	</div>
-
-	<div class="bar">
-		<Button type="submit" block>{mode === 'create' ? 'Crear cuenta' : 'Guardar cambios'}</Button>
-	</div>
-	<div class="cancel">
-		<Button href={resolve(cancelHref as '/accounts')} variant="secondary">Cancelar</Button>
-	</div>
+	<FormActions {cancelHref} submitLabel={mode === 'create' ? 'Crear cuenta' : 'Guardar cambios'} />
 </form>
 
 <style>
@@ -178,37 +160,6 @@
 		padding: 0 var(--space-4);
 		font-size: var(--font-size-base);
 		color: var(--text);
-		cursor: text;
-	}
-
-	.row input[name='name'],
-	.row input.balance {
-		flex: 1 1 4rem;
-		min-width: 0;
-		width: auto;
-		min-height: 3.5rem;
-		padding: 0;
-		border: 0;
-		border-radius: 0;
-		background: transparent;
-		text-align: right;
-		scroll-margin-bottom: 6rem;
-	}
-
-	.row input.balance {
-		font-family: var(--font-display);
-		font-size: var(--font-size-lg);
-		font-weight: 500;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.row input:focus-visible {
-		outline-offset: -2px;
-	}
-
-	.row input::placeholder {
-		color: var(--text-muted);
-		opacity: 1;
 	}
 
 	.seg {
@@ -223,9 +174,20 @@
 		font-size: var(--font-size-sm);
 	}
 
-	.hint.after {
-		margin-top: calc(var(--space-4) * -1);
-		padding-inline: var(--space-4);
+	.hint.pad {
+		padding: 0 var(--space-4) var(--space-3);
+	}
+
+	.locked {
+		justify-content: space-between;
+		color: var(--text-muted);
+	}
+
+	.locked .v {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		color: var(--text);
 	}
 
 	.error {
@@ -238,26 +200,5 @@
 
 	.et {
 		padding: 0 var(--space-4) var(--space-3);
-	}
-
-	.pad {
-		padding: var(--space-2) var(--space-4) 0;
-	}
-
-	/* Sticky save bar: full-bleed, pinned to the bottom of the viewport (no tab bar on this screen). */
-	.bar {
-		position: sticky;
-		bottom: 0;
-		z-index: 2;
-		margin-inline: calc(var(--gutter, var(--space-5)) * -1);
-		padding: var(--space-3) var(--gutter, var(--space-5))
-			calc(var(--space-3) + env(safe-area-inset-bottom));
-		background: var(--bg);
-		box-shadow: 0 -1px 0 var(--border);
-	}
-
-	.cancel {
-		display: flex;
-		justify-content: center;
 	}
 </style>

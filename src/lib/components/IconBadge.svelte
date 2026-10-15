@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
 	import type { ComponentProps } from 'svelte';
-	import type { SwatchKey } from '$lib/appearance';
+	import { swatchVar, type SwatchKey } from '$lib/appearance';
 
 	let {
 		icon,
@@ -19,9 +19,7 @@
 		neutral?: boolean;
 	} = $props();
 
-	const tone = $derived(
-		color ? `var(--swatch-${color})` : neutral ? 'var(--text)' : 'var(--primary)'
-	);
+	const tone = $derived(!color && neutral ? 'var(--text)' : swatchVar(color));
 </script>
 
 <span
@@ -32,10 +30,7 @@
 	style:--badge-size={size}
 	aria-hidden="true"
 >
-	{#if letter}<span class="letter">{letter}</span>{:else if icon}<Icon
-			name={icon}
-			size="55%"
-		/>{/if}
+	{#if letter}<span class="letter">{letter}</span>{:else if icon}<Icon name={icon} />{/if}
 </span>
 
 <style>
@@ -47,6 +42,13 @@
 		border-radius: var(--radius-pill);
 		background: color-mix(in srgb, var(--tone) 14%, transparent);
 		color: var(--tone);
+	}
+
+	/* Absolute size from the badge: a percentage height inside the inline-flex box left the glyph off-center. */
+	.badge :global(svg) {
+		flex: none;
+		width: calc(var(--badge-size) * 0.55);
+		height: calc(var(--badge-size) * 0.55);
 	}
 
 	.letter {

@@ -3,9 +3,14 @@
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import Button from '$lib/components/Button.svelte';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import AmountHero from '$lib/components/AmountHero.svelte';
+	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
+	import FormActions from '$lib/components/FormActions.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import TextRow from '$lib/components/TextRow.svelte';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 	type Fields = 'type' | 'description' | 'amount' | 'accountId' | 'categoryId' | 'dayOfMonth';
@@ -17,7 +22,9 @@
 		categories,
 		action = '',
 		submitLabel,
-		inline = false
+		cancelHref = '/plan',
+		inline = false,
+		type = $bindable(untrack(() => initial.type || 'outcome'))
 	}: {
 		initial: Record<Fields, string>;
 		errors?: Partial<Record<Fields, string>>;
@@ -25,13 +32,19 @@
 		categories: (Picker & { kind: string | null })[];
 		action?: string;
 		submitLabel: string;
+		cancelHref?: string;
 		/** Embedded in a screen with the tab bar and its own hero: amount as a row, save bar not pinned. */
 		inline?: boolean;
+		/** `income` or `outcome`; bindable so the screen title can follow the toggle. */
+		type?: string;
 	} = $props();
 
-	let type = $state(untrack(() => initial.type || 'outcome'));
 	let accountId = $state(untrack(() => initial.accountId));
 	let amount = $state(untrack(() => initial.amount));
+	let description = $state(untrack(() => initial.description));
+	let day = $state(untrack(() => initial.dayOfMonth));
+	let dayOpen = $state(false);
+	let dayTrigger: HTMLButtonElement | null = $state(null);
 	let categoryId = $state(untrack(() => initial.categoryId));
 	let mounted = $state(false);
 	onMount(() => (mounted = true));
@@ -50,11 +63,21 @@
 	});
 
 	const typeOptions = [
-		{ value: 'outcome', label: 'Pago' },
-		{ value: 'income', label: 'Ingreso' }
+		{ value: 'income', label: 'Ingreso' },
+		{ value: 'outcome', label: 'Pago' }
 	];
-	const currency = $derived(accounts.find((a) => a.id === accountId)?.meta);
-	const symbol = $derived(currency === 'USD' ? 'US$' : '$');
+	const currency = $derived.by(() => {
+		const meta = accounts.find((a) => a.id === accountId)?.meta;
+		return meta === 'USD' ? 'USD' : meta === 'ARS' ? 'ARS' : undefined;
+	});
+	const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
+
+	async function chooseDay(d: string) {
+		day = d;
+		dayOpen = false;
+		await tick();
+		dayTrigger?.focus();
+	}
 
 	// After a failed submit, move focus to the first field marked invalid (inputs or picker triggers).
 	$effect(() => {
@@ -69,20 +92,6 @@
 	});
 </script>
 
-{#snippet amountInput()}
-	<input
-		class="amount-input"
-		name="amount"
-		type="text"
-		inputmode={currency === 'USD' ? 'decimal' : 'numeric'}
-		placeholder={currency === 'USD' ? '0,00' : '0'}
-		autocomplete="off"
-		bind:value={amount}
-		aria-invalid={errors.amount ? 'true' : undefined}
-		aria-describedby={errors.amount ? 'ramount-error' : undefined}
-	/>
-{/snippet}
-
 <form method="POST" {action} use:enhance class="form" novalidate>
 	<div class="field">
 		<span id="rtype-label" class="visually-hidden">Tipo</span>
@@ -96,66 +105,83 @@
 	</div>
 
 	{#if !inline}
-		<div class="amount-block">
-			<label class="amount" class:sm={amount.length > 11}>
-				<span class="visually-hidden">Monto</span>
-				{#if currency}<span class="currency">{symbol}</span>{/if}
-				{@render amountInput()}
-			</label>
-			{#if errors.amount}<p class="error" id="ramount-error" role="alert">{errors.amount}</p>{/if}
-		</div>
+		<AmountHero bind:value={amount} {currency} error={errors.amount} id="ramount" />
 	{/if}
 
 	<ul class="card">
 		{#if inline}
 			<li class:bad={errors.amount}>
-				<label class="row">
-					<span class="k">Monto</span>
-					{#if currency}<span class="cur">{symbol}</span>{/if}
-					{@render amountInput()}
-				</label>
-				{#if errors.amount}
-					<p class="error et" id="ramount-error" role="alert">{errors.amount}</p>
-				{/if}
+				<TextRow
+					id="ramount"
+					name="amount"
+					label="Monto"
+					bind:value={amount}
+					placeholder={currency === 'USD' ? '0,00' : '0'}
+					inputmode={currency === 'USD' ? 'decimal' : 'numeric'}
+					amount
+					error={errors.amount}
+					errorId="ramount-error"
+				/>
 			</li>
 		{/if}
 
 		<li class:bad={errors.description}>
-			<label class="row">
-				<span class="k">Descripción</span>
-				<input
-					name="description"
-					type="text"
-					maxlength={DESCRIPTION_MAX_LENGTH}
-					required
-					autocomplete="off"
-					placeholder={type === 'income' ? 'Sueldo' : 'Alquiler'}
-					value={initial.description}
-					aria-invalid={errors.description ? 'true' : undefined}
-					aria-describedby={errors.description ? 'rdesc-error' : undefined}
-				/>
-			</label>
-			{#if errors.description}
-				<p class="error et" id="rdesc-error" role="alert">{errors.description}</p>
-			{/if}
+			<TextRow
+				id="rdescription"
+				name="description"
+				label="Descripción"
+				bind:value={description}
+				placeholder={type === 'income' ? 'Sueldo' : 'Alquiler'}
+				maxlength={DESCRIPTION_MAX_LENGTH}
+				required
+				error={errors.description}
+				errorId="rdesc-error"
+			/>
 		</li>
 
 		<li class:bad={errors.dayOfMonth}>
-			<label class="row">
-				<span class="k">Día del mes</span>
-				<input
-					name="dayOfMonth"
-					type="number"
-					inputmode="numeric"
-					min="1"
-					max="31"
-					value={initial.dayOfMonth}
-					aria-invalid={errors.dayOfMonth ? 'true' : undefined}
+			{#if mounted}
+				<Button
+					variant="ghost"
+					class="h-14 w-full scroll-mb-24 justify-between gap-3 rounded-none px-4"
+					aria-haspopup="dialog"
+					aria-labelledby="rday-label rday-value"
 					aria-describedby="rday-hint{errors.dayOfMonth ? ' rday-error' : ''}"
-				/>
-			</label>
+					bind:ref={dayTrigger}
+					onclick={() => (dayOpen = true)}
+				>
+					<span id="rday-label" class="text-base font-normal">Día del mes</span>
+					<span id="rday-value" class="flex-1 text-right" class:text-muted-foreground={!day}>
+						{day || 'Elegir'}
+					</span>
+					<ChevronRight
+						size={16}
+						strokeWidth={1.75}
+						aria-hidden="true"
+						class="text-muted-foreground"
+					/>
+				</Button>
+				<!-- The Drawer is portaled out of the form, so the value submits through this input. -->
+				<input type="hidden" name="dayOfMonth" value={day} />
+			{:else}
+				<label class="row" for="rday">
+					<span>Día del mes</span>
+					<input
+						id="rday"
+						name="dayOfMonth"
+						type="number"
+						inputmode="numeric"
+						min="1"
+						max="31"
+						value={day}
+						aria-invalid={errors.dayOfMonth ? 'true' : undefined}
+						aria-describedby="rday-hint{errors.dayOfMonth ? ' rday-error' : ''}"
+					/>
+				</label>
+			{/if}
+			<p id="rday-hint" class="hint pad">Si el mes es más corto, vence el último día.</p>
 			{#if errors.dayOfMonth}
-				<p class="error et" id="rday-error" role="alert">{errors.dayOfMonth}</p>
+				<p class="error pad" id="rday-error" role="alert">{errors.dayOfMonth}</p>
 			{/if}
 		</li>
 
@@ -199,14 +225,23 @@
 			</OptionPicker>
 		</li>
 	</ul>
-	<p id="rday-hint" class="hint after">Si el mes es más corto, vence el último día.</p>
-
-	<div class="bar" class:sticky={!inline}>
-		<Button type="submit" block>{submitLabel}</Button>
-	</div>
-	<div class="cancel">
-		<Button href={resolve('/plan')} variant="secondary">Cancelar</Button>
-	</div>
+	{#if mounted}
+		<BottomDrawer title="Día del mes" bind:open={dayOpen}>
+			<div class="days">
+				{#each days as d (d)}
+					<Button
+						type="button"
+						variant={d === day ? 'default' : 'outline'}
+						class="h-11 px-0"
+						aria-pressed={d === day}
+						onclick={() => chooseDay(d)}>{d}</Button
+					>
+				{/each}
+			</div>
+			<p class="hint drawer-hint">Si el mes es más corto, vence el último día.</p>
+		</BottomDrawer>
+	{/if}
+	<FormActions {cancelHref} {submitLabel} sticky={!inline} />
 </form>
 
 <style>
@@ -221,70 +256,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
-	}
-
-	.amount-block {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: var(--space-1);
-	}
-
-	.amount {
-		flex-direction: row;
-		align-items: baseline;
-		justify-content: center;
-		gap: var(--space-2);
-		max-width: 100%;
-		padding: var(--space-4) 0 var(--space-1);
-		color: var(--text);
-	}
-
-	.currency {
-		font-family: var(--font-display);
-		font-size: 1.75rem;
-		font-weight: 500;
-		color: var(--text-muted);
-	}
-
-	.amount .amount-input {
-		flex: 0 1 auto;
-		width: auto;
-		min-width: 2ch;
-		max-width: 100%;
-		field-sizing: content;
-		min-height: 3.5rem;
-		padding: 0 var(--space-1);
-		border: 0;
-		background: transparent;
-		font-family: var(--font-display);
-		font-size: 2.75rem;
-		font-weight: 500;
-		text-align: center;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.amount.sm .amount-input {
-		font-size: var(--font-size-hero);
-	}
-
-	.amount .amount-input::placeholder,
-	.row input::placeholder {
-		color: var(--text-muted);
-		opacity: 1;
-	}
-
-	.amount-block .error {
-		text-align: center;
-	}
-
-	.cur {
-		margin-inline-start: auto;
-		color: var(--text-muted);
-	}
-
-	.cur + :global(input) {
-		flex: 0 1 8rem;
 	}
 
 	.card {
@@ -306,17 +277,31 @@
 		box-shadow: inset 3px 0 0 var(--negative);
 	}
 
+	.hint {
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
+	}
+
+	.hint.pad {
+		padding: var(--space-3) var(--space-4);
+	}
+
+	.error {
+		color: var(--negative);
+		font-size: var(--font-size-sm);
+	}
+
+	.error.pad {
+		padding-top: 0;
+	}
+
 	.row {
 		display: flex;
-		flex-direction: row;
-		flex-wrap: wrap;
 		align-items: center;
-		gap: var(--space-1) var(--space-3);
+		gap: var(--space-3);
 		min-height: 3.5rem;
 		padding: 0 var(--space-4);
 		font-size: var(--font-size-base);
-		color: var(--text);
-		cursor: text;
 	}
 
 	.row input {
@@ -329,50 +314,15 @@
 		border-radius: 0;
 		background: transparent;
 		text-align: right;
-		scroll-margin-bottom: 6rem;
 	}
 
-	.row input:focus-visible {
-		outline-offset: -2px;
+	.days {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		gap: var(--space-2);
 	}
 
-	.hint {
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-	}
-
-	.hint.after {
-		margin-top: calc(var(--space-4) * -1);
-		padding-inline: var(--space-4);
-	}
-
-	.hint.pad {
-		padding: var(--space-3) var(--space-4);
-	}
-
-	.error {
-		color: var(--negative);
-		font-size: var(--font-size-sm);
-	}
-
-	.et {
-		padding: 0 var(--space-4) var(--space-3);
-	}
-
-	/* Sticky save bar: full-bleed, pinned to the bottom of the viewport (no tab bar on this screen). */
-	.bar.sticky {
-		position: sticky;
-		bottom: 0;
-		z-index: 2;
-		margin-inline: calc(var(--gutter, var(--space-5)) * -1);
-		padding: var(--space-3) var(--gutter, var(--space-5))
-			calc(var(--space-3) + env(safe-area-inset-bottom));
-		background: var(--bg);
-		box-shadow: 0 -1px 0 var(--border);
-	}
-
-	.cancel {
-		display: flex;
-		justify-content: center;
+	.drawer-hint {
+		margin-top: var(--space-3);
 	}
 </style>

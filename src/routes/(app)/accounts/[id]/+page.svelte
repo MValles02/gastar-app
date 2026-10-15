@@ -2,12 +2,12 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { ACCOUNT_ICONS, SWATCHES, toIconKey, toSwatchKey } from '$lib/appearance';
-	import Button from '$lib/components/Button.svelte';
-	import Card from '$lib/components/Card.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -28,29 +28,31 @@
 	<PageHeader title={a.name} back={{ href: resolve('/accounts'), label: 'Volver a cuentas' }} />
 
 	<section aria-labelledby={labelId}>
-		<Card>
-			<div class="hero">
-				<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} size="3rem" />
-				<p class="value"><Money cents={data.balance} currency={a.currency} /></p>
-				<p id={labelId} class="label">Saldo</p>
-			</div>
-		</Card>
+		<Card.Root>
+			<Card.Content>
+				<div class="hero">
+					<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} size="3rem" />
+					<p class="value"><Money cents={data.balance} currency={a.currency} kind="signed" /></p>
+					<p id={labelId} class="label">Saldo</p>
+				</div>
+			</Card.Content>
+		</Card.Root>
 	</section>
 
-	<dl class="list-card data">
+	<dl class="detail-card data">
 		<div class="item">
 			<dt>Moneda</dt>
 			<dd>{a.currency}</dd>
 		</div>
 		<div class="item">
 			<dt>Saldo inicial</dt>
-			<dd class="amount"><Money cents={a.initialBalance} currency={a.currency} /></dd>
+			<dd class="amount"><Money cents={a.initialBalance} currency={a.currency} kind="signed" /></dd>
 		</div>
-		<div class="item">
+		<div class="item nowrap">
 			<dt>Ícono y color</dt>
 			<dd class="appearance">
-				<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} size="1.75rem" />
-				<span>{iconLabel} · {colorLabel}</span>
+				<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} size="1.5rem" />
+				<span class="truncate">{iconLabel} · {colorLabel}</span>
 			</dd>
 		</div>
 		<div class="item">
@@ -59,46 +61,54 @@
 		</div>
 	</dl>
 
-	<ul class="list-card">
-		<li>
-			<ListRow href={resolve(`/movements?account=${a.id}`)}>
-				{#snippet title()}Ver movimientos{/snippet}
-				{#snippet trailing()}<Icon name="chevron-right" />{/snippet}
-			</ListRow>
-		</li>
-	</ul>
+	<Item.Group
+		class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+	>
+		<div role="listitem">
+			<Item.Root>
+				{#snippet child({ props })}
+					<a href={resolve(`/movements?account=${a.id}`)} {...props}>
+						<Item.Content><Item.Title>Ver movimientos</Item.Title></Item.Content>
+						<Item.Actions><Icon name="chevron-right" /></Item.Actions>
+					</a>
+				{/snippet}
+			</Item.Root>
+		</div>
+	</Item.Group>
 
 	{#if form?.error}
 		<p class="error" role="alert"><Icon name="alert" size="1rem" />{form.error}</p>
 	{/if}
 
 	<div class="actions">
+		<div class="buttons">
+			<Button href={resolve(`/accounts/${a.id}/edit`)}>Editar</Button>
+			{#if data.actions.canArchive}
+				<form method="POST" action="?/archive" use:enhance>
+					<Button type="submit" variant="outline" class="w-full">Archivar</Button>
+				</form>
+			{/if}
+			{#if data.actions.canUnarchive}
+				<form method="POST" action="?/unarchive" use:enhance>
+					<Button type="submit" variant="outline" class="w-full">Desarchivar</Button>
+				</form>
+			{/if}
+			{#if data.actions.canDelete}
+				<ConfirmDialog
+					triggerLabel="Eliminar"
+					triggerVariant="destructive"
+					title="¿Eliminar esta cuenta?"
+					confirmLabel="Eliminar"
+					action="?/delete"
+				>
+					Esta acción no se puede deshacer.
+				</ConfirmDialog>
+			{/if}
+		</div>
 		{#if data.actions.canArchive}
 			<p class="muted">
 				Tiene movimientos, así que no se puede eliminar. Podés archivarla para ocultarla.
 			</p>
-		{/if}
-		<Button href={resolve(`/accounts/${a.id}/edit`)} block>Editar</Button>
-		{#if data.actions.canArchive}
-			<form method="POST" action="?/archive" use:enhance>
-				<Button type="submit" variant="secondary" block>Archivar</Button>
-			</form>
-		{/if}
-		{#if data.actions.canUnarchive}
-			<form method="POST" action="?/unarchive" use:enhance>
-				<Button type="submit" variant="secondary" block>Desarchivar</Button>
-			</form>
-		{/if}
-		{#if data.actions.canDelete}
-			<ConfirmDialog
-				triggerLabel="Eliminar"
-				triggerVariant="danger"
-				title="¿Eliminar esta cuenta?"
-				confirmLabel="Eliminar"
-				action="?/delete"
-			>
-				Esta acción no se puede deshacer.
-			</ConfirmDialog>
 		{/if}
 	</div>
 </div>
@@ -177,6 +187,7 @@
 	.appearance {
 		display: flex;
 		align-items: center;
+		justify-content: flex-end;
 		gap: var(--space-2);
 	}
 
@@ -195,7 +206,38 @@
 		margin-top: var(--space-2);
 	}
 
-	.actions :global(.btn) {
+	/* Editar + the state action side by side, equal width. */
+	.buttons {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: var(--space-3);
+	}
+
+	.buttons > :global(*) {
 		width: 100%;
+	}
+
+	.nowrap {
+		flex-wrap: nowrap;
+	}
+
+	.nowrap {
+		gap: var(--space-2);
+	}
+
+	.nowrap dd {
+		flex: 1;
+	}
+
+	.nowrap dt {
+		flex: none;
+	}
+
+	.truncate {
+		font-size: var(--font-size-sm);
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 </style>

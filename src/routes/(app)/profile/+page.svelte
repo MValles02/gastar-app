@@ -2,11 +2,11 @@
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import Card from '$lib/components/Card.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
+	import * as Card from '$lib/components/ui/card/index.js';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import Icon from '$lib/components/Icon.svelte';
-	import Button from '$lib/components/Button.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { themeColors } from '$lib/theme';
 	import type { ActionData, PageData } from './$types';
@@ -59,30 +59,64 @@
 		<p class="email">{data.user.email}</p>
 	</section>
 
+	<Card.Root class="gap-0 overflow-hidden py-0" aria-label="Tu cuenta">
+		<ul class="links">
+			<li>
+				<Item.Root>
+					{#snippet child({ props })}
+						<a href={resolve('/profile/name')} {...props}>
+							<Item.Content><Item.Title>Nombre</Item.Title></Item.Content>
+							<Item.Actions class="min-w-0">
+								<span class="val">{data.user.name}</span>
+								<Icon name="chevron-right" size="1.25rem" />
+							</Item.Actions>
+						</a>
+					{/snippet}
+				</Item.Root>
+			</li>
+			<li>
+				<Item.Root>
+					{#snippet child({ props })}
+						<a href={resolve('/profile/password')} {...props}>
+							<Item.Content><Item.Title>Cambiar contraseña</Item.Title></Item.Content>
+							<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
+						</a>
+					{/snippet}
+				</Item.Root>
+			</li>
+		</ul>
+	</Card.Root>
+
 	<nav aria-label="Administrar">
-		<Card flush>
+		<Card.Root class="gap-0 overflow-hidden py-0">
 			<ul class="links">
 				<li>
-					<ListRow href={resolve('/accounts')}>
-						{#snippet leading()}<IconBadge icon="accounts" color={null} neutral />{/snippet}
-						{#snippet title()}Cuentas{/snippet}
-						{#snippet trailing()}<Icon name="chevron-right" size="1.25rem" />{/snippet}
-					</ListRow>
+					<Item.Root>
+						{#snippet child({ props })}
+							<a href={resolve('/accounts')} {...props}>
+								<Item.Media><IconBadge icon="accounts" color={null} neutral /></Item.Media>
+								<Item.Content><Item.Title>Cuentas</Item.Title></Item.Content>
+								<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
+							</a>
+						{/snippet}
+					</Item.Root>
 				</li>
 				<li>
-					<ListRow href={resolve('/categories')}>
-						{#snippet leading()}<IconBadge icon="categories" color={null} neutral />{/snippet}
-						{#snippet title()}Categorías{/snippet}
-						{#snippet trailing()}<Icon name="chevron-right" size="1.25rem" />{/snippet}
-					</ListRow>
+					<Item.Root>
+						{#snippet child({ props })}
+							<a href={resolve('/categories')} {...props}>
+								<Item.Media><IconBadge icon="categories" color={null} neutral /></Item.Media>
+								<Item.Content><Item.Title>Categorías</Item.Title></Item.Content>
+								<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
+							</a>
+						{/snippet}
+					</Item.Root>
 				</li>
 			</ul>
-		</Card>
+		</Card.Root>
 	</nav>
 
-	<section class="theme">
-		<h2 id="theme-heading">Tema</h2>
-
+	<Card.Root class="gap-0 overflow-hidden py-0" aria-label="Tema">
 		<form
 			method="POST"
 			action="?/theme"
@@ -93,29 +127,41 @@
 					await update({ reset: false });
 				};
 			}}
-			class="theme-form"
 		>
-			<SegmentedControl
-				name="theme"
-				options={themeOptions}
-				bind:value={selected}
-				labelledby="theme-heading"
-				onchange={() => themeForm.requestSubmit()}
-			/>
+			<div class="row">
+				<span id="theme-heading">Tema</span>
+				<div class="seg">
+					<SegmentedControl
+						name="theme"
+						options={themeOptions}
+						bind:value={selected}
+						labelledby="theme-heading"
+						onchange={() => themeForm.requestSubmit()}
+					/>
+				</div>
+			</div>
 
 			{#if form?.error}
 				<p class="error" role="alert">{form.error}</p>
 			{/if}
 
-			<noscript><Button type="submit" variant="secondary">Guardar</Button></noscript>
+			<noscript><Button type="submit" variant="outline">Guardar</Button></noscript>
 		</form>
-	</section>
+	</Card.Root>
 
-	<form method="POST" action="/logout">
-		<Button type="submit" variant="secondary" block
-			><Icon name="logout" size="1.25rem" />Cerrar sesión</Button
+	<div class="session">
+		<form method="POST" action="/logout">
+			<Button type="submit" variant="outline" class="w-full"
+				><Icon name="logout" size="1.25rem" />Cerrar sesión</Button
+			>
+		</form>
+
+		<Button
+			href={resolve('/profile/delete')}
+			variant="ghost"
+			class="text-destructive hover:text-destructive w-full">Eliminar cuenta</Button
 		>
-	</form>
+	</div>
 </div>
 
 <style>
@@ -169,31 +215,40 @@
 		padding: 0;
 	}
 
-	.links li:last-child :global(.row) {
-		border-bottom: 0;
-	}
-
-	h2 {
-		font-size: var(--font-size-sm);
-		font-weight: 600;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
+	.val {
+		min-width: 0;
+		max-width: 12rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 		color: var(--text-muted);
-		margin-bottom: var(--space-2);
-		padding: 0 var(--space-1);
 	}
 
-	.theme-form {
+	.row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-1) var(--space-3);
+		min-height: 3.5rem;
+		padding: var(--space-1) var(--space-4);
+		font-size: var(--font-size-base);
+	}
+
+	.seg {
+		margin-inline-start: auto;
+		flex: 0 1 15rem;
+		min-width: 0;
+		padding-block: var(--space-1);
+	}
+
+	.session {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-3);
-	}
-
-	.theme-form :global(.btn) {
-		align-self: flex-start;
+		gap: var(--space-8, 2rem);
 	}
 
 	.error {
+		padding: 0 var(--space-4) var(--space-3);
 		color: var(--negative);
 		font-size: var(--font-size-sm);
 	}

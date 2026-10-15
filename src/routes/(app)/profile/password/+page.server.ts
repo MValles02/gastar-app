@@ -1,0 +1,41 @@
+import { fail, redirect } from '@sveltejs/kit';
+import { APIError } from 'better-auth/api';
+import { auth } from '$lib/server/auth';
+import { isValidPasswordLength } from '$lib/server/auth-forms';
+import { isBlocked, record } from '$lib/server/rate-limit';
+import type { Actions } from './$types';
+
+export const actions: Actions = {
+	default: async ({ request, locals }) => {
+		const userId = locals.user!.id;
+		if (isBlocked('changePassword', userId)) {
+			return fail(429, { formError: 'Demasiados intentos. Probá de nuevo en un rato.' });
+		}
+
+		const data = await request.formData();
+		const currentPassword = String(data.get('currentPassword') ?? '');
+		const newPassword = String(data.get('newPassword') ?? '');
+
+		const errors: { current?: string; next?: string } = {};
+		if (!currentPassword) errors.current = 'Ingresá tu contraseña actual.';
+		if (!isValidPasswordLength(newPassword)) errors.next = 'Mínimo 8 caracteres.';
+		if (errors.current || errors.next) return fail(400, { errors });
+
+		try {
+			await auth.api.changePassword({
+				body: { currentPassword, newPassword, revokeOtherSessions: true },
+				headers: request.headers
+			});
+		} catch (err) {
+			if (!(err instanceof APIError)) throw err;
+			if (err.body?.code === 'INVALID_PASSWORD') {
+				record('changePassword', userId);
+				errors.current = 'La contraseña actual no es correcta.';
+				return fail(400, { errors });
+			}
+			return fail(400, { formError: 'No pudimos cambiar la contraseña. Probá de nuevo.' });
+		}
+
+		redirect(303, '/profile');
+	}
+};

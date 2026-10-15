@@ -4,39 +4,31 @@
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import Bell from '@lucide/svelte/icons/bell';
 	import X from '@lucide/svelte/icons/x';
+	import * as Avatar from '$lib/components/ui/avatar/index.js';
+	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
 
 	/**
-	 * Sticky top bar: [back] [eyebrow + title] [avisos] [profile]. The eyebrow defaults to today's date.
-	 * `compact` drops the eyebrow and shrinks the title; `close` shows an X instead of back, hides the
-	 * bell and avatar, is always compact and wins over `back`.
-	 * `collapse` (Inicio) compacts the large header after 24px of scroll: no eyebrow, a centered 16px title.
+	 * Sticky top bar. Full (no `back` and no `close`; the 4 tab pages): [eyebrow + title] [avisos]
+	 * [profile], the eyebrow defaulting to today's date. Little (`back` chevron or `close` X): button +
+	 * one-line truncating title, no eyebrow, bell or avatar; `close` wins over `back`.
 	 */
 	let {
 		title,
 		eyebrow,
 		back,
-		variant = 'large',
-		close,
-		collapse = false
+		close
 	}: {
 		title: string;
 		eyebrow?: string;
 		back?: { href: string; label: string };
-		variant?: 'large' | 'compact';
 		close?: { href: string; label: string };
-		collapse?: boolean;
 	} = $props();
 
-	const COLLAPSE_AFTER_PX = 24;
 	/** Larger alert counts show as "9+". */
 	const MAX_BADGE_COUNT = 9;
 
-	let scrollY = $state(0);
-	const collapsed = $derived(
-		collapse && !close && !back && variant === 'large' && scrollY > COLLAPSE_AFTER_PX
-	);
-
-	const compact = $derived(variant === 'compact' || !!close);
+	const full = $derived(!back && !close);
 
 	// From the (app) layout load; missing only if that load failed (error page).
 	const header = $derived(page.data.header as { date: string; initials: string } | undefined);
@@ -44,29 +36,21 @@
 	const kicker = $derived(eyebrow ?? header?.date);
 </script>
 
-<svelte:window bind:scrollY />
-
-<header class="top-bar" class:collapsed>
-	{#if collapsed}
-		<!-- Mirrors the bell and avatar so the title stays centered. -->
-		<span class="spacer" aria-hidden="true"></span>
-	{/if}
+<header class="top-bar">
 	{#if close}
-		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass an already resolved href -->
-		<a class="back" href={close.href} aria-label={close.label}>
-			<X size={24} strokeWidth={1.75} aria-hidden="true" />
-		</a>
+		<Button class="-ml-2" href={close.href} variant="ghost" size="icon" aria-label={close.label}>
+			<X aria-hidden="true" />
+		</Button>
 	{:else if back}
-		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass an already resolved href -->
-		<a class="back" href={back.href} aria-label={back.label}>
-			<ChevronLeft size={24} strokeWidth={1.75} aria-hidden="true" />
-		</a>
+		<Button class="-ml-2" href={back.href} variant="ghost" size="icon" aria-label={back.label}>
+			<ChevronLeft aria-hidden="true" />
+		</Button>
 	{/if}
 	<div class="titles">
-		{#if kicker && !compact}<p class="eyebrow">{kicker}</p>{/if}
-		<h1 class:compact>{title}</h1>
+		{#if kicker && full}<p class="eyebrow">{kicker}</p>{/if}
+		<h1 class:compact={!full}>{title}</h1>
 	</div>
-	{#if header && !close}
+	{#if header && full}
 		<a
 			class="bell"
 			href={resolve('/notifications')}
@@ -74,16 +58,22 @@
 			aria-label={alertCount > 0 ? `Avisos: ${alertCount}` : 'Avisos'}
 		>
 			<Bell size={20} strokeWidth={1.75} aria-hidden="true" />
-			{#if alertCount > 0}<span class="badge" aria-hidden="true"
-					>{alertCount > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : alertCount}</span
+			{#if alertCount > 0}<Badge
+					class="absolute -top-1.5 -right-1.5 min-w-5 px-1"
+					aria-hidden="true"
+					>{alertCount > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : alertCount}</Badge
 				>{/if}
 		</a>
 		<a
 			class="avatar"
 			href={resolve('/profile')}
 			aria-current={page.url.pathname === '/profile' ? 'page' : undefined}
-			aria-label="Perfil">{header.initials}</a
+			aria-label="Perfil"
 		>
+			<Avatar.Root class="size-full"
+				><Avatar.Fallback>{header.initials}</Avatar.Fallback></Avatar.Root
+			>
+		</a>
 	{/if}
 </header>
 
@@ -126,39 +116,6 @@
 		}
 	}
 
-	.spacer {
-		display: none;
-	}
-
-	/* Only while the bar is pinned: a static bar scrolls away with the page. */
-	@media (min-height: 40em) {
-		.collapsed .spacer {
-			display: block;
-			flex: none;
-			width: 5.5rem;
-		}
-
-		.collapsed .eyebrow {
-			display: none;
-		}
-
-		.collapsed .titles {
-			text-align: center;
-		}
-
-		.collapsed h1 {
-			overflow: hidden;
-			overflow-wrap: normal;
-			text-overflow: ellipsis;
-			white-space: nowrap;
-			font-size: var(--font-size-base);
-		}
-
-		.collapsed {
-			border-bottom-color: var(--border);
-		}
-	}
-
 	/* Wraps below the buttons at large text instead of breaking the title per character. */
 	.titles {
 		flex: 1 1 4rem;
@@ -187,7 +144,6 @@
 		font-size: 1.0625rem;
 	}
 
-	.back,
 	.bell,
 	.avatar {
 		position: relative;
@@ -201,47 +157,14 @@
 		color: var(--text);
 	}
 
-	.back {
-		margin-left: calc(var(--space-2) * -1);
-		border-radius: var(--radius-pill);
-	}
-
-	@media (hover: hover) {
-		.back:hover {
-			background: color-mix(in srgb, var(--primary) 8%, transparent);
-		}
-	}
-
 	.bell {
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
 		background: var(--surface);
 	}
 
-	/* The count as text (capped at 9+); the link's aria-label carries it for screen readers. */
-	.badge {
-		position: absolute;
-		top: -0.3125rem;
-		right: -0.3125rem;
-		min-width: 1.25rem;
-		height: 1.25rem;
-		padding: 0 var(--space-1);
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: var(--radius-pill);
-		background: var(--primary);
-		color: var(--on-primary);
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		line-height: 1;
-	}
-
 	.avatar {
 		border-radius: 50%;
-		background: var(--muted);
-		font-size: var(--font-size-sm);
-		font-weight: 600;
 	}
 
 	.bell[aria-current='page'],

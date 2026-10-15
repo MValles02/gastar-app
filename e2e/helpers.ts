@@ -1,5 +1,6 @@
 // Shared constants and steps for the E2E specs.
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
+import { waitForLink } from './outbox';
 
 // Same defaults as scripts/seed.js (local demo users, not secrets).
 export const SEED_EMAIL = process.env.SEED_EMAIL || 'demo@gastar.local';
@@ -32,6 +33,22 @@ export async function submitLogin(page: Page, email: string, password = SEED_PAS
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 }
 
+/** Signs up a fresh user, follows the verification link (which signs them in) and waits for Inicio. */
+export async function signUpVerified(
+	page: Page,
+	request: APIRequestContext,
+	o: { email: string; password: string; name: string }
+) {
+	await page.goto('/signup', { waitUntil: 'networkidle' });
+	await page.getByLabel('Nombre').fill(o.name);
+	await page.getByLabel('Email').fill(o.email);
+	await page.getByLabel('Contraseña', { exact: true }).fill(o.password);
+	await page.getByRole('button', { name: 'Crear cuenta' }).click();
+	await expect(page.getByRole('heading', { name: 'Revisá tu email' })).toBeVisible();
+	await page.goto((await waitForLink(request, o.email, /Confirmá/)).link);
+	await expect(page).toHaveURL(/\/$/);
+}
+
 /** Logs a seeded user in and waits for Inicio. */
 export async function login(page: Page, email = SEED_EMAIL) {
 	await submitLogin(page, email);
@@ -42,10 +59,27 @@ export async function login(page: Page, email = SEED_EMAIL) {
 export const setCurrencyCookie = (page: Page, baseURL: string, value: string) =>
 	page.context().addCookies([{ name: 'currency', value, url: baseURL }]);
 
+/** Opens the Filtros drawer of a list page and returns its dialog. */
+export async function openFilters(page: Page) {
+	await page.getByRole('button', { name: /^Filtros/ }).click();
+	const dialog = page.getByRole('dialog');
+	await expect(dialog).toBeVisible();
+	return dialog;
+}
+
 /** Chooses `name` in the JS picker dialog opened by the button whose name matches `legend`. */
 export async function pick(page: Page, legend: string, name: string) {
 	await page.getByRole('button', { name: new RegExp(legend) }).click();
 	await page.getByRole('dialog').getByText(name, { exact: true }).click();
+}
+
+/** Picks `ymd` (YYYY-MM-DD) in the calendar dialog opened by the button whose name matches `label`. */
+export async function pickDate(page: Page, label: string, ymd: string) {
+	await page.getByRole('button', { name: new RegExp(label) }).click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Año').selectOption(String(Number(ymd.slice(0, 4))));
+	await dialog.getByLabel('Mes', { exact: true }).selectOption(String(Number(ymd.slice(5, 7))));
+	await dialog.locator(`[data-bits-day][data-value="${ymd}"]`).click();
 }
 
 /** Opens the new-movement form and fills it (JS pickers); the caller submits. */
@@ -63,14 +97,22 @@ export async function fillMovement(
 	}
 ) {
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
-	await page.getByRole('radio', { name: o.type }).check({ force: true });
-	if (o.date !== undefined) await page.locator('input[name="occurredAt"]').fill(o.date);
+	await page
+		.getByRole('radio', { name: o.type === 'Transferencia' ? 'Transf.' : o.type })
+		.check({ force: true });
+	if (o.date !== undefined) await pickDate(page, 'Fecha', o.date);
 	await page.locator('input[name="amount"]').fill(o.amount);
 	await page.locator('input[name="description"]').fill(o.description);
 	await pick(page, o.destination ? 'Cuenta de origen' : 'Cuenta', o.account);
 	if (o.category) await pick(page, 'Categoría', o.category);
 	if (o.destination) await pick(page, 'Cuenta de destino', o.destination);
 	if (o.rate !== undefined) await page.locator('input[name="exchangeRate"]').fill(o.rate);
+}
+
+/** Picks a day of the month in the "Día del mes" drawer of a rule form. */
+export async function pickDay(page: Page, day: string) {
+	await page.getByRole('button', { name: /^Día del mes/ }).click();
+	await page.getByRole('dialog').getByRole('button', { name: day, exact: true }).click();
 }
 
 /** Opens the new-rule form and fills it (JS pickers); the caller submits. */
@@ -81,9 +123,20 @@ export async function fillRule(
 	await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
 	await page.locator('input[name="description"]').fill(o.description);
 	await page.locator('input[name="amount"]').fill(o.amount);
-	await page.locator('input[name="dayOfMonth"]').fill(o.day);
+	await pickDay(page, o.day);
 	await pick(page, 'Cuenta', o.account);
 	await pick(page, 'Categoría', o.category);
+}
+
+/** Sets the Ahorro fields (toggle, then value and unit for "Otro"); the caller submits. */
+export async function fillSavings(
+	page: Page,
+	o: { option: 'Nada' | '10 %' | '20 %' | 'Otro'; value?: string; unit?: '%' | '$' }
+) {
+	await page.getByRole('radio', { name: o.option, exact: true }).click();
+	if (o.option !== 'Otro') return;
+	if (o.unit) await page.getByRole('radio', { name: o.unit, exact: true }).click();
+	await page.locator('input[name="savingsValue"]').fill(o.value ?? '');
 }
 
 /** Posts the `delete` form action of `href` the way a no-JS form would. */
@@ -112,8 +165,8 @@ export async function deleteMovements(page: Page, baseURL: string, query: string
 export async function deleteRules(page: Page, baseURL: string, description: string) {
 	await page.goto('/plan');
 	const hrefs = await page
-		.locator('li.rule', { hasText: description })
-		.locator('a.row')
+		.locator('.rule', { hasText: description })
+		.locator('a[data-slot="item"]')
 		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
 	for (const href of hrefs) await postDelete(page, baseURL, href);
 }

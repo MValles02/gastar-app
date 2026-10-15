@@ -1,6 +1,6 @@
 import { and, inArray } from 'drizzle-orm';
 import { toSwatchKey, type SwatchKey } from '../appearance';
-import { CURRENCIES, CURRENCY_NAME, formatMoney, type Currency } from '../money';
+import { CURRENCIES, formatMoney, type Currency } from '../money';
 import { canAccessCategory } from './access';
 import { hasAccountsIn } from './dashboard';
 import { accountSummary } from './dashboard-queries';
@@ -16,18 +16,16 @@ const DUE_WINDOW_DAYS = 3;
 
 export type AlertItem = {
 	id: string;
-	title: string;
-	body: string;
-	/** Payments link straight to the rule's form; plan alerts (null) need the currency switched first. */
-	href: string | null;
 	kind: 'payment' | 'plan' | 'limit';
 	/** Short display name: the rule description, "Plan" or the category name. */
 	name: string;
 	pill: { label: string; tone: 'over' | 'due' | 'plain' };
-	/** Payments only: the rule's amount in minor units of the group's currency. */
-	amount: number | null;
-	/** Payments: the account name. Plan and limits: "spent de limit" or "Faltan $ N". */
-	detail: string;
+	/** One self-explanatory sentence (amounts inside). */
+	message: string;
+	/** App path the row opens. */
+	href: string;
+	/** Plan and limit pages read the currency from the cookie: open them through a POST to /currency. */
+	switchCurrency: boolean;
 	/** The category's swatch (payments and limits); null renders neutral. */
 	color: SwatchKey | null;
 };
@@ -92,6 +90,9 @@ export async function alerts(userId: string, now = new Date()) {
 	);
 }
 
+const days = (n: number) => `${n} ${n === 1 ? 'día' : 'días'}`;
+const percent = (share: number) => `${Math.round(share * 100)} %`;
+
 function paymentAlert(
 	rule: ActiveRule,
 	due: DueStatus,
@@ -101,70 +102,58 @@ function paymentAlert(
 	const label = dueLabel(due.status, due.daysLeft, rule.type);
 	return {
 		id: `rule-${rule.id}`,
-		title: rule.description,
-		body: `${label} · ${formatMoney(rule.amount, currency)} · ${rule.accountName}`,
-		href: `/movements/new?recurring=${rule.id}`,
 		kind: 'payment',
 		name: rule.description,
 		pill: { label, tone: PAYMENT_TONE[due.status] },
-		amount: rule.amount,
-		detail: rule.accountName,
+		message: `${formatMoney(rule.amount, currency)} desde ${rule.accountName}`,
+		href: `/plan/recurring/${rule.id}`,
+		switchCurrency: false,
 		color: swatches.get(rule.categoryId) ?? null
 	};
 }
 
 /** Over or spending too fast; null while the plan is on track. */
 function planAlert(plan: PlanSummary, currency: Currency): AlertItem | null {
-	const name = CURRENCY_NAME[currency];
-	const spentOf = `${formatMoney(plan.spent, currency)} de ${formatMoney(plan.forSpending, currency)}`;
 	const base = {
 		id: `plan-${currency}`,
-		href: null,
 		kind: 'plan',
 		name: 'Plan',
-		amount: null,
+		href: '/plan',
+		switchCurrency: true,
 		color: null
 	} as const;
-	if (plan.status === 'over') {
-		const shortfall = formatMoney(-plan.forSpending, currency);
+	if (plan.status === 'over')
 		return {
 			...base,
-			title: `Te pasaste del plan en ${name}`,
-			body:
-				plan.forSpending <= 0
-					? `Tu ahorro y tus pagos fijos superan tus ingresos por ${shortfall}`
-					: `Gastado ${spentOf}`,
 			pill: { label: 'Te pasaste', tone: 'over' },
-			detail: plan.forSpending <= 0 ? `Faltan ${shortfall}` : spentOf
+			message:
+				plan.forSpending <= 0
+					? `Tu ahorro y tus pagos fijos superan tus ingresos por ${formatMoney(-plan.forSpending, currency)}`
+					: `Gastaste ${formatMoney(-plan.available, currency)} más de lo que tenés para gastar`
 		};
-	}
 	if (plan.status === 'warn')
 		return {
 			...base,
-			title: `Estás gastando más rápido de lo planeado en ${name}`,
-			body: `Gastado ${spentOf}`,
 			pill: { label: 'Atención', tone: 'due' },
-			detail: spentOf
+			message: `Gastaste ${percent(plan.spentShare)} de lo que tenés para gastar y quedan ${days(plan.daysLeft)}`
 		};
 	return null;
 }
 
+/** Over the limit, or "Vas rápido" on /plan (`fast`). */
 function limitAlerts(plan: PlanSummary, currency: Currency, swatches: Swatches): AlertItem[] {
 	return plan.limits
-		.filter((l) => l.over)
-		.map((l) => {
-			const detail = `${formatMoney(l.spent, currency)} de ${formatMoney(l.amount, currency)}`;
-			return {
-				id: `limit-${currency}-${l.categoryId}`,
-				title: `${l.name} superó su límite`,
-				body: detail,
-				href: null,
-				kind: 'limit',
-				name: l.name,
-				pill: { label: 'Te pasaste', tone: 'over' },
-				amount: null,
-				detail,
-				color: swatches.get(l.categoryId) ?? null
-			};
-		});
+		.filter((l) => l.over || l.fast)
+		.map((l) => ({
+			id: `limit-${currency}-${l.categoryId}`,
+			kind: 'limit',
+			name: l.name,
+			pill: l.over ? { label: 'Te pasaste', tone: 'over' } : { label: 'Vas rápido', tone: 'due' },
+			message: l.over
+				? `Te pasaste ${formatMoney(l.spent - l.amount, currency)} del límite de ${formatMoney(l.amount, currency)}`
+				: `Gastaste ${percent(l.share)} del límite y quedan ${days(plan.daysLeft)}`,
+			href: `/plan/limits/${l.categoryId}`,
+			switchCurrency: true,
+			color: swatches.get(l.categoryId) ?? null
+		}));
 }

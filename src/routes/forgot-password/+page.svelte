@@ -1,16 +1,17 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
 	import AuthForm from '$lib/components/AuthForm.svelte';
 	import AuthPage from '$lib/components/AuthPage.svelte';
 	import CheckEmail from '$lib/components/CheckEmail.svelte';
-	import ErrorText from '$lib/components/ErrorText.svelte';
+	import * as Field from '$lib/components/ui/field/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
 
-	const initialEmail = $derived(form?.email ?? page.url.searchParams.get('email') ?? '');
+	// Never read the email from the URL: it would land in access logs and history.
+	const initialEmail = $derived(form?.email ?? '');
 </script>
 
 <svelte:head>
@@ -29,9 +30,9 @@
 		<h1>Recuperar contraseña</h1>
 
 		<AuthForm action="?/request" submitLabel="Enviar enlace">
-			<div class="field">
-				<label for="email">Email</label>
-				<input
+			<Field.Field>
+				<Field.Label for="email">Email</Field.Label>
+				<Input
 					id="email"
 					type="email"
 					name="email"
@@ -43,9 +44,9 @@
 					aria-describedby={form?.emailError ? 'email-error' : undefined}
 				/>
 				{#if form?.emailError}
-					<ErrorText id="email-error" message={form.emailError} />
+					<Field.Error id="email-error">{form.emailError}</Field.Error>
 				{/if}
-			</div>
+			</Field.Field>
 		</AuthForm>
 	</AuthPage>
 {/if}

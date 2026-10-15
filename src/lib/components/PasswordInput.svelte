@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import Icon from '$lib/components/Icon.svelte';
+	import * as InputGroup from '$lib/components/ui/input-group/index.js';
 
 	// `#password` / `name="password"` input with a show/hide toggle; the page renders the label.
 	let {
@@ -20,8 +21,8 @@
 	let showPassword = $state(false);
 </script>
 
-<div class="control">
-	<input
+<InputGroup.Root>
+	<InputGroup.Input
 		id="password"
 		type={showPassword ? 'text' : 'password'}
 		name="password"
@@ -32,37 +33,16 @@
 		aria-invalid={invalid ? true : undefined}
 		aria-describedby={describedby}
 	/>
-	<button
-		type="button"
-		class="eye"
-		aria-pressed={showPassword}
-		onclick={() => (showPassword = !showPassword)}
-	>
-		<Icon name={showPassword ? 'eye-off' : 'eye'} size="1.25rem" />
-		<span class="visually-hidden">
-			{showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-		</span>
-	</button>
-</div>
-
-<style>
-	.control {
-		position: relative;
-	}
-
-	.control input {
-		padding-right: var(--tap-target);
-	}
-
-	.eye {
-		position: absolute;
-		top: 0;
-		right: 0;
-		width: var(--tap-target);
-		height: 100%;
-		padding: 0;
-		background: none;
-		border: 0;
-		color: var(--text-muted);
-	}
-</style>
+	<InputGroup.Addon align="inline-end">
+		<InputGroup.Button
+			size="icon-xs"
+			aria-pressed={showPassword}
+			onclick={() => (showPassword = !showPassword)}
+		>
+			<Icon name={showPassword ? 'eye-off' : 'eye'} size="1.25rem" />
+			<span class="visually-hidden">
+				{showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+			</span>
+		</InputGroup.Button>
+	</InputGroup.Addon>
+</InputGroup.Root>

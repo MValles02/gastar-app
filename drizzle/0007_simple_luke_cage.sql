@@ -1,0 +1,2 @@
+ALTER TABLE "spending_plans" ADD COLUMN "savings_percent" integer;--> statement-breakpoint
+ALTER TABLE "spending_plans" ADD CONSTRAINT "spending_plans_savings_percent_check" CHECK ("spending_plans"."savings_percent" IS NULL OR "spending_plans"."savings_percent" BETWEEN 0 AND 10000);

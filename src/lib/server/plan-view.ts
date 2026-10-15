@@ -1,7 +1,18 @@
 import type { Currency } from '$lib/money';
 import { currentMonth, localDay, monthLabel, monthRange } from './month';
-import { isRecurringActive, PLAN_STATUS_LABEL, planSpent, planSummary } from './plan';
-import { getPlan, listRecurring, monthOutcomes, planLimits } from './plan-queries';
+import {
+	dueLabel,
+	HISTORY_MONTHS,
+	inactiveReason,
+	isRecurringActive,
+	lastFullMonths,
+	PLAN_STATUS_LABEL,
+	planSpent,
+	planSummary,
+	recurringStatus
+} from './plan';
+import { effectiveSavings } from '$lib/savings';
+import { getPlan, listRecurring, monthOutcomes, paidRecurring, planLimits } from './plan-queries';
 
 /** The plan summary for one currency as of `now`; `summary` is null when there is no plan for the current month. */
 export async function planView(userId: string, cur: Currency, now = new Date()) {
@@ -20,13 +31,13 @@ export async function planView(userId: string, cur: Currency, now = new Date()) 
 	// A plan for another month (not repeating) counts as no plan.
 	const current = plan && (plan.month === null || plan.month === ym) ? plan : null;
 	const limits = current ? await planLimits(userId, current.id) : [];
+	const recurringIncome = sumRules('income');
 	const summary = current
 		? planSummary({
 				currency: cur,
-				recurringIncome: sumRules('income'),
-				extraIncome: current.extraIncome,
+				recurringIncome,
 				bills: sumRules('outcome'),
-				savings: current.savings,
+				savings: effectiveSavings(current, recurringIncome),
 				spent: spent.total,
 				limits: limits.map((l) => ({ ...l, spent: spent.byCategory.get(l.categoryId) ?? 0 })),
 				ym,
@@ -39,10 +50,67 @@ export async function planView(userId: string, cur: Currency, now = new Date()) 
 		rules,
 		active,
 		monthName: monthLabel(ym, false).toLowerCase(),
-		summary,
+		// planSummary's limits drop the category color/icon; put them back for the limit rows.
+		summary: summary && {
+			...summary,
+			limits: summary.limits.map((l) => {
+				const c = limits.find((x) => x.categoryId === l.categoryId)!;
+				return { ...l, color: c.color, icon: c.icon };
+			})
+		},
 		statusLabel: summary ? PLAN_STATUS_LABEL[summary.status] : '',
 		/** Month name of an ended one-month plan, if that is what the user has. */
 		endedMonthName:
 			plan && !current && plan.month ? monthLabel(plan.month, false).toLowerCase() : null
 	};
+}
+
+/** The fields every rule row on /plan shows. */
+const ruleRow = (r: Awaited<ReturnType<typeof listRecurring>>[number]) => ({
+	id: r.id,
+	type: r.type,
+	description: r.description,
+	amount: r.amount,
+	accountName: r.accountName,
+	day: r.dayOfMonth
+});
+
+/** Recurring rules of one currency as /plan lists them: active incomes and outcomes (with due status) and inactive ones. */
+export async function recurringLists(userId: string, cur: Currency, now = new Date()) {
+	const ym = currentMonth(now);
+	const today = localDay(now);
+	const [rules, paid] = await Promise.all([
+		listRecurring(userId, cur),
+		paidRecurring(userId, monthRange(ym))
+	]);
+	const paidIds = new Set(paid.map((p) => p.recurringId));
+	const active = rules.filter(isRecurringActive).map((r) => {
+		const s = recurringStatus(r.dayOfMonth, paidIds.has(r.id), ym, today);
+		return { ...ruleRow(r), status: s.status, label: dueLabel(s.status, s.daysLeft, r.type) };
+	});
+	return {
+		incomes: active.filter((r) => r.type === 'income'),
+		outcomes: active.filter((r) => r.type === 'outcome'),
+		inactive: rules
+			.filter((r) => !isRecurringActive(r))
+			.map((r) => ({ ...ruleRow(r), reason: inactiveReason(r)! }))
+	};
+}
+
+/** Monthly average of a `HISTORY_MONTHS` total, rounded half up to whole units (integer math). */
+const monthlyAverage = (total: number) =>
+	Math.floor((total + 50 * HISTORY_MONTHS) / (100 * HISTORY_MONTHS)) * 100;
+
+/** Suggested limit per category: monthly average of spending outside active rules over the last full months. */
+export async function limitSuggestions(
+	userId: string,
+	cur: Currency,
+	now = new Date()
+): Promise<Map<string, number>> {
+	const [rules, rows] = await Promise.all([
+		listRecurring(userId, cur),
+		monthOutcomes(userId, cur, lastFullMonths(currentMonth(now)))
+	]);
+	const spent = planSpent(rows, new Set(rules.filter(isRecurringActive).map((r) => r.id)));
+	return new Map([...spent.byCategory].map(([id, total]) => [id, monthlyAverage(total)]));
 }

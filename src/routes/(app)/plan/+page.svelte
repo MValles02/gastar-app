@@ -8,26 +8,24 @@
 	import { afterNavigate, replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import Button from '$lib/components/Button.svelte';
-	import Card from '$lib/components/Card.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
+	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import Money from '$lib/components/Money.svelte';
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { formatMoney } from '$lib/money';
+	import LimitList from './LimitList.svelte';
+	import RecurringRow from './RecurringRow.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	const statusIcon = { ok: Check, warn: Clock, over: CircleAlert } as const;
-	// Row pill by due status: paid is green, today is orange, overdue is inverted (never red).
-	const dueIcon = { paid: Check, today: Clock, overdue: CircleAlert, upcoming: null } as const;
-	const dueClass = { paid: 'ok', today: 'warn', overdue: 'over', upcoming: '' } as const;
 
-	// Past 11 characters ("$ 12.345.678") the hero steps down so it never wraps or truncates.
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
 	let hydrated = $state(false);
 	onMount(() => (hydrated = true));
@@ -66,14 +64,19 @@
 	{/if}
 
 	{#if !data.hasCurrency}
-		<EmptyState icon="accounts">No tenés cuentas en {CURRENCY_NAME[data.currency]}.</EmptyState>
+		<Empty.Root>
+			<Empty.Header>
+				<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
+				<Empty.Description>No tenés cuentas en {CURRENCY_NAME[data.currency]}.</Empty.Description>
+			</Empty.Header>
+		</Empty.Root>
 		<div class="center"><Button href={resolve('/accounts/new')}>Crear cuenta</Button></div>
 	{:else}
 		{#if data.plan.summary}
 			{@const s = data.plan.summary}
 			{@const Status = statusIcon[s.status]}
 			<section class="summary" aria-labelledby="summary-heading">
-				<Card flush>
+				<Card.Root class="gap-0 overflow-hidden py-0">
 					<div class="box">
 						<div class="top">
 							<h2 id="summary-heading" class="eyebrow">Disponible · {data.plan.monthName}</h2>
@@ -95,11 +98,14 @@
 						</div>
 						<div class="kv">
 							<dt>Pagos fijos</dt>
-							<dd><Money cents={-s.bills} currency={data.currency} /></dd>
+							<dd><Money cents={-s.bills} currency={data.currency} kind="outcome" /></dd>
 						</div>
-						<div class="kv">
-							<dt>Ahorro</dt>
-							<dd><Money cents={-s.savings} currency={data.currency} /></dd>
+						<div class="kv link">
+							<dt><a href={resolve('/plan/savings')}>Ahorro</a></dt>
+							<dd>
+								<Money cents={s.savings} currency={data.currency} />
+								<Icon name="chevron-right" size="1.25rem" />
+							</dd>
 						</div>
 						<div class="kv sum">
 							<dt>Para gastar</dt>
@@ -107,125 +113,68 @@
 						</div>
 						<div class="kv">
 							<dt>Gastado</dt>
-							<dd><Money cents={-s.spent} currency={data.currency} /></dd>
+							<dd><Money cents={-s.spent} currency={data.currency} kind="outcome" /></dd>
 						</div>
 						<div class="kv sum">
 							<dt>Disponible</dt>
 							<dd><Money cents={s.available} currency={data.currency} /></dd>
 						</div>
 					</dl>
-					<a class="footer" href={resolve('/plan/setup')}>
-						Editar plan
-						<Icon name="chevron-right" size="1.25rem" />
-					</a>
-				</Card>
+				</Card.Root>
 			</section>
 
-			{#if s.limits.length}
-				<section aria-labelledby="limits-heading">
-					<div class="section-head"><h2 id="limits-heading">Límites por categoría</h2></div>
-					<ul class="list-card">
-						{#each s.limits as l (l.categoryId)}
-							{@const pct = Math.min(100, Math.floor((l.spent * 100) / l.amount))}
-							<li class="limit">
-								<span class="name">
-									<span class="title">{l.name}</span>
-									{#if l.over}
-										<span class="pill over"
-											><CircleAlert size={14} strokeWidth={2} />Te pasaste</span
-										>
-									{:else if l.fast}
-										<span class="pill warn"><Clock size={14} strokeWidth={2} />Vas rápido</span>
-									{/if}
-								</span>
-								<span class="of">
-									<span class="spent"><Money cents={l.spent} currency={data.currency} /></span> de
-									<Money cents={l.amount} currency={data.currency} />
-								</span>
-								<div
-									class="bar"
-									role="meter"
-									aria-label="Límite de {l.name}"
-									aria-valuemin="0"
-									aria-valuemax="100"
-									aria-valuenow={pct}
-									aria-valuetext="{formatMoney(l.spent, data.currency)} de {formatMoney(
-										l.amount,
-										data.currency
-									)}"
-								>
-									<span class="fill" style:width="{pct}%"></span>
-								</div>
-							</li>
-						{/each}
-					</ul>
-				</section>
-			{/if}
-		{:else}
-			<Card>
-				<div class="no-plan">
-					{#if data.plan.endedMonthName}
-						<p class="strong">Tu plan de {data.plan.endedMonthName} terminó.</p>
-					{/if}
-					<p class="strong">Todavía no tenés un plan en {CURRENCY_NAME[data.currency]}.</p>
-					<p class="muted">
-						Sumá tus ingresos, restá pagos fijos y ahorro, y te decimos cuánto podés gastar por día.
-					</p>
-					<Button href={resolve('/plan/setup')}>Crear plan</Button>
+			<section aria-labelledby="limits-heading">
+				<div class="section-head">
+					<h2 id="limits-heading">Límites por categoría</h2>
+					<a class="add" href={resolve('/plan/limits/new')}>Agregar</a>
 				</div>
-			</Card>
+				<LimitList limits={s.limits} currency={data.currency} />
+			</section>
+		{:else}
+			<Card.Root>
+				<Card.Content>
+					<div class="no-plan">
+						{#if data.plan.endedMonthName}
+							<p class="strong">Tu plan de {data.plan.endedMonthName} terminó.</p>
+						{/if}
+						<p class="strong">Todavía no tenés un plan en {CURRENCY_NAME[data.currency]}.</p>
+						<p class="muted">
+							Sumá tus ingresos, restá pagos fijos y ahorro, y te decimos cuánto podés gastar por
+							día.
+						</p>
+						<Button href={resolve('/plan/setup')}>Crear plan</Button>
+					</div>
+				</Card.Content>
+			</Card.Root>
 		{/if}
 
 		{#if !data.incomes.length && !data.outcomes.length && !data.inactive.length}
-			<EmptyState icon="plan">
-				No tenés pagos ni ingresos fijos en {CURRENCY_NAME[data.currency]}.
-			</EmptyState>
+			<Empty.Root>
+				<Empty.Header>
+					<Empty.Media variant="icon"><Icon name="plan" size="1rem" /></Empty.Media>
+					<Empty.Description
+						>No tenés pagos ni ingresos fijos en {CURRENCY_NAME[data.currency]}.</Empty.Description
+					>
+				</Empty.Header>
+			</Empty.Root>
 			<div class="center actions">
 				<Button href={resolve('/plan/recurring/new')}>Agregar pago fijo</Button>
-				<Button href={resolve('/plan/recurring/new?type=income')} variant="secondary">
+				<Button href={resolve('/plan/recurring/new?type=income')} variant="outline">
 					Agregar ingreso fijo
 				</Button>
 			</div>
 		{:else}
-			<!-- Each row opens the detail, where "Registrar pago" lives. -->
-			{#snippet rule(r: (typeof data.incomes)[number])}
-				{@const DueIcon = dueIcon[r.status]}
-				<li class="rule">
-					<ListRow href={resolve(`/plan/recurring/${r.id}`)}>
-						{#snippet leading()}
-							<span class="lead" aria-hidden="true">{r.description.charAt(0).toUpperCase()}</span>
-						{/snippet}
-						{#snippet title()}{r.description}{/snippet}
-						{#snippet subtitle()}
-							<span class="sub">
-								<span class="pill {dueClass[r.status]}">
-									{#if DueIcon}<DueIcon size={14} strokeWidth={2} />{/if}{r.label}
-								</span>
-								<span class="sub-text">Día {r.day} · {r.accountName}</span>
-							</span>
-						{/snippet}
-						{#snippet trailing()}
-							<span class="amount-col">
-								<Money
-									cents={r.type === 'income' ? r.amount : -r.amount}
-									currency={data.currency}
-									kind={r.type === 'income' ? 'income' : 'outcome'}
-								/>
-							</span>
-						{/snippet}
-					</ListRow>
-				</li>
-			{/snippet}
-
 			<section aria-labelledby="income-heading">
 				<div class="section-head">
 					<h2 id="income-heading">Ingresos fijos</h2>
 					<a class="add" href={resolve('/plan/recurring/new?type=income')}>Agregar</a>
 				</div>
 				{#if data.incomes.length}
-					<ul class="list-card">
-						{#each data.incomes as r (r.id)}{@render rule(r)}{/each}
-					</ul>
+					<Item.Group
+						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+					>
+						{#each data.incomes as r (r.id)}<RecurringRow row={r} currency={data.currency} />{/each}
+					</Item.Group>
 				{:else}
 					<p class="muted">Sin ingresos fijos.</p>
 				{/if}
@@ -237,9 +186,14 @@
 					<a class="add" href={resolve('/plan/recurring/new')}>Agregar</a>
 				</div>
 				{#if data.outcomes.length}
-					<ul class="list-card">
-						{#each data.outcomes as r (r.id)}{@render rule(r)}{/each}
-					</ul>
+					<Item.Group
+						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+					>
+						{#each data.outcomes as r (r.id)}<RecurringRow
+								row={r}
+								currency={data.currency}
+							/>{/each}
+					</Item.Group>
 				{:else}
 					<p class="muted">Sin pagos fijos.</p>
 				{/if}
@@ -248,33 +202,30 @@
 			{#if data.inactive.length}
 				<section aria-labelledby="inactive-heading">
 					<div class="section-head"><h2 id="inactive-heading">Inactivos</h2></div>
-					<ul class="list-card">
-						{#each data.inactive as r (r.id)}
-							<li class="rule inactive">
-								<ListRow href={resolve(`/plan/recurring/${r.id}`)}>
-									{#snippet leading()}
-										<span class="lead" aria-hidden="true"
-											>{r.description.charAt(0).toUpperCase()}</span
-										>
-									{/snippet}
-									{#snippet title()}{r.description}{/snippet}
-									{#snippet subtitle()}
-										<span class="sub">
-											<span class="pill">{r.reason}</span>
-											<span class="sub-text">Día {r.day} · {r.accountName}</span>
-										</span>
-									{/snippet}
-									{#snippet trailing()}
-										<span class="amount-col">
-											<Money cents={r.amount} currency={data.currency} />
-										</span>
-									{/snippet}
-								</ListRow>
-							</li>
-						{/each}
-					</ul>
+					<Item.Group
+						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+					>
+						{#each data.inactive as r (r.id)}<RecurringRow
+								row={r}
+								currency={data.currency}
+							/>{/each}
+					</Item.Group>
 				</section>
 			{/if}
+		{/if}
+
+		{#if data.plan.summary}
+			<div class="center">
+				<ConfirmDialog
+					triggerLabel="Eliminar plan"
+					triggerVariant="destructive"
+					title="¿Eliminar este plan?"
+					confirmLabel="Eliminar"
+					action="?/delete"
+				>
+					Se borran el plan y sus límites. Tus ingresos y pagos fijos se mantienen.
+				</ConfirmDialog>
+			</div>
 		{/if}
 	{/if}
 </div>
@@ -326,7 +277,7 @@
 		text-decoration: underline;
 	}
 
-	/* Disponible card: hero, then the plan's equation, then the Editar footer. */
+	/* Disponible card: hero, then the plan's equation, then the Ahorro link. */
 	.box {
 		display: flex;
 		flex-direction: column;
@@ -417,34 +368,40 @@
 		font-weight: 600;
 	}
 
-	.footer {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		min-height: 3rem;
-		padding: 0 var(--space-3) 0 1.25rem;
-		border-top: 1px solid var(--border);
-		font-weight: 500;
-		text-decoration: none;
-		color: var(--text);
+	.kv.link {
+		position: relative;
 	}
 
-	.footer :global(svg) {
+	.kv.link a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	/* The whole row is the tap target. */
+	.kv.link a::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+	}
+
+	.kv.link dd {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+	}
+
+	.kv.link dd :global(svg) {
 		color: var(--border-strong);
 	}
 
 	@media (hover: hover) {
-		.footer:hover {
+		.kv.link:hover {
 			background: var(--muted);
 		}
 	}
 
-	.footer:active {
+	.kv.link:active {
 		background: var(--muted);
-	}
-
-	.footer:focus-visible {
-		outline-offset: -2px;
 	}
 
 	.no-plan {
@@ -452,98 +409,5 @@
 		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--space-2);
-	}
-
-	/* Límites */
-	.limit {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-1) var(--space-3);
-		padding: 0.875rem var(--space-4);
-		border-bottom: 1px solid var(--border);
-	}
-
-	.limit:last-child {
-		border-bottom: 0;
-	}
-
-	.name {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		min-width: 0;
-		font-weight: 500;
-	}
-
-	.title {
-		overflow-wrap: anywhere;
-	}
-
-	.of {
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
-	}
-
-	.spent {
-		color: var(--text);
-		font-weight: 600;
-	}
-
-	.bar {
-		flex: 1 0 100%;
-		height: 0.375rem;
-		margin-top: var(--space-2);
-		overflow: hidden;
-		background: var(--muted);
-		border-radius: var(--radius-pill);
-	}
-
-	.fill {
-		display: block;
-		height: 100%;
-		background: var(--text);
-		border-radius: var(--radius-pill);
-	}
-
-	/* Fixed rows: neutral letter badge, amount, due pill. */
-	.lead {
-		flex: none;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 2.25rem;
-		height: 2.25rem;
-		border-radius: var(--radius);
-		background: var(--muted);
-		color: var(--text);
-		font-size: 0.9375rem;
-		font-weight: 600;
-	}
-
-	.sub {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		min-width: 0;
-		margin-top: 0.25rem;
-	}
-
-	.sub-text {
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.amount-col {
-		font-size: var(--font-size-base);
-		font-weight: 600;
-		font-variant-numeric: tabular-nums;
-		text-align: right;
-	}
-
-	.inactive .amount-col {
-		color: var(--text-muted);
 	}
 </style>

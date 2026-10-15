@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, ilike, inArray, isNull, lt, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, ilike, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
 import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
 import { canAccessCategory, canAccessMovement, categoryOwnedBy } from './access';
@@ -6,7 +6,10 @@ import { PG_UNIQUE_VIOLATION, pgErrorCode } from './db/errors';
 import { escapeLike } from './db/util';
 import type { CategoryData } from './categories';
 
-export function listCategories(userId: string, opts: { q?: string; archived?: boolean } = {}) {
+export function listCategories(
+	userId: string,
+	opts: { q?: string; archived?: boolean; kind?: 'income' | 'outcome' } = {}
+) {
 	return db
 		.select()
 		.from(categories)
@@ -14,6 +17,7 @@ export function listCategories(userId: string, opts: { q?: string; archived?: bo
 			and(
 				canAccessCategory(userId),
 				opts.archived ? undefined : isNull(categories.archivedAt),
+				opts.kind ? or(eq(categories.kind, opts.kind), isNull(categories.kind)) : undefined,
 				opts.q ? ilike(categories.name, `%${escapeLike(opts.q)}%`) : undefined
 			)
 		)
@@ -105,6 +109,51 @@ export function categoryMonthNet(userId: string, id: string, range: { start: Dat
 			)
 		)
 		.groupBy(financialAccounts.currency);
+}
+
+/** Income and outcome totals per category and currency for a range, never summed across currencies. */
+export function categoryMonthTotals(userId: string, range: { start: Date; end: Date }) {
+	const sumOf = (type: 'outcome' | 'income') =>
+		sql<number>`coalesce(sum(${movements.amount}) filter (where ${movements.type} = ${type}), 0)`.mapWith(
+			Number
+		);
+	return db
+		.select({
+			categoryId: movements.categoryId,
+			currency: financialAccounts.currency,
+			outcome: sumOf('outcome'),
+			income: sumOf('income')
+		})
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.innerJoin(categories, eq(movements.categoryId, categories.id))
+		.where(
+			and(
+				canAccessMovement(userId),
+				canAccessCategory(userId),
+				inArray(movements.type, ['income', 'outcome']),
+				gte(movements.occurredAt, range.start),
+				lt(movements.occurredAt, range.end)
+			)
+		)
+		.groupBy(movements.categoryId, financialAccounts.currency);
+}
+
+/** Distinct income/outcome movement types recorded on a category (empty when it has none). */
+export function categoryMovementTypes(userId: string, id: string) {
+	return db
+		.selectDistinct({ type: movements.type })
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.innerJoin(categories, eq(movements.categoryId, categories.id))
+		.where(
+			and(
+				canAccessMovement(userId),
+				canAccessCategory(userId),
+				eq(categories.id, id),
+				inArray(movements.type, ['income', 'outcome'])
+			)
+		);
 }
 
 export function createCategory(userId: string, data: CategoryData) {

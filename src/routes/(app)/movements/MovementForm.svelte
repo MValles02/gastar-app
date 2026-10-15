@@ -5,10 +5,14 @@
 	import Lock from '@lucide/svelte/icons/lock';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import Button from '$lib/components/Button.svelte';
-	import Checkbox from '$lib/components/Checkbox.svelte';
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
+	import AmountHero from '$lib/components/AmountHero.svelte';
+	import DatePicker from '$lib/components/DatePicker.svelte';
+	import FormActions from '$lib/components/FormActions.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import TextRow from '$lib/components/TextRow.svelte';
 	import { convertAmount, formatMoney, parseAmount } from '$lib/money';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
@@ -50,7 +54,7 @@
 	const typeOptions = [
 		{ value: 'income', label: 'Ingreso' },
 		{ value: 'outcome', label: 'Gasto' },
-		{ value: 'transfer', label: 'Transferencia' }
+		{ value: 'transfer', label: 'Transf.' }
 	];
 
 	let submitting = $state(false);
@@ -141,47 +145,21 @@
 		{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
 	</div>
 
-	<div class="amount-block">
-		<label class="amount" class:sm={amount.length > 11}>
-			<span class="visually-hidden">Monto</span>
-			{#if originCurrency}<span class="currency">{originCurrency === 'USD' ? 'US$' : '$'}</span
-				>{/if}
-			<!-- svelte-ignore a11y_autofocus -->
-			<input
-				class="amount-input"
-				name="amount"
-				type="text"
-				inputmode={originCurrency === 'USD' ? 'decimal' : 'numeric'}
-				placeholder={originCurrency === 'USD' ? '0,00' : '0'}
-				autocomplete="off"
-				autofocus
-				bind:value={amount}
-				aria-invalid={errors.amount ? 'true' : undefined}
-				aria-describedby={errors.amount ? 'amount-error' : undefined}
-			/>
-		</label>
-		{#if errors.amount}<p class="error" id="amount-error" role="alert">{errors.amount}</p>{/if}
-	</div>
+	<AmountHero bind:value={amount} currency={originCurrency} error={errors.amount} autofocus />
 
 	<ul class="card">
 		<li class:bad={errors.description}>
-			<label class="row">
-				<span class="k">Descripción</span>
-				<input
-					name="description"
-					type="text"
-					maxlength={DESCRIPTION_MAX_LENGTH}
-					required
-					autocomplete="off"
-					placeholder="Agregar"
-					bind:value={description}
-					aria-invalid={errors.description ? 'true' : undefined}
-					aria-describedby={errors.description ? 'description-error' : undefined}
-				/>
-			</label>
-			{#if errors.description}
-				<p class="error et" id="description-error" role="alert">{errors.description}</p>
-			{/if}
+			<TextRow
+				id="description"
+				name="description"
+				label="Descripción"
+				bind:value={description}
+				placeholder="Agregar"
+				maxlength={DESCRIPTION_MAX_LENGTH}
+				required
+				error={errors.description}
+				errorId="description-error"
+			/>
 		</li>
 
 		<li class:bad={errors.accountId}>
@@ -223,22 +201,17 @@
 		{#if !mounted || showRate}
 			<li class:bad={errors.exchangeRate}>
 				{#if !mounted}<p class="hint pad">Solo para transferencias entre monedas distintas</p>{/if}
-				<label class="row">
-					<span class="k">Cotización (1 USD en ARS)</span>
-					<input
-						name="exchangeRate"
-						type="text"
-						inputmode="numeric"
-						placeholder="0"
-						autocomplete="off"
-						bind:value={rate}
-						aria-invalid={errors.exchangeRate ? 'true' : undefined}
-						aria-describedby={errors.exchangeRate ? 'rate-error' : undefined}
-					/>
-				</label>
-				{#if errors.exchangeRate}
-					<p class="error et" id="rate-error" role="alert">{errors.exchangeRate}</p>
-				{/if}
+				<TextRow
+					id="exchangeRate"
+					name="exchangeRate"
+					label="Cotización (1 USD en ARS)"
+					bind:value={rate}
+					placeholder="0"
+					inputmode="numeric"
+					amount
+					error={errors.exchangeRate}
+					errorId="rate-error"
+				/>
 			</li>
 			{#if mounted}
 				<li>
@@ -291,20 +264,14 @@
 		{/if}
 
 		<li class:bad={errors.occurredAt}>
-			<label class="row">
-				<span class="k">Fecha</span>
-				<input
-					name="occurredAt"
-					type="date"
-					min="2000-01-01"
-					bind:value={occurredAt}
-					aria-invalid={errors.occurredAt ? 'true' : undefined}
-					aria-describedby={errors.occurredAt ? 'date-error' : undefined}
-				/>
-			</label>
-			{#if errors.occurredAt}
-				<p class="error et" id="date-error" role="alert">{errors.occurredAt}</p>
-			{/if}
+			<DatePicker
+				name="occurredAt"
+				label="Fecha"
+				min="2000-01-01"
+				bind:value={occurredAt}
+				error={errors.occurredAt}
+				errorId="date-error"
+			/>
 		</li>
 	</ul>
 
@@ -312,12 +279,16 @@
 		<div class="group">
 			<ul class="card">
 				<li class="check">
-					<Checkbox
-						name="repeat"
-						label="Repetir cada mes"
-						checked={repeatChecked}
-						aria-describedby="repeat-hint"
-					/>
+					<Field.Field orientation="horizontal" class="min-h-11">
+						<Checkbox
+							id="repeat"
+							name="repeat"
+							value="on"
+							checked={repeatChecked}
+							aria-describedby="repeat-hint"
+						/>
+						<Field.Label for="repeat">Repetir cada mes</Field.Label>
+					</Field.Field>
 				</li>
 			</ul>
 			<p id="repeat-hint" class="hint pad">
@@ -326,14 +297,7 @@
 		</div>
 	{/if}
 
-	<div class="bar">
-		<Button type="submit" block disabled={submitting} aria-busy={submitting ? 'true' : undefined}>
-			{#if submitting}<span class="spin" aria-hidden="true"></span>{/if}{submitLabel}
-		</Button>
-	</div>
-	<div class="cancel">
-		<Button href={resolve(cancelHref as '/')} variant="secondary">Cancelar</Button>
-	</div>
+	<FormActions {cancelHref} {submitLabel} {submitting} />
 </form>
 
 <style>
@@ -344,7 +308,7 @@
 		padding-top: var(--space-1);
 	}
 
-	.form.submitting > :not(.bar) {
+	.form.submitting > :not(:global(.bar)) {
 		opacity: 0.55;
 	}
 
@@ -356,61 +320,6 @@
 
 	.note {
 		margin-bottom: calc(var(--space-3) * -1);
-		text-align: center;
-	}
-
-	.amount-block {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: var(--space-1);
-	}
-
-	.amount {
-		flex-direction: row;
-		align-items: baseline;
-		justify-content: center;
-		gap: var(--space-2);
-		max-width: 100%;
-		padding: var(--space-4) 0 var(--space-1);
-		color: var(--text);
-	}
-
-	.currency {
-		font-family: var(--font-display);
-		font-size: 1.75rem;
-		font-weight: 500;
-		color: var(--text-muted);
-	}
-
-	.amount .amount-input {
-		flex: 0 1 auto;
-		width: auto;
-		min-width: 2ch;
-		max-width: 100%;
-		field-sizing: content;
-		min-height: 3.5rem;
-		padding: 0 var(--space-1);
-		border: 0;
-		background: transparent;
-		font-family: var(--font-display);
-		font-size: 2.75rem;
-		font-weight: 500;
-		text-align: center;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.amount.sm .amount-input {
-		font-size: var(--font-size-hero);
-	}
-
-	.amount .amount-input::placeholder,
-	.row input::placeholder {
-		color: var(--text-muted);
-		opacity: 1;
-	}
-
-	.amount-block .error {
 		text-align: center;
 	}
 
@@ -445,27 +354,6 @@
 		color: var(--text);
 	}
 
-	label.row {
-		cursor: text;
-	}
-
-	.row input {
-		flex: 1 1 4rem;
-		min-width: 0;
-		width: auto;
-		min-height: 3.5rem;
-		padding: 0;
-		border: 0;
-		border-radius: 0;
-		background: transparent;
-		text-align: right;
-		scroll-margin-bottom: 6rem;
-	}
-
-	.row input:focus-visible {
-		outline-offset: -2px;
-	}
-
 	.locked {
 		justify-content: space-between;
 		color: var(--text-muted);
@@ -498,47 +386,5 @@
 	.error {
 		color: var(--negative);
 		font-size: var(--font-size-sm);
-	}
-
-	.et {
-		padding: 0 var(--space-4) var(--space-3);
-	}
-
-	/* Sticky Guardar: full-bleed bar pinned to the bottom of the viewport (no tab bar on this screen). */
-	.bar {
-		position: sticky;
-		bottom: 0;
-		z-index: 2;
-		margin-inline: calc(var(--gutter, var(--space-5)) * -1);
-		padding: var(--space-3) var(--gutter, var(--space-5))
-			calc(var(--space-3) + env(safe-area-inset-bottom));
-		background: var(--bg);
-		box-shadow: 0 -1px 0 var(--border);
-	}
-
-	.spin {
-		width: 1rem;
-		height: 1rem;
-		border: 2px solid currentColor;
-		border-right-color: transparent;
-		border-radius: 50%;
-		animation: spin 0.8s linear infinite;
-	}
-
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.spin {
-			animation-duration: 2.4s;
-		}
-	}
-
-	.cancel {
-		display: flex;
-		justify-content: center;
 	}
 </style>

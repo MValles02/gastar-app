@@ -4,8 +4,9 @@
 	import { afterNavigate, replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import Button from '$lib/components/Button.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Empty from '$lib/components/ui/empty/index.js';
+	import Icon from '$lib/components/Icon.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import MovementForm from '../MovementForm.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -59,7 +60,14 @@
 />
 
 {#if data.accounts.length === 0}
-	<EmptyState icon="plus">Necesitás al menos una cuenta para registrar movimientos.</EmptyState>
+	<Empty.Root>
+		<Empty.Header>
+			<Empty.Media variant="icon"><Icon name="plus" size="1rem" /></Empty.Media>
+			<Empty.Description
+				>Necesitás al menos una cuenta para registrar movimientos.</Empty.Description
+			>
+		</Empty.Header>
+	</Empty.Root>
 	<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 {:else}
 	{#if data.saved && !form && !hydrated}<p role="status">Movimiento guardado.</p>{/if}

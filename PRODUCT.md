@@ -22,7 +22,7 @@ It is private and self-hosted, run for the owner and their friends and family on
 
 - Mobile-first, installable PWA, used one-handed in short sessions right after spending or receiving money.
 - Month boundaries and default dates use the `America/Argentina/Buenos_Aires` timezone.
-- Currency display is `$ 1.234.568` (ARS) and `US$ 1.234,56` (USD). USD amount input uses a comma as the decimal separator. ARS amounts and rates are whole pesos; USD amounts have up to 2 decimals.
+- Currency display is `$1.234.568` (ARS) and `US$1.234,56` (USD), with no space after the symbol. USD amount input uses a comma as the decimal separator. ARS amounts and rates are whole pesos; USD amounts have up to 2 decimals.
 - Navigation is a sticky top bar (back when applicable, date and title, profile avatar) plus a bottom nav: Inicio, Movimientos, create movement (center "+"), Plan, Reportes (Cuentas and Categorías are reached from Perfil).
 - Tapping a list item opens a detail page with Edit and Delete. There are no inline row actions. Create and edit share one form.
 
@@ -41,7 +41,7 @@ It is private and self-hosted, run for the owner and their friends and family on
 - Tone: classic, serious-bank feel. The user confirmed this is still the main idea.
 - Light and dark themes are both required (light / dark / system toggle on the Profile page).
 - Single theme: Pampa (forest green + lime on warm stone), in light and dark. Visual language follows shadcn/ui.
-- Typeface in use is DM Sans. The ARQ palette and fonts were inspiration only and are not binding.
+- Typeface in use is Geist Mono. The ARQ palette and fonts were inspiration only and are not binding.
 
 ## Evidence on Hand
 

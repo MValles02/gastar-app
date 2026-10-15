@@ -1,39 +1,43 @@
 <script lang="ts">
-	import { CURRENCY_NAME } from '$lib/money';
 	import { LOCALE } from '$lib/locale';
 	import { resolve } from '$app/paths';
 	import Check from '@lucide/svelte/icons/check';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import Clock from '@lucide/svelte/icons/clock';
-	import Button from '$lib/components/Button.svelte';
-	import Card from '$lib/components/Card.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
+	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
+	import IconBadge from '$lib/components/IconBadge.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { formatMoney } from '$lib/money';
+	import * as Item from '$lib/components/ui/item/index.js';
+	import { swatchVar, toSwatchKey } from '$lib/appearance';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	const percent = new Intl.NumberFormat(LOCALE, { style: 'percent' });
 	const statusIcon = { ok: Check, warn: Clock, over: CircleAlert } as const;
-
-	// Past 11 characters ("$ 12.345.678") the hero steps down so it never wraps or truncates.
 </script>
 
 <svelte:head>
 	<title>Gastar</title>
 </svelte:head>
 
-<PageHeader title="Hola, {data.header.firstName}" collapse />
+<PageHeader title="Hola, {data.header.firstName}" />
 
 <div class="dashboard">
 	{#if !data.hasAnyAccount}
-		<EmptyState icon="accounts">Sin cuentas.</EmptyState>
+		<Empty.Root>
+			<Empty.Header>
+				<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
+				<Empty.Description>Sin cuentas.</Empty.Description>
+			</Empty.Header>
+		</Empty.Root>
 		<div class="empty-action">
 			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 		</div>
@@ -41,7 +45,12 @@
 		<CurrencyTabs value={data.currency} />
 
 		{#if !data.hasCurrencyAccount}
-			<EmptyState icon="accounts">Sin cuentas en {data.currency}.</EmptyState>
+			<Empty.Root>
+				<Empty.Header>
+					<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
+					<Empty.Description>Sin cuentas en {data.currency}.</Empty.Description>
+				</Empty.Header>
+			</Empty.Root>
 			<div class="empty-action">
 				<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 			</div>
@@ -60,7 +69,7 @@
 			{/snippet}
 
 			<section aria-labelledby="summary-heading">
-				<Card flush>
+				<Card.Root class="gap-0 overflow-hidden py-0">
 					{#if data.plan?.summary}
 						{@const s = data.plan.summary}
 						{@const Status = statusIcon[s.status]}
@@ -100,38 +109,48 @@
 							{#if data.plan?.endedMonthName}
 								<p class="strong">Terminó el plan de {data.plan.endedMonthName}.</p>
 							{/if}
-							<p class="strong">Sin plan en {CURRENCY_NAME[data.currency]}.</p>
-							<Button href={resolve('/plan/setup')} variant="secondary">Crear plan</Button>
+							<Button href={resolve('/plan/setup')} variant="outline">Crear plan</Button>
 						</div>
 					{/if}
-				</Card>
+				</Card.Root>
 			</section>
 
 			<section aria-labelledby="categories-heading">
 				<div class="section-head"><h2 id="categories-heading">Categorías</h2></div>
 				{#if data.topCategories.length === 0}
-					<Card><p class="muted inline-empty">Sin gastos</p></Card>
+					<Card.Root>
+						<Card.Content><p class="muted inline-empty">Sin gastos</p></Card.Content>
+					</Card.Root>
 				{:else}
-					<Card>
-						<ul class="list">
-							{#each data.topCategories as cat (cat.id)}
-								<li
-									class="cat"
-									style:--tone={cat.color ? `var(--swatch-${cat.color})` : 'var(--text)'}
-								>
-									<div class="cat-row">
-										<span class="dot" aria-hidden="true"></span>
-										<span class="ellipsis">{cat.name}</span>
-										<span class="amount cat-amount">{formatMoney(cat.net, data.currency)}</span>
-										<span class="amount muted pct">{percent.format(cat.share)}</span>
-									</div>
-									<div class="track">
-										<div class="fill" style:width={`${cat.share * 100}%`}></div>
-									</div>
-								</li>
-							{/each}
-						</ul>
-					</Card>
+					<Card.Root>
+						<Card.Content>
+							<ul class="list">
+								{#each data.topCategories as cat (cat.id)}
+									<li class="cat" style:--tone={swatchVar(cat.color)}>
+										<div class="cat-row">
+											{#if cat.icon}
+												<IconBadge icon={cat.icon} color={toSwatchKey(cat.color)} size="1.5rem" />
+											{:else}
+												<span class="dot" aria-hidden="true"></span>
+											{/if}
+											<span class="ellipsis">{cat.name}</span>
+											<span class="amount cat-amount"
+												><Money
+													cents={cat.net}
+													currency={data.currency}
+													kind={cat.net < 0 ? 'income' : 'outcome'}
+												/></span
+											>
+											<span class="amount muted pct">{percent.format(cat.share)}</span>
+										</div>
+										<div class="track">
+											<div class="fill" style:width={`${cat.share * 100}%`}></div>
+										</div>
+									</li>
+								{/each}
+							</ul>
+						</Card.Content>
+					</Card.Root>
 				{/if}
 			</section>
 
@@ -143,24 +162,19 @@
 					{/if}
 				</div>
 				{#if data.recent.length === 0}
-					<Card><p class="muted inline-empty">Sin movimientos</p></Card>
+					<Card.Root>
+						<Card.Content><p class="muted inline-empty">Sin movimientos</p></Card.Content>
+					</Card.Root>
 				{:else}
-					<ul class="list-card">
+					<Item.Group
+						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
+					>
 						{#each data.recent as m (m.id)}
-							<li>
-								<MovementRow
-									m={{
-										...m,
-										subtitle: `${m.dateLabel} · ${
-											m.type === 'transfer'
-												? `${m.accountName} → ${m.destinationAccountName}`
-												: m.accountName
-										}${m.categoryName ? ` · ${m.categoryName}` : ''}`
-									}}
-								/>
-							</li>
+							<div role="listitem">
+								<MovementRow {m} date={m.dateLabel} />
+							</div>
 						{/each}
-					</ul>
+					</Item.Group>
 				{/if}
 			</section>
 		{/if}

@@ -2,36 +2,44 @@
 	import { NAME_MAX_LENGTH } from '$lib/limits';
 	import { tick, untrack } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { resolve } from '$app/paths';
-	import Button from '$lib/components/Button.svelte';
-	import Card from '$lib/components/Card.svelte';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import ColorPicker from '$lib/components/ColorPicker.svelte';
+	import FormActions from '$lib/components/FormActions.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import TextRow from '$lib/components/TextRow.svelte';
 	import Icon from '$lib/components/Icon.svelte';
-	import type { SwatchKey } from '$lib/appearance';
+	import IconPicker from '$lib/components/IconPicker.svelte';
+	import { CATEGORY_ICONS, type CategoryIconKey, type SwatchKey } from '$lib/appearance';
 
-	type Values = Partial<Record<'name' | 'color' | 'kind', string | null>>;
+	type Values = Partial<Record<'name' | 'color' | 'icon' | 'kind', string | null>>;
 
 	let {
 		initial,
 		errors = {},
 		mode,
-		cancelHref
+		cancelHref,
+		disabledKinds = []
 	}: {
 		initial: Values;
 		errors?: Partial<Record<keyof Values, string>>;
 		mode: 'create' | 'edit';
 		cancelHref: string;
+		/** Kinds the category cannot change to (it has movements of the other type). */
+		disabledKinds?: string[];
 	} = $props();
 
 	let name = $state(untrack(() => initial.name ?? ''));
 	let color = $state(untrack(() => (initial.color ?? 'green') as SwatchKey));
+	// '' = no icon (the picker shows "Ninguno").
+	let icon = $state(untrack(() => (initial.icon ?? '') as CategoryIconKey | ''));
 	let kind = $state(untrack(() => initial.kind ?? ''));
-	const kindOptions = [
-		{ value: 'outcome', label: 'Gasto' },
-		{ value: 'income', label: 'Ingreso' },
+	const kindOptions = $derived([
+		{ value: 'outcome', label: 'Gasto', disabled: disabledKinds.includes('outcome') },
+		{ value: 'income', label: 'Ingreso', disabled: disabledKinds.includes('income') },
 		{ value: '', label: 'Ambos' }
-	];
+	]);
+
+	const KIND_LOCKED_HINT = 'Tiene movimientos, solo se puede cambiar a Ambos.';
 
 	// After a failed submit, move focus to the first field marked invalid.
 	$effect(() => {
@@ -45,51 +53,64 @@
 <form method="POST" use:enhance class="form" novalidate>
 	<ul class="card">
 		<li class:bad={errors.name}>
-			<label class="row">
-				<span class="k">Nombre</span>
-				<input
-					name="name"
-					type="text"
-					maxlength={NAME_MAX_LENGTH}
-					required
-					autocomplete="off"
-					placeholder="Agregar"
-					bind:value={name}
-					aria-invalid={errors.name ? 'true' : undefined}
-					aria-describedby={errors.name ? 'name-error' : undefined}
-				/>
-			</label>
-			{#if errors.name}
-				<p class="error et" id="name-error" role="alert">
-					<Icon name="alert" size="1rem" />{errors.name}
-				</p>
+			<TextRow
+				id="name"
+				name="name"
+				label="Nombre"
+				bind:value={name}
+				placeholder="Agregar"
+				maxlength={NAME_MAX_LENGTH}
+				required
+				error={errors.name}
+				errorId="name-error"
+			/>
+		</li>
+
+		<li class:bad={errors.kind}>
+			<div class="row">
+				<Field.Label id="kind-label" class="text-base font-normal">Tipo</Field.Label>
+				<div class="seg">
+					<SegmentedControl
+						name="kind"
+						options={kindOptions}
+						bind:value={kind}
+						labelledby="kind-label"
+					/>
+				</div>
+			</div>
+			{#if errors.kind}
+				<p class="error et" role="alert"><Icon name="alert" size="1rem" />{errors.kind}</p>
+			{:else if disabledKinds.length > 0}
+				<p class="hint et">{KIND_LOCKED_HINT}</p>
+			{/if}
+		</li>
+
+		<li class:bad={errors.icon}>
+			<IconPicker
+				name="icon"
+				legend="Ícono"
+				options={CATEGORY_ICONS}
+				bind:value={icon}
+				{color}
+				placeholder="Ninguno"
+			/>
+			{#if errors.icon}
+				<p class="error et" role="alert"><Icon name="alert" size="1rem" />{errors.icon}</p>
+			{/if}
+		</li>
+
+		<li class:bad={errors.color}>
+			<ColorPicker name="color" legend="Color" bind:value={color} />
+			{#if errors.color}
+				<p class="error et" role="alert"><Icon name="alert" size="1rem" />{errors.color}</p>
 			{/if}
 		</li>
 	</ul>
 
-	<div class="field">
-		<span id="kind-label" class="k">Tipo</span>
-		<SegmentedControl name="kind" options={kindOptions} bind:value={kind} labelledby="kind-label" />
-		{#if errors.kind}
-			<p class="error" role="alert"><Icon name="alert" size="1rem" />{errors.kind}</p>
-		{/if}
-	</div>
-
-	<div>
-		<Card>
-			<ColorPicker name="color" legend="Color" bind:value={color} />
-		</Card>
-		{#if errors.color}
-			<p class="error pad" role="alert"><Icon name="alert" size="1rem" />{errors.color}</p>
-		{/if}
-	</div>
-
-	<div class="bar">
-		<Button type="submit" block>{mode === 'create' ? 'Crear categoría' : 'Guardar cambios'}</Button>
-	</div>
-	<div class="cancel">
-		<Button href={resolve(cancelHref as '/categories')} variant="secondary">Cancelar</Button>
-	</div>
+	<FormActions
+		{cancelHref}
+		submitLabel={mode === 'create' ? 'Crear categoría' : 'Guardar cambios'}
+	/>
 </form>
 
 <style>
@@ -111,55 +132,29 @@
 		box-shadow: var(--shadow-1);
 	}
 
+	.card > li + li {
+		border-top: 1px solid var(--border);
+	}
+
 	.card > li.bad {
 		box-shadow: inset 3px 0 0 var(--negative);
 	}
 
 	.row {
 		display: flex;
-		flex-direction: row;
-		flex-wrap: wrap;
 		align-items: center;
-		gap: var(--space-1) var(--space-3);
+		gap: var(--space-3);
 		min-height: 3.5rem;
 		padding: 0 var(--space-4);
 		font-size: var(--font-size-base);
 		color: var(--text);
-		cursor: text;
 	}
 
-	.row input[name='name'] {
-		flex: 1 1 4rem;
+	.seg {
+		margin-inline-start: auto;
+		flex: 0 1 15rem;
 		min-width: 0;
-		width: auto;
-		min-height: 3.5rem;
-		padding: 0;
-		border: 0;
-		border-radius: 0;
-		background: transparent;
-		text-align: right;
-		scroll-margin-bottom: 6rem;
-	}
-
-	.row input:focus-visible {
-		outline-offset: -2px;
-	}
-
-	.row input::placeholder {
-		color: var(--text-muted);
-		opacity: 1;
-	}
-
-	.field {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-	}
-
-	.field .k {
-		padding: 0 var(--space-4);
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
+		padding-block: var(--space-1);
 	}
 
 	.error {
@@ -170,28 +165,12 @@
 		font-size: var(--font-size-sm);
 	}
 
+	.hint {
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
+	}
+
 	.et {
 		padding: 0 var(--space-4) var(--space-3);
-	}
-
-	.pad {
-		padding: var(--space-2) var(--space-4) 0;
-	}
-
-	/* Sticky save bar: full-bleed, pinned to the bottom of the viewport (no tab bar on this screen). */
-	.bar {
-		position: sticky;
-		bottom: 0;
-		z-index: 2;
-		margin-inline: calc(var(--gutter, var(--space-5)) * -1);
-		padding: var(--space-3) var(--gutter, var(--space-5))
-			calc(var(--space-3) + env(safe-area-inset-bottom));
-		background: var(--bg);
-		box-shadow: 0 -1px 0 var(--border);
-	}
-
-	.cancel {
-		display: flex;
-		justify-content: center;
 	}
 </style>

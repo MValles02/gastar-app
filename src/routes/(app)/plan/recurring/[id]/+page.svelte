@@ -1,93 +1,94 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import Button from '$lib/components/Button.svelte';
-	import Card from '$lib/components/Card.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import IconBadge from '$lib/components/IconBadge.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import Money from '$lib/components/Money.svelte';
-	import { parseAmount } from '$lib/money';
-	import RecurringForm from '../RecurringForm.svelte';
-	import type { ActionData, PageData } from './$types';
+	import type { PageData } from './$types';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	let { data }: { data: PageData } = $props();
 
-	const account = $derived(data.accounts.find((a) => a.id === data.values.accountId));
-	const category = $derived(data.categories.find((c) => c.id === data.values.categoryId));
-	const amount = $derived(parseAmount(data.values.amount) ?? 0);
+	const income = $derived(data.type === 'income');
+	const wizardQuery = $derived(data.wizard ? `?wizard=${data.wizard}` : '');
+	const currency = $derived(data.currency === 'USD' ? 'USD' : 'ARS');
 </script>
 
 <svelte:head>
-	<title>{data.values.description} · Gastar</title>
+	<title>{data.description} · Gastar</title>
 </svelte:head>
 
-<PageHeader
-	title={data.values.description}
-	back={{ href: resolve('/plan'), label: 'Volver al plan' }}
-	variant="compact"
-/>
-
 <div class="detail">
-	<p class="amount hero-amount">
-		<Money
-			cents={data.values.type === 'income' ? amount : -amount}
-			currency={account?.meta === 'USD' ? 'USD' : 'ARS'}
-			kind={data.values.type === 'income' ? 'income' : 'outcome'}
-		/>
-	</p>
+	<PageHeader title={data.description} back={{ href: resolve('/plan'), label: 'Volver al plan' }} />
 
-	<Card flush>
-		<dl class="facts">
-			<div class="kv">
-				<dt>Cuenta</dt>
-				<dd>{account?.name ?? '—'}</dd>
-			</div>
-			<div class="kv">
-				<dt>Categoría</dt>
-				<dd>{category?.name ?? '—'}</dd>
-			</div>
-			<div class="kv">
-				<dt>Día</dt>
-				<dd>{data.values.dayOfMonth} · todos los meses</dd>
-			</div>
-			<div class="kv">
-				<dt>Estado</dt>
-				<dd><span class="pill">{data.inactiveReason ?? 'Activo'}</span></dd>
-			</div>
-		</dl>
-	</Card>
+	<section aria-label="Monto">
+		<Card.Root>
+			<Card.Content>
+				<div class="hero">
+					<IconBadge icon={data.category.icon} color={data.category.color} size="3rem" />
+					<p class="value">
+						<Money cents={data.amount} {currency} kind={income ? 'income' : 'outcome'} />
+					</p>
+					<p class="type">{income ? 'Ingreso fijo' : 'Pago fijo'}</p>
+				</div>
+			</Card.Content>
+		</Card.Root>
+	</section>
+
+	<dl class="data">
+		<div class="item">
+			<dt>Cuenta</dt>
+			<dd class="with-chip">
+				<IconBadge icon={data.account.icon} color={data.account.color} size="1.5rem" />
+				<span>{data.account.name}</span>
+			</dd>
+		</div>
+		<div class="item">
+			<dt>Categoría</dt>
+			<dd class="with-chip">
+				<IconBadge icon={data.category.icon} color={data.category.color} size="1.5rem" />
+				<span>{data.category.name}</span>
+			</dd>
+		</div>
+		<div class="item">
+			<dt>Día</dt>
+			<dd>{data.dayOfMonth} · todos los meses</dd>
+		</div>
+		<div class="item">
+			<dt>Estado</dt>
+			<dd>{data.inactiveReason ?? 'Activo'}</dd>
+		</div>
+	</dl>
 
 	{#if data.inactiveReason}
-		<p class="inactive">No se puede registrar.</p>
+		<p class="muted">No se puede registrar.</p>
 	{:else}
-		<Button href={resolve(`/movements/new?recurring=${data.id}`)}>Registrar pago</Button>
+		<Button class="w-full" href={resolve(`/movements/new?recurring=${data.id}`)}>
+			{income ? 'Registrar ingreso' : 'Registrar pago'}
+		</Button>
 	{/if}
 
-	{#key data.id}
-		<RecurringForm
-			initial={form?.values ?? data.values}
-			errors={form?.errors}
-			accounts={data.accounts}
-			categories={data.categories}
-			action="?/update"
-			submitLabel="Guardar cambios"
-			inline
-		/>
-	{/key}
-
-	<div class="more">
-		<form method="POST" action="?/archive" use:enhance>
-			<Button type="submit" variant="secondary">{data.archived ? 'Reactivar' : 'Archivar'}</Button>
-		</form>
+	<div class="actions">
+		<div class="buttons">
+			<Button href={resolve(`/plan/recurring/${data.id}/edit${wizardQuery}`)}>Editar</Button>
+			<form method="POST" action="?/archive{wizardQuery.replace('?', '&')}" use:enhance>
+				<Button type="submit" variant="outline" class="w-full">
+					{data.archived ? 'Activar' : 'Desactivar'}
+				</Button>
+			</form>
+		</div>
 		<ConfirmDialog
 			triggerLabel="Eliminar"
-			triggerVariant="danger"
+			triggerVariant="destructive"
 			title="¿Eliminar este movimiento fijo?"
 			confirmLabel="Eliminar"
-			action="?/delete"
+			action="?/delete{wizardQuery.replace('?', '&')}"
 		>
 			Los movimientos ya registrados se mantienen.
 		</ConfirmDialog>
+		<p class="muted">Desactivarlo lo saca del plan sin borrar nada. Podés activarlo de nuevo.</p>
 	</div>
 </div>
 
@@ -98,64 +99,88 @@
 		gap: var(--space-5);
 	}
 
-	.amount {
+	.hero {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-1);
+		padding: var(--space-3) 0;
+		text-align: center;
+	}
+
+	.value {
+		margin-top: var(--space-3);
 		font-family: var(--font-display);
-		font-size: 2.75rem;
+		font-size: clamp(2rem, 11vw, 2.75rem);
 		font-weight: 500;
-		letter-spacing: -0.02em;
 		line-height: 1.1;
 		overflow-wrap: anywhere;
 	}
 
-	.facts {
-		padding: 0 var(--space-4);
+	.type {
+		font-size: var(--font-size-sm);
+		color: var(--text-muted);
 	}
 
-	.kv {
+	.data {
+		margin: 0;
+		overflow: hidden;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-card);
+	}
+
+	.item {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--space-3);
-		min-height: 3rem;
+		min-height: 3.5rem;
+		padding: var(--space-2) var(--space-4);
 	}
 
-	.kv + .kv {
+	.item + .item {
 		border-top: 1px solid var(--border);
 	}
 
 	dt {
-		font-size: var(--font-size-sm);
-		font-weight: 500;
 		color: var(--text-muted);
 	}
 
 	dd {
 		margin: 0;
-		text-align: end;
-		font-weight: 500;
+		min-width: 0;
+		text-align: right;
 		overflow-wrap: anywhere;
 	}
 
-	.pill {
-		display: inline-flex;
-		padding: 0.125rem 0.625rem;
-		border-radius: var(--radius-pill);
-		background: var(--muted);
-		color: var(--text-muted);
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-	}
-
-	.inactive {
-		color: var(--text-muted);
-		font-weight: 500;
-	}
-
-	.more {
+	.with-chip {
 		display: flex;
-		flex-wrap: wrap;
+		align-items: center;
+		justify-content: flex-end;
+		gap: var(--space-2);
+	}
+
+	.muted {
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
+		text-align: center;
+	}
+
+	.actions {
+		display: flex;
+		flex-direction: column;
 		gap: var(--space-3);
-		padding-top: var(--space-5);
-		border-top: 1px solid var(--border);
+	}
+
+	/* Editar + Desactivar side by side, equal width. */
+	.buttons {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: var(--space-3);
+	}
+
+	.buttons > :global(*) {
+		width: 100%;
 	}
 </style>

@@ -34,16 +34,20 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ## Locale & formatting
 
-- Currency display: `$ 1.234.568` (ARS), `US$ 1.234,56` (USD).
+- Currency display: `$1.234.568` (ARS), `US$1.234,56` (USD); no space after the symbol, ARS never shows decimals.
+- Amount colors: green = positive, red = negative, blue = transfer, never a minus sign. Group totals are neutral (red when negative); savings and informational figures (per day, limits) are neutral.
 - Amount input: comma as decimal separator (USD only).
 - ARS amounts and exchange rates are whole pesos; USD amounts have up to 2 decimals.
+- Dates: `dd/mm/aaaa` (e.g. `29/02/2024`); date inputs are a custom calendar (week starts Monday, Spanish), never the native date input.
 - Timezone for "month" boundaries and default dates: `America/Argentina/Buenos_Aires`.
 
 ## Layout
 
 - Top bar (sticky, every app screen): optional back link, today's date as an eyebrow above the screen title, a bell linking to Avisos (with the alert count as a badge) and an avatar (initials) linking to Profile. Bottom-nav tabs have no back; every other screen has an "up" back to its parent (new-movement returns to the screen it was opened from). Screens have no action buttons under the bar; Accounts and Categories end their list with a "+ Nueva …" row. No currency control: each screen states its own currency, and amounts are never converted or summed across currencies.
 - Bottom nav: Inicio | Movimientos | Create movement (center "+") | Plan | Reportes.
-- Profile page: "Cuentas" and "Categorías" links (both are reached from Profile and link back to it), theme toggle (light / dark / system) + logout.
+- Profile page: "Cuentas" and "Categorías" links (both are reached from Profile and link back to it), theme toggle (light / dark / system), logout, and the account rows:
+  - "Nombre" (edit page, updates the user name) and "Cambiar contraseña" (current + new password, min 8; revokes all other sessions, this one stays signed in).
+  - "Eliminar cuenta" (below logout): re-enter the password + confirm; see Deletion.
 
 ## Design
 
@@ -54,8 +58,8 @@ Personal finance PWA for Argentina. Answers two questions:
   - Pill (fully rounded) buttons, light font weights.
   - Palette: deep green `#00301c`, off-white `#f4ece6`, taupe `#776d65`, lime accent `#f0ff9c`, burgundy `#3e0f00`, blue `#5db3e8`.
 - Light and dark themes required.
-- Theme: **Pampa** (forest green + lime on warm stone), light and dark, with the shadcn/ui visual language (stone neutrals, hairline borders, small radii).
-- Typeface: **DM Sans** (@fontsource/dm-sans, weights 400/500/600).
+- Theme: shadcn/ui preset (bJMUTPE2), adapted: warm cream neutrals (no pure white in light), emerald primary, stone near-black dark mode, hairline borders, small radii.
+- Typeface: **Geist Mono** (@fontsource-variable/geist-mono) for everything, amounts included.
 - List interaction pattern: tapping a list item opens a detail page with Edit and Delete actions — no inline row actions. Create and edit share the same form.
 
 ## Screens (MVP)
@@ -93,12 +97,12 @@ Personal finance PWA for Argentina. Answers two questions:
 - Each row shows description, amount, "Día N", account and a status as text: Cobrado/Pagado, Vence hoy, Mañana, En N días, Venció ayer, Venció hace N días. A rule is paid when a movement linked to it exists in the current month.
 - An unpaid active rule has "Registrar", which opens `/movements/new?recurring=<id>` ("Registrar pago"): the form is prefilled from the rule with today's date, the category is the rule's and cannot be changed, the type and the account's currency must match the rule, and saving links the movement to the rule and returns to `/plan` with "Pago registrado.".
 - A rule is inactive if the rule, its account or its category is archived; inactive rules are listed under "Inactivos" with the reason ("Archivado", "Cuenta archivada", "Categoría archivada") and cannot be registered.
-- Create / edit at `/plan/recurring/new` and `/plan/recurring/[id]` (back to `/plan`); a rule can be archived or reactivated, or deleted with confirmation (the movements already registered are kept). Another user's or a missing rule is "Movimiento fijo no encontrado." (404).
+- Rules open a detail screen `/plan/recurring/[id]` ("Registrar pago", "Editar", "Desactivar" / "Activar", delete with confirmation; the movements already registered are kept) and an edit screen `/plan/recurring/[id]/edit`; create at `/plan/recurring/new`. Another user's or a missing rule is "Movimiento fijo no encontrado." (404).
 - Empty state: "No tenés pagos ni ingresos fijos en {pesos|dólares}." with "Agregar pago fijo" and "Agregar ingreso fijo".
-- Plan summary (top of `/plan`, per currency): "Disponible · {mes}" with the hero amount, a status as text ("Vas bien", "Atención", "Te pasaste"), "{monto} por día · quedan N días", and the figures Ingresos, Pagos fijos, Ahorro, Para gastar, Gastado and Disponible (Disponible = Ingresos (active income rules + otros ingresos) − Pagos fijos − Ahorro − Gastado). Gastado counts the month's outcomes on accounts in that currency (archived accounts included, transfers excluded) except those linked to an active rule, whose full amount is already in Pagos fijos. "Editar plan" opens the wizard.
-- Limits: "Límites por categoría" lists each limit as "{gastado} de {límite}" with a progress meter and, as text, "Vas rápido" or "Te pasaste".
+- Plan summary (top of `/plan`, per currency): "Disponible · {mes}" with the hero amount, a status as text ("Vas bien", "Atención", "Te pasaste"), "{monto} por día · quedan N días", and the figures Ingresos, Pagos fijos, Ahorro, Para gastar, Gastado and Disponible (Disponible = Ingresos (active income rules) − Pagos fijos − Ahorro − Gastado). Gastado counts the month's outcomes on accounts in that currency (archived accounts included, transfers excluded) except those linked to an active rule, whose full amount is already in Pagos fijos.
+- Limits: "Límites por categoría" lists each limit as "{gastado} de {límite}" with a progress meter and, as text, "Vas rápido" or "Te pasaste". Each limit opens `/plan/limits/[categoryId]` (edit amount, delete) and "Agregar" opens `/plan/limits/new`. The Ahorro figure opens `/plan/savings`. "Eliminar plan" (with confirmation) on `/plan` deletes the plan and its limits but keeps the rules.
 - No plan for the current month: "Todavía no tenés un plan en {pesos|dólares}." with "Crear plan" (and "Tu plan de {mes} terminó." after a one-month plan ends).
-- Wizard `/plan/setup` (back "Volver al plan"; "Crear plan" / "Editar plan"), 4 steps: "¿Cuánto cobrás por mes en {ARS|USD}?" (keep or add income rules, accept detected ones, "Otros ingresos del mes (opcional)"), "¿Qué pagos fijos tenés?", "¿Cuánto querés ahorrar?" (Nada, 10 %, 20 % or Monto) and "Tu plan para {mes}" (the equation, the checkbox "Usar este plan todos los meses", "Límites por categoría (opcional)" with "Usar sugeridos"). Checked stores the plan for every month; unchecked only for the current month. Without JS all steps show at once with one "Guardar plan". Saving writes the plan, its limits and any rules created or archived in one transaction and returns to `/plan` with "Plan guardado."; "Eliminar plan" (with confirmation) deletes the plan and its limits but keeps the rules. ARS amounts are whole pesos.
+- First-setup wizard `/plan/setup?step=N` ("Crear plan"), 5 steps with a 5-segment progress bar: Ingresos (the /plan income rows, "Inactivos" greyed, "Agregar" opens `/plan/recurring/new?type=income&wizard=1`), Pagos fijos (same for payments), Ahorro (Nada, 10 %, 20 % or Otro, as `/plan/savings`; "Siguiente" creates the plan), Límites ("Agregar" opens `/plan/limits/new?wizard=4`; "Usar sugeridos" sets the average of the last 3 months for every expense category without a limit) and Resumen (Ingresos, Pagos fijos, Ahorro, Para gastar, the checkbox "Usar este plan todos los meses" and "Guardar plan"). Rows and limits open their own screens and return to the step they came from (`?wizard=N`); there are no inline forms. The bar has Cancelar (step 1) or Atrás on the left (1/3) and Siguiente or Guardar plan on the right (2/3). Without a step and with a current plan it redirects to `/plan`; steps 4-5 without a plan go back to step 3. Checked stores the plan for every month; unchecked only for the current month. Saving returns to `/plan` with "Plan guardado.". ARS amounts are whole pesos.
 
 ### Avisos
 
@@ -111,8 +115,8 @@ Personal finance PWA for Argentina. Answers two questions:
 ### Accounts
 
 - Reached from Profile (back link "Volver al perfil").
-- List with search + filter on top: show archived (archived hidden by default). Currency filter `?currency=ARS|USD` (default both); accounts are grouped under Pesos / Dólares, each with the total of its active (non-archived) accounts.
-- Each row: icon, color, name, currency, computed balance.
+- List with a search field and a "Filtros" button (bottom drawer, applies on change; the button shows the number of non-default filters). Filters: currency `?currency=ARS|USD` (default both) and "Mostrar archivadas" (archived hidden by default). Accounts are grouped under Pesos / Dólares, each with the total of its active (non-archived) accounts.
+- Each row: icon, color, name ("Archivada" when archived), computed balance.
 - Tap → detail page with Edit / Delete.
 
 ### Create movement
@@ -130,12 +134,12 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ### Movements
 
-- List with search (description) + filters: date range, type, account, category. Currency filter `?currency=ARS|USD` (default Ambas = merged list, each amount in its own currency); when an `?account=` filter is set, that account's own currency wins. Grouped by day.
+- List with a search field (description) and a "Filtros" button (bottom drawer, applies on change; badge = number of non-default filters). Filters: currency, type, account, category and one date range (`from`/`to`, a single range calendar). Currency `?currency=ARS|USD` (default Ambas = merged list, each amount in its own currency; non-default counts as active); when an `?account=` filter is set, that account's own currency wins and is not counted. Grouped by day.
 - Tap → detail page with Edit / Delete.
 
 ### Categories
 
-- List with search + filter: show archived.
+- List with a search field and a "Filtros" button (bottom drawer): "Mostrar archivadas" and kind `Todas | Gastos | Ingresos` (`?kind=outcome|income`; Gastos / Ingresos also list categories with no kind). The button badge counts both.
 - Tap → detail page with Edit / Delete.
 
 ## Rules
@@ -164,6 +168,7 @@ Personal finance PWA for Argentina. Answers two questions:
   - Archived items: cannot be selected for new movements; movements that already reference them keep showing them and can be edited without losing the reference; can be unarchived.
   - Archived accounts still count toward total balance.
   - Movements: hard delete, with confirmation.
+  - User account: hard delete, immediate and irreversible, of the user and all their data (movements, recurring rules, plans and limits, categories, accounts, sessions) in one transaction; then sign-out to the login page.
 
 ## Out of MVP
 

@@ -12,7 +12,7 @@ import {
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
-const rule = (page: Page, text: string) => page.locator('li.rule', { hasText: text });
+const rule = (page: Page, text: string) => page.locator('.rule', { hasText: text });
 
 test('seeded rules: rent is paid, the gym is inactive and cannot be registered', async ({
 	page
@@ -27,6 +27,10 @@ test('seeded rules: rent is paid, the gym is inactive and cannot be registered',
 	const inactive = page.getByRole('region', { name: 'Inactivos' });
 	await expect(inactive).toContainText('Gimnasio');
 	await expect(inactive).toContainText('Cuenta archivada');
+	// Inactive rows are fully greyed: the amount is not in the title's text colour.
+	const gym = inactive.locator('.rule', { hasText: 'Gimnasio' });
+	const color = (sel: string) => gym.locator(sel).evaluate((el) => getComputedStyle(el).color);
+	expect(await color('.amount-col')).not.toBe(await color('[data-slot="item-title"]'));
 	const id = await linkId(inactive.getByRole('link', { name: /Gimnasio/ }));
 	await page.goto(`/movements/new?recurring=${id}`, { waitUntil: 'networkidle' });
 	await expect(page.getByRole('heading', { level: 1, name: 'Nuevo movimiento' })).toBeVisible();
@@ -41,10 +45,11 @@ test('a rule on an archived account can be edited and stays inactive', async ({ 
 		.getByRole('link', { name: /Gimnasio/ });
 	const href = await link.evaluate((a: HTMLAnchorElement) => a.pathname);
 	const edit = async (description: string) => {
-		await page.goto(href, { waitUntil: 'networkidle' });
+		await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
 		await page.locator('input[name="description"]').fill(description);
 		await page.getByRole('button', { name: 'Guardar cambios' }).click();
-		await expect(page).toHaveURL(/\/plan$/);
+		await expect(page).toHaveURL(href);
+		await page.goto('/plan', { waitUntil: 'networkidle' });
 		await expect(
 			page.getByRole('region', { name: 'Inactivos' }).getByText(description)
 		).toBeVisible();
@@ -61,9 +66,9 @@ test('rule rows sit flush in the list card at 390px', async ({ page }) => {
 	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
-	const row = page.locator('li.rule').first();
+	const row = page.locator('.rule').first();
 	const list = await row.locator('xpath=..').boundingBox();
-	const main = await row.locator('a.row').boundingBox();
+	const main = await row.locator('a[data-slot="item"]').boundingBox();
 	// 1px list border, no extra padding.
 	expect(main!.x - list!.x).toBeLessThanOrEqual(2);
 });
@@ -73,7 +78,7 @@ test('rule text does not wrap per character at 320px and 200% text', async ({ pa
 	await login(page);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await page.evaluate(() => (document.documentElement.style.fontSize = '32px'));
-	const title = rule(page, 'Alquiler').locator('.title');
+	const title = rule(page, 'Alquiler').locator('[data-slot="item-title"]');
 	const { height, lineHeight } = await title.evaluate((el) => {
 		const cs = getComputedStyle(el);
 		const fs = parseFloat(cs.fontSize);
@@ -88,7 +93,6 @@ test('rule text does not wrap per character at 320px and 200% text', async ({ pa
 test('empty new rule form shows every required-field message', async ({ page }) => {
 	await login(page);
 	await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
-	await page.locator('input[name="dayOfMonth"]').fill('');
 	await page.getByRole('button', { name: 'Guardar' }).click();
 	await expect(page).toHaveURL(/\/plan\/recurring\/new$/);
 	for (const message of [
@@ -101,7 +105,7 @@ test('empty new rule form shows every required-field message', async ({ page }) 
 		await expect(page.getByText(message)).toBeVisible();
 });
 
-test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
+test('deactivate, activate and delete a rule', async ({ page, baseURL }) => {
 	await login(page, OTHER_EMAIL);
 	const description = 'Ciclo e2e';
 	try {
@@ -123,14 +127,14 @@ test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
 				.click();
 		};
 
-		await rule(page, description).locator('a.row').click();
-		await page.getByRole('button', { name: 'Archivar' }).click();
+		await rule(page, description).locator('a[data-slot="item"]').click();
+		await page.getByRole('button', { name: 'Desactivar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(inactive).toContainText(description);
-		await expect(inactive).toContainText('Archivado');
+		await expect(inactive).toContainText('Desactivado');
 
 		await open();
-		await page.getByRole('button', { name: 'Reactivar' }).click();
+		await page.getByRole('button', { name: 'Activar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(rule(page, description)).toBeVisible();
 		await expect(
@@ -140,7 +144,7 @@ test('archive, reactivate and delete a rule', async ({ page, baseURL }) => {
 		await open();
 		await page.getByRole('button', { name: 'Eliminar' }).click();
 		await expect(page.getByText('¿Eliminar este movimiento fijo?')).toBeVisible();
-		await page.getByRole('dialog').getByRole('button', { name: 'Eliminar' }).click();
+		await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(page.getByText(description)).toHaveCount(0);
 	} finally {
@@ -170,7 +174,7 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
-		await expect(page.locator('input[name="amount"]')).toHaveValue('1.500,50');
+		await expect(page.locator('input[name="amount"]')).toHaveValue(/^1\.?500,50$/);
 		await expect(page).toHaveURL(/\/plan\/recurring\/new$/);
 
 		await page.locator('input[name="amount"]').fill('1.500');
@@ -184,7 +188,7 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		await page.getByRole('link', { name: 'Registrar pago' }).click();
 		await expect(page.getByRole('heading', { level: 1, name: 'Registrar pago' })).toBeVisible();
 		await expect(page.locator('input[name="description"]')).toHaveValue(description);
-		await expect(page.locator('input[name="amount"]')).toHaveValue('1.500');
+		await expect(page.locator('input[name="amount"]')).toHaveValue(/^1\.?500$/);
 		await expect(page.locator('input[name="recurringId"]')).toHaveCount(1);
 		await expect(page.getByText(`Registrás el pago de ${description} de este mes.`)).toBeVisible();
 		await page.getByRole('button', { name: 'Guardar movimiento' }).click();

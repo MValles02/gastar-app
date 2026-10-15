@@ -9,17 +9,11 @@
 	}: { name: string; legend: string; value: SwatchKey } = $props();
 </script>
 
-<RingPicker {name} {legend} options={SWATCHES} bind:value>
+<RingPicker {name} {legend} options={SWATCHES} bind:value showLabel>
 	{#snippet swatch(key)}
-		<span class="dot" style:background="var(--swatch-{key})"></span>
+		<span class="block size-11 rounded-full" style:background="var(--swatch-{key})"></span>
+	{/snippet}
+	{#snippet current(key)}
+		<span class="block size-6 rounded-full" style:background="var(--swatch-{key})"></span>
 	{/snippet}
 </RingPicker>
-
-<style>
-	.dot {
-		display: block;
-		width: var(--tap-target);
-		height: var(--tap-target);
-		border-radius: var(--radius-pill);
-	}
-</style>

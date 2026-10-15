@@ -64,7 +64,64 @@ test('the bell to Avisos is at least 44px at 320px', async ({ page }) => {
 	expect(box!.height).toBeGreaterThanOrEqual(MIN_TARGET_PX);
 	await bell.click();
 	await expect(page).toHaveURL(/\/notifications$/);
-	await expect(bell).toHaveAttribute('aria-current', 'page');
+	// Sub-screens use the little header: no bell.
+	await expect(bell).toHaveCount(0);
+});
+
+test('list rows keep a single-line title and never overflow at 320px', async ({ page }) => {
+	await page.setViewportSize({ width: 320, height: 800 });
+	await login(page);
+	for (const route of ['/', '/movements', '/plan', '/notifications']) {
+		await page.goto(route, { waitUntil: 'networkidle' });
+		const titles = page.locator('[role="listitem"] [data-slot="item-title"]');
+		const count = await titles.count();
+		for (let i = 0; i < count; i++) {
+			const { height, lineHeight } = await titles.nth(i).evaluate((el) => {
+				const cs = getComputedStyle(el);
+				return { height: el.getBoundingClientRect().height, lineHeight: parseFloat(cs.lineHeight) };
+			});
+			expect(height, `${route} row ${i}`).toBeLessThanOrEqual(lineHeight * 1.1);
+		}
+		// Line 2 (chips included) fits one text line: two wrapped lines would be at least 2x its line height.
+		const lines = page.locator('[role="listitem"] [data-slot="item-description"]');
+		const lineCount = await lines.count();
+		for (let i = 0; i < lineCount; i++) {
+			const { height, lineHeight } = await lines.nth(i).evaluate((el) => {
+				const cs = getComputedStyle(el);
+				return { height: el.getBoundingClientRect().height, lineHeight: parseFloat(cs.lineHeight) };
+			});
+			expect(height, `${route} line 2 of row ${i}`).toBeLessThan(lineHeight * 1.7);
+		}
+		await expectNoHorizontalOverflow(page);
+	}
+});
+
+test('movement row line 2 truncates the account before the category at 375px', async ({ page }) => {
+	await page.setViewportSize({ width: 375, height: 800 });
+	await login(page);
+	await page.goto('/movements', { waitUntil: 'networkidle' });
+	const rows = await page.locator('[role="listitem"]').evaluateAll((els) =>
+		els.flatMap((el) => {
+			const category = el.querySelector<HTMLElement>('.slot.category');
+			const account = el.querySelector<HTMLElement>('.slot.account');
+			if (!category || !account) return [];
+			return [
+				{
+					categoryTruncated: category.scrollWidth > category.clientWidth,
+					accountWidth: account.clientWidth
+				}
+			];
+		})
+	);
+	expect(rows.length).toBeGreaterThan(0);
+	for (const r of rows) if (r.categoryTruncated) expect(r.accountWidth).toBeLessThanOrEqual(40);
+
+	await page.goto('/movements?q=Proyecto%20freelance', { waitUntil: 'networkidle' });
+	const category = page
+		.locator('[role="listitem"] .slot.category', { hasText: 'Freelance' })
+		.first();
+	await expect(category).toBeVisible();
+	expect(await category.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
 });
 
 test('detail pages have no horizontal overflow at 320px', async ({ page }) => {
@@ -79,46 +136,60 @@ test('detail pages have no horizontal overflow at 320px', async ({ page }) => {
 	}
 });
 
-test('h1 top is identical across pages at 390x844', async ({ page }) => {
+test('h1 top is identical across tab pages and across sub-pages at 390x844', async ({ page }) => {
 	await page.setViewportSize(PHONE);
 	await login(page);
 	const account = await firstDetailHref(page, 'accounts');
-	const urls = [
-		'/',
-		'/movements',
-		'/accounts',
-		'/categories',
-		'/reports',
-		'/plan',
-		'/profile',
-		...(account ? [account] : [])
+	const groups = [
+		['/', '/movements', '/reports', '/plan'],
+		['/accounts', '/categories', '/profile', ...(account ? [account] : [])]
 	];
-	const tops: number[] = [];
-	for (const url of urls) tops.push(await h1Top(page, url));
-	expect(tops).toEqual(tops.map(() => tops[0]));
+	for (const urls of groups) {
+		const tops: number[] = [];
+		for (const url of urls) tops.push(await h1Top(page, url));
+		expect(tops).toEqual(tops.map(() => tops[0]));
+	}
 });
 
+/** Whether the focused element shows an outline or a box-shadow ring (non-transparent colour, spread > 0). */
+const focusIsVisible = (page: Page) =>
+	page.evaluate(() => {
+		const s = getComputedStyle(document.activeElement!);
+		if (s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0) return true;
+		// Computed layers look like: <colour> 0px 0px 0px 3px [inset]
+		const layers =
+			s.boxShadow.match(/(?:rgba?|oklab|oklch|color)\([^)]*\)\s+(?:-?[\d.]+px\s+){3}[\d.]+px/g) ??
+			[];
+		return layers.some((l) => {
+			const spread = parseFloat(l.split(/\s+/).pop()!);
+			return spread > 0 && !/(,\s*0|\/\s*0)\)/.test(l);
+		});
+	});
+
 for (const route of ['/accounts/new', '/movements/new']) {
-	test(`keyboard focus shows an outline on ${route}`, async ({ page }) => {
+	test(`keyboard focus shows a visible ring on ${route}`, async ({ page }) => {
 		await login(page);
 		await page.goto(route, { waitUntil: 'networkidle' });
 		await page.keyboard.press('Tab');
-		const outline = await page.evaluate(() => {
-			const s = getComputedStyle(document.activeElement!);
-			return { style: s.outlineStyle, width: parseFloat(s.outlineWidth) };
-		});
-		expect(outline.style).not.toBe('none');
-		expect(outline.width).toBeGreaterThan(0);
+		await expect.poll(() => focusIsVisible(page)).toBe(true);
 	});
 }
+
+test('keyboard focus shows a visible ring on the login auth tabs', async ({ page }) => {
+	await page.goto('/login', { waitUntil: 'networkidle' });
+	await page.keyboard.press('Tab');
+	await page.keyboard.press('Tab');
+	await expect(page.getByRole('link', { name: 'Crear cuenta' })).toBeFocused();
+	await expect.poll(() => focusIsVisible(page)).toBe(true);
+});
 
 test('movement form controls share one height of at least 44px at 390x844', async ({ page }) => {
 	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
-	// The amount field is intentionally larger and excluded.
+	// Only the pickers: shadcn inputs are 2rem tall by design, the amount field is excluded.
 	const heights = await page
-		.locator('input[name="description"], input[name="occurredAt"], select, button.trigger')
+		.locator('button.trigger')
 		.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
 	expect(heights.length).toBeGreaterThan(1);
 	for (const h of heights) expect(h).toBeGreaterThanOrEqual(MIN_TARGET_PX);
@@ -266,6 +337,7 @@ test('back links go up to a fixed parent and tabs have none', async ({ page }) =
 		['/categories', '/profile'],
 		['/plan/recurring/new', '/plan'],
 		[ruleHref, '/plan'],
+		[`${ruleHref}/edit`, ruleHref],
 		['/accounts/new', '/accounts'],
 		['/categories/new', '/categories'],
 		['/movements/new', '/'],
@@ -315,9 +387,8 @@ test('the tab bar is absent on the new-movement form and a focused submit stays 
 	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
-	await page.locator('input[name="occurredAt"]').focus();
+	await page.getByRole('button', { name: /Fecha/ }).focus();
 	const submit = page.getByRole('button', { name: 'Guardar movimiento' });
-	// The date input has several tab stops (day, month, year, picker).
 	for (let i = 0; i < 6 && !(await submit.evaluate((el) => el === document.activeElement)); i++)
 		await page.keyboard.press('Tab');
 	await expect(submit).toBeFocused();

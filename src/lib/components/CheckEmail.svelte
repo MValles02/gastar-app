@@ -2,8 +2,9 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
-	import Button from '$lib/components/Button.svelte';
-	import StatusMessage from '$lib/components/StatusMessage.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Empty from '$lib/components/ui/empty/index.js';
+	import Icon from '$lib/components/Icon.svelte';
 
 	// Shared "Revisá tu email" state. The page that renders it must have a `resend` action.
 	let { email }: { email: string } = $props();
@@ -24,35 +25,48 @@
 	const clock = $derived(`${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`);
 </script>
 
-<StatusMessage icon="mail" title="Revisá tu email">
-	<p class="body">Enviamos un enlace a <b>{email}</b>.</p>
+<main>
+	<Empty.Root class="min-h-dvh">
+		<Empty.Header>
+			<Empty.Media variant="icon" aria-hidden="true"><Icon name="mail" size="1rem" /></Empty.Media>
+			<Empty.Title role="heading" aria-level={1}>Revisá tu email</Empty.Title>
+		</Empty.Header>
+		<Empty.Content>
+			<p class="body">Enviamos un enlace a <b>{email}</b>.</p>
 
-	<form
-		method="POST"
-		action="?/resend"
-		class="actions"
-		use:enhance={({ cancel }) => {
-			if (seconds > 0) {
-				cancel();
-				return;
-			}
-			return async ({ update }) => {
-				await update({ reset: false });
-				seconds = COOLDOWN_SECONDS;
-				sent = true;
-			};
-		}}
-	>
-		<input type="hidden" name="email" value={email} />
-		<Button type="submit" variant="secondary" block aria-disabled={seconds > 0}>
-			{seconds > 0 ? `Reenviar en ${clock}` : 'Reenviar'}
-		</Button>
-		{#if sent}
-			<p class="sent" role="status">Enviamos otro enlace.</p>
-		{/if}
-		<a class="back" href={resolve('/login')}>Volver a ingresar</a>
-	</form>
-</StatusMessage>
+			<form
+				method="POST"
+				action="?/resend"
+				class="actions"
+				use:enhance={({ cancel }) => {
+					if (seconds > 0) {
+						cancel();
+						return;
+					}
+					return async ({ update }) => {
+						await update({ reset: false });
+						seconds = COOLDOWN_SECONDS;
+						sent = true;
+					};
+				}}
+			>
+				<input type="hidden" name="email" value={email} />
+				<Button
+					type="submit"
+					variant="outline"
+					class="w-full aria-disabled:opacity-50"
+					aria-disabled={seconds > 0}
+				>
+					{seconds > 0 ? `Reenviar en ${clock}` : 'Reenviar'}
+				</Button>
+				{#if sent}
+					<p class="sent" role="status">Enviamos otro enlace.</p>
+				{/if}
+				<a class="back" href={resolve('/login')}>Volver a ingresar</a>
+			</form>
+		</Empty.Content>
+	</Empty.Root>
+</main>
 
 <style>
 	.body {

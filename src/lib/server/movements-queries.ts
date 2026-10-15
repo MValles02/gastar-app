@@ -100,6 +100,7 @@ export function getMovement(userId: string, id: string) {
 			destinationArchivedAt: dest.archivedAt,
 			categoryName: categories.name,
 			categoryColor: categories.color,
+			categoryIcon: categories.icon,
 			categoryArchivedAt: categories.archivedAt
 		})
 		.from(movements)
