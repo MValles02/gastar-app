@@ -23,10 +23,14 @@ try {
 	console.error('Refusing to seed: DATABASE_URL is not a valid URL');
 	process.exit(1);
 }
-if (!LOCAL_HOSTS.includes(hostname)) {
+if (process.env.SEED_ALLOW_REMOTE === '1') {
+	console.warn(`WARNING: SEED_ALLOW_REMOTE=1, seeding non-local host "${hostname}"`);
+} else if (!LOCAL_HOSTS.includes(hostname)) {
 	console.error(`Refusing to seed: DATABASE_URL host "${hostname}" is not local`);
 	process.exit(1);
 }
+// When set, seeds this already-existing user instead of creating the demo users.
+const existingEmail = (process.env.SEED_EXISTING_USER || '').trim().toLowerCase();
 
 // Deterministic PRNG (mulberry32) so output is reproducible.
 let seed = 20240601;
@@ -40,7 +44,7 @@ const between = (min, max) => min + Math.floor(rand() * (max - min + 1));
 const pick = (arr) => arr[Math.floor(rand() * arr.length)];
 
 const now = new Date();
-const userId = randomUUID();
+let userId = randomUUID(); // replaced by the existing user's id when SEED_EXISTING_USER is set
 
 const accountDefs = [
 	// color and icon are keys from src/lib/appearance.ts (SWATCHES, ACCOUNT_ICONS), not hex
@@ -287,13 +291,19 @@ const cols = [
 	'recurring_id'
 ];
 
-// Removes a seeded user and everything they own, children before parents.
-async function deleteUserData(tx, id) {
+// Removes a user's app data (not the auth rows), children before parents.
+async function deleteAppData(tx, id) {
 	await tx`delete from movements where user_id = ${id}`;
+	await tx`delete from plan_category_limits where plan_id in (select id from spending_plans where user_id = ${id})`;
 	await tx`delete from spending_plans where user_id = ${id}`;
 	await tx`delete from recurring_movements where user_id = ${id}`;
 	await tx`delete from categories where user_id = ${id}`;
 	await tx`delete from financial_accounts where owner_id = ${id}`;
+}
+
+// Removes a seeded user and everything they own.
+async function deleteUserData(tx, id) {
+	await deleteAppData(tx, id);
 	await tx`delete from session where user_id = ${id}`;
 	await tx`delete from "account" where user_id = ${id}`;
 	await tx`delete from "user" where id = ${id}`;
@@ -302,18 +312,26 @@ async function deleteUserData(tx, id) {
 const sql = postgres(databaseUrl, { max: 1 });
 
 try {
-	const passwordHash = await hashPassword(password);
+	const passwordHash = existingEmail ? null : await hashPassword(password);
 	await sql.begin(async (tx) => {
-		const [existing] = await tx`select id from "user" where email = ${email}`;
-		if (existing) await deleteUserData(tx, existing.id);
-		await tx`
-			insert into "user" (id, name, email, email_verified, created_at, updated_at)
-			values (${userId}, 'Demo', ${email}, true, now(), now())
-		`;
-		await tx`
-			insert into "account" (id, account_id, provider_id, user_id, password, created_at, updated_at)
-			values (${randomUUID()}, ${userId}, 'credential', ${userId}, ${passwordHash}, now(), now())
-		`;
+		if (existingEmail) {
+			const [found] = await tx`select id from "user" where email = ${existingEmail}`;
+			if (!found) throw new Error(`SEED_EXISTING_USER: no user with email "${existingEmail}"`);
+			userId = found.id;
+			for (const mv of movements) mv.user_id = userId;
+			await deleteAppData(tx, userId);
+		} else {
+			const [existing] = await tx`select id from "user" where email = ${email}`;
+			if (existing) await deleteUserData(tx, existing.id);
+			await tx`
+				insert into "user" (id, name, email, email_verified, created_at, updated_at)
+				values (${userId}, 'Demo', ${email}, true, now(), now())
+			`;
+			await tx`
+				insert into "account" (id, account_id, provider_id, user_id, password, created_at, updated_at)
+				values (${randomUUID()}, ${userId}, 'credential', ${userId}, ${passwordHash}, now(), now())
+			`;
+		}
 		await tx`insert into financial_accounts ${tx(
 			Object.values(acc).map((a) => ({
 				id: a.id,
@@ -403,6 +421,8 @@ try {
 				(${planId}, ${cat.transport.id}, ${transportLimit})
 		`;
 
+		if (existingEmail) return;
+
 		// Second user with USD data of its own, for the cross-user (foreign id) e2e tests.
 		const otherEmail = 'otro@gastar.local';
 		const [other] = await tx`select id from "user" where email = ${otherEmail}`;
@@ -445,7 +465,8 @@ try {
 		`Seeded ${Object.keys(acc).length} accounts, ${Object.keys(cat).length} categories, ${movements.length} movements ` +
 			`(${n('income')} income, ${n('outcome')} outcome, ${n('transfer')} transfer).`
 	);
-	console.log(`Login: ${email} / ${password} (dev only)`);
+	if (existingEmail) console.log(`Seeded existing user ${existingEmail} (login unchanged).`);
+	else console.log(`Login: ${email} / ${password} (dev only)`);
 } catch (err) {
 	console.error('Failed to seed:', err.message);
 	process.exitCode = 1;

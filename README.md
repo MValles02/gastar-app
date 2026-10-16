@@ -79,4 +79,9 @@ Windows quick start (PowerShell).
 Demo login: `demo@gastar.local` / `demo1234` (override with `SEED_EMAIL` / `SEED_PASSWORD`).
 The seed refuses to run unless `DATABASE_URL` points at localhost and is safe to re-run.
 
+Two opt-in flags seed a non-local DB (e.g. dev) without creating users:
+
+- `SEED_ALLOW_REMOTE=1` skips only the localhost check (`NODE_ENV=production` is still refused).
+- `SEED_EXISTING_USER=<email>` seeds that existing user: deletes only their app data (not login rows), skips password and the second demo user.
+
 `pnpm test:e2e` needs the migrated + seeded DB and reuses a running `pnpm dev`.
