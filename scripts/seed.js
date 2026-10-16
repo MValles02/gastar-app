@@ -364,7 +364,8 @@ try {
 				amount: 380_000_00,
 				account_id: acc.bank.id,
 				category_id: cat.rent.id,
-				day_of_month: 3
+				day_of_month: 3,
+				archived_at: null // postgres.js multi-row insert takes columns from the first row
 			},
 			{
 				id: gymRule,
@@ -374,7 +375,8 @@ try {
 				amount: 22_000_00,
 				account_id: acc.old.id,
 				category_id: cat.gym.id,
-				day_of_month: 2
+				day_of_month: 2,
+				archived_at: null
 			},
 			{
 				id: randomUUID(),
@@ -384,7 +386,8 @@ try {
 				amount: 1_500_000_00,
 				account_id: acc.bank.id,
 				category_id: cat.salary.id,
-				day_of_month: 5
+				day_of_month: 5,
+				archived_at: null
 			},
 			{
 				id: randomUUID(),
