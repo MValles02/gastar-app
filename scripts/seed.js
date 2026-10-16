@@ -87,16 +87,23 @@ const accountDefs = [
 	}
 ];
 const categoryDefs = [
-	{ key: 'super', name: 'Supermercado', color: 'orange', kind: 'outcome' },
-	{ key: 'rent', name: 'Alquiler', color: 'violet', kind: 'outcome' },
-	{ key: 'bills', name: 'Servicios', color: 'blue', kind: 'outcome' },
-	{ key: 'transport', name: 'Transporte', color: 'ochre', kind: 'outcome' },
-	{ key: 'out', name: 'Salidas', color: 'plum', kind: 'outcome' },
-	{ key: 'health', name: 'Salud', color: 'green', kind: 'outcome' },
-	{ key: 'salary', name: 'Sueldo', color: 'teal', kind: 'income' },
-	{ key: 'freelance', name: 'Freelance', color: 'blue', kind: 'income' },
-	{ key: 'gifts', name: 'Regalos', color: 'red' },
-	{ key: 'gym', name: 'Gimnasio (viejo)', color: 'violet', kind: 'outcome', archived: true }
+	{ key: 'super', name: 'Supermercado', color: 'orange', icon: 'cart', kind: 'outcome' },
+	{ key: 'rent', name: 'Alquiler', color: 'violet', icon: 'home', kind: 'outcome' },
+	{ key: 'bills', name: 'Servicios', color: 'blue', icon: 'services', kind: 'outcome' },
+	{ key: 'transport', name: 'Transporte', color: 'ochre', icon: 'transport', kind: 'outcome' },
+	{ key: 'out', name: 'Salidas', color: 'plum', icon: 'entertainment', kind: 'outcome' },
+	{ key: 'health', name: 'Salud', color: 'green', icon: 'health', kind: 'outcome' },
+	{ key: 'salary', name: 'Sueldo', color: 'teal', icon: 'salary', kind: 'income' },
+	{ key: 'freelance', name: 'Freelance', color: 'blue', icon: 'salary', kind: 'income' },
+	{ key: 'gifts', name: 'Regalos', color: 'red', icon: 'gift' },
+	{
+		key: 'gym',
+		name: 'Gimnasio (viejo)',
+		color: 'violet',
+		icon: 'health',
+		kind: 'outcome',
+		archived: true
+	}
 ];
 const acc = Object.fromEntries(accountDefs.map((a) => [a.key, { ...a, id: randomUUID() }]));
 const cat = Object.fromEntries(categoryDefs.map((c) => [c.key, { ...c, id: randomUUID() }]));
@@ -105,6 +112,12 @@ const rentRule = randomUUID();
 const gymRule = randomUUID();
 
 const movements = [];
+const today = now.getDate();
+// Random day in [lo, hi]; the current month only draws from 1..today so nothing piles up on today.
+const rday = (m, lo = 1, hi = 28) => {
+	const h = m === 0 ? Math.min(hi, today) : hi;
+	return between(m === 0 ? 1 : lo, h);
+};
 // Buenos Aires local midnight of the date's Buenos Aires day (movements are date-only).
 const BA = 'America/Argentina/Buenos_Aires';
 function dayStartBA(d) {
@@ -118,6 +131,7 @@ function dayStartBA(d) {
 
 // Local-time date in `monthsAgo` months back; future dates are clamped to now, never dropped.
 function add(monthsAgo, day, hour, row) {
+	if (monthsAgo === 0 && day > today) return; // fixed-day item not due yet this month
 	let occurredAt = new Date(
 		now.getFullYear(),
 		now.getMonth() - monthsAgo,
@@ -130,6 +144,7 @@ function add(monthsAgo, day, hour, row) {
 	movements.push({
 		id: randomUUID(),
 		user_id: userId,
+		monthsAgo,
 		type: 'outcome',
 		occurred_at: occurredAt,
 		category_id: null,
@@ -169,12 +184,12 @@ for (let m = 2; m >= 0; m--) {
 	outcome(m, 12, 12, 'Celular', 'mp', 'bills', 15_000);
 	for (let i = 0; i < 6; i++) {
 		const a = pick(['bank', 'mp', 'cash']);
-		outcome(m, between(1, 28), between(9, 20), pick(shops), a, 'super', between(6, 55) * 1000);
+		outcome(m, rday(m), between(9, 20), pick(shops), a, 'super', between(6, 55) * 1000);
 	}
 	for (let i = 0; i < 8; i++) {
 		outcome(
 			m,
-			between(1, 28),
+			rday(m),
 			between(7, 19),
 			pick(['SUBE', 'Uber', 'Nafta']),
 			pick(['mp', 'cash']),
@@ -185,7 +200,7 @@ for (let m = 2; m >= 0; m--) {
 	for (let i = 0; i < 5; i++) {
 		outcome(
 			m,
-			between(1, 28),
+			rday(m),
 			between(12, 23),
 			pick(outings),
 			pick(['mp', 'cash', 'bank']),
@@ -193,13 +208,13 @@ for (let m = 2; m >= 0; m--) {
 			between(35, 180) * 100
 		);
 	}
-	outcome(m, between(10, 25), 16, 'Farmacia', 'mp', 'health', between(8, 40) * 1000);
+	outcome(m, rday(m, 10, 25), 16, 'Farmacia', 'mp', 'health', between(8, 40) * 1000);
 	if (m === 1) outcome(m, 18, 17, 'Consulta médica', 'bank', 'health', 45_000);
 	if (m === 2) outcome(m, 14, 19, 'Regalo cumpleaños', 'bank', 'gifts', 32_000);
 	if (m === 2) outcome(m, 2, 10, 'Gimnasio', 'old', 'gym', 22_000);
 	income(
 		m,
-		between(14, 24),
+		rday(m, 14, 24),
 		15,
 		'Proyecto freelance',
 		'bank',
@@ -317,6 +332,7 @@ try {
 				user_id: userId,
 				name: c.name,
 				color: c.color,
+				icon: c.icon ?? null,
 				kind: c.kind ?? null,
 				archived_at: c.archived ? now : null
 			}))
@@ -351,11 +367,30 @@ try {
 				account_id: acc.bank.id,
 				category_id: cat.salary.id,
 				day_of_month: 5
+			},
+			{
+				id: randomUUID(),
+				user_id: userId,
+				type: 'outcome',
+				description: 'Netflix',
+				amount: 12_000_00,
+				account_id: acc.mp.id,
+				category_id: cat.bills.id,
+				day_of_month: 15,
+				archived_at: now // paused rule
 			}
 		])}`;
 		await tx`insert into movements ${tx(movements, ...cols)}`;
 
-		// Demo ARS plan: repeats every month, one Supermercado limit.
+		// Demo ARS plan: repeats every month. Salidas limit sits under current-month spending (over),
+		// Transporte limit just above it (near); both rounded to whole thousands of pesos.
+		const spent = (key) =>
+			movements
+				.filter((x) => x.monthsAgo === 0 && x.type === 'outcome' && x.category_id === cat[key].id)
+				.reduce((sum, x) => sum + x.amount, 0);
+		const THOUSAND = 1_000_00;
+		const outLimit = Math.max(1, Math.floor((spent('out') * 0.7) / THOUSAND)) * THOUSAND;
+		const transportLimit = Math.max(1, Math.round(spent('transport') / 0.88 / THOUSAND)) * THOUSAND;
 		const planId = randomUUID();
 		await tx`
 			insert into spending_plans (id, user_id, currency, savings, month)
@@ -363,7 +398,9 @@ try {
 		`;
 		await tx`
 			insert into plan_category_limits (plan_id, category_id, amount)
-			values (${planId}, ${cat.super.id}, ${300_000_00})
+			values (${planId}, ${cat.super.id}, ${300_000_00}),
+				(${planId}, ${cat.out.id}, ${outLimit}),
+				(${planId}, ${cat.transport.id}, ${transportLimit})
 		`;
 
 		// Second user with USD data of its own, for the cross-user (foreign id) e2e tests.
