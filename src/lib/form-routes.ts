@@ -12,3 +12,6 @@ export const FORM_ROUTES = new Set([
 	'/(app)/profile/password',
 	'/(app)/profile/delete'
 ]);
+
+/** Routes that show the tab bar and the add-movement FAB. */
+export const TAB_ROUTES = new Set(['/(app)', '/(app)/movements', '/(app)/plan', '/(app)/reports']);

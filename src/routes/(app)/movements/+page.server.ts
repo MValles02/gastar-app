@@ -48,7 +48,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		lockedCurrency,
 		groups,
 		accounts: [
-			{ id: '', name: 'Todas las cuentas', icon: 'accounts' as const, color: null },
+			{ id: '', name: 'Todas', icon: 'accounts' as const, color: null },
 			...accountRows.map((a) => ({
 				id: a.id,
 				name: a.name,
@@ -59,7 +59,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			}))
 		],
 		categories: [
-			{ id: '', name: 'Todas las categorías', icon: 'categories' as const, color: null },
+			{ id: '', name: 'Todas', icon: 'categories' as const, color: null },
 			...categoryRows.map((c) => ({
 				id: c.id,
 				name: c.name,

@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import { parseDate } from '@internationalized/date';
+	import { endOfMonth, parseDate, startOfMonth, today } from '@internationalized/date';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import BottomDrawer from './BottomDrawer.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Item from '$lib/components/ui/item/index.js';
 	import { RangeCalendar } from '$lib/components/ui/range-calendar/index.js';
 	import { formatDay } from '$lib/locale';
 
@@ -21,6 +22,7 @@
 
 	let mounted = $state(false);
 	let open = $state(false);
+	let custom = $state(false);
 	let trigger: HTMLButtonElement | null = $state(null);
 	let hidden: HTMLInputElement | null = $state(null);
 	const labelId = $props.id();
@@ -37,13 +39,44 @@
 	const range = $derived({ start: toDate(from), end: toDate(to) });
 	const summary = $derived(
 		from && to
-			? `${formatDay(from)} – ${formatDay(to)}`
+			? from === to
+				? formatDay(from)
+				: `${formatDay(from)} – ${formatDay(to)}`
 			: from
 				? `Desde ${formatDay(from)}`
 				: to
 					? `Hasta ${formatDay(to)}`
 					: ''
 	);
+
+	const presets = [
+		{
+			label: 'Este mes',
+			range: () => {
+				const t = today('America/Argentina/Buenos_Aires');
+				return [startOfMonth(t), t];
+			}
+		},
+		{
+			label: 'Mes pasado',
+			range: () => {
+				const prev = startOfMonth(today('America/Argentina/Buenos_Aires')).subtract({ months: 1 });
+				return [prev, endOfMonth(prev)];
+			}
+		},
+		{
+			label: 'Últimos 30 días',
+			range: () => {
+				const t = today('America/Argentina/Buenos_Aires');
+				return [t.subtract({ days: 29 }), t];
+			}
+		}
+	];
+
+	function openSheet() {
+		custom = false;
+		open = true;
+	}
 
 	async function apply(f: string, t: string) {
 		from = f;
@@ -64,7 +97,7 @@
 			aria-haspopup="dialog"
 			aria-labelledby="{labelId} {labelId}-value"
 			bind:ref={trigger}
-			onclick={() => (open = true)}
+			onclick={openSheet}
 		>
 			<span class="label" id={labelId}>{legend}</span>
 			<span id="{labelId}-value" class="current" class:placeholder={!summary}>
@@ -76,11 +109,43 @@
 		<input type="hidden" name="from" value={from} disabled={!from} bind:this={hidden} />
 		<input type="hidden" name="to" value={to} disabled={!to} />
 	</div>
-	<BottomDrawer title={legend} bind:open>
-		<RangeCalendar
-			value={range}
-			onValueChange={(v) => v.start && v.end && apply(v.start.toString(), v.end.toString())}
-		/>
+	<BottomDrawer title="Fechas (Rango)" bind:open>
+		{#if custom}
+			<RangeCalendar
+				value={range}
+				onValueChange={(v) => v.start && v.end && apply(v.start.toString(), v.end.toString())}
+			/>
+			<Button variant="ghost" class="mt-3 h-11 w-full" onclick={() => (custom = false)}>
+				Volver
+			</Button>
+		{:else}
+			{#each presets as preset (preset.label)}
+				<Item.Root>
+					{#snippet child({ props })}
+						<button
+							{...props}
+							type="button"
+							onclick={() => {
+								const [s, e] = preset.range();
+								apply(s.toString(), e.toString());
+							}}
+						>
+							<Item.Content><Item.Title>{preset.label}</Item.Title></Item.Content>
+						</button>
+					{/snippet}
+				</Item.Root>
+			{/each}
+			<Item.Root>
+				{#snippet child({ props })}
+					<button {...props} type="button" onclick={() => (custom = true)}>
+						<Item.Content><Item.Title>Personalizado</Item.Title></Item.Content>
+						<Item.Actions
+							><ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" /></Item.Actions
+						>
+					</button>
+				{/snippet}
+			</Item.Root>
+		{/if}
 		{#if from || to}
 			<Button variant="outline" class="mt-3 h-11 w-full" onclick={() => apply('', '')}>
 				Quitar fechas

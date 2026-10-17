@@ -2,19 +2,21 @@
 	import '@fontsource-variable/geist-mono';
 	import '../app.css';
 	import { page } from '$app/state';
-	import { FORM_ROUTES } from '$lib/form-routes';
+	import { FORM_ROUTES, TAB_ROUTES } from '$lib/form-routes';
 	import favicon from '$lib/assets/favicon.svg';
 	import { Toaster } from '$lib/components/ui/sonner/index.js';
 
 	let { children } = $props();
 
-	// Toasts sit above the floating tab bar; form routes have no tab bar and a sticky submit bar
+	// Toasts sit above the floating tab bar only on tab routes; form routes have a sticky submit bar
 	// plus Cancelar at the bottom, so they show below the compact header instead.
 	const isForm = $derived(FORM_ROUTES.has(page.route.id ?? ''));
 	const toastOffset = $derived(
 		isForm
 			? { top: 'calc(4.5rem + env(safe-area-inset-top))' }
-			: { bottom: 'var(--tabbar-clearance)' }
+			: TAB_ROUTES.has(page.route.id ?? '')
+				? { bottom: 'var(--tabbar-clearance)' }
+				: { bottom: 'calc(var(--space-5) + env(safe-area-inset-bottom))' }
 	);
 </script>
 

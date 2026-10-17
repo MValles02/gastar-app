@@ -8,7 +8,8 @@
 		letter,
 		color,
 		size = '2.75rem',
-		neutral = false
+		neutral = false,
+		glyph
 	}: {
 		icon?: ComponentProps<typeof Icon>['name'];
 		/** Shows this initial instead of the icon (categories). */
@@ -17,6 +18,8 @@
 		size?: string;
 		/** Text-colored badge instead of the primary one, for non-selected navigation rows. */
 		neutral?: boolean;
+		/** CSS colour for the glyph only; the tile stays neutral. */
+		glyph?: string;
 	} = $props();
 
 	const tone = $derived(!color && neutral ? 'var(--text)' : swatchVar(color));
@@ -28,6 +31,7 @@
 	style:width={size}
 	style:height={size}
 	style:--badge-size={size}
+	style:color={glyph}
 	aria-hidden="true"
 >
 	{#if letter}<span class="letter">{letter}</span>{:else if icon}<Icon name={icon} />{/if}

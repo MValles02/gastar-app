@@ -41,7 +41,8 @@ export function listMovements(userId: string, query: MovementFilterQuery, page: 
 			accountCurrency: financialAccounts.currency,
 			destinationAccountName: dest.name,
 			destinationCurrency: dest.currency,
-			categoryName: categories.name
+			categoryIcon: categories.icon,
+			categoryColor: categories.color
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
