@@ -9,7 +9,8 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import MonthNav from '$lib/components/MonthNav.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
-	import * as Item from '$lib/components/ui/item/index.js';
+	import ListCard from '$lib/components/ListCard.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -103,20 +104,9 @@
 		</div>
 	</dl>
 
-	<Item.Group
-		class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-	>
-		<div role="listitem">
-			<Item.Root>
-				{#snippet child({ props })}
-					<a href={resolve(`/movements?category=${c.id}`)} {...props}>
-						<Item.Content><Item.Title>Ver movimientos</Item.Title></Item.Content>
-						<Item.Actions><Icon name="chevron-right" /></Item.Actions>
-					</a>
-				{/snippet}
-			</Item.Root>
-		</div>
-	</Item.Group>
+	<ListCard>
+		<ListRow href={resolve(`/movements?category=${c.id}`)} title="Ver movimientos" chevron />
+	</ListCard>
 
 	{#if form?.error}
 		<p class="error" role="alert"><Icon name="alert" size="1rem" />{form.error}</p>

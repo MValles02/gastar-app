@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { swatchVar } from '$lib/appearance';
-	import * as Item from '$lib/components/ui/item/index.js';
+	import ListCard from '$lib/components/ListCard.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
+	import Meter from '$lib/components/Meter.svelte';
 	import Money from '$lib/components/Money.svelte';
-	import StatusPill from '$lib/components/StatusPill.svelte';
 	import { formatMoney, type Currency } from '$lib/money';
 
 	type Limit = {
@@ -21,44 +22,36 @@
 </script>
 
 {#if limits.length}
-	<Item.Group
-		class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-	>
+	<ListCard>
 		{#each limits as l (l.categoryId)}
 			{@const pct = Math.min(100, Math.floor((l.spent * 100) / l.amount))}
-			<div role="listitem">
-				<a
-					class="limit"
-					style:--tone={swatchVar(l.color)}
-					href={resolve(`/plan/limits/${l.categoryId}${wizard ? `?wizard=${wizard}` : ''}`)}
-				>
-					<span class="name">
-						<span class="title">{l.name}</span>
-						{#if l.over}
-							<StatusPill tone="bad" label="Te pasaste" />
-						{:else if l.fast}
-							<StatusPill tone="warning" label="Vas rápido" />
-						{/if}
-					</span>
-					<span class="of">
-						<span class="spent"><Money cents={l.spent} {currency} /></span> de
-						<Money cents={l.amount} {currency} />
-					</span>
-					<div
-						class="bar"
-						role="meter"
-						aria-label="Límite de {l.name}"
-						aria-valuemin="0"
-						aria-valuemax="100"
-						aria-valuenow={pct}
-						aria-valuetext="{formatMoney(l.spent, currency)} de {formatMoney(l.amount, currency)}"
-					>
-						<span class="fill" style:width="{pct}%"></span>
-					</div>
-				</a>
-			</div>
+			{#snippet value()}
+				<span class="of">
+					<span class="spent"><Money cents={l.spent} {currency} /></span> de
+					<Money cents={l.amount} {currency} />
+				</span>
+			{/snippet}
+			{#snippet footer()}
+				<Meter
+					percent={pct}
+					color={swatchVar(l.color)}
+					label="Límite de {l.name}"
+					valueText="{formatMoney(l.spent, currency)} de {formatMoney(l.amount, currency)}"
+				/>
+			{/snippet}
+			<ListRow
+				href={resolve(`/plan/limits/${l.categoryId}${wizard ? `?wizard=${wizard}` : ''}`)}
+				title={l.name}
+				{value}
+				status={l.over
+					? { tone: 'bad', label: 'Te pasaste' }
+					: l.fast
+						? { tone: 'warning', label: 'Vas rápido' }
+						: undefined}
+				{footer}
+			/>
 		{/each}
-	</Item.Group>
+	</ListCard>
 {:else}
 	<p class="muted">Sin límites.</p>
 {/if}
@@ -66,44 +59,6 @@
 <style>
 	.muted {
 		color: var(--text-muted);
-	}
-
-	.limit {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-1) var(--space-3);
-		padding: 0.875rem var(--space-4);
-		border-bottom: 1px solid var(--border);
-		color: inherit;
-		text-decoration: none;
-	}
-
-	[role='listitem']:last-child .limit {
-		border-bottom: 0;
-	}
-
-	@media (hover: hover) {
-		.limit:hover {
-			background: var(--muted);
-		}
-	}
-
-	.limit:active {
-		background: var(--muted);
-	}
-
-	.name {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		min-width: 0;
-		font-weight: 500;
-	}
-
-	.title {
-		overflow-wrap: anywhere;
 	}
 
 	.of {
@@ -114,21 +69,5 @@
 	.spent {
 		color: var(--text);
 		font-weight: 600;
-	}
-
-	.bar {
-		flex: 1 0 100%;
-		height: 0.375rem;
-		margin-top: var(--space-2);
-		overflow: hidden;
-		background: var(--muted);
-		border-radius: var(--radius-pill);
-	}
-
-	.fill {
-		display: block;
-		height: 100%;
-		background: var(--tone);
-		border-radius: var(--radius-pill);
 	}
 </style>

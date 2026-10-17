@@ -5,9 +5,11 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import * as Field from '$lib/components/ui/field/index.js';
-	import * as Item from '$lib/components/ui/item/index.js';
+	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
+	import ListCard from '$lib/components/ListCard.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import { WIZARD_STEPS } from '$lib/plan-wizard';
 	import LimitList from '../LimitList.svelte';
 	import RecurringRow from '../RecurringRow.svelte';
@@ -54,10 +56,7 @@
 {/snippet}
 
 {#snippet head(add: string)}
-	<div class="section-head">
-		<h2>{titles[data.step - 1]}</h2>
-		<a class="add" href={resolve(add as '/')}>Agregar</a>
-	</div>
+	<SectionHeader title={titles[data.step - 1]} action={{ href: add }} />
 {/snippet}
 
 <div class="wizard">
@@ -72,7 +71,7 @@
 			</li>
 		{/each}
 	</ol>
-	<p class="eyebrow">Paso {data.step} de {WIZARD_STEPS}</p>
+	<CardEyebrow>Paso {data.step} de {WIZARD_STEPS}</CardEyebrow>
 
 	{#if data.step <= 2}
 		{@const income = data.step === 1}
@@ -87,25 +86,21 @@
 				: 'Lo que pagás todos los meses: alquiler, servicios, suscripciones. Se descuenta de entrada.'}
 		</p>
 		{#if data.active.length}
-			<Item.Group
-				class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-			>
+			<ListCard>
 				{#each data.active as r (r.id)}
 					<RecurringRow row={r} currency={data.currency} wizard={data.step} />
 				{/each}
-			</Item.Group>
+			</ListCard>
 		{:else}
 			<p class="muted">{income ? 'Sin ingresos fijos.' : 'Sin pagos fijos.'}</p>
 		{/if}
 		{#if data.inactive.length}
 			<h3>Inactivos</h3>
-			<Item.Group
-				class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-			>
+			<ListCard>
 				{#each data.inactive as r (r.id)}
 					<RecurringRow row={r} currency={data.currency} wizard={data.step} />
 				{/each}
-			</Item.Group>
+			</ListCard>
 		{/if}
 		{@render bar('Siguiente', stepHref(data.step + 1))}
 	{:else if data.step === 3}
@@ -176,14 +171,6 @@
 		gap: var(--space-4);
 	}
 
-	.eyebrow {
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		color: var(--text-muted);
-	}
-
 	h2 {
 		font-size: var(--font-size-lg);
 		font-weight: 600;
@@ -192,15 +179,6 @@
 	h3 {
 		font-size: var(--font-size-sm);
 		font-weight: 600;
-	}
-
-	.add {
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--tap-target);
-		color: var(--text);
-		font-weight: 500;
-		text-decoration: underline;
 	}
 
 	/* Five-bar progress in the text colour (selection is primary, progress is not). */
