@@ -6,11 +6,13 @@
 	import * as Field from '$lib/components/ui/field/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
+	import ActionLink from '$lib/components/ActionLink.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
-	import IconBadge from '$lib/components/IconBadge.svelte';
-	import * as Item from '$lib/components/ui/item/index.js';
+	import ListCard from '$lib/components/ListCard.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { CURRENCIES } from '$lib/money';
 	import type { PageData } from './$types';
@@ -24,6 +26,8 @@
 		...CURRENCIES.map((c) => ({ value: c, label: c }))
 	];
 </script>
+
+{#snippet archivedMeta()}Archivada{/snippet}
 
 <svelte:head>
 	<title>Cuentas · Gastar</title>
@@ -74,6 +78,8 @@
 			{/snippet}
 		</FilterBar>
 
+		<ActionLink href="/accounts/new" />
+
 		{#if data.groups.length === 0}
 			<Empty.Root>
 				<Empty.Header>
@@ -88,53 +94,29 @@
 			<!-- Balances are totalled per currency group, never across currencies. -->
 			{#each data.groups as g (g.currency)}
 				<section aria-labelledby="group-{g.currency}">
-					<div class="section-head">
-						<h2 id="group-{g.currency}">{g.label}</h2>
-						<span class="group-total"><Money cents={g.total} currency={g.currency} /></span>
-					</div>
-					<Item.Group
-						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-					>
+					<SectionHeader id="group-{g.currency}" title={g.label} variant="group">
+						{#snippet aside()}
+							<span class="group-total"><Money cents={g.total} currency={g.currency} /></span>
+						{/snippet}
+					</SectionHeader>
+					<ListCard>
 						{#each g.accounts as a (a.id)}
-							<div role="listitem" class:archived={a.archivedAt}>
-								<Item.Root>
-									{#snippet child({ props })}
-										<a href={resolve(`/accounts/${a.id}`)} {...props}>
-											<Item.Media>
-												<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} />
-											</Item.Media>
-											<Item.Content>
-												<Item.Title>{a.name}</Item.Title>
-												{#if a.archivedAt}<Item.Description>Archivada</Item.Description>{/if}
-											</Item.Content>
-											<Item.Actions>
-												<span class="row-amount">
-													<Money cents={a.balance} currency={a.currency} kind="signed" />
-												</span>
-											</Item.Actions>
-										</a>
-									{/snippet}
-								</Item.Root>
-							</div>
+							{#snippet value()}
+								<Money cents={a.balance} currency={a.currency} />
+							{/snippet}
+							<ListRow
+								href={resolve(`/accounts/${a.id}`)}
+								lead={{ icon: toIconKey(a.icon), color: toSwatchKey(a.color) }}
+								title={a.name}
+								{value}
+								meta={a.archivedAt ? archivedMeta : undefined}
+								dimmed={!!a.archivedAt}
+							/>
 						{/each}
-					</Item.Group>
+					</ListCard>
 				</section>
 			{/each}
 		{/if}
-		<Item.Group
-			class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-		>
-			<div role="listitem">
-				<Item.Root>
-					{#snippet child({ props })}
-						<a href={resolve('/accounts/new')} {...props}>
-							<Item.Media><IconBadge icon="plus" color={null} neutral /></Item.Media>
-							<Item.Content><Item.Title>Nueva cuenta</Item.Title></Item.Content>
-						</a>
-					{/snippet}
-				</Item.Root>
-			</div>
-		</Item.Group>
 	{/if}
 </div>
 
@@ -159,36 +141,13 @@
 		text-decoration: underline;
 	}
 
-	.section-head {
-		padding-inline: var(--space-1);
-	}
-
-	h2 {
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--text-muted);
-	}
-
-	.group-total,
-	.row-amount {
+	.group-total {
 		font-family: var(--font-display);
 		font-size: var(--font-size-base);
 		font-weight: 500;
 	}
 
 	.group-total {
-		color: var(--text-muted);
-	}
-
-	/* Archived: dimmed badge and muted text; the "Archivada" subtitle keeps it from relying on colour. */
-	.archived :global(.badge) {
-		opacity: 0.5;
-	}
-
-	.archived :global([data-slot='item-title']),
-	.archived .row-amount {
 		color: var(--text-muted);
 	}
 </style>

@@ -1,8 +1,5 @@
 <script lang="ts">
 	import { CURRENCY_NAME } from '$lib/money';
-	import Check from '@lucide/svelte/icons/check';
-	import CircleAlert from '@lucide/svelte/icons/circle-alert';
-	import Clock from '@lucide/svelte/icons/clock';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { afterNavigate, replaceState } from '$app/navigation';
@@ -10,21 +7,23 @@
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
+	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import * as Item from '$lib/components/ui/item/index.js';
+	import ListCard from '$lib/components/ListCard.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SectionHeader from '$lib/components/SectionHeader.svelte';
+	import StatusPill from '$lib/components/StatusPill.svelte';
+	import { PLAN_TONE } from '$lib/status';
 	import LimitList from './LimitList.svelte';
 	import RecurringRow from './RecurringRow.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-
-	const statusIcon = { ok: Check, warn: Clock, over: CircleAlert } as const;
 
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
 	let hydrated = $state(false);
@@ -74,16 +73,14 @@
 	{:else}
 		{#if data.plan.summary}
 			{@const s = data.plan.summary}
-			{@const Status = statusIcon[s.status]}
 			<section class="summary" aria-labelledby="summary-heading">
 				<Card.Root class="gap-0 overflow-hidden py-0">
 					<div class="box">
 						<div class="top">
-							<h2 id="summary-heading" class="eyebrow">Disponible · {data.plan.monthName}</h2>
-							<span class="pill {s.status}">
-								<Status size={14} strokeWidth={2} />
-								{data.plan.statusLabel}
-							</span>
+							<CardEyebrow as="h2" id="summary-heading"
+								>Disponible · {data.plan.monthName}</CardEyebrow
+							>
+							<StatusPill tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
 						</div>
 						<HeroAmount cents={s.available} currency={data.currency} />
 						<p class="per-day">
@@ -94,11 +91,15 @@
 					<dl class="figures">
 						<div class="kv">
 							<dt>Ingresos</dt>
-							<dd><Money cents={s.income} currency={data.currency} kind="income" /></dd>
+							<dd>
+								<Money cents={s.income} currency={data.currency} tone="flow" direction="income" />
+							</dd>
 						</div>
 						<div class="kv">
 							<dt>Pagos fijos</dt>
-							<dd><Money cents={-s.bills} currency={data.currency} kind="outcome" /></dd>
+							<dd>
+								<Money cents={-s.bills} currency={data.currency} tone="flow" direction="outcome" />
+							</dd>
 						</div>
 						<div class="kv link">
 							<dt><a href={resolve('/plan/savings')}>Ahorro</a></dt>
@@ -113,7 +114,9 @@
 						</div>
 						<div class="kv">
 							<dt>Gastado</dt>
-							<dd><Money cents={-s.spent} currency={data.currency} kind="outcome" /></dd>
+							<dd>
+								<Money cents={-s.spent} currency={data.currency} tone="flow" direction="outcome" />
+							</dd>
 						</div>
 						<div class="kv sum">
 							<dt>Disponible</dt>
@@ -124,10 +127,11 @@
 			</section>
 
 			<section aria-labelledby="limits-heading">
-				<div class="section-head">
-					<h2 id="limits-heading">Límites por categoría</h2>
-					<a class="add" href={resolve('/plan/limits/new')}>Agregar</a>
-				</div>
+				<SectionHeader
+					id="limits-heading"
+					title="Límites por categoría"
+					action={{ href: '/plan/limits/new' }}
+				/>
 				<LimitList limits={s.limits} currency={data.currency} />
 			</section>
 		{:else}
@@ -165,35 +169,33 @@
 			</div>
 		{:else}
 			<section aria-labelledby="income-heading">
-				<div class="section-head">
-					<h2 id="income-heading">Ingresos fijos</h2>
-					<a class="add" href={resolve('/plan/recurring/new?type=income')}>Agregar</a>
-				</div>
+				<SectionHeader
+					id="income-heading"
+					title="Ingresos fijos"
+					action={{ href: '/plan/recurring/new?type=income' }}
+				/>
 				{#if data.incomes.length}
-					<Item.Group
-						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-					>
+					<ListCard>
 						{#each data.incomes as r (r.id)}<RecurringRow row={r} currency={data.currency} />{/each}
-					</Item.Group>
+					</ListCard>
 				{:else}
 					<p class="muted">Sin ingresos fijos.</p>
 				{/if}
 			</section>
 
 			<section aria-labelledby="outcome-heading">
-				<div class="section-head">
-					<h2 id="outcome-heading">Pagos fijos</h2>
-					<a class="add" href={resolve('/plan/recurring/new')}>Agregar</a>
-				</div>
+				<SectionHeader
+					id="outcome-heading"
+					title="Pagos fijos"
+					action={{ href: '/plan/recurring/new' }}
+				/>
 				{#if data.outcomes.length}
-					<Item.Group
-						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-					>
+					<ListCard>
 						{#each data.outcomes as r (r.id)}<RecurringRow
 								row={r}
 								currency={data.currency}
 							/>{/each}
-					</Item.Group>
+					</ListCard>
 				{:else}
 					<p class="muted">Sin pagos fijos.</p>
 				{/if}
@@ -201,15 +203,13 @@
 
 			{#if data.inactive.length}
 				<section aria-labelledby="inactive-heading">
-					<div class="section-head"><h2 id="inactive-heading">Inactivos</h2></div>
-					<Item.Group
-						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-					>
+					<SectionHeader id="inactive-heading" title="Inactivos" />
+					<ListCard>
 						{#each data.inactive as r (r.id)}<RecurringRow
 								row={r}
 								currency={data.currency}
 							/>{/each}
-					</Item.Group>
+					</ListCard>
 				</section>
 			{/if}
 		{/if}
@@ -247,34 +247,12 @@
 		gap: var(--space-3);
 	}
 
-	h2 {
-		font-size: var(--font-size-lg);
-		font-weight: 600;
-	}
-
-	.eyebrow {
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-muted);
-	}
-
 	.muted {
 		color: var(--text-muted);
 	}
 
 	.strong {
 		font-weight: 500;
-	}
-
-	.section-head .add {
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--tap-target);
-		color: var(--text);
-		font-weight: 500;
-		text-decoration: underline;
 	}
 
 	/* Disponible card: hero, then the plan's equation, then the Ahorro link. */
@@ -296,35 +274,6 @@
 	.per-day {
 		font-size: var(--font-size-sm);
 		color: var(--text-muted);
-	}
-
-	.pill {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		padding: 0.125rem 0.625rem;
-		border-radius: var(--radius-pill);
-		background: var(--muted);
-		color: var(--text-muted);
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		white-space: nowrap;
-	}
-
-	.pill.ok {
-		background: color-mix(in srgb, var(--positive) 14%, transparent);
-		color: var(--positive);
-	}
-
-	.pill.warn {
-		background: color-mix(in srgb, var(--swatch-orange) 14%, transparent);
-		color: var(--swatch-orange);
-	}
-
-	/* Over budget or overdue is information, not an error: inverted fill, never red. */
-	.pill.over {
-		background: var(--text);
-		color: var(--bg);
 	}
 
 	.figures {

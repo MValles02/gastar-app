@@ -24,7 +24,7 @@ test('profile layout at 390px: theme row in a card, account rows, delete below l
 
 	const themeCard = page.locator('[data-slot="card"][aria-label="Tema"]');
 	await expect(themeCard.getByRole('radio', { name: 'Oscuro' })).toBeAttached();
-	const account = page.locator('[data-slot="card"][aria-label="Tu cuenta"]');
+	const account = page.locator('[data-slot="item-group"][aria-label="Tu cuenta"]');
 	await expect(account.getByRole('link', { name: /^Nombre/ })).toBeVisible();
 	await expect(account.getByRole('link', { name: 'Cambiar contraseña' })).toBeVisible();
 

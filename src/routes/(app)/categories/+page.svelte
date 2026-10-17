@@ -5,11 +5,13 @@
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import * as Field from '$lib/components/ui/field/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
+	import ActionLink from '$lib/components/ActionLink.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
-	import IconBadge from '$lib/components/IconBadge.svelte';
-	import * as Item from '$lib/components/ui/item/index.js';
+	import ListCard from '$lib/components/ListCard.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { CURRENCIES, type Currency } from '$lib/money';
@@ -37,6 +39,8 @@
 		{ value: 'income', label: 'Ingresos' }
 	];
 </script>
+
+{#snippet archivedMeta()}Archivada{/snippet}
 
 <svelte:head>
 	<title>Categorías · Gastar</title>
@@ -97,6 +101,8 @@
 			{/snippet}
 		</FilterBar>
 
+		<ActionLink href="/categories/new" />
+
 		{#if data.groups.length === 0}
 			<Empty.Root>
 				<Empty.Header>
@@ -110,61 +116,38 @@
 		{:else}
 			{#each data.groups as g (g.key)}
 				<section aria-labelledby="group-{g.key}">
-					<div class="section-head"><h2 id="group-{g.key}">{g.label}</h2></div>
-					<Item.Group
-						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-					>
+					<SectionHeader id="group-{g.key}" title={g.label} variant="group" />
+					<ListCard>
 						{#each g.categories as c (c.id)}
 							{@const icon = toCategoryIconKey(c.icon)}
-							<div role="listitem" class:archived={c.archivedAt}>
-								<Item.Root>
-									{#snippet child({ props })}
-										<a href={resolve(`/categories/${c.id}`)} {...props}>
-											<Item.Media>
-												<IconBadge
-													icon={icon ?? undefined}
-													letter={icon ? undefined : c.name[0]}
-													color={toSwatchKey(c.color)}
-												/>
-											</Item.Media>
-											<Item.Content>
-												<Item.Title>{c.name}</Item.Title>
-												{#if c.archivedAt}<Item.Description>Archivada</Item.Description>{/if}
-											</Item.Content>
-											<Item.Actions>
-												<span class="row-amount">
-													{#each shown(c.totals) as cur (cur)}
-														{#if c.totals[cur] === undefined}
-															<span class="zero"><Money cents={0} currency={cur} /></span>
-														{:else}
-															<Money cents={c.totals[cur]} currency={cur} kind="signed" />
-														{/if}
-													{/each}
-												</span>
-											</Item.Actions>
-										</a>
-									{/snippet}
-								</Item.Root>
-							</div>
+							{#snippet value()}
+								<span class="totals">
+									{#each shown(c.totals) as cur (cur)}
+										{#if c.totals[cur] === undefined}
+											<span class="zero"><Money cents={0} currency={cur} /></span>
+										{:else}
+											<Money cents={c.totals[cur]} currency={cur} tone="flow" />
+										{/if}
+									{/each}
+								</span>
+							{/snippet}
+							<ListRow
+								href={resolve(`/categories/${c.id}`)}
+								lead={{
+									icon: icon ?? undefined,
+									letter: icon ? undefined : c.name[0],
+									color: toSwatchKey(c.color)
+								}}
+								title={c.name}
+								{value}
+								meta={c.archivedAt ? archivedMeta : undefined}
+								dimmed={!!c.archivedAt}
+							/>
 						{/each}
-					</Item.Group>
+					</ListCard>
 				</section>
 			{/each}
 		{/if}
-		<Item.Group
-			class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-		>
-			<div role="listitem">
-				<Item.Root>
-					{#snippet child({ props })}
-						<a href={resolve('/categories/new')} {...props}>
-							<Item.Media><IconBadge icon="plus" color={null} neutral /></Item.Media>
-							<Item.Content><Item.Title>Nueva categoría</Item.Title></Item.Content>
-						</a>
-					{/snippet}
-				</Item.Root>
-			</div>
-		</Item.Group>
 	{/if}
 </div>
 
@@ -189,39 +172,14 @@
 		text-decoration: underline;
 	}
 
-	.section-head {
-		padding-inline: var(--space-1);
-	}
-
-	h2 {
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--text-muted);
-	}
-
 	/* Month totals stacked on the right (ARS on top); an empty month is a muted zero. */
-	.row-amount {
+	.totals {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-end;
-		font-family: var(--font-display);
-		font-size: var(--font-size-base);
-		font-weight: 500;
 	}
 
 	.zero {
-		color: var(--text-muted);
-	}
-
-	/* Archived: dimmed badge and muted name; the "Archivada" subtitle keeps it from relying on colour. */
-	.archived :global(.badge) {
-		opacity: 0.5;
-	}
-
-	.archived :global([data-slot='item-title']),
-	.archived .row-amount {
 		color: var(--text-muted);
 	}
 </style>

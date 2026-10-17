@@ -17,12 +17,12 @@ test('the account form picks icon and color in drawers and persists them', async
 	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
 	await page.getByLabel('Nombre').fill(`Forms ${Date.now()}`);
 
-	// Cancelar (1/3) and Crear cuenta (2/3) side by side, visible without scrolling.
+	// Cancelar and Crear cuenta side by side, equal width (50/50), visible without scrolling.
 	const cancel = (await page.getByRole('link', { name: 'Cancelar' }).boundingBox())!;
 	const submit = (await page.getByRole('button', { name: 'Crear cuenta' }).boundingBox())!;
 	expect(Math.abs(cancel.y - submit.y)).toBeLessThan(2);
 	expect(cancel.x + cancel.width).toBeLessThan(submit.x);
-	expect(submit.width).toBeGreaterThan(cancel.width * 1.5);
+	expect(Math.abs(submit.width - cancel.width)).toBeLessThan(2);
 	expect(submit.y + submit.height).toBeLessThanOrEqual(667);
 
 	await page.getByRole('button', { name: /^Ícono/ }).click();

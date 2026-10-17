@@ -1,10 +1,10 @@
 <script lang="ts">
 	import * as Empty from '$lib/components/ui/empty/index.js';
-	import AlertCircle from '@lucide/svelte/icons/circle-alert';
-	import Clock from '@lucide/svelte/icons/clock';
-	import * as Item from '$lib/components/ui/item/index.js';
 	import Icon from '$lib/components/Icon.svelte';
+	import ListCard from '$lib/components/ListCard.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 
@@ -29,62 +29,35 @@
 		</Empty.Root>
 	{:else}
 		{#each data.groups as g (g.currency)}
-			<section class="group" aria-labelledby="alerts-{g.currency}">
-				<h2 id="alerts-{g.currency}">{currencyName[g.currency]}</h2>
-				<Item.Group
-					class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-				>
+			<section aria-labelledby="alerts-{g.currency}">
+				<SectionHeader id="alerts-{g.currency}" title={currencyName[g.currency]} variant="group" />
+				<ListCard>
 					{#each g.items as n (n.id)}
-						<div role="listitem">
-							{#snippet row()}
-								<Item.Media>
-									<span
-										class="lead"
-										style:--tone={n.color ? `var(--swatch-${n.color})` : null}
-										class:tinted={n.color}
-										aria-hidden="true"
-									>
-										{#if n.kind === 'plan'}<Icon name="plan" size="1.25rem" />{:else}{n.name
-												.charAt(0)
-												.toUpperCase()}{/if}
-									</span>
-								</Item.Media>
-								<Item.Content class="min-w-0">
-									<span class="title-line">
-										<Item.Title class="block min-w-0 truncate">{n.name}</Item.Title>
-										<span class="pill {n.pill.tone}">
-											{#if n.pill.tone === 'over'}<AlertCircle size={14} strokeWidth={2} />
-											{:else if n.pill.tone === 'due'}<Clock size={14} strokeWidth={2} />{/if}
-											{n.pill.label}
-										</span>
-									</span>
-									<Item.Description class="line-clamp-none min-w-0">
-										<span class="sub">{n.message}</span>
-									</Item.Description>
-								</Item.Content>
-							{/snippet}
-							{#if !n.switchCurrency}
-								<Item.Root>
-									{#snippet child({ props })}
-										<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- server-built app path (with query) -->
-										<a href={n.href} {...props}>{@render row()}</a>
-									{/snippet}
-								</Item.Root>
-							{:else}
-								<!-- Plan and limit pages read the currency from the cookie, so switch it first. -->
-								<form method="POST" action={resolve('/currency')}>
-									<input type="hidden" name="currency" value={g.currency} />
-									<input type="hidden" name="redirectTo" value={n.href} />
-									<Item.Root>
-										{#snippet child({ props })}
-											<button type="submit" {...props}>{@render row()}</button>
-										{/snippet}
-									</Item.Root>
-								</form>
-							{/if}
-						</div>
+						{#snippet message()}{n.message}{/snippet}
+						{#snippet row(submit: boolean)}
+							<ListRow
+								href={submit ? undefined : n.href}
+								{submit}
+								lead={n.kind === 'plan'
+									? { icon: 'plan', color: n.color }
+									: { letter: n.name.charAt(0).toUpperCase(), color: n.color }}
+								title={n.name}
+								status={n.status}
+								meta={message}
+							/>
+						{/snippet}
+						{#if !n.switchCurrency}
+							{@render row(false)}
+						{:else}
+							<!-- Plan and limit pages read the currency from the cookie, so switch it first. -->
+							<form method="POST" action={resolve('/currency')} class="contents">
+								<input type="hidden" name="currency" value={g.currency} />
+								<input type="hidden" name="redirectTo" value={n.href} />
+								{@render row(true)}
+							</form>
+						{/if}
 					{/each}
-				</Item.Group>
+				</ListCard>
 			</section>
 		{/each}
 	{/if}
@@ -95,81 +68,5 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-	}
-
-	.group {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-	}
-
-	h2 {
-		padding: 0 var(--space-1);
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-muted);
-	}
-
-	/* Neutral badge; payments and limits tint it with the category swatch (letter stays on the text token). */
-	.lead {
-		flex: none;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 2.25rem;
-		height: 2.25rem;
-		border-radius: var(--radius-pill);
-		background: var(--muted);
-		color: var(--text);
-		font-size: 0.9375rem;
-		font-weight: 600;
-	}
-
-	.lead.tinted {
-		background: color-mix(in srgb, var(--tone) 14%, transparent);
-	}
-
-	.title-line {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		min-width: 0;
-	}
-
-	.pill {
-		flex: none;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		padding: 0.125rem 0.625rem;
-		border-radius: var(--radius-pill);
-		background: var(--muted);
-		color: var(--text-muted);
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		white-space: nowrap;
-	}
-
-	.pill.due {
-		background: color-mix(in srgb, var(--swatch-orange) 14%, transparent);
-		color: var(--swatch-orange);
-	}
-
-	/* Overdue and over-limit are information, not errors: inverted fill, never red. */
-	.pill.over {
-		background: var(--text);
-		color: var(--bg);
-	}
-
-	.sub {
-		display: block;
-		min-width: 0;
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
 	}
 </style>

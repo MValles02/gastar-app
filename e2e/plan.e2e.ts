@@ -27,10 +27,14 @@ test('seeded rules: rent is paid, the gym is inactive and cannot be registered',
 	const inactive = page.getByRole('region', { name: 'Inactivos' });
 	await expect(inactive).toContainText('Gimnasio');
 	await expect(inactive).toContainText('Cuenta archivada');
-	// Inactive rows are fully greyed: the amount is not in the title's text colour.
+	// Inactive rows are fully greyed: amount and title are muted, unlike an active row's title.
 	const gym = inactive.locator('.rule', { hasText: 'Gimnasio' });
 	const color = (sel: string) => gym.locator(sel).evaluate((el) => getComputedStyle(el).color);
-	expect(await color('.amount-col')).not.toBe(await color('[data-slot="item-title"]'));
+	const muted = await color('[data-slot="item-title"]');
+	expect(await color('.row-amount')).toBe(muted);
+	expect(muted).not.toBe(
+		await rent.locator('[data-slot="item-title"]').evaluate((el) => getComputedStyle(el).color)
+	);
 	const id = await linkId(inactive.getByRole('link', { name: /Gimnasio/ }));
 	await page.goto(`/movements/new?recurring=${id}`, { waitUntil: 'networkidle' });
 	await expect(page.getByRole('heading', { level: 1, name: 'Nuevo movimiento' })).toBeVisible();

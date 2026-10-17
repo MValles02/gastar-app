@@ -1,4 +1,5 @@
 import { and, inArray } from 'drizzle-orm';
+import type { StatusTone } from '../status';
 import { toSwatchKey, type SwatchKey } from '../appearance';
 import { CURRENCIES, formatMoney, type Currency } from '../money';
 import { canAccessCategory } from './access';
@@ -19,7 +20,7 @@ export type AlertItem = {
 	kind: 'payment' | 'plan' | 'limit';
 	/** Short display name: the rule description, "Plan" or the category name. */
 	name: string;
-	pill: { label: string; tone: 'over' | 'due' | 'plain' };
+	status: { label: string; tone: StatusTone };
 	/** One self-explanatory sentence (amounts inside). */
 	message: string;
 	/** App path the row opens. */
@@ -46,12 +47,13 @@ type PlanSummary = NonNullable<PlanView['summary']>;
 type Swatches = Map<string, SwatchKey | null>;
 type DueStatus = ReturnType<typeof recurringStatus>;
 
+/** Only unpaid payments inside the alert window reach here: overdue is bad, due today or soon is warning. */
 const PAYMENT_TONE = {
-	overdue: 'over',
-	today: 'due',
-	upcoming: 'plain',
-	paid: 'plain'
-} as const satisfies Record<RecurringStatus, AlertItem['pill']['tone']>;
+	overdue: 'bad',
+	today: 'warning',
+	upcoming: 'warning',
+	paid: 'neutral'
+} as const satisfies Record<RecurringStatus, StatusTone>;
 
 /**
  * Alerts per currency that has accounts, worked out from existing data (nothing is stored).
@@ -104,7 +106,7 @@ function paymentAlert(
 		id: `rule-${rule.id}`,
 		kind: 'payment',
 		name: rule.description,
-		pill: { label, tone: PAYMENT_TONE[due.status] },
+		status: { label, tone: PAYMENT_TONE[due.status] },
 		message: `${formatMoney(rule.amount, currency)} desde ${rule.accountName}`,
 		href: `/plan/recurring/${rule.id}`,
 		switchCurrency: false,
@@ -125,7 +127,7 @@ function planAlert(plan: PlanSummary, currency: Currency): AlertItem | null {
 	if (plan.status === 'over')
 		return {
 			...base,
-			pill: { label: 'Te pasaste', tone: 'over' },
+			status: { label: 'Te pasaste', tone: 'bad' },
 			message:
 				plan.forSpending <= 0
 					? `Tu ahorro y tus pagos fijos superan tus ingresos por ${formatMoney(-plan.forSpending, currency)}`
@@ -134,7 +136,7 @@ function planAlert(plan: PlanSummary, currency: Currency): AlertItem | null {
 	if (plan.status === 'warn')
 		return {
 			...base,
-			pill: { label: 'Atención', tone: 'due' },
+			status: { label: 'Atención', tone: 'warning' },
 			message: `Gastaste ${percent(plan.spentShare)} de lo que tenés para gastar y quedan ${days(plan.daysLeft)}`
 		};
 	return null;
@@ -148,7 +150,9 @@ function limitAlerts(plan: PlanSummary, currency: Currency, swatches: Swatches):
 			id: `limit-${currency}-${l.categoryId}`,
 			kind: 'limit',
 			name: l.name,
-			pill: l.over ? { label: 'Te pasaste', tone: 'over' } : { label: 'Vas rápido', tone: 'due' },
+			status: l.over
+				? { label: 'Te pasaste', tone: 'bad' }
+				: { label: 'Vas rápido', tone: 'warning' },
 			message: l.over
 				? `Te pasaste ${formatMoney(l.spent - l.amount, currency)} del límite de ${formatMoney(l.amount, currency)}`
 				: `Gastaste ${percent(l.share)} del límite y quedan ${days(plan.daysLeft)}`,

@@ -343,7 +343,7 @@ test('a recurring detail leads to its edit form and back, keeping the wizard ste
 });
 
 test('re-submitting step 3 keeps a this-month-only plan this-month-only', async ({ page }) => {
-	const repeat = page.getByRole('checkbox', { name: 'Usar este plan todos los meses' });
+	const repeat = page.getByRole('switch', { name: 'Usar este plan todos los meses' });
 	const save = async (check: boolean) => {
 		await page.goto('/plan/setup?step=5', { waitUntil: 'networkidle' });
 		if ((await repeat.isChecked()) !== check) await repeat.click();

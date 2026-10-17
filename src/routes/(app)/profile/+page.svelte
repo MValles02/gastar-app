@@ -3,8 +3,8 @@
 	import { enhance } from '$app/forms';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import * as Item from '$lib/components/ui/item/index.js';
-	import IconBadge from '$lib/components/IconBadge.svelte';
+	import ListCard from '$lib/components/ListCard.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
@@ -59,61 +59,28 @@
 		<p class="email">{data.user.email}</p>
 	</section>
 
-	<Card.Root class="gap-0 overflow-hidden py-0" aria-label="Tu cuenta">
-		<ul class="links">
-			<li>
-				<Item.Root>
-					{#snippet child({ props })}
-						<a href={resolve('/profile/name')} {...props}>
-							<Item.Content><Item.Title>Nombre</Item.Title></Item.Content>
-							<Item.Actions class="min-w-0">
-								<span class="val">{data.user.name}</span>
-								<Icon name="chevron-right" size="1.25rem" />
-							</Item.Actions>
-						</a>
-					{/snippet}
-				</Item.Root>
-			</li>
-			<li>
-				<Item.Root>
-					{#snippet child({ props })}
-						<a href={resolve('/profile/password')} {...props}>
-							<Item.Content><Item.Title>Cambiar contraseña</Item.Title></Item.Content>
-							<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
-						</a>
-					{/snippet}
-				</Item.Root>
-			</li>
-		</ul>
-	</Card.Root>
+	{#snippet nameValue()}<span class="val">{data.user.name}</span>{/snippet}
+
+	<ListCard aria-label="Tu cuenta">
+		<ListRow href={resolve('/profile/name')} title="Nombre" value={nameValue} chevron />
+		<ListRow href={resolve('/profile/password')} title="Cambiar contraseña" chevron />
+	</ListCard>
 
 	<nav aria-label="Administrar">
-		<Card.Root class="gap-0 overflow-hidden py-0">
-			<ul class="links">
-				<li>
-					<Item.Root>
-						{#snippet child({ props })}
-							<a href={resolve('/accounts')} {...props}>
-								<Item.Media><IconBadge icon="accounts" color={null} neutral /></Item.Media>
-								<Item.Content><Item.Title>Cuentas</Item.Title></Item.Content>
-								<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
-							</a>
-						{/snippet}
-					</Item.Root>
-				</li>
-				<li>
-					<Item.Root>
-						{#snippet child({ props })}
-							<a href={resolve('/categories')} {...props}>
-								<Item.Media><IconBadge icon="categories" color={null} neutral /></Item.Media>
-								<Item.Content><Item.Title>Categorías</Item.Title></Item.Content>
-								<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
-							</a>
-						{/snippet}
-					</Item.Root>
-				</li>
-			</ul>
-		</Card.Root>
+		<ListCard>
+			<ListRow
+				href={resolve('/accounts')}
+				lead={{ icon: 'accounts', color: null }}
+				title="Cuentas"
+				chevron
+			/>
+			<ListRow
+				href={resolve('/categories')}
+				lead={{ icon: 'categories', color: null }}
+				title="Categorías"
+				chevron
+			/>
+		</ListCard>
 	</nav>
 
 	<Card.Root class="gap-0 overflow-hidden py-0" aria-label="Tema">
@@ -207,12 +174,6 @@
 		color: var(--text-muted);
 		max-width: 100%;
 		overflow-wrap: anywhere;
-	}
-
-	.links {
-		list-style: none;
-		margin: 0;
-		padding: 0;
 	}
 
 	.val {

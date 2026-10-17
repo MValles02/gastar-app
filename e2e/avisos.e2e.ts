@@ -41,7 +41,7 @@ test('a payment due today alerts until it is registered', async ({ page, baseURL
 		const row = alertRow(page, description);
 		await expect(row).toContainText('Vence hoy');
 		await expect(row).toContainText('desde Otra cuenta pesos');
-		await expect(row.locator('.sub')).toHaveCSS('white-space', 'nowrap');
+		await expect(row.locator('.row-meta')).toHaveCSS('white-space', 'nowrap');
 		// The bell lives on the full header (tab pages) only.
 		await page.goto('/');
 		await expect(bell(page)).toHaveAttribute('aria-label', /Avisos: \d+/);
@@ -96,7 +96,9 @@ test('a plan alert opens /plan in its currency, and the page works without JS', 
 			const planAlert = alertRow(bare, 'Tu ahorro y tus pagos fijos superan tus ingresos por');
 			await expect(planAlert).toBeVisible();
 			await expect(planAlert).toContainText('Te pasaste');
-			const form = planAlert.locator('form');
+			const form = pesos(bare)
+				.locator('form')
+				.filter({ hasText: 'Tu ahorro y tus pagos fijos superan tus ingresos por' });
 			await expect(form).toHaveAttribute('method', 'POST');
 			await expect(form).toHaveAttribute('action', /\/currency$/);
 			await expect(form.locator('input[name="redirectTo"]')).toHaveValue('/plan');

@@ -26,6 +26,8 @@ colors:
   positive-dark: '#8bd68f'
   negative: 'oklch(0.577 0.245 27.325)'
   negative-dark: 'oklch(0.704 0.191 22.216)'
+  warning: 'oklch(0.555 0.163 48.998)'
+  warning-dark: 'oklch(0.879 0.169 91.605)'
   transfer: '#2c5d8a'
   transfer-dark: '#8db8e6'
   swatch-green: '#2f6b45'
@@ -83,14 +85,14 @@ components:
     typography: '{typography.label}'
     rounded: '{rounded.md}'
     padding: '0 0.625rem'
-    height: '2rem'
+    height: '2.75rem'
   button-outline:
     backgroundColor: '{colors.background}'
     textColor: '{colors.text}'
     typography: '{typography.label}'
     rounded: '{rounded.md}'
     padding: '0 0.625rem'
-    height: '2rem'
+    height: '2.75rem'
   input:
     backgroundColor: '{colors.background}'
     textColor: '{colors.text}'
@@ -173,6 +175,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 - **Cream** (`background`): Page background and the translucent bottom nav. Dark counterpart: stone near-black (`background-dark`).
 - **Light Cream** (`surface`): Cards and fields, lighter than the page; never pure white. Dark counterpart: `surface-dark`.
 - **Raised Cream** (`surface-raised`): Layers above a surface, such as the BottomDrawer (popover fill) and ConfirmDialog (stock shadcn `AlertDialog`, popover fill). Dark counterpart: `surface-raised-dark`.
+- **Warning** (`warning`): Amber text and tint of the `warning` StatusPill tone (due today or soon, "Vas rápido"); `--warning` in `app.css`, mapped to the Tailwind `warning` colour. Dark counterpart: `warning-dark`.
 - **Muted** (`muted`): A warm-tinted fill for the segmented track, hover fills (rows, secondary button, top-bar avatar). Dark counterpart: `muted-dark`.
 - **Ledger Ink** (`text`): Body text. Dark counterpart: `text-dark`.
 - **Muted Ink** (`text-muted`): Labels and inactive nav items. Dark counterpart: `text-muted-dark`.
@@ -229,7 +232,7 @@ Depth comes from layering first, shadow second. The page (cream) is the base; li
 ### Elevation Scale
 
 - **Level 0, page** (`--bg`): No shadow.
-- **Level 1, card** (`--shadow-1`: light `0 1px 2px rgb(0 0 0 / 0.04)`; dark `0 1px 2px rgb(0 0 0 / 0.2)`): `Card` and the shared `.list-card` list container (surface fill, hairline border, 0.875rem radius, clipped overflow, last row without divider). Used for list pages, dashboard sections and the merged balance card (total balance plus month balance).
+- **Level 1, card** (`--shadow-1`: light `0 1px 2px rgb(0 0 0 / 0.04)`; dark `0 1px 2px rgb(0 0 0 / 0.2)`): `Card` and `ListCard` (surface fill, hairline border, 0.875rem radius, clipped overflow). Used for list pages, dashboard sections and the merged balance card (total balance plus month balance).
 - **Level 2, raised** (`--shadow-2`: light `0 2px 8px rgb(0 0 0 / 0.12)`; dark `0 2px 8px rgb(0 0 0 / 0.35)` plus a brighter inset highlight): Modal layers: the `BottomDrawer` and `ConfirmDialog`, both stock shadcn parts with the popover fill.
 - **Lift** (`--shadow-lift`: light `0 6px 16px rgb(0 0 0 / 0.2)`; dark `0 6px 16px rgb(0 0 0 / 0.6)` plus a 1px border-token edge): The center "+" FAB only; it stays the most prominent element in the bottom nav.
 
@@ -243,7 +246,7 @@ An `Item` row (a link or button via the `child` snippet) fills with `muted` on h
 
 ### Named Rules
 
-**The Layering Rule.** Group rows and sections into a surface card (`Card` or `.list-card`); do not leave lists directly on the page background. Use the lowest elevation level that separates the layer.
+**The Layering Rule.** Group rows and sections into a surface card (`Card` or `ListCard`); do not leave lists directly on the page background. Use the lowest elevation level that separates the layer.
 
 ## Shapes
 
@@ -256,7 +259,7 @@ Shared components live in `src/lib/components/`.
 ### Buttons
 
 - **Source:** the generated shadcn-svelte `Button` (`$lib/components/ui/button`), used with its stock styling. It renders an `<a>` when given an `href`, otherwise a `<button>` (type `button` unless set).
-- **Shape (default size):** 0.625rem radius, 2rem tall, 0.625rem horizontal padding, 0.875rem weight-500 label, inline-flex. Full width is `class="w-full"`.
+- **Shape (default size):** 0.625rem radius, 2.75rem tall (`--tap-target`, one height on every form, detail and auth screen), 0.625rem horizontal padding, 0.875rem weight-500 label, inline-flex. Full width is `class="w-full"`.
 - **`default`:** Primary fill, on-primary text; hover fills primary at 80%. Used for the main action.
 - **`outline`:** Page-background fill, hairline border, text colour; hover fills `muted`. Used for secondary actions (Cancelar, Archivar, filter trigger).
 - **`destructive`:** Tinted negative fill (10%), negative text. Used for delete triggers.
@@ -268,12 +271,12 @@ Shared components live in `src/lib/components/`.
 - **Source:** the generated shadcn-svelte `Card` (`$lib/components/ui/card`) with stock styling: `Card.Root` plus `Card.Content` (and `Header`/`Title` where a heading is part of the card).
 - **Corner Style:** 0.875rem (`rounded-xl`, equal to `--radius-card`).
 - **Background:** `card` (surface) with a 1px foreground 10% ring and no shadow.
-- **List container:** `.list-card` (global class in `app.css`) on a `<ul>` of `Item` rows; the shared way to group rows.
+- **List container:** `ListCard` (`Item.Group` with the card border, radius and shadow) holding `ListRow`s; the one way to group rows.
 - **Internal Padding:** 1rem (`--card-spacing`) vertically on the root and horizontally on `Card.Content`. Cards that lay out their own sections use `Card.Root` with `class="gap-0 overflow-hidden py-0"` and no `Card.Content`.
 
 ### Inputs / Fields
 
-- **App forms:** The same generated shadcn parts with stock styling as the auth forms, stacked (label above control): `Field.Field` with `Field.Label for=` and `Input` (text, number and date), `InputGroup` for the amount (currency symbol as an inline-start addon) and the FilterBar search (search icon addon, `aria-label`), and `NativeSelect` (+ `NativeSelect.Option`) for native selects. Errors are `Field.Error` (`role="alert"`, linked by `aria-describedby`); fields inside the list cards of the account, category, movement and recurring forms sit in a `Field.Field` with `p-4`. `OptionPicker` keeps its custom styling until migrated. Checkboxes are the generated shadcn `Checkbox` next to a `Field.Label for=` in a horizontal `Field.Field`; checkboxes and radios are Bits UI buttons and need JavaScript (no no-JS fallback, except the `OptionPicker` rows).
+- **App forms:** The same generated shadcn parts with stock styling as the auth forms, stacked (label above control): `Field.Field` with `Field.Label for=` and `Input` (text, number and date), `InputGroup` for the amount (currency symbol as an inline-start addon) and the FilterBar search (search icon addon, `aria-label`), and `NativeSelect` (+ `NativeSelect.Option`) for native selects. Errors are `Field.Error` (`role="alert"`, linked by `aria-describedby`); fields inside the list cards of the account, category, movement and recurring forms sit in a `Field.Field` with `p-4`. `OptionPicker` keeps its custom styling until migrated. Filter checkboxes are the generated shadcn `Checkbox` next to a `Field.Label for=` in a horizontal `Field.Field`; form toggles are `SwitchRow` (below); checkboxes, switches and radios are Bits UI buttons and need JavaScript (no no-JS fallback, except the `OptionPicker` rows).
 - **Auth forms:** Use the generated shadcn parts with stock styling: `Field.Field` per field with `Field.Label for=`, `Input` (2rem tall, `border-input`, 3px ring on focus), `Field.Error` (`role="alert"`, destructive text, linked by `aria-describedby`) and `Field.Description` for hints. `PasswordInput` is an `InputGroup` with an inline-end ghost icon `InputGroup.Button` toggling visibility (`aria-pressed`).
 
 ### Segmented Control
@@ -284,18 +287,23 @@ A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) built on the ge
 
 - **PageHeader:** The sticky top bar of every app screen: a row `[back] [eyebrow + h1] [bell] [avatar]`. Props `title`, optional `eyebrow` (defaults to today's date in Buenos Aires, es-AR, from the `(app)` layout load) and optional `back` (`{ href, label }`: a stock ghost icon `Button` with href and a chevron-left; `label` is its aria-label; `close` is the same with an X). The h1 is 1.75rem, 500, line-height 1.2 under a muted 0.8125rem eyebrow; it wraps and is never truncated, and the bell and avatar links stay fixed 2.75rem (the title wraps below them at large text). The bell is a 2.75rem `--surface` square with a hairline border and `--radius`, linking to `/notifications` (2px primary ring on that page); its badge is a stock `Badge` with the alert count as text (capped at "9+") straddling its top-right corner, and is `aria-hidden` because the link's label already says "Avisos: N" (plain "Avisos" at zero). The bar is sticky only on viewports at least 40em tall (see Layout), uses `--bg` at 92% with a 12px backdrop blur, `space-4` top and `space-3` bottom padding, and a transparent bottom hairline that turns `--border` once the page scrolls (CSS scroll-driven animation inside `@supports (animation-timeline: scroll())`, no JS). The avatar is a stock `Avatar` (`Avatar.Fallback` with the user's initials) inside a 2.75rem link to Profile (`aria-label="Perfil"`, 2px primary ring on the current page); it is hidden when the layout data is missing (error page). Back rules: bottom-nav tabs have none; every other screen links up to a fixed parent; New movement returns to the in-app screen it was opened from (fallback Inicio).
 - **Secondary link row:** "Ver movimientos" on account and category detail is a single `Item` row with a trailing chevron-right in a surface container (hairline border, `--shadow-1`), not an underlined text link.
-- **Add row (`.add-row`):** A dashed-border, `radius-card` link row (min 3.5rem tall, muted 0.875rem weight-500 text with a plus icon) after a list ("+ Nueva cuenta", "+ Nueva categoría"); hover turns the text to the text colour and the border primary. It replaces header action buttons.
+- **SwitchRow:** A horizontal `Field.Field` (min 3.5rem, `px-4`) with the `Field.Label` filling the row and the stock shadcn `Switch` (Bits UI) at its end; posts `name=value` (default `on`) when on. Sits as an `<li>` in a fields card ("Repetir cada mes") or alone in a `Card` ("Usar este plan todos los meses").
+- **FormActions:** The bottom bar of every form: Cancelar (outline) and the primary action (submit, `submitHref` link or a `primary` snippet) side by side at 50/50, 2.75rem tall, pinned to the viewport bottom unless `sticky` is false.
+- **DetailActions:** The action stack of detail screens: the primary action full width, then Editar (outline) and a secondary action 50/50 (Editar alone is full width), then the destructive action full width (`ConfirmDialog` with `triggerClass="w-full"`).
+- **ActionLink:** The underlined text-colour link for section actions ("Agregar", "Ver todos"), 0.875rem weight 500, 2.75rem tall. It replaces the old add-row cards: lists get "Agregar" under their `SectionHeader` (Cuentas and Categorías, right under the `FilterBar`).
 - **Detail tone:** Amounts never show a visible "+" or "-"; colour carries the direction: income `positive`, outcome `negative`, transfer `transfer`. Category net is shown as a cash flow (spend `negative`, net income `positive`).
 - **Destructive cue:** The confirm-delete trigger ("Eliminar") in the detail actions uses the `negative` text colour and a 50% `negative` border; other actions stay neutral.
 - **FilterBar:** Wrapping flex form with `space-2` by `space-3` gaps. The search field takes the full first row (search icon inset left); a segmented control or filters disclosure takes its own full row; a checkbox label stays compact (auto width) and shares a row when it fits. The form submits on native `change` and on a click of any checkbox or radio inside it (Bits controls fire no `change`). On the movements list the filters `summary` is an inline pill (surface fill, hairline border, 2.75rem tall).
 - **List day headings:** Movements group by day under a small heading (0.875rem, 600, muted text, `space-4` inline padding) rather than a body-size title.
 - **CurrencyTabs:** `ARS | USD` `SegmentedControl` in a form posting to `/currency` (cookie `currency`); a failure shows a `role="alert"` line under it, and focus returns to the checked radio after switching.
-- **Money:** An amount with the decimals dimmed for USD only (ARS has no decimal part; 70% opacity, text-colour amounts only, to keep 4.5:1; coloured decimals stay full), `tabular-nums`, the number breaks only after the symbol gap and at thousands separators (`<wbr>` after each `.`), never inside a digit group; no visible sign: `kind` colours it (`income` positive, `outcome` negative, `transfer` transfer colour, `plain` text colour, or negative when the amount is below zero); a visually hidden "-"/"+" keeps the direction for screen readers. Font size and weight come from the parent.
-- **MovementRow:** An `Item` row with a leading neutral 2.25rem muted square in `Item.Media` (description initial, or the transfer icon), `Item.Title`, `Item.Description` and a trailing `Money` (`.row-amount`).
-- **Section head:** `.section-head` (global): a wrapping flex row, heading left and a link or `Money` total right, baseline-aligned.
+- **Money:** An amount with the decimals dimmed for USD only (ARS has no decimal part; 70% opacity, text-colour amounts only, to keep 4.5:1; coloured decimals stay full), `tabular-nums`, the number breaks only after the symbol gap and at thousands separators (`<wbr>` after each `.`), never inside a digit group; no visible sign: `tone` colours it. `stock` (default; balances, totals) is the text colour, negative when below zero. `flow` (movements) follows `direction`: `income` positive, `outcome` negative, `transfer` the text colour (the `transfer` colour stays for transfer tiles and icons); without `direction` it follows the sign. Zero is always the text colour. A visually hidden "-"/"+" keeps the direction for screen readers. Font size and weight come from the parent. `HeroAmount` takes the same `tone`/`direction`.
+- **ListRow / ListCard:** One row component for every list. `ListRow` is a `listitem` wrapping a stock `Item.Root` (link via `href`, `submit` button or plain block) with: an optional `lead` (`IconBadge`, fixed 2.25rem, icon or letter, neutral when no colour); line 1 `Item.Title` (truncated) with the `value` (`.row-amount`, display font, top-aligned, right) beside it; line 2 `Item.Description` with a `StatusPill`, then `.row-meta` (truncating) and `metaEnd`; an optional full-width `footer` (a `Meter`); `chevron` for navigation rows; `dimmed` mutes the lead, title and value (archived accounts and categories, inactive rules). The status pill never sits on line 1, so it cannot overlap an amount. `MovementRow` is a `ListRow` (letter or transfer lead, date in meta, category and account in `metaEnd`, `Money tone="flow"`).
+- **Meter:** A 0.375rem track (`muted`) with a fill in a swatch colour; with a `label` it is `role="meter"` with `aria-valuetext` (limits). Used by plan limits and the Inicio category rows.
+- **StatusPill:** A `Badge` with a 14% tint of the tone colour as fill and the tone colour as text: `ok` (positive, check), `warning` (amber, clock), `bad` (negative, alert circle), `neutral` (muted fill, muted text, no icon). Tone maps live in `$lib/status` (`PLAN_TONE`, `DUE_TONE`); the label is always text.
+- **SectionHeader / CardEyebrow:** `SectionHeader` (`.section-head`) is a wrapping flex row: the title (1.25rem, 600) or, for `variant="group"`, a `CardEyebrow` h2; an `aside` (group total) on the same line at the right; an `action` (`ActionLink`) on its own line under the title. `CardEyebrow` is the single small uppercase muted label (0.75rem, 600, 0.06em tracking) used above figures and groups.
 - **Profile:** One `Card` groups the user name and email, an "Administrar" link section (a `nav` with the "Cuentas" and "Categorías" links: 2.75rem tall, text colour, weight 500), the theme control and the "Cerrar sesión" button as separate sections.
 - **Reportes charts:** The 6-month income and outcome bars and the category donut are `aria-hidden` SVG/CSS; their text equivalents are the per-month link `aria-label` ("{mes}: ingresos X, gastos Y") and the visible slice list (name, %, amount). Tokens: income bar `--positive`, outcome bar `--negative` (income always left, outcome right, as in the legend, so colour is not the only cue), slices `--swatch-green`, `--swatch-orange`, `--swatch-blue`, `--swatch-plum` and `--text-muted` for "Otros". Bars keep full opacity (non-text 3:1); the selected month has a bold label and `aria-current="true"`. The bar row bleeds to the card edges so each month link is at least 2.75rem wide at 320px.
-- **Plan rule row (`/plan`):** A list card (surface, hairline border, `radius-card`) of rows; each row is a link (min 2.75rem, `Item` padding) with the description (0.875rem, 500), a muted 0.75rem line "status · Día N · account" and a trailing `Money`. An unpaid active rule adds a separate "Registrar" link (text colour, underlined, 600, 2.75rem tall) that wraps under the row at large text sizes. Status is always text, never colour alone.
+- **Plan rule row (`/plan`):** A `ListRow` in a `ListCard`, a link to the rule detail (where "Registrar" lives): letter lead, description, `Money` value, a `StatusPill` (`DUE_TONE`: paid ok, today warning, overdue bad, upcoming neutral; inactive rules neutral with the reason) and "Día N · account" as meta; inactive rows are `dimmed`. Status is always text, never colour alone.
 - **Empty (shadcn `Empty`):** `Empty.Root > Empty.Header > Empty.Media variant="icon"` (2rem muted rounded square, 1rem icon) plus `Empty.Description` (muted text), centered; action `Button`s sit below it. Full-screen status pages (check email, expired link) wrap `Empty.Root class="min-h-dvh"` in a `main`, with `Empty.Title` as the level-1 heading and the actions in `Empty.Content`.
 
 ### Icon and Wordmark
@@ -325,13 +333,13 @@ Shadcn `RadioGroup`s of round swatches (the icon picker shows the ten account ic
 
 ### Plan Summary and Limit Row
 
-The `/plan` summary is a `Card` with the "Disponible · {mes}" heading, a hero `Money`, a status pill (hairline `--border-strong`, `negative` border and text when over) whose label is always text, and a `<dl>` of figures (muted term, 500 value, a hairline above the "Para gastar" and "Disponible" totals) that wraps at 320px. A limit row sits in a `.list-card`: name, "{gastado} de {límite}", a text flag ("Vas rápido", "Te pasaste") and a 0.5rem pill `role="meter"` bar (`--primary` fill, `negative` when over) so state never relies on colour.
+The `/plan` summary is a `Card` with the "Disponible · {mes}" heading, a hero `Money`, a `StatusPill` (`PLAN_TONE`: ok, warning, bad) whose label is always text, and a `<dl>` of figures (muted term, 500 value, a hairline above the "Para gastar" and "Disponible" totals) that wraps at 320px. A limit row is a `ListRow` in a `ListCard`: name, a `StatusPill` flag ("Vas rápido" warning, "Te pasaste" bad), "{gastado} de {límite}" as the value and a `Meter` footer, so state never relies on colour.
 
-The Inicio "Disponible para gastar" card reuses this pattern in compact form: a `Card` after the balance card (the hero balance stays the one `--font-size-hero` figure), an h2, the amount at `--font-size-xl`, the same text status pill, the muted "por día" line and a 2.75rem "Ver plan" link. With no plan it shows the two lines of copy and a "Crear plan" `Button`.
+The Inicio "Disponible para gastar" card reuses this pattern in compact form: a `Card` after the balance card (the hero balance stays the one `--font-size-hero` figure), an h2, the amount at `--font-size-xl`, the same `StatusPill`, the muted "por día" line and a 2.75rem "Ver plan" link. With no plan it shows the two lines of copy and a "Crear plan" `Button`.
 
 ### Wizard Steps
 
-The plan setup is one form with four sections. With JS a step list (3px top border: `--primary` when done or current) and Siguiente / Atrás show one section at a time and focus its heading; without JS every section shows and one "Guardar plan" submits. Rows are `.list-card` check rows (at least 3rem) or bordered fieldsets; two-field pairs use `auto-fit` columns so they stack at 320px and 200% text.
+The plan setup is one form with four sections. With JS a step list (3px top border: `--primary` when done or current) and Siguiente / Atrás show one section at a time and focus its heading; without JS every section shows and one "Guardar plan" submits. Rows are `ListRow`s, a `SwitchRow` in a `Card` or bordered fieldsets; two-field pairs use `auto-fit` columns so they stack at 320px and 200% text.
 
 ### Nav FAB
 
@@ -344,7 +352,7 @@ A 3.25rem primary square with the 0.875rem card radius and a 24px plus icon, cen
 - **Do** use the theme tokens for every color, radius and spacing value.
 - **Do** put `tabular-nums` on every amount; never show "+" or "-": income is `positive` (green), outcome `negative` (red), transfer `transfer` (blue).
 - **Do** use `--radius` for buttons and fields and `--radius-card` for cards and the FAB.
-- **Do** group lists and sections into surface cards (`Card` or `.list-card`) and pick the lowest elevation token that works; keep `--shadow-lift` for the FAB.
+- **Do** group lists and sections into surface cards (`Card` or `ListCard`) and pick the lowest elevation token that works; keep `--shadow-lift` for the FAB.
 - **Do** keep primary for actions, selection and focus; use `border-strong` on control edges.
 
 ### Don't:

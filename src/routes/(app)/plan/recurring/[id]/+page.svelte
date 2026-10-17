@@ -4,6 +4,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import DetailActions from '$lib/components/DetailActions.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import Money from '$lib/components/Money.svelte';
@@ -29,7 +30,12 @@
 				<div class="hero">
 					<IconBadge icon={data.category.icon} color={data.category.color} size="3rem" />
 					<p class="value">
-						<Money cents={data.amount} {currency} kind={income ? 'income' : 'outcome'} />
+						<Money
+							cents={data.amount}
+							{currency}
+							tone="flow"
+							direction={income ? 'income' : 'outcome'}
+						/>
 					</p>
 					<p class="type">{income ? 'Ingreso fijo' : 'Pago fijo'}</p>
 				</div>
@@ -62,34 +68,37 @@
 		</div>
 	</dl>
 
-	{#if data.inactiveReason}
-		<p class="muted">No se puede registrar.</p>
-	{:else}
-		<Button class="w-full" href={resolve(`/movements/new?recurring=${data.id}`)}>
-			{income ? 'Registrar ingreso' : 'Registrar pago'}
-		</Button>
-	{/if}
-
-	<div class="actions">
-		<div class="buttons">
-			<Button href={resolve(`/plan/recurring/${data.id}/edit${wizardQuery}`)}>Editar</Button>
+	<DetailActions editHref={resolve(`/plan/recurring/${data.id}/edit${wizardQuery}`)}>
+		{#snippet primary()}
+			{#if data.inactiveReason}
+				<p class="muted">No se puede registrar.</p>
+			{:else}
+				<Button class="w-full" href={resolve(`/movements/new?recurring=${data.id}`)}>
+					{income ? 'Registrar ingreso' : 'Registrar pago'}
+				</Button>
+			{/if}
+		{/snippet}
+		{#snippet secondary()}
 			<form method="POST" action="?/archive{wizardQuery.replace('?', '&')}" use:enhance>
 				<Button type="submit" variant="outline" class="w-full">
 					{data.archived ? 'Activar' : 'Desactivar'}
 				</Button>
 			</form>
-		</div>
-		<ConfirmDialog
-			triggerLabel="Eliminar"
-			triggerVariant="destructive"
-			title="¿Eliminar este movimiento fijo?"
-			confirmLabel="Eliminar"
-			action="?/delete{wizardQuery.replace('?', '&')}"
-		>
-			Los movimientos ya registrados se mantienen.
-		</ConfirmDialog>
-		<p class="muted">Desactivarlo lo saca del plan sin borrar nada. Podés activarlo de nuevo.</p>
-	</div>
+		{/snippet}
+		{#snippet destructive()}
+			<ConfirmDialog
+				triggerLabel="Eliminar"
+				triggerVariant="destructive"
+				triggerClass="w-full"
+				title="¿Eliminar este movimiento fijo?"
+				confirmLabel="Eliminar"
+				action="?/delete{wizardQuery.replace('?', '&')}"
+			>
+				Los movimientos ya registrados se mantienen.
+			</ConfirmDialog>
+		{/snippet}
+	</DetailActions>
+	<p class="muted">Desactivarlo lo saca del plan sin borrar nada. Podés activarlo de nuevo.</p>
 </div>
 
 <style>
@@ -165,22 +174,5 @@
 		color: var(--text-muted);
 		font-size: var(--font-size-sm);
 		text-align: center;
-	}
-
-	.actions {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-	}
-
-	/* Editar + Desactivar side by side, equal width. */
-	.buttons {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: var(--space-3);
-	}
-
-	.buttons > :global(*) {
-		width: 100%;
 	}
 </style>

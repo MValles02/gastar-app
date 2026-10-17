@@ -2,12 +2,15 @@
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
-	import * as Field from '$lib/components/ui/field/index.js';
-	import * as Item from '$lib/components/ui/item/index.js';
+	import FormActions from '$lib/components/FormActions.svelte';
+	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
+	import ListCard from '$lib/components/ListCard.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SwitchRow from '$lib/components/SwitchRow.svelte';
+	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import { WIZARD_STEPS } from '$lib/plan-wizard';
 	import LimitList from '../LimitList.svelte';
 	import RecurringRow from '../RecurringRow.svelte';
@@ -23,7 +26,7 @@
 		'Límites por categoría',
 		'Tu plan'
 	];
-	const stepHref = (n: number) => resolve(`/plan/setup?step=${n}`);
+	const stepHref = (n: number) => `/plan/setup?step=${n}`;
 </script>
 
 <svelte:head>
@@ -33,31 +36,16 @@
 <PageHeader title="Crear plan" close={{ href: resolve('/plan'), label: 'Cerrar' }} />
 
 {#snippet bar(submitLabel: string, nextHref?: string)}
-	<div class="bar">
-		{#if data.step === 1}
-			<Button href={resolve('/plan')} variant="outline" class="h-auto min-h-11 min-w-0 flex-1"
-				>Cancelar</Button
-			>
-		{:else}
-			<Button
-				href={stepHref(data.step - 1)}
-				variant="outline"
-				class="h-auto min-h-11 min-w-0 flex-1">Atrás</Button
-			>
-		{/if}
-		{#if nextHref}
-			<Button href={nextHref} class="h-auto min-h-11 min-w-0 flex-[2]">{submitLabel}</Button>
-		{:else}
-			<Button type="submit" class="h-auto min-h-11 min-w-0 flex-[2]">{submitLabel}</Button>
-		{/if}
-	</div>
+	<FormActions
+		cancelHref={data.step === 1 ? '/plan' : stepHref(data.step - 1)}
+		cancelLabel={data.step === 1 ? 'Cancelar' : 'Atrás'}
+		{submitLabel}
+		submitHref={nextHref}
+	/>
 {/snippet}
 
 {#snippet head(add: string)}
-	<div class="section-head">
-		<h2>{titles[data.step - 1]}</h2>
-		<a class="add" href={resolve(add as '/')}>Agregar</a>
-	</div>
+	<SectionHeader title={titles[data.step - 1]} action={{ href: add }} />
 {/snippet}
 
 <div class="wizard">
@@ -72,7 +60,7 @@
 			</li>
 		{/each}
 	</ol>
-	<p class="eyebrow">Paso {data.step} de {WIZARD_STEPS}</p>
+	<CardEyebrow>Paso {data.step} de {WIZARD_STEPS}</CardEyebrow>
 
 	{#if data.step <= 2}
 		{@const income = data.step === 1}
@@ -87,25 +75,21 @@
 				: 'Lo que pagás todos los meses: alquiler, servicios, suscripciones. Se descuenta de entrada.'}
 		</p>
 		{#if data.active.length}
-			<Item.Group
-				class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-			>
+			<ListCard>
 				{#each data.active as r (r.id)}
 					<RecurringRow row={r} currency={data.currency} wizard={data.step} />
 				{/each}
-			</Item.Group>
+			</ListCard>
 		{:else}
 			<p class="muted">{income ? 'Sin ingresos fijos.' : 'Sin pagos fijos.'}</p>
 		{/if}
 		{#if data.inactive.length}
 			<h3>Inactivos</h3>
-			<Item.Group
-				class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-			>
+			<ListCard>
 				{#each data.inactive as r (r.id)}
 					<RecurringRow row={r} currency={data.currency} wizard={data.step} />
 				{/each}
-			</Item.Group>
+			</ListCard>
 		{/if}
 		{@render bar('Siguiente', stepHref(data.step + 1))}
 	{:else if data.step === 3}
@@ -138,11 +122,11 @@
 		<dl class="detail-card equation">
 			<div>
 				<dt>Ingresos</dt>
-				<dd><Money cents={s.income} currency={data.currency} kind="income" /></dd>
+				<dd><Money cents={s.income} currency={data.currency} tone="flow" direction="income" /></dd>
 			</div>
 			<div>
 				<dt>Pagos fijos</dt>
-				<dd><Money cents={-s.bills} currency={data.currency} kind="outcome" /></dd>
+				<dd><Money cents={-s.bills} currency={data.currency} tone="flow" direction="outcome" /></dd>
 			</div>
 			<div>
 				<dt>Ahorro</dt>
@@ -160,10 +144,14 @@
 			</p>
 		{/if}
 		<form method="POST" action="?/finish" use:enhance class="wizard">
-			<Field.Field orientation="horizontal" class="min-h-11">
-				<Checkbox id="repeat" name="repeat" value="on" checked={data.repeats} />
-				<Field.Label for="repeat">Usar este plan todos los meses</Field.Label>
-			</Field.Field>
+			<Card.Root class="gap-0 py-0">
+				<SwitchRow
+					id="repeat"
+					name="repeat"
+					label="Usar este plan todos los meses"
+					checked={data.repeats}
+				/>
+			</Card.Root>
 			{@render bar('Guardar plan')}
 		</form>
 	{/if}
@@ -176,14 +164,6 @@
 		gap: var(--space-4);
 	}
 
-	.eyebrow {
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		color: var(--text-muted);
-	}
-
 	h2 {
 		font-size: var(--font-size-lg);
 		font-weight: 600;
@@ -192,15 +172,6 @@
 	h3 {
 		font-size: var(--font-size-sm);
 		font-weight: 600;
-	}
-
-	.add {
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--tap-target);
-		color: var(--text);
-		font-weight: 500;
-		text-decoration: underline;
 	}
 
 	/* Five-bar progress in the text colour (selection is primary, progress is not). */
@@ -277,19 +248,5 @@
 		padding-top: var(--space-2);
 		border-top: 1px solid var(--border);
 		font-weight: 600;
-	}
-
-	/* Sticky bar: full-bleed, pinned to the bottom of the viewport (no tab bar on this screen). */
-	.bar {
-		display: flex;
-		gap: var(--space-3);
-		position: sticky;
-		bottom: 0;
-		z-index: 2;
-		margin-inline: calc(var(--gutter, var(--space-5)) * -1);
-		padding: var(--space-3) var(--gutter, var(--space-5))
-			calc(var(--space-3) + env(safe-area-inset-bottom));
-		background: var(--bg);
-		box-shadow: 0 -1px 0 var(--border);
 	}
 </style>

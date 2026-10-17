@@ -7,6 +7,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import MonthNav from '$lib/components/MonthNav.svelte';
 	import Money from '$lib/components/Money.svelte';
+	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { formatMoney } from '$lib/money';
@@ -69,21 +70,25 @@
 			<Card.Root class="gap-0 overflow-hidden py-0">
 				<dl class="totals">
 					<div class="box">
-						<dt class="eyebrow">Resultado</dt>
-						<HeroAmount
-							as="dd"
-							cents={data.net}
-							currency={data.currency}
-							kind={data.net > 0 ? 'income' : 'plain'}
-						/>
+						<CardEyebrow as="dt">Resultado</CardEyebrow>
+						<HeroAmount as="dd" cents={data.net} currency={data.currency} tone="flow" />
 					</div>
 					<div class="kv">
 						<dt class="k">Ingresos</dt>
-						<dd class="am"><Money cents={data.income} currency={data.currency} kind="income" /></dd>
+						<dd class="am">
+							<Money cents={data.income} currency={data.currency} tone="flow" direction="income" />
+						</dd>
 					</div>
 					<div class="kv">
 						<dt class="k">Gastos</dt>
-						<dd class="am"><Money cents={neg(data.outcome)} currency={data.currency} /></dd>
+						<dd class="am">
+							<Money
+								cents={neg(data.outcome)}
+								currency={data.currency}
+								tone="flow"
+								direction="outcome"
+							/>
+						</dd>
 					</div>
 				</dl>
 			</Card.Root>
@@ -164,7 +169,7 @@
 			<Card.Root>
 				<Card.Content>
 					<div class="fact-card">
-						<p class="eyebrow">Por día</p>
+						<CardEyebrow>Por día</CardEyebrow>
 						<p class="fact"><Money cents={data.dailyAverage} currency={data.currency} /></p>
 						<p class="label">{data.days} {data.days === 1 ? 'día' : 'días'}</p>
 					</div>
@@ -175,7 +180,7 @@
 					<Card.Root>
 						<Card.Content>
 							<div class="fact-card">
-								<p class="eyebrow">Gasto más grande</p>
+								<CardEyebrow>Gasto más grande</CardEyebrow>
 								<Icon name="chevron-right" size="1rem" />
 								<p class="fact">
 									<Money cents={neg(data.biggest.amount)} currency={data.currency} />
@@ -211,14 +216,6 @@
 	.label {
 		color: var(--text-muted);
 		font-size: var(--font-size-sm);
-	}
-
-	.eyebrow {
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-muted);
 	}
 
 	.month-nav {
@@ -463,7 +460,7 @@
 	}
 
 	/* Scales with the card so amounts never break; both cards share the size. */
-	.fact-card .eyebrow {
+	.fact-card :global(.eyebrow) {
 		padding-right: 1.25rem;
 		font-size: clamp(0.625rem, 7cqi, var(--font-size-xs));
 		white-space: nowrap;

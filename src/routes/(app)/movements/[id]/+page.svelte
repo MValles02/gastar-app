@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { swatchVar, toCategoryIconKey, toIconKey, toSwatchKey } from '$lib/appearance';
-	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import DetailActions from '$lib/components/DetailActions.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -50,7 +50,8 @@
 						<Money
 							cents={m.type === 'outcome' ? -m.amount : m.amount}
 							currency={m.accountCurrency}
-							kind={m.type}
+							tone="flow"
+							direction={m.type}
 						/>
 					</p>
 					<p class="type">{typeLabel}</p>
@@ -118,18 +119,20 @@
 		{/if}
 	</dl>
 
-	<div class="actions">
-		<Button href={resolve(`/movements/${data.movement.id}/edit`)}>Editar</Button>
-		<ConfirmDialog
-			triggerLabel="Eliminar"
-			triggerVariant="destructive"
-			title="¿Eliminar movimiento?"
-			confirmLabel="Eliminar"
-			action="?/delete"
-		>
-			No se puede deshacer.
-		</ConfirmDialog>
-	</div>
+	<DetailActions editHref={resolve(`/movements/${data.movement.id}/edit`)}>
+		{#snippet destructive()}
+			<ConfirmDialog
+				triggerLabel="Eliminar"
+				triggerVariant="destructive"
+				triggerClass="w-full"
+				title="¿Eliminar movimiento?"
+				confirmLabel="Eliminar"
+				action="?/delete"
+			>
+				No se puede deshacer.
+			</ConfirmDialog>
+		{/snippet}
+	</DetailActions>
 </div>
 
 <style>
@@ -215,16 +218,5 @@
 		height: 0.75rem;
 		border-radius: 50%;
 		background: var(--tone);
-	}
-
-	/* Editar + Eliminar side by side, equal width (ConfirmDialog renders its own trigger button). */
-	.actions {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: var(--space-3);
-	}
-
-	.actions > :global(*) {
-		width: 100%;
 	}
 </style>

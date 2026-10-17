@@ -41,6 +41,7 @@
 	--color-accent-foreground: var(--accent-foreground);
 	--color-destructive: var(--destructive);
 	--color-destructive-foreground: var(--destructive-foreground);
+	--color-warning: var(--warning);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
@@ -216,6 +217,7 @@
 	--on-primary: light-dark(oklch(0.979 0.021 166.113), oklch(0.979 0.021 166.113));
 	--positive: light-dark(#2e6b34, #8bd68f);
 	--negative: light-dark(oklch(0.577 0.245 27.325), oklch(0.704 0.191 22.216));
+	--warning: light-dark(oklch(0.555 0.163 48.998), oklch(0.879 0.169 91.605));
 	--transfer: light-dark(#2c5d8a, #8db8e6);
 	--segment-selected: light-dark(oklch(0.98 0.012 85), oklch(0.374 0.01 67.558));
 	--scrim: light-dark(rgb(12 10 9 / 0.42), rgb(0 0 0 / 0.62));
@@ -325,21 +327,4 @@
 	border: 1px solid var(--border);
 	border-radius: var(--radius-card);
 	box-shadow: var(--shadow-1);
-}
-
-/* Section heading with a trailing item (link or total). */
-.section-head {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: var(--space-2);
-	margin-bottom: var(--space-2);
-	min-width: 0;
-}
-
-.row-amount {
-	display: block;
-	text-align: end;
-	font-weight: 500;
 }
