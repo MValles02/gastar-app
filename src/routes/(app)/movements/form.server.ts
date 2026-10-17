@@ -1,4 +1,5 @@
 import { fail } from '@sveltejs/kit';
+import type { Currency } from '$lib/money';
 import { toCategoryIconKey, toIconKey, toSwatchKey } from '$lib/appearance';
 import { getAccount, listAccounts } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
@@ -25,10 +26,12 @@ export const keptRefs = (m: {
 	destinationAccountId: string | null;
 	categoryId: string | null;
 	amount: number;
+	accountCurrency: Currency;
 }): KeptRefs => ({
 	accountIds: m.destinationAccountId ? [m.accountId, m.destinationAccountId] : [m.accountId],
 	categoryId: m.categoryId,
-	amount: m.amount
+	// Only an ARS amount is kept: a USD amount with cents must not skip the check on an ARS account.
+	amount: m.accountCurrency === 'ARS' ? m.amount : null
 });
 
 /** Picker items: active accounts and categories, plus the archived ones in `keep` (edit). */

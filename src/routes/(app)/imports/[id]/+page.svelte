@@ -159,6 +159,9 @@
 								Necesitás otra cuenta en pesos.
 								<a href={resolve('/accounts/new')}>Crear cuenta</a>
 							</p>
+							{#if errors.counterAccountId}<p class="error pad" role="alert">
+									{errors.counterAccountId}
+								</p>{/if}
 						{/snippet}
 					</OptionPicker>
 				</li>
@@ -183,6 +186,7 @@
 								Todavía no tenés categorías.
 								<a href={resolve('/categories/new')}>Crear categoría</a>
 							</p>
+							{#if errors.categoryId}<p class="error pad" role="alert">{errors.categoryId}</p>{/if}
 						{/snippet}
 					</OptionPicker>
 				</li>
@@ -286,6 +290,10 @@
 
 	.hint.pad {
 		padding: var(--space-3) var(--space-4);
+	}
+
+	.error.pad {
+		padding: 0 var(--space-4) var(--space-3);
 	}
 
 	.error {
