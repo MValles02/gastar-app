@@ -1,5 +1,15 @@
 import { expect, test, type Page } from '@playwright/test';
-import { IMPORT_EMAIL, login, OTHER_EMAIL, SEED_EMAIL } from './helpers';
+import {
+	deleteMovements,
+	findMovements,
+	IMPORT_EMAIL,
+	login,
+	MOVEMENT_DETAIL_RE,
+	OTHER_EMAIL,
+	pick,
+	postDelete,
+	SEED_EMAIL
+} from './helpers';
 
 const FAKE = 'http://127.0.0.1:5199';
 const TOKEN = 'TEST-fake-mp-token';
@@ -43,16 +53,51 @@ const accountRow = async () => {
 	return (await page.getByRole('link', { name: /Mercado Pago/ }).textContent())!.trim();
 };
 
+// Letters only, so the digits of the suffix never leak into balance parsing; local DBs are reused.
+const sfx = Date.now()
+	.toString()
+	.replace(/\d/g, (d) => 'abcdefghij'[Number(d)]);
+const CATEGORY = `Cat MP ${sfx}`;
+const SECOND = `Cuenta MP ${sfx}`;
+const AMIGA_DESC = `Pago amiga ${sfx}`;
+const PAYOUT_DESC = `Retiro MP ${sfx}`;
+let origin = '';
+let categoryUrl = '';
+let secondUrl = '';
+let pendingId = '';
+
+/** Rounded whole-peso balance shown on /accounts for the account whose name matches `name`. */
+const balanceOf = async (name: string) => {
+	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	const text = await page.getByRole('link', { name }).locator('.amount').first().textContent();
+	return Number(text!.replace(/[^\d-]/g, ''));
+};
+
+const flash = (text: string) => expect(page.getByText(text)).toBeVisible();
+
+/** Opens the detail of the pending item whose list row contains all `texts`. */
+async function openItem(...texts: string[]) {
+	await page.goto('/imports', { waitUntil: 'networkidle' });
+	let row = rows();
+	for (const t of texts) row = row.filter({ hasText: t });
+	await row.getByRole('link').click();
+	await expect(page).toHaveURL(/\/imports\/[0-9a-f-]{36}$/);
+	// Hydrated: the confirm dialog replaces its no-JS fallback only after mount.
+	await page.waitForLoadState('networkidle');
+}
+
 test.beforeAll(async ({ browser }) => {
 	await fake('/__fake/reset', {});
 	page = await browser.newPage();
 	await login(page, IMPORT_EMAIL);
-	const origin = new URL(page.url()).origin;
+	origin = new URL(page.url()).origin;
 	const res = await page.request.post('/dev/mp-reset', { headers: { origin } });
 	expect(res.status()).toBe(204);
 });
 
 test.afterAll(async () => {
+	for (const d of [AMIGA_DESC, PAYOUT_DESC]) await deleteMovements(page, origin, d);
+	for (const url of [secondUrl, categoryUrl]) if (url) await postDelete(page, origin, url);
 	await page.close();
 });
 
@@ -60,9 +105,9 @@ test('sync fills the inbox and leaves balances alone', async () => {
 	const balance = await accountRow();
 
 	await syncNow(/Última sincronización/);
-	await expect(rows()).toHaveCount(6);
+	await expect(rows()).toHaveCount(7);
 	const main = page.locator('main');
-	await expect(main.getByText('FAKE.AMIGA')).toBeVisible();
+	await expect(main.getByText('FAKE.AMIGA')).toHaveCount(2);
 	await expect(main.getByText('CAFE DE PRUEBA')).toBeVisible();
 	await expect(main.getByText('Ingreso de dinero')).toBeVisible();
 	await expect(main.getByText('Retiro')).toBeVisible();
@@ -72,14 +117,14 @@ test('sync fills the inbox and leaves balances alone', async () => {
 	expect(await accountRow()).toBe(balance);
 
 	await page.goto('/profile', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('6');
+	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('7');
 });
 
 test('a second sync keeps the same items', async () => {
 	const before = await reportRequests();
 	await syncNow(/Última sincronización/);
 	expect(await reportRequests()).toBe(before + 1);
-	await expect(rows()).toHaveCount(6);
+	await expect(rows()).toHaveCount(7);
 });
 
 test('an auth failure shows the sync error', async () => {
@@ -97,11 +142,89 @@ test('every MP call carries the bearer token', async () => {
 	for (const c of all) expect(c.authorization).toBe(`Bearer ${TOKEN}`);
 });
 
+test('approving a payment keeps its exact cents and moves the balance', async () => {
+	await page.goto('/categories/new', { waitUntil: 'networkidle' });
+	await page.locator('input[name="name"]').fill(CATEGORY);
+	await page.getByRole('radio', { name: 'Ingreso' }).check({ force: true });
+	await page.getByRole('button', { name: 'Crear categoría' }).click();
+	await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
+	categoryUrl = page.url();
+	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
+	await page.getByLabel('Nombre').fill(SECOND);
+	await page.getByRole('button', { name: 'Crear cuenta' }).click();
+	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
+	secondUrl = page.url();
+
+	const before = await balanceOf('Mercado Pago');
+	await openItem('FAKE.AMIGA', '$1.235');
+	await expect(page.locator('dd', { hasText: 'FAKE.AMIGA' })).toBeVisible();
+	await expect(page.getByRole('radio', { name: 'Ingreso' })).toBeChecked();
+	await page.locator('input[name="description"]').fill(AMIGA_DESC);
+	await pick(page, 'Categoría', CATEGORY);
+	await page.getByRole('button', { name: 'Aprobar' }).click();
+	await flash('Movimiento aprobado.');
+	await expect(rows().filter({ hasText: '$1.235' })).toHaveCount(0);
+
+	const [href] = await findMovements(page, AMIGA_DESC);
+	expect(href).toMatch(MOVEMENT_DETAIL_RE);
+	await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
+	await expect(page.locator('input[name="amount"]')).toHaveValue('1.234,56');
+
+	// Whole-peso display: the delta of the rounded balances is within a peso of the exact one.
+	expect(Math.abs((await balanceOf('Mercado Pago')) - before - 1234.56)).toBeLessThanOrEqual(1);
+});
+
+test('editing the imported movement keeps its non-whole amount', async () => {
+	const [href] = await findMovements(page, AMIGA_DESC);
+	await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
+	await page.getByRole('button', { name: 'Guardar cambios' }).click();
+	await expect(page).toHaveURL(MOVEMENT_DETAIL_RE);
+	await expect(page.getByText('Los montos en pesos van sin decimales.')).toHaveCount(0);
+});
+
+test('a learned rule suggests the category for the next item', async () => {
+	await page.goto('/imports', { waitUntil: 'networkidle' });
+	const row = rows().filter({ hasText: 'FAKE.AMIGA' });
+	await expect(row).toHaveCount(1);
+	await expect(row).toContainText(`Sugerido: ${CATEGORY}`);
+	await row.getByRole('link').click();
+	pendingId = new URL(page.url()).pathname.split('/').pop()!;
+	await expect(page.locator('input[name="description"]')).toHaveValue(AMIGA_DESC);
+	await expect(page.getByRole('radio', { name: 'Ingreso' })).toBeChecked();
+	await expect(page.getByRole('button', { name: /Categoría/ })).toContainText(CATEGORY);
+});
+
+test('discarding an item removes it for good', async () => {
+	await openItem('CAFE DE PRUEBA');
+	await page.getByRole('button', { name: 'Descartar' }).click();
+	await page.getByRole('alertdialog').getByRole('button', { name: 'Descartar' }).click();
+	await flash('Movimiento descartado.');
+	await expect(rows().filter({ hasText: 'CAFE DE PRUEBA' })).toHaveCount(0);
+
+	await syncNow(/Última sincronización/);
+	await expect(rows().filter({ hasText: 'CAFE DE PRUEBA' })).toHaveCount(0);
+	await expect(rows().filter({ hasText: '$1.235' })).toHaveCount(0);
+});
+
+test('approving a payout as a transfer moves both balances', async () => {
+	const [mpBefore, secondBefore] = [await balanceOf('Mercado Pago'), await balanceOf(SECOND)];
+	await openItem('Retiro');
+	await expect(page.getByRole('radio', { name: 'Transf.' })).toBeChecked();
+	await page.locator('input[name="description"]').fill(PAYOUT_DESC);
+	await pick(page, 'Destino', SECOND);
+	await page.getByRole('button', { name: 'Aprobar' }).click();
+	await flash('Movimiento aprobado.');
+
+	expect(await balanceOf('Mercado Pago')).toBe(mpBefore - 5000);
+	expect(await balanceOf(SECOND)).toBe(secondBefore + 5000);
+});
+
 test('other users get 404 and no Perfil row', async ({ browser }) => {
 	for (const email of [OTHER_EMAIL, SEED_EMAIL]) {
 		const ctx = await browser.newContext();
 		const p = await ctx.newPage();
 		await login(p, email);
+		expect((await p.goto(`/imports/${pendingId}`))!.status()).toBe(404);
 		expect((await p.goto('/imports'))!.status()).toBe(404);
 		await p.goto('/profile', { waitUntil: 'networkidle' });
 		await expect(p.getByRole('link', { name: /Mercado Pago/ })).toHaveCount(0);

@@ -1,4 +1,5 @@
 import { fail } from '@sveltejs/kit';
+import type { Currency } from '$lib/money';
 import { toCategoryIconKey, toIconKey, toSwatchKey } from '$lib/appearance';
 import { getAccount, listAccounts } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
@@ -8,7 +9,7 @@ import { type MovementData, resolveMovement, UNAVAILABLE_MESSAGE } from '$lib/se
 import { getMovement } from '$lib/server/movements-queries';
 
 /** Archived accounts/category already referenced by the movement being edited (they stay valid). */
-type KeptRefs = { accountIds: string[]; categoryId: string | null };
+type KeptRefs = { accountIds: string[]; categoryId: string | null; amount?: number | null };
 
 export const { notFound, requireId } = notFoundHelpers('Movimiento no encontrado.');
 
@@ -24,9 +25,13 @@ export const keptRefs = (m: {
 	accountId: string;
 	destinationAccountId: string | null;
 	categoryId: string | null;
+	amount: number;
+	accountCurrency: Currency;
 }): KeptRefs => ({
 	accountIds: m.destinationAccountId ? [m.accountId, m.destinationAccountId] : [m.accountId],
-	categoryId: m.categoryId
+	categoryId: m.categoryId,
+	// Only an ARS amount is kept: a USD amount with cents must not skip the check on an ARS account.
+	amount: m.accountCurrency === 'ARS' ? m.amount : null
 });
 
 /** Picker items: active accounts and categories, plus the archived ones in `keep` (edit). */

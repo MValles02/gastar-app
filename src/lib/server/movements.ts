@@ -141,7 +141,11 @@ export function resolveMovement(
 		category?: CategoryRef | undefined;
 	},
 	// Archived rows already referenced by the movement being edited stay valid.
-	keep: { accountIds: string[]; categoryId: string | null } = { accountIds: [], categoryId: null }
+	keep: { accountIds: string[]; categoryId: string | null; amount?: number | null } = {
+		accountIds: [],
+		categoryId: null,
+		amount: null
+	}
 ): MovementResolveResult {
 	const errors: MovementFormErrors = {};
 	const { origin, destination, category } = rows;
@@ -150,7 +154,11 @@ export function resolveMovement(
 	if (!origin) errors.accountId = MSG.account;
 	else if (origin.archivedAt && !keep.accountIds.includes(origin.id))
 		errors.accountId = MSG.archivedAccount;
-	else if (!isWholeFor(data.amount, origin.currency)) errors.amount = ARS_WHOLE_MESSAGE;
+	else if (
+		!(keep.amount != null && data.amount === keep.amount) &&
+		!isWholeFor(data.amount, origin.currency)
+	)
+		errors.amount = ARS_WHOLE_MESSAGE;
 
 	if (data.type !== 'transfer') {
 		if (!category) errors.categoryId = MSG.category;

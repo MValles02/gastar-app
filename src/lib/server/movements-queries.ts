@@ -18,8 +18,15 @@ const nextDay = (ymd: string) => {
 	return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
 };
 
-export function createMovement(userId: string, row: MovementRow & { recurringId?: string | null }) {
-	return db
+/** The db or a transaction callback's handle. */
+export type DbExecutor = Parameters<Parameters<typeof db.transaction>[0]>[0] | typeof db;
+
+export function createMovement(
+	userId: string,
+	row: MovementRow & { recurringId?: string | null },
+	executor: DbExecutor = db
+) {
+	return executor
 		.insert(movements)
 		.values({ ...row, ...movementOwnedBy(userId) })
 		.returning({ id: movements.id });
