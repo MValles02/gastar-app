@@ -71,7 +71,7 @@ test('a plan alert opens /plan in its currency, and the page works without JS', 
 	await setCurrencyCookie(page, baseURL!, 'ARS');
 	// Fail loudly if another spec gave otro an ARS plan: this test must own it to delete it.
 	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await expect(page.getByText('Todavía no tenés un plan en pesos.')).toBeVisible();
+	await expect(page.getByText('Sin plan en pesos')).toBeVisible();
 	let created = false;
 	try {
 		// Savings far above any income his ARS rules could add: over from the first day.
@@ -81,7 +81,7 @@ test('a plan alert opens /plan in its currency, and the page works without JS', 
 		created = true; // none existed above, so whatever exists after this click is ours
 		await expect(page).toHaveURL(/\/plan\/setup\?step=4$/);
 		await page.getByRole('link', { name: 'Siguiente' }).click();
-		await page.getByRole('button', { name: 'Guardar plan' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Plan guardado.')).toBeVisible();
 
 		// No JS: the server-rendered page carries plain links and a form that sets the currency.
@@ -128,7 +128,7 @@ test('a limit alert explains itself and opens its page in its currency', async (
 	await setCurrencyCookie(page, baseURL!, 'ARS');
 	// Fail loudly if another spec gave otro an ARS plan: this test must own it to delete it.
 	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await expect(page.getByText('Todavía no tenés un plan en pesos.')).toBeVisible();
+	await expect(page.getByText('Sin plan en pesos')).toBeVisible();
 	const description = `Límite aviso e2e ${Date.now()}`;
 	let created = false;
 	try {
@@ -138,13 +138,13 @@ test('a limit alert explains itself and opens its page in its currency', async (
 		created = true;
 		await expect(page).toHaveURL(/\/plan\/setup\?step=4$/);
 		await page.getByRole('link', { name: 'Siguiente' }).click();
-		await page.getByRole('button', { name: 'Guardar plan' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Plan guardado.')).toBeVisible();
 
 		await page.goto('/plan/limits/new', { waitUntil: 'networkidle' });
 		await pick(page, 'Categoría', 'Ajena');
 		await page.locator('input[name="amount"]').fill('1');
-		await page.getByRole('button', { name: 'Guardar límite' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 
 		await fillMovement(page, {

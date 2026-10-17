@@ -56,6 +56,8 @@ export function listRecurring(userId: string, cur?: Currency, id?: string) {
 			currency: financialAccounts.currency,
 			categoryId: recurringMovements.categoryId,
 			categoryName: categories.name,
+			categoryIcon: categories.icon,
+			categoryColor: categories.color,
 			categoryArchivedAt: categories.archivedAt
 		})
 		.from(recurringMovements)

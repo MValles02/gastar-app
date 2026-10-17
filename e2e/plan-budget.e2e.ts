@@ -82,9 +82,15 @@ async function figures(page: Page) {
 	terms.forEach((t, i) => {
 		const v = values[i];
 		// Fixed payments, savings and spent show a minus; the equation uses their magnitudes.
-		const signed = ['Disponible', 'Para gastar'].includes(t.trim());
+		const signed = t.trim() === 'Para gastar';
 		out[t.trim()] = Number(v.replace(/\D/g, '')) * (signed && /[-−]/.test(v) ? -1 : 1);
 	});
+	// Disponible is the hero amount of the summary card (signed).
+	const hero = await page
+		.getByRole('region', { name: /^Disponible · / })
+		.locator('.hero-amount')
+		.innerText();
+	out['Disponible'] = Number(hero.replace(/\D/g, '')) * (/[-−]/.test(hero) ? -1 : 1);
 	// Same page load: the amounts of the active "Pagos fijos" rule rows, which Pagos fijos must equal.
 	const rows = await page
 		.getByRole('region', { name: 'Pagos fijos' })
@@ -136,7 +142,7 @@ test('ARS decimals are rejected in savings and in limits, and nothing is written
 	const superId = await linkId(page.getByRole('link', { name: /Supermercado/ }).first());
 	await page.goto(`/plan/limits/${superId}`, { waitUntil: 'networkidle' });
 	await page.locator('input[name="amount"]').fill('100,5');
-	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await page.getByRole('button', { name: 'Guardar cambios' }).click();
 	await expect(page.getByRole('alert')).toContainText(WHOLE_PESOS_ERROR);
 	await expect(page).toHaveURL(/\/plan\/limits\/[0-9a-f-]{36}/);
 
@@ -234,7 +240,7 @@ test('deleting a category removes its limit', async ({ page, baseURL }) => {
 		await page.goto('/plan/limits/new', { waitUntil: 'networkidle' });
 		await pick(page, 'Categoría', name);
 		await page.locator('input[name="amount"]').fill('5.000');
-		await page.getByRole('button', { name: 'Guardar límite' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		const limits = page.getByRole('region', { name: 'Límites por categoría' });
 		await expect(limits).toContainText(name);

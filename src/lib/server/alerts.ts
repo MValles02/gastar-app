@@ -93,7 +93,7 @@ export async function alerts(userId: string, now = new Date()) {
 }
 
 const days = (n: number) => `${n} ${n === 1 ? 'día' : 'días'}`;
-const percent = (share: number) => `${Math.round(share * 100)} %`;
+const percent = (share: number) => `${Math.round(share * 100)}%`;
 
 function paymentAlert(
 	rule: ActiveRule,
@@ -136,7 +136,7 @@ function planAlert(plan: PlanSummary, currency: Currency): AlertItem | null {
 	if (plan.status === 'warn')
 		return {
 			...base,
-			status: { label: 'Atención', tone: 'warning' },
+			status: { label: 'Vas rápido', tone: 'warning' },
 			message: `Gastaste ${percent(plan.spentShare)} de lo que tenés para gastar y quedan ${days(plan.daysLeft)}`
 		};
 	return null;

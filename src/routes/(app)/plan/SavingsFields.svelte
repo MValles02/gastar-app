@@ -37,14 +37,14 @@
 
 	const options = [
 		{ value: 'none', label: 'Nada' },
-		{ value: '10', label: '10 %' },
-		{ value: '20', label: '20 %' },
+		{ value: '10', label: '10%' },
+		{ value: '20', label: '20%' },
 		{ value: 'other', label: 'Otro' }
 	];
-	const units = [
+	const units = $derived([
 		{ value: 'percent', label: '%' },
-		{ value: 'amount', label: '$' }
-	];
+		{ value: 'amount', label: currency === 'USD' ? 'US$' : '$' }
+	]);
 
 	// Percent x 100 behind the current choice, or null for none / a fixed amount / an invalid value.
 	const percent = $derived.by(() => {
@@ -72,17 +72,18 @@
 					amount
 					{error}
 					errorId="savings-error"
-				/>
-			</li>
-			<li class="unit">
-				<span id="savings-unit-label" class="visually-hidden">Unidad</span>
-				<SegmentedControl
-					name="savingsUnit"
-					options={units}
-					bind:value={unit}
-					labelledby="savings-unit-label"
-					size="compact"
-				/>
+				>
+					{#snippet end()}
+						<span id="savings-unit-label" class="visually-hidden">Unidad</span>
+						<SegmentedControl
+							name="savingsUnit"
+							options={units}
+							bind:value={unit}
+							labelledby="savings-unit-label"
+							size="compact"
+						/>
+					{/snippet}
+				</TextRow>
 			</li>
 		</ul>
 	{:else if error}
@@ -91,12 +92,14 @@
 
 	{#if percent !== null}
 		<p class="hint">
-			{percentText(percent)} % de {formatMoney(income, currency)} = {formatMoney(
+			{percentText(percent)}% de {formatMoney(income, currency)} = {formatMoney(
 				savingsFromPercent(income, percent),
 				currency
 			)}
 		</p>
 	{/if}
+
+	<p class="hint">Ingresos totales: {formatMoney(income, currency)}</p>
 </div>
 
 <style>
@@ -117,18 +120,8 @@
 		box-shadow: var(--shadow-1);
 	}
 
-	.card > li + li {
-		border-top: 1px solid var(--border);
-	}
-
 	.card > li.bad {
 		box-shadow: inset 3px 0 0 var(--negative);
-	}
-
-	.unit {
-		display: flex;
-		justify-content: flex-end;
-		padding: var(--space-2) var(--space-4);
 	}
 
 	.hint {

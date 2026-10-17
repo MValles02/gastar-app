@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 	import type { Currency } from '$lib/money';
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import Lock from '@lucide/svelte/icons/lock';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import AmountHero from '$lib/components/AmountHero.svelte';
+	import EntryFields from '$lib/components/EntryFields.svelte';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import FormActions from '$lib/components/FormActions.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
@@ -146,145 +146,143 @@
 
 	<AmountHero bind:value={amount} currency={originCurrency} error={errors.amount} autofocus />
 
-	<ul class="card">
-		<li class:bad={errors.description}>
-			<TextRow
-				id="description"
-				name="description"
-				label="Descripción"
-				bind:value={description}
-				placeholder="Agregar"
-				maxlength={DESCRIPTION_MAX_LENGTH}
-				required
-				error={errors.description}
-				errorId="description-error"
-			/>
-		</li>
-
-		<li class:bad={errors.accountId}>
-			<OptionPicker
-				variant="row"
-				name="accountId"
-				legend={isTransfer ? 'Origen' : 'Cuenta'}
-				title="Elegí la cuenta"
-				items={accounts}
-				bind:value={accountId}
-				placeholder="Elegir"
-				error={errors.accountId}
-				errorId="account-error"
-			>
-				{#snippet empty()}<p class="hint pad">Todavía no tenés cuentas.</p>{/snippet}
-			</OptionPicker>
-		</li>
-
-		{#if showTransfer}
-			<li class:bad={errors.destinationAccountId}>
-				{#if !mounted}<p class="hint pad">Solo para transferencias</p>{/if}
+	<EntryFields bind:description descriptionId="description" descriptionError={errors.description}>
+		{#snippet account()}
+			<li class:bad={errors.accountId}>
 				<OptionPicker
 					variant="row"
-					name="destinationAccountId"
-					legend="Destino"
-					title="Elegí la cuenta de destino"
+					name="accountId"
+					legend={isTransfer ? 'Origen' : 'Cuenta'}
+					title="Elegí la cuenta"
 					items={accounts}
-					bind:value={destinationId}
-					excludeId={mounted ? accountId : undefined}
+					bind:value={accountId}
 					placeholder="Elegir"
-					error={errors.destinationAccountId}
-					errorId="destination-error"
+					error={errors.accountId}
+					errorId="account-error"
 				>
-					{#snippet empty()}<p class="hint pad">Necesitás otra cuenta para transferir.</p>{/snippet}
+					{#snippet empty()}<p class="hint pad">Todavía no tenés cuentas.</p>{/snippet}
 				</OptionPicker>
 			</li>
-		{/if}
 
-		{#if !mounted || showRate}
-			<li class:bad={errors.exchangeRate}>
-				{#if !mounted}<p class="hint pad">Solo para transferencias entre monedas distintas</p>{/if}
-				<TextRow
-					id="exchangeRate"
-					name="exchangeRate"
-					label="Cotización (1 USD en ARS)"
-					bind:value={rate}
-					placeholder="0"
-					inputmode="numeric"
-					amount
-					error={errors.exchangeRate}
-					errorId="rate-error"
-				/>
-			</li>
-			{#if mounted}
-				<li>
-					<p class="hint pad" aria-live="polite">
-						{#if converted !== null && destCurrency}
-							Monto en destino: {formatMoney(converted, destCurrency)}
-						{:else}
-							Ingresá monto y cotización para ver el monto en destino.
-						{/if}
-					</p>
-				</li>
-			{/if}
-		{/if}
-
-		{#if showCategory}
-			<li class:bad={errors.categoryId && !recurring}>
-				{#if !mounted}<p class="hint pad">Solo para ingresos y gastos</p>{/if}
-				{#if recurring}
-					<!-- The payment always takes the rule's category (the server ignores any other). -->
-					<input type="hidden" name="categoryId" value={categoryId} />
-					<p class="row locked">
-						<span class="k">Categoría</span>
-						<span class="v">
-							{categories.find((c) => c.id === categoryId)?.name ?? ''}
-							<Lock size={16} strokeWidth={1.75} aria-hidden="true" />
-						</span>
-					</p>
-					<p class="hint pad">Se registra en la categoría del pago.</p>
-				{:else}
+			{#if showTransfer}
+				<li class:bad={errors.destinationAccountId}>
+					{#if !mounted}<p class="hint pad">Solo para transferencias</p>{/if}
 					<OptionPicker
 						variant="row"
-						name="categoryId"
-						legend="Categoría"
-						title="Elegí la categoría"
-						items={pickableCategories}
-						bind:value={categoryId}
+						name="destinationAccountId"
+						legend="Destino"
+						title="Elegí la cuenta de destino"
+						items={accounts}
+						bind:value={destinationId}
+						excludeId={mounted ? accountId : undefined}
 						placeholder="Elegir"
-						error={errors.categoryId}
-						errorId="category-error"
+						error={errors.destinationAccountId}
+						errorId="destination-error"
 					>
-						{#snippet empty()}
-							<p class="hint pad">
-								Todavía no tenés categorías.
-								<a href={resolve('/categories/new')}>Crear categoría</a>
-							</p>
-						{/snippet}
+						{#snippet empty()}<p class="hint pad">
+								Necesitás otra cuenta para transferir.
+							</p>{/snippet}
 					</OptionPicker>
+				</li>
+			{/if}
+
+			{#if !mounted || showRate}
+				<li class:bad={errors.exchangeRate}>
+					{#if !mounted}<p class="hint pad">
+							Solo para transferencias entre monedas distintas
+						</p>{/if}
+					<TextRow
+						id="exchangeRate"
+						name="exchangeRate"
+						label="Cotización (1 USD en ARS)"
+						bind:value={rate}
+						placeholder="0"
+						inputmode="numeric"
+						amount
+						error={errors.exchangeRate}
+						errorId="rate-error"
+					/>
+				</li>
+				{#if mounted}
+					<li>
+						<p class="hint pad" aria-live="polite">
+							{#if converted !== null && destCurrency}
+								Monto en destino: {formatMoney(converted, destCurrency)}
+							{:else}
+								Ingresá monto y cotización para ver el monto en destino.
+							{/if}
+						</p>
+					</li>
 				{/if}
-			</li>
-		{/if}
+			{/if}
+		{/snippet}
 
-		<li class:bad={errors.occurredAt}>
-			<DatePicker
-				name="occurredAt"
-				label="Fecha"
-				min="2000-01-01"
-				bind:value={occurredAt}
-				error={errors.occurredAt}
-				errorId="date-error"
-			/>
-		</li>
+		{#snippet category()}
+			{#if showCategory}
+				<li class:bad={errors.categoryId && !recurring}>
+					{#if !mounted}<p class="hint pad">Solo para ingresos y gastos</p>{/if}
+					{#if recurring}
+						<!-- The payment always takes the rule's category (the server ignores any other). -->
+						<input type="hidden" name="categoryId" value={categoryId} />
+						<p class="row locked">
+							<span class="k">Categoría</span>
+							<span class="v">
+								{categories.find((c) => c.id === categoryId)?.name ?? ''}
+								<Lock size={16} strokeWidth={1.75} aria-hidden="true" />
+							</span>
+						</p>
+						<p class="hint pad">Se registra en la categoría del pago.</p>
+					{:else}
+						<OptionPicker
+							variant="row"
+							name="categoryId"
+							legend="Categoría"
+							title="Elegí la categoría"
+							items={pickableCategories}
+							bind:value={categoryId}
+							placeholder="Elegir"
+							error={errors.categoryId}
+							errorId="category-error"
+						>
+							{#snippet empty()}
+								<p class="hint pad">
+									Todavía no tenés categorías.
+									<a href={resolve('/categories/new')}>Crear categoría</a>
+								</p>
+							{/snippet}
+						</OptionPicker>
+					{/if}
+				</li>
+			{/if}
+		{/snippet}
 
-		{#if repeatable && !recurring && showCategory}
-			<li>
-				<SwitchRow
-					id="repeat"
-					name="repeat"
-					label="Repetir cada mes"
-					checked={repeatChecked}
-					describedby="repeat-hint"
+		{#snippet when()}
+			<li class:bad={errors.occurredAt}>
+				<DatePicker
+					name="occurredAt"
+					label="Fecha"
+					min="2000-01-01"
+					bind:value={occurredAt}
+					error={errors.occurredAt}
+					errorId="date-error"
 				/>
 			</li>
-		{/if}
-	</ul>
+		{/snippet}
+
+		{#snippet extra()}
+			{#if repeatable && !recurring && showCategory}
+				<li>
+					<SwitchRow
+						id="repeat"
+						name="repeat"
+						label="Repetir cada mes"
+						checked={repeatChecked}
+						describedby="repeat-hint"
+					/>
+				</li>
+			{/if}
+		{/snippet}
+	</EntryFields>
 
 	{#if repeatable && !recurring && showCategory}
 		<p id="repeat-hint" class="hint pad">Te lo recordamos el mismo día de cada mes.</p>
@@ -314,25 +312,6 @@
 	.note {
 		margin-bottom: calc(var(--space-3) * -1);
 		text-align: center;
-	}
-
-	.card {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-card);
-		box-shadow: var(--shadow-1);
-	}
-
-	.card > li + li {
-		border-top: 1px solid var(--border);
-	}
-
-	.card > li.bad {
-		box-shadow: inset 3px 0 0 var(--negative);
 	}
 
 	.row {

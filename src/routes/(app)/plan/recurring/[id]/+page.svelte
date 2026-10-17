@@ -7,6 +7,8 @@
 	import DetailHero from '$lib/components/DetailHero.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import StatusPill from '$lib/components/StatusPill.svelte';
+	import { DUE_TONE } from '$lib/status';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -51,6 +53,12 @@
 			<dt>Día</dt>
 			<dd>{data.dayOfMonth} · todos los meses</dd>
 		</div>
+		{#if data.thisMonth}
+			<div class="item">
+				<dt>Este mes</dt>
+				<dd><StatusPill tone={DUE_TONE[data.thisMonth.status]} label={data.thisMonth.label} /></dd>
+			</div>
+		{/if}
 		<div class="item">
 			<dt>Estado</dt>
 			<dd>{data.inactiveReason ?? 'Activo'}</dd>
@@ -87,7 +95,6 @@
 			</ConfirmDialog>
 		{/snippet}
 	</DetailActions>
-	<p class="muted">Desactivarlo lo saca del plan sin borrar nada. Podés activarlo de nuevo.</p>
 </div>
 
 <style>

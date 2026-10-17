@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { swatchVar } from '$lib/appearance';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Meter from '$lib/components/Meter.svelte';
@@ -17,8 +18,12 @@
 		fast: boolean;
 	};
 
-	let { limits, currency, wizard }: { limits: Limit[]; currency: Currency; wizard?: number } =
-		$props();
+	let {
+		limits,
+		currency,
+		wizard,
+		linked = true
+	}: { limits: Limit[]; currency: Currency; wizard?: number; linked?: boolean } = $props();
 </script>
 
 {#if limits.length}
@@ -40,7 +45,9 @@
 				/>
 			{/snippet}
 			<ListRow
-				href={resolve(`/plan/limits/${l.categoryId}${wizard ? `?wizard=${wizard}` : ''}`)}
+				href={linked
+					? resolve(`/plan/limits/${l.categoryId}${wizard ? `?wizard=${wizard}` : ''}`)
+					: undefined}
 				title={l.name}
 				{value}
 				status={l.over
@@ -53,14 +60,10 @@
 		{/each}
 	</ListCard>
 {:else}
-	<p class="muted">Sin límites.</p>
+	<EmptyState icon="plan" description="Sin límites." />
 {/if}
 
 <style>
-	.muted {
-		color: var(--text-muted);
-	}
-
 	.of {
 		font-size: var(--font-size-sm);
 		color: var(--text-muted);

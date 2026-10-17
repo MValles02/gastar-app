@@ -160,9 +160,8 @@ test('USD tab shows the empty state', async ({ page, baseURL }) => {
 	await login(page);
 	await setCurrencyCookie(page, baseURL!, 'USD');
 	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await expect(page.getByText('No tenés pagos ni ingresos fijos en dólares.')).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Agregar pago fijo' })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Agregar ingreso fijo' })).toBeVisible();
+	await expect(page.getByText('Sin plan en dólares')).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Agregar pago fijo' })).toHaveCount(0);
 });
 
 test('create a rule, register its payment and clean up', async ({ page, baseURL }) => {

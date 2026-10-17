@@ -4,6 +4,7 @@
 	import Money from '$lib/components/Money.svelte';
 	import { DUE_TONE } from '$lib/status';
 	import type { RecurringStatus } from '$lib/server/plan';
+	import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
 	import type { Currency } from '$lib/money';
 
 	type Row = {
@@ -13,6 +14,8 @@
 		amount: number;
 		accountName: string;
 		day: number;
+		categoryIcon: CategoryIconKey | null;
+		categoryColor: SwatchKey | null;
 	} & (
 		| { status: RecurringStatus; label: string; reason?: undefined }
 		| { reason: string; status?: undefined; label?: undefined }
@@ -41,7 +44,11 @@
 <ListRow
 	class="rule"
 	href={resolve(`/plan/recurring/${r.id}${wizard ? `?wizard=${wizard}` : ''}`)}
-	lead={{ letter: r.description.charAt(0).toUpperCase(), color: null }}
+	lead={{
+		icon: r.categoryIcon ?? undefined,
+		letter: r.categoryIcon ? undefined : r.description.charAt(0).toUpperCase(),
+		color: r.categoryColor
+	}}
 	title={r.description}
 	{value}
 	status={r.reason

@@ -34,9 +34,12 @@ export async function recurringPickers(userId: string) {
 export async function readRecurringForm(
 	userId: string,
 	request: Request,
-	current?: { accountId: string; categoryId: string }
+	current?: { accountId: string; categoryId: string; type: string }
 ) {
-	const parsed = parseRecurringForm(await request.formData());
+	const fd = await request.formData();
+	// An edit never changes the type: the stored one wins over whatever was submitted.
+	if (current) fd.set('type', current.type);
+	const parsed = parseRecurringForm(fd);
 	if (!parsed.ok) return { failure: fail(400, { values: parsed.values, errors: parsed.errors }) };
 	const [[account], [category]] = await Promise.all([
 		getAccount(userId, parsed.data.accountId),

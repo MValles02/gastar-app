@@ -14,7 +14,9 @@
 		submitHref,
 		submitting = false,
 		sticky = true,
-		primary
+		primary,
+		destructive,
+		form
 	}: {
 		cancelHref: string;
 		cancelLabel?: string;
@@ -23,36 +25,70 @@
 		submitting?: boolean;
 		sticky?: boolean;
 		primary?: Snippet;
+		/** When set: [destructive | submit] 50/50 on top, cancel full width below. */
+		destructive?: Snippet;
+		/** `id` of a `<form>` elsewhere in the page the submit button submits. */
+		form?: string;
 	} = $props();
 </script>
 
-<div class="bar" class:sticky>
+{#snippet cancel()}
 	<Button
 		href={resolve(cancelHref as '/')}
 		variant="outline"
 		class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal">{cancelLabel}</Button
 	>
-	{#if primary}
-		<div class="half">{@render primary()}</div>
-	{:else if submitHref}
-		<Button
-			href={resolve(submitHref as '/')}
-			class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal">{submitLabel}</Button
-		>
+{/snippet}
+
+{#snippet submit()}
+	<Button
+		type="submit"
+		{form}
+		class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal"
+		disabled={submitting}
+		aria-busy={submitting ? 'true' : undefined}
+	>
+		{#if submitting}<span class="spin" aria-hidden="true"></span>{/if}{submitLabel}
+	</Button>
+{/snippet}
+
+<div class="bar" class:sticky class:stacked={!!destructive}>
+	{#if destructive}
+		<div class="pair">
+			<div class="half">{@render destructive()}</div>
+			{@render submit()}
+		</div>
+		{@render cancel()}
 	{:else}
-		<Button
-			type="submit"
-			class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal"
-			disabled={submitting}
-			aria-busy={submitting ? 'true' : undefined}
-		>
-			{#if submitting}<span class="spin" aria-hidden="true"></span>{/if}{submitLabel}
-		</Button>
+		{@render cancel()}
+		{#if primary}
+			<div class="half">{@render primary()}</div>
+		{:else if submitHref}
+			<Button
+				href={resolve(submitHref as '/')}
+				class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal">{submitLabel}</Button
+			>
+		{:else}
+			{@render submit()}
+		{/if}
 	{/if}
 </div>
 
 <style>
 	.bar {
+		display: flex;
+		gap: var(--space-3);
+	}
+
+	.bar.stacked {
+		flex-direction: column;
+	}
+
+	.stacked > :global(a) {
+		flex: none;
+	}
+
+	.pair {
 		display: flex;
 		gap: var(--space-3);
 	}
