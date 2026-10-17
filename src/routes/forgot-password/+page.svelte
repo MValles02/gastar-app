@@ -5,7 +5,6 @@
 	import CheckEmail from '$lib/components/CheckEmail.svelte';
 	import * as Field from '$lib/components/ui/field/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import Icon from '$lib/components/Icon.svelte';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -21,14 +20,7 @@
 {#if form?.checkEmail}
 	<CheckEmail email={form.checkEmail} />
 {:else}
-	<AuthPage>
-		<a class="back" href={resolve('/login')}>
-			<Icon name="chevron-left" size="1.25rem" /><span class="visually-hidden"
-				>Volver a Ingresar</span
-			>
-		</a>
-		<h1>Recuperar contraseña</h1>
-
+	<AuthPage backHref={resolve('/login')} title="Recuperar contraseña">
 		<AuthForm action="?/request" submitLabel="Enviar enlace">
 			<Field.Field>
 				<Field.Label for="email">Email</Field.Label>
@@ -50,23 +42,3 @@
 		</AuthForm>
 	</AuthPage>
 {/if}
-
-<style>
-	.back {
-		display: grid;
-		place-items: center;
-		width: var(--tap-target);
-		height: var(--tap-target);
-		margin-left: calc(-1 * var(--space-3));
-		color: var(--text);
-	}
-
-	h1 {
-		margin: 0;
-		font-family: var(--font-display);
-		font-size: 1.875rem;
-		font-weight: 500;
-		line-height: 1.15;
-		letter-spacing: -0.01em;
-	}
-</style>
