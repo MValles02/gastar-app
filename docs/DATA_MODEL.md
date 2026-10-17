@@ -151,6 +151,63 @@ Optional monthly limit per category.
 
 Constraints: PK `(plan_id, category_id)`.
 
+### `mp_import_items`
+
+Approval inbox for Mercado Pago activity. Imports land here, never on `movements`; approving an item creates the movement and links it.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | pk | |
+| `user_id` | fk → `user.id` | |
+| `account_id` | fk → `financial_accounts.id` | ON DELETE RESTRICT |
+| `external_key` | text | idempotency key from the source |
+| `kind` | text | CHECK in ('payment','account_fund','yield','payout','other') |
+| `status` | enum('pending','approved','rejected') | default 'pending' |
+| `occurred_at` | timestamptz | |
+| `amount` | bigint, > 0 | exact net, minor units |
+| `is_credit` | boolean | direction of the money |
+| `source_id` | text | |
+| `raw_description` | text | |
+| `counterparty_id`, `counterparty_nickname`, `merchant`, `operation_type`, `poi_type` | text, nullable | |
+| `movement_id` | fk → `movements.id`, nullable | ON DELETE SET NULL |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | |
+
+Constraints: `UNIQUE (user_id, external_key)`. Index: `(user_id, status, occurred_at)`.
+
+### `mp_import_rules`
+
+Rules learned from approved items, used to pre-fill later ones.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | pk | |
+| `user_id` | fk → `user.id` | |
+| `match_kind` | enum('counterparty','merchant','kind') | |
+| `match_value` | text | |
+| `type` | enum('income','outcome','transfer') | |
+| `category_id` | fk → `categories.id`, nullable | ON DELETE CASCADE |
+| `counter_account_id` | fk → `financial_accounts.id`, nullable | ON DELETE CASCADE |
+| `description` | varchar(60), nullable | |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | |
+
+Constraints: `UNIQUE (user_id, match_kind, match_value)`; CHECK `mp_import_rules_shape_check`: `transfer` ⇒ `counter_account_id` set and `category_id` null; otherwise `category_id` set.
+
+### `mp_sync_state`
+
+One row per synced account.
+
+| Column | Type | Notes |
+|---|---|---|
+| `account_id` | pk, fk → `financial_accounts.id` | ON DELETE CASCADE |
+| `synced_until` | timestamptz, nullable | |
+| `running_since` | timestamptz, nullable | |
+| `last_run_at` | timestamptz, nullable | |
+| `last_error` | text, nullable | error code only |
+| `report_balance` | bigint, nullable | minor units |
+| `report_balance_at` | timestamptz, nullable | |
+
 ## Derived formulas
 
 ### Plan figures (per plan currency, per month; computed in `src/lib/server/plan.ts`)
@@ -202,6 +259,8 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 - `canAccessCategory(userId, cat = categories)` and `categoryOwnedBy(userId)`: the same pair for `categories.user_id`.
 - `canAccessRecurring(userId, r = recurringMovements)` and `recurringOwnedBy(userId)`: the same pair for `recurring_movements.user_id`.
 - `canAccessPlan(userId, p = spendingPlans)` and `planOwnedBy(userId)`: the same pair for `spending_plans.user_id`. Category limits have no owner column; they are reached only by joining their plan.
+- `canAccessImport(userId, i = mpImportItems)` and `importOwnedBy(userId)`: the same pair for `mp_import_items.user_id`.
+- `canAccessImportRule(userId, r = mpImportRules)` and `importRuleOwnedBy(userId)`: the same pair for `mp_import_rules.user_id`. `mp_sync_state` has no owner column; it is reached only by joining its account.
 
 `movements.user_id` is the movement's own owner column; reads, updates and deletes go through `canAccessMovement`, inserts through `movementOwnedBy`.
 

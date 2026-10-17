@@ -3,6 +3,8 @@ import {
 	categories,
 	financialAccounts,
 	movements,
+	mpImportItems,
+	mpImportRules,
 	recurringMovements,
 	spendingPlans
 } from './db/schema';
@@ -53,6 +55,26 @@ export function canAccessRecurring(
 
 /** Insert-side counterpart of canAccessRecurring. */
 export function recurringOwnedBy(userId: string) {
+	return { userId };
+}
+
+/** The single ownership check for Mercado Pago import items. Accepts an alias. */
+export function canAccessImport(userId: string, i: { userId: AnyColumn } = mpImportItems): SQL {
+	return eq(i.userId, userId);
+}
+
+/** Insert-side counterpart of canAccessImport. */
+export function importOwnedBy(userId: string) {
+	return { userId };
+}
+
+/** The single ownership check for Mercado Pago import rules. Accepts an alias. */
+export function canAccessImportRule(userId: string, r: { userId: AnyColumn } = mpImportRules): SQL {
+	return eq(r.userId, userId);
+}
+
+/** Insert-side counterpart of canAccessImportRule. */
+export function importRuleOwnedBy(userId: string) {
 	return { userId };
 }
 
