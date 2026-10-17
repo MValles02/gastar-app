@@ -137,7 +137,7 @@
 														{#if c.totals[cur] === undefined}
 															<span class="zero"><Money cents={0} currency={cur} /></span>
 														{:else}
-															<Money cents={c.totals[cur]} currency={cur} kind="signed" />
+															<Money cents={c.totals[cur]} currency={cur} tone="flow" />
 														{/if}
 													{/each}
 												</span>

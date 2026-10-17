@@ -28,7 +28,7 @@
 
 <!-- Net spend (outcomes - incomes) as a cash flow: spend in red, net income in green. -->
 {#snippet flow(net: number, currency: Currency)}
-	<Money cents={-net} {currency} kind={net < 0 ? 'income' : 'plain'} />
+	<Money cents={-net} {currency} tone="flow" />
 {/snippet}
 
 <svelte:head>

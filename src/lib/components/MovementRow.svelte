@@ -48,7 +48,7 @@
 			</Item.Content>
 			<Item.Actions>
 				<span class="row-amount">
-					<Money cents={m.amount} currency={m.currency} kind={m.type} />
+					<Money cents={m.amount} currency={m.currency} tone="flow" direction={m.type} />
 				</span>
 			</Item.Actions>
 		</a>

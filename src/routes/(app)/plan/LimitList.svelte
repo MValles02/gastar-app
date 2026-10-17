@@ -1,10 +1,9 @@
 <script lang="ts">
-	import CircleAlert from '@lucide/svelte/icons/circle-alert';
-	import Clock from '@lucide/svelte/icons/clock';
 	import { resolve } from '$app/paths';
 	import { swatchVar } from '$lib/appearance';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import Money from '$lib/components/Money.svelte';
+	import StatusPill from '$lib/components/StatusPill.svelte';
 	import { formatMoney, type Currency } from '$lib/money';
 
 	type Limit = {
@@ -36,9 +35,9 @@
 					<span class="name">
 						<span class="title">{l.name}</span>
 						{#if l.over}
-							<span class="pill over"><CircleAlert size={14} strokeWidth={2} />Te pasaste</span>
+							<StatusPill tone="bad" label="Te pasaste" />
 						{:else if l.fast}
-							<span class="pill warn"><Clock size={14} strokeWidth={2} />Vas rápido</span>
+							<StatusPill tone="warning" label="Vas rápido" />
 						{/if}
 					</span>
 					<span class="of">
@@ -105,30 +104,6 @@
 
 	.title {
 		overflow-wrap: anywhere;
-	}
-
-	.pill {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		padding: 0.125rem 0.625rem;
-		border-radius: var(--radius-pill);
-		background: var(--muted);
-		color: var(--text-muted);
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		white-space: nowrap;
-	}
-
-	.pill.warn {
-		background: color-mix(in srgb, var(--swatch-orange) 14%, transparent);
-		color: var(--swatch-orange);
-	}
-
-	/* Over budget is information, not an error: inverted fill, never red. */
-	.pill.over {
-		background: var(--text);
-		color: var(--bg);
 	}
 
 	.of {

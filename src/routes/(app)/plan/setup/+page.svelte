@@ -138,11 +138,11 @@
 		<dl class="detail-card equation">
 			<div>
 				<dt>Ingresos</dt>
-				<dd><Money cents={s.income} currency={data.currency} kind="income" /></dd>
+				<dd><Money cents={s.income} currency={data.currency} tone="flow" direction="income" /></dd>
 			</div>
 			<div>
 				<dt>Pagos fijos</dt>
-				<dd><Money cents={-s.bills} currency={data.currency} kind="outcome" /></dd>
+				<dd><Money cents={-s.bills} currency={data.currency} tone="flow" direction="outcome" /></dd>
 			</div>
 			<div>
 				<dt>Ahorro</dt>

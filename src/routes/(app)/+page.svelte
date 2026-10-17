@@ -1,9 +1,6 @@
 <script lang="ts">
 	import { LOCALE } from '$lib/locale';
 	import { resolve } from '$app/paths';
-	import Check from '@lucide/svelte/icons/check';
-	import CircleAlert from '@lucide/svelte/icons/circle-alert';
-	import Clock from '@lucide/svelte/icons/clock';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
@@ -14,6 +11,8 @@
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import StatusPill from '$lib/components/StatusPill.svelte';
+	import { PLAN_TONE } from '$lib/status';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import { swatchVar, toSwatchKey } from '$lib/appearance';
 	import type { PageData } from './$types';
@@ -21,7 +20,6 @@
 	let { data }: { data: PageData } = $props();
 
 	const percent = new Intl.NumberFormat(LOCALE, { style: 'percent' });
-	const statusIcon = { ok: Check, warn: Clock, over: CircleAlert } as const;
 </script>
 
 <svelte:head>
@@ -59,11 +57,7 @@
 				<div class="kv">
 					<span class="k">Mes actual</span>
 					<span class="am net">
-						<Money
-							cents={data.monthNet}
-							currency={data.currency}
-							kind={data.monthNet > 0 ? 'income' : 'plain'}
-						/>
+						<Money cents={data.monthNet} currency={data.currency} tone="flow" />
 					</span>
 				</div>
 			{/snippet}
@@ -72,14 +66,10 @@
 				<Card.Root class="gap-0 overflow-hidden py-0">
 					{#if data.plan?.summary}
 						{@const s = data.plan.summary}
-						{@const Status = statusIcon[s.status]}
 						<div class="box">
 							<div class="top">
 								<h2 id="summary-heading" class="eyebrow">Disponible</h2>
-								<span class="pill {s.status}">
-									<Status size={14} strokeWidth={2} />
-									{data.plan.statusLabel}
-								</span>
+								<StatusPill tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
 							</div>
 							<HeroAmount class="available-amount" cents={s.available} currency={data.currency} />
 							<p class="muted per-day">
@@ -138,7 +128,8 @@
 												><Money
 													cents={cat.net}
 													currency={data.currency}
-													kind={cat.net < 0 ? 'income' : 'outcome'}
+													tone="flow"
+													direction={cat.net < 0 ? 'income' : 'outcome'}
 												/></span
 											>
 											<span class="amount muted pct">{percent.format(cat.share)}</span>
@@ -227,33 +218,6 @@
 
 	.per-day {
 		font-size: var(--font-size-sm);
-	}
-
-	.pill {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		padding: 0.125rem 0.625rem;
-		border-radius: var(--radius-pill);
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		white-space: nowrap;
-	}
-
-	.pill.ok {
-		background: color-mix(in srgb, var(--positive) 14%, transparent);
-		color: var(--positive);
-	}
-
-	.pill.warn {
-		background: color-mix(in srgb, var(--swatch-orange) 14%, transparent);
-		color: var(--swatch-orange);
-	}
-
-	/* Over budget is information, not an error: inverted fill, never red. */
-	.pill.over {
-		background: var(--text);
-		color: var(--bg);
 	}
 
 	.sub {

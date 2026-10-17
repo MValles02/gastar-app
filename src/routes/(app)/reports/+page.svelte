@@ -70,20 +70,24 @@
 				<dl class="totals">
 					<div class="box">
 						<dt class="eyebrow">Resultado</dt>
-						<HeroAmount
-							as="dd"
-							cents={data.net}
-							currency={data.currency}
-							kind={data.net > 0 ? 'income' : 'plain'}
-						/>
+						<HeroAmount as="dd" cents={data.net} currency={data.currency} tone="flow" />
 					</div>
 					<div class="kv">
 						<dt class="k">Ingresos</dt>
-						<dd class="am"><Money cents={data.income} currency={data.currency} kind="income" /></dd>
+						<dd class="am">
+							<Money cents={data.income} currency={data.currency} tone="flow" direction="income" />
+						</dd>
 					</div>
 					<div class="kv">
 						<dt class="k">Gastos</dt>
-						<dd class="am"><Money cents={neg(data.outcome)} currency={data.currency} /></dd>
+						<dd class="am">
+							<Money
+								cents={neg(data.outcome)}
+								currency={data.currency}
+								tone="flow"
+								direction="outcome"
+							/>
+						</dd>
 					</div>
 				</dl>
 			</Card.Root>

@@ -29,7 +29,12 @@
 				<div class="hero">
 					<IconBadge icon={data.category.icon} color={data.category.color} size="3rem" />
 					<p class="value">
-						<Money cents={data.amount} {currency} kind={income ? 'income' : 'outcome'} />
+						<Money
+							cents={data.amount}
+							{currency}
+							tone="flow"
+							direction={income ? 'income' : 'outcome'}
+						/>
 					</p>
 					<p class="type">{income ? 'Ingreso fijo' : 'Pago fijo'}</p>
 				</div>

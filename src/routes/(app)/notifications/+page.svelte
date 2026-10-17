@@ -1,10 +1,9 @@
 <script lang="ts">
 	import * as Empty from '$lib/components/ui/empty/index.js';
-	import AlertCircle from '@lucide/svelte/icons/circle-alert';
-	import Clock from '@lucide/svelte/icons/clock';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import StatusPill from '$lib/components/StatusPill.svelte';
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 
@@ -52,11 +51,7 @@
 								<Item.Content class="min-w-0">
 									<span class="title-line">
 										<Item.Title class="block min-w-0 truncate">{n.name}</Item.Title>
-										<span class="pill {n.pill.tone}">
-											{#if n.pill.tone === 'over'}<AlertCircle size={14} strokeWidth={2} />
-											{:else if n.pill.tone === 'due'}<Clock size={14} strokeWidth={2} />{/if}
-											{n.pill.label}
-										</span>
+										<StatusPill tone={n.status.tone} label={n.status.label} />
 									</span>
 									<Item.Description class="line-clamp-none min-w-0">
 										<span class="sub">{n.message}</span>
@@ -136,31 +131,6 @@
 		align-items: center;
 		gap: var(--space-2);
 		min-width: 0;
-	}
-
-	.pill {
-		flex: none;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		padding: 0.125rem 0.625rem;
-		border-radius: var(--radius-pill);
-		background: var(--muted);
-		color: var(--text-muted);
-		font-size: var(--font-size-xs);
-		font-weight: 600;
-		white-space: nowrap;
-	}
-
-	.pill.due {
-		background: color-mix(in srgb, var(--swatch-orange) 14%, transparent);
-		color: var(--swatch-orange);
-	}
-
-	/* Overdue and over-limit are information, not errors: inverted fill, never red. */
-	.pill.over {
-		background: var(--text);
-		color: var(--bg);
 	}
 
 	.sub {

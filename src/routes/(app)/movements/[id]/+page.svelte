@@ -50,7 +50,8 @@
 						<Money
 							cents={m.type === 'outcome' ? -m.amount : m.amount}
 							currency={m.accountCurrency}
-							kind={m.type}
+							tone="flow"
+							direction={m.type}
 						/>
 					</p>
 					<p class="type">{typeLabel}</p>
