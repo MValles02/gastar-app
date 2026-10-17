@@ -1,7 +1,17 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
+import { formatDay } from '$lib/locale';
 import { db } from './db';
 import { financialAccounts, mpImportItems, mpImportRules, mpSyncState } from './db/schema';
-import { canAccessAccount, canAccessImport, canAccessImportRule } from './access';
+import {
+	canAccessAccount,
+	canAccessImport,
+	canAccessImportRule,
+	importRuleOwnedBy
+} from './access';
+import type { MovementType } from './dashboard';
+import type { MovementRow } from './movements';
+import { createMovement } from './movements-queries';
+import { localDay, TZ } from './month';
 import { mpImportAccountId } from './mp-sync';
 
 const pending = (userId: string) =>
@@ -27,8 +37,10 @@ export function listPendingImports(userId: string) {
 			isCredit: mpImportItems.isCredit,
 			amount: mpImportItems.amount,
 			occurredAt: mpImportItems.occurredAt,
+			counterpartyId: mpImportItems.counterpartyId,
 			counterpartyNickname: mpImportItems.counterpartyNickname,
 			merchant: mpImportItems.merchant,
+			operationType: mpImportItems.operationType,
 			rawDescription: mpImportItems.rawDescription
 		})
 		.from(mpImportItems)
@@ -74,4 +86,231 @@ export function deleteImportData(userId: string, accountId: string) {
 			)
 		);
 	});
+}
+
+const FALLBACK_TITLE: Record<string, string> = {
+	yield: 'Rendimientos',
+	payout: 'Retiro',
+	account_fund: 'Ingreso de dinero'
+};
+
+type TitleFields = {
+	counterpartyNickname: string | null;
+	merchant: string | null;
+	kind: string;
+	isCredit: boolean;
+	rawDescription: string;
+};
+
+/** The list title of an item, also the default description of its movement. */
+export function importTitle(i: TitleFields): string {
+	return (
+		i.counterpartyNickname ??
+		i.merchant ??
+		(i.kind === 'payment'
+			? i.isCredit
+				? 'Transferencia recibida'
+				: 'Pago'
+			: (FALLBACK_TITLE[i.kind] ?? i.rawDescription))
+	);
+}
+
+/** dd/mm/aaaa hh:mm, 24 h, Buenos Aires. */
+export function importDateTime(d: Date): string {
+	const time = new Intl.DateTimeFormat('es-AR', {
+		timeZone: TZ,
+		hour: '2-digit',
+		minute: '2-digit',
+		hourCycle: 'h23'
+	}).format(d);
+	return `${formatDay(localDay(d))} ${time}`;
+}
+
+/** A credit becomes an income or a transfer in; a debit an outcome or a transfer out. */
+export const importTypes = (isCredit: boolean): MovementType[] =>
+	isCredit ? ['income', 'transfer'] : ['outcome', 'transfer'];
+
+type ImportRuleKey = { matchKind: 'counterparty' | 'merchant' | 'kind'; matchValue: string };
+type ImportKeyFields = {
+	kind: string;
+	operationType: string | null;
+	counterpartyId: string | null;
+	merchant: string | null;
+};
+
+/** The rule keys an item can match, strongest first. */
+export function importRuleKeys(i: ImportKeyFields): ImportRuleKey[] {
+	const keys: ImportRuleKey[] = [];
+	if (i.operationType === 'money_transfer' && i.counterpartyId)
+		keys.push({ matchKind: 'counterparty', matchValue: i.counterpartyId });
+	const merchant = i.merchant?.trim().toLowerCase();
+	if (merchant) keys.push({ matchKind: 'merchant', matchValue: merchant });
+	if (i.kind === 'yield' || i.kind === 'payout' || i.kind === 'account_fund')
+		keys.push({ matchKind: 'kind', matchValue: i.kind });
+	return keys;
+}
+
+const itemColumns = {
+	id: mpImportItems.id,
+	accountId: mpImportItems.accountId,
+	status: mpImportItems.status,
+	kind: mpImportItems.kind,
+	isCredit: mpImportItems.isCredit,
+	amount: mpImportItems.amount,
+	occurredAt: mpImportItems.occurredAt,
+	counterpartyId: mpImportItems.counterpartyId,
+	counterpartyNickname: mpImportItems.counterpartyNickname,
+	merchant: mpImportItems.merchant,
+	operationType: mpImportItems.operationType,
+	rawDescription: mpImportItems.rawDescription
+};
+
+/** The user's item in any status, or undefined (foreign and missing ids alike). */
+export async function getImport(userId: string, id: string) {
+	const [row] = await db
+		.select(itemColumns)
+		.from(mpImportItems)
+		.where(and(eq(mpImportItems.id, id), canAccessImport(userId)))
+		.limit(1);
+	return row;
+}
+
+export type ImportItem = NonNullable<Awaited<ReturnType<typeof getImport>>>;
+
+export function listImportRules(userId: string) {
+	return db
+		.select({
+			matchKind: mpImportRules.matchKind,
+			matchValue: mpImportRules.matchValue,
+			type: mpImportRules.type,
+			categoryId: mpImportRules.categoryId,
+			counterAccountId: mpImportRules.counterAccountId,
+			description: mpImportRules.description
+		})
+		.from(mpImportRules)
+		.where(canAccessImportRule(userId));
+}
+
+type ImportRule = Awaited<ReturnType<typeof listImportRules>>[number];
+
+export type ImportPrefill = {
+	type: MovementType;
+	categoryId: string;
+	counterAccountId: string;
+	description: string;
+	/** Name of the rule's category or counter account; null without a usable rule. */
+	suggestion: string | null;
+	/** The type is a guess (kind "other"): the page asks for a review. */
+	review: boolean;
+};
+
+/**
+ * Read-time prefill of a pending item: the first matching rule (strongest key) wins when its target is
+ * still active and its type fits the direction; otherwise defaults. Never falls through to a weaker rule.
+ * `categories` and `accounts` are the active, owned, pickable ones.
+ */
+export function importPrefill(
+	item: ImportKeyFields & TitleFields,
+	rules: ImportRule[],
+	categories: { id: string; name: string; kind: string | null }[],
+	accounts: { id: string; name: string }[]
+): ImportPrefill {
+	const title = importTitle(item);
+	const rule = importRuleKeys(item)
+		.map((k) => rules.find((r) => r.matchKind === k.matchKind && r.matchValue === k.matchValue))
+		.find((r) => r !== undefined);
+	if (rule && importTypes(item.isCredit).includes(rule.type)) {
+		const target =
+			rule.type === 'transfer'
+				? accounts.find((a) => a.id === rule.counterAccountId)
+				: categories.find(
+						(c) => c.id === rule.categoryId && (c.kind === null || c.kind === rule.type)
+					);
+		if (target)
+			return {
+				type: rule.type,
+				categoryId: rule.type === 'transfer' ? '' : target.id,
+				counterAccountId: rule.type === 'transfer' ? target.id : '',
+				description: rule.description ?? title,
+				suggestion: target.name,
+				review: false
+			};
+	}
+	const type: MovementType =
+		item.kind === 'payout' || item.kind === 'account_fund'
+			? 'transfer'
+			: item.isCredit
+				? 'income'
+				: 'outcome';
+	return {
+		type,
+		categoryId: '',
+		counterAccountId: '',
+		description: title,
+		suggestion: null,
+		review: item.kind === 'other'
+	};
+}
+
+export type ApproveRule = {
+	type: MovementType;
+	categoryId: string | null;
+	counterAccountId: string | null;
+	description: string;
+};
+
+/**
+ * One transaction: claim the pending item, insert the movement, link it and learn the rule.
+ * 'stale' (nothing written) when the item is no longer pending.
+ */
+export function approveImport(
+	userId: string,
+	item: ImportItem,
+	row: MovementRow,
+	rule: ApproveRule
+): Promise<'approved' | 'stale'> {
+	return db.transaction(async (tx) => {
+		const [claimed] = await tx
+			.update(mpImportItems)
+			.set({ status: 'approved' })
+			.where(and(eq(mpImportItems.id, item.id), pending(userId)))
+			.returning({ id: mpImportItems.id });
+		if (!claimed) return 'stale';
+
+		const [movement] = await createMovement(userId, row, tx);
+		await tx
+			.update(mpImportItems)
+			.set({ movementId: movement.id })
+			.where(and(eq(mpImportItems.id, item.id), canAccessImport(userId)));
+
+		const key = importRuleKeys(item)[0];
+		if (key) {
+			const { type, categoryId, counterAccountId, description } = rule;
+			await tx
+				.insert(mpImportRules)
+				.values({
+					...importRuleOwnedBy(userId),
+					...key,
+					type,
+					categoryId,
+					counterAccountId,
+					description
+				})
+				.onConflictDoUpdate({
+					target: [mpImportRules.userId, mpImportRules.matchKind, mpImportRules.matchValue],
+					set: { type, categoryId, counterAccountId, description, updatedAt: new Date() }
+				});
+		}
+		return 'approved';
+	});
+}
+
+/** Marks the pending item rejected (the row stays so the sync never re-imports it); 'stale' if it was not pending. */
+export async function rejectImport(userId: string, id: string): Promise<'rejected' | 'stale'> {
+	const rows = await db
+		.update(mpImportItems)
+		.set({ status: 'rejected' })
+		.where(and(eq(mpImportItems.id, id), pending(userId)))
+		.returning({ id: mpImportItems.id });
+	return rows.length > 0 ? 'rejected' : 'stale';
 }

@@ -3,7 +3,7 @@
 ## Money & rate representation
 
 - All monetary amounts are stored as **integer minor units** (bigint cents). E.g. US$ 1.234,56 → `123456`.
-- ARS amounts and exchange rates are whole pesos (multiples of 100): the app validates this on input and shows ARS without decimals. Only USD has cents.
+- Manually entered ARS amounts and all exchange rates are whole pesos (multiples of 100), validated on input; amounts imported from Mercado Pago keep their cents. ARS displays without decimals (rounded half-up).
 - Exchange rate is stored as an **integer hundredths** value (`rate × 100`, bigint). E.g. rate "1 USD = 1500 ARS" → `150000`.
 - A movement's currency is **derived from its account** (`financial_accounts.currency`); it is not stored on the movement.
 
@@ -175,6 +175,8 @@ Approval inbox for Mercado Pago activity. Imports land here, never on `movements
 
 Constraints: `UNIQUE (user_id, external_key)`. Index: `(user_id, status, occurred_at)`.
 
+Approving is one transaction: a conditional `pending` → `approved` update (zero rows = already handled, nothing written), the movement insert, `movement_id`, and the rule upsert. Rejecting is a conditional `pending` → `rejected` update; the row stays so its external key is never re-imported.
+
 ### `mp_import_rules`
 
 Rules learned from approved items, used to pre-fill later ones.
@@ -193,6 +195,8 @@ Rules learned from approved items, used to pre-fill later ones.
 | `updated_at` | timestamptz | |
 
 Constraints: `UNIQUE (user_id, match_kind, match_value)`; CHECK `mp_import_rules_shape_check`: `transfer` ⇒ `counter_account_id` set and `category_id` null; otherwise `category_id` set.
+
+Approval upserts one rule on the item's strongest key: `counterparty` (`operation_type = money_transfer` with a counterparty id) > `merchant` (trimmed, lowercased) > `kind` (only yield, payout, account_fund); no key, no rule. Pre-fill is computed at read time from the first matching key in that order and ignored when its target is archived or its type does not fit the item's direction.
 
 ### `mp_sync_state`
 
@@ -291,7 +295,7 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 16. `categories.(user_id, name)` is unique.
 17. All account/movement access is authorized through a single ownership-check helper, to keep future shared-account support a one-place change.
 18. `movements.occurred_at` is the Buenos Aires local midnight of the movement's date; readers derive the date in Buenos Aires and tolerate non-midnight legacy values.
-19. New and edited ARS amounts, initial balances and all exchange rates are multiples of 100 (whole pesos); existing non-whole values are tolerated and displayed rounded half-up.
+19. Amounts imported from Mercado Pago keep their cents. Editing a movement may keep its existing amount (even non-whole); new or changed manual ARS amounts, initial balances and all exchange rates are multiples of 100 (whole pesos). Non-whole values are displayed rounded half-up.
 20. Recurring-rule and plan amounts are in the account's or plan's currency and are never summed across currencies. ARS values are whole pesos, validated in the actions.
 21. Plan figures (income, for spending, available, per day, status, limit progress) are computed at read time, never persisted. The plan setup wizard writes step by step (savings creates the plan, each limit and rule is saved on its own screen, the last step sets the plan month); nothing is staged across steps. Creating a movement with "Repetir cada mes" writes the rule and the movement (linked by `recurring_id`) in one transaction.
 22. Deletion: hard-deleting an unreferenced account or category cascades to its recurring rules and plan limits. Deleting a recurring rule sets the linked movements' `recurring_id` to NULL, so history is kept. Archiving does not touch plan rows; rules on an archived account or category are inactive (excluded from plan sums, cannot be logged).

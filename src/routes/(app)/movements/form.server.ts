@@ -8,7 +8,7 @@ import { type MovementData, resolveMovement, UNAVAILABLE_MESSAGE } from '$lib/se
 import { getMovement } from '$lib/server/movements-queries';
 
 /** Archived accounts/category already referenced by the movement being edited (they stay valid). */
-type KeptRefs = { accountIds: string[]; categoryId: string | null };
+type KeptRefs = { accountIds: string[]; categoryId: string | null; amount?: number | null };
 
 export const { notFound, requireId } = notFoundHelpers('Movimiento no encontrado.');
 
@@ -24,9 +24,11 @@ export const keptRefs = (m: {
 	accountId: string;
 	destinationAccountId: string | null;
 	categoryId: string | null;
+	amount: number;
 }): KeptRefs => ({
 	accountIds: m.destinationAccountId ? [m.accountId, m.destinationAccountId] : [m.accountId],
-	categoryId: m.categoryId
+	categoryId: m.categoryId,
+	amount: m.amount
 });
 
 /** Picker items: active accounts and categories, plus the archived ones in `keep` (edit). */

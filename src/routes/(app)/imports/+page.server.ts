@@ -1,28 +1,21 @@
 import { error, redirect } from '@sveltejs/kit';
-import { formatDay } from '$lib/locale';
-import { getImportAccount, getSyncState, listPendingImports } from '$lib/server/mp-import-queries';
+import {
+	getImportAccount,
+	getSyncState,
+	importDateTime,
+	importPrefill,
+	importTitle,
+	listImportRules,
+	listPendingImports
+} from '$lib/server/mp-import-queries';
 import { mpConfigured, startMpSync } from '$lib/server/mp-sync';
-import { dayHeading, localDay, TZ } from '$lib/server/month';
+import { dayHeading, localDay } from '$lib/server/month';
+import { movementPickers } from '../movements/form.server';
 import type { Actions, PageServerLoad } from './$types';
 
 const LEASE_MS = 15 * 60_000;
 
-const FALLBACK_TITLE: Record<string, string> = {
-	yield: 'Rendimientos',
-	payout: 'Retiro',
-	account_fund: 'Ingreso de dinero'
-};
-
-/** dd/mm/aaaa hh:mm, 24 h, Buenos Aires. */
-function dateTime(d: Date): string {
-	const time = new Intl.DateTimeFormat('es-AR', {
-		timeZone: TZ,
-		hour: '2-digit',
-		minute: '2-digit',
-		hourCycle: 'h23'
-	}).format(d);
-	return `${formatDay(localDay(d))} ${time}`;
-}
+const DONE = ['approved', 'rejected', 'stale'] as const;
 
 /** 404 unless the configured import account is the signed-in user's. */
 async function requireAccount(userId: string) {
@@ -31,21 +24,32 @@ async function requireAccount(userId: string) {
 	return account;
 }
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = locals.user!.id;
 	const account = await requireAccount(userId);
 	const configured = mpConfigured();
-	const [sync, items] = await Promise.all([
+	const [sync, items, rules, pickers] = await Promise.all([
 		getSyncState(userId, account.id),
-		configured ? listPendingImports(userId) : []
+		configured ? listPendingImports(userId) : [],
+		configured ? listImportRules(userId) : [],
+		movementPickers(userId)
 	]);
+	const counterAccounts = pickers.accounts.filter(
+		(a) => a.currency === 'ARS' && a.id !== account.id
+	);
 
 	const now = new Date();
 	const today = localDay(now);
 	const groups: {
 		day: string;
 		heading: string;
-		items: { id: string; title: string; amount: number; isCredit: boolean }[];
+		items: {
+			id: string;
+			title: string;
+			amount: number;
+			isCredit: boolean;
+			suggestion: string | null;
+		}[];
 	}[] = [];
 	for (const i of items) {
 		const day = localDay(i.occurredAt);
@@ -54,22 +58,22 @@ export const load: PageServerLoad = async ({ locals }) => {
 			group = { day, heading: dayHeading(day, today), items: [] };
 			groups.push(group);
 		}
-		const title =
-			i.counterpartyNickname ??
-			i.merchant ??
-			(i.kind === 'payment'
-				? i.isCredit
-					? 'Transferencia recibida'
-					: 'Pago'
-				: (FALLBACK_TITLE[i.kind] ?? i.rawDescription));
-		group.items.push({ id: i.id, title, amount: i.amount, isCredit: i.isCredit });
+		group.items.push({
+			id: i.id,
+			title: importTitle(i),
+			amount: i.amount,
+			isCredit: i.isCredit,
+			suggestion: importPrefill(i, rules, pickers.categories, counterAccounts).suggestion
+		});
 	}
 
+	const done = url.searchParams.get('done');
 	return {
 		configured,
 		running: !!sync?.runningSince && now.getTime() - sync.runningSince.getTime() < LEASE_MS,
 		lastError: sync?.lastError ?? null,
-		lastRun: sync?.lastRunAt ? dateTime(sync.lastRunAt) : null,
+		lastRun: sync?.lastRunAt ? importDateTime(sync.lastRunAt) : null,
+		done: DONE.find((d) => d === done) ?? null,
 		groups
 	};
 };

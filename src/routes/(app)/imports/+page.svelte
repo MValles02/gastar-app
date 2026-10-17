@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { afterNavigate, invalidateAll, replaceState } from '$app/navigation';
+	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
@@ -23,6 +26,33 @@
 
 	const errorLabel = (code: string) =>
 		ERROR_LABELS[code] ?? `error ${code.replace(/^mp_/, '')} de Mercado Pago`;
+
+	const DONE_MESSAGES = {
+		approved: 'Movimiento aprobado.',
+		rejected: 'Movimiento descartado.',
+		stale: 'Ese movimiento ya fue revisado.'
+	};
+
+	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
+	let hydrated = $state(false);
+	onMount(() => (hydrated = true));
+	// Toast once per redirect, then strip ?done from the URL so a reload does not toast again. Runs in
+	// afterNavigate because replaceState throws before the router is initialized (hard load), hence the retry.
+	const stripDone = () => {
+		try {
+			const url = new URL(page.url);
+			url.searchParams.delete('done');
+			replaceState(resolve((url.pathname + url.search + url.hash) as '/'), {});
+		} catch {
+			setTimeout(stripDone, 50);
+		}
+	};
+	afterNavigate(() => {
+		if (data.done) {
+			(data.done === 'stale' ? toast.info : toast.success)(DONE_MESSAGES[data.done]);
+			stripDone();
+		}
+	});
 
 	// The report takes ~45 s: refresh while the lease is held so the list fills in on its own.
 	$effect(() => {
@@ -57,6 +87,7 @@
 			</Empty.Header>
 		</Empty.Root>
 	{:else}
+		{#if data.done && !hydrated}<p role="status">{DONE_MESSAGES[data.done]}</p>{/if}
 		<div class="sync">
 			<p class="status" class:error={!data.running && !!data.lastError} role="status">
 				{status}
@@ -88,10 +119,13 @@
 										direction={item.isCredit ? 'income' : 'outcome'}
 									/>
 								{/snippet}
+								{#snippet suggestion()}Sugerido: {item.suggestion}{/snippet}
 								<ListRow
+									href={resolve(`/imports/${item.id}`)}
 									lead={{ letter: item.title.charAt(0).toUpperCase(), color: null }}
 									title={item.title}
 									{value}
+									meta={item.suggestion ? suggestion : undefined}
 								/>
 							{/each}
 						</ListCard>

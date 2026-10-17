@@ -37,7 +37,7 @@ Personal finance PWA for Argentina. Answers two questions:
 - Currency display: `$1.234.568` (ARS), `US$1.234,56` (USD); no space after the symbol, ARS never shows decimals.
 - Amount colors: green = positive, red = negative, blue = transfer, never a minus sign. Group totals are neutral (red when negative); savings and informational figures (per day, limits) are neutral.
 - Amount input: comma as decimal separator (USD only).
-- ARS amounts and exchange rates are whole pesos; USD amounts have up to 2 decimals.
+- Manual ARS amounts, initial balances and exchange rates are whole pesos; USD amounts have up to 2 decimals. Amounts imported from Mercado Pago keep their cents, and editing may keep a movement's existing non-whole amount; non-whole ARS values display rounded half-up.
 - Dates: `dd/mm/aaaa` (e.g. `29/02/2024`); date inputs are a custom calendar (week starts Monday, Spanish), never the native date input.
 - Timezone for "month" boundaries and default dates: `America/Argentina/Buenos_Aires`.
 
@@ -174,8 +174,10 @@ Personal finance PWA for Argentina. Answers two questions:
 
 - Optional and single-user: enabled by server env (`MP_ACCESS_TOKEN`, `MP_IMPORT_ACCOUNT_ID`); only the owner of that ARS account sees it (Profile → "Mercado Pago", route `/imports`; 404 for anyone else).
 - Source: the Mercado Pago release report, pulled on demand ("Sincronizar ahora"). Credit-card payments are not in that report and stay out of scope.
-- Each report row becomes a pending item in a separate inbox, grouped by day, with the pending count shown in Profile. Nothing touches balances or movements until an item is approved (approval is coming).
+- Each report row becomes a pending item in a separate inbox, grouped by day, with the pending count shown in Profile. Nothing touches balances or movements until an item is approved. Each row links to `/imports/[id]` (404 unless it is the user's and still pending).
 - Yields (`asset_management`) are one item per day, with the exact net amount.
+- Review: the date, amount (exact cents), counterparty and original description are read-only; the user edits type (a credit offers Ingreso / Transf., a debit Gasto / Transf.), description, category (income/outcome) or counter account (transfer: same-currency ARS, not the Mercado Pago account). A debit transfer goes from Mercado Pago to the counter account; a credit transfer comes from it. "Aprobar" creates the movement; "Descartar" rejects the item for good (the sync never re-imports it). Both return to the inbox with a confirmation.
+- Learning: approving remembers the choice (type, category or counter account, description as alias) under the strongest key of the item: counterparty (transfers), then merchant, then kind (yields, payouts, account funds). The next matching pending item is pre-filled and shows "Sugerido: …" in the list. Only the first matching rule is used, and only while its category or account is still active; otherwise the item gets defaults (payments by direction; yields income; payouts and account funds transfer; anything else asks to review the type). Categories are never created automatically.
 
 ## Out of MVP
 
