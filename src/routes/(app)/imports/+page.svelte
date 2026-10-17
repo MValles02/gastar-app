@@ -7,6 +7,7 @@
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
@@ -33,6 +34,15 @@
 		stale: 'Ese movimiento ya fue revisado.'
 	};
 
+	const bulkMessage = $derived.by(() => {
+		if (!data.bulk) return null;
+		const { approved, skipped } = data.bulk;
+		const head =
+			approved === 1 ? 'Se aprobó 1 movimiento.' : `Se aprobaron ${approved} movimientos.`;
+		if (skipped === 0) return head;
+		return `${head} ${skipped === 1 ? '1 quedó pendiente.' : `${skipped} quedaron pendientes.`}`;
+	});
+
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
 	let hydrated = $state(false);
 	onMount(() => (hydrated = true));
@@ -41,7 +51,7 @@
 	const stripDone = () => {
 		try {
 			const url = new URL(page.url);
-			url.searchParams.delete('done');
+			for (const k of ['done', 'approved', 'skipped']) url.searchParams.delete(k);
 			replaceState(resolve((url.pathname + url.search + url.hash) as '/'), {});
 		} catch {
 			setTimeout(stripDone, 50);
@@ -50,6 +60,9 @@
 	afterNavigate(() => {
 		if (data.done) {
 			(data.done === 'stale' ? toast.info : toast.success)(DONE_MESSAGES[data.done]);
+			stripDone();
+		} else if (data.bulk && bulkMessage) {
+			(data.bulk.skipped === 0 && data.bulk.approved > 0 ? toast.success : toast.info)(bulkMessage);
 			stripDone();
 		}
 	});
@@ -88,6 +101,7 @@
 		</Empty.Root>
 	{:else}
 		{#if data.done && !hydrated}<p role="status">{DONE_MESSAGES[data.done]}</p>{/if}
+		{#if bulkMessage && !data.done && !hydrated}<p role="status">{bulkMessage}</p>{/if}
 		<div class="sync">
 			<p class="status" class:error={!data.running && !!data.lastError} role="status">
 				{status}
@@ -96,6 +110,25 @@
 				<Button type="submit" variant="outline" disabled={data.running}>Sincronizar ahora</Button>
 			</form>
 		</div>
+
+		{#if data.suggested > 0}
+			<ConfirmDialog
+				triggerLabel={data.suggested === 1
+					? 'Aprobar 1 sugerido'
+					: `Aprobar ${data.suggested} sugeridos`}
+				triggerVariant="default"
+				triggerClass="w-full"
+				title={data.suggested === 1
+					? '¿Aprobar 1 movimiento sugerido?'
+					: `¿Aprobar ${data.suggested} movimientos sugeridos?`}
+				confirmLabel="Aprobar"
+				confirmVariant="default"
+				action="?/approveSuggested"
+			>
+				Se crean con la categoría o cuenta sugerida. Los que no tienen sugerencia quedan para
+				revisar.
+			</ConfirmDialog>
+		{/if}
 
 		{#if data.groups.length === 0}
 			<Empty.Root>

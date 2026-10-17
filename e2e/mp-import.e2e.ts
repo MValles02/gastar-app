@@ -61,6 +61,7 @@ const CATEGORY = `Cat MP ${sfx}`;
 const SECOND = `Cuenta MP ${sfx}`;
 const AMIGA_DESC = `Pago amiga ${sfx}`;
 const PAYOUT_DESC = `Retiro MP ${sfx}`;
+const YIELD_DESC = `Rendimiento MP ${sfx}`;
 let origin = '';
 let categoryUrl = '';
 let secondUrl = '';
@@ -96,7 +97,7 @@ test.beforeAll(async ({ browser }) => {
 });
 
 test.afterAll(async () => {
-	for (const d of [AMIGA_DESC, PAYOUT_DESC]) await deleteMovements(page, origin, d);
+	for (const d of [AMIGA_DESC, PAYOUT_DESC, YIELD_DESC]) await deleteMovements(page, origin, d);
 	for (const url of [secondUrl, categoryUrl]) if (url) await postDelete(page, origin, url);
 	await page.close();
 });
@@ -217,6 +218,44 @@ test('approving a payout as a transfer moves both balances', async () => {
 
 	expect(await balanceOf('Mercado Pago')).toBe(mpBefore - 5000);
 	expect(await balanceOf(SECOND)).toBe(secondBefore + 5000);
+});
+
+test('a learned kind rule suggests the other yield', async () => {
+	// 7,89 renders as "$8"; the "Rendimientos" filter keeps the "$801" FAKE.AMIGA row out.
+	await openItem('Rendimientos', '$8');
+	await page.locator('input[name="description"]').fill(YIELD_DESC);
+	await page.getByRole('radio', { name: 'Ingreso' }).check({ force: true });
+	await pick(page, 'Categoría', CATEGORY);
+	await page.getByRole('button', { name: 'Aprobar' }).click();
+	await flash('Movimiento aprobado.');
+	await expect(rows().filter({ hasText: 'Rendimientos' })).toContainText(`Sugerido: ${CATEGORY}`);
+});
+
+test('bulk approve creates the suggested movements with exact amounts', async () => {
+	const before = await balanceOf('Mercado Pago');
+	await page.goto('/imports', { waitUntil: 'networkidle' });
+	await page.getByRole('button', { name: 'Aprobar 2 sugeridos' }).click();
+	await page.getByRole('alertdialog').getByRole('button', { name: 'Aprobar' }).click();
+	await flash('Se aprobaron 2 movimientos.');
+	await expect(rows()).toHaveCount(1);
+	await expect(rows().first()).toContainText('Ingreso de dinero');
+
+	const amounts: string[] = [];
+	for (const desc of [AMIGA_DESC, YIELD_DESC]) {
+		const hrefs = await findMovements(page, desc);
+		expect(hrefs).toHaveLength(2);
+		for (const href of hrefs) {
+			await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
+			amounts.push(await page.locator('input[name="amount"]').inputValue());
+		}
+	}
+	expect(amounts.sort()).toEqual(['1.234,56', '17,36', '7,89', '800,50'].sort());
+
+	// Whole-peso display: FAKE.AMIGA 800,50 + yield 17,36 (the 7,89 one was approved before `before`).
+	expect(Math.abs((await balanceOf('Mercado Pago')) - before - 817.86)).toBeLessThanOrEqual(1);
+
+	await page.goto('/imports', { waitUntil: 'networkidle' });
+	await expect(page.getByRole('button', { name: /sugerido/ })).toHaveCount(0);
 });
 
 test('other users get 404 and no Perfil row', async ({ browser }) => {

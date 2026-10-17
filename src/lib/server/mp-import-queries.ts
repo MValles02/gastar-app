@@ -29,20 +29,24 @@ export async function getImportAccount(userId: string) {
 	return row ?? null;
 }
 
+const itemColumns = {
+	id: mpImportItems.id,
+	accountId: mpImportItems.accountId,
+	status: mpImportItems.status,
+	kind: mpImportItems.kind,
+	isCredit: mpImportItems.isCredit,
+	amount: mpImportItems.amount,
+	occurredAt: mpImportItems.occurredAt,
+	counterpartyId: mpImportItems.counterpartyId,
+	counterpartyNickname: mpImportItems.counterpartyNickname,
+	merchant: mpImportItems.merchant,
+	operationType: mpImportItems.operationType,
+	rawDescription: mpImportItems.rawDescription
+};
+
 export function listPendingImports(userId: string) {
 	return db
-		.select({
-			id: mpImportItems.id,
-			kind: mpImportItems.kind,
-			isCredit: mpImportItems.isCredit,
-			amount: mpImportItems.amount,
-			occurredAt: mpImportItems.occurredAt,
-			counterpartyId: mpImportItems.counterpartyId,
-			counterpartyNickname: mpImportItems.counterpartyNickname,
-			merchant: mpImportItems.merchant,
-			operationType: mpImportItems.operationType,
-			rawDescription: mpImportItems.rawDescription
-		})
+		.select(itemColumns)
 		.from(mpImportItems)
 		.where(pending(userId))
 		.orderBy(desc(mpImportItems.occurredAt), desc(mpImportItems.createdAt));
@@ -149,21 +153,6 @@ export function importRuleKeys(i: ImportKeyFields): ImportRuleKey[] {
 		keys.push({ matchKind: 'kind', matchValue: i.kind });
 	return keys;
 }
-
-const itemColumns = {
-	id: mpImportItems.id,
-	accountId: mpImportItems.accountId,
-	status: mpImportItems.status,
-	kind: mpImportItems.kind,
-	isCredit: mpImportItems.isCredit,
-	amount: mpImportItems.amount,
-	occurredAt: mpImportItems.occurredAt,
-	counterpartyId: mpImportItems.counterpartyId,
-	counterpartyNickname: mpImportItems.counterpartyNickname,
-	merchant: mpImportItems.merchant,
-	operationType: mpImportItems.operationType,
-	rawDescription: mpImportItems.rawDescription
-};
 
 /** The user's item in any status, or undefined (foreign and missing ids alike). */
 export async function getImport(userId: string, id: string) {

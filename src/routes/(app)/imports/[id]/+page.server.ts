@@ -1,10 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 import { isUuid } from '$lib/server/db/util';
-import type { MovementData } from '$lib/server/movements';
 import { notFoundHelpers } from '$lib/server/not-found';
 import {
-	approveImport,
 	getImport,
 	importDateTime,
 	importPrefill,
@@ -12,11 +10,8 @@ import {
 	listImportRules,
 	rejectImport
 } from '$lib/server/mp-import-queries';
-import {
-	failIfUnavailable,
-	movementPickers,
-	resolvePostedMovement
-} from '../../movements/form.server';
+import { failIfUnavailable, movementPickers } from '../../movements/form.server';
+import { approveWithValues } from '../approve.server';
 import type { Actions, PageServerLoad } from './$types';
 
 const { notFound, requireId } = notFoundHelpers('Movimiento no encontrado.');
@@ -101,47 +96,19 @@ export const actions: Actions = {
 		} else if (type && !isUuid(values.categoryId)) errors.categoryId = 'Elegí una categoría.';
 		if (Object.keys(errors).length > 0) return fail(400, { values, errors });
 
-		const isTransfer = type === 'transfer';
-		const outgoing = !item.isCredit;
-		const data: MovementData = {
-			type: type!,
-			occurredAt: item.occurredAt,
-			description: values.description,
-			amount: item.amount,
-			accountId: isTransfer && !outgoing ? values.counterAccountId : item.accountId,
-			destinationAccountId: isTransfer
-				? outgoing
-					? values.counterAccountId
-					: item.accountId
-				: null,
-			categoryId: isTransfer ? null : values.categoryId,
-			exchangeRate: null
-		};
-		// The imported amount keeps its exact cents (keep.amount).
-		const { resolved } = await resolvePostedMovement(userId, data, {
-			accountIds: [],
-			categoryId: null,
-			amount: item.amount
-		});
-		if (!resolved.ok) {
-			// The pickers were checked above, so only races reach here: category errors show on the
-			// category row, anything else (account, amount, rate) as one form-level message.
-			const { categoryId, ...rest } = resolved.errors;
-			return fail(400, { values, errors: { categoryId, form: Object.values(rest)[0] } });
-		}
-
-		let result;
+		let approved;
 		try {
-			result = await approveImport(userId, item, resolved.row, {
-				type: data.type,
-				categoryId: data.categoryId,
-				counterAccountId: isTransfer ? values.counterAccountId : null,
-				description: values.description
-			});
+			approved = await approveWithValues(userId, item, { ...values, type: type! });
 		} catch (e) {
 			return failIfUnavailable(e, values);
 		}
-		redirect(303, `/imports?done=${result}`);
+		if (approved.errors) {
+			// The pickers were checked above, so only races reach here: category errors show on the
+			// category row, anything else (account, amount, rate) as one form-level message.
+			const { categoryId, ...rest } = approved.errors;
+			return fail(400, { values, errors: { categoryId, form: Object.values(rest)[0] } });
+		}
+		redirect(303, `/imports?done=${approved.result}`);
 	},
 
 	reject: async ({ locals, params }) => {
