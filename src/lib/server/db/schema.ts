@@ -305,3 +305,105 @@ export const movements = pgTable(
 		)
 	]
 );
+
+// --- Mercado Pago import staging (see docs/DATA_MODEL.md) ---
+
+export const importStatusEnum = pgEnum('import_status', ['pending', 'approved', 'rejected']);
+export const importRuleMatchKindEnum = pgEnum('import_rule_match_kind', [
+	'counterparty',
+	'merchant',
+	'kind'
+]);
+
+export const mpImportItems = pgTable(
+	'mp_import_items',
+	{
+		id: uuid('id').defaultRandom().primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id),
+		accountId: uuid('account_id')
+			.notNull()
+			.references(() => financialAccounts.id, { onDelete: 'restrict' }),
+		externalKey: text('external_key').notNull(),
+		kind: text('kind').notNull(),
+		status: importStatusEnum('status').default('pending').notNull(),
+		occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+		// Exact net amount in minor units; direction is `isCredit`.
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		isCredit: boolean('is_credit').notNull(),
+		sourceId: text('source_id').notNull(),
+		rawDescription: text('raw_description').notNull(),
+		counterpartyId: text('counterparty_id'),
+		counterpartyNickname: text('counterparty_nickname'),
+		merchant: text('merchant'),
+		operationType: text('operation_type'),
+		poiType: text('poi_type'),
+		movementId: uuid('movement_id').references(() => movements.id, { onDelete: 'set null' }),
+		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp('updated_at', { withTimezone: true })
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull()
+	},
+	(table) => [
+		uniqueIndex('mp_import_items_user_id_external_key_idx').on(table.userId, table.externalKey),
+		index('mp_import_items_user_id_status_occurred_at_idx').on(
+			table.userId,
+			table.status,
+			table.occurredAt
+		),
+		check('mp_import_items_amount_positive_check', sql`${table.amount} > 0`),
+		check(
+			'mp_import_items_kind_check',
+			sql`${table.kind} IN ('payment', 'account_fund', 'yield', 'payout', 'other')`
+		)
+	]
+);
+
+export const mpImportRules = pgTable(
+	'mp_import_rules',
+	{
+		id: uuid('id').defaultRandom().primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id),
+		matchKind: importRuleMatchKindEnum('match_kind').notNull(),
+		matchValue: text('match_value').notNull(),
+		type: movementTypeEnum('type').notNull(),
+		categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'cascade' }),
+		counterAccountId: uuid('counter_account_id').references(() => financialAccounts.id, {
+			onDelete: 'cascade'
+		}),
+		description: varchar('description', { length: 60 }),
+		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp('updated_at', { withTimezone: true })
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull()
+	},
+	(table) => [
+		uniqueIndex('mp_import_rules_user_id_match_idx').on(
+			table.userId,
+			table.matchKind,
+			table.matchValue
+		),
+		check(
+			'mp_import_rules_shape_check',
+			sql`(${table.type} = 'transfer' AND ${table.counterAccountId} IS NOT NULL AND ${table.categoryId} IS NULL) OR (${table.type} <> 'transfer' AND ${table.categoryId} IS NOT NULL)`
+		)
+	]
+);
+
+export const mpSyncState = pgTable('mp_sync_state', {
+	accountId: uuid('account_id')
+		.primaryKey()
+		.references(() => financialAccounts.id, { onDelete: 'cascade' }),
+	syncedUntil: timestamp('synced_until', { withTimezone: true }),
+	runningSince: timestamp('running_since', { withTimezone: true }),
+	lastRunAt: timestamp('last_run_at', { withTimezone: true }),
+	// Error code only, never a message or payload.
+	lastError: text('last_error'),
+	reportBalance: bigint('report_balance', { mode: 'number' }),
+	reportBalanceAt: timestamp('report_balance_at', { withTimezone: true })
+});
