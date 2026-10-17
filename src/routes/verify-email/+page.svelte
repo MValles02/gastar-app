@@ -32,7 +32,6 @@
 				<Empty.Title role="heading" aria-level={1}>Enlace vencido</Empty.Title>
 			</Empty.Header>
 			<Empty.Content>
-				<p class="body">Pedí uno nuevo.</p>
 				<form
 					bind:this={formEl}
 					method="POST"
@@ -76,12 +75,6 @@
 {/if}
 
 <style>
-	.body {
-		margin: 0;
-		font-size: var(--font-size-base);
-		color: var(--text-muted);
-	}
-
 	.actions {
 		display: flex;
 		flex-direction: column;

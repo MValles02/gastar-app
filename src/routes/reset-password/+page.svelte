@@ -31,7 +31,6 @@
 				<Empty.Title role="heading" aria-level={1}>Enlace vencido</Empty.Title>
 			</Empty.Header>
 			<Empty.Content>
-				<p class="body">Pedí uno nuevo.</p>
 				<div class="actions">
 					<Button href={resolve('/forgot-password')} class="w-full">Pedir otro</Button>
 					<a class="link" href={resolve('/login')}>Ir a Ingresar</a>
@@ -40,14 +39,7 @@
 		</Empty.Root>
 	</main>
 {:else}
-	<AuthPage>
-		<a class="back" href={resolve('/login')}>
-			<Icon name="chevron-left" size="1.25rem" /><span class="visually-hidden"
-				>Volver a Ingresar</span
-			>
-		</a>
-		<h1>Nueva contraseña</h1>
-
+	<AuthPage backHref={resolve('/login')} title="Nueva contraseña">
 		<AuthForm action="?/reset" submitLabel="Guardar" onupdated={() => (password = '')}>
 			<input type="hidden" name="token" value={data.token} />
 			<Field.Field>
@@ -70,30 +62,6 @@
 {/if}
 
 <style>
-	.back {
-		display: grid;
-		place-items: center;
-		width: var(--tap-target);
-		height: var(--tap-target);
-		margin-left: calc(-1 * var(--space-3));
-		color: var(--text);
-	}
-
-	h1 {
-		margin: 0;
-		font-family: var(--font-display);
-		font-size: 1.875rem;
-		font-weight: 500;
-		line-height: 1.15;
-		letter-spacing: -0.01em;
-	}
-
-	.body {
-		margin: 0;
-		font-size: var(--font-size-base);
-		color: var(--text-muted);
-	}
-
 	.actions {
 		display: flex;
 		flex-direction: column;
