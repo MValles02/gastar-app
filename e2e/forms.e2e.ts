@@ -73,21 +73,17 @@ test('the movement form shows Transf. and both actions without scrolling', async
 	await actionsVisible(page, /^Guardar$/);
 });
 
-test('the recurring form: toggle order, live title, ?type=income, day drawer', async ({
-	page,
-	baseURL
-}) => {
+test('the recurring form: type from ?type, title, day drawer', async ({ page, baseURL }) => {
 	await login(page, OTHER_EMAIL);
 	await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio').first()).toHaveAccessibleName('Ingreso');
-	await expect(page.getByRole('radio').last()).toHaveAccessibleName('Pago');
+	await expect(page.getByRole('radio')).toHaveCount(0);
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nuevo pago fijo');
-	await page.getByRole('radio', { name: 'Ingreso' }).check({ force: true });
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nuevo ingreso fijo');
+	await expect(page.locator('input[name="type"]')).toHaveValue('outcome');
 	await actionsVisible(page, /^Guardar$/);
 
 	await page.goto('/plan/recurring/new?type=income', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio', { name: 'Ingreso' })).toBeChecked();
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nuevo ingreso fijo');
+	await expect(page.locator('input[name="type"]')).toHaveValue('income');
 	await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
 
 	const description = `Forms regla ${Date.now()}`;

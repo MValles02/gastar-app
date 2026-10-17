@@ -33,7 +33,7 @@
 })}
 	<i style:background={sliceColor(s)} aria-hidden="true"></i>
 	<span class="name">{s.name}</span>
-	<span class="pct">{s.percent} %</span>
+	<span class="pct">{s.percent}%</span>
 	<span class="amt"><Money cents={s.amount} currency={data.currency} /></span>
 {/snippet}
 

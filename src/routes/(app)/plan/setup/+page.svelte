@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { CURRENCY_NAME } from '$lib/money';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
@@ -7,7 +8,9 @@
 	import FormActions from '$lib/components/FormActions.svelte';
 	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
-	import Money from '$lib/components/Money.svelte';
+	import ActionLink from '$lib/components/ActionLink.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import SummaryCard from '$lib/components/SummaryCard.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SwitchRow from '$lib/components/SwitchRow.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
@@ -23,7 +26,7 @@
 		'¿Cuánto cobrás por mes?',
 		'¿Qué pagos fijos tenés?',
 		'¿Cuánto querés ahorrar?',
-		'Límites por categoría',
+		'¿Dónde querés cuidar el gasto?',
 		'Tu plan'
 	];
 	const stepHref = (n: number) => `/plan/setup?step=${n}`;
@@ -33,7 +36,10 @@
 	<title>Crear plan · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Crear plan" close={{ href: resolve('/plan'), label: 'Cerrar' }} />
+<PageHeader
+	title="Crear plan en {CURRENCY_NAME[data.currency]}"
+	close={{ href: resolve('/plan'), label: 'Cerrar' }}
+/>
 
 {#snippet bar(submitLabel: string, nextHref?: string)}
 	<FormActions
@@ -44,8 +50,8 @@
 	/>
 {/snippet}
 
-{#snippet head(add: string)}
-	<SectionHeader title={titles[data.step - 1]} action={{ href: add }} />
+{#snippet head()}
+	<SectionHeader title={titles[data.step - 1]} />
 {/snippet}
 
 <div class="wizard">
@@ -64,15 +70,9 @@
 
 	{#if data.step <= 2}
 		{@const income = data.step === 1}
-		{@render head(
-			income
-				? '/plan/recurring/new?type=income&wizard=1'
-				: '/plan/recurring/new?type=outcome&wizard=2'
-		)}
+		{@render head()}
 		<p class="muted small">
-			{income
-				? 'Lo que cobrás todos los meses: sueldo, alquileres, honorarios.'
-				: 'Lo que pagás todos los meses: alquiler, servicios, suscripciones. Se descuenta de entrada.'}
+			{income ? 'Lo que cobrás todos los meses.' : 'Lo que pagás todos los meses.'}
 		</p>
 		{#if data.active.length}
 			<ListCard>
@@ -81,10 +81,18 @@
 				{/each}
 			</ListCard>
 		{:else}
-			<p class="muted">{income ? 'Sin ingresos fijos.' : 'Sin pagos fijos.'}</p>
+			<EmptyState icon="plan" description={income ? 'Sin ingresos fijos.' : 'Sin pagos fijos.'} />
 		{/if}
+		<div class="add">
+			<ActionLink
+				href={income
+					? '/plan/recurring/new?type=income&wizard=1'
+					: '/plan/recurring/new?type=outcome&wizard=2'}
+				label="Agregar"
+			/>
+		</div>
 		{#if data.inactive.length}
-			<h3>Inactivos</h3>
+			<SectionHeader level={3} title="Inactivos" />
 			<ListCard>
 				{#each data.inactive as r (r.id)}
 					<RecurringRow row={r} currency={data.currency} wizard={data.step} />
@@ -93,7 +101,7 @@
 		{/if}
 		{@render bar('Siguiente', stepHref(data.step + 1))}
 	{:else if data.step === 3}
-		<h2>{titles[2]}</h2>
+		<SectionHeader title={titles[2]} />
 		<p class="muted small">Lo apartamos antes de calcular cuánto podés gastar.</p>
 		<form method="POST" action="?/savings" use:enhance class="wizard" novalidate>
 			<SavingsFields
@@ -105,38 +113,27 @@
 			{@render bar('Siguiente')}
 		</form>
 	{:else if data.step === 4}
-		{@render head('/plan/limits/new?wizard=4')}
-		<p class="muted small">
-			Opcional: fijá un tope de gasto para las categorías que quieras cuidar.
-		</p>
+		{@render head()}
+		<p class="muted small">Topes de gasto por categoría.</p>
 		{#if data.canSuggest}
 			<form method="POST" action="?/suggested" use:enhance class="suggest">
 				<Button type="submit" variant="outline">Usar sugeridos</Button>
 			</form>
 		{/if}
 		<LimitList limits={data.limits} currency={data.currency} wizard={4} />
+		<div class="add"><ActionLink href="/plan/limits/new?wizard=4" label="Agregar" /></div>
 		{@render bar('Siguiente', stepHref(5))}
 	{:else}
 		{@const s = data.summary!}
-		<h2>{titles[4]} para {data.monthName}</h2>
-		<dl class="detail-card equation">
-			<div>
-				<dt>Ingresos</dt>
-				<dd><Money cents={s.income} currency={data.currency} tone="flow" direction="income" /></dd>
-			</div>
-			<div>
-				<dt>Pagos fijos</dt>
-				<dd><Money cents={-s.bills} currency={data.currency} tone="flow" direction="outcome" /></dd>
-			</div>
-			<div>
-				<dt>Ahorro</dt>
-				<dd><Money cents={s.savings} currency={data.currency} /></dd>
-			</div>
-			<div class="sum">
-				<dt>Para gastar</dt>
-				<dd><Money cents={s.forSpending} currency={data.currency} /></dd>
-			</div>
-		</dl>
+		<SectionHeader title="{titles[4]} para {data.monthName}" />
+		<SummaryCard
+			currency={data.currency}
+			income={s.income}
+			bills={s.bills}
+			savings={s.savings}
+			forSpending={s.forSpending}
+			limits={s.limits}
+		/>
 		{#if s.forSpending < 0}
 			<p class="warn">
 				<CircleAlert size={18} strokeWidth={1.75} aria-hidden="true" />Tus pagos y ahorro superan
@@ -152,7 +149,7 @@
 					checked={data.repeats}
 				/>
 			</Card.Root>
-			{@render bar('Guardar plan')}
+			{@render bar('Guardar')}
 		</form>
 	{/if}
 </div>
@@ -162,16 +159,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
-	}
-
-	h2 {
-		font-size: var(--font-size-lg);
-		font-weight: 600;
-	}
-
-	h3 {
-		font-size: var(--font-size-sm);
-		font-weight: 600;
 	}
 
 	/* Five-bar progress in the text colour (selection is primary, progress is not). */
@@ -219,34 +206,7 @@
 		display: flex;
 	}
 
-	.equation {
+	.add {
 		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-		padding: var(--space-4);
-		font-size: var(--font-size-sm);
-	}
-
-	.equation div {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: space-between;
-		gap: var(--space-1) var(--space-3);
-	}
-
-	.equation dt {
-		color: var(--text-muted);
-	}
-
-	.equation dd {
-		margin: 0;
-		margin-inline-start: auto;
-		text-align: end;
-	}
-
-	.equation .sum {
-		padding-top: var(--space-2);
-		border-top: 1px solid var(--border);
-		font-weight: 600;
 	}
 </style>

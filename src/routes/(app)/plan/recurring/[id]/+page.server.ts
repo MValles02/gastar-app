@@ -2,9 +2,21 @@ import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { notFoundHelpers } from '$lib/server/not-found';
 import { toIconKey } from '$lib/appearance';
-import { inactiveReason } from '$lib/server/plan';
+import {
+	dueLabel,
+	inactiveReason,
+	isRecurringActive,
+	recurringStatus,
+	type RecurringStatus
+} from '$lib/server/plan';
+import { currentMonth, localDay, monthRange } from '$lib/server/month';
 import { parseStep, planReturn } from '$lib/plan-wizard';
-import { deleteRecurring, listRecurring, setRecurringArchived } from '$lib/server/plan-queries';
+import {
+	deleteRecurring,
+	listRecurring,
+	paidRecurring,
+	setRecurringArchived
+} from '$lib/server/plan-queries';
 import { recurringPickers } from '../form.server';
 
 const { notFound, requireId } = notFoundHelpers('Movimiento fijo no encontrado.');
@@ -35,6 +47,16 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		color: null,
 		kind: null
 	};
+	const now = new Date();
+	const ym = currentMonth(now);
+	let thisMonth: { status: RecurringStatus; label: string } | null = null;
+	if (isRecurringActive(rule)) {
+		const paid = (await paidRecurring(userId, monthRange(ym))).some(
+			(p) => p.recurringId === rule.id
+		);
+		const s = recurringStatus(rule.dayOfMonth, paid, ym, localDay(now));
+		thisMonth = { status: s.status, label: dueLabel(s.status, s.daysLeft, rule.type) };
+	}
 	return {
 		id: rule.id,
 		type: rule.type,
@@ -44,6 +66,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		dayOfMonth: rule.dayOfMonth,
 		account,
 		category,
+		thisMonth,
 		inactiveReason: inactiveReason(rule),
 		archived: rule.archivedAt !== null,
 		wizard: parseStep(url.searchParams.get('wizard'))

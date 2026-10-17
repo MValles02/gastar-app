@@ -59,7 +59,7 @@ export type PlanStatus = 'ok' | 'warn' | 'over';
 
 export const PLAN_STATUS_LABEL: Record<PlanStatus, string> = {
 	ok: 'Vas bien',
-	warn: 'Atención',
+	warn: 'Vas rápido',
 	over: 'Te pasaste'
 };
 

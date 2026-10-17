@@ -1,3 +1,4 @@
+import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import type { Currency } from '$lib/money';
 import { currentMonth, localDay, monthLabel, monthRange } from './month';
 import {
@@ -72,7 +73,9 @@ const ruleRow = (r: Awaited<ReturnType<typeof listRecurring>>[number]) => ({
 	description: r.description,
 	amount: r.amount,
 	accountName: r.accountName,
-	day: r.dayOfMonth
+	day: r.dayOfMonth,
+	categoryIcon: toCategoryIconKey(r.categoryIcon),
+	categoryColor: toSwatchKey(r.categoryColor)
 });
 
 /** Recurring rules of one currency as /plan lists them: active incomes and outcomes (with due status) and inactive ones. */

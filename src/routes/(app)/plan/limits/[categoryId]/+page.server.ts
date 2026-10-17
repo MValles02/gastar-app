@@ -13,7 +13,7 @@ import {
 	PlanRejected,
 	upsertLimits
 } from '$lib/server/plan-queries';
-import { limitSuggestions } from '$lib/server/plan-view';
+import { limitSuggestions, planView } from '$lib/server/plan-view';
 
 const { notFound, requireId } = notFoundHelpers('Límite no encontrado.');
 
@@ -38,8 +38,12 @@ export const load: PageServerLoad = async ({ locals, cookies, params }) => {
 	const currency = preferredCurrency(cookies);
 	const plan = await currentPlan(userId, currency);
 	const limit = await findLimit(userId, plan.id, params.categoryId);
-	const suggestions = await limitSuggestions(userId, currency);
+	const [suggestions, view] = await Promise.all([
+		limitSuggestions(userId, currency),
+		planView(userId, currency)
+	]);
 	return {
+		progress: view.summary?.limits.find((l) => l.categoryId === limit.categoryId),
 		currency,
 		category: {
 			id: limit.categoryId,

@@ -144,7 +144,7 @@ export async function fillRule(
 /** Sets the Ahorro fields (toggle, then value and unit for "Otro"); the caller submits. */
 export async function fillSavings(
 	page: Page,
-	o: { option: 'Nada' | '10 %' | '20 %' | 'Otro'; value?: string; unit?: '%' | '$' }
+	o: { option: 'Nada' | '10%' | '20%' | 'Otro'; value?: string; unit?: '%' | '$' | 'US$' }
 ) {
 	await page.getByRole('radio', { name: o.option, exact: true }).click();
 	if (o.option !== 'Otro') return;

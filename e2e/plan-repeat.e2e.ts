@@ -214,7 +214,7 @@ test('Inicio with a plan shows the same Disponible as /plan and links to it', as
 	await page.goto('/', { waitUntil: 'networkidle' });
 	const card = page.getByRole('region', { name: 'Disponible', exact: true });
 	await expect(card).toBeVisible();
-	await expect(card.getByText(/Vas bien|Atención|Te pasaste/)).toBeVisible();
+	await expect(card.getByText(/Vas bien|Vas rápido|Te pasaste/)).toBeVisible();
 	await expect(card).toContainText(/\/día · \d+\s+(día|días)/);
 	const onHome = await card.locator('.available-amount').innerText();
 
