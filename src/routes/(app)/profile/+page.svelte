@@ -61,6 +61,8 @@
 
 	{#snippet nameValue()}<span class="val">{data.user.name}</span>{/snippet}
 
+	{#snippet pendingValue()}<span class="val">{data.imports?.pending}</span>{/snippet}
+
 	<ListCard aria-label="Tu cuenta">
 		<ListRow href={resolve('/profile/name')} title="Nombre" value={nameValue} chevron />
 		<ListRow href={resolve('/profile/password')} title="Cambiar contraseña" chevron />
@@ -80,6 +82,15 @@
 				title="Categorías"
 				chevron
 			/>
+			{#if data.imports}
+				<ListRow
+					href={resolve('/imports')}
+					lead={{ icon: 'phone', color: null }}
+					title="Mercado Pago"
+					value={data.imports.pending > 0 ? pendingValue : undefined}
+					chevron
+				/>
+			{/if}
 		</ListCard>
 	</nav>
 

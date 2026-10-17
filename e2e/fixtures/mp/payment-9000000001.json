@@ -1,0 +1,8 @@
+{
+	"id": 9000000001,
+	"operation_type": "regular_payment",
+	"description": "Transferencia",
+	"collector_id": 9000000000,
+	"payer": { "id": 9000000101 },
+	"point_of_interaction": { "type": "TRANSFER" }
+}

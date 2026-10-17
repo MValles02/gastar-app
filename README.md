@@ -19,6 +19,12 @@ Env vars required at runtime:
 | `ADDRESS_HEADER`      | `CF-Connecting-IP`. MUST be set in Dokploy BEFORE (or with) deploying this release: the app refuses to start in production without it |
 | `RESEND_API_KEY`      | Resend API key restricted to the sending domain. The app refuses to start in production without it |
 | `EMAIL_FROM`          | Bare sender address on a domain verified in Resend, e.g. `no-reply@yourdomain`. The app refuses to start in production without it |
+| `MP_ACCESS_TOKEN`     | Optional. Mercado Pago access token (secret, never commit or log it). The import is off unless this and `MP_IMPORT_ACCOUNT_ID` are set |
+| `MP_IMPORT_ACCOUNT_ID` | Optional. Id of the ARS account that receives the Mercado Pago import; its owner is the only user who sees the import |
+| `MP_IMPORT_FROM`      | Optional. First-sync start date `YYYY-MM-DD` (default: 30 days ago) |
+| `MP_SYNC_INTERVAL_HOURS` | Optional. Hours between automatic syncs (default `6`, `0` = off). Not used yet: the scheduler comes in a later release |
+| `MP_API_BASE_URL`     | Optional, tests only. Mercado Pago API base URL (default `https://api.mercadopago.com`) |
+| `MP_REPORT_POLL_MS`   | Optional, tests only. Milliseconds between report-ready checks (default `15000`) |
 | `PORT`                | Port to listen on (default `3000`)                    |
 
 `CF-Connecting-IP` is trustworthy only because the origin accepts Cloudflare IPs only (firewall ipset); if the origin is ever exposed directly, the header is spoofable.
