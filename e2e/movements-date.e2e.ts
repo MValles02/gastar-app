@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { deleteMovements, login, openFilters, pickDate } from './helpers';
+import { deleteMovements, login, openFilters, pickDate, pickMonthYear } from './helpers';
 
 // Descriptions of movements this spec may have created; removed in afterEach.
 const created: string[] = [];
@@ -29,7 +29,7 @@ async function create(page: Page, description: string, date: string) {
 	await option(page, 'Cuenta', /Banco Galicia/).check({ force: true });
 	await option(page, 'Categoría', /Supermercado/).check({ force: true });
 	await page.locator('input[name="occurredAt"]').fill(date);
-	await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 }
 
@@ -131,9 +131,7 @@ test('the calendar is in Spanish and the week starts on Monday', async ({ page }
 		await expect(nav).toBeVisible();
 		await expect(nav).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	}
-	const month = await dialog
-		.getByLabel('Mes', { exact: true })
-		.evaluate((el) => (el as HTMLSelectElement).selectedOptions[0].textContent!.trim());
+	const month = (await dialog.getByLabel('Mes', { exact: true }).innerText()).trim();
 	expect(month).toMatch(
 		/^(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)$/i
 	);
@@ -146,7 +144,10 @@ test('the calendar offers no day before 2000', async ({ page }) => {
 	await expect(page.locator('input[name="occurredAt"]')).toHaveValue('2000-01-01');
 	await page.getByRole('button', { name: /Fecha/ }).click();
 	const dialog = page.getByRole('dialog');
-	await expect(dialog.getByLabel('Año').locator('option[value="1999"]')).toHaveCount(0);
+	await dialog.getByLabel('Año', { exact: true }).click();
+	await expect(page.getByRole('option', { name: '2000', exact: true })).toBeVisible();
+	await expect(page.getByRole('option', { name: '1999', exact: true })).toHaveCount(0);
+	await page.keyboard.press('Escape');
 	await expect(dialog.locator('[data-calendar-prev-button]')).toBeDisabled();
 });
 
@@ -155,8 +156,8 @@ test('the Filtros range calendar sets from and to', async ({ page }) => {
 	const dialog = await openFilters(page);
 	await dialog.getByRole('button', { name: /Fechas/ }).click();
 	const picker = page.getByRole('dialog').last();
-	await picker.getByLabel('Año').selectOption('2025');
-	await picker.getByLabel('Mes', { exact: true }).selectOption('3');
+	await picker.getByRole('button', { name: 'Personalizado' }).click();
+	await pickMonthYear(page, picker, '2025-03-01');
 	await picker.locator('[data-bits-day][data-value="2025-03-10"]').click();
 	await picker.locator('[data-bits-day][data-value="2025-03-14"]').click();
 	await expect(page).toHaveURL(/from=2025-03-10&to=2025-03-14/);

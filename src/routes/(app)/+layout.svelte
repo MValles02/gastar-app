@@ -1,12 +1,12 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
-	import { FORM_ROUTES } from '$lib/form-routes';
+	import { TAB_ROUTES } from '$lib/form-routes';
 	import TabBar from '$lib/components/TabBar.svelte';
 
 	let { children }: { children: Snippet } = $props();
 
-	const showBar = $derived(!FORM_ROUTES.has(page.route.id ?? ''));
+	const showBar = $derived(TAB_ROUTES.has(page.route.id ?? ''));
 </script>
 
 <div class="shell">

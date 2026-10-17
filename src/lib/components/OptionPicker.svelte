@@ -55,7 +55,8 @@
 
 	const isRow = $derived(variant === 'row');
 	const visible = $derived(items.filter((item) => item.id !== excludeId));
-	const selected = $derived(visible.find((item) => item.id === value));
+	// An empty value is the "none" placeholder: never shows an icon, even if an item has id ''.
+	const selected = $derived(value ? visible.find((item) => item.id === value) : undefined);
 
 	async function openSheet() {
 		open = true;
@@ -205,6 +206,7 @@
 
 	.row .current {
 		flex: 1;
+		padding-inline-start: var(--space-3);
 		justify-content: flex-end;
 	}
 

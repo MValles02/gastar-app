@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Currency } from '$lib/money';
 	import { resolve } from '$app/paths';
+	import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
 	import ListRow from './ListRow.svelte';
 	import Money from './Money.svelte';
 
@@ -16,7 +17,8 @@
 			currency: Currency;
 			accountName: string;
 			destinationAccountName: string | null;
-			categoryName: string | null;
+			categoryIcon: CategoryIconKey | null;
+			categoryColor: SwatchKey | null;
 		};
 		/** Pre-formatted day; omitted where a group header already shows it. */
 		date?: string;
@@ -29,46 +31,39 @@
 
 {#snippet dateMeta()}{date}{/snippet}
 
+{#snippet accountMeta()}
+	{m.type === 'transfer' ? `${m.accountName} → ${m.destinationAccountName}` : m.accountName}
+{/snippet}
+
 {#snippet where()}
-	{#if m.type === 'transfer'}
-		<span class="slot account">{m.accountName} → {m.destinationAccountName}</span>
-	{:else}
-		{#if m.categoryName}<span class="slot category">{m.categoryName}</span>{/if}
-		<span class="slot account end">{m.accountName}</span>
-	{/if}
+	<span class="end">{@render accountMeta()}</span>
 {/snippet}
 
 <ListRow
 	href={resolve(`/movements/${m.id}`)}
 	lead={m.type === 'transfer'
-		? { icon: 'transfer', color: null }
-		: { letter: m.description.charAt(0).toUpperCase(), color: null }}
+		? { icon: 'transfer', color: null, glyph: 'var(--transfer)' }
+		: m.categoryColor || m.categoryIcon
+			? {
+					icon: m.categoryIcon ?? undefined,
+					letter: m.categoryIcon ? undefined : m.description.charAt(0).toUpperCase(),
+					color: m.categoryColor
+				}
+			: { letter: m.description.charAt(0).toUpperCase(), color: null }}
 	title={m.description}
 	{value}
-	meta={date ? dateMeta : undefined}
-	metaEnd={where}
+	meta={date ? dateMeta : accountMeta}
+	metaEnd={date ? where : undefined}
 />
 
 <style>
-	/* Line 2 never wraps: the account truncates first, then the category, then the date. */
-	.slot {
-		min-width: 0;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	/* Account has a zero basis, so it only gets leftover space and empties before the
-	   category shrinks; the date (fixed dd/mm/aaaa) shrinks last. */
-	.category {
-		flex: 0 1000 auto;
-	}
-
-	.account {
-		flex: 1 1 0;
-	}
-
+	/* Line 2 never wraps: the account truncates first, then the date. */
 	.end {
+		flex: 1 1 0;
+		min-width: 0;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
 		text-align: end;
 	}
 </style>

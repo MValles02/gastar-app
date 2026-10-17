@@ -122,7 +122,7 @@ test('delete account removes the user and all their data', async ({ page, reques
 		account: 'Cuenta borrar',
 		category: 'Categoria borrar'
 	});
-	await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 	await fillRule(page, {
 		description: 'Regla borrar',

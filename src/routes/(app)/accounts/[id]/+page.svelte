@@ -3,9 +3,9 @@
 	import { resolve } from '$app/paths';
 	import { ACCOUNT_ICONS, SWATCHES, toIconKey, toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import DetailActions from '$lib/components/DetailActions.svelte';
+	import DetailHero from '$lib/components/DetailHero.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
@@ -29,17 +29,7 @@
 <div class="detail">
 	<PageHeader title={a.name} back={{ href: resolve('/accounts'), label: 'Volver a cuentas' }} />
 
-	<section aria-labelledby={labelId}>
-		<Card.Root>
-			<Card.Content>
-				<div class="hero">
-					<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} size="3rem" />
-					<p class="value"><Money cents={data.balance} currency={a.currency} /></p>
-					<p id={labelId} class="label">Saldo</p>
-				</div>
-			</Card.Content>
-		</Card.Root>
-	</section>
+	<DetailHero cents={data.balance} currency={a.currency} label="Saldo" {labelId} />
 
 	<dl class="detail-card data">
 		<div class="item">
@@ -111,29 +101,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
-	}
-
-	.hero {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: var(--space-2);
-		padding-block: var(--space-2);
-		text-align: center;
-	}
-
-	.value {
-		max-width: 100%;
-		font-family: var(--font-display);
-		font-size: clamp(1.5rem, 9vw, 2.75rem);
-		font-weight: 500;
-		line-height: 1.2;
-		overflow-wrap: anywhere;
-	}
-
-	.label {
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
 	}
 
 	.muted {

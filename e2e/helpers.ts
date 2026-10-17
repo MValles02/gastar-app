@@ -75,12 +75,23 @@ export async function pick(page: Page, legend: string, name: string) {
 	await page.getByRole('dialog').getByText(name, { exact: true }).click();
 }
 
+/** Sets the calendar's Select-based month and year (options render in a portal outside the dialog). */
+export async function pickMonthYear(page: Page, dialog: Locator, ymd: string) {
+	const [y, m] = ymd.split('-').map(Number);
+	await dialog.getByLabel('Año', { exact: true }).click();
+	await page.getByRole('option', { name: String(y), exact: true }).click();
+	const month = new Intl.DateTimeFormat('es-AR', { month: 'long', timeZone: 'UTC' }).format(
+		new Date(Date.UTC(y, m - 1, 1))
+	);
+	await dialog.getByLabel('Mes', { exact: true }).click();
+	await page.getByRole('option', { name: month, exact: true }).click();
+}
+
 /** Picks `ymd` (YYYY-MM-DD) in the calendar dialog opened by the button whose name matches `label`. */
 export async function pickDate(page: Page, label: string, ymd: string) {
 	await page.getByRole('button', { name: new RegExp(label) }).click();
 	const dialog = page.getByRole('dialog');
-	await dialog.getByLabel('Año').selectOption(String(Number(ymd.slice(0, 4))));
-	await dialog.getByLabel('Mes', { exact: true }).selectOption(String(Number(ymd.slice(5, 7))));
+	await pickMonthYear(page, dialog, ymd);
 	await dialog.locator(`[data-bits-day][data-value="${ymd}"]`).click();
 }
 
@@ -105,9 +116,9 @@ export async function fillMovement(
 	if (o.date !== undefined) await pickDate(page, 'Fecha', o.date);
 	await page.locator('input[name="amount"]').fill(o.amount);
 	await page.locator('input[name="description"]').fill(o.description);
-	await pick(page, o.destination ? 'Cuenta de origen' : 'Cuenta', o.account);
+	await pick(page, o.destination ? 'Origen' : 'Cuenta', o.account);
 	if (o.category) await pick(page, 'Categoría', o.category);
-	if (o.destination) await pick(page, 'Cuenta de destino', o.destination);
+	if (o.destination) await pick(page, 'Destino', o.destination);
 	if (o.rate !== undefined) await page.locator('input[name="exchangeRate"]').fill(o.rate);
 }
 

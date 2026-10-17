@@ -165,11 +165,11 @@
 			<OptionPicker
 				variant="row"
 				name="accountId"
-				legend={isTransfer ? 'Cuenta de origen' : 'Cuenta'}
+				legend={isTransfer ? 'Origen' : 'Cuenta'}
 				title="Elegí la cuenta"
 				items={accounts}
 				bind:value={accountId}
-				placeholder="Elegir cuenta"
+				placeholder="Elegir"
 				error={errors.accountId}
 				errorId="account-error"
 			>
@@ -183,12 +183,12 @@
 				<OptionPicker
 					variant="row"
 					name="destinationAccountId"
-					legend="Cuenta de destino"
+					legend="Destino"
 					title="Elegí la cuenta de destino"
 					items={accounts}
 					bind:value={destinationId}
 					excludeId={mounted ? accountId : undefined}
-					placeholder="Elegir cuenta"
+					placeholder="Elegir"
 					error={errors.destinationAccountId}
 					errorId="destination-error"
 				>
@@ -247,7 +247,7 @@
 						title="Elegí la categoría"
 						items={pickableCategories}
 						bind:value={categoryId}
-						placeholder="Elegir categoría"
+						placeholder="Elegir"
 						error={errors.categoryId}
 						errorId="category-error"
 					>
@@ -287,9 +287,7 @@
 	</ul>
 
 	{#if repeatable && !recurring && showCategory}
-		<p id="repeat-hint" class="hint pad">
-			Te lo recordamos el mismo día de cada mes. Solo ingresos y gastos.
-		</p>
+		<p id="repeat-hint" class="hint pad">Te lo recordamos el mismo día de cada mes.</p>
 	{/if}
 
 	<FormActions {cancelHref} {submitLabel} {submitting} />

@@ -93,12 +93,13 @@
 						</a>
 					{:else}
 						<div class="box">
-							<CardEyebrow as="h2" id="summary-heading">Saldo</CardEyebrow>
+							<div class="top">
+								<CardEyebrow as="h2" id="summary-heading">Saldo</CardEyebrow>
+							</div>
 							<HeroAmount cents={data.balance} currency={data.currency} />
 						</div>
 						<div class="sub">{@render monthNet()}</div>
 						<div class="no-plan">
-							<CardEyebrow>Disponible</CardEyebrow>
 							{#if data.plan?.endedMonthName}
 								<p class="strong">Terminó el plan de {data.plan.endedMonthName}.</p>
 							{/if}

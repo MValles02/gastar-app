@@ -4,9 +4,10 @@
 	import { resolve } from '$app/paths';
 	import { CATEGORY_ICONS, SWATCHES, toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import DetailActions from '$lib/components/DetailActions.svelte';
+	import DetailHero from '$lib/components/DetailHero.svelte';
+	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import MonthNav from '$lib/components/MonthNav.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
@@ -43,44 +44,33 @@
 		back={{ href: resolve('/categories'), label: 'Volver a categorías' }}
 	/>
 
-	<section aria-label="Resumen del mes">
-		<Card.Root>
-			<Card.Content>
-				<div class="month-nav">
-					<MonthNav
-						label={data.month.label}
-						prevHref={resolve(`/categories/${c.id}?month=${data.month.prev}`)}
-						nextHref={data.month.isCurrent
-							? null
-							: resolve(`/categories/${c.id}?month=${data.month.next}`)}
-					/>
-				</div>
-
-				<div class="hero">
-					<IconBadge
-						icon={icon ?? undefined}
-						letter={icon ? undefined : c.name[0]}
-						color={toSwatchKey(c.color)}
-						size="3rem"
-					/>
-					{#if single}
-						<p class="value">{@render flow(single.net, single.currency)}</p>
-					{:else if data.nets.length === 0}
-						<p class="muted">Sin movimientos en este mes.</p>
-					{:else}
-						<dl class="duo">
-							{#each data.nets as n (n.currency)}
-								<div>
-									<dt>{n.currency}</dt>
-									<dd class="amount">{@render flow(n.net, n.currency)}</dd>
-								</div>
-							{/each}
-						</dl>
-					{/if}
-				</div>
-			</Card.Content>
-		</Card.Root>
-	</section>
+	<DetailHero ariaLabel="Resumen del mes">
+		{#snippet top()}
+			<MonthNav
+				label={data.month.label}
+				prevHref={resolve(`/categories/${c.id}?month=${data.month.prev}`)}
+				nextHref={data.month.isCurrent
+					? null
+					: resolve(`/categories/${c.id}?month=${data.month.next}`)}
+			/>
+		{/snippet}
+		{#if single}
+			<HeroAmount cents={-single.net} currency={single.currency} tone="flow" />
+		{:else}
+			{#if data.nets.length === 0}
+				<p class="muted">Sin movimientos en este mes.</p>
+			{:else}
+				<dl class="duo">
+					{#each data.nets as n (n.currency)}
+						<div>
+							<dt>{n.currency}</dt>
+							<dd class="amount">{@render flow(n.net, n.currency)}</dd>
+						</div>
+					{/each}
+				</dl>
+			{/if}
+		{/if}
+	</DetailHero>
 
 	<dl class="detail-card data">
 		<div class="item">
@@ -153,28 +143,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
-	}
-
-	.month-nav {
-		margin-bottom: var(--space-3);
-	}
-
-	.hero {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: var(--space-2);
-		padding-block: var(--space-2);
-		text-align: center;
-	}
-
-	.value {
-		max-width: 100%;
-		font-family: var(--font-display);
-		font-size: clamp(1.5rem, 9vw, 2.75rem);
-		font-weight: 500;
-		line-height: 1.2;
-		overflow-wrap: anywhere;
 	}
 
 	.duo {

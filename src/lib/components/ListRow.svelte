@@ -28,7 +28,13 @@
 		/** Already resolved. */
 		href?: string;
 		submit?: boolean;
-		lead?: { icon?: ComponentProps<typeof Icon>['name']; letter?: string; color: SwatchKey | null };
+		lead?: {
+			icon?: ComponentProps<typeof Icon>['name'];
+			letter?: string;
+			color: SwatchKey | null;
+			/** Glyph-only CSS colour. */
+			glyph?: string;
+		};
 		title: string;
 		value?: Snippet;
 		status?: { tone: StatusTone; label: string };
@@ -48,6 +54,7 @@
 				icon={lead.icon}
 				letter={lead.letter}
 				color={lead.color}
+				glyph={lead.glyph}
 				size="2.25rem"
 				neutral={lead.color === null}
 			/>

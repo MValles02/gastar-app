@@ -70,7 +70,7 @@ test('the movement form shows Transf. and both actions without scrolling', async
 	await login(page);
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
 	await expect(page.getByRole('radio', { name: 'Transf.' })).toBeAttached();
-	await actionsVisible(page, /^Guardar movimiento/);
+	await actionsVisible(page, /^Guardar$/);
 });
 
 test('the recurring form: toggle order, live title, ?type=income, day drawer', async ({

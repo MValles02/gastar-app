@@ -59,7 +59,7 @@ async function withOutcome(
 			account: o.account,
 			category: 'Ajena'
 		});
-		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		// Look the movement up now so the delete in `finally` is just a POST: the shorter the movement
 		// exists, the less it can disturb specs that compare account totals in parallel.

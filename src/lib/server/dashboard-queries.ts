@@ -94,7 +94,8 @@ export function recentMovements(userId: string, cur?: Currency) {
 			accountName: financialAccounts.name,
 			accountCurrency: financialAccounts.currency,
 			destinationAccountName: dest.name,
-			categoryName: categories.name
+			categoryIcon: categories.icon,
+			categoryColor: categories.color
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
