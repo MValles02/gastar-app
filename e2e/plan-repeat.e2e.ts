@@ -294,8 +294,10 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 		});
 		const row = page.locator('a[href*="movements/"]').filter({ hasText: description });
 		await expect(row).toHaveCount(1);
-		await expect(row).toContainText('Ajena');
-		await expect(row).not.toContainText(extra);
+		// Rows show the category as an icon only; its name is on the detail page.
+		await row.click();
+		await expect(page.getByText('Ajena', { exact: true })).toBeVisible();
+		await expect(page.getByText(extra)).toHaveCount(0);
 	} finally {
 		await cleanup(page, baseURL!, description);
 		if (extraId) await postDelete(page, baseURL!, `/categories/${extraId}`);
