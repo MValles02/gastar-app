@@ -51,7 +51,7 @@ test('a payment due today alerts until it is registered', async ({ page, baseURL
 		await expect(page).toHaveURL(/\/plan\/recurring\/[0-9a-f-]{36}$/);
 		await page.getByRole('link', { name: 'Registrar pago' }).click();
 		await expect(page.getByRole('heading', { level: 1, name: 'Registrar pago' })).toBeVisible();
-		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Pago registrado.')).toBeVisible();
 
 		await page.goto('/notifications');
@@ -154,7 +154,7 @@ test('a limit alert explains itself and opens its page in its currency', async (
 			account: 'Otra cuenta pesos',
 			category: 'Ajena'
 		});
-		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 
 		// The cookie says USD; the limit alert's form switches it to ARS before opening the page.

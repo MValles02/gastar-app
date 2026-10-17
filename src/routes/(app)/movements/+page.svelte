@@ -164,7 +164,7 @@
 				{data.summary.count}
 				{data.summary.count === 1
 					? 'movimiento'
-					: 'movimientos'}{#each data.summary.totals as t (t.currency)}&#32;· <Money
+					: 'movimientos'}{#each data.summary.totals as t (t.currency)}&nbsp;· <Money
 						cents={t.net}
 						currency={t.currency}
 						tone="flow"

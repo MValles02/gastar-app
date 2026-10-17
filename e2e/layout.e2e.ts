@@ -96,32 +96,24 @@ test('list rows keep a single-line title and never overflow at 320px', async ({ 
 	}
 });
 
-test('movement row line 2 truncates the account before the category at 375px', async ({ page }) => {
+test('movement row line 2 shows the account only and never overflows at 375px', async ({
+	page
+}) => {
 	await page.setViewportSize({ width: 375, height: 800 });
 	await login(page);
 	await page.goto('/movements', { waitUntil: 'networkidle' });
-	const rows = await page.locator('[role="listitem"]').evaluateAll((els) =>
-		els.flatMap((el) => {
-			const category = el.querySelector<HTMLElement>('.slot.category');
-			const account = el.querySelector<HTMLElement>('.slot.account');
-			if (!category || !account) return [];
-			return [
-				{
-					categoryTruncated: category.scrollWidth > category.clientWidth,
-					accountWidth: account.clientWidth
-				}
-			];
-		})
-	);
-	expect(rows.length).toBeGreaterThan(0);
-	for (const r of rows) if (r.categoryTruncated) expect(r.accountWidth).toBeLessThanOrEqual(40);
+	const lines = page.locator('[role="listitem"] [data-slot="item-description"]');
+	const n = await lines.count();
+	expect(n).toBeGreaterThan(0);
+	for (let i = 0; i < n; i++) {
+		const overflow = await lines.nth(i).evaluate((el) => el.scrollWidth > el.clientWidth);
+		expect(overflow, `line 2 of row ${i}`).toBe(false);
+	}
 
 	await page.goto('/movements?q=Proyecto%20freelance', { waitUntil: 'networkidle' });
-	const category = page
-		.locator('[role="listitem"] .slot.category', { hasText: 'Freelance' })
-		.first();
-	await expect(category).toBeVisible();
-	expect(await category.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+	const line = lines.first();
+	await expect(line).toBeVisible();
+	await expect(line).not.toContainText('Freelance');
 });
 
 test('detail pages have no horizontal overflow at 320px', async ({ page }) => {
@@ -356,15 +348,15 @@ test('back links go up to a fixed parent and tabs have none', async ({ page }) =
 
 test('new movement returns to the screen it was opened from', async ({ page }) => {
 	await login(page);
-	await page.goto('/categories', { waitUntil: 'networkidle' });
+	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await page.getByRole('link', { name: 'Nuevo movimiento' }).click();
 	await expect(page).toHaveURL(/\/movements\/new$/);
-	await expect.poll(() => pathOf(backLink(page))).toBe('/categories');
-	expect(await pathOf(page.getByRole('link', { name: 'Cancelar' }))).toBe('/categories');
+	await expect.poll(() => pathOf(backLink(page))).toBe('/plan');
+	expect(await pathOf(page.getByRole('link', { name: 'Cancelar' }))).toBe('/plan');
 });
 
 async function expectOutcomeTone(page: Page) {
-	const value = page.locator('.value');
+	const value = page.locator('.hero-amount');
 	await expect(value).toHaveText(/^-/);
 	const color = (l: Locator) => l.evaluate((el) => getComputedStyle(el).color);
 	expect(await color(value)).toBe(await color(page.getByRole('heading', { level: 1 })));
@@ -388,7 +380,7 @@ test('the tab bar is absent on the new-movement form and a focused submit stays 
 	await login(page);
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
 	await page.getByRole('button', { name: /Fecha/ }).focus();
-	const submit = page.getByRole('button', { name: 'Guardar movimiento' });
+	const submit = page.getByRole('button', { name: 'Guardar', exact: true });
 	for (let i = 0; i < 6 && !(await submit.evaluate((el) => el === document.activeElement)); i++)
 		await page.keyboard.press('Tab');
 	await expect(submit).toBeFocused();

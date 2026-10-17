@@ -195,7 +195,7 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		await expect(page.locator('input[name="amount"]')).toHaveValue(/^1\.?500$/);
 		await expect(page.locator('input[name="recurringId"]')).toHaveCount(1);
 		await expect(page.getByText(`Registrás el pago de ${description} de este mes.`)).toBeVisible();
-		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 
 		await expect(page.getByText('Pago registrado.')).toBeVisible();
 		await expect(rule(page, description)).toContainText('Pagado');

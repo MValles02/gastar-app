@@ -46,11 +46,9 @@ test('Repetir cada mes creates the rule and a movement linked to it', async ({ p
 	try {
 		await fillOutcome(page, description, '1.000');
 		await expect(checkbox(page)).not.toBeChecked();
-		await expect(
-			page.getByText('Te lo recordamos el mismo día de cada mes. Solo ingresos y gastos.')
-		).toBeVisible();
+		await expect(page.getByText('Te lo recordamos el mismo día de cada mes.')).toBeVisible();
 		await checkbox(page).check();
-		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		// The flag is stripped from the URL, so a reload does not toast again.
 		await expect(page).not.toHaveURL(/saved=/);
@@ -74,7 +72,7 @@ test('unchecked creates no rule', async ({ page, baseURL }) => {
 	await cleanup(page, baseURL!, description);
 	try {
 		await fillOutcome(page, description, '1.000');
-		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		expect(await movementCount(page, description)).toBe(1);
 		await page.goto('/plan', { waitUntil: 'networkidle' });
@@ -104,8 +102,8 @@ test('a transfer hides the switch and never creates a rule', async ({ page, base
 			await page.keyboard.press('Escape');
 			return value;
 		};
-		const origin = await id('Cuenta de origen', /Otra cuenta pesos/);
-		const destination = await id('Cuenta de destino', /Otra cuenta\s*USD/);
+		const origin = await id('Origen', /Otra cuenta pesos/);
+		const destination = await id('Destino', /Otra cuenta\s*USD/);
 		const res = await page.request.post('/movements/new', {
 			form: {
 				type: 'transfer',
@@ -180,7 +178,7 @@ test('ARS decimals with the switch on: message, nothing written, switch kept', a
 	try {
 		await fillOutcome(page, description, '1.500,50');
 		await checkbox(page).check();
-		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
 		await expect(page).toHaveURL(/\/movements\/new$/);
 		await expect(checkbox(page)).toBeChecked();
@@ -265,7 +263,7 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 
 		await fillOutcome(page, description, '1.000');
 		await checkbox(page).check();
-		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		await page.goto('/plan', { waitUntil: 'networkidle' });
 		const id = await linkId(rule(page, description).locator('a[data-slot="item"]'));

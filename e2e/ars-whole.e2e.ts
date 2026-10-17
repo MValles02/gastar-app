@@ -32,7 +32,7 @@ test.afterEach(async ({ page, baseURL }) => {
 
 const norm = (s: string | null) => (s ?? '').replace(/[\u00A0\u200B]/g, ' ').trim();
 
-const save = (page: Page) => page.getByRole('button', { name: 'Guardar movimiento' }).click();
+const save = (page: Page) => page.getByRole('button', { name: 'Guardar', exact: true }).click();
 const openDetail = async (page: Page, desc: string, currency: 'ARS' | 'USD' = 'ARS') => {
 	await page.goto(`/movements?q=${encodeURIComponent(desc)}&currency=${currency}`);
 	await page.getByText(desc).click();
@@ -212,8 +212,8 @@ test('movement form inputs follow the origin currency', async ({ page }) => {
 	await expect(rate).toHaveAttribute('inputmode', 'numeric');
 	await expect(rate).toHaveAttribute('placeholder', '0');
 
-	await pick(page, 'Cuenta de origen', 'Otra cuenta');
-	await pick(page, 'Cuenta de destino', 'Otra cuenta pesos');
+	await pick(page, 'Origen', 'Otra cuenta');
+	await pick(page, 'Destino', 'Otra cuenta pesos');
 	await expect(amount).toHaveAttribute('inputmode', 'decimal');
 	await expect(amount).toHaveAttribute('placeholder', '0,00');
 	await expect(rate).toHaveAttribute('inputmode', 'numeric');
