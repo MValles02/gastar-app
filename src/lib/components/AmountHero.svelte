@@ -23,7 +23,7 @@
 <div class="amount-block">
 	<label class="amount" class:sm={value.length > 11}>
 		<span class="visually-hidden">Monto</span>
-		{#if currency}<span class="currency">{currency === 'USD' ? 'US$' : '$'}</span>{/if}
+		<span class="currency">{currency === 'USD' ? 'US$' : '$'}</span>
 		<!-- svelte-ignore a11y_autofocus -->
 		<input
 			{id}
@@ -60,6 +60,12 @@
 		max-width: 100%;
 		padding: var(--space-4) 0 var(--space-1);
 		color: var(--text);
+		border-bottom: 2px solid transparent;
+	}
+
+	/* No box on the input: the underline and the caret are the focus cue. */
+	.amount:focus-within {
+		border-bottom-color: var(--primary);
 	}
 
 	.currency {
@@ -78,6 +84,9 @@
 		min-height: 3.5rem;
 		padding: 0 var(--space-1);
 		border: 0;
+		outline: none;
+		box-shadow: none;
+		caret-color: var(--primary);
 		background: transparent;
 		font-family: var(--font-display);
 		font-size: 2.75rem;

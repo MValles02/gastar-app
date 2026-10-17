@@ -6,7 +6,7 @@ import type { Currency } from '$lib/money';
 import { toRecentItem } from '$lib/server/dashboard';
 import { dayHeading, localDay } from '$lib/server/month';
 import { parseMovementFilters } from '$lib/server/movements';
-import { listMovements, PAGE_SIZE } from '$lib/server/movements-queries';
+import { listMovements, PAGE_SIZE, summarizeMovements } from '$lib/server/movements-queries';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = locals.user!.id;
@@ -14,11 +14,24 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// An explicit account filter wins over ?currency=.
 	const query = { ...parsed, currency: parsed.account ? ('' as const) : parsed.currency };
 
-	const [rows, accountRows, categoryRows] = await Promise.all([
+	const [rows, accountRows, categoryRows, summaryRows] = await Promise.all([
 		listMovements(userId, query, page),
 		listAccounts(userId, { archived: true }),
-		listCategories(userId, { archived: true })
+		listCategories(userId, { archived: true }),
+		activeCount > 0 ? summarizeMovements(userId, query) : []
 	]);
+
+	// Filter/search active: total matches plus income − outcome per currency (transfers excluded).
+	const summary =
+		activeCount > 0
+			? {
+					count: summaryRows.reduce((a, r) => a + r.count, 0),
+					totals: summaryRows
+						.filter((r) => r.flows > 0)
+						.map((r) => ({ currency: r.currency, net: r.income - r.outcome }))
+						.sort((a, b) => a.currency.localeCompare(b.currency))
+				}
+			: null;
 
 	const today = localDay(new Date());
 	const lockedCurrency: Currency | null = query.account
@@ -47,6 +60,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		filters: values,
 		lockedCurrency,
 		groups,
+		summary,
 		accounts: [
 			{ id: '', name: 'Todas', icon: 'accounts' as const, color: null },
 			...accountRows.map((a) => ({

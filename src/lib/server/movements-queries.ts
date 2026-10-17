@@ -1,8 +1,9 @@
-import { and, desc, eq, gte, ilike, inArray, lt, or } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, inArray, lt, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
 import { canAccessAccount, canAccessCategory, canAccessMovement, movementOwnedBy } from './access';
+import { sumOfType } from './dashboard-queries';
 import { escapeLike } from './db/util';
 import { dayStart } from './month';
 import type { MovementFilterQuery, MovementRow } from './movements';
@@ -24,11 +25,30 @@ export function createMovement(userId: string, row: MovementRow & { recurringId?
 		.returning({ id: movements.id });
 }
 
-/** Fetches PAGE_SIZE + 1 rows so the caller can tell whether there is a next page. */
-export function listMovements(userId: string, query: MovementFilterQuery, page: number) {
+/** Single filter predicate shared by the list and its summary (same joins: account, dest, categories). */
+function filterWhere(userId: string, query: MovementFilterQuery) {
 	const { q, from, to, type, account, category, currency } = query;
 	const fromStart = from ? dayStart(from) : null;
 	const toEnd = to ? dayStart(nextDay(to)) : null;
+	return and(
+		canAccessMovement(userId),
+		q ? ilike(movements.description, `%${escapeLike(q)}%`) : undefined,
+		fromStart ? gte(movements.occurredAt, fromStart) : undefined,
+		toEnd ? lt(movements.occurredAt, toEnd) : undefined,
+		type ? eq(movements.type, type) : undefined,
+		account ? or(eq(movements.accountId, account), eq(dest.id, account)) : undefined,
+		category ? eq(movements.categoryId, category) : undefined,
+		currency
+			? or(
+					eq(financialAccounts.currency, currency),
+					and(eq(movements.type, 'transfer'), eq(dest.currency, currency))
+				)
+			: undefined
+	);
+}
+
+/** Fetches PAGE_SIZE + 1 rows so the caller can tell whether there is a next page. */
+export function listMovements(userId: string, query: MovementFilterQuery, page: number) {
 	return db
 		.select({
 			id: movements.id,
@@ -51,23 +71,7 @@ export function listMovements(userId: string, query: MovementFilterQuery, page: 
 			and(eq(movements.destinationAccountId, dest.id), canAccessAccount(userId, dest))
 		)
 		.leftJoin(categories, and(eq(movements.categoryId, categories.id), canAccessCategory(userId)))
-		.where(
-			and(
-				canAccessMovement(userId),
-				q ? ilike(movements.description, `%${escapeLike(q)}%`) : undefined,
-				fromStart ? gte(movements.occurredAt, fromStart) : undefined,
-				toEnd ? lt(movements.occurredAt, toEnd) : undefined,
-				type ? eq(movements.type, type) : undefined,
-				account ? or(eq(movements.accountId, account), eq(dest.id, account)) : undefined,
-				category ? eq(movements.categoryId, category) : undefined,
-				currency
-					? or(
-							eq(financialAccounts.currency, currency),
-							and(eq(movements.type, 'transfer'), eq(dest.currency, currency))
-						)
-					: undefined
-			)
-		)
+		.where(filterWhere(userId, query))
 		.orderBy(desc(movements.occurredAt), desc(movements.createdAt), desc(movements.id))
 		.limit(PAGE_SIZE + 1)
 		.offset((page - 1) * PAGE_SIZE);
@@ -136,4 +140,28 @@ export function deleteMovement(userId: string, id: string) {
 		.delete(movements)
 		.where(and(eq(movements.id, id), inArray(movements.id, ownedIds(userId))))
 		.returning({ id: movements.id });
+}
+
+/** Per-currency totals over every row the filters match (not just the page). Transfers only count in `count`. */
+export function summarizeMovements(userId: string, query: MovementFilterQuery) {
+	return db
+		.select({
+			currency: financialAccounts.currency,
+			count: sql<number>`count(*)`.mapWith(Number),
+			flows:
+				sql<number>`count(*) filter (where ${movements.type} in ('income', 'outcome'))`.mapWith(
+					Number
+				),
+			income: sumOfType('income'),
+			outcome: sumOfType('outcome')
+		})
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.leftJoin(
+			dest,
+			and(eq(movements.destinationAccountId, dest.id), canAccessAccount(userId, dest))
+		)
+		.leftJoin(categories, and(eq(movements.categoryId, categories.id), canAccessCategory(userId)))
+		.where(filterWhere(userId, query))
+		.groupBy(financialAccounts.currency);
 }
