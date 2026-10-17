@@ -61,7 +61,7 @@
 
 	{#snippet nameValue()}<span class="val">{data.user.name}</span>{/snippet}
 
-	{#snippet pendingValue()}<span class="val">{data.imports?.pending}</span>{/snippet}
+	{#snippet pendingValue()}<span class="val">{data.imports?.pending} para revisar</span>{/snippet}
 
 	<ListCard aria-label="Tu cuenta">
 		<ListRow href={resolve('/profile/name')} title="Nombre" value={nameValue} chevron />

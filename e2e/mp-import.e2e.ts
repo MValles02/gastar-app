@@ -27,7 +27,11 @@ const reportRequests = async () =>
 /** Clicks "Sincronizar ahora" and reloads until the run is over (the lease is taken before the redirect). */
 async function syncNow(expected: RegExp) {
 	await page.goto('/imports', { waitUntil: 'networkidle' });
-	await page.getByRole('button', { name: 'Sincronizar ahora' }).click();
+	// Wait for the action: once it answers, the lease is held and stale statuses can't match.
+	await Promise.all([
+		page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/imports')),
+		page.getByRole('button', { name: 'Sincronizar ahora' }).click()
+	]);
 	await expect(async () => {
 		await page.reload();
 		await expect(page.getByRole('status')).toHaveText(expected);

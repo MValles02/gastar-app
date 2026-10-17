@@ -236,27 +236,28 @@ async function sync(accountId: string, ownerId: string, syncedUntil: Date | null
 	const me = str(obj(await apiJson('/users/me')).id);
 	if (!me) throw fail('parse');
 
-	const items = new Map<string, Candidate>();
-	const yields = new Map<string, Candidate>();
+	// Rows sharing a key (across all chunks) are summed by signed net before any write; the first row's fields stay.
+	const sums = new Map<string, Candidate>();
 	let balance: number | null = null;
 	for (let from = begin.getTime(); from < end.getTime(); from += CHUNK_DAYS * DAY_MS) {
-		const to = new Date(Math.min(from + CHUNK_DAYS * DAY_MS, end.getTime()));
+		const next = from + CHUNK_DAYS * DAY_MS;
+		// Half-open ranges: a row stamped on a boundary belongs to the next chunk only.
+		const to = new Date(next < end.getTime() ? next - 1 : end.getTime());
 		for (const r of parseCsv(await downloadReport(new Date(from), to))) {
 			if ((r.BALANCE_AMOUNT ?? '') !== '') balance = cents(r.BALANCE_AMOUNT);
 			const c = toCandidate(r);
 			if (!c) continue;
-			if (c.kind === 'yield') {
-				// A day is summed from all its rows across every chunk before the upsert.
-				const prev = yields.get(c.key);
-				const net =
-					(prev ? (prev.isCredit ? prev.amount : -prev.amount) : 0) +
-					(c.isCredit ? c.amount : -c.amount);
-				yields.set(c.key, { ...c, amount: Math.abs(net), isCredit: net >= 0 });
-			} else if (!items.has(c.key)) items.set(c.key, c);
+			const prev = sums.get(c.key);
+			const net =
+				(prev ? (prev.isCredit ? prev.amount : -prev.amount) : 0) +
+				(c.isCredit ? c.amount : -c.amount);
+			sums.set(c.key, { ...(prev ?? c), amount: Math.abs(net), isCredit: net >= 0 });
 		}
 	}
 
-	const candidates = [...items.values()];
+	const nonZero = [...sums.values()].filter((c) => c.amount > 0);
+	const candidates = nonZero.filter((c) => c.kind !== 'yield');
+	const yields = nonZero.filter((c) => c.kind === 'yield');
 	const existing = new Set<string>();
 	for (const keys of batches(candidates.filter((c) => c.kind === 'payment').map((c) => c.key))) {
 		const found = await db
@@ -294,8 +295,7 @@ async function sync(accountId: string, ownerId: string, syncedUntil: Date | null
 			.values(batch)
 			.onConflictDoNothing({ target: [mpImportItems.userId, mpImportItems.externalKey] });
 	}
-	for (const y of yields.values()) {
-		if (y.amount === 0) continue;
+	for (const y of yields) {
 		const values = {
 			...importOwnedBy(ownerId),
 			accountId,

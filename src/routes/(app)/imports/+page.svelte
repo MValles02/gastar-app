@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
@@ -22,6 +23,13 @@
 
 	const errorLabel = (code: string) =>
 		ERROR_LABELS[code] ?? `error ${code.replace(/^mp_/, '')} de Mercado Pago`;
+
+	// The report takes ~45 s: refresh while the lease is held so the list fills in on its own.
+	$effect(() => {
+		if (!data.running) return;
+		const id = setInterval(() => invalidateAll(), 3000);
+		return () => clearInterval(id);
+	});
 
 	const status = $derived(
 		data.running
@@ -50,7 +58,9 @@
 		</Empty.Root>
 	{:else}
 		<div class="sync">
-			<p class="status" role="status">{status}</p>
+			<p class="status" class:error={!data.running && !!data.lastError} role="status">
+				{status}
+			</p>
 			<form method="POST" action="?/sync" use:enhance>
 				<Button type="submit" variant="outline" disabled={data.running}>Sincronizar ahora</Button>
 			</form>
@@ -111,6 +121,10 @@
 		min-width: 0;
 		color: var(--text-muted);
 		font-size: var(--font-size-sm);
+	}
+
+	.status.error {
+		color: var(--negative);
 	}
 
 	.groups {
