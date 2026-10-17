@@ -298,6 +298,9 @@ async function deleteAppData(tx, id) {
 	await tx`delete from spending_plans where user_id = ${id}`;
 	await tx`delete from recurring_movements where user_id = ${id}`;
 	await tx`delete from categories where user_id = ${id}`;
+	await tx`delete from mp_import_items where user_id = ${id}`;
+	await tx`delete from mp_import_rules where user_id = ${id}`;
+	await tx`delete from mp_sync_state where account_id in (select id from financial_accounts where owner_id = ${id})`;
 	await tx`delete from financial_accounts where owner_id = ${id}`;
 }
 
@@ -460,6 +463,24 @@ try {
 		await tx`
 			insert into recurring_movements (id, user_id, type, description, amount, account_id, category_id, day_of_month)
 			values (${randomUUID()}, ${otherId}, 'outcome', 'Regla ajena', ${50_00}, ${otherAccountId}, ${otherCategoryId}, 10)
+		`;
+
+		// Third user owning the Mercado Pago import account (fixed id: the E2E dev server is configured with it).
+		const importEmail = 'importa@gastar.local';
+		const [importer] = await tx`select id from "user" where email = ${importEmail}`;
+		if (importer) await deleteUserData(tx, importer.id);
+		const importerId = randomUUID();
+		await tx`
+			insert into "user" (id, name, email, email_verified, created_at, updated_at)
+			values (${importerId}, 'Importa', ${importEmail}, true, now(), now())
+		`;
+		await tx`
+			insert into "account" (id, account_id, provider_id, user_id, password, created_at, updated_at)
+			values (${randomUUID()}, ${importerId}, 'credential', ${importerId}, ${passwordHash}, now(), now())
+		`;
+		await tx`
+			insert into financial_accounts (id, owner_id, name, currency, initial_balance, icon, color)
+			values ('00000000-0000-4000-8000-00000000a001', ${importerId}, 'Mercado Pago', 'ARS', ${50_000_00}, 'phone', 'blue')
 		`;
 	});
 

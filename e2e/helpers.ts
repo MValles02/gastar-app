@@ -7,6 +7,8 @@ export const SEED_EMAIL = process.env.SEED_EMAIL || 'demo@gastar.local';
 const SEED_PASSWORD = process.env.SEED_PASSWORD || 'demo1234';
 /** Second seeded user, same password: ARS "Otra cuenta pesos", category "Ajena", USD rule "Regla ajena". */
 export const OTHER_EMAIL = 'otro@gastar.local';
+/** Third seeded user, same password: owner of the Mercado Pago import account. */
+export const IMPORT_EMAIL = 'importa@gastar.local';
 
 /** The app time zone (`TZ` in src/lib/server/month.ts, which is not importable here: it uses `$lib`). */
 const APP_TZ = 'America/Argentina/Buenos_Aires';

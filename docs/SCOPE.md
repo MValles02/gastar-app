@@ -170,11 +170,18 @@ Personal finance PWA for Argentina. Answers two questions:
   - Movements: hard delete, with confirmation.
   - User account: hard delete, immediate and irreversible, of the user and all their data (movements, recurring rules, plans and limits, categories, accounts, sessions) in one transaction; then sign-out to the login page.
 
+## Mercado Pago import
+
+- Optional and single-user: enabled by server env (`MP_ACCESS_TOKEN`, `MP_IMPORT_ACCOUNT_ID`); only the owner of that ARS account sees it (Profile → "Mercado Pago", route `/imports`; 404 for anyone else).
+- Source: the Mercado Pago release report, pulled on demand ("Sincronizar ahora"). Credit-card payments are not in that report and stay out of scope.
+- Each report row becomes a pending item in a separate inbox, grouped by day, with the pending count shown in Profile. Nothing touches balances or movements until an item is approved (approval is coming).
+- Yields (`asset_management`) are one item per day, with the exact net amount.
+
 ## Out of MVP
 
 - Credit cards / installments (cuotas).
 - Attachments / receipts.
-- CSV import/export.
+- CSV import/export (the Mercado Pago import is the exception: see "Mercado Pago import").
 - Shared accounts.
 - Phone OTP.
 - Push or email notifications (Avisos are in-app only).
