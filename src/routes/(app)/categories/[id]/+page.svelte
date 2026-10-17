@@ -6,6 +6,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import DetailActions from '$lib/components/DetailActions.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import MonthNav from '$lib/components/MonthNav.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
@@ -112,9 +113,8 @@
 		<p class="error" role="alert"><Icon name="alert" size="1rem" />{form.error}</p>
 	{/if}
 
-	<div class="actions">
-		<div class="buttons">
-			<Button href={resolve(`/categories/${c.id}/edit`)}>Editar</Button>
+	<DetailActions editHref={resolve(`/categories/${c.id}/edit`)}>
+		{#snippet secondary()}
 			{#if data.actions.canArchive}
 				<form method="POST" action="?/archive" use:enhance>
 					<Button type="submit" variant="outline" class="w-full">Archivar</Button>
@@ -125,10 +125,13 @@
 					<Button type="submit" variant="outline" class="w-full">Desarchivar</Button>
 				</form>
 			{/if}
+		{/snippet}
+		{#snippet destructive()}
 			{#if data.actions.canDelete}
 				<ConfirmDialog
 					triggerLabel="Eliminar"
 					triggerVariant="destructive"
+					triggerClass="w-full"
 					title="¿Eliminar esta categoría?"
 					confirmLabel="Eliminar"
 					action="?/delete"
@@ -136,13 +139,13 @@
 					Esta acción no se puede deshacer.
 				</ConfirmDialog>
 			{/if}
-		</div>
-		{#if data.actions.canArchive}
-			<p class="muted small">
-				Tiene movimientos, así que no se puede eliminar. Podés archivarla para ocultarla.
-			</p>
-		{/if}
-	</div>
+		{/snippet}
+	</DetailActions>
+	{#if data.actions.canArchive}
+		<p class="muted small">
+			Tiene movimientos, así que no se puede eliminar. Podés archivarla para ocultarla.
+		</p>
+	{/if}
 </div>
 
 <style>
@@ -249,24 +252,6 @@
 		gap: var(--space-2);
 		color: var(--negative);
 		font-size: var(--font-size-sm);
-	}
-
-	.actions {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-		margin-top: var(--space-2);
-	}
-
-	/* Editar + the state action side by side, equal width. */
-	.buttons {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: var(--space-3);
-	}
-
-	.buttons > :global(*) {
-		width: 100%;
 	}
 
 	.nowrap {

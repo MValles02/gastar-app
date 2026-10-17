@@ -5,12 +5,11 @@
 	import Lock from '@lucide/svelte/icons/lock';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
-	import * as Field from '$lib/components/ui/field/index.js';
 	import AmountHero from '$lib/components/AmountHero.svelte';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import FormActions from '$lib/components/FormActions.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
+	import SwitchRow from '$lib/components/SwitchRow.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
 	import { convertAmount, formatMoney, parseAmount } from '$lib/money';
@@ -273,28 +272,24 @@
 				errorId="date-error"
 			/>
 		</li>
+
+		{#if repeatable && !recurring && showCategory}
+			<li>
+				<SwitchRow
+					id="repeat"
+					name="repeat"
+					label="Repetir cada mes"
+					checked={repeatChecked}
+					describedby="repeat-hint"
+				/>
+			</li>
+		{/if}
 	</ul>
 
 	{#if repeatable && !recurring && showCategory}
-		<div class="group">
-			<ul class="card">
-				<li class="check">
-					<Field.Field orientation="horizontal" class="min-h-11">
-						<Checkbox
-							id="repeat"
-							name="repeat"
-							value="on"
-							checked={repeatChecked}
-							aria-describedby="repeat-hint"
-						/>
-						<Field.Label for="repeat">Repetir cada mes</Field.Label>
-					</Field.Field>
-				</li>
-			</ul>
-			<p id="repeat-hint" class="hint pad">
-				Te lo recordamos el mismo día de cada mes. Solo ingresos y gastos.
-			</p>
-		</div>
+		<p id="repeat-hint" class="hint pad">
+			Te lo recordamos el mismo día de cada mes. Solo ingresos y gastos.
+		</p>
 	{/if}
 
 	<FormActions {cancelHref} {submitLabel} {submitting} />
@@ -366,10 +361,6 @@
 		color: var(--text);
 	}
 
-	.check {
-		padding: 0 var(--space-4);
-	}
-
 	.hint {
 		color: var(--text-muted);
 		font-size: var(--font-size-sm);
@@ -377,10 +368,6 @@
 
 	.hint.pad {
 		padding: var(--space-3) var(--space-4);
-	}
-
-	.group > .hint.pad {
-		padding-bottom: 0;
 	}
 
 	.error {

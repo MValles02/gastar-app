@@ -13,6 +13,7 @@
 		action,
 		formId,
 		closeOnFailure = false,
+		triggerClass,
 		children
 	}: {
 		triggerLabel: string;
@@ -26,6 +27,8 @@
 		formId?: string;
 		/** Close the dialog on a failed action too, so the page behind shows its error. */
 		closeOnFailure?: boolean;
+		/** Extra classes for the trigger button (and the no-JS summary). */
+		triggerClass?: string;
 		children?: Snippet;
 	} = $props();
 
@@ -38,7 +41,7 @@
 	<AlertDialog.Root bind:open>
 		<AlertDialog.Trigger>
 			{#snippet child({ props })}
-				<Button {...props} variant={triggerVariant}>{triggerLabel}</Button>
+				<Button {...props} variant={triggerVariant} class={triggerClass}>{triggerLabel}</Button>
 			{/snippet}
 		</AlertDialog.Trigger>
 		<AlertDialog.Content>
@@ -71,7 +74,7 @@
 {:else}
 	<!-- No-JS fallback: a plain details/summary confirm step that posts the same action. -->
 	<details class="fallback">
-		<summary>{triggerLabel}</summary>
+		<summary class={triggerClass}>{triggerLabel}</summary>
 		<p class="title">{title}</p>
 		{#if children}<div class="body">{@render children()}</div>{/if}
 		<form id={formId} method="POST" {action}>
