@@ -88,7 +88,7 @@ async function figures(page: Page) {
 	// Same page load: the amounts of the active "Pagos fijos" rule rows, which Pagos fijos must equal.
 	const rows = await page
 		.getByRole('region', { name: 'Pagos fijos' })
-		.locator('.rule .amount-col')
+		.locator('.rule .row-amount')
 		.allInnerTexts();
 	out['Reglas'] = rows.reduce((a, v) => a + Number(v.replace(/\D/g, '')), 0);
 	return out;

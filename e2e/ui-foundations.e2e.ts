@@ -72,23 +72,23 @@ test('the Inicio hero is the same size in ARS and USD and does not overflow', as
 	expect(sizes[1]).toBe(sizes[0]);
 });
 
-test('positive account balances are green and the group total is not', async ({
+test('account balances use the neutral text colour, not the income green', async ({
 	page,
 	baseURL
 }) => {
 	await setCurrencyCookie(page, baseURL!, 'ARS');
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
-	const income = await color(page, 'main .money.income');
-	expect(income).not.toBe(await color(page, 'main .group-total .money'));
-	const positive = await page.evaluate(() => {
+	await expect(page.locator('main .money.income')).toHaveCount(0);
+	const balance = await color(page, 'main [role="listitem"] .money.neutral');
+	const text = await page.evaluate(() => {
 		const probe = document.createElement('span');
-		probe.style.color = 'var(--positive)';
+		probe.style.color = 'var(--text)';
 		document.body.append(probe);
 		const c = getComputedStyle(probe).color;
 		probe.remove();
 		return c;
 	});
-	expect(income).toBe(positive);
+	expect(balance).toBe(text);
 });
 
 test('the delete confirm shows Cancelar and the action side by side, and Cancelar keeps the movement', async ({

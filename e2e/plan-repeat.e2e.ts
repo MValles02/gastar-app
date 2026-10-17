@@ -17,7 +17,7 @@ import {
 test.describe.configure({ timeout: 60_000 });
 
 const rule = (page: Page, text: string) => page.locator('.rule', { hasText: text });
-const checkbox = (page: Page) => page.getByRole('checkbox', { name: 'Repetir cada mes' });
+const checkbox = (page: Page) => page.getByRole('switch', { name: 'Repetir cada mes' });
 /** A uniquely described ARS outcome as `otro`, filled but not submitted. */
 const fillOutcome = (page: Page, description: string, amount: string) =>
 	fillMovement(page, {
@@ -84,7 +84,7 @@ test('unchecked creates no rule', async ({ page, baseURL }) => {
 	}
 });
 
-test('a transfer hides the checkbox and never creates a rule', async ({ page, baseURL }) => {
+test('a transfer hides the switch and never creates a rule', async ({ page, baseURL }) => {
 	const description = 'Transferencia e2e';
 	await login(page, OTHER_EMAIL);
 	await cleanup(page, baseURL!, description);
@@ -94,7 +94,7 @@ test('a transfer hides the checkbox and never creates a rule', async ({ page, ba
 		await page.getByRole('radio', { name: 'Transf.' }).check({ force: true });
 		await expect(checkbox(page)).toHaveCount(0);
 
-		// A crafted post (what a no-JS form sends) with the box checked: the server ignores it.
+		// A crafted post (what a no-JS form sends) with the switch on: the server ignores it.
 		const id = async (legend: string, label: RegExp) => {
 			await page.getByRole('button', { name: new RegExp(legend) }).click();
 			const value = await page
@@ -128,7 +128,7 @@ test('a transfer hides the checkbox and never creates a rule', async ({ page, ba
 	}
 });
 
-test('a rejected post with the box checked writes no movement and no rule', async ({
+test('a rejected post with the switch on writes no movement and no rule', async ({
 	page,
 	browser,
 	baseURL
@@ -170,7 +170,7 @@ test('a rejected post with the box checked writes no movement and no rule', asyn
 	}
 });
 
-test('ARS decimals with the box checked: message, nothing written, box kept', async ({
+test('ARS decimals with the switch on: message, nothing written, switch kept', async ({
 	page,
 	baseURL
 }) => {

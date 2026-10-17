@@ -81,7 +81,9 @@
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass a resolved href -->
 				<a {href} {...props}>{@render body()}</a>
 			{:else if submit}
-				<button type="submit" {...props}>{@render body()}</button>
+				<button type="submit" {...props} class={[props.class, 'w-full text-left']}
+					>{@render body()}</button
+				>
 			{:else}
 				<div {...props}>{@render body()}</div>
 			{/if}
