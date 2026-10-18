@@ -77,6 +77,7 @@
 					savings={s.savings}
 					forSpending={s.forSpending}
 					spent={s.spent}
+					pendingBills={s.pendingBills}
 					savingsHref={resolve('/plan/savings')}
 				>
 					{#snippet header()}

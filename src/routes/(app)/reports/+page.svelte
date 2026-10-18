@@ -7,11 +7,14 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import MonthNav from '$lib/components/MonthNav.svelte';
 	import Money from '$lib/components/Money.svelte';
+	import ListCard from '$lib/components/ListCard.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
+	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { formatMoney } from '$lib/money';
-	import { swatchVar } from '$lib/appearance';
+	import { swatchVar, toSwatchKey } from '$lib/appearance';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -23,19 +26,6 @@
 	const sliceColor = (s: { id: string; color: string | null }) =>
 		s.id === 'other' ? 'var(--text-muted)' : swatchVar(s.color);
 </script>
-
-{#snippet sliceRow(s: {
-	id: string;
-	name: string;
-	percent: number;
-	amount: number;
-	color: string | null;
-})}
-	<i style:background={sliceColor(s)} aria-hidden="true"></i>
-	<span class="name">{s.name}</span>
-	<span class="pct">{s.percent}%</span>
-	<span class="amt"><Money cents={s.amount} currency={data.currency} /></span>
-{/snippet}
 
 <svelte:head>
 	<title>Reportes · Gastar</title>
@@ -95,7 +85,7 @@
 		</section>
 
 		<section aria-labelledby="flow-heading">
-			<h2 id="flow-heading">6 meses</h2>
+			<SectionHeader id="flow-heading" title="Últimos 6 meses" />
 			<Card.Root>
 				<Card.Content>
 					<ul class="bars">
@@ -107,8 +97,11 @@
 									aria-label="{b.name}: ingresos {money(b.income)}, gastos {money(b.outcome)}"
 								>
 									<span class="cols" aria-hidden="true">
-										<span class="bar in" style:height="{(b.income / max) * 100}%"></span>
-										<span class="bar out" style:height="{(b.outcome / max) * 100}%"></span>
+										{#if b.income > 0}<span class="bar in" style:height="{(b.income / max) * 100}%"
+											></span>{/if}{#if b.outcome > 0}<span
+												class="bar out"
+												style:height="{(b.outcome / max) * 100}%"
+											></span>{/if}
 									</span>
 									<span class="bar-label" aria-hidden="true">{b.label}</span>
 								</a>
@@ -124,48 +117,56 @@
 		</section>
 
 		<section aria-labelledby="cat-heading">
-			<h2 id="cat-heading">Categorías</h2>
+			<SectionHeader id="cat-heading" title="Categorías" />
 			{#if data.slices.length === 0}
 				<Card.Root class="gap-0 overflow-hidden py-0">
 					<p class="empty-inline">No hay gastos con categoría en {data.nav.label.toLowerCase()}.</p>
 				</Card.Root>
 			{:else}
-				<Card.Root class="gap-0 overflow-hidden py-0">
-					<svg viewBox="0 0 42 42" class="donut" aria-hidden="true">
-						{#each data.slices as s, i (s.id)}
-							{@const offset = data.slices.slice(0, i).reduce((a, x) => a + x.share * 100, 0)}
-							{@const len = s.share * 100 - (data.slices.length > 1 ? 0.6 : 0)}
-							<circle
-								cx="21"
-								cy="21"
-								r="17.6"
-								fill="none"
-								stroke={sliceColor(s)}
-								stroke-width="6.8"
-								pathLength="100"
-								stroke-dasharray="{len} {100 - len}"
-								stroke-dashoffset={25 - offset}
-							/>
-						{/each}
-					</svg>
-					<ul class="slices">
-						{#each data.slices as s (s.id)}
-							<li>
-								{#if s.id === 'other'}
-									<div class="row">{@render sliceRow(s)}</div>
-								{:else}
-									<a class="row" href={resolve(`/categories/${s.id}?month=${data.nav.ym}`)}>
-										{@render sliceRow(s)}
-									</a>
-								{/if}
-							</li>
-						{/each}
-					</ul>
-				</Card.Root>
+				<svg viewBox="0 0 42 42" class="donut" aria-hidden="true">
+					{#each data.slices as s, i (s.id)}
+						{@const offset = data.slices.slice(0, i).reduce((a, x) => a + x.share * 100, 0)}
+						{@const len = s.share * 100 - (data.slices.length > 1 ? 0.6 : 0)}
+						<circle
+							cx="21"
+							cy="21"
+							r="17.6"
+							fill="none"
+							stroke={sliceColor(s)}
+							stroke-width="6.8"
+							pathLength="100"
+							stroke-dasharray="{len} {100 - len}"
+							stroke-dashoffset={25 - offset}
+						/>
+					{/each}
+				</svg>
+				<ListCard>
+					{#each data.slices as s (s.id)}
+						{#snippet sliceValue()}
+							<Money cents={s.amount} currency={data.currency} />
+						{/snippet}
+						{#snippet sliceMeta()}{s.percent}%{/snippet}
+						<ListRow
+							href={s.id === 'other'
+								? undefined
+								: resolve(`/categories/${s.id}?month=${data.nav.ym}`)}
+							lead={s.id === 'other'
+								? { icon: 'categories', color: null }
+								: {
+										icon: s.icon ?? undefined,
+										letter: s.icon ? undefined : s.name.charAt(0).toUpperCase(),
+										color: toSwatchKey(s.color)
+									}}
+							title={s.name}
+							value={sliceValue}
+							meta={sliceMeta}
+						/>
+					{/each}
+				</ListCard>
 			{/if}
 		</section>
 
-		<section class="facts" class:one={!data.biggest} aria-label="Datos del mes">
+		<section class="facts" aria-label="Datos del mes">
 			<Card.Root>
 				<Card.Content>
 					<div class="fact-card">
@@ -205,12 +206,6 @@
 	.empty-action {
 		display: flex;
 		justify-content: center;
-	}
-
-	h2 {
-		font-size: var(--font-size-lg);
-		font-weight: 600;
-		margin-bottom: var(--space-2);
 	}
 
 	.label {
@@ -341,75 +336,18 @@
 		gap: 6px;
 	}
 
-	.legend i,
-	.slices i {
+	.legend i {
 		display: inline-block;
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
 	}
 
-	.slices i {
-		width: 10px;
-		height: 10px;
-	}
-
 	.donut {
 		display: block;
 		width: 8.5rem;
 		height: 8.5rem;
-		margin: 1.25rem auto var(--space-2);
-	}
-
-	.slices {
-		list-style: none;
-		margin: 0;
-		padding: 0 var(--space-4) 0.25rem;
-	}
-
-	.row {
-		display: grid;
-		grid-template-columns: 10px minmax(0, 1fr) auto auto;
-		align-items: center;
-		gap: 0.625rem;
-		min-height: 3rem;
-		color: inherit;
-		text-decoration: none;
-	}
-
-	a.row:focus-visible {
-		outline: 2px solid var(--ring);
-		outline-offset: -2px;
-		border-radius: 0.5rem;
-	}
-
-	a.row:active {
-		background: var(--muted);
-	}
-
-	.slices li + li {
-		border-top: 1px solid var(--border);
-	}
-
-	.name {
-		min-width: 0;
-		font-weight: 500;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.pct {
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-		text-align: right;
-		white-space: nowrap;
-	}
-
-	.amt {
-		font-family: var(--font-display);
-		text-align: right;
-		overflow-wrap: anywhere;
+		margin: 0 auto var(--space-3);
 	}
 
 	.empty-inline {
@@ -422,13 +360,9 @@
 	}
 
 	.facts {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		display: flex;
+		flex-direction: column;
 		gap: var(--space-3);
-	}
-
-	.facts.one {
-		grid-template-columns: minmax(0, 1fr);
 	}
 
 	.fact-link {
@@ -474,11 +408,5 @@
 		letter-spacing: -0.01em;
 		line-height: 1.2;
 		white-space: nowrap;
-	}
-
-	@media (max-width: 21rem) {
-		.facts {
-			grid-template-columns: minmax(0, 1fr);
-		}
 	}
 </style>

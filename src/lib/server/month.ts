@@ -66,10 +66,9 @@ export function monthLabel(ym: string, withYear = true): string {
 	);
 }
 
-/** "Mayo", "Sep.": full name when short, else 3 letters. */
+/** "Ene", "Sep": capitalized first 3 letters, no dot. */
 export function shortMonth(ym: string): string {
-	const name = monthLabel(ym, false);
-	return name.length <= 5 ? name : `${name.slice(0, 3)}.`;
+	return monthLabel(ym, false).slice(0, 3);
 }
 
 export function dateLabel(d: Date): string {

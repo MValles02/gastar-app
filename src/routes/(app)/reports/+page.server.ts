@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { toSwatchKey } from '$lib/appearance';
+import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import { hasAccountsIn } from '$lib/server/dashboard';
 import { accountSummary, categorySums } from '$lib/server/dashboard-queries';
@@ -88,6 +88,7 @@ type CategorySum = {
 	id: string;
 	name: string;
 	color: string | null;
+	icon: string | null;
 	outcome: number;
 	income: number;
 };
@@ -99,6 +100,7 @@ function donutSlices(cats: CategorySum[]) {
 			id: c.id,
 			name: c.name,
 			color: toSwatchKey(c.color),
+			icon: toCategoryIconKey(c.icon),
 			amount: c.outcome - c.income
 		}))
 		.filter((c) => c.amount > 0)
@@ -106,7 +108,7 @@ function donutSlices(cats: CategorySum[]) {
 	const totalSpent = spent.reduce((a, c) => a + c.amount, 0);
 	const slices = spent.slice(0, DONUT_TOP);
 	const rest = spent.slice(DONUT_TOP).reduce((a, c) => a + c.amount, 0);
-	if (rest > 0) slices.push({ id: 'other', name: 'Otros', color: null, amount: rest });
+	if (rest > 0) slices.push({ id: 'other', name: 'Otros', color: null, icon: null, amount: rest });
 
 	const percents = wholePercents(
 		slices.map((s) => s.amount),

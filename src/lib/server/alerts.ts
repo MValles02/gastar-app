@@ -131,7 +131,7 @@ function planAlert(plan: PlanSummary, currency: Currency): AlertItem | null {
 			message:
 				plan.forSpending <= 0
 					? `Tu ahorro y tus pagos fijos superan tus ingresos por ${formatMoney(-plan.forSpending, currency)}`
-					: `Gastaste ${formatMoney(-plan.available, currency)} más de lo que tenés para gastar`
+					: `Tus gastos y pagos fijos pendientes superan lo que tenés por ${formatMoney(-plan.available, currency)}`
 		};
 	if (plan.status === 'warn')
 		return {

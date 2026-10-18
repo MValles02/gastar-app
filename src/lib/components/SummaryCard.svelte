@@ -13,6 +13,7 @@
 		savings,
 		forSpending,
 		spent,
+		pendingBills = 0,
 		savingsHref,
 		limits = [],
 		header
@@ -23,6 +24,8 @@
 		savings: number;
 		forSpending: number;
 		spent?: number;
+		/** Fixed payments not yet paid this month; shown only with `spent`. */
+		pendingBills?: number;
 		/** Resolved href; when set, the Ahorro row is a link. */
 		savingsHref?: string;
 		limits?: { categoryId: string; name: string; amount: number }[];
@@ -37,10 +40,12 @@
 			<dt>Ingresos</dt>
 			<dd><Money cents={income} {currency} tone="flow" direction="income" /></dd>
 		</div>
-		<div class="kv">
-			<dt>Pagos fijos</dt>
-			<dd><Money cents={-bills} {currency} tone="flow" direction="outcome" /></dd>
-		</div>
+		{#if spent === undefined}
+			<div class="kv">
+				<dt>Pagos fijos</dt>
+				<dd><Money cents={-bills} {currency} tone="flow" direction="outcome" /></dd>
+			</div>
+		{/if}
 		<div class="kv" class:link={!!savingsHref}>
 			<dt>
 				{#if savingsHref}
@@ -55,11 +60,16 @@
 				{#if savingsHref}<Icon name="chevron-right" size="1.25rem" />{/if}
 			</dd>
 		</div>
-		<div class="kv sum">
-			<dt>Para gastar</dt>
-			<dd><Money cents={forSpending} {currency} /></dd>
-		</div>
-		{#if spent !== undefined}
+		{#if spent === undefined}
+			<div class="kv sum">
+				<dt>Para gastar</dt>
+				<dd><Money cents={forSpending} {currency} /></dd>
+			</div>
+		{:else}
+			<div class="kv">
+				<dt>Pagos fijos pendientes</dt>
+				<dd><Money cents={-pendingBills} {currency} tone="flow" direction="outcome" /></dd>
+			</div>
 			<div class="kv">
 				<dt>Gastado</dt>
 				<dd><Money cents={-spent} {currency} tone="flow" direction="outcome" /></dd>

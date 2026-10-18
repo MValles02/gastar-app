@@ -38,8 +38,12 @@ export async function planView(userId: string, cur: Currency, now = new Date()) 
 				currency: cur,
 				recurringIncome,
 				bills: sumRules('outcome'),
+				pendingBills: active
+					.filter((r) => r.type === 'outcome' && !spent.paidIds.has(r.id))
+					.reduce((a, r) => a + r.amount, 0),
 				savings: effectiveSavings(current, recurringIncome),
 				spent: spent.total,
+				variableSpent: spent.variable,
 				limits: limits.map((l) => ({ ...l, spent: spent.byCategory.get(l.categoryId) ?? 0 })),
 				ym,
 				todayYmd: localDay(now)
