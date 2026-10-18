@@ -131,9 +131,18 @@ export async function pickDay(page: Page, day: string) {
 /** Opens the new-rule form and fills it (JS pickers); the caller submits. */
 export async function fillRule(
 	page: Page,
-	o: { description: string; amount: string; day: string; account: string; category: string }
+	o: {
+		description: string;
+		amount: string;
+		day: string;
+		account: string;
+		category: string;
+		type?: 'income' | 'outcome';
+	}
 ) {
-	await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
+	await page.goto(`/plan/recurring/new${o.type === 'income' ? '?type=income' : ''}`, {
+		waitUntil: 'networkidle'
+	});
 	await page.locator('input[name="description"]').fill(o.description);
 	await page.locator('input[name="amount"]').fill(o.amount);
 	await pickDay(page, o.day);

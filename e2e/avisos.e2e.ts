@@ -18,7 +18,7 @@ import {
 test.describe.configure({ timeout: 60_000 });
 
 const bell = (page: Page) => page.locator('header.top-bar a[aria-label^="Avisos"]');
-const pesos = (page: Page) => page.getByRole('region', { name: 'Pesos' });
+const pesos = (page: Page) => page.getByRole('region', { name: 'ARS' });
 const alertRow = (page: Page, text: string) =>
 	pesos(page).locator('[role="listitem"]', { hasText: text });
 
@@ -36,12 +36,20 @@ test('a payment due today alerts until it is registered', async ({ page, baseURL
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 
+		await page.setViewportSize({ width: 375, height: 800 });
 		await page.goto('/notifications');
 		await expect(page.getByRole('heading', { level: 1, name: 'Avisos' })).toBeVisible();
 		const row = alertRow(page, description);
 		await expect(row).toContainText('Vence hoy');
 		await expect(row).toContainText('desde Otra cuenta pesos');
-		await expect(row.locator('.row-meta')).toHaveCSS('white-space', 'nowrap');
+		// The message is not clipped at phone width.
+		const clipped = await row
+			.locator('.row-meta')
+			.evaluate((el) => el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth);
+		expect(clipped).toBe(false);
+		// The meta may wrap onto a second line.
+		await expect(row.locator('.row-meta')).toHaveCSS('white-space', 'normal');
+		await expect(row.locator('.row-meta')).toHaveCSS('-webkit-line-clamp', '2');
 		// The bell lives on the full header (tab pages) only.
 		await page.goto('/');
 		await expect(bell(page)).toHaveAttribute('aria-label', /Avisos: \d+/);
@@ -58,6 +66,35 @@ test('a payment due today alerts until it is registered', async ({ page, baseURL
 		await expect(alertRow(page, description)).toHaveCount(0);
 	} finally {
 		await deleteMovements(page, baseURL!, description);
+		await deleteRules(page, baseURL!, description);
+	}
+});
+
+test('an overdue fixed income alerts too', async ({ page, baseURL }) => {
+	await login(page, OTHER_EMAIL);
+	const description = `Ingreso aviso e2e ${Date.now()}`;
+	// Yesterday's day of month, or today's on the 1st (nothing is overdue then).
+	const dayOfMonth = Number(todayInAppTz().slice(8));
+	const overdue = dayOfMonth > 1;
+	try {
+		await fillRule(page, {
+			description,
+			amount: '2.500',
+			day: String(overdue ? dayOfMonth - 1 : dayOfMonth),
+			account: 'Otra cuenta pesos',
+			category: 'Ajena',
+			type: 'income'
+		});
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await expect(page).toHaveURL(/\/plan$/);
+
+		await page.goto('/notifications');
+		const row = alertRow(page, description);
+		await expect(row).toContainText(overdue ? 'Venció ayer' : 'Vence hoy');
+		await expect(row).toContainText('en Otra cuenta pesos');
+		await row.getByRole('link').click();
+		await expect(page).toHaveURL(/\/plan\/recurring\/[0-9a-f-]{36}$/);
+	} finally {
 		await deleteRules(page, baseURL!, description);
 	}
 });
@@ -160,8 +197,10 @@ test('a limit alert explains itself and opens its page in its currency', async (
 		// The cookie says USD; the limit alert's form switches it to ARS before opening the page.
 		await setCurrencyCookie(page, baseURL!, 'USD');
 		await page.goto('/notifications');
-		const row = alertRow(page, 'Te pasaste $1 del límite de $1');
+		const row = alertRow(page, '$1 sobre el límite de $1');
 		await expect(row).toContainText('Ajena');
+		// The message does not repeat the pill's "Te pasaste".
+		await expect(row.locator('.row-meta')).toHaveText('$1 sobre el límite de $1');
 		await row.getByRole('button').click();
 		await expect(page).toHaveURL(/\/plan\/limits\/[0-9a-f-]{36}$/);
 		await expect(page.getByRole('heading', { level: 1, name: 'Límite de Ajena' })).toBeVisible();

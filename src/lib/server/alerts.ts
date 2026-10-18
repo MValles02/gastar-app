@@ -1,6 +1,11 @@
 import { and, inArray } from 'drizzle-orm';
 import type { StatusTone } from '../status';
-import { toSwatchKey, type SwatchKey } from '../appearance';
+import {
+	toCategoryIconKey,
+	toSwatchKey,
+	type CategoryIconKey,
+	type SwatchKey
+} from '../appearance';
 import { CURRENCIES, formatMoney, type Currency } from '../money';
 import { canAccessCategory } from './access';
 import { hasAccountsIn } from './dashboard';
@@ -27,6 +32,8 @@ export type AlertItem = {
 	href: string;
 	/** Plan and limit pages read the currency from the cookie: open them through a POST to /currency. */
 	switchCurrency: boolean;
+	/** The category's icon (payments and limits); null when it has none. */
+	icon: CategoryIconKey | null;
 	/** The category's swatch (payments and limits); null renders neutral. */
 	color: SwatchKey | null;
 };
@@ -44,10 +51,9 @@ export async function categorySwatches(userId: string, ids: string[]) {
 type PlanView = Awaited<ReturnType<typeof planView>>;
 type ActiveRule = PlanView['active'][number];
 type PlanSummary = NonNullable<PlanView['summary']>;
-type Swatches = Map<string, SwatchKey | null>;
 type DueStatus = ReturnType<typeof recurringStatus>;
 
-/** Only unpaid payments inside the alert window reach here: overdue is bad, due today or soon is warning. */
+/** Only unpaid rules inside the alert window reach here: overdue is bad, due today or soon is warning. */
 const PAYMENT_TONE = {
 	overdue: 'bad',
 	today: 'warning',
@@ -57,7 +63,7 @@ const PAYMENT_TONE = {
 
 /**
  * Alerts per currency that has accounts, worked out from existing data (nothing is stored).
- * Payments first (overdue, then by due day), then the plan, then category limits. Never sums across currencies.
+ * Fixed payments and incomes first (overdue, then by due day), then the plan, then category limits. Never sums across currencies.
  */
 export async function alerts(userId: string, now = new Date()) {
 	const ym = currentMonth(now);
@@ -72,20 +78,12 @@ export async function alerts(userId: string, now = new Date()) {
 	return Promise.all(
 		currencies.map(async (currency: Currency) => {
 			const { active, summary: plan } = await planView(userId, currency, now);
-			const swatches = await categorySwatches(userId, [
-				...active.map((r) => r.categoryId),
-				...(plan?.limits.map((l) => l.categoryId) ?? [])
-			]);
-
 			const payments = active
-				.filter((r) => r.type === 'outcome')
 				.map((r) => ({ r, s: recurringStatus(r.dayOfMonth, paidIds.has(r.id), ym, today) }))
 				.filter(({ s }) => s.status !== 'paid' && s.daysLeft <= DUE_WINDOW_DAYS)
 				.sort((a, b) => a.s.daysLeft - b.s.daysLeft)
-				.map(({ r, s }) => paymentAlert(r, s, currency, swatches));
-			const planAlerts = plan
-				? [planAlert(plan, currency), ...limitAlerts(plan, currency, swatches)]
-				: [];
+				.map(({ r, s }) => paymentAlert(r, s, currency));
+			const planAlerts = plan ? [planAlert(plan, currency), ...limitAlerts(plan, currency)] : [];
 			const items: AlertItem[] = [...payments, ...planAlerts.filter((a) => a !== null)];
 			return { currency, items };
 		})
@@ -95,22 +93,18 @@ export async function alerts(userId: string, now = new Date()) {
 const days = (n: number) => `${n} ${n === 1 ? 'día' : 'días'}`;
 const percent = (share: number) => `${Math.round(share * 100)}%`;
 
-function paymentAlert(
-	rule: ActiveRule,
-	due: DueStatus,
-	currency: Currency,
-	swatches: Swatches
-): AlertItem {
+function paymentAlert(rule: ActiveRule, due: DueStatus, currency: Currency): AlertItem {
 	const label = dueLabel(due.status, due.daysLeft, rule.type);
 	return {
 		id: `rule-${rule.id}`,
 		kind: 'payment',
 		name: rule.description,
 		status: { label, tone: PAYMENT_TONE[due.status] },
-		message: `${formatMoney(rule.amount, currency)} desde ${rule.accountName}`,
+		message: `${formatMoney(rule.amount, currency)} ${rule.type === 'income' ? 'en' : 'desde'} ${rule.accountName}`,
 		href: `/plan/recurring/${rule.id}`,
 		switchCurrency: false,
-		color: swatches.get(rule.categoryId) ?? null
+		icon: toCategoryIconKey(rule.categoryIcon),
+		color: toSwatchKey(rule.categoryColor)
 	};
 }
 
@@ -122,6 +116,7 @@ function planAlert(plan: PlanSummary, currency: Currency): AlertItem | null {
 		name: 'Plan',
 		href: '/plan',
 		switchCurrency: true,
+		icon: null,
 		color: null
 	} as const;
 	if (plan.status === 'over')
@@ -143,7 +138,7 @@ function planAlert(plan: PlanSummary, currency: Currency): AlertItem | null {
 }
 
 /** Over the limit, or "Vas rápido" on /plan (`fast`). */
-function limitAlerts(plan: PlanSummary, currency: Currency, swatches: Swatches): AlertItem[] {
+function limitAlerts(plan: PlanSummary, currency: Currency): AlertItem[] {
 	return plan.limits
 		.filter((l) => l.over || l.fast)
 		.map((l) => ({
@@ -154,10 +149,11 @@ function limitAlerts(plan: PlanSummary, currency: Currency, swatches: Swatches):
 				? { label: 'Te pasaste', tone: 'bad' }
 				: { label: 'Vas rápido', tone: 'warning' },
 			message: l.over
-				? `Te pasaste ${formatMoney(l.spent - l.amount, currency)} del límite de ${formatMoney(l.amount, currency)}`
+				? `${formatMoney(l.spent - l.amount, currency)} sobre el límite de ${formatMoney(l.amount, currency)}`
 				: `Gastaste ${percent(l.share)} del límite y quedan ${days(plan.daysLeft)}`,
 			href: `/plan/limits/${l.categoryId}`,
 			switchCurrency: true,
-			color: swatches.get(l.categoryId) ?? null
+			icon: toCategoryIconKey(l.icon),
+			color: toSwatchKey(l.color)
 		}));
 }

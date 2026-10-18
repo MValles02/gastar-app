@@ -9,8 +9,6 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-
-	const currencyName = { ARS: 'Pesos', USD: 'Dólares' } as const;
 </script>
 
 <svelte:head>
@@ -30,7 +28,7 @@
 	{:else}
 		{#each data.groups as g (g.currency)}
 			<section aria-labelledby="alerts-{g.currency}">
-				<SectionHeader id="alerts-{g.currency}" title={currencyName[g.currency]} variant="group" />
+				<SectionHeader id="alerts-{g.currency}" title={g.currency} variant="group" />
 				<ListCard>
 					{#each g.items as n (n.id)}
 						{#snippet message()}{n.message}{/snippet}
@@ -39,11 +37,14 @@
 								href={submit ? undefined : n.href}
 								{submit}
 								lead={n.kind === 'plan'
-									? { icon: 'plan', color: n.color }
-									: { letter: n.name.charAt(0).toUpperCase(), color: n.color }}
+									? { icon: 'plan', color: null }
+									: n.icon
+										? { icon: n.icon, color: n.color }
+										: { letter: n.name.charAt(0).toUpperCase(), color: n.color }}
 								title={n.name}
 								status={n.status}
 								meta={message}
+								metaLines={2}
 							/>
 						{/snippet}
 						{#if !n.switchCurrency}
