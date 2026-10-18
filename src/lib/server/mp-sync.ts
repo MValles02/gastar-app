@@ -146,7 +146,11 @@ async function downloadReport(begin: Date, end: Date): Promise<string> {
 	await api('/v1/account/release_report', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ begin_date: begin.toISOString(), end_date: end.toISOString() })
+		// MP rejects milliseconds (400 invalid_begin_date): send YYYY-MM-DDTHH:MM:SSZ.
+		body: JSON.stringify({
+			begin_date: begin.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+			end_date: end.toISOString().replace(/\.\d{3}Z$/, 'Z')
+		})
 	});
 	const pollMs = Number(env.MP_REPORT_POLL_MS) || DEFAULT_POLL_MS;
 	const deadline = Date.now() + POLL_TIMEOUT_MS;
