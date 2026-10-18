@@ -31,7 +31,9 @@ export default defineConfig({
 				MP_ACCESS_TOKEN: 'TEST-fake-mp-token',
 				MP_IMPORT_ACCOUNT_ID: '00000000-0000-4000-8000-00000000a001',
 				MP_API_BASE_URL: 'http://127.0.0.1:5199',
-				MP_REPORT_POLL_MS: '100'
+				MP_REPORT_POLL_MS: '100',
+				// Scheduler off so e2e stays deterministic (syncs only via "Sincronizar ahora").
+				MP_SYNC_INTERVAL_HOURS: '0'
 			}
 		}
 	]
