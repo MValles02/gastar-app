@@ -11,6 +11,8 @@
 	import ActionLink from '$lib/components/ActionLink.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import SummaryCard from '$lib/components/SummaryCard.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
+	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SwitchRow from '$lib/components/SwitchRow.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
@@ -96,6 +98,24 @@
 			<ListCard>
 				{#each data.inactive as r (r.id)}
 					<RecurringRow row={r} currency={data.currency} wizard={data.step} />
+				{/each}
+			</ListCard>
+		{/if}
+		{#if data.suggestions.length}
+			<SectionHeader level={3} title="Detectamos que se repiten" />
+			<p class="muted small">Tocá uno para agregarlo como pago fijo.</p>
+			<ListCard>
+				{#each data.suggestions as s (s.id)}
+					<ListRow
+						href={resolve(`/plan/recurring/new?type=outcome&wizard=2&suggestion=${s.id}`)}
+						lead={{ letter: s.description.charAt(0).toUpperCase(), color: null }}
+						title={s.description}
+					>
+						{#snippet value()}
+							<Money cents={-s.amount} currency={data.currency} tone="flow" direction="outcome" />
+						{/snippet}
+						{#snippet meta()}Día {s.dayOfMonth} · {s.accountName}{/snippet}
+					</ListRow>
 				{/each}
 			</ListCard>
 		{/if}

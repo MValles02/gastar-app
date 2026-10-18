@@ -1,5 +1,7 @@
 import { expect, test, type Browser, type Cookie, type Page } from '@playwright/test';
 import {
+	deleteMovements,
+	deleteRules,
 	fillSavings,
 	linkId,
 	login,
@@ -400,4 +402,53 @@ test('Eliminar plan on /plan removes the plan and keeps the fixed incomes', asyn
 	}
 	await page.goto('/plan/setup');
 	await expect(page).toHaveURL(/\/plan\/setup$/);
+});
+
+test('step 2 suggests repeated outcomes and a tap opens the rule form prefilled', async ({
+	page,
+	baseURL
+}) => {
+	const [y, m] = todayInAppTz().split('-').map(Number);
+	const headers = { origin: baseURL!, accept: 'text/html' };
+	// The same outcome on the 15th of each of the last 3 full months.
+	for (const back of [2, 3, 4]) {
+		const res = await page.request.post('/movements/new', {
+			form: {
+				type: 'outcome',
+				amount: '12345',
+				description: 'Alquiler e2e',
+				accountId: ids.account,
+				categoryId: ids.food,
+				occurredAt: new Date(Date.UTC(y, m - back, 15)).toISOString().slice(0, 10)
+			},
+			headers
+		});
+		expect(res.ok()).toBe(true);
+	}
+	try {
+		await page.goto('/plan/setup?step=2', { waitUntil: 'networkidle' });
+		await expect(page.getByRole('heading', { name: 'Detectamos que se repiten' })).toBeVisible();
+		// The one-off previous movement (a single month) is not a suggestion.
+		await expect(page.getByRole('link', { name: /Super previo e2e/ })).toHaveCount(0);
+		const suggestion = page.getByRole('link', { name: /Alquiler e2e/ });
+		await expect(suggestion).toContainText('12.345');
+		await expect(suggestion).toContainText('Día 15 · Caja e2e');
+		await suggestion.click();
+
+		await expect(page).toHaveURL(/\/plan\/recurring\/new\?type=outcome&wizard=2&suggestion=/);
+		expect(page.url()).not.toContain('Alquiler');
+		await expect(page.locator('input[name="description"]')).toHaveValue('Alquiler e2e');
+		await expect(page.locator('input[name="amount"]')).toHaveValue('12.345');
+		await expect(page.locator('input[name="dayOfMonth"]')).toHaveValue('15');
+		await expect(page.getByRole('button', { name: /^Cuenta/ })).toContainText('Caja e2e');
+		await expect(page.getByRole('button', { name: /^Categoría/ })).toContainText('Comida e2e');
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+
+		await expect(page).toHaveURL(/\/plan\/setup\?step=2$/);
+		await expect(page.getByRole('link', { name: /Alquiler e2e/ })).toHaveCount(1);
+		await expect(page.getByRole('heading', { name: 'Detectamos que se repiten' })).toHaveCount(0);
+	} finally {
+		await deleteRules(page, baseURL!, 'Alquiler e2e');
+		await deleteMovements(page, baseURL!, 'Alquiler e2e');
+	}
 });
