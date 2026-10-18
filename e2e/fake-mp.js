@@ -51,6 +51,16 @@ createServer(async (req, res) => {
 	if (path === '/users/me') return send(res, 200, { id: ME });
 	if (path === '/v1/account/release_report/list') return send(res, 200, files);
 	if (path === '/v1/account/release_report' && req.method === 'POST') {
+		// Mirrors the real API: dates must be YYYY-MM-DDTHH:MM:SSZ (no milliseconds).
+		const body = JSON.parse((await readBody(req)) || '{}');
+		const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+		if (!iso.test(body.begin_date) || !iso.test(body.end_date)) {
+			return send(res, 400, {
+				message: 'Must specify begin_date parameter',
+				error: 'invalid_begin_date',
+				cause: []
+			});
+		}
 		const n = files.length + 1;
 		files.push({
 			id: n,
