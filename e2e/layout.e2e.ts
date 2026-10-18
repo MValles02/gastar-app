@@ -83,6 +83,8 @@ test('list rows keep a single-line title and never overflow at 320px', async ({ 
 			expect(height, `${route} row ${i}`).toBeLessThanOrEqual(lineHeight * 1.1);
 		}
 		// Line 2 (chips included) fits one text line: two wrapped lines would be at least 2x its line height.
+		// Avisos (S25.1): the pill sits on its own line and the message may wrap to 2 lines below it.
+		const maxLines = route === '/notifications' ? 3.4 : 1.7;
 		const lines = page.locator('[role="listitem"] [data-slot="item-description"]');
 		const lineCount = await lines.count();
 		for (let i = 0; i < lineCount; i++) {
@@ -90,7 +92,7 @@ test('list rows keep a single-line title and never overflow at 320px', async ({ 
 				const cs = getComputedStyle(el);
 				return { height: el.getBoundingClientRect().height, lineHeight: parseFloat(cs.lineHeight) };
 			});
-			expect(height, `${route} line 2 of row ${i}`).toBeLessThan(lineHeight * 1.7);
+			expect(height, `${route} line 2 of row ${i}`).toBeLessThan(lineHeight * maxLines);
 		}
 		await expectNoHorizontalOverflow(page);
 	}
