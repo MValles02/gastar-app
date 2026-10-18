@@ -22,7 +22,7 @@ Env vars required at runtime:
 | `MP_ACCESS_TOKEN`     | Optional. Mercado Pago access token (secret, never commit or log it). The import is off unless this and `MP_IMPORT_ACCOUNT_ID` are set |
 | `MP_IMPORT_ACCOUNT_ID` | Optional. Id of the ARS account that receives the Mercado Pago import; its owner is the only user who sees the import |
 | `MP_IMPORT_FROM`      | Optional. First-sync start date `YYYY-MM-DD` (default: 30 days ago) |
-| `MP_SYNC_INTERVAL_HOURS` | Optional. Hours between automatic syncs (default `6`, `0` = off). Not used yet: the scheduler comes in a later release |
+| `MP_SYNC_INTERVAL_HOURS` | Optional. Hours between automatic syncs run inside the server process (default `6`, `0` = off). The first run is ~1 minute after start. Only active when the import is configured. E2E sets it to `0`. |
 | `MP_API_BASE_URL`     | Optional, tests only. Mercado Pago API base URL (default `https://api.mercadopago.com`) |
 | `MP_REPORT_POLL_MS`   | Optional, tests only. Milliseconds between report-ready checks (default `15000`) |
 | `PORT`                | Port to listen on (default `3000`)                    |
