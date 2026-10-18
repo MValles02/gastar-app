@@ -13,6 +13,7 @@ export const ACCOUNT_ICONS = [
 
 // Category glyphs: everyday spending and income. 'home' shares its glyph with the nav icon.
 export const CATEGORY_ICONS = [
+	{ key: 'tag', label: 'Etiqueta' },
 	{ key: 'cart', label: 'Supermercado' },
 	{ key: 'food', label: 'Comida' },
 	{ key: 'transport', label: 'Transporte' },

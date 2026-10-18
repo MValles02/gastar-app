@@ -59,40 +59,43 @@
 		<p class="email">{data.user.email}</p>
 	</section>
 
-	{#snippet nameValue()}<span class="val">{data.user.name}</span>{/snippet}
-
 	{#snippet pendingValue()}<span class="val">{data.imports?.pending} para revisar</span>{/snippet}
 
 	<ListCard aria-label="Tu cuenta">
-		<ListRow href={resolve('/profile/name')} title="Nombre" value={nameValue} chevron />
-		<ListRow href={resolve('/profile/password')} title="Cambiar contraseña" chevron />
+		<ListRow
+			href={resolve('/profile/name')}
+			lead={{ icon: 'profile', color: null }}
+			title="Cambiar nombre"
+			chevron
+		/>
+		<ListRow
+			href={resolve('/profile/password')}
+			lead={{ icon: 'lock', color: null }}
+			title="Cambiar contraseña"
+			chevron
+		/>
+		<ListRow
+			href={resolve('/accounts')}
+			lead={{ icon: 'accounts', color: null }}
+			title="Cuentas"
+			chevron
+		/>
+		<ListRow
+			href={resolve('/categories')}
+			lead={{ icon: 'categories', color: null }}
+			title="Categorías"
+			chevron
+		/>
+		{#if data.imports}
+			<ListRow
+				href={resolve('/imports')}
+				lead={{ icon: 'phone', color: null }}
+				title="Mercado Pago"
+				value={data.imports.pending > 0 ? pendingValue : undefined}
+				chevron
+			/>
+		{/if}
 	</ListCard>
-
-	<nav aria-label="Administrar">
-		<ListCard>
-			<ListRow
-				href={resolve('/accounts')}
-				lead={{ icon: 'accounts', color: null }}
-				title="Cuentas"
-				chevron
-			/>
-			<ListRow
-				href={resolve('/categories')}
-				lead={{ icon: 'categories', color: null }}
-				title="Categorías"
-				chevron
-			/>
-			{#if data.imports}
-				<ListRow
-					href={resolve('/imports')}
-					lead={{ icon: 'phone', color: null }}
-					title="Mercado Pago"
-					value={data.imports.pending > 0 ? pendingValue : undefined}
-					chevron
-				/>
-			{/if}
-		</ListCard>
-	</nav>
 
 	<Card.Root class="gap-0 overflow-hidden py-0" aria-label="Tema">
 		<form

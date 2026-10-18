@@ -12,6 +12,18 @@ test.afterEach(async ({ page, baseURL }) => {
 	for (const href of createdAccounts.splice(0)) await postDelete(page, baseURL!, href);
 });
 
+test('the account form Saldo inicial shows the currency prefix and follows the toggle', async ({
+	page
+}) => {
+	await login(page, OTHER_EMAIL);
+	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
+	const row = page.locator('label[for="initialBalance"]');
+	await expect(row.locator('.prefix')).toHaveText('$');
+	await expect(page.getByLabel('Saldo inicial')).toHaveAttribute('placeholder', '0');
+	await page.getByRole('radio', { name: 'USD' }).check({ force: true });
+	await expect(row.locator('.prefix')).toHaveText('US$');
+});
+
 test('the account form picks icon and color in drawers and persists them', async ({ page }) => {
 	await login(page, OTHER_EMAIL);
 	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
@@ -19,7 +31,7 @@ test('the account form picks icon and color in drawers and persists them', async
 
 	// Cancelar and Crear cuenta side by side, equal width (50/50), visible without scrolling.
 	const cancel = (await page.getByRole('link', { name: 'Cancelar' }).boundingBox())!;
-	const submit = (await page.getByRole('button', { name: 'Crear cuenta' }).boundingBox())!;
+	const submit = (await page.getByRole('button', { name: 'Guardar', exact: true }).boundingBox())!;
 	expect(Math.abs(cancel.y - submit.y)).toBeLessThan(2);
 	expect(cancel.x + cancel.width).toBeLessThan(submit.x);
 	expect(Math.abs(submit.width - cancel.width)).toBeLessThan(2);
@@ -37,10 +49,15 @@ test('the account form picks icon and color in drawers and persists them', async
 	await expect(page.getByRole('dialog')).toBeHidden();
 	await expect(page.getByRole('button', { name: /^Color/ })).toContainText('Naranja');
 
-	await page.getByRole('button', { name: 'Crear cuenta' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	createdAccounts.push(page.url());
-	await expect(page.getByText('Banco · Naranja')).toBeVisible();
+	await expect(page.getByText('Ícono y color')).toHaveCount(0);
+	await page.goto(`${page.url()}/edit`, { waitUntil: 'networkidle' });
+	await page.getByRole('button', { name: /^Ícono/ }).click();
+	await expect(page.getByRole('dialog').getByRole('radio', { name: 'Banco' })).toBeChecked();
+	await page.keyboard.press('Escape');
+	await expect(page.getByRole('button', { name: /^Color/ })).toContainText('Naranja');
 });
 
 test('a currency-locked account shows a read-only Moneda row', async ({ page }) => {
@@ -53,7 +70,7 @@ test('a currency-locked account shows a read-only Moneda row', async ({ page }) 
 	await page.getByRole('link', { name: 'Editar' }).click();
 	await expect(
 		page.getByText('No se puede cambiar porque la cuenta tiene movimientos.')
-	).toBeVisible();
+	).toHaveCount(0);
 	await expect(page.getByRole('radio', { name: 'USD' })).toHaveCount(0);
 	await expect(page.locator('input[name="currency"]')).toHaveCount(0);
 });
@@ -102,26 +119,23 @@ test('the recurring form: type from ?type, title, day drawer', async ({ page, ba
 	}
 });
 
-test('the account detail shows "Ícono y color" untruncated on one line', async ({ page }) => {
+test('an account without movements offers Editar, Archivar and Eliminar, and links to its movements', async ({
+	page
+}) => {
 	await login(page, OTHER_EMAIL);
 	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
-	await page.getByLabel('Nombre').fill(`Forms ancho ${Date.now()}`);
-	await page.getByRole('button', { name: /^Ícono/ }).click();
-	const banco = page.getByRole('dialog').getByRole('radio', { name: 'Banco' });
-	await expect(banco).toBeInViewport();
-	await banco.click();
-	await page.getByRole('button', { name: /^Color/ }).click();
-	const naranja = page.getByRole('dialog').getByRole('radio', { name: 'Naranja' });
-	await expect(naranja).toBeInViewport();
-	await naranja.click();
-	await page.getByRole('button', { name: 'Crear cuenta' }).click();
+	await page.getByLabel('Nombre').fill(`Forms acciones ${Date.now()}`);
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	createdAccounts.push(page.url());
-	const value = page.getByText('Banco · Naranja');
-	await expect(value).toBeVisible();
-	const { scrollWidth, clientWidth } = await value.evaluate((el) => ({
-		scrollWidth: el.scrollWidth,
-		clientWidth: el.clientWidth
-	}));
-	expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+	const id = page.url().split('/').pop();
+
+	const edit = (await page.getByRole('link', { name: 'Editar' }).boundingBox())!;
+	const archive = (await page.getByRole('button', { name: 'Archivar' }).boundingBox())!;
+	await expect(page.getByRole('button', { name: 'Eliminar' })).toBeVisible();
+	expect(Math.abs(edit.y - archive.y)).toBeLessThan(2);
+	expect(Math.abs(edit.width - archive.width)).toBeLessThan(2);
+
+	const link = page.locator('.detail-card').getByRole('link', { name: 'Ver movimientos' });
+	await expect(link).toHaveAttribute('href', `/movements?account=${id}`);
 });

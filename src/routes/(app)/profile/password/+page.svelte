@@ -61,7 +61,7 @@
 	</ul>
 	<p class="hint">Mínimo {PASSWORD_MIN_LENGTH} caracteres. Cerramos tus otras sesiones.</p>
 	{#if form?.formError}<p class="error" role="alert">{form.formError}</p>{/if}
-	<FormActions cancelHref="/profile" submitLabel="Guardar" />
+	<FormActions cancelHref="/profile" submitLabel="Guardar cambios" />
 </form>
 
 <style>

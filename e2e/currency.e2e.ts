@@ -109,18 +109,18 @@ test('picking an account in the /movements filter applies it', async ({ page }) 
 	await expect(page).toHaveURL(/[?&]account=[0-9a-f-]{36}/);
 });
 
-test('accounts are grouped into Pesos and Dólares', async ({ page }) => {
+test('accounts are grouped into ARS and USD', async ({ page }) => {
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('heading', { name: 'Pesos' })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Dólares' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'ARS', exact: true })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'USD', exact: true })).toBeVisible();
 	await expect(page.getByText('Efectivo')).toBeVisible();
 	await expect(page.getByText('Ahorro USD')).toBeVisible();
 });
 
-test('accounts ?currency=USD shows only Dólares', async ({ page }) => {
+test('accounts ?currency=USD shows only USD', async ({ page }) => {
 	await page.goto('/accounts?currency=USD', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('heading', { name: 'Dólares' })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Pesos' })).toHaveCount(0);
+	await expect(page.getByRole('heading', { name: 'USD', exact: true })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'ARS', exact: true })).toHaveCount(0);
 	await expect(page.getByText('Ahorro USD')).toBeVisible();
 	await expect(page.getByText('Efectivo')).toHaveCount(0);
 });

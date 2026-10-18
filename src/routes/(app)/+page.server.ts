@@ -57,7 +57,9 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		userId,
 		top.map((c) => c.id)
 	);
-	const icons = new Map(cats.map((c) => [c.id, toCategoryIconKey(c.icon)]));
+	const icons = new Map(
+		cats.map((c) => [c.id, toCategoryIconKey(c.icon) ?? ('categories' as const)])
+	);
 
 	return {
 		...base,

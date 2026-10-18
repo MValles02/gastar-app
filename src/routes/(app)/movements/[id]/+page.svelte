@@ -89,9 +89,9 @@
 			<div class="item">
 				<dt>Categoría</dt>
 				<dd class="with-chip">
-					{#if toCategoryIconKey(m.categoryIcon)}
+					{#if m.categoryName}
 						<IconBadge
-							icon={toCategoryIconKey(m.categoryIcon) ?? undefined}
+							icon={toCategoryIconKey(m.categoryIcon) ?? 'categories'}
 							color={toSwatchKey(m.categoryColor)}
 							size="1.5rem"
 						/>
