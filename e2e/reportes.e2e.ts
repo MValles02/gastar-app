@@ -61,8 +61,13 @@ test('tab bar is Inicio, Movimientos, Plan, Reportes plus the Nuevo movimiento b
 	await expect(tab).toHaveAttribute('aria-current', 'page');
 
 	await page.goto('/profile', { waitUntil: 'networkidle' });
-	const admin = page.getByRole('navigation', { name: 'Administrar' });
-	await expect(admin.getByRole('link')).toHaveText(['Cuentas', 'Categorías']);
+	const admin = page.locator('[data-slot="item-group"][aria-label="Tu cuenta"]');
+	await expect(admin.getByRole('link')).toHaveText([
+		'Cambiar nombre',
+		'Cambiar contraseña',
+		'Cuentas',
+		'Categorías'
+	]);
 	await expect(admin.getByRole('link', { name: 'Cuentas' })).toHaveAttribute('href', '/accounts');
 	await expect(admin.getByRole('link', { name: 'Categorías' })).toHaveAttribute(
 		'href',

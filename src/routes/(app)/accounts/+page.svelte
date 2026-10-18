@@ -52,7 +52,7 @@
 		<FilterBar
 			q={data.filters.q}
 			label="Buscar cuentas"
-			placeholder="Buscar cuentas"
+			placeholder="Buscar"
 			path="/accounts"
 			active={(data.filters.currency ? 1 : 0) + (data.filters.archived ? 1 : 0)}
 		>
@@ -96,13 +96,15 @@
 				<section aria-labelledby="group-{g.currency}">
 					<SectionHeader id="group-{g.currency}" title={g.label} variant="group">
 						{#snippet aside()}
-							<span class="group-total"><Money cents={g.total} currency={g.currency} /></span>
+							<span class="group-total"
+								><Money cents={g.total} currency={g.currency} tone="stock" /></span
+							>
 						{/snippet}
 					</SectionHeader>
 					<ListCard>
 						{#each g.accounts as a (a.id)}
 							{#snippet value()}
-								<Money cents={a.balance} currency={a.currency} />
+								<Money cents={a.balance} currency={a.currency} tone="stock" />
 							{/snippet}
 							<ListRow
 								href={resolve(`/accounts/${a.id}`)}
@@ -145,9 +147,5 @@
 		font-family: var(--font-display);
 		font-size: var(--font-size-base);
 		font-weight: 500;
-	}
-
-	.group-total {
-		color: var(--text-muted);
 	}
 </style>

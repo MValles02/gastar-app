@@ -9,9 +9,9 @@ import {
 import { currentMonth, monthRange } from '$lib/server/month';
 
 const KIND_GROUPS = [
-	['outcome', 'Gastos'],
-	['income', 'Ingresos'],
-	[null, 'Ambos']
+	['outcome', 'Gastos · este mes'],
+	['income', 'Ingresos · este mes'],
+	[null, 'Ambos · este mes']
 ] as const;
 
 export const load: PageServerLoad = async ({ locals, url }) => {

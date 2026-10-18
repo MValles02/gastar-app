@@ -2,17 +2,14 @@
 	import type { Currency } from '$lib/money';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { CATEGORY_ICONS, SWATCHES, toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import DetailActions from '$lib/components/DetailActions.svelte';
+	import DetailCard from '$lib/components/DetailCard.svelte';
 	import DetailHero from '$lib/components/DetailHero.svelte';
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import MonthNav from '$lib/components/MonthNav.svelte';
-	import IconBadge from '$lib/components/IconBadge.svelte';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -20,9 +17,6 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const c = $derived(data.category);
-	const icon = $derived(toCategoryIconKey(c.icon));
-	const iconLabel = $derived(CATEGORY_ICONS.find((i) => i.key === icon)?.label);
-	const colorLabel = $derived(SWATCHES.find((s) => s.key === c.color)?.label ?? c.color);
 	const kindLabel = $derived(
 		c.kind === 'income' ? 'Ingreso' : c.kind === 'outcome' ? 'Gasto' : 'Ambos'
 	);
@@ -72,32 +66,13 @@
 		{/if}
 	</DetailHero>
 
-	<dl class="detail-card data">
-		<div class="item">
-			<dt>Tipo</dt>
-			<dd>{kindLabel}</dd>
-		</div>
-		<div class="item nowrap">
-			<dt>Ícono y color</dt>
-			<dd class="appearance">
-				<IconBadge
-					icon={icon ?? undefined}
-					letter={icon ? undefined : c.name[0]}
-					color={toSwatchKey(c.color)}
-					size="1.5rem"
-				/>
-				<span class="truncate">{iconLabel ? `${iconLabel} · ${colorLabel}` : colorLabel}</span>
-			</dd>
-		</div>
-		<div class="item">
-			<dt>Estado</dt>
-			<dd>{c.archived ? 'Archivada' : 'Activa'}</dd>
-		</div>
-	</dl>
-
-	<ListCard>
-		<ListRow href={resolve(`/movements?category=${c.id}`)} title="Ver movimientos" chevron />
-	</ListCard>
+	<DetailCard
+		rows={[
+			{ label: 'Tipo', value: kindLabel },
+			{ label: 'Estado', value: c.archived ? 'Archivada' : 'Activa' }
+		]}
+		movementsHref={resolve(`/movements?category=${c.id}`)}
+	/>
 
 	{#if form?.error}
 		<p class="error" role="alert"><Icon name="alert" size="1rem" />{form.error}</p>
@@ -131,11 +106,6 @@
 			{/if}
 		{/snippet}
 	</DetailActions>
-	{#if data.actions.canArchive}
-		<p class="muted small">
-			Tiene movimientos, así que no se puede eliminar. Podés archivarla para ocultarla.
-		</p>
-	{/if}
 </div>
 
 <style>
@@ -167,51 +137,8 @@
 		color: var(--text-muted);
 	}
 
-	.small {
-		font-size: var(--font-size-sm);
-		text-align: center;
-	}
-
-	.data {
-		margin: 0;
-	}
-
-	.item {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		flex-wrap: wrap;
-		gap: var(--space-3);
-		min-height: 3.5rem;
-		padding: var(--space-2) var(--space-4);
-		border-bottom: 1px solid var(--border);
-	}
-
-	.item:last-child {
-		border-bottom: 0;
-	}
-
-	dt {
-		color: var(--text-muted);
-	}
-
-	dd {
-		margin: 0;
-		min-width: 0;
-		text-align: right;
-		overflow-wrap: anywhere;
-	}
-
 	.amount {
 		white-space: nowrap;
-	}
-
-	.appearance {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		gap: var(--space-2);
-		font-weight: 500;
 	}
 
 	.error {
@@ -220,26 +147,5 @@
 		gap: var(--space-2);
 		color: var(--negative);
 		font-size: var(--font-size-sm);
-	}
-
-	.nowrap {
-		flex-wrap: nowrap;
-		gap: var(--space-2);
-	}
-
-	.nowrap dd {
-		flex: 1;
-	}
-
-	.nowrap dt {
-		flex: none;
-	}
-
-	.truncate {
-		font-size: var(--font-size-sm);
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
 	}
 </style>

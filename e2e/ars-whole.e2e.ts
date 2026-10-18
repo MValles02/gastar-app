@@ -136,7 +136,7 @@ test('account initial balance: ARS whole only, USD keeps cents, edit prefills th
 		await page.getByLabel('Nombre').fill(name);
 		await page.getByRole('radio', { name: currency }).check({ force: true });
 		await page.getByLabel('Saldo inicial').fill(balance);
-		await page.getByRole('button', { name: 'Crear cuenta' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	};
 
 	await create(`ARS cuenta ${Date.now()}`, 'ARS', '100,50');
@@ -226,7 +226,7 @@ test('account form initial balance placeholder follows the currency', async ({ p
 	await page.getByRole('radio', { name: 'ARS' }).check({ force: true });
 	await expect(balance).toHaveAttribute('placeholder', '0');
 	await page.getByRole('radio', { name: 'USD' }).check({ force: true });
-	await expect(balance).toHaveAttribute('placeholder', '0,00');
+	await expect(balance).toHaveAttribute('placeholder', '0');
 });
 
 test('Cancelar in the delete confirm closes it and keeps the movement', async ({ page }) => {

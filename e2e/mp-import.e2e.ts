@@ -147,12 +147,12 @@ test('approving a payment keeps its exact cents and moves the balance', async ()
 	await page.goto('/categories/new', { waitUntil: 'networkidle' });
 	await page.locator('input[name="name"]').fill(CATEGORY);
 	await page.getByRole('radio', { name: 'Ingreso' }).check({ force: true });
-	await page.getByRole('button', { name: 'Crear categoría' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
 	categoryUrl = page.url();
 	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
 	await page.getByLabel('Nombre').fill(SECOND);
-	await page.getByRole('button', { name: 'Crear cuenta' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	secondUrl = page.url();
 

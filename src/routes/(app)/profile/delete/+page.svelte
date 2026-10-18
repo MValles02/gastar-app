@@ -3,6 +3,7 @@
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
+	import DangerCallout from '$lib/components/DangerCallout.svelte';
 	import FormActions from '$lib/components/FormActions.svelte';
 	import { PASSWORD_MAX_LENGTH } from '$lib/limits';
 	import type { ActionData } from './$types';
@@ -20,10 +21,10 @@
 <PageHeader title="Eliminar cuenta" close={{ href: resolve('/profile'), label: 'Cerrar' }} />
 
 <div class="page">
-	<p>
+	<DangerCallout>
 		Se borran para siempre tu cuenta y todos tus datos: cuentas, movimientos, categorías y plan. No
 		se puede deshacer.
-	</p>
+	</DangerCallout>
 
 	<ul class="card">
 		<li class:bad={form?.error}>

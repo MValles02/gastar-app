@@ -39,7 +39,7 @@ test('tab routes mark the active tab, show icons only and keep 44px targets', as
 	}
 });
 
-test('form routes do not render the tab bar', async ({ page }) => {
+test('sub-pages do not render the tab bar', async ({ page }) => {
 	const movement = await firstDetailHref(page, 'movements');
 	const account = await firstDetailHref(page, 'accounts');
 	const category = await firstDetailHref(page, 'categories');
@@ -52,7 +52,12 @@ test('form routes do not render the tab bar', async ({ page }) => {
 		'/categories/new',
 		`${category}/edit`,
 		'/plan/recurring/new',
-		'/plan/setup?step=1'
+		'/plan/setup?step=1',
+		'/profile',
+		'/accounts',
+		'/categories',
+		`${account}`,
+		`${category}`
 	];
 	for (const route of routes) {
 		await page.goto(route);

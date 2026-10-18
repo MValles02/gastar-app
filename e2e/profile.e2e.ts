@@ -25,7 +25,7 @@ test('profile layout at 390px: theme row in a card, account rows, delete below l
 	const themeCard = page.locator('[data-slot="card"][aria-label="Tema"]');
 	await expect(themeCard.getByRole('radio', { name: 'Oscuro' })).toBeAttached();
 	const account = page.locator('[data-slot="item-group"][aria-label="Tu cuenta"]');
-	await expect(account.getByRole('link', { name: /^Nombre/ })).toBeVisible();
+	await expect(account.getByRole('link', { name: 'Cambiar nombre' })).toBeVisible();
 	await expect(account.getByRole('link', { name: 'Cambiar contraseña' })).toBeVisible();
 
 	const logout = (await page.getByRole('button', { name: 'Cerrar sesión' }).boundingBox())!;
@@ -34,19 +34,32 @@ test('profile layout at 390px: theme row in a card, account rows, delete below l
 	await expectNoHorizontalOverflow(page);
 });
 
+test('the profile card rows each have an icon lead, and delete shows a danger callout', async ({
+	page
+}) => {
+	await login(page);
+	await page.goto('/profile', { waitUntil: 'networkidle' });
+	const rows = page.locator('[data-slot="item-group"][aria-label="Tu cuenta"] a');
+	await expect(rows.first()).toBeVisible();
+	for (const row of await rows.all()) await expect(row.locator('svg').first()).toBeVisible();
+
+	await page.goto('/profile/delete', { waitUntil: 'networkidle' });
+	await expect(page.locator('[role="note"]')).toContainText('No se puede deshacer');
+});
+
 test('change name updates the profile and the greeting', async ({ page, request }) => {
 	const email = uniqueEmail();
 	await signUpVerified(page, request, { email, password, name: 'Nombre Viejo' });
 
 	await page.goto('/profile', { waitUntil: 'networkidle' });
-	await page.getByRole('link', { name: /^Nombre/ }).click();
+	await page.getByRole('link', { name: 'Cambiar nombre' }).click();
 	await expect(page).toHaveURL(/\/profile\/name$/);
 	await page.getByLabel('Nombre').fill('   ');
-	await page.getByRole('button', { name: 'Guardar' }).click();
+	await page.getByRole('button', { name: 'Guardar cambios' }).click();
 	await expect(page.getByText('Falta el nombre.')).toBeVisible();
 
 	await page.getByLabel('Nombre').fill('  Nombre Nuevo  ');
-	await page.getByRole('button', { name: 'Guardar' }).click();
+	await page.getByRole('button', { name: 'Guardar cambios' }).click();
 	await expect(page).toHaveURL(/\/profile$/);
 	await expect(page.locator('.who .name')).toHaveText('Nombre Nuevo');
 	await page.goto('/');
@@ -70,7 +83,7 @@ test('change password revokes other sessions and keeps this one', async ({
 	await page.goto('/profile/password', { waitUntil: 'networkidle' });
 	const current = page.locator('#current-password');
 	const next = page.locator('#new-password');
-	const save = page.getByRole('button', { name: 'Guardar' });
+	const save = page.getByRole('button', { name: 'Guardar cambios' });
 
 	await current.fill('incorrecta-123');
 	await next.fill(newPassword);
@@ -109,11 +122,11 @@ test('delete account removes the user and all their data', async ({ page, reques
 	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
 	await page.getByLabel('Nombre').fill('Cuenta borrar');
 	await page.getByLabel('Saldo inicial').fill('1.000');
-	await page.getByRole('button', { name: 'Crear cuenta' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	await page.goto('/categories/new', { waitUntil: 'networkidle' });
 	await page.locator('input[name="name"]').fill('Categoria borrar');
-	await page.getByRole('button', { name: 'Crear categoría' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
 	await fillMovement(page, {
 		type: 'Gasto',

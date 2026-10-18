@@ -65,7 +65,7 @@
 		<FilterBar
 			q={data.filters.q}
 			label="Buscar categorías"
-			placeholder="Buscar categorías"
+			placeholder="Buscar"
 			path="/categories"
 			active={(data.filters.kind ? 1 : 0) +
 				(data.filters.currency !== 'ARS' ? 1 : 0) +
@@ -119,7 +119,7 @@
 					<SectionHeader id="group-{g.key}" title={g.label} variant="group" />
 					<ListCard>
 						{#each g.categories as c (c.id)}
-							{@const icon = toCategoryIconKey(c.icon)}
+							{@const icon = toCategoryIconKey(c.icon) ?? ('categories' as const)}
 							{#snippet value()}
 								<span class="totals">
 									{#each shown(c.totals) as cur (cur)}
@@ -134,8 +134,7 @@
 							<ListRow
 								href={resolve(`/categories/${c.id}`)}
 								lead={{
-									icon: icon ?? undefined,
-									letter: icon ? undefined : c.name[0],
+									icon,
 									color: toSwatchKey(c.color)
 								}}
 								title={c.name}

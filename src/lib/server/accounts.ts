@@ -85,7 +85,7 @@ export const accountActions = ({
 	archived: boolean;
 }) => ({
 	canDelete: !referenced,
-	canArchive: referenced && !archived,
+	canArchive: !archived,
 	canUnarchive: archived
 });
 

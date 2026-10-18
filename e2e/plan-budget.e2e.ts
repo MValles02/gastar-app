@@ -222,7 +222,7 @@ test('deleting a category removes its limit', async ({ page, baseURL }) => {
 	try {
 		await page.goto('/categories/new', { waitUntil: 'networkidle' });
 		await page.getByLabel('Nombre').fill(name);
-		await page.getByRole('button', { name: 'Crear categoría' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
 		categoryPath = new URL(page.url()).pathname;
 		const id = categoryPath.split('/').pop()!;

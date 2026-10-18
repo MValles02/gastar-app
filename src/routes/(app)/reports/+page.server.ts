@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
+import { toCategoryIconKey, toSwatchKey, type CategoryIconKey } from '$lib/appearance';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import { hasAccountsIn } from '$lib/server/dashboard';
 import { accountSummary, categorySums } from '$lib/server/dashboard-queries';
@@ -100,7 +100,7 @@ function donutSlices(cats: CategorySum[]) {
 			id: c.id,
 			name: c.name,
 			color: toSwatchKey(c.color),
-			icon: toCategoryIconKey(c.icon),
+			icon: toCategoryIconKey(c.icon) ?? ('categories' as CategoryIconKey | null),
 			amount: c.outcome - c.income
 		}))
 		.filter((c) => c.amount > 0)

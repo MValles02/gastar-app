@@ -13,7 +13,7 @@ async function createCategory(page: Page, name: string, o: { kind?: string; icon
 		await page.getByRole('button', { name: /^Ícono/ }).click();
 		await page.getByRole('dialog').getByRole('radio', { name: o.icon }).click();
 	}
-	await page.getByRole('button', { name: 'Crear categoría' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(DETAIL_RE);
 	return new URL(page.url()).pathname;
 }
@@ -22,8 +22,12 @@ test('the icon chosen on create shows on the category detail', async ({ page, ba
 	await login(page, OTHER_EMAIL);
 	const href = await createCategory(page, `Cat ícono ${Date.now()}`, { icon: 'Comida' });
 	try {
-		await expect(page.getByText('Comida · Verde')).toBeVisible();
-		await expect(page.getByText('Ícono y color')).toBeVisible();
+		await expect(page.getByText('Ícono y color')).toHaveCount(0);
+		await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
+		await page.getByRole('button', { name: /^Ícono/ }).click();
+		await expect(page.getByRole('dialog').getByRole('radio', { name: 'Comida' })).toBeChecked();
+		await page.keyboard.press('Escape');
+		await expect(page.getByRole('button', { name: /^Color/ })).toContainText('Verde');
 		await expect(page.getByText('Este mes', { exact: true })).toHaveCount(0);
 	} finally {
 		await postDelete(page, baseURL!, href);
@@ -35,14 +39,18 @@ test('the list groups by kind and the kind filter keeps Ambos categories', async
 	await page.goto('/categories', { waitUntil: 'networkidle' });
 	const section = (name: string) =>
 		page.locator('section').filter({ has: page.getByRole('heading', { name }) });
-	await expect(section('Gastos').getByText('Supermercado', { exact: true })).toBeVisible();
-	await expect(section('Ingresos').getByText('Sueldo', { exact: true })).toBeVisible();
-	await expect(section('Ambos').getByText('Regalos', { exact: true })).toBeVisible();
+	await expect(
+		section('Gastos · este mes').getByText('Supermercado', { exact: true })
+	).toBeVisible();
+	await expect(section('Ingresos · este mes').getByText('Sueldo', { exact: true })).toBeVisible();
+	await expect(section('Ambos · este mes').getByText('Regalos', { exact: true })).toBeVisible();
 
 	await page.goto('/categories?kind=outcome', { waitUntil: 'networkidle' });
-	await expect(section('Gastos').getByText('Supermercado', { exact: true })).toBeVisible();
-	await expect(section('Ambos').getByText('Regalos', { exact: true })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Ingresos' })).toHaveCount(0);
+	await expect(
+		section('Gastos · este mes').getByText('Supermercado', { exact: true })
+	).toBeVisible();
+	await expect(section('Ambos · este mes').getByText('Regalos', { exact: true })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Ingresos · este mes' })).toHaveCount(0);
 });
 
 test('rows show the month total and Ambas stacks ARS over USD', async ({ page, baseURL }) => {
@@ -118,7 +126,7 @@ test('a category with movements can only widen to Ambos, also server-side', asyn
 		await expect(page.getByRole('radio', { name: 'Ingreso' })).toBeDisabled();
 		await expect(page.getByRole('radio', { name: 'Gasto' })).toBeEnabled();
 		await expect(page.getByRole('radio', { name: 'Ambos' })).toBeEnabled();
-		await expect(page.getByText(LOCKED)).toBeVisible();
+		await expect(page.getByText(LOCKED)).toHaveCount(0);
 
 		const post = (kind: string) =>
 			page.request.post(`${href}/edit`, {
@@ -135,5 +143,31 @@ test('a category with movements can only widen to Ambos, also server-side', asyn
 	} finally {
 		await deleteMovements(page, baseURL!, description);
 		await postDelete(page, baseURL!, href);
+	}
+});
+
+test('a new category keeps the default Etiqueta icon, and its detail links to its movements', async ({
+	page,
+	baseURL
+}) => {
+	await login(page, OTHER_EMAIL);
+	const href = await createCategory(page, `Cat etiqueta ${Date.now()}`);
+	try {
+		const link = page.locator('.detail-card').getByRole('link', { name: 'Ver movimientos' });
+		await expect(link).toHaveAttribute('href', `/movements?category=${href.split('/').pop()}`);
+		await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
+		await page.getByRole('button', { name: /^Ícono/ }).click();
+		await expect(page.getByRole('dialog').getByRole('radio', { name: 'Etiqueta' })).toBeChecked();
+		await page.keyboard.press('Escape');
+	} finally {
+		await postDelete(page, baseURL!, href);
+	}
+});
+
+test('the accounts and categories search inputs use the placeholder Buscar', async ({ page }) => {
+	await login(page);
+	for (const path of ['/accounts', '/categories']) {
+		await page.goto(path, { waitUntil: 'networkidle' });
+		await expect(page.getByRole('searchbox')).toHaveAttribute('placeholder', 'Buscar');
 	}
 });

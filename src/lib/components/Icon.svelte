@@ -33,6 +33,7 @@
 	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import House from '@lucide/svelte/icons/house';
 	import Landmark from '@lucide/svelte/icons/landmark';
+	import Lock from '@lucide/svelte/icons/lock';
 	import List from '@lucide/svelte/icons/list';
 	import Mail from '@lucide/svelte/icons/mail';
 	import PiggyBank from '@lucide/svelte/icons/piggy-bank';
@@ -66,7 +67,8 @@
 		| 'eye'
 		| 'eye-off'
 		| 'mail'
-		| 'clock';
+		| 'clock'
+		| 'lock';
 
 	/** Lucide at stroke 1.75; `size` is a CSS length (1rem, 1.25rem or 1.5rem) or a percentage of the parent. */
 	let { name, size = '1.5rem' }: { name: IconName; size?: string } = $props();
@@ -91,6 +93,8 @@
 		'eye-off': EyeOff,
 		mail: Mail,
 		clock: Clock,
+		lock: Lock,
+		tag: Tag,
 		search: Search,
 		bank: Landmark,
 		wallet: Wallet,

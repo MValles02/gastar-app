@@ -73,7 +73,6 @@
 						<Lock size={16} strokeWidth={1.75} aria-hidden="true" />
 					</span>
 				</p>
-				<p class="hint pad">No se puede cambiar porque la cuenta tiene movimientos.</p>
 			{:else}
 				<div class="row">
 					<Field.Label id="currency-label" class="text-base font-normal">Moneda</Field.Label>
@@ -98,7 +97,8 @@
 				name="initialBalance"
 				label="Saldo inicial"
 				bind:value={initialBalance}
-				placeholder={currency === 'USD' ? '0,00' : '0'}
+				prefix={currency === 'USD' ? 'US$' : '$'}
+				placeholder="0"
 				inputmode="decimal"
 				amount
 				error={errors.initialBalance}
@@ -120,7 +120,7 @@
 				</p>{/if}
 		</li>
 	</ul>
-	<FormActions {cancelHref} submitLabel={mode === 'create' ? 'Crear cuenta' : 'Guardar cambios'} />
+	<FormActions {cancelHref} submitLabel={mode === 'create' ? 'Guardar' : 'Guardar cambios'} />
 </form>
 
 <style>
@@ -167,15 +167,6 @@
 		flex: 0 1 8rem;
 		min-width: 0;
 		padding-block: var(--space-1);
-	}
-
-	.hint {
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-	}
-
-	.hint.pad {
-		padding: 0 var(--space-4) var(--space-3);
 	}
 
 	.locked {

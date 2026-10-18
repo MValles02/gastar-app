@@ -6,8 +6,8 @@ import { CURRENCIES } from '$lib/money';
 
 const SEARCH_MAX_LENGTH = 40;
 const CURRENCY_GROUPS = [
-	['ARS', 'Pesos'],
-	['USD', 'Dólares']
+	['ARS', 'ARS'],
+	['USD', 'USD']
 ] as const;
 
 export const load: PageServerLoad = async ({ locals, url }) => {
