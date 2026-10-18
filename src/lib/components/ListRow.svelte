@@ -20,6 +20,7 @@
 		status,
 		meta,
 		metaEnd,
+		metaLines = 1,
 		footer,
 		chevron = false,
 		dimmed = false,
@@ -40,6 +41,8 @@
 		status?: { tone: StatusTone; label: string };
 		meta?: Snippet;
 		metaEnd?: Snippet;
+		/** Lines the meta may take before it is clipped; 2 wraps it and keeps the pill on the first line. */
+		metaLines?: 1 | 2;
 		footer?: Snippet;
 		chevron?: boolean;
 		dimmed?: boolean;
@@ -68,9 +71,14 @@
 			{#if value}<span class="row-amount" class:dimmed>{@render value()}</span>{/if}
 		</span>
 		{#if status || meta || metaEnd}
-			<Item.Description class="line-clamp-none flex min-w-0 items-center gap-2">
+			<Item.Description
+				class="line-clamp-none flex min-w-0 gap-2 {metaLines === 2
+					? 'flex-wrap items-start'
+					: 'items-center'}"
+			>
 				{#if status}<StatusPill tone={status.tone} label={status.label} />{/if}
-				{#if meta}<span class="row-meta">{@render meta()}</span>{/if}
+				{#if meta}<span class="row-meta" class:two-lines={metaLines === 2}>{@render meta()}</span
+					>{/if}
 				{#if metaEnd}{@render metaEnd()}{/if}
 			</Item.Description>
 		{/if}
@@ -126,5 +134,14 @@
 		overflow: hidden;
 		white-space: nowrap;
 		text-overflow: ellipsis;
+	}
+
+	.row-meta.two-lines {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		flex: 1 1 100%;
+		white-space: normal;
 	}
 </style>
