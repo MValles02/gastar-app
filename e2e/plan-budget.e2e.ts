@@ -71,7 +71,7 @@ async function withOutcome(
 	}
 }
 
-/** The summary figures of /plan by label, as integer cents-free numbers (ARS has no decimals). */
+/** The summary figures of /plan by label, as integer minor-unit magnitudes (ARS has no decimals). */
 async function figures(page: Page) {
 	// Server-rendered, so no hydration wait: keeps the window in which a transient movement exists short.
 	await page.goto('/plan');
@@ -79,24 +79,14 @@ async function figures(page: Page) {
 	const terms = await dl.locator('dt').allInnerTexts();
 	const values = await dl.locator('dd').allInnerTexts();
 	const out: Record<string, number> = {};
-	terms.forEach((t, i) => {
-		const v = values[i];
-		// Fixed payments, savings and spent show a minus; the equation uses their magnitudes.
-		const signed = t.trim() === 'Para gastar';
-		out[t.trim()] = Number(v.replace(/\D/g, '')) * (signed && /[-−]/.test(v) ? -1 : 1);
-	});
+	// Savings, pending fixed payments and spent show a minus; the equation uses their magnitudes.
+	terms.forEach((t, i) => (out[t.trim()] = Number(values[i].replace(/\D/g, ''))));
 	// Disponible is the hero amount of the summary card (signed).
 	const hero = await page
 		.getByRole('region', { name: /^Disponible · / })
 		.locator('.hero-amount')
 		.innerText();
 	out['Disponible'] = Number(hero.replace(/\D/g, '')) * (/[-−]/.test(hero) ? -1 : 1);
-	// Same page load: the amounts of the active "Pagos fijos" rule rows, which Pagos fijos must equal.
-	const rows = await page
-		.getByRole('region', { name: 'Pagos fijos' })
-		.locator('.rule .row-amount')
-		.allInnerTexts();
-	out['Reglas'] = rows.reduce((a, v) => a + Number(v.replace(/\D/g, '')), 0);
 	return out;
 }
 
@@ -293,7 +283,7 @@ test.describe('without JavaScript', () => {
 	});
 });
 
-test('Disponible = Ingresos - Pagos fijos - Ahorro - Gastado on one page load', async ({
+test('Disponible = Ingresos - Ahorro - Pagos fijos pendientes - Gastado on one page load', async ({
 	page,
 	baseURL
 }) => {
@@ -305,9 +295,9 @@ test('Disponible = Ingresos - Pagos fijos - Ahorro - Gastado on one page load', 
 		const g = await figures(page);
 		expect(g['Ingresos']).toBe(1_500_000);
 		expect(g['Ahorro']).toBe(150_000);
-		expect(g['Pagos fijos']).toBeGreaterThanOrEqual(380_000);
-		expect(g['Pagos fijos']).toBe(g['Reglas']);
-		expect(g['Disponible']).toBe(g['Ingresos'] - g['Pagos fijos'] - g['Ahorro'] - g['Gastado']);
+		expect(g['Disponible']).toBe(
+			g['Ingresos'] - g['Ahorro'] - g['Pagos fijos pendientes'] - g['Gastado']
+		);
 	}).toPass({ timeout: 30_000 });
 	await expect(page.locator('.rule', { hasText: 'Alquiler' })).toContainText('380.000');
 });
@@ -335,6 +325,66 @@ test.describe('as another user', () => {
 				expect(after['Gastado']).toBe(before['Gastado'] + 1000);
 			}
 		);
+	});
+
+	test('USD Gastado on Plan equals Gastos on Reportes', async ({ page }) => {
+		await expect(async () => {
+			const { Gastado } = await figures(page);
+			await page.goto('/reports');
+			const gastos = page.locator('dl.totals > div').filter({ hasText: 'Gastos' }).locator('dd');
+			expect(Number((await gastos.innerText()).replace(/\D/g, ''))).toBe(Gastado);
+		}).toPass({ timeout: 30_000 });
+	});
+
+	test('paying a fixed payment moves it from Pendientes to Gastado; paying more lowers Disponible', async ({
+		page,
+		baseURL
+	}) => {
+		const description = `Pago regla e2e ${Date.now()}`;
+		const headers = { origin: baseURL!, accept: 'text/html' };
+		await page.goto('/plan', { waitUntil: 'networkidle' });
+		const id = await linkId(page.getByRole('link', { name: /Regla ajena/ }).first());
+		await page.goto(`/movements/new?recurring=${id}`, { waitUntil: 'networkidle' });
+		const accountId = (await page.locator('input[name="accountId"]').getAttribute('value'))!;
+		const categoryId = (await page.locator('input[name="categoryId"]').getAttribute('value'))!;
+		const pay = async (amount: string) => {
+			const res = await page.request.post('/movements/new', {
+				form: {
+					recurringId: id,
+					type: 'outcome',
+					amount,
+					description,
+					accountId,
+					categoryId,
+					occurredAt: todayInAppTz()
+				},
+				headers
+			});
+			expect(res.url()).toMatch(/\/plan\?saved=1$/);
+		};
+		const remove = async () => {
+			for (const href of await findMovements(page, description, 'USD'))
+				await postDelete(page, baseURL!, href);
+		};
+		try {
+			const open = await figures(page);
+			expect(open['Pagos fijos pendientes']).toBeGreaterThanOrEqual(5000);
+
+			await pay('50,00');
+			const exact = await figures(page);
+			expect(exact['Disponible']).toBe(open['Disponible']);
+			expect(exact['Gastado']).toBe(open['Gastado'] + 5000);
+			expect(exact['Pagos fijos pendientes']).toBe(open['Pagos fijos pendientes'] - 5000);
+
+			await remove();
+			await pay('70,00');
+			const over = await figures(page);
+			expect(over['Disponible']).toBe(open['Disponible'] - 2000);
+			expect(over['Gastado']).toBe(open['Gastado'] + 7000);
+			expect(over['Pagos fijos pendientes']).toBe(open['Pagos fijos pendientes'] - 5000);
+		} finally {
+			await remove();
+		}
 	});
 
 	test('an ARS outcome does not change the USD Disponible', async ({ page, baseURL }) => {
