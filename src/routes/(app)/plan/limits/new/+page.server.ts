@@ -4,17 +4,8 @@ import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { parseLimitAmount, planReturn } from '$lib/plan-wizard';
 import { listCategories } from '$lib/server/categories-queries';
 import { preferredCurrency } from '$lib/server/currency-pref';
-import { currentMonth } from '$lib/server/month';
-import { getPlan, planLimits, PlanRejected, upsertLimits } from '$lib/server/plan-queries';
+import { currentPlan, planLimits, PlanRejected, upsertLimits } from '$lib/server/plan-queries';
 import { limitSuggestions } from '$lib/server/plan-view';
-
-/** The current plan (a one-month plan for another month counts as none) or back to /plan. */
-async function currentPlan(userId: string, currency: ReturnType<typeof preferredCurrency>) {
-	const [plan] = await getPlan(userId, currency);
-	if (!plan || (plan.month !== null && plan.month !== currentMonth(new Date())))
-		redirect(303, '/plan');
-	return plan;
-}
 
 /** Active expense (or both) categories that have no limit yet. */
 async function offered(userId: string, planId: string) {
@@ -29,7 +20,7 @@ async function offered(userId: string, planId: string) {
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const userId = locals.user!.id;
 	const currency = preferredCurrency(cookies);
-	const plan = await currentPlan(userId, currency);
+	const plan = (await currentPlan(userId, currency)) ?? redirect(303, '/plan');
 	const [categories, suggestions] = await Promise.all([
 		offered(userId, plan.id),
 		limitSuggestions(userId, currency)
@@ -50,7 +41,7 @@ export const actions: Actions = {
 	default: async ({ locals, cookies, request, url }) => {
 		const userId = locals.user!.id;
 		const currency = preferredCurrency(cookies);
-		const plan = await currentPlan(userId, currency);
+		const plan = (await currentPlan(userId, currency)) ?? redirect(303, '/plan');
 		const fd = await request.formData();
 		const categoryId = String(fd.get('categoryId') ?? '');
 		const amount = String(fd.get('amount') ?? '');

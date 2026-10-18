@@ -21,6 +21,7 @@ import {
 import type { Currency } from '$lib/money';
 import type { MovementRow } from './movements';
 import { isRecurringActive } from './plan';
+import { currentMonth } from './month';
 
 type Range = { start: Date; end: Date };
 
@@ -137,6 +138,12 @@ export function deleteRecurring(userId: string, id: string) {
 }
 
 // --- Spending plans ---
+
+/** The user's plan for `cur` when it is the current one (a plan for another month counts as none). */
+export async function currentPlan(userId: string, cur: Currency) {
+	const [plan] = await getPlan(userId, cur);
+	return plan && (plan.month === null || plan.month === currentMonth(new Date())) ? plan : null;
+}
 
 export function getPlan(userId: string, cur: Currency) {
 	return db
