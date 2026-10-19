@@ -43,29 +43,28 @@ Two GitHub rulesets make this a hard block, not just convention. Force push
 and deletion are blocked on both branches:
 
 - `develop`: pull requests only, squash merge only, required status checks
-  `checks` and `gitleaks`.
+  `checks`.
 - `main`: pull requests only, merge commit only, required status checks
-  `checks`, `gitleaks` and `develop-only`. `develop-only` comes from
+  `checks` and `develop-only`. `develop-only` comes from
   `.github/workflows/promotion-guard.yml`: rulesets cannot restrict a PR's
   source branch, so this check fails unless the PR head is `develop` of this
   repository.
 
-- `.github/workflows/ci.yml` runs on every pull request: install, lint,
-  check, build, Playwright E2E, and a `docker build` (no push).
-- `.github/workflows/deploy.yml` re-runs the same CI workflow (via
-  `workflow_call`) before publishing, so a merge can never deploy code that
-  didn't pass checks, even if a PR was merged without waiting for CI.
+- `.github/workflows/ci.yml` runs on every pull request: a gitleaks scan of
+  the PR's commits only, install, lint, check, build (all in `checks`), and
+  Playwright E2E against a production build made with `VITE_E2E=1`.
+- `.github/workflows/deploy.yml` does not re-run CI: the checks run on the PR
+  and are required by the ruleset, so they are not repeated on push.
 
 ## Deploy pipeline
 
 On push to `main` or `develop` (or manual `workflow_dispatch` from either):
 
-1. `checks` — re-runs CI.
-2. `publish` — builds the Docker image and pushes it to GHCR as
+1. `publish` — builds the Docker image and pushes it to GHCR as
    `ghcr.io/mvalles02/gastar-app:latest` (main) or
    `ghcr.io/mvalles02/gastar-app:develop` (develop), plus
    `ghcr.io/mvalles02/gastar-app:sha-<full sha>`.
-3. `deploy` — calls the Dokploy deploy webhook to redeploy the application.
+2. `deploy` — calls the Dokploy deploy webhook to redeploy the application.
    Push to `main` uses the `production` environment and `HEALTH_URL`; push to
    `develop` uses the `development` environment and `DEV_HEALTH_URL`
    (`https://dev.gastar.app/health`). Environment branch policies limit

@@ -46,7 +46,7 @@ pnpm build         # vite build
 pnpm check         # svelte-kit sync && svelte-check
 pnpm lint          # prettier --check . && eslint .
 pnpm format        # prettier --write .
-pnpm test:e2e      # playwright test (Chromium; reuses a running `pnpm dev`, needs a migrated + seeded DB)
+pnpm test:e2e      # playwright test (Chromium; reuses a running `pnpm dev`, else builds with VITE_E2E=1 and serves `node build`; needs a migrated + seeded DB)
 pnpm db:generate   # drizzle-kit generate
 pnpm db:migrate    # node scripts/migrate.js (loads .env if present)
 pnpm db:studio     # drizzle-kit studio
@@ -63,4 +63,4 @@ pnpm check
 pnpm build
 ```
 
-Playwright E2E (`pnpm test:e2e`, needs a migrated + seeded DB) runs in CI on pull requests; run it locally when a change touches a flow covered by `e2e/`.
+Playwright E2E (`pnpm test:e2e`, needs a migrated + seeded DB; CI and any run without a dev server build with VITE_E2E=1 and serve `node build`) runs in CI on pull requests; run it locally when a change touches a flow covered by `e2e/`.
