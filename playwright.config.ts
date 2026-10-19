@@ -2,6 +2,8 @@ import { defineConfig } from '@playwright/test';
 
 const PORT = Number(process.env.E2E_PORT) || 5173;
 const BASE_URL = `http://localhost:${PORT}`;
+const MP_PORT = Number(process.env.FAKE_MP_PORT) || 5199;
+const MP_URL = `http://127.0.0.1:${MP_PORT}`;
 
 export default defineConfig({
 	testDir: 'e2e',
@@ -16,10 +18,12 @@ export default defineConfig({
 	webServer: [
 		{
 			command: 'node e2e/fake-mp.js',
-			url: 'http://127.0.0.1:5199/__fake/health',
-			reuseExistingServer: !process.env.CI
+			url: `${MP_URL}/__fake/health`,
+			reuseExistingServer: !process.env.CI,
+			env: { FAKE_MP_PORT: String(MP_PORT) }
 		},
 		// Locally reuses an already running `pnpm dev` (and its .env); a reused server must have the same MP env.
+		// Set E2E_PORT and FAKE_MP_PORT to unique values per worktree so a run never reuses another checkout's servers.
 		{
 			command: `pnpm dev --port ${PORT} --strictPort`,
 			url: `${BASE_URL}/health`,
@@ -30,7 +34,7 @@ export default defineConfig({
 			env: {
 				MP_ACCESS_TOKEN: 'TEST-fake-mp-token',
 				MP_IMPORT_ACCOUNT_ID: '00000000-0000-4000-8000-00000000a001',
-				MP_API_BASE_URL: 'http://127.0.0.1:5199',
+				MP_API_BASE_URL: MP_URL,
 				MP_REPORT_POLL_MS: '100',
 				// Scheduler off so e2e stays deterministic (syncs only via "Sincronizar ahora").
 				MP_SYNC_INTERVAL_HOURS: '0'
