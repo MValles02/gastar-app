@@ -11,7 +11,7 @@ import {
 	SEED_EMAIL
 } from './helpers';
 
-const FAKE = 'http://127.0.0.1:5199';
+const FAKE = `http://127.0.0.1:${Number(process.env.FAKE_MP_PORT) || 5199}`;
 const TOKEN = 'TEST-fake-mp-token';
 
 test.describe.configure({ mode: 'serial' });

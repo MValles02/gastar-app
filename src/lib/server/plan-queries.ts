@@ -1,4 +1,5 @@
-import { and, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import {
 	categories,
@@ -20,7 +21,7 @@ import {
 } from './access';
 import type { Currency } from '$lib/money';
 import type { MovementRow } from './movements';
-import { TZ } from './month';
+import { currentMonth, TZ } from './month';
 import { HISTORY_MONTHS, isRecurringActive } from './plan';
 
 type Range = { start: Date; end: Date };
@@ -84,13 +85,27 @@ export function listRecurring(userId: string, cur?: Currency, id?: string) {
 		.orderBy(recurringMovements.dayOfMonth, recurringMovements.description);
 }
 
-/** Rules with a linked movement in the range. */
+const ruleAccount = alias(financialAccounts, 'rule_account');
+
+/**
+ * Rules with a linked movement in the range. A link survives edits, so it only counts while the
+ * movement still matches the rule: same type, and an account in the rule account's currency.
+ */
 export function paidRecurring(userId: string, range: Range) {
 	return db
 		.selectDistinct({ recurringId: movements.recurringId })
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.where(and(canAccessMovement(userId), isNotNull(movements.recurringId), occurredIn(range)));
+		.innerJoin(recurringMovements, eq(movements.recurringId, recurringMovements.id))
+		.innerJoin(ruleAccount, eq(recurringMovements.accountId, ruleAccount.id))
+		.where(
+			and(
+				canAccessMovement(userId),
+				occurredIn(range),
+				eq(movements.type, recurringMovements.type),
+				eq(financialAccounts.currency, ruleAccount.currency)
+			)
+		);
 }
 
 export function createRecurring(userId: string, row: RecurringRow) {
@@ -175,6 +190,12 @@ export function recurringCandidates(userId: string, cur: Currency, range: Range)
 }
 
 // --- Spending plans ---
+
+/** The user's plan for `cur` when it is the current one (a plan for another month counts as none). */
+export async function currentPlan(userId: string, cur: Currency) {
+	const [plan] = await getPlan(userId, cur);
+	return plan && (plan.month === null || plan.month === currentMonth(new Date())) ? plan : null;
+}
 
 export function getPlan(userId: string, cur: Currency) {
 	return db

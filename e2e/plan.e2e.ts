@@ -3,10 +3,13 @@ import {
 	deleteMovements,
 	deleteRules,
 	fillRule,
+	findMovements,
 	linkId,
 	login,
 	OTHER_EMAIL,
 	PHONE,
+	pick,
+	postDelete,
 	setCurrencyCookie,
 	SMALL_PHONE,
 	WHOLE_PESOS_ERROR
@@ -200,6 +203,44 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		await expect(rule(page, description)).toContainText('Pagado');
 		await expect(rule(page, description).getByRole('link', { name: /Registrar/ })).toHaveCount(0);
 	} finally {
+		await deleteMovements(page, baseURL!, description);
+		await deleteRules(page, baseURL!, description);
+	}
+});
+
+test('a payment edited to an account in another currency no longer marks the rule Pagado', async ({
+	page,
+	baseURL
+}) => {
+	await login(page, OTHER_EMAIL);
+	const description = 'Pago moneda e2e';
+	try {
+		await fillRule(page, {
+			description,
+			amount: '1.500',
+			day: '15',
+			account: 'Otra cuenta pesos',
+			category: 'Ajena'
+		});
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await expect(page).toHaveURL(/\/plan$/);
+		await rule(page, description).getByRole('link').click();
+		await page.getByRole('link', { name: 'Registrar pago' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(rule(page, description)).toContainText('Pagado');
+
+		const [href] = await findMovements(page, description, 'ARS');
+		await page.goto(`${new URL(href).pathname}/edit`, { waitUntil: 'networkidle' });
+		await pick(page, 'Cuenta', 'Otra cuenta');
+		await page.getByRole('button', { name: 'Guardar cambios' }).click();
+		await expect(page).toHaveURL(new URL(href).pathname);
+
+		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await expect(rule(page, description)).toBeVisible();
+		await expect(rule(page, description)).not.toContainText('Pagado');
+	} finally {
+		for (const href of await findMovements(page, description, 'USD'))
+			await postDelete(page, baseURL!, href);
 		await deleteMovements(page, baseURL!, description);
 		await deleteRules(page, baseURL!, description);
 	}
