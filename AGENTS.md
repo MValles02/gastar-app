@@ -49,6 +49,7 @@ pnpm format        # prettier --write .
 pnpm test:e2e      # playwright test (Chromium; reuses a running `pnpm dev`, needs a migrated + seeded DB)
 pnpm db:generate   # drizzle-kit generate
 pnpm db:migrate    # node scripts/migrate.js (loads .env if present)
+pnpm db:seed       # node scripts/seed.js, local demo data (loads .env; requires SEED_PASSWORD)
 pnpm db:studio     # drizzle-kit studio
 pnpm user:create   # node scripts/create-user.js (loads .env if present)
 ```

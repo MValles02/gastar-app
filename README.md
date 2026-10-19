@@ -82,7 +82,7 @@ Windows quick start (PowerShell).
    pnpm dev                 # http://localhost:5173
    ```
 
-Demo login: `demo@gastar.local` / `demo1234` (override with `SEED_EMAIL` / `SEED_PASSWORD`).
+`pnpm db:seed` requires `SEED_PASSWORD` (set in `.env`, see `.env.example`; it exits 1 without it). Demo login: `demo@gastar.local` (override with `SEED_EMAIL`) / your `SEED_PASSWORD`.
 The seed refuses to run unless `DATABASE_URL` points at localhost and is safe to re-run.
 
 Two opt-in flags seed a non-local DB (e.g. dev) without creating users:
