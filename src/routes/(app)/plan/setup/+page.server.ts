@@ -8,7 +8,7 @@ import { preferredCurrency } from '$lib/server/currency-pref';
 import { currentMonth } from '$lib/server/month';
 import { parseSavingsForm } from '$lib/server/plan';
 import {
-	getPlan,
+	currentPlan,
 	planIncome,
 	planLimits,
 	updatePlan,
@@ -16,12 +16,6 @@ import {
 	upsertPlan
 } from '$lib/server/plan-queries';
 import { limitSuggestions, planView, recurringLists } from '$lib/server/plan-view';
-
-/** The user's plan for `cur` when it is the current one (a one-month plan for another month counts as none). */
-async function currentPlan(userId: string, cur: Currency) {
-	const [plan] = await getPlan(userId, cur);
-	return plan && (plan.month === null || plan.month === currentMonth(new Date())) ? plan : null;
-}
 
 /** Suggested limits the wizard can apply: active non-income categories with no limit yet and a suggestion above zero. */
 async function applicableSuggestions(userId: string, cur: Currency, planId: string | null) {
