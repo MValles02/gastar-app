@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import {
@@ -21,8 +21,8 @@ import {
 } from './access';
 import type { Currency } from '$lib/money';
 import type { MovementRow } from './movements';
-import { isRecurringActive } from './plan';
-import { currentMonth } from './month';
+import { currentMonth, TZ } from './month';
+import { HISTORY_MONTHS, isRecurringActive } from './plan';
 
 type Range = { start: Date; end: Date };
 
@@ -32,6 +32,10 @@ const occurredIn = (range: Range) =>
 /** The rule `id`, only if the user may access it. */
 const ownRule = (userId: string, id: string) =>
 	and(eq(recurringMovements.id, id), canAccessRecurring(userId));
+
+// TZ is inlined as a literal: a bound parameter makes SELECT and GROUP BY different expressions.
+const tzLiteral = sql.raw(`'${TZ}'`);
+const localMonth = sql<string>`to_char(${movements.occurredAt} at time zone ${tzLiteral}, 'YYYY-MM')`;
 
 export type RecurringRow = {
 	type: 'income' | 'outcome';
@@ -150,6 +154,42 @@ export function deleteRecurring(userId: string, id: string) {
 		.delete(recurringMovements)
 		.where(ownRule(userId, id))
 		.returning({ id: recurringMovements.id });
+}
+
+/**
+ * Unlinked outcomes that happened in each of the `HISTORY_MONTHS` months of `range` with the same
+ * description, account and category: likely recurring. `id` is the group's most recent movement.
+ */
+export function recurringCandidates(userId: string, cur: Currency, range: Range) {
+	return db
+		.select({
+			id: sql<string>`(array_agg(${movements.id} order by ${movements.occurredAt} desc))[1]`,
+			description: sql<string>`min(trim(${movements.description}))`,
+			amount:
+				sql<number>`round(sum(${movements.amount})::numeric / count(distinct ${localMonth}))`.mapWith(
+					Number
+				),
+			dayOfMonth:
+				sql<number>`extract(day from max(${movements.occurredAt}) at time zone ${tzLiteral})`.mapWith(
+					Number
+				),
+			accountId: movements.accountId,
+			categoryId: movements.categoryId
+		})
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.where(
+			and(
+				canAccessMovement(userId),
+				eq(financialAccounts.currency, cur),
+				isNull(financialAccounts.archivedAt),
+				isNull(movements.recurringId),
+				eq(movements.type, 'outcome'),
+				occurredIn(range)
+			)
+		)
+		.groupBy(sql`lower(trim(${movements.description}))`, movements.accountId, movements.categoryId)
+		.having(sql`count(distinct ${localMonth}) >= ${HISTORY_MONTHS}`);
 }
 
 // --- Spending plans ---

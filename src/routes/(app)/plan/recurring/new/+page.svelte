@@ -15,14 +15,15 @@
 <PageHeader {title} close={{ href: data.returnHref, label: 'Cerrar' }} />
 
 <RecurringForm
-	initial={form?.values ?? {
-		type: data.type,
-		description: '',
-		amount: '',
-		accountId: data.accounts.length === 1 ? data.accounts[0].id : '',
-		categoryId: '',
-		dayOfMonth: ''
-	}}
+	initial={form?.values ??
+		data.suggested ?? {
+			type: data.type,
+			description: '',
+			amount: '',
+			accountId: data.accounts.length === 1 ? data.accounts[0].id : '',
+			categoryId: '',
+			dayOfMonth: ''
+		}}
 	errors={form?.errors}
 	accounts={data.accounts}
 	categories={data.categories}
