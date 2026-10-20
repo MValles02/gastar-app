@@ -141,9 +141,7 @@ Development uses a separate Dokploy app, `gastar-app-dev`:
 
 - `pnpm dev` binds to loopback (`127.0.0.1`, Vite default port 5173).
 - Database and seed setup: see the README "Local development" section.
-- `pnpm hooks:install` enables the versioned pre-commit hook
-  (`scripts/git-hooks/pre-commit`), which scans staged changes with gitleaks
-  via docker (the commit is blocked if docker is missing; bypass deliberately
-  with `git commit --no-verify`). On Windows it
-  needs Docker Desktop running; the hook is a bash script run by Git for
-  Windows.
+- Git hooks install automatically on `pnpm install` (husky `prepare`). The
+  pre-commit hook runs lint-staged (eslint + prettier on staged files) and a
+  gitleaks scan of staged changes via docker; the scan is skipped with a
+  warning if docker is missing. On Windows it needs Docker Desktop running.
