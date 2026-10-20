@@ -425,11 +425,24 @@ test('step 2 suggests repeated outcomes and a tap opens the rule form prefilled'
 		});
 		expect(res.ok()).toBe(true);
 	}
+	// A one-off in a single month, arranged here: it must not be suggested.
+	const oneOff = await page.request.post('/movements/new', {
+		form: {
+			type: 'outcome',
+			amount: '9999',
+			description: 'Cena suelta e2e',
+			accountId: ids.account,
+			categoryId: ids.food,
+			occurredAt: lastMonth15()
+		},
+		headers
+	});
+	expect(oneOff.ok()).toBe(true);
 	try {
 		await page.goto('/plan/setup?step=2', { waitUntil: 'networkidle' });
 		await expect(page.getByRole('heading', { name: 'Detectamos que se repiten' })).toBeVisible();
-		// The one-off previous movement (a single month) is not a suggestion.
-		await expect(page.getByRole('link', { name: /Super previo e2e/ })).toHaveCount(0);
+		// The one-off (a single month) is not a suggestion.
+		await expect(page.getByRole('link', { name: /Cena suelta e2e/ })).toHaveCount(0);
 		const suggestion = page.getByRole('link', { name: /Alquiler e2e/ });
 		await expect(suggestion).toContainText('12.345');
 		await expect(suggestion).toContainText('Día 15 · Caja e2e');
@@ -450,5 +463,6 @@ test('step 2 suggests repeated outcomes and a tap opens the rule form prefilled'
 	} finally {
 		await deleteRules(page, baseURL!, 'Alquiler e2e');
 		await deleteMovements(page, baseURL!, 'Alquiler e2e');
+		await deleteMovements(page, baseURL!, 'Cena suelta e2e');
 	}
 });

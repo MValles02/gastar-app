@@ -127,10 +127,10 @@ export async function recurringSuggestions(userId: string, cur: Currency, now = 
 		recurringCandidates(userId, cur, lastFullMonths(currentMonth(now)))
 	]);
 	// Inactive rules count too: a deactivated rule is not suggested again.
-	const ruleNames = new Set(rules.map((r) => `${r.type}|${r.description.toLowerCase()}`));
+	const ruleNames = new Set(rules.map((r) => `${r.type}|${r.description.trim().toLowerCase()}`));
 	return candidates
 		.map((c) => ({ ...c, description: c.description.slice(0, DESCRIPTION_MAX_LENGTH) }))
-		.filter((c) => c.categoryId && !ruleNames.has(`outcome|${c.description.toLowerCase()}`))
+		.filter((c) => c.categoryId && !ruleNames.has(`outcome|${c.description.trim().toLowerCase()}`))
 		.map((c) => ({
 			id: c.id,
 			description: c.description,

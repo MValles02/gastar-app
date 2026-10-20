@@ -164,8 +164,11 @@ export function recurringCandidates(userId: string, cur: Currency, range: Range)
 	return db
 		.select({
 			id: sql<string>`(array_agg(${movements.id} order by ${movements.occurredAt} desc))[1]`,
-			description: sql<string>`min(${movements.description})`,
-			amount: sql<number>`round(avg(${movements.amount}))`.mapWith(Number),
+			description: sql<string>`min(trim(${movements.description}))`,
+			amount:
+				sql<number>`round(sum(${movements.amount})::numeric / count(distinct ${localMonth}))`.mapWith(
+					Number
+				),
 			dayOfMonth:
 				sql<number>`extract(day from max(${movements.occurredAt}) at time zone ${tzLiteral})`.mapWith(
 					Number
@@ -185,7 +188,7 @@ export function recurringCandidates(userId: string, cur: Currency, range: Range)
 				occurredIn(range)
 			)
 		)
-		.groupBy(sql`lower(${movements.description})`, movements.accountId, movements.categoryId)
+		.groupBy(sql`lower(trim(${movements.description}))`, movements.accountId, movements.categoryId)
 		.having(sql`count(distinct ${localMonth}) >= ${HISTORY_MONTHS}`);
 }
 
