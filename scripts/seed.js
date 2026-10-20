@@ -4,7 +4,7 @@ import { hashPassword } from 'better-auth/crypto';
 import postgres from 'postgres';
 
 const email = (process.env.SEED_EMAIL || 'demo@gastar.local').trim().toLowerCase();
-const password = process.env.SEED_PASSWORD || 'demo1234';
+const password = process.env.SEED_PASSWORD;
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -31,6 +31,11 @@ if (process.env.SEED_ALLOW_REMOTE === '1') {
 }
 // When set, seeds this already-existing user instead of creating the demo users.
 const existingEmail = (process.env.SEED_EXISTING_USER || '').trim().toLowerCase();
+// The demo users need a password; SEED_EXISTING_USER mode never sets one.
+if (!password && !existingEmail) {
+	console.error('SEED_PASSWORD is not set: set it in .env (see .env.example) or the environment');
+	process.exit(1);
+}
 
 // Deterministic PRNG (mulberry32) so output is reproducible.
 let seed = 20240601;

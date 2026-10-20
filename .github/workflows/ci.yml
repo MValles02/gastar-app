@@ -60,6 +60,8 @@ jobs:
       # The specs run against `pnpm dev` on :5173.
       BETTER_AUTH_URL: http://localhost:5173
       ORIGIN: http://localhost:5173
+      # CI-only demo password; scripts/seed.js requires it and e2e/helpers.ts logs in with it.
+      SEED_PASSWORD: demo1234
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
