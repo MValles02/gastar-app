@@ -23,15 +23,21 @@ export default defineConfig({
 			env: { FAKE_MP_PORT: String(MP_PORT) }
 		},
 		// Locally reuses an already running `pnpm dev` (and its .env); a reused server must have the same MP env.
+		// Without one (CI), builds with VITE_E2E=1 (enables the test-only routes) and serves `node build`.
 		// Set E2E_PORT and FAKE_MP_PORT to unique values per worktree so a run never reuses another checkout's servers.
 		{
-			command: `pnpm dev --port ${PORT} --strictPort`,
+			command: `pnpm build && node --env-file-if-exists=.env build`,
 			url: `${BASE_URL}/health`,
 			reuseExistingServer: !process.env.CI,
-			// Default SIGKILL of `pnpm dev` leaves vite running and the run never exits.
+			// Default SIGKILL leaves child processes (vite, node build) running and the run never exits.
 			gracefulShutdown: { signal: 'SIGTERM', timeout: 5000 },
-			timeout: 120_000,
+			timeout: 180_000,
 			env: {
+				VITE_E2E: '1',
+				PORT: String(PORT),
+				// Override .env (:5173) so a non-default E2E_PORT passes the CSRF origin check.
+				ORIGIN: BASE_URL,
+				BETTER_AUTH_URL: BASE_URL,
 				MP_ACCESS_TOKEN: 'TEST-fake-mp-token',
 				MP_IMPORT_ACCOUNT_ID: '00000000-0000-4000-8000-00000000a001',
 				MP_API_BASE_URL: MP_URL,

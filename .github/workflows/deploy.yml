@@ -2,6 +2,7 @@
 # deploy production (web.gastar.app), pushes to `develop` deploy the development
 # environment (dev.gastar.app). Deploy secrets live in the `production` and
 # `development` GitHub environments, not at repository level.
+# CI checks run on the PR (required by the ruleset) and are not repeated on push.
 name: Deploy
 
 on:
@@ -18,14 +19,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  checks:
-    uses: ./.github/workflows/ci.yml
-    permissions:
-      contents: read
-
   publish:
     name: Build and publish to GHCR
-    needs: checks
     # workflow_dispatch can be run from any branch; restrict to main and develop
     # so a manual trigger from any other branch never builds or deploys.
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'

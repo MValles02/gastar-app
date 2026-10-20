@@ -27,7 +27,7 @@ export async function sendEmail(msg: {
 }): Promise<void> {
 	const key = env.RESEND_API_KEY;
 	if (!key) {
-		if (dev) {
+		if (dev || import.meta.env.VITE_E2E === '1') {
 			outbox.push({ id: nextId++, to: msg.to, subject: msg.subject, link: msg.link });
 			if (outbox.length > OUTBOX_MAX) outbox.shift();
 		}
