@@ -90,4 +90,4 @@ Two opt-in flags seed a non-local DB (e.g. dev) without creating users:
 - `SEED_ALLOW_REMOTE=1` skips only the localhost check (`NODE_ENV=production` is still refused).
 - `SEED_EXISTING_USER=<email>` seeds that existing user: deletes only their app data (not login rows), skips password and the second demo user.
 
-`pnpm test:e2e` needs the migrated + seeded DB and reuses a running `pnpm dev`; without one (CI) it builds with `VITE_E2E=1` and serves `node build`.
+`pnpm test:e2e` needs the migrated + seeded DB. Locally it reuses a running `pnpm dev` if there is one; otherwise, and always in CI, it builds with `VITE_E2E=1` and serves `node build`. In CI it is the `e2e` check, required on PRs to `develop` and `main` (`docs/WORKFLOW.md`).
