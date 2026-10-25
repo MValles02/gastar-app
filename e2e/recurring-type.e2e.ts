@@ -84,7 +84,10 @@ test('an active rule detail shows "Este mes" until it is deactivated', async ({
 			/Vence hoy|Venció ayer|Venció hace \d+ días|Mañana|En \d+ días|Pagado|Cobrado/
 		);
 		await page.getByRole('button', { name: 'Desactivar' }).click();
-		await expect(page.getByText('Desactivado')).toBeVisible();
+		// Scoped to this rule: other workers' deactivated `otro` rules can show on the same list.
+		await expect(page.getByRole('link', { name: new RegExp(description) })).toContainText(
+			'Desactivado'
+		);
 		await expect(page.getByText('Este mes', { exact: true })).toHaveCount(0);
 	} finally {
 		await deleteRules(page, baseURL!, description);

@@ -90,6 +90,15 @@ async function figures(page: Page) {
 	return out;
 }
 
+/** The limit edit links on /plan, i.e. which categories have a limit in the cookie's currency. */
+async function limitHrefs(page: Page) {
+	await page.goto('/plan', { waitUntil: 'networkidle' });
+	return page
+		.getByRole('region', { name: 'Límites por categoría' })
+		.locator('a[href^="/plan/limits/"]:not([href$="/new"])')
+		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).pathname).sort());
+}
+
 /**
  * Re-saves the demo user's seeded ARS plan (scripts/seed.js: savings 150.000, Supermercado limit
  * 300.000) through the plan screens' actions, so a run interrupted mid-test cannot leave a modified
@@ -186,7 +195,10 @@ test("another user cannot attach a limit to the demo user's category", async ({
 		const other = await context.newPage();
 		await login(other, OTHER_EMAIL);
 		await setCurrencyCookie(other, baseURL!, 'USD');
-		const before = await figures(other);
+		// Only `otro`'s USD limits: other workers write its movements in parallel, which move its
+		// Gastado and Disponible, but no other spec writes its USD limits.
+		const limits = () => limitHrefs(other);
+		const before = await limits();
 		const res = await post(other, baseURL!, '/plan/limits/new', {
 			categoryId: superId,
 			amount: '5'
@@ -194,8 +206,7 @@ test("another user cannot attach a limit to the demo user's category", async ({
 		expect(res.status()).toBe(400);
 		expect(await res.text()).toContain(NOT_OFFERED);
 		expect((await other.goto(`/plan/limits/${superId}`))!.status()).toBe(404);
-		const after = await figures(other);
-		expect(after).toEqual(before);
+		expect(await limits()).toEqual(before);
 		await expect(other.getByRole('region', { name: 'Límites por categoría' })).not.toContainText(
 			'Supermercado'
 		);

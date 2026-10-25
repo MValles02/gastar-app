@@ -8,6 +8,10 @@ const MP_URL = `http://127.0.0.1:${MP_PORT}`;
 export default defineConfig({
 	testDir: 'e2e',
 	testMatch: /.*\.e2e\.ts/,
+	// Spec files run in parallel workers on one shared DB; tests inside a file run in order. Most
+	// writers use the seeded `otro` user, so a spec that asserts exact figures uses data no other
+	// file writes, or its own `signUpVerified` user.
+	fullyParallel: false,
 	retries: process.env.CI ? 1 : 0,
 	// html feeds the report artifact CI uploads on failure.
 	reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',

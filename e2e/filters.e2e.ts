@@ -83,11 +83,16 @@ test('arrow + space on a segmented control navigates once', async ({ page }) => 
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
 	await openFilters(page);
 	let navs = 0;
+	let inFlight = 0;
 	page.on('framenavigated', () => navs++);
+	page.on('request', () => inFlight++);
+	page.on('requestfinished', () => inFlight--);
+	page.on('requestfailed', () => inFlight--);
 	await page.getByRole('dialog').locator('[role="radio"][aria-checked="true"]').focus();
 	await page.keyboard.press('ArrowRight');
 	await page.keyboard.press('Space');
 	await expect(page).toHaveURL(/currency=/);
-	await page.waitForTimeout(800);
+	// Any navigation the key presses started has fetched its data once no request is in flight.
+	await expect.poll(() => inFlight).toBe(0);
 	expect(navs).toBe(1);
 });
