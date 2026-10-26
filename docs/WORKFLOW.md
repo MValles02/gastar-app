@@ -164,4 +164,6 @@ Development uses a separate Dokploy app, `gastar-app-dev`:
 - Git hooks install automatically on `pnpm install` (husky `prepare`). The
   pre-commit hook runs lint-staged (eslint + prettier on staged files) and a
   gitleaks scan of staged changes via docker; the scan is skipped with a
-  warning if docker is missing. On Windows it needs Docker Desktop running.
+  warning if the docker CLI is missing. If the CLI is installed but the engine
+  is not running (Docker Desktop stopped), the commit is blocked on purpose so
+  nothing is committed unscanned: start Docker Desktop and commit again.

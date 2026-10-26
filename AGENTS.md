@@ -41,7 +41,7 @@ SvelteKit 2 + TypeScript, Drizzle ORM + Postgres (`src/lib/server/db/schema.ts`)
 
 ```sh
 pnpm dev           # vite dev --host 127.0.0.1 (loopback only)
-# git hooks install automatically on `pnpm install` (husky: lint-staged + gitleaks via docker, skipped with a warning if docker is missing)
+# git hooks install automatically on `pnpm install` (husky: lint-staged + gitleaks via docker, skipped with a warning if the docker CLI is missing; the commit is blocked if the docker engine is not running)
 pnpm build         # vite build
 pnpm check         # svelte-kit sync && svelte-check
 pnpm lint          # prettier --check . && eslint .
