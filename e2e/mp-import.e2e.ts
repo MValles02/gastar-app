@@ -160,6 +160,8 @@ test('approving a payment keeps its exact cents and moves the balance', async ()
 	await openItem('FAKE.AMIGA', '$1.235');
 	await expect(page.locator('dd', { hasText: 'FAKE.AMIGA' })).toBeVisible();
 	await expect(page.getByRole('radio', { name: 'Ingreso' })).toBeChecked();
+	// The fixture nickname is padded with spaces; the prefilled title must be trimmed.
+	await expect(page.locator('input[name="description"]')).toHaveValue('FAKE.AMIGA');
 	await page.locator('input[name="description"]').fill(AMIGA_DESC);
 	await pick(page, 'Categoría', CATEGORY);
 	await page.getByRole('button', { name: 'Aprobar' }).click();

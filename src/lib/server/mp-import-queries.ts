@@ -108,14 +108,16 @@ type TitleFields = {
 
 /** The list title of an item, also the default description of its movement. */
 export function importTitle(i: TitleFields): string {
+	// MP text comes padded sometimes; a blank value counts as absent.
+	const clean = (s: string | null | undefined) => s?.trim() || null;
 	return (
-		i.counterpartyNickname ??
-		i.merchant ??
+		clean(i.counterpartyNickname) ??
+		clean(i.merchant) ??
 		(i.kind === 'payment'
 			? i.isCredit
 				? 'Transferencia recibida'
 				: 'Pago'
-			: (FALLBACK_TITLE[i.kind] ?? i.rawDescription))
+			: (FALLBACK_TITLE[i.kind] ?? i.rawDescription.trim()))
 	);
 }
 
