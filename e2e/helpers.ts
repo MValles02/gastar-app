@@ -35,7 +35,11 @@ export async function submitLogin(page: Page, email: string, password = SEED_PAS
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 }
 
-/** Signs up a fresh user, follows the verification link (which signs them in) and waits for Inicio. */
+/**
+ * Signs up a fresh user, follows the verification link (which signs them in) and waits for Inicio.
+ * Sign-up is rate-limited to 10/hour/IP: one full run makes 7 (signup 3, plan-recurring-suggestions 2,
+ * profile 1, plan-budget 1). New specs must reuse one user per file (sign up in `beforeAll`).
+ */
 export async function signUpVerified(
 	page: Page,
 	request: APIRequestContext,
