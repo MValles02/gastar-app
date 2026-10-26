@@ -43,22 +43,43 @@ Two GitHub rulesets make this a hard block, not just convention. Force push
 and deletion are blocked on both branches:
 
 - `develop`: pull requests only, squash merge only, required status checks
-  `checks`.
+  `checks` and `e2e`.
 - `main`: pull requests only, merge commit only, required status checks
-  `checks` and `develop-only`. `develop-only` comes from
+  `checks`, `e2e` and `develop-only`. `develop-only` comes from
   `.github/workflows/promotion-guard.yml`: rulesets cannot restrict a PR's
   source branch, so this check fails unless the PR head is `develop` of this
   repository.
 
+Required checks and where they come from:
+
+| Check          | Workflow             | Runs on                | Required on     |
+| -------------- | -------------------- | ---------------------- | --------------- |
+| `checks`       | `ci.yml`             | pull requests          | `develop`, `main` |
+| `e2e`          | `ci.yml`             | pull requests          | `develop`, `main` |
+| `develop-only` | `promotion-guard.yml`| pull requests to `main`| `main`          |
+| `push-scan`    | `secrets-scan.yml`   | pushes to any branch   | not required    |
+
 - `.github/workflows/ci.yml` runs on every pull request: a gitleaks scan of
-  the PR's commits only, install, lint, check, build (all in `checks`), and
-  Playwright E2E against a production build made with `VITE_E2E=1`.
+  the PR's commits only (shallow checkout sized to the PR), install, lint,
+  check, build (all in `checks`), and Playwright E2E against a production
+  build made with `VITE_E2E=1` (`e2e`).
+- `.github/workflows/secrets-scan.yml` runs gitleaks over the commits of
+  every push, on any branch, so a secret pushed to a feature branch is
+  flagged before a PR exists. It is advisory: if it fails, rotate the secret
+  at its source and rewrite the branch before opening the PR. It is a
+  separate workflow because a push run inside `ci.yml` would add skipped
+  `checks`/`e2e` runs, and GitHub counts skipped as passing.
 - `.github/workflows/deploy.yml` does not re-run CI: the checks run on the PR
   and are required by the ruleset, so they are not repeated on push.
 
 ## Deploy pipeline
 
 On push to `main` or `develop` (or manual `workflow_dispatch` from either):
+
+A manual run redeploys the branch tip, which got there only through a PR that
+passed the required checks, so it does not re-run them. It asks for a
+`confirm` input that must equal the branch name (`main` or `develop`);
+otherwise `publish` fails before building anything.
 
 1. `publish` — builds the Docker image and pushes it to GHCR as
    `ghcr.io/mvalles02/gastar-app:latest` (main) or
