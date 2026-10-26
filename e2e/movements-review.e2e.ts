@@ -9,6 +9,8 @@ const tabBar = (page: import('@playwright/test').Page) =>
 	page.getByRole('navigation', { name: 'Navegación principal' });
 
 test('the tab bar shows on the four tabs only', async ({ page }) => {
+	// Walks nine routes; against a reused `pnpm dev`, each first visit compiles the route on demand.
+	test.slow();
 	for (const path of ['/', '/movements', '/plan', '/reports']) {
 		await page.goto(path, { waitUntil: 'networkidle' });
 		await expect(tabBar(page), path).toBeVisible();

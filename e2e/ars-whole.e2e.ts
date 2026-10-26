@@ -94,7 +94,8 @@ test('an ARS whole amount shows without decimals everywhere', async ({ page }) =
 	expect(norm(await page.locator('main').textContent())).toMatch(/-\$1\.500/);
 
 	await page.goto('/', { waitUntil: 'networkidle' });
-	expect(norm(await page.locator('.hero-amount').textContent())).toMatch(/^\$[\d.]+$/);
+	// Optional minus: other workers' transient `otro` outcomes can push the total below zero.
+	expect(norm(await page.locator('.hero-amount').textContent())).toMatch(/^-?\$[\d.]+$/);
 
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
 	const acct = page
@@ -244,10 +245,16 @@ test('Cancelar in the delete confirm closes it and keeps the movement', async ({
 	await openDetail(page, desc);
 	const detail = page.url();
 
+	const posts: string[] = [];
+	page.on('request', (r) => {
+		if (r.method() === 'POST') posts.push(r.url());
+	});
 	await page.getByRole('button', { name: 'Eliminar' }).click();
 	await page.getByRole('button', { name: 'Cancelar' }).click();
 	await expect(page.getByRole('alertdialog')).toBeHidden();
-	await page.waitForTimeout(500);
+	// Cancel sends nothing: a delete would have been requested by the time the dialog closes.
+	expect(posts).toEqual([]);
+	await expect(page).toHaveURL(detail);
 	await page.goto(detail);
 	await expect(page.getByText(desc).first()).toBeVisible();
 
