@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import { expect, test, type Browser, type Cookie, type Page } from '@playwright/test';
 import {
 	fillMovement,
 	fillSavings,
@@ -9,11 +9,67 @@ import {
 	pick,
 	postDelete,
 	setCurrencyCookie,
+	signUpVerified,
 	todayInAppTz,
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
 const NOT_OFFERED = 'Elegí una categoría.';
+
+// The figures-delta tests run as this file's own user (1 sign-up, see signUpVerified): no other spec
+// writes its data, unlike the seeded `otro`, whose USD movements other files write in parallel.
+let cookies: Cookie[] = [];
+
+test.beforeAll(async ({ browser, baseURL }) => {
+	test.setTimeout(90_000);
+	const headers = { origin: baseURL!, accept: 'text/html' };
+	const context = await browser.newContext({ baseURL });
+	try {
+		const page = await context.newPage();
+		await signUpVerified(page, context.request, {
+			email: `e2e+budget-${Date.now()}@gastar.local`,
+			password: 'e2e-pass-1234',
+			name: 'E2E Presupuesto'
+		});
+		const create = async (path: string, form: Record<string, string>) => {
+			const res = await page.request.post(path, { form, headers });
+			expect(res.ok()).toBe(true);
+			return res.url().split('/').pop()!;
+		};
+		const account = (name: string, currency: string) =>
+			create('/accounts/new', {
+				name,
+				currency,
+				initialBalance: '500',
+				icon: 'bank',
+				color: 'green'
+			});
+		const usd = await account('Otra cuenta', 'USD');
+		await account('Otra cuenta pesos', 'ARS');
+		const category = await create('/categories/new', { name: 'Ajena', color: 'blue', kind: '' });
+		await create('/plan/recurring/new', {
+			type: 'outcome',
+			description: 'Regla ajena',
+			amount: '50',
+			dayOfMonth: '10',
+			accountId: usd,
+			categoryId: category
+		});
+
+		// A quick USD plan through the wizard: no savings, no limits.
+		await setCurrencyCookie(page, baseURL!, 'USD');
+		await page.goto('/plan/setup?step=3', { waitUntil: 'networkidle' });
+		await fillSavings(page, { option: 'Nada' });
+		await page.getByRole('button', { name: 'Siguiente' }).click();
+		await expect(page).toHaveURL(/\/plan\/setup\?step=4$/);
+		await page.getByRole('link', { name: 'Siguiente' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(page.getByText('Plan guardado.')).toBeVisible();
+		cookies = await context.cookies();
+	} finally {
+		await context.close();
+	}
+});
 
 /** The other seeded user's category id and rule id, read from a second logged-in context. */
 async function foreignIds(browser: Browser, baseURL: string) {
@@ -193,10 +249,8 @@ test("another user cannot attach a limit to the demo user's category", async ({
 	const context = await browser.newContext({ baseURL });
 	try {
 		const other = await context.newPage();
-		await login(other, OTHER_EMAIL);
+		await context.addCookies(cookies);
 		await setCurrencyCookie(other, baseURL!, 'USD');
-		// Only `otro`'s USD limits: other workers write its movements in parallel, which move its
-		// Gastado and Disponible, but no other spec writes its USD limits.
 		const limits = () => limitHrefs(other);
 		const before = await limits();
 		const res = await post(other, baseURL!, '/plan/limits/new', {
@@ -313,11 +367,11 @@ test('Disponible = Ingresos - Ahorro - Pagos fijos pendientes - Gastado on one p
 	await expect(page.locator('.rule', { hasText: 'Alquiler' })).toContainText('380.000');
 });
 
-// The tests that create movements run as `otro`: no other spec reads its data, so they cannot
-// disturb the demo user's totals (currency.e2e.ts) or Disponible.
+// The tests that create movements run as this file's own user: they cannot disturb the demo user's
+// totals (currency.e2e.ts) or Disponible.
 test.describe('as another user', () => {
 	test.beforeEach(async ({ page, baseURL }) => {
-		await login(page, OTHER_EMAIL);
+		await page.context().addCookies(cookies);
 		await setCurrencyCookie(page, baseURL!, 'USD');
 	});
 
