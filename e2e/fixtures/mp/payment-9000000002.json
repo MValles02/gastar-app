@@ -1,9 +1,0 @@
-{
-	"id": 9000000002,
-	"operation_type": "regular_payment",
-	"description": "Compra",
-	"statement_descriptor": "CAFE DE PRUEBA",
-	"collector": { "id": 9000000102 },
-	"payer_id": 9000000000,
-	"point_of_interaction": { "type": "QR_CODE" }
-}

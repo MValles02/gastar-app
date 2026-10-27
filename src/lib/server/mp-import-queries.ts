@@ -94,7 +94,8 @@ export function deleteImportData(userId: string, accountId: string) {
 
 const FALLBACK_TITLE: Record<string, string> = {
 	yield: 'Rendimientos',
-	payout: 'Retiro',
+	payout: 'Transferencia o retiro',
+	merchant_payout: 'Pago en comercio',
 	account_fund: 'Ingreso de dinero'
 };
 
@@ -110,6 +111,10 @@ type TitleFields = {
 export function importTitle(i: TitleFields): string {
 	// MP text comes padded sometimes; a blank value counts as absent.
 	const clean = (s: string | null | undefined) => s?.trim() || null;
+	if (i.kind === 'refund') {
+		const of = clean(i.counterpartyNickname) ?? clean(i.merchant);
+		return of ? `Devolución · ${of}` : 'Devolución';
+	}
 	return (
 		clean(i.counterpartyNickname) ??
 		clean(i.merchant) ??
@@ -147,11 +152,13 @@ type ImportKeyFields = {
 /** The rule keys an item can match, strongest first. */
 export function importRuleKeys(i: ImportKeyFields): ImportRuleKey[] {
 	const keys: ImportRuleKey[] = [];
+	// A refund reverses its payment: learning from it would overwrite the payment's rule.
+	if (i.kind === 'refund') return keys;
 	if (i.operationType === 'money_transfer' && i.counterpartyId)
 		keys.push({ matchKind: 'counterparty', matchValue: i.counterpartyId });
 	const merchant = i.merchant?.trim().toLowerCase();
 	if (merchant) keys.push({ matchKind: 'merchant', matchValue: merchant });
-	if (i.kind === 'yield' || i.kind === 'payout' || i.kind === 'account_fund')
+	if (['yield', 'payout', 'merchant_payout', 'account_fund'].includes(i.kind))
 		keys.push({ matchKind: 'kind', matchValue: i.kind });
 	return keys;
 }

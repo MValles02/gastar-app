@@ -64,6 +64,13 @@
       "when": 1792247818167,
       "tag": "0008_yellow_maggott",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793133187301,
+      "tag": "0009_equal_madrox",
+      "breakpoints": true
     }
   ]
 }

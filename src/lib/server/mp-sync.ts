@@ -1,5 +1,5 @@
 import { env } from '$env/dynamic/private';
-import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, lt, max, or, sql } from 'drizzle-orm';
 import { db } from './db';
 import { financialAccounts, mpImportItems, mpSyncState } from './db/schema';
 import { canAccessImport, importOwnedBy } from './access';
@@ -14,37 +14,26 @@ const HTTP_TIMEOUT_MS = 30_000;
 const DAY_MS = 86_400_000;
 const CHUNK_DAYS = 31; // MP report range limit is unverified: single constant
 const OVERLAP_DAYS = 3;
+// Days, not hours: items from the old release-report sync carry day-start times, and dedupe makes overlap cheap.
+const PAYMENTS_OVERLAP_MS = OVERLAP_DAYS * DAY_MS;
 const DEFAULT_BACKFILL_DAYS = 30;
 const END_LAG_MS = 5 * 60_000;
 const POLL_TIMEOUT_MS = 5 * 60_000;
 const DEFAULT_POLL_MS = 15_000;
+const PAGE = 1000; // payments/search max limit
 const BATCH = 500;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const AMOUNT_RE = /^-?\d+(?:[.,]\d{1,2})?$/;
-const IGNORED = new Set(['', 'reserve_for_payment', 'reserve_for_payout']);
+/** Kinds whose items come from payments/search; their latest date is where the next search starts. */
+const PAYMENT_KINDS = ['payment', 'account_fund', 'refund'];
 
 type Row = Record<string, string>;
-type Candidate = {
-	key: string;
-	kind: string;
-	occurredAt: Date;
-	amount: number;
-	isCredit: boolean;
-	sourceId: string;
-	rawDescription: string;
-};
-type Enrichment = {
-	kind?: string;
-	operationType: string | null;
-	poiType: string | null;
-	merchant: string | null;
-	counterpartyId: string | null;
-	counterpartyNickname: string | null;
-};
+type Item = typeof mpImportItems.$inferInsert;
 
 const fail = (code: MpSyncError) => Object.assign(new Error(code), { mp: true });
 const obj = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
 const str = (v: unknown) => (typeof v === 'string' || typeof v === 'number' ? String(v) : null);
+const text = (v: unknown) => (typeof v === 'string' ? v.trim() || null : null);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const batches = <T>(xs: T[]) =>
 	Array.from({ length: Math.ceil(xs.length / BATCH) }, (_, i) =>
@@ -101,6 +90,15 @@ function cents(raw: string): number {
 	return neg ? -n : n;
 }
 
+/** A JSON amount (pesos, up to 2 decimals) in cents; 0 when absent. */
+const jsonCents = (v: unknown) => (typeof v === 'number' ? Math.round(v * 100) : 0);
+
+function date(v: unknown): Date {
+	const d = new Date(str(v) ?? '');
+	if (Number.isNaN(d.getTime())) throw fail('parse');
+	return d;
+}
+
 function parseCsv(text: string): Row[] {
 	if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
 	const head = text.split('\n', 1)[0];
@@ -136,29 +134,210 @@ function parseCsv(text: string): Row[] {
 	return body.map((r) => Object.fromEntries(keys.map((k, i) => [k, (r[i] ?? '').trim()])));
 }
 
-async function downloadReport(begin: Date, end: Date): Promise<string> {
-	const names = async () => {
-		const list = await apiJson('/v1/account/release_report/list');
-		if (!Array.isArray(list)) throw fail('parse');
-		return list.map((f) => str(obj(f).file_name)).filter((n): n is string => !!n);
+/** First-sync start: MP_IMPORT_FROM, else DEFAULT_BACKFILL_DAYS ago. */
+function backfillStart(now: number): Date {
+	const begin = dayStart(
+		env.MP_IMPORT_FROM?.trim() || localDay(new Date(now - DEFAULT_BACKFILL_DAYS * DAY_MS))
+	);
+	if (!begin) throw fail('config');
+	return begin;
+}
+
+// ---------- Payments: /v1/payments/search, both sides, in seconds ----------
+
+/** Every payment last updated in [begin, end], oldest update first. Dates need milliseconds. */
+async function searchPayments(begin: Date, end: Date): Promise<Record<string, unknown>[]> {
+	const out: Record<string, unknown>[] = [];
+	for (let offset = 0; ; offset += PAGE) {
+		const q = new URLSearchParams({
+			range: 'date_last_updated',
+			begin_date: begin.toISOString(),
+			end_date: end.toISOString(),
+			sort: 'date_last_updated',
+			criteria: 'asc',
+			limit: String(PAGE),
+			offset: String(offset)
+		});
+		const page = obj(await apiJson(`/v1/payments/search?${q}`));
+		if (!Array.isArray(page.results)) throw fail('parse');
+		out.push(...page.results.map(obj));
+		if (page.results.length < PAGE || offset + PAGE >= Number(obj(page.paging).total)) return out;
+	}
+}
+
+/** Merchant text of a payment: debit-card commerce, card descriptor, QR description or item. */
+function merchantOf(p: Record<string, unknown>): string | null {
+	const poi = obj(p.point_of_interaction);
+	const items = obj(p.additional_info).items;
+	return (
+		[
+			obj(obj(poi.transaction_data).commerce).name,
+			p.statement_descriptor,
+			p.description,
+			Array.isArray(items) ? obj(items[0]).title : null
+		]
+			.map(text)
+			.find((m) => m && m.toLowerCase() !== 'varios') ?? null
+	);
+}
+
+/**
+ * Imports approved payments as pending items, skipping credit-card ones (they never touch the balance).
+ * Refunds and chargebacks (seen through date_last_updated) become a separate `refund` item in the
+ * opposite direction, but only when the payment is still approved (partial refund) or was already imported
+ * and not rejected; a payment refunded before it was ever imported nets to zero and is skipped.
+ */
+async function syncPayments(accountId: string, ownerId: string, me: string): Promise<void> {
+	const now = Date.now();
+	const [last] = await db
+		.select({ at: max(mpImportItems.occurredAt) })
+		.from(mpImportItems)
+		.where(
+			and(
+				canAccessImport(ownerId),
+				eq(mpImportItems.accountId, accountId),
+				inArray(mpImportItems.kind, PAYMENT_KINDS)
+			)
+		);
+	const begin = last?.at ? new Date(last.at.getTime() - PAYMENTS_OVERLAP_MS) : backfillStart(now);
+	const payments = (await searchPayments(begin, new Date(now))).filter(
+		(p) => str(p.payment_type_id) !== 'credit_card'
+	);
+
+	const existing = new Map<string, string>();
+	const ids = payments.map((p) => str(p.id)).filter((id): id is string => !!id);
+	for (const batch of batches(ids)) {
+		const found = await db
+			.select({ key: mpImportItems.externalKey, status: mpImportItems.status })
+			.from(mpImportItems)
+			.where(and(canAccessImport(ownerId), inArray(mpImportItems.sourceId, batch)));
+		found.forEach((f) => existing.set(f.key, f.status));
+	}
+
+	const nicknames = new Map<string, string | null>();
+	/** Best effort: failures other than auth leave the nickname empty. */
+	const nickname = async (id: string) => {
+		if (!nicknames.has(id)) {
+			let n: string | null = null;
+			try {
+				n = text(obj(await apiJson(`/users/${encodeURIComponent(id)}`)).nickname);
+			} catch (e) {
+				if ((e as Error).message === 'auth') throw e;
+			}
+			nicknames.set(id, n);
+		}
+		return nicknames.get(id) ?? null;
 	};
-	const known = new Set(await names());
-	await api('/v1/account/release_report', {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		// MP rejects milliseconds (400 invalid_begin_date): send YYYY-MM-DDTHH:MM:SSZ.
-		body: JSON.stringify({
-			begin_date: begin.toISOString().replace(/\.\d{3}Z$/, 'Z'),
-			end_date: end.toISOString().replace(/\.\d{3}Z$/, 'Z')
+
+	const inserts: Item[] = [];
+	const refunds: Item[] = [];
+	for (const p of payments) {
+		const id = str(p.id);
+		if (!id) throw fail('parse');
+		const payerId = str(obj(p.payer).id) ?? str(p.payer_id);
+		const collectorId = str(p.collector_id) ?? str(obj(p.collector).id);
+		const isCredit = collectorId === me;
+		if (!isCredit && payerId !== me) continue;
+		const key = `payment:${id}:${isCredit ? 'in' : 'out'}`;
+		const refundKey = `refund:${id}:${isCredit ? 'out' : 'in'}`;
+		const status = str(p.status);
+		// Incoming: what reached the balance after MP fees; outgoing: what left it.
+		const amount =
+			(isCredit && jsonCents(obj(p.transaction_details).net_received_amount)) ||
+			jsonCents(p.transaction_amount);
+		const reversed = status === 'refunded' || status === 'charged_back';
+		const refunded = jsonCents(p.transaction_amount_refunded) || (reversed ? amount : 0);
+		const known = existing.get(key);
+		const wantMain = status === 'approved' && amount > 0 && !known;
+		const wantRefund =
+			refunded > 0 &&
+			(status === 'approved' || (known !== undefined && known !== 'rejected')) &&
+			existing.get(refundKey) !== 'approved' &&
+			existing.get(refundKey) !== 'rejected';
+		if (!wantMain && !wantRefund) continue;
+
+		const counterpartyId = isCredit ? (payerId !== me ? payerId : null) : collectorId;
+		const payer = obj(p.payer);
+		const nick = !counterpartyId
+			? null
+			: isCredit
+				? [text(payer.first_name), text(payer.last_name)].filter(Boolean).join(' ') || null
+				: await nickname(counterpartyId);
+		const operationType = str(p.operation_type);
+		const base = {
+			...importOwnedBy(ownerId),
+			accountId,
+			sourceId: id,
+			counterpartyId,
+			counterpartyNickname: nick,
+			merchant: merchantOf(p),
+			operationType,
+			poiType: str(obj(p.point_of_interaction).type)
+		};
+		if (wantMain)
+			inserts.push({
+				...base,
+				externalKey: key,
+				kind: operationType === 'account_fund' ? 'account_fund' : 'payment',
+				occurredAt: date(p.date_approved ?? p.date_created),
+				amount,
+				isCredit,
+				rawDescription: text(p.description) ?? operationType ?? 'payment'
+			});
+		if (wantRefund)
+			refunds.push({
+				...base,
+				externalKey: refundKey,
+				kind: 'refund',
+				occurredAt: date(p.date_last_updated),
+				amount: refunded,
+				isCredit: !isCredit,
+				rawDescription: status ?? 'refund'
+			});
+	}
+	for (const batch of batches(inserts)) {
+		await db
+			.insert(mpImportItems)
+			.values(batch)
+			.onConflictDoNothing({ target: [mpImportItems.userId, mpImportItems.externalKey] });
+	}
+	// A later partial refund grows the amount while the item is still pending.
+	for (const r of refunds) {
+		await db
+			.insert(mpImportItems)
+			.values(r)
+			.onConflictDoUpdate({
+				target: [mpImportItems.userId, mpImportItems.externalKey],
+				set: { amount: r.amount, occurredAt: r.occurredAt, updatedAt: sql`now()` },
+				setWhere: eq(mpImportItems.status, 'pending')
+			});
+	}
+}
+
+// ---------- Settlement report: yields and payouts, minutes in MP's queue ----------
+
+async function downloadSettlement(begin: Date, end: Date): Promise<string> {
+	const task = obj(
+		await apiJson('/v1/account/settlement_report', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			// Reports reject milliseconds: send YYYY-MM-DDTHH:MM:SSZ.
+			body: JSON.stringify({
+				begin_date: begin.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+				end_date: end.toISOString().replace(/\.\d{3}Z$/, 'Z')
+			})
 		})
-	});
+	);
+	const id = str(task.id);
+	if (!id) throw fail('parse');
 	const pollMs = Number(env.MP_REPORT_POLL_MS) || DEFAULT_POLL_MS;
 	const deadline = Date.now() + POLL_TIMEOUT_MS;
 	while (Date.now() < deadline) {
 		await sleep(pollMs);
-		const fresh = (await names()).find((n) => !known.has(n));
-		if (fresh) {
-			const res = await api(`/v1/account/release_report/${encodeURIComponent(fresh)}`);
+		const t = obj(await apiJson(`/v1/account/settlement_report/task/${encodeURIComponent(id)}`));
+		const file = str(t.file_name);
+		if (str(t.status) === 'processed' && file) {
+			const res = await api(`/v1/account/settlement_report/${encodeURIComponent(file)}`);
 			try {
 				return await res.text();
 			} catch {
@@ -169,158 +348,87 @@ async function downloadReport(begin: Date, end: Date): Promise<string> {
 	throw fail('report_timeout');
 }
 
-/** Best effort: failures other than auth leave the row without enrichment. */
-async function enrich(id: string, me: string): Promise<Enrichment> {
-	const out: Enrichment = {
-		operationType: null,
-		poiType: null,
-		merchant: null,
-		counterpartyId: null,
-		counterpartyNickname: null
-	};
-	try {
-		const p = obj(await apiJson(`/v1/payments/${encodeURIComponent(id)}`));
-		out.operationType = str(p.operation_type);
-		out.poiType = str(obj(p.point_of_interaction).type);
-		const m = str(p.statement_descriptor) || str(p.description);
-		out.merchant = m && m.trim().toLowerCase() !== 'varios' ? m : null;
-		// Field names differ by direction; the counterparty is whichever side is not me.
-		out.counterpartyId =
-			[str(obj(p.payer).id), str(p.payer_id), str(obj(p.collector).id), str(p.collector_id)].find(
-				(x) => x && x !== me
-			) ?? null;
-		if (out.counterpartyId) {
-			out.counterpartyNickname = str(
-				obj(await apiJson(`/users/${encodeURIComponent(out.counterpartyId)}`)).nickname
-			);
-		}
-	} catch (e) {
-		if ((e as Error).message === 'auth') throw e;
-	}
-	return out;
-}
-
-function toCandidate(r: Row): Candidate | null {
-	const desc = r.DESCRIPTION ?? '';
-	if (IGNORED.has(desc)) return null;
-	const net = cents(r.NET_CREDIT_AMOUNT ?? '') - cents(r.NET_DEBIT_AMOUNT ?? '');
-	if (net === 0) return null;
-	const date = new Date(r.DATE ?? '');
-	const occurredAt = Number.isNaN(date.getTime()) ? null : dayStart(localDay(date));
-	if (!occurredAt) throw fail('parse');
-	const isCredit = net > 0;
-	const base = { occurredAt, amount: Math.abs(net), isCredit, rawDescription: desc };
-	if (desc === 'asset_management') {
-		const day = localDay(date);
-		return { ...base, key: `yield:${day}`, kind: 'yield', sourceId: day };
-	}
+/**
+ * Only daily yields (SETTLEMENT, no payment method, 13-digit SOURCE_ID) and PAYOUTS; every other row
+ * is a payment, which payments/search already brings. A payout with an EXTERNAL_REFERENCE is a payment
+ * at a merchant (interoperable QR); without one it is a transfer or withdrawal.
+ */
+function reportItem(r: Row): Omit<Item, 'userId' | 'accountId'> | null {
 	const id = r.SOURCE_ID ?? '';
+	const isYield = r.TRANSACTION_TYPE === 'SETTLEMENT' && !r.PAYMENT_METHOD && /^\d{13}$/.test(id);
+	if (!isYield && r.TRANSACTION_TYPE !== 'PAYOUTS') return null;
+	const signed = cents(r.TRANSACTION_AMOUNT || r.SETTLEMENT_NET_AMOUNT || '');
+	// Yields only add and payouts only take; any other sign (a reversal) is not one of them.
+	if (isYield ? signed <= 0 : signed >= 0) return null;
+	const amount = Math.abs(signed);
+	const occurredAt = date(r.TRANSACTION_DATE);
+	if (isYield) {
+		const day = localDay(occurredAt);
+		const base = { occurredAt, amount, isCredit: true, rawDescription: 'asset_management' };
+		return { ...base, externalKey: `yield:${day}`, kind: 'yield', sourceId: day };
+	}
 	if (!id) throw fail('parse');
-	const dir = isCredit ? 'in' : 'out';
-	if (desc === 'payout') {
-		return { ...base, key: `payout:${id}:out`, kind: 'payout', sourceId: id };
-	}
-	if (desc === 'payment') {
-		return { ...base, key: `payment:${id}:${dir}`, kind: 'payment', sourceId: id };
-	}
-	return { ...base, key: `${desc}:${id}:${dir}`, kind: 'other', sourceId: id };
+	return {
+		externalKey: `payout:${id}:out`,
+		kind: r.EXTERNAL_REFERENCE ? 'merchant_payout' : 'payout',
+		sourceId: id,
+		occurredAt,
+		amount,
+		isCredit: false,
+		rawDescription: 'payout'
+	};
 }
 
-async function sync(accountId: string, ownerId: string, syncedUntil: Date | null) {
+/** Pulls the settlement report from the last report sync (minus overlap) to now. Returns the new end. */
+async function syncReport(accountId: string, ownerId: string, syncedUntil: Date | null) {
 	const now = Date.now();
 	const end = new Date(now - END_LAG_MS);
-	let beginDay: string;
-	if (syncedUntil) beginDay = localDay(new Date(syncedUntil.getTime() - OVERLAP_DAYS * DAY_MS));
-	else
-		beginDay =
-			env.MP_IMPORT_FROM?.trim() || localDay(new Date(now - DEFAULT_BACKFILL_DAYS * DAY_MS));
-	const begin = dayStart(beginDay);
+	const begin = syncedUntil
+		? dayStart(localDay(new Date(syncedUntil.getTime() - OVERLAP_DAYS * DAY_MS)))
+		: backfillStart(now);
 	if (!begin) throw fail('config');
 
-	const me = str(obj(await apiJson('/users/me')).id);
-	if (!me) throw fail('parse');
-
-	// Rows sharing a key (across all chunks) are summed by signed net before any write; the first row's fields stay.
-	const sums = new Map<string, Candidate>();
-	let balance: number | null = null;
+	// Yield rows sharing a day (across all chunks) are summed before any write; the first row's fields stay.
+	const items = new Map<string, NonNullable<ReturnType<typeof reportItem>>>();
 	for (let from = begin.getTime(); from < end.getTime(); from += CHUNK_DAYS * DAY_MS) {
 		const next = from + CHUNK_DAYS * DAY_MS;
 		// Half-open ranges: a row stamped on a boundary belongs to the next chunk only.
 		const to = new Date(next < end.getTime() ? next - 1 : end.getTime());
-		for (const r of parseCsv(await downloadReport(new Date(from), to))) {
-			if ((r.BALANCE_AMOUNT ?? '') !== '') balance = cents(r.BALANCE_AMOUNT);
-			const c = toCandidate(r);
-			if (!c) continue;
-			const prev = sums.get(c.key);
-			const net =
-				(prev ? (prev.isCredit ? prev.amount : -prev.amount) : 0) +
-				(c.isCredit ? c.amount : -c.amount);
-			sums.set(c.key, { ...(prev ?? c), amount: Math.abs(net), isCredit: net >= 0 });
+		const csv = await downloadSettlement(new Date(from), to);
+		// Each chunk can wait minutes in MP's queue: renew the lease so a long backfill keeps it.
+		await db
+			.update(mpSyncState)
+			.set({ runningSince: sql`now()` })
+			.where(eq(mpSyncState.accountId, accountId));
+		for (const r of parseCsv(csv)) {
+			const item = reportItem(r);
+			if (!item) continue;
+			const prev = items.get(item.externalKey);
+			items.set(
+				item.externalKey,
+				prev && item.kind === 'yield' ? { ...prev, amount: prev.amount + item.amount } : item
+			);
 		}
 	}
 
-	const nonZero = [...sums.values()].filter((c) => c.amount > 0);
-	const candidates = nonZero.filter((c) => c.kind !== 'yield');
-	const yields = nonZero.filter((c) => c.kind === 'yield');
-	const existing = new Set<string>();
-	for (const keys of batches(candidates.filter((c) => c.kind === 'payment').map((c) => c.key))) {
-		const found = await db
-			.select({ key: mpImportItems.externalKey })
-			.from(mpImportItems)
-			.where(and(canAccessImport(ownerId), inArray(mpImportItems.externalKey, keys)));
-		found.forEach((f) => existing.add(f.key));
-	}
-
-	const rows = [];
-	for (const c of candidates) {
-		// ponytail: sequential enrichment, parallelize if MP rate limits allow and runs get slow
-		const e: Partial<Enrichment> =
-			c.kind === 'payment' && !existing.has(c.key) ? await enrich(c.sourceId, me) : {};
-		rows.push({
-			...importOwnedBy(ownerId),
-			accountId,
-			externalKey: c.key,
-			kind: e.operationType === 'account_fund' ? 'account_fund' : c.kind,
-			occurredAt: c.occurredAt,
-			amount: c.amount,
-			isCredit: c.isCredit,
-			sourceId: c.sourceId,
-			rawDescription: c.rawDescription,
-			counterpartyId: e.counterpartyId ?? null,
-			counterpartyNickname: e.counterpartyNickname ?? null,
-			merchant: e.merchant ?? null,
-			operationType: e.operationType ?? null,
-			poiType: e.poiType ?? null
-		});
-	}
-	for (const batch of batches(rows)) {
-		await db
-			.insert(mpImportItems)
-			.values(batch)
-			.onConflictDoNothing({ target: [mpImportItems.userId, mpImportItems.externalKey] });
-	}
-	for (const y of yields) {
-		const values = {
-			...importOwnedBy(ownerId),
-			accountId,
-			externalKey: y.key,
-			kind: y.kind,
-			occurredAt: y.occurredAt,
-			amount: y.amount,
-			isCredit: y.isCredit,
-			sourceId: y.sourceId,
-			rawDescription: y.rawDescription
-		};
+	for (const item of items.values()) {
+		const values = { ...importOwnedBy(ownerId), accountId, ...item };
 		await db
 			.insert(mpImportItems)
 			.values(values)
 			.onConflictDoUpdate({
 				target: [mpImportItems.userId, mpImportItems.externalKey],
-				set: { amount: values.amount, isCredit: values.isCredit, updatedAt: sql`now()` },
+				// Also relabels and re-times pending items imported by the old release-report sync.
+				set: {
+					kind: values.kind,
+					amount: values.amount,
+					occurredAt: values.occurredAt,
+					updatedAt: sql`now()`
+				},
 				setWhere: eq(mpImportItems.status, 'pending')
 			});
 	}
-	return { end, balance };
+	return end;
 }
 
 type Lease = { accountId: string; ownerId: string; currency: string; syncedUntil: Date | null };
@@ -362,31 +470,32 @@ async function acquire(): Promise<Lease | null> {
 	}
 }
 
-/** Runs the sync under a held lease and releases it. Never throws. */
-async function execute(l: Lease): Promise<void> {
-	let done: Awaited<ReturnType<typeof sync>> | null = null;
+/**
+ * Runs payments, then the settlement report, under a held lease and releases it. Never throws.
+ * `paymentsDone` fires once payments are stored (or the run failed before).
+ */
+async function execute(l: Lease, paymentsDone: () => void = () => {}): Promise<void> {
+	let end: Date | null = null;
 	let code: MpSyncError | null = null;
 	try {
 		if (l.currency !== 'ARS') throw fail('config');
-		done = await sync(l.accountId, l.ownerId, l.syncedUntil);
+		const me = str(obj(await apiJson('/users/me')).id);
+		if (!me) throw fail('parse');
+		await syncPayments(l.accountId, l.ownerId, me);
+		paymentsDone();
+		end = await syncReport(l.accountId, l.ownerId, l.syncedUntil);
 	} catch (e) {
 		code = (e as { mp?: boolean }).mp ? ((e as Error).message as MpSyncError) : 'network';
 		console.error(`mp sync failed: ${code}`);
+	} finally {
+		paymentsDone();
 	}
 	try {
 		await db
 			.update(mpSyncState)
 			.set(
-				done
-					? {
-							runningSince: null,
-							lastError: null,
-							syncedUntil: done.end,
-							lastRunAt: sql`now()`,
-							...(done.balance !== null
-								? { reportBalance: done.balance, reportBalanceAt: done.end }
-								: {})
-						}
+				end
+					? { runningSince: null, lastError: null, syncedUntil: end, lastRunAt: sql`now()` }
 					: { runningSince: null, lastError: code }
 			)
 			.where(eq(mpSyncState.accountId, l.accountId));
@@ -395,16 +504,16 @@ async function execute(l: Lease): Promise<void> {
 	}
 }
 
-/** Full sync: acquire the lease, run, release. Never throws; no-op when off or already running. */
+/** Full sync: acquire the lease, run payments and the report, release. Never throws; no-op when off or running. */
 export async function runMpSync(): Promise<void> {
 	const lease = await acquire();
 	if (lease) await execute(lease);
 }
 
-/** Awaits only the lease, then runs the sync in the background. Returns whether it started. */
+/** Awaits the lease and the payments, then leaves the settlement report running in the background. */
 export async function startMpSync(): Promise<boolean> {
 	const lease = await acquire();
 	if (!lease) return false;
-	void execute(lease);
+	await new Promise<void>((resolve) => void execute(lease, resolve));
 	return true;
 }
