@@ -41,6 +41,7 @@ const readBody = (req) =>
 		req.on('data', (c) => (data += c));
 		req.on('end', () => resolve(data));
 	});
+const reportFile = (n) => `settlement-report-gastar-${n}.csv`;
 const badDate = (res) =>
 	send(res, 400, { message: 'Invalid date parameter', error: 'bad_request', cause: [] });
 
@@ -109,14 +110,36 @@ createServer(async (req, res) => {
 		return send(res, 202, { id: tasks, status: 'pending' });
 	}
 	if ((m = path.match(/^\/v1\/account\/settlement_report\/task\/(\d+)$/))) {
+		// Mirrors the real task: status `available` once ready, file under `files`, never a top-level file_name.
 		const n = Number(m[1]);
 		if (n < 1 || n > tasks) return send(res, 404, { message: 'not_found' });
-		if (Date.now() < taskReadyAt[n]) return send(res, 200, { id: n, status: 'pending' });
+		const ready = Date.now() >= taskReadyAt[n];
 		return send(res, 200, {
 			id: n,
-			status: 'processed',
-			file_name: `settlement-report-gastar-${n}.csv`
+			date_start: null,
+			date_end: null,
+			date_created: new Date().toISOString(),
+			created_by: 'api',
+			description: null,
+			report: 'settlement_report',
+			files: ready ? [{ type: 'csv', name: reportFile(n) }] : [],
+			event: null,
+			structure: null,
+			origin: 'api',
+			notifiers: [],
+			status: ready ? 'available' : 'pending',
+			notification_data: null,
+			currency_id: 'ARS'
 		});
+	}
+	if (path === '/v1/account/settlement_report/list') {
+		// Mirrors the real list: processed entries carry file_name.
+		const ready = taskReadyAt.flatMap((at, n) => (n && Date.now() >= at ? [n] : []));
+		return send(
+			res,
+			200,
+			ready.map((n) => ({ id: n, status: 'processed', file_name: reportFile(n) }))
+		);
 	}
 	if ((m = path.match(/^\/v1\/account\/settlement_report\/settlement-report-gastar-(\d+)\.csv$/))) {
 		const n = Number(m[1]);
