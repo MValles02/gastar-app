@@ -4,13 +4,14 @@ import { approveImport, type ImportItem } from '$lib/server/mp-import-queries';
 import { resolvePostedMovement } from '../movements/form.server';
 
 /**
- * Approves one pending item with already-validated values. Does not catch: callers decide what a thrown
- * error (e.g. a foreign key violation) means.
+ * Approves one pending item with already-validated values, saving its rule only when `remember` is set.
+ * Does not catch: callers decide what a thrown error (e.g. a foreign key violation) means.
  */
 export async function approveWithValues(
 	userId: string,
 	item: ImportItem,
-	values: { type: MovementType; description: string; categoryId: string; counterAccountId: string }
+	values: { type: MovementType; description: string; categoryId: string; counterAccountId: string },
+	remember: boolean
 ) {
 	const isTransfer = values.type === 'transfer';
 	const outgoing = !item.isCredit;
@@ -32,11 +33,17 @@ export async function approveWithValues(
 	});
 	if (!resolved.ok) return { errors: resolved.errors };
 
-	const result = await approveImport(userId, item, resolved.row, {
-		type: data.type,
-		categoryId: data.categoryId,
-		counterAccountId: isTransfer ? values.counterAccountId : null,
-		description: values.description
-	});
+	const result = await approveImport(
+		userId,
+		item,
+		resolved.row,
+		{
+			type: data.type,
+			categoryId: data.categoryId,
+			counterAccountId: isTransfer ? values.counterAccountId : null,
+			description: values.description
+		},
+		remember
+	);
 	return { result };
 }
