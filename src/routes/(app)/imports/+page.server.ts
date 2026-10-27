@@ -79,6 +79,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		});
 	}
 
+	const running = !!sync?.runningSince && now.getTime() - sync.runningSince.getTime() < LEASE_MS;
 	const done = url.searchParams.get('done');
 	const approved = countParam(url.searchParams.get('approved'));
 	const skipped = countParam(url.searchParams.get('skipped'));
@@ -86,7 +87,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		suggested,
 		bulk: approved === null ? null : { approved, skipped: skipped ?? 0 },
 		configured,
-		running: !!sync?.runningSince && now.getTime() - sync.runningSince.getTime() < LEASE_MS,
+		running,
+		// 'payments' (also before the first step is recorded) or 'report'; null when idle.
+		phase: running ? (sync?.phase === 'report' ? 'report' : 'payments') : null,
+		newItems: sync?.newItems ?? null,
 		lastError: sync?.lastError ?? null,
 		lastRun: sync?.lastRunAt ? importDateTime(sync.lastRunAt) : null,
 		done: DONE.find((d) => d === done) ?? null,

@@ -63,7 +63,9 @@ export async function getSyncState(userId: string, accountId: string) {
 			syncedUntil: mpSyncState.syncedUntil,
 			runningSince: mpSyncState.runningSince,
 			lastRunAt: mpSyncState.lastRunAt,
-			lastError: mpSyncState.lastError
+			lastError: mpSyncState.lastError,
+			phase: mpSyncState.phase,
+			newItems: mpSyncState.newItems
 		})
 		.from(mpSyncState)
 		.innerJoin(financialAccounts, eq(mpSyncState.accountId, financialAccounts.id))

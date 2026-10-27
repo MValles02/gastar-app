@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import { toast } from 'svelte-sonner';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
@@ -67,21 +68,41 @@
 		}
 	});
 
-	// The report takes ~45 s: refresh while the lease is held so the list fills in on its own.
+	// Poll while the lease is held (also a scheduled run found on load): the progress and the list
+	// fill in on their own, payments first and the report items when the report lands (1-3 min).
 	$effect(() => {
 		if (!data.running) return;
-		const id = setInterval(() => invalidateAll(), 3000);
+		const id = setInterval(() => invalidateAll(), 2000);
 		return () => clearInterval(id);
 	});
 
+	// A run seen on this page ends in "Listo"; on a fresh load the last sync time stands alone.
+	let watched = $state(false);
+	$effect(() => {
+		if (data.running) watched = true;
+	});
+
+	const newLabel = (n: number) =>
+		n === 0 ? 'Sin movimientos nuevos' : n === 1 ? '1 movimiento nuevo' : `${n} movimientos nuevos`;
+
 	const status = $derived(
-		data.running
-			? 'Sincronizando…'
-			: data.lastError
-				? `No se pudo sincronizar (${errorLabel(data.lastError)})`
-				: data.lastRun
-					? `Última sincronización: ${data.lastRun}`
-					: 'Todavía no se sincronizó.'
+		data.phase === 'payments'
+			? 'Buscando pagos…'
+			: data.phase === 'report'
+				? 'Esperando el reporte de Mercado Pago (rendimientos y pagos en comercios)…'
+				: data.lastError
+					? `No se pudo sincronizar (${errorLabel(data.lastError)})`
+					: data.lastRun
+						? `${watched ? 'Listo. ' : ''}Última sincronización: ${data.lastRun}`
+						: 'Todavía no se sincronizó.'
+	);
+
+	const detail = $derived(
+		data.phase === 'report'
+			? `${newLabel(data.newItems ?? 0)}. Puede tardar de 1 a 3 minutos.`
+			: watched && !data.running && data.newItems !== null
+				? `${newLabel(data.newItems)}.`
+				: null
 	);
 </script>
 
@@ -103,9 +124,18 @@
 		{#if data.done && !hydrated}<p role="status">{DONE_MESSAGES[data.done]}</p>{/if}
 		{#if bulkMessage && !data.done && !hydrated}<p role="status">{bulkMessage}</p>{/if}
 		<div class="sync">
-			<p class="status" class:error={!data.running && !!data.lastError} role="status">
-				{status}
-			</p>
+			<div
+				class="status"
+				class:running={data.running}
+				class:error={!data.running && !!data.lastError}
+				role="status"
+			>
+				{#if data.running}<LoaderCircle class="spin" aria-hidden="true" />{/if}
+				<p>
+					{status}
+					{#if detail}<span class="detail">{detail}</span>{/if}
+				</p>
+			</div>
 			<form method="POST" action="?/sync" use:enhance>
 				<Button type="submit" variant="outline" disabled={data.running}>Sincronizar ahora</Button>
 			</form>
@@ -185,9 +215,40 @@
 	}
 
 	.status {
+		display: flex;
+		flex: 1 1 14rem;
+		align-items: flex-start;
+		gap: var(--space-2);
 		min-width: 0;
 		color: var(--text-muted);
 		font-size: var(--font-size-sm);
+	}
+
+	.status :global(.spin) {
+		flex: none;
+		width: 1rem;
+		height: 1lh;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.status :global(.spin) {
+			animation: spin 1s linear infinite;
+		}
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(1turn);
+		}
+	}
+
+	.status.running {
+		color: var(--text);
+	}
+
+	.detail {
+		display: block;
+		color: var(--text-muted);
 	}
 
 	.status.error {

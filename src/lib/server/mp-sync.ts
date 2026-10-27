@@ -28,6 +28,8 @@ const AMOUNT_RE = /^-?\d+(?:[.,]\d{1,2})?$/;
 const PAYMENT_KINDS = ['payment', 'account_fund', 'refund'];
 
 type Row = Record<string, string>;
+/** In an upsert's RETURNING: true when the row was inserted, false when an existing one was updated. */
+const INSERTED = sql<boolean>`xmax = 0`;
 type Item = typeof mpImportItems.$inferInsert;
 
 const fail = (code: MpSyncError) => Object.assign(new Error(code), { mp: true });
@@ -187,7 +189,7 @@ function merchantOf(p: Record<string, unknown>): string | null {
  * opposite direction, but only when the payment is still approved (partial refund) or was already imported
  * and not rejected; a payment refunded before it was ever imported nets to zero and is skipped.
  */
-async function syncPayments(accountId: string, ownerId: string, me: string): Promise<void> {
+async function syncPayments(accountId: string, ownerId: string, me: string): Promise<number> {
 	const now = Date.now();
 	const [last] = await db
 		.select({ at: max(mpImportItems.occurredAt) })
@@ -295,23 +297,29 @@ async function syncPayments(accountId: string, ownerId: string, me: string): Pro
 				rawDescription: status ?? 'refund'
 			});
 	}
+	let added = 0;
 	for (const batch of batches(inserts)) {
-		await db
+		const rows = await db
 			.insert(mpImportItems)
 			.values(batch)
-			.onConflictDoNothing({ target: [mpImportItems.userId, mpImportItems.externalKey] });
+			.onConflictDoNothing({ target: [mpImportItems.userId, mpImportItems.externalKey] })
+			.returning({ id: mpImportItems.id });
+		added += rows.length;
 	}
 	// A later partial refund grows the amount while the item is still pending.
 	for (const r of refunds) {
-		await db
+		const rows = await db
 			.insert(mpImportItems)
 			.values(r)
 			.onConflictDoUpdate({
 				target: [mpImportItems.userId, mpImportItems.externalKey],
 				set: { amount: r.amount, occurredAt: r.occurredAt, updatedAt: sql`now()` },
 				setWhere: eq(mpImportItems.status, 'pending')
-			});
+			})
+			.returning({ inserted: INSERTED });
+		if (rows[0]?.inserted) added++;
 	}
+	return added;
 }
 
 // ---------- Settlement report: yields and payouts, minutes in MP's queue ----------
@@ -379,7 +387,7 @@ function reportItem(r: Row): Omit<Item, 'userId' | 'accountId'> | null {
 	};
 }
 
-/** Pulls the settlement report from the last report sync (minus overlap) to now. Returns the new end. */
+/** Pulls the settlement report from the last report sync (minus overlap) to now. Returns the new end and the items it added. */
 async function syncReport(accountId: string, ownerId: string, syncedUntil: Date | null) {
 	const now = Date.now();
 	const end = new Date(now - END_LAG_MS);
@@ -411,9 +419,10 @@ async function syncReport(accountId: string, ownerId: string, syncedUntil: Date 
 		}
 	}
 
+	let added = 0;
 	for (const item of items.values()) {
 		const values = { ...importOwnedBy(ownerId), accountId, ...item };
-		await db
+		const rows = await db
 			.insert(mpImportItems)
 			.values(values)
 			.onConflictDoUpdate({
@@ -426,9 +435,11 @@ async function syncReport(accountId: string, ownerId: string, syncedUntil: Date 
 					updatedAt: sql`now()`
 				},
 				setWhere: eq(mpImportItems.status, 'pending')
-			});
+			})
+			.returning({ inserted: INSERTED });
+		if (rows[0]?.inserted) added++;
 	}
-	return end;
+	return { end, added };
 }
 
 type Lease = { accountId: string; ownerId: string; currency: string; syncedUntil: Date | null };
@@ -452,7 +463,7 @@ async function acquire(): Promise<Lease | null> {
 		await db.insert(mpSyncState).values({ accountId }).onConflictDoNothing();
 		const [lease] = await db
 			.update(mpSyncState)
-			.set({ runningSince: sql`now()` })
+			.set({ runningSince: sql`now()`, phase: 'payments', newItems: null })
 			.where(
 				and(
 					eq(mpSyncState.accountId, accountId),
@@ -470,33 +481,43 @@ async function acquire(): Promise<Lease | null> {
 	}
 }
 
-/**
- * Runs payments, then the settlement report, under a held lease and releases it. Never throws.
- * `paymentsDone` fires once payments are stored (or the run failed before).
- */
-async function execute(l: Lease, paymentsDone: () => void = () => {}): Promise<void> {
+/** Runs payments, then the settlement report, under a held lease and releases it. Never throws. */
+async function execute(l: Lease): Promise<void> {
 	let end: Date | null = null;
 	let code: MpSyncError | null = null;
 	try {
 		if (l.currency !== 'ARS') throw fail('config');
 		const me = str(obj(await apiJson('/users/me')).id);
 		if (!me) throw fail('parse');
-		await syncPayments(l.accountId, l.ownerId, me);
-		paymentsDone();
-		end = await syncReport(l.accountId, l.ownerId, l.syncedUntil);
+		const paid = await syncPayments(l.accountId, l.ownerId, me);
+		// Progress for the inbox: payments are stored, the report is next.
+		await db
+			.update(mpSyncState)
+			.set({ phase: 'report', newItems: paid })
+			.where(eq(mpSyncState.accountId, l.accountId));
+		const report = await syncReport(l.accountId, l.ownerId, l.syncedUntil);
+		await db
+			.update(mpSyncState)
+			.set({ newItems: sql`coalesce(${mpSyncState.newItems}, 0) + ${report.added}` })
+			.where(eq(mpSyncState.accountId, l.accountId));
+		end = report.end;
 	} catch (e) {
 		code = (e as { mp?: boolean }).mp ? ((e as Error).message as MpSyncError) : 'network';
 		console.error(`mp sync failed: ${code}`);
-	} finally {
-		paymentsDone();
 	}
 	try {
 		await db
 			.update(mpSyncState)
 			.set(
 				end
-					? { runningSince: null, lastError: null, syncedUntil: end, lastRunAt: sql`now()` }
-					: { runningSince: null, lastError: code }
+					? {
+							runningSince: null,
+							phase: null,
+							lastError: null,
+							syncedUntil: end,
+							lastRunAt: sql`now()`
+						}
+					: { runningSince: null, phase: null, lastError: code }
 			)
 			.where(eq(mpSyncState.accountId, l.accountId));
 	} catch {
@@ -510,10 +531,10 @@ export async function runMpSync(): Promise<void> {
 	if (lease) await execute(lease);
 }
 
-/** Awaits the lease and the payments, then leaves the settlement report running in the background. */
+/** Awaits the lease only; payments and the report run in the background while the inbox polls the progress. */
 export async function startMpSync(): Promise<boolean> {
 	const lease = await acquire();
 	if (!lease) return false;
-	await new Promise<void>((resolve) => void execute(lease, resolve));
+	void execute(lease);
 	return true;
 }

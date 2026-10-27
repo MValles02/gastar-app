@@ -15,6 +15,9 @@ const dir = fileURLToPath(new URL('./fixtures/mp/', import.meta.url));
 let requests = [];
 let tasks = 0;
 let forced = null;
+// Milliseconds a settlement report task stays pending, like MP's queue; set through /__fake/report-delay.
+let reportDelay = 0;
+const taskReadyAt = [];
 
 const send = (res, status, body, type = 'application/json') => {
 	res.writeHead(status, { 'content-type': type });
@@ -51,6 +54,12 @@ createServer(async (req, res) => {
 		requests = [];
 		tasks = 0;
 		forced = null;
+		reportDelay = 0;
+		taskReadyAt.length = 0;
+		return send(res, 200, { ok: true });
+	}
+	if (path === '/__fake/report-delay' && req.method === 'POST') {
+		reportDelay = Number(JSON.parse((await readBody(req)) || '{}').ms) || 0;
 		return send(res, 200, { ok: true });
 	}
 	if (path === '/__fake/status' && req.method === 'POST') {
@@ -96,11 +105,13 @@ createServer(async (req, res) => {
 		const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 		if (!iso.test(body.begin_date) || !iso.test(body.end_date)) return badDate(res);
 		tasks++;
+		taskReadyAt[tasks] = Date.now() + reportDelay;
 		return send(res, 202, { id: tasks, status: 'pending' });
 	}
 	if ((m = path.match(/^\/v1\/account\/settlement_report\/task\/(\d+)$/))) {
 		const n = Number(m[1]);
 		if (n < 1 || n > tasks) return send(res, 404, { message: 'not_found' });
+		if (Date.now() < taskReadyAt[n]) return send(res, 200, { id: n, status: 'pending' });
 		return send(res, 200, {
 			id: n,
 			status: 'processed',
