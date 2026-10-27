@@ -98,9 +98,9 @@ Each environment (`production`, `development`) holds its own secrets:
   regenerate it there if it leaks. The app must have Auto Deploy enabled for
   the webhook to be accepted.
 - `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` — a Cloudflare Access
-  service token (`github-actions-deploy`) that the deploy step sends as
+  service token (`gastar-app-deploy`) that the deploy step sends as
   `CF-Access-Client-Id`/`CF-Access-Client-Secret` headers, since
-  `dokploy.mateovalles.cloud/api/deploy*` is protected by Cloudflare Access.
+  `dokploy.mateovalles.com/api/deploy*` is protected by Cloudflare Access.
   The step fails if any of these three secrets is missing.
 
 Required GitHub variables:
