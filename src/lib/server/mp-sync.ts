@@ -347,7 +347,7 @@ async function downloadSettlement(begin: Date, end: Date): Promise<string> {
 		const status = str(t.status)?.toLowerCase() ?? '';
 		if (TASK_FAILED.has(status)) throw fail('parse');
 		if (!TASK_DONE.has(status)) continue;
-		const file = taskFile(t.files) ?? (await listedFile(id));
+		const file = taskFile(t.files);
 		if (!file) {
 			// The file may lag the status by a poll; if it never shows, the shape is not what we expect.
 			doneWithoutFile = true;
@@ -363,31 +363,16 @@ async function downloadSettlement(begin: Date, end: Date): Promise<string> {
 	throw fail(doneWithoutFile ? 'parse' : 'report_timeout');
 }
 
-/** A task reports `available` when its file is ready; `/list` entries say `processed`. */
+/** A ready task reports `available` (`/list` entries say `processed`; task ids differ from list ids). */
 const TASK_DONE = new Set(['available', 'processed']);
 const TASK_FAILED = new Set(['failed', 'error', 'errored', 'rejected', 'cancelled', 'canceled']);
-const FILE_RE = /^[\w.-]+$/;
+const CSV_FILE_RE = /^[\w.-]+\.csv$/i;
 
-/** The first file name in a task's `files`: entries are names or objects carrying one. */
+/** The CSV in a task's `files`, entries shaped `{ type, url, name, last_download_date }`. */
 function taskFile(files: unknown): string | null {
 	if (!Array.isArray(files)) return null;
-	for (const f of files) {
-		const o = obj(f);
-		const name = text(f) ?? text(o.file_name) ?? text(o.name) ?? text(o.filename);
-		if (name && FILE_RE.test(name)) return name;
-	}
-	return null;
-}
-
-/** Fallback: the file name of the `/list` entry for this task, once processed. */
-async function listedFile(id: string): Promise<string | null> {
-	const list = await apiJson('/v1/account/settlement_report/list');
-	if (!Array.isArray(list)) return null;
-	const entry = list
-		.map(obj)
-		.find((e) => (str(e.id) === id || str(e.task_id) === id) && str(e.status) === 'processed');
-	const name = text(entry?.file_name);
-	return name && FILE_RE.test(name) ? name : null;
+	const name = files.map((f) => text(obj(f).name)).find((n) => n && CSV_FILE_RE.test(n));
+	return name ?? null;
 }
 
 /**

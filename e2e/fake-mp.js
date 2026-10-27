@@ -114,18 +114,28 @@ createServer(async (req, res) => {
 		const n = Number(m[1]);
 		if (n < 1 || n > tasks) return send(res, 404, { message: 'not_found' });
 		const ready = Date.now() >= taskReadyAt[n];
+		const now = new Date().toISOString();
 		return send(res, 200, {
-			id: n,
-			date_start: null,
-			date_end: null,
-			date_created: new Date().toISOString(),
+			id: String(n),
+			date_start: now,
+			date_end: now,
+			date_created: now,
 			created_by: 'api',
-			description: null,
-			report: 'settlement_report',
-			files: ready ? [{ type: 'csv', name: reportFile(n) }] : [],
+			description: 'settlement report',
+			report: { id: 'r1', name: 'settlement', topic: 'settlement', status: 'active' },
+			files: ready
+				? [
+						{
+							type: 'csv',
+							url: 'https://fake.invalid/report',
+							name: reportFile(n),
+							last_download_date: now
+						}
+					]
+				: [],
 			event: null,
-			structure: null,
-			origin: 'api',
+			structure: { id: 's1', version: 1, name: 'settlement-report-gastar' },
+			origin: { type: 'api', data: { date_start: now, date_end: now } },
 			notifiers: [],
 			status: ready ? 'available' : 'pending',
 			notification_data: null,
@@ -133,12 +143,22 @@ createServer(async (req, res) => {
 		});
 	}
 	if (path === '/v1/account/settlement_report/list') {
-		// Mirrors the real list: processed entries carry file_name.
+		// Mirrors the real list: numeric ids unrelated to task ids, `processed` entries carrying file_name.
 		const ready = taskReadyAt.flatMap((at, n) => (n && Date.now() >= at ? [n] : []));
 		return send(
 			res,
 			200,
-			ready.map((n) => ({ id: n, status: 'processed', file_name: reportFile(n) }))
+			ready.map((n) => ({
+				id: 1000 + n,
+				begin_date: new Date().toISOString(),
+				end_date: new Date().toISOString(),
+				file_name: reportFile(n),
+				created_from: 'manual',
+				status: 'processed',
+				report_type: 'settlement',
+				format: 'CSV',
+				currency_id: 'ARS'
+			}))
 		);
 	}
 	if ((m = path.match(/^\/v1\/account\/settlement_report\/settlement-report-gastar-(\d+)\.csv$/))) {
