@@ -4,6 +4,7 @@ import {
 	categories,
 	financialAccounts,
 	movements,
+	mpConnections,
 	mpImportItems,
 	mpImportRules,
 	mpSyncState,
@@ -21,6 +22,7 @@ import {
  */
 export async function deleteUserAndData(userId: string): Promise<void> {
 	await db.transaction(async (tx) => {
+		await tx.delete(mpConnections).where(eq(mpConnections.userId, userId));
 		await tx.delete(mpImportItems).where(eq(mpImportItems.userId, userId));
 		await tx.delete(mpImportRules).where(eq(mpImportRules.userId, userId));
 		const ownAccounts = tx

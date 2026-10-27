@@ -212,6 +212,23 @@ One row per synced account.
 | `report_balance` | bigint, nullable | deprecated: not read or written since the settlement report (no balance); dropped in a later release |
 | `report_balance_at` | timestamptz, nullable | deprecated, as `report_balance` |
 
+### `mp_connections`
+
+One row per user who linked Mercado Pago (OAuth).
+
+| Column | Type | Notes |
+|---|---|---|
+| `user_id` | pk, fk → `user.id` | ON DELETE CASCADE |
+| `account_id` | uuid, nullable, fk → `financial_accounts.id` | ON DELETE SET NULL; null = linked, no receiving account chosen yet |
+| `mp_user_id` | text | `user_id` of the token response; not unique |
+| `access_token` | text | encrypted |
+| `refresh_token` | text, nullable | encrypted; null when MP grants no `offline_access` |
+| `expires_at` | timestamptz | |
+| `needs_reconnect` | boolean | default false |
+| `created_at`, `updated_at` | timestamptz | |
+
+Encryption: tokens are AES-256-GCM ciphertext, `v1:` + base64(iv(12) | tag(16) | ct), with AAD = `user_id`, keyed by `MP_TOKEN_KEY`. They are never logged or sent to the client.
+
 ## Derived formulas
 
 ### Plan figures (per plan currency, per month; computed in `src/lib/server/plan.ts`)
@@ -264,6 +281,7 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 - `canAccessRecurring(userId, r = recurringMovements)` and `recurringOwnedBy(userId)`: the same pair for `recurring_movements.user_id`.
 - `canAccessPlan(userId, p = spendingPlans)` and `planOwnedBy(userId)`: the same pair for `spending_plans.user_id`. Category limits have no owner column; they are reached only by joining their plan.
 - `canAccessImport(userId, i = mpImportItems)` and `importOwnedBy(userId)`: the same pair for `mp_import_items.user_id`.
+- `canAccessMpConnection(userId, c = mpConnections)` and `mpConnectionOwnedBy(userId)`: the same pair for `mp_connections.user_id`.
 - `canAccessImportRule(userId, r = mpImportRules)` and `importRuleOwnedBy(userId)`: the same pair for `mp_import_rules.user_id`. `mp_sync_state` has no owner column; it is reached only by joining its account.
 
 `movements.user_id` is the movement's own owner column; reads, updates and deletes go through `canAccessMovement`, inserts through `movementOwnedBy`.
