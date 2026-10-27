@@ -340,20 +340,39 @@ async function downloadSettlement(begin: Date, end: Date): Promise<string> {
 	if (!id) throw fail('parse');
 	const pollMs = Number(env.MP_REPORT_POLL_MS) || DEFAULT_POLL_MS;
 	const deadline = Date.now() + POLL_TIMEOUT_MS;
+	let doneWithoutFile = false;
 	while (Date.now() < deadline) {
 		await sleep(pollMs);
 		const t = obj(await apiJson(`/v1/account/settlement_report/task/${encodeURIComponent(id)}`));
-		const file = str(t.file_name);
-		if (str(t.status) === 'processed' && file) {
-			const res = await api(`/v1/account/settlement_report/${encodeURIComponent(file)}`);
-			try {
-				return await res.text();
-			} catch {
-				throw fail('network');
-			}
+		const status = str(t.status)?.toLowerCase() ?? '';
+		if (TASK_FAILED.has(status)) throw fail('parse');
+		if (!TASK_DONE.has(status)) continue;
+		const file = taskFile(t.files);
+		if (!file) {
+			// The file may lag the status by a poll; if it never shows, the shape is not what we expect.
+			doneWithoutFile = true;
+			continue;
+		}
+		const res = await api(`/v1/account/settlement_report/${encodeURIComponent(file)}`);
+		try {
+			return await res.text();
+		} catch {
+			throw fail('network');
 		}
 	}
-	throw fail('report_timeout');
+	throw fail(doneWithoutFile ? 'parse' : 'report_timeout');
+}
+
+/** A ready task reports `available` (`/list` entries say `processed`; task ids differ from list ids). */
+const TASK_DONE = new Set(['available', 'processed']);
+const TASK_FAILED = new Set(['failed', 'error', 'errored', 'rejected', 'cancelled', 'canceled']);
+const CSV_FILE_RE = /^[\w.-]+\.csv$/i;
+
+/** The CSV in a task's `files`, entries shaped `{ type, url, name, last_download_date }`. */
+function taskFile(files: unknown): string | null {
+	if (!Array.isArray(files)) return null;
+	const name = files.map((f) => text(obj(f).name)).find((n) => n && CSV_FILE_RE.test(n));
+	return name ?? null;
 }
 
 /**
