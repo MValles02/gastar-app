@@ -404,6 +404,10 @@ export const mpSyncState = pgTable('mp_sync_state', {
 	lastRunAt: timestamp('last_run_at', { withTimezone: true }),
 	// Error code only, never a message or payload.
 	lastError: text('last_error'),
+	// Step of the running sync ('payments' | 'report'), read only while the lease is held.
+	phase: text('phase'),
+	// Items the current (or last) run stored: payments first, report items added when it lands.
+	newItems: integer('new_items'),
 	reportBalance: bigint('report_balance', { mode: 'number' }),
 	reportBalanceAt: timestamp('report_balance_at', { withTimezone: true })
 });
