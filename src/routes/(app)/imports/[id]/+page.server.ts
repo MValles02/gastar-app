@@ -8,7 +8,8 @@ import {
 	importPrefill,
 	importTypes,
 	listImportRules,
-	rejectImport
+	rejectImport,
+	rememberKey
 } from '$lib/server/mp-import-queries';
 import { failIfUnavailable, movementPickers } from '../../movements/form.server';
 import { approveWithValues } from '../approve.server';
@@ -55,9 +56,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			type: prefill.type as string,
 			description: prefill.description,
 			categoryId: prefill.categoryId,
-			counterAccountId: prefill.counterAccountId
+			counterAccountId: prefill.counterAccountId,
+			remember: ''
 		},
 		review: prefill.review,
+		// Unchecked by default, even when a rule prefilled the form; hidden when there is no stable key.
+		rememberLabel: rememberKey(item)?.label ?? null,
 		categories,
 		accounts
 	};
@@ -78,7 +82,9 @@ export const actions: Actions = {
 			type: field('type'),
 			description: field('description').trim(),
 			categoryId: field('categoryId'),
-			counterAccountId: field('counterAccountId')
+			counterAccountId: field('counterAccountId'),
+			// 'on' when the box is checked; kept as text so a failed submit re-renders it.
+			remember: field('remember')
 		};
 		const errors: Partial<Record<keyof typeof values | 'form', string>> = {};
 
@@ -98,7 +104,12 @@ export const actions: Actions = {
 
 		let approved;
 		try {
-			approved = await approveWithValues(userId, item, { ...values, type: type! });
+			approved = await approveWithValues(
+				userId,
+				item,
+				{ ...values, type: type! },
+				values.remember === 'on'
+			);
 		} catch (e) {
 			return failIfUnavailable(e, values);
 		}

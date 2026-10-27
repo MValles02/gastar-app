@@ -94,6 +94,8 @@ async function openItem(...texts: string[]) {
 	await page.waitForLoadState('networkidle');
 }
 
+const rememberBox = () => page.getByRole('checkbox', { name: 'Recordar para la próxima' });
+
 /** The read-only "Fecha" of the open item. */
 const itemDate = () => page.locator('dt', { hasText: 'Fecha' }).locator('+ dd');
 
@@ -209,6 +211,9 @@ test('approving a payment keeps its exact cents, time of day and moves the balan
 	await expect(page.locator('input[name="description"]')).toHaveValue('FAKE AMIGA');
 	await page.locator('input[name="description"]').fill(AMIGA_DESC);
 	await pick(page, 'Categoría', CATEGORY);
+	await expect(rememberBox()).not.toBeChecked();
+	await expect(page.getByText('Los próximos de FAKE AMIGA se completan así.')).toBeVisible();
+	await rememberBox().check();
 	await page.getByRole('button', { name: 'Aprobar' }).click();
 	await flash('Movimiento aprobado.');
 	await expect(rows().filter({ hasText: '$1.235' })).toHaveCount(0);
@@ -230,7 +235,7 @@ test('editing the imported movement keeps its non-whole amount', async () => {
 	await expect(page.getByText('Los montos en pesos van sin decimales.')).toHaveCount(0);
 });
 
-test('a learned rule suggests the category for the next item', async () => {
+test('a remembered rule suggests the category for the next item', async () => {
 	await page.goto('/imports', { waitUntil: 'networkidle' });
 	const row = rows().filter({ hasText: 'FAKE AMIGA' });
 	await expect(row).toHaveCount(1);
@@ -240,6 +245,8 @@ test('a learned rule suggests the category for the next item', async () => {
 	await expect(page.locator('input[name="description"]')).toHaveValue(AMIGA_DESC);
 	await expect(page.getByRole('radio', { name: 'Ingreso' })).toBeChecked();
 	await expect(page.getByRole('button', { name: /Categoría/ })).toContainText(CATEGORY);
+	// Prefilled by a rule, the box still starts unchecked.
+	await expect(rememberBox()).not.toBeChecked();
 });
 
 test('discarding an item removes it for good', async () => {
@@ -258,6 +265,8 @@ test('a payout with an external reference is a payment at a merchant', async () 
 	await openItem('Pago en comercio');
 	await expect(itemDate()).toContainText('19:43');
 	await expect(page.getByRole('radio', { name: 'Gasto' })).toBeChecked();
+	// No merchant: nothing stable to remember.
+	await expect(rememberBox()).toHaveCount(0);
 });
 
 test('approving a payout as a transfer moves both balances', async () => {
@@ -265,6 +274,7 @@ test('approving a payout as a transfer moves both balances', async () => {
 	await openItem('Transferencia o retiro');
 	await expect(itemDate()).toContainText('15:00');
 	await expect(page.getByRole('radio', { name: 'Transf.' })).toBeChecked();
+	await expect(rememberBox()).toHaveCount(0);
 	await page.locator('input[name="description"]').fill(PAYOUT_DESC);
 	await pick(page, 'Destino', SECOND);
 	await page.getByRole('button', { name: 'Aprobar' }).click();
@@ -274,41 +284,53 @@ test('approving a payout as a transfer moves both balances', async () => {
 	expect(await balanceOf(SECOND)).toBe(secondBefore + 5000);
 });
 
-test('a learned kind rule suggests the other yield', async () => {
+test('approving without remembering leaves the other yield unsuggested', async () => {
 	// 7,89 renders as "$8"; the "Rendimientos" filter keeps the "$801" FAKE AMIGA row out.
 	await openItem('Rendimientos', '$8');
 	await page.locator('input[name="description"]').fill(YIELD_DESC);
 	await page.getByRole('radio', { name: 'Ingreso' }).check({ force: true });
 	await pick(page, 'Categoría', CATEGORY);
+	await expect(page.getByText('Los próximos de Rendimientos se completan así.')).toBeVisible();
+	await expect(rememberBox()).not.toBeChecked();
 	await page.getByRole('button', { name: 'Aprobar' }).click();
 	await flash('Movimiento aprobado.');
-	await expect(rows().filter({ hasText: 'Rendimientos' })).toContainText(`Sugerido: ${CATEGORY}`);
+	const other = rows().filter({ hasText: 'Rendimientos' });
+	await expect(other).toHaveCount(1);
+	await expect(other).not.toContainText('Sugerido');
+
+	await openItem('Rendimientos');
+	await expect(page.locator('input[name="description"]')).toHaveValue('Rendimientos');
+	await expect(page.getByRole('button', { name: /Categoría/ })).not.toContainText(CATEGORY);
 });
 
 test('bulk approve creates the suggested movements with exact amounts', async () => {
 	const before = await balanceOf('Mercado Pago');
 	await page.goto('/imports', { waitUntil: 'networkidle' });
-	await page.getByRole('button', { name: 'Aprobar 2 sugeridos' }).click();
+	await page.getByRole('button', { name: 'Aprobar 1 sugerido' }).click();
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Aprobar' }).click();
-	await flash('Se aprobaron 2 movimientos.');
-	// The merchant payout learned nothing from the transfer payout: it stays unsuggested.
-	await expect(rows()).toHaveCount(2);
+	await flash('Se aprobó 1 movimiento.');
+	// Only the remembered counterparty was suggested; the payouts never offered a rule.
+	await expect(rows()).toHaveCount(3);
 	await expect(rows().filter({ hasText: 'Ingreso de dinero' })).toHaveCount(1);
 	await expect(rows().filter({ hasText: 'Pago en comercio' })).toHaveCount(1);
+	await expect(rows().filter({ hasText: 'Rendimientos' })).toHaveCount(1);
 
 	const amounts: string[] = [];
-	for (const desc of [AMIGA_DESC, YIELD_DESC]) {
+	for (const [desc, count] of [
+		[AMIGA_DESC, 2],
+		[YIELD_DESC, 1]
+	] as const) {
 		const hrefs = await findMovements(page, desc);
-		expect(hrefs).toHaveLength(2);
+		expect(hrefs).toHaveLength(count);
 		for (const href of hrefs) {
 			await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
 			amounts.push(await page.locator('input[name="amount"]').inputValue());
 		}
 	}
-	expect(amounts.sort()).toEqual(['1.234,56', '17,36', '7,89', '800,50'].sort());
+	expect(amounts.sort()).toEqual(['1.234,56', '7,89', '800,50'].sort());
 
-	// Whole-peso display: FAKE AMIGA 800,50 + yield 17,36 (the 7,89 one was approved before `before`).
-	expect(Math.abs((await balanceOf('Mercado Pago')) - before - 817.86)).toBeLessThanOrEqual(1);
+	// Whole-peso display: only FAKE AMIGA 800,50 (the 7,89 yield was approved before `before`).
+	expect(Math.abs((await balanceOf('Mercado Pago')) - before - 800.5)).toBeLessThanOrEqual(1);
 
 	await page.goto('/imports', { waitUntil: 'networkidle' });
 	await expect(page.getByRole('button', { name: /sugerido/ })).toHaveCount(0);

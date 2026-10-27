@@ -9,6 +9,8 @@
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
 	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 	import type { ActionData, PageData } from './$types';
 
@@ -28,6 +30,7 @@
 	let description = $state(initial.description);
 	let categoryId = $state(initial.categoryId);
 	let counterId = $state(initial.counterAccountId);
+	let remember = $state(initial.remember === 'on');
 
 	let mounted = $state(false);
 	onMount(() => (mounted = true));
@@ -192,6 +195,18 @@
 				</li>
 			{/if}
 		</ul>
+
+		{#if data.rememberLabel}
+			<Field.Field orientation="horizontal">
+				<Checkbox id="remember" name="remember" bind:checked={remember} />
+				<Field.Content>
+					<Field.Label for="remember">Recordar para la próxima</Field.Label>
+					<Field.Description>
+						Los próximos de {data.rememberLabel} se completan así.
+					</Field.Description>
+				</Field.Content>
+			</Field.Field>
+		{/if}
 
 		{#if formError}<p class="error" role="alert">{formError}</p>{/if}
 

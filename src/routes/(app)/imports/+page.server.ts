@@ -122,7 +122,8 @@ export const actions: Actions = {
 			const prefill = importPrefill(item, rules, pickers.categories, counterAccounts);
 			if (prefill.suggestion === null) continue;
 			try {
-				const out = await approveWithValues(userId, item, prefill);
+				// The values come from the rule itself: nothing new to remember.
+				const out = await approveWithValues(userId, item, prefill, false);
 				if (out.result === 'approved') approved++;
 				else skipped++;
 			} catch (e) {

@@ -165,6 +165,27 @@ export function importRuleKeys(i: ImportKeyFields): ImportRuleKey[] {
 	return keys;
 }
 
+/** Payouts of either kind vary too much for one rule over the whole kind to be worth remembering. */
+const UNSTABLE_KINDS = ['payout', 'merchant_payout'];
+
+/**
+ * The key an approval may remember and who it names ("Recordar para …"), or null when the item has no
+ * stable key. Existing rules on other keys still prefill (importRuleKeys); this only gates new ones.
+ */
+export function rememberKey(
+	i: ImportKeyFields & TitleFields
+): { key: ImportRuleKey; label: string } | null {
+	const key = importRuleKeys(i)[0];
+	if (!key || (key.matchKind === 'kind' && UNSTABLE_KINDS.includes(key.matchValue))) return null;
+	const label =
+		key.matchKind === 'counterparty'
+			? i.counterpartyNickname?.trim() || null
+			: key.matchKind === 'merchant'
+				? i.merchant!.trim()
+				: FALLBACK_TITLE[key.matchValue];
+	return { key, label: label || importTitle(i) };
+}
+
 /** The user's item in any status, or undefined (foreign and missing ids alike). */
 export async function getImport(userId: string, id: string) {
 	const [row] = await db
@@ -260,14 +281,16 @@ export type ApproveRule = {
 };
 
 /**
- * One transaction: claim the pending item, insert the movement, link it and learn the rule.
+ * One transaction: claim the pending item, insert the movement, link it and, when `remember` is set,
+ * learn the rule (no rule is created or changed otherwise).
  * 'stale' (nothing written) when the item is no longer pending.
  */
 export function approveImport(
 	userId: string,
 	item: ImportItem,
 	row: MovementRow,
-	rule: ApproveRule
+	rule: ApproveRule,
+	remember: boolean
 ): Promise<'approved' | 'stale'> {
 	return db.transaction(async (tx) => {
 		const [claimed] = await tx
@@ -283,7 +306,7 @@ export function approveImport(
 			.set({ movementId: movement.id })
 			.where(and(eq(mpImportItems.id, item.id), canAccessImport(userId)));
 
-		const key = importRuleKeys(item)[0];
+		const key = remember ? rememberKey(item)?.key : undefined;
 		if (key) {
 			const { type, categoryId, counterAccountId, description } = rule;
 			await tx
