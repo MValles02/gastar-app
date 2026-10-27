@@ -1,25 +1,36 @@
 // Tiny fake of the Mercado Pago endpoints the import uses, serving synthetic fixtures from e2e/fixtures/mp.
-// Records method, path (no query) and Authorization of every MP call so the E2E can assert the Bearer header.
+// Records method, path, query and Authorization of every MP call so the E2E can assert them.
+// Fixture dates are written `@<days ago>T<hh:mm:ss>` and served as Buenos Aires (-03:00) timestamps,
+// so the default 30-day backfill always covers them.
 import { createServer } from 'node:http';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const PORT = Number(process.env.FAKE_MP_PORT) || 5199;
 const ME = 9000000000;
+const DAY_MS = 86_400_000;
+const AR_OFFSET_MS = 3 * 3_600_000;
 const dir = fileURLToPath(new URL('./fixtures/mp/', import.meta.url));
 
 let requests = [];
-let files = [];
+let tasks = 0;
 let forced = null;
 
 const send = (res, status, body, type = 'application/json') => {
 	res.writeHead(status, { 'content-type': type });
 	res.end(typeof body === 'string' ? body : JSON.stringify(body));
 };
-// Callers only pass names built from digit-only ids, so nothing from the URL can leave the fixtures folder.
+const relativeDates = (text) =>
+	text.replace(/@(\d+)T(\d\d:\d\d:\d\d)/g, (_, days, time) => {
+		const day = new Date(Date.now() - AR_OFFSET_MS - Number(days) * DAY_MS)
+			.toISOString()
+			.slice(0, 10);
+		return `${day}T${time}.000-03:00`;
+	});
+// Callers only pass fixed names or names built from digit-only ids, so nothing from the URL leaves the folder.
 const fixture = (name) => {
 	const file = dir + name;
-	return existsSync(file) ? readFileSync(file, 'utf8') : null;
+	return existsSync(file) ? relativeDates(readFileSync(file, 'utf8')) : null;
 };
 const readBody = (req) =>
 	new Promise((resolve) => {
@@ -27,15 +38,18 @@ const readBody = (req) =>
 		req.on('data', (c) => (data += c));
 		req.on('end', () => resolve(data));
 	});
+const badDate = (res) =>
+	send(res, 400, { message: 'Invalid date parameter', error: 'bad_request', cause: [] });
 
 createServer(async (req, res) => {
-	const path = new URL(req.url, 'http://x').pathname;
+	const url = new URL(req.url, 'http://x');
+	const path = url.pathname;
 
 	if (path === '/__fake/health') return send(res, 200, { ok: true });
 	if (path === '/__fake/requests') return send(res, 200, requests);
 	if (path === '/__fake/reset' && req.method === 'POST') {
 		requests = [];
-		files = [];
+		tasks = 0;
 		forced = null;
 		return send(res, 200, { ok: true });
 	}
@@ -44,39 +58,60 @@ createServer(async (req, res) => {
 		return send(res, 200, { ok: true });
 	}
 
-	requests.push({ method: req.method, path, authorization: req.headers.authorization ?? null });
+	requests.push({
+		method: req.method,
+		path,
+		query: Object.fromEntries(url.searchParams),
+		authorization: req.headers.authorization ?? null
+	});
 	if (forced) return send(res, forced, { message: 'forced' });
 
 	let m;
 	if (path === '/users/me') return send(res, 200, { id: ME });
-	if (path === '/v1/account/release_report/list') return send(res, 200, files);
-	if (path === '/v1/account/release_report' && req.method === 'POST') {
-		// Mirrors the real API: dates must be YYYY-MM-DDTHH:MM:SSZ (no milliseconds).
+	if (path === '/v1/payments/search') {
+		// Mirrors the real API: ISO dates need milliseconds; range + both dates filter.
+		const q = url.searchParams;
+		const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}(Z|[+-]\d{2}:\d{2})$/;
+		if (!iso.test(q.get('begin_date') ?? '') || !iso.test(q.get('end_date') ?? '')) {
+			return badDate(res);
+		}
+		const field = q.get('range') ?? 'date_created';
+		const [from, to] = [Date.parse(q.get('begin_date')), Date.parse(q.get('end_date'))];
+		const all = JSON.parse(fixture('payments.json'))
+			.filter((p) => Date.parse(p[field]) >= from && Date.parse(p[field]) <= to)
+			.sort(
+				(a, b) => Date.parse(a[q.get('sort') ?? field]) - Date.parse(b[q.get('sort') ?? field])
+			);
+		if (q.get('criteria') === 'desc') all.reverse();
+		const offset = Number(q.get('offset') ?? 0);
+		const limit = Number(q.get('limit') ?? 30);
+		return send(res, 200, {
+			results: all.slice(offset, offset + limit),
+			paging: { total: all.length, offset, limit }
+		});
+	}
+	if (path === '/v1/account/settlement_report' && req.method === 'POST') {
+		// Mirrors the real API: report dates must be YYYY-MM-DDTHH:MM:SSZ (no milliseconds).
 		const body = JSON.parse((await readBody(req)) || '{}');
 		const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
-		if (!iso.test(body.begin_date) || !iso.test(body.end_date)) {
-			return send(res, 400, {
-				message: 'Must specify begin_date parameter',
-				error: 'invalid_begin_date',
-				cause: []
-			});
-		}
-		const n = files.length + 1;
-		files.push({
+		if (!iso.test(body.begin_date) || !iso.test(body.end_date)) return badDate(res);
+		tasks++;
+		return send(res, 202, { id: tasks, status: 'pending' });
+	}
+	if ((m = path.match(/^\/v1\/account\/settlement_report\/task\/(\d+)$/))) {
+		const n = Number(m[1]);
+		if (n < 1 || n > tasks) return send(res, 404, { message: 'not_found' });
+		return send(res, 200, {
 			id: n,
-			file_name: `release-report-${n}.csv`,
-			date_created: new Date().toISOString()
+			status: 'processed',
+			file_name: `settlement-report-gastar-${n}.csv`
 		});
-		return send(res, 202, { id: n });
 	}
-	if ((m = path.match(/^\/v1\/account\/release_report\/(release-report-\d+\.csv)$/))) {
-		return files.some((f) => f.file_name === m[1])
-			? send(res, 200, fixture('release-report.csv'), 'text/csv')
+	if ((m = path.match(/^\/v1\/account\/settlement_report\/settlement-report-gastar-(\d+)\.csv$/))) {
+		const n = Number(m[1]);
+		return n >= 1 && n <= tasks
+			? send(res, 200, fixture('settlement-report.csv'), 'text/csv')
 			: send(res, 404, { message: 'not found' });
-	}
-	if ((m = path.match(/^\/v1\/payments\/(\d+)$/))) {
-		const f = fixture(`payment-${m[1]}.json`);
-		return f ? send(res, 200, f) : send(res, 404, { message: 'not found' });
 	}
 	if ((m = path.match(/^\/users\/(\d+)$/))) {
 		const f = fixture(`user-${m[1]}.json`);

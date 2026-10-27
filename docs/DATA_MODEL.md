@@ -161,7 +161,7 @@ Approval inbox for Mercado Pago activity. Imports land here, never on `movements
 | `user_id` | fk → `user.id` | |
 | `account_id` | fk → `financial_accounts.id` | ON DELETE RESTRICT |
 | `external_key` | text | idempotency key from the source |
-| `kind` | text | CHECK in ('payment','account_fund','yield','payout','other') |
+| `kind` | text | CHECK in ('payment','account_fund','yield','payout','merchant_payout','refund','other'); `merchant_payout` is a payout with an `EXTERNAL_REFERENCE` (payment at a merchant), `payout` one without (transfer or withdrawal) |
 | `status` | enum('pending','approved','rejected') | default 'pending' |
 | `occurred_at` | timestamptz | |
 | `amount` | bigint, > 0 | exact net, minor units |
@@ -196,7 +196,7 @@ Rules learned from approved items, used to pre-fill later ones.
 
 Constraints: `UNIQUE (user_id, match_kind, match_value)`; CHECK `mp_import_rules_shape_check`: `transfer` ⇒ `counter_account_id` set and `category_id` null; otherwise `category_id` set.
 
-Approval upserts one rule on the item's strongest key: `counterparty` (`operation_type = money_transfer` with a counterparty id) > `merchant` (trimmed, lowercased) > `kind` (only yield, payout, account_fund); no key, no rule. Pre-fill is computed at read time from the first matching key in that order and ignored when its target is archived or its type does not fit the item's direction.
+Approval upserts one rule on the item's strongest key: `counterparty` (`operation_type = money_transfer` with a counterparty id) > `merchant` (trimmed, lowercased) > `kind` (only yield, payout, merchant_payout, account_fund); a `refund` item has no key; no key, no rule. Pre-fill is computed at read time from the first matching key in that order and ignored when its target is archived or its type does not fit the item's direction.
 
 ### `mp_sync_state`
 
@@ -209,8 +209,8 @@ One row per synced account.
 | `running_since` | timestamptz, nullable | |
 | `last_run_at` | timestamptz, nullable | |
 | `last_error` | text, nullable | error code only |
-| `report_balance` | bigint, nullable | minor units |
-| `report_balance_at` | timestamptz, nullable | |
+| `report_balance` | bigint, nullable | deprecated: not read or written since the settlement report (no balance); dropped in a later release |
+| `report_balance_at` | timestamptz, nullable | deprecated, as `report_balance` |
 
 ## Derived formulas
 

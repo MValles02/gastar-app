@@ -1,8 +1,0 @@
-{
-	"id": 9000000003,
-	"operation_type": "account_fund",
-	"description": "Varios",
-	"collector_id": 9000000000,
-	"payer": { "id": 9000000000 },
-	"point_of_interaction": { "type": "CHECKOUT" }
-}

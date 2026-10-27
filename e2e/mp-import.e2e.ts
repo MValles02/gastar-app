@@ -13,6 +13,7 @@ import {
 
 const FAKE = `http://127.0.0.1:${Number(process.env.FAKE_MP_PORT) || 5199}`;
 const TOKEN = 'TEST-fake-mp-token';
+const DAY_MS = 86_400_000;
 
 test.describe.configure({ mode: 'serial' });
 
@@ -28,11 +29,17 @@ const calls = async () =>
 	(await (await fake('/__fake/requests')).json()) as {
 		method: string;
 		path: string;
+		query: Record<string, string>;
 		authorization: string | null;
 	}[];
 const reportRequests = async () =>
-	(await calls()).filter((r) => r.method === 'POST' && r.path === '/v1/account/release_report')
+	(await calls()).filter((r) => r.method === 'POST' && r.path === '/v1/account/settlement_report')
 		.length;
+/** begin_date of every payments search, oldest call first. */
+const searchBegins = async () =>
+	(await calls())
+		.filter((r) => r.path === '/v1/payments/search')
+		.map((r) => Date.parse(r.query.begin_date));
 
 /** Clicks "Sincronizar ahora" and reloads until the run is over (the lease is taken before the redirect). */
 async function syncNow(expected: RegExp) {
@@ -87,6 +94,9 @@ async function openItem(...texts: string[]) {
 	await page.waitForLoadState('networkidle');
 }
 
+/** The read-only "Fecha" of the open item. */
+const itemDate = () => page.locator('dt', { hasText: 'Fecha' }).locator('+ dd');
+
 test.beforeAll(async ({ browser }) => {
 	await fake('/__fake/reset', {});
 	page = await browser.newPage();
@@ -106,26 +116,38 @@ test('sync fills the inbox and leaves balances alone', async () => {
 	const balance = await accountRow();
 
 	await syncNow(/Última sincronización/);
-	await expect(rows()).toHaveCount(7);
+	await expect(rows()).toHaveCount(8);
 	const main = page.locator('main');
-	await expect(main.getByText('FAKE.AMIGA')).toHaveCount(2);
+	await expect(main.getByText('FAKE AMIGA')).toHaveCount(2);
 	await expect(main.getByText('CAFE DE PRUEBA')).toBeVisible();
 	await expect(main.getByText('Ingreso de dinero')).toBeVisible();
-	await expect(main.getByText('Retiro')).toBeVisible();
+	await expect(main.getByText('Transferencia o retiro')).toBeVisible();
+	await expect(main.getByText('Pago en comercio')).toBeVisible();
 	await expect(main.getByText('Rendimientos')).toHaveCount(2);
-	await expect(main.getByText(/reserve/i)).toHaveCount(0);
+	// Credit-card payments never touch the balance; rejected ones never happened.
+	await expect(main.getByText('TIENDA CON TARJETA')).toHaveCount(0);
+	await expect(main.getByText('PAGO RECHAZADO')).toHaveCount(0);
+
+	// First run: payments from the 30-day backfill; the settlement config is never touched.
+	const [first] = await searchBegins();
+	expect(Date.now() - first).toBeGreaterThan(29 * DAY_MS);
+	expect((await calls()).filter((c) => c.path.includes('/config'))).toHaveLength(0);
 
 	expect(await accountRow()).toBe(balance);
 
 	await page.goto('/profile', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('7');
+	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('8');
 });
 
-test('a second sync keeps the same items', async () => {
+test('a second sync searches from the last payment and keeps the same items', async () => {
 	const before = await reportRequests();
 	await syncNow(/Última sincronización/);
 	expect(await reportRequests()).toBe(before + 1);
-	await expect(rows()).toHaveCount(7);
+	await expect(rows()).toHaveCount(8);
+	// The newest imported payment is 11 days old; the search restarts there minus 3 days of overlap.
+	const age = Date.now() - (await searchBegins()).at(-1)!;
+	expect(age).toBeGreaterThan(13 * DAY_MS);
+	expect(age).toBeLessThan(15 * DAY_MS);
 });
 
 test('an auth failure shows the sync error', async () => {
@@ -143,7 +165,7 @@ test('every MP call carries the bearer token', async () => {
 	for (const c of all) expect(c.authorization).toBe(`Bearer ${TOKEN}`);
 });
 
-test('approving a payment keeps its exact cents and moves the balance', async () => {
+test('approving a payment keeps its exact cents, time of day and moves the balance', async () => {
 	await page.goto('/categories/new', { waitUntil: 'networkidle' });
 	await page.locator('input[name="name"]').fill(CATEGORY);
 	await page.getByRole('radio', { name: 'Ingreso' }).check({ force: true });
@@ -157,11 +179,12 @@ test('approving a payment keeps its exact cents and moves the balance', async ()
 	secondUrl = page.url();
 
 	const before = await balanceOf('Mercado Pago');
-	await openItem('FAKE.AMIGA', '$1.235');
-	await expect(page.locator('dd', { hasText: 'FAKE.AMIGA' })).toBeVisible();
+	await openItem('FAKE AMIGA', '$1.235');
+	await expect(page.locator('dd', { hasText: 'FAKE AMIGA' })).toBeVisible();
+	await expect(itemDate()).toContainText('10:15');
 	await expect(page.getByRole('radio', { name: 'Ingreso' })).toBeChecked();
-	// The fixture nickname is padded with spaces; the prefilled title must be trimmed.
-	await expect(page.locator('input[name="description"]')).toHaveValue('FAKE.AMIGA');
+	// The fixture names are padded with spaces; the prefilled title must be trimmed.
+	await expect(page.locator('input[name="description"]')).toHaveValue('FAKE AMIGA');
 	await page.locator('input[name="description"]').fill(AMIGA_DESC);
 	await pick(page, 'Categoría', CATEGORY);
 	await page.getByRole('button', { name: 'Aprobar' }).click();
@@ -187,7 +210,7 @@ test('editing the imported movement keeps its non-whole amount', async () => {
 
 test('a learned rule suggests the category for the next item', async () => {
 	await page.goto('/imports', { waitUntil: 'networkidle' });
-	const row = rows().filter({ hasText: 'FAKE.AMIGA' });
+	const row = rows().filter({ hasText: 'FAKE AMIGA' });
 	await expect(row).toHaveCount(1);
 	await expect(row).toContainText(`Sugerido: ${CATEGORY}`);
 	await row.getByRole('link').click();
@@ -209,9 +232,16 @@ test('discarding an item removes it for good', async () => {
 	await expect(rows().filter({ hasText: '$1.235' })).toHaveCount(0);
 });
 
+test('a payout with an external reference is a payment at a merchant', async () => {
+	await openItem('Pago en comercio');
+	await expect(itemDate()).toContainText('19:43');
+	await expect(page.getByRole('radio', { name: 'Gasto' })).toBeChecked();
+});
+
 test('approving a payout as a transfer moves both balances', async () => {
 	const [mpBefore, secondBefore] = [await balanceOf('Mercado Pago'), await balanceOf(SECOND)];
-	await openItem('Retiro');
+	await openItem('Transferencia o retiro');
+	await expect(itemDate()).toContainText('15:00');
 	await expect(page.getByRole('radio', { name: 'Transf.' })).toBeChecked();
 	await page.locator('input[name="description"]').fill(PAYOUT_DESC);
 	await pick(page, 'Destino', SECOND);
@@ -223,7 +253,7 @@ test('approving a payout as a transfer moves both balances', async () => {
 });
 
 test('a learned kind rule suggests the other yield', async () => {
-	// 7,89 renders as "$8"; the "Rendimientos" filter keeps the "$801" FAKE.AMIGA row out.
+	// 7,89 renders as "$8"; the "Rendimientos" filter keeps the "$801" FAKE AMIGA row out.
 	await openItem('Rendimientos', '$8');
 	await page.locator('input[name="description"]').fill(YIELD_DESC);
 	await page.getByRole('radio', { name: 'Ingreso' }).check({ force: true });
@@ -239,8 +269,10 @@ test('bulk approve creates the suggested movements with exact amounts', async ()
 	await page.getByRole('button', { name: 'Aprobar 2 sugeridos' }).click();
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Aprobar' }).click();
 	await flash('Se aprobaron 2 movimientos.');
-	await expect(rows()).toHaveCount(1);
-	await expect(rows().first()).toContainText('Ingreso de dinero');
+	// The merchant payout learned nothing from the transfer payout: it stays unsuggested.
+	await expect(rows()).toHaveCount(2);
+	await expect(rows().filter({ hasText: 'Ingreso de dinero' })).toHaveCount(1);
+	await expect(rows().filter({ hasText: 'Pago en comercio' })).toHaveCount(1);
 
 	const amounts: string[] = [];
 	for (const desc of [AMIGA_DESC, YIELD_DESC]) {
@@ -253,7 +285,7 @@ test('bulk approve creates the suggested movements with exact amounts', async ()
 	}
 	expect(amounts.sort()).toEqual(['1.234,56', '17,36', '7,89', '800,50'].sort());
 
-	// Whole-peso display: FAKE.AMIGA 800,50 + yield 17,36 (the 7,89 one was approved before `before`).
+	// Whole-peso display: FAKE AMIGA 800,50 + yield 17,36 (the 7,89 one was approved before `before`).
 	expect(Math.abs((await balanceOf('Mercado Pago')) - before - 817.86)).toBeLessThanOrEqual(1);
 
 	await page.goto('/imports', { waitUntil: 'networkidle' });

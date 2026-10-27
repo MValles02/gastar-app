@@ -356,7 +356,7 @@ export const mpImportItems = pgTable(
 		check('mp_import_items_amount_positive_check', sql`${table.amount} > 0`),
 		check(
 			'mp_import_items_kind_check',
-			sql`${table.kind} IN ('payment', 'account_fund', 'yield', 'payout', 'other')`
+			sql`${table.kind} IN ('payment', 'account_fund', 'yield', 'payout', 'merchant_payout', 'refund', 'other')`
 		)
 	]
 );
