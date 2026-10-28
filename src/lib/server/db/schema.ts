@@ -407,9 +407,7 @@ export const mpSyncState = pgTable('mp_sync_state', {
 	// Step of the running sync ('payments' | 'report'), read only while the lease is held.
 	phase: text('phase'),
 	// Items the current (or last) run stored: payments first, report items added when it lands.
-	newItems: integer('new_items'),
-	reportBalance: bigint('report_balance', { mode: 'number' }),
-	reportBalanceAt: timestamp('report_balance_at', { withTimezone: true })
+	newItems: integer('new_items')
 });
 
 // Tokens are AES-256-GCM ciphertext ("v1:" + base64(iv | tag | ct), AAD = user_id), never plaintext.
