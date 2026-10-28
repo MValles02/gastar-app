@@ -1,5 +1,5 @@
 /* eslint-disable svelte/prefer-svelte-reactivity -- URLs here are parsed and compared, never mutated or rendered */
-import { goto } from '$app/navigation';
+import { goto, invalidateAll } from '$app/navigation';
 import type { ActionResult, AfterNavigate } from '@sveltejs/kit';
 
 /**
@@ -16,6 +16,9 @@ let replaceNext = false;
 let afterPop: (() => unknown) | null = null;
 /** A `history.go` from `navigateUp` has not landed yet: `index` is stale, so further ups are ignored. */
 let popping = false;
+let poppingTimer: ReturnType<typeof setTimeout> | undefined;
+/** A pop that has not landed by then (it never will) stops blocking the up controls. */
+const POP_TIMEOUT_MS = 1000;
 
 const keyOf = (url: URL) => url.pathname + url.search;
 const pathOf = (key: string) => key.split('?')[0];
@@ -42,6 +45,7 @@ export function track(nav: AfterNavigate) {
 			index = 0;
 		}
 		popping = false;
+		clearTimeout(poppingTimer);
 		const done = afterPop;
 		afterPop = null;
 		if (done) void Promise.resolve().then(done);
@@ -73,8 +77,10 @@ export function replaceGoto(href: string, opts: Parameters<typeof goto>[1] = {})
  * steps) back to its first entry and replaces that, or replaces the current entry when there is none. The
  * popstate navigation reruns the loads; when `href` carries a query (e.g. a `?planSaved=1` flag) the
  * popped entry is replaced with it so the flag still reaches the page. Ignored while a pop is in flight.
+ * `refresh` (after a save) also invalidates once the pop lands: a popstate reuses loads that only read
+ * `locals`, such as the (app) layout's header initials and alert count.
  */
-export async function navigateUp(href: string) {
+export async function navigateUp(href: string, { refresh = false } = {}) {
 	if (popping) return;
 	const target = new URL(href, location.href);
 	if (target.origin !== location.origin) {
@@ -91,6 +97,7 @@ export async function navigateUp(href: string) {
 	if (to >= 0) {
 		const landed = entries[to];
 		if (target.search && landed !== key) afterPop = () => replaceGoto(key, { invalidateAll: true });
+		else if (refresh) afterPop = invalidateAll;
 		pop(to);
 		return;
 	}
@@ -108,6 +115,8 @@ export async function navigateUp(href: string) {
 
 function pop(to: number) {
 	popping = true;
+	clearTimeout(poppingTimer);
+	poppingTimer = setTimeout(() => (popping = false), POP_TIMEOUT_MS);
 	history.go(to - index);
 }
 
@@ -140,7 +149,7 @@ export async function followRedirect(
 	if (target.origin === location.origin && target.pathname === location.pathname)
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- server-validated same-origin redirect location
 		return goto(keyOf(target), { invalidateAll: true });
-	return navigateUp(result.location);
+	return navigateUp(result.location, { refresh: true });
 }
 
 /** Drop-in for bare `use:enhance`: `use:enhance={() => enhanceRedirect}`. */

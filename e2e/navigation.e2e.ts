@@ -66,6 +66,34 @@ test('Cancelar pops back to the detail', async ({ page }) => {
 	await expect(page).toHaveURL(/\/accounts$/);
 });
 
+test('a save that pops refreshes the layout: new name on Perfil and new initials on Inicio', async ({
+	page
+}) => {
+	await login(page, OTHER_EMAIL);
+	await page.goto('/profile/name', { waitUntil: 'networkidle' });
+	const original = await page.getByLabel('Nombre').inputValue();
+	try {
+		await page.goto('/', { waitUntil: 'networkidle' });
+		await page.getByRole('link', { name: 'Perfil' }).click();
+		await expect(page).toHaveURL(/\/profile$/);
+		await page.getByRole('link', { name: 'Cambiar nombre' }).click();
+		await expect(page).toHaveURL(/\/profile\/name$/);
+		await page.getByLabel('Nombre').fill('Zeta Navegación');
+		await page.getByRole('button', { name: 'Guardar cambios' }).click();
+		await expect(page).toHaveURL(/\/profile$/);
+		await expect(page.locator('.who .name')).toHaveText('Zeta Navegación');
+
+		await back(page, 'Volver al inicio');
+		await expect(page).toHaveURL(/\/$/);
+		await expect(page.getByRole('link', { name: 'Perfil' })).toHaveText('ZN');
+	} finally {
+		await page.goto('/profile/name', { waitUntil: 'networkidle' });
+		await page.getByLabel('Nombre').fill(original);
+		await page.getByRole('button', { name: 'Guardar cambios' }).click();
+		await expect(page).toHaveURL(/\/profile$/);
+	}
+});
+
 test('a double tap on Cancelar pops once, to the detail, not the list', async ({ page }) => {
 	await login(page, OTHER_EMAIL);
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
