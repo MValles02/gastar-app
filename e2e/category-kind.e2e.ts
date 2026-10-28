@@ -32,7 +32,7 @@ test.describe('with JavaScript', () => {
 			await page.goto('/categories/new', { waitUntil: 'networkidle' });
 			await page.locator('input[name="name"]').fill(name);
 			await page.getByRole('radio', { name: 'Ingreso' }).check({ force: true });
-			await page.getByRole('button', { name: 'Crear categoría' }).click();
+			await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 			await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
 			href = new URL(page.url()).pathname;
 

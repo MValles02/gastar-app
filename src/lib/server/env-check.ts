@@ -22,5 +22,7 @@ export function checkEnv(env: Record<string, string | undefined>): void {
 	const header = env.ADDRESS_HEADER;
 	if (header && header.toLowerCase() !== CLIENT_IP_HEADER)
 		problems.push('ADDRESS_HEADER must be CF-Connecting-IP');
+	if (env.MP_TOKEN_KEY && Buffer.from(env.MP_TOKEN_KEY, 'base64').length !== 32)
+		problems.push('MP_TOKEN_KEY must be base64 of 32 bytes');
 	if (problems.length) throw new Error(`Invalid environment: ${problems.join('; ')}`);
 }

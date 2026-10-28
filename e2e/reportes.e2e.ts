@@ -15,6 +15,10 @@ const total = (page: Page, name: string) =>
 
 const amountOf = (s: string | null) => Number(norm(s).replace(/[^\d]/g, ''));
 
+/** The category rows (ListRow items) under the "Categorías" heading. */
+const rows = (page: Page) =>
+	page.locator('section[aria-labelledby="cat-heading"] [role="listitem"]');
+
 /** Goes `n` months back from the current Reportes month and returns that month (YYYY-MM). */
 async function monthsBack(page: Page, n: number) {
 	await page.goto('/reports', { waitUntil: 'networkidle' });
@@ -57,8 +61,14 @@ test('tab bar is Inicio, Movimientos, Plan, Reportes plus the Nuevo movimiento b
 	await expect(tab).toHaveAttribute('aria-current', 'page');
 
 	await page.goto('/profile', { waitUntil: 'networkidle' });
-	const admin = page.getByRole('navigation', { name: 'Administrar' });
-	await expect(admin.getByRole('link')).toHaveText(['Cuentas', 'Categorías']);
+	const admin = page.locator('[data-slot="item-group"][aria-label="Tu cuenta"]');
+	// The "Mercado Pago" row exists only when the server has the MP env; it is not part of this check.
+	await expect(admin.getByRole('link').filter({ hasNotText: 'Mercado Pago' })).toHaveText([
+		'Cambiar nombre',
+		'Cambiar contraseña',
+		'Cuentas',
+		'Categorías'
+	]);
 	await expect(admin.getByRole('link', { name: 'Cuentas' })).toHaveAttribute('href', '/accounts');
 	await expect(admin.getByRole('link', { name: 'Categorías' })).toHaveAttribute(
 		'href',
@@ -156,10 +166,10 @@ test('past month totals match its six-month link', async ({ page }) => {
 // the percentages use largest-remainder rounding, so they always total exactly 100.
 test('category slices sum to 100 % and to the month spending', async ({ page }) => {
 	await page.goto('/reports', { waitUntil: 'networkidle' });
-	const pcts = await page.locator('.slices .pct').allTextContents();
+	const pcts = await rows(page).locator('.row-meta').allTextContents();
 	expect(pcts.length).toBeGreaterThan(0);
 	expect(pcts.reduce((a, p) => a + amountOf(p), 0)).toBe(100);
-	const amts = await page.locator('.slices .amt').allTextContents();
+	const amts = await rows(page).locator('.row-amount').allTextContents();
 	const gastos = await total(page, 'Gastos').textContent();
 	expect(amts.reduce((a, t) => a + amountOf(t), 0)).toBe(amountOf(gastos));
 });
@@ -176,13 +186,13 @@ test('Perfil, Categorías and back returns to Perfil', async ({ page }) => {
 // The seed colours "Alquiler" violet and it is the biggest outcome, so it leads the donut.
 test('donut legend dots use the category colour, not their position', async ({ page }) => {
 	await page.goto('/reports', { waitUntil: 'networkidle' });
-	const row = page.locator('.slices li').filter({ hasText: 'Alquiler' });
-	const dot = await row.locator('i').evaluate((el) => getComputedStyle(el).backgroundColor);
+	const row = rows(page).filter({ hasText: 'Alquiler' });
+	const dot = await row.locator('.badge').evaluate((el) => getComputedStyle(el).color);
 	const violet = await page.evaluate(() => {
 		const probe = document.createElement('i');
-		probe.style.background = 'var(--swatch-violet)';
+		probe.style.color = 'var(--swatch-violet)';
 		document.body.append(probe);
-		const color = getComputedStyle(probe).backgroundColor;
+		const color = getComputedStyle(probe).color;
 		probe.remove();
 		return color;
 	});
@@ -216,10 +226,11 @@ test('category legend rows link to the category for the selected month; Otros is
 	page
 }) => {
 	const month = await monthsBack(page, 2);
-	const rows = page.locator('.slices li');
-	for (const row of await rows.all()) {
+	const list = rows(page);
+	for (const row of await list.all()) {
 		const link = row.locator('a');
-		if ((await row.locator('.name').textContent()) === 'Otros') await expect(link).toHaveCount(0);
+		if (norm(await row.locator('[data-slot="item-title"]').textContent()) === 'Otros')
+			await expect(link).toHaveCount(0);
 		else {
 			await expect(link).toHaveAttribute(
 				'href',
@@ -228,7 +239,50 @@ test('category legend rows link to the category for the selected month; Otros is
 			expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(MIN_TARGET_PX);
 		}
 	}
-	const href = (await rows.locator('a').first().getAttribute('href'))!;
-	await rows.locator('a').first().click();
+	const href = (await list.locator('a').first().getAttribute('href'))!;
+	await list.locator('a').first().click();
 	await expect(page).toHaveURL(href);
+});
+
+test('month labels are three-letter Spanish names and zero months draw no bar', async ({
+	page
+}) => {
+	await page.goto('/reports', { waitUntil: 'networkidle' });
+	const items = page.locator('ul.bars li');
+	await expect(page.locator('.bar-label')).toHaveCount(6);
+	for (const label of await page.locator('.bar-label').allTextContents())
+		expect(label).toMatch(/^(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic)$/);
+
+	let zeroSides = 0;
+	for (const item of await items.all()) {
+		const [, ingresos, gastos] = /ingresos (.*), gastos (.*)$/.exec(
+			norm(await item.locator('a').getAttribute('aria-label'))
+		)!;
+		for (const [side, value] of [
+			['in', ingresos],
+			['out', gastos]
+		] as const) {
+			const bars = await item.locator(`.bar.${side}`).count();
+			if (amountOf(value) === 0) zeroSides++;
+			expect(bars).toBe(amountOf(value) === 0 ? 0 : 1);
+		}
+	}
+	// The seed only covers the last three months, so older ones are empty.
+	expect(zeroSides).toBeGreaterThan(0);
+});
+
+test('fact cards are stacked in one column', async ({ page }) => {
+	await page.goto('/reports', { waitUntil: 'networkidle' });
+	const facts = page.locator('section.facts');
+	const cards = facts.locator(':scope > *');
+	const perDay = cards.filter({ hasText: 'Por día' });
+	const biggest = cards.filter({ hasText: 'Gasto más grande' });
+	const [a, b, container] = await Promise.all([
+		perDay.boundingBox(),
+		biggest.boundingBox(),
+		facts.boundingBox()
+	]);
+	expect(a!.x).toBeCloseTo(b!.x, 0);
+	expect(b!.y).toBeGreaterThan(a!.y + a!.height - 1);
+	expect(b!.width).toBeGreaterThan(container!.width * 0.9);
 });

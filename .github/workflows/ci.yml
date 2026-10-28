@@ -2,7 +2,6 @@ name: CI
 
 on:
   pull_request:
-  workflow_call:
 
 permissions:
   contents: read
@@ -23,9 +22,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # Fetch only what the PR range scan needs instead of the full history.
+      # The checkout is the PR merge commit, so depth = PR commits + 2 reaches
+      # the merge commit, every PR commit and the parent of the oldest one.
+      # Expressions have no arithmetic, hence this step.
+      - name: Compute fetch depth
+        id: depth
+        env:
+          COMMITS: ${{ github.event.pull_request.commits }}
+        run: echo "value=$((COMMITS + 2))" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: ${{ steps.depth.outputs.value }}
           persist-credentials: false
+      - name: Secrets scan (gitleaks)
+        run: |
+          # HEAD is the merge commit: ^1 is the base tip, ^2 the PR head, so
+          # HEAD^1..HEAD^2 is exactly the PR's commits and both are always fetched.
+          # Pinned by digest (not just tag) so a compromised/republished tag can't slip a different image into CI.
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f git /repo --redact --verbose --exit-code 1 --log-opts="HEAD^1..HEAD^2"
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -38,8 +53,6 @@ jobs:
 
   e2e:
     name: e2e
-    # Skipped when deploy.yml reuses this workflow on push.
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -57,9 +70,11 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      # The specs run against `pnpm dev` on :5173.
+      # The specs run against a production build (VITE_E2E=1) served on :5173.
       BETTER_AUTH_URL: http://localhost:5173
       ORIGIN: http://localhost:5173
+      # CI-only demo password; scripts/seed.js requires it and e2e/helpers.ts logs in with it.
+      SEED_PASSWORD: demo1234
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

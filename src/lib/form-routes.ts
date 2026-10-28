@@ -1,4 +1,4 @@
-/** Routes that hide the tab bar (forms and the plan setup flow). */
+/** Form routes (sticky action bar at the bottom): toasts show at the top instead. */
 export const FORM_ROUTES = new Set([
 	'/(app)/movements/new',
 	'/(app)/movements/[id]/edit',
@@ -7,8 +7,15 @@ export const FORM_ROUTES = new Set([
 	'/(app)/categories/new',
 	'/(app)/categories/[id]/edit',
 	'/(app)/plan/recurring/new',
+	'/(app)/plan/recurring/[id]/edit',
+	'/(app)/plan/limits/new',
+	'/(app)/plan/limits/[categoryId]',
+	'/(app)/plan/savings',
 	'/(app)/plan/setup',
 	'/(app)/profile/name',
 	'/(app)/profile/password',
 	'/(app)/profile/delete'
 ]);
+
+/** Routes that show the tab bar and the add-movement FAB. */
+export const TAB_ROUTES = new Set(['/(app)', '/(app)/movements', '/(app)/plan', '/(app)/reports']);

@@ -2,14 +2,14 @@
 	import type { Currency } from '$lib/money';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { CATEGORY_ICONS, SWATCHES, toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import DetailActions from '$lib/components/DetailActions.svelte';
+	import DetailCard from '$lib/components/DetailCard.svelte';
+	import DetailHero from '$lib/components/DetailHero.svelte';
+	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import MonthNav from '$lib/components/MonthNav.svelte';
-	import IconBadge from '$lib/components/IconBadge.svelte';
-	import * as Item from '$lib/components/ui/item/index.js';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -17,9 +17,6 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const c = $derived(data.category);
-	const icon = $derived(toCategoryIconKey(c.icon));
-	const iconLabel = $derived(CATEGORY_ICONS.find((i) => i.key === icon)?.label);
-	const colorLabel = $derived(SWATCHES.find((s) => s.key === c.color)?.label ?? c.color);
 	const kindLabel = $derived(
 		c.kind === 'income' ? 'Ingreso' : c.kind === 'outcome' ? 'Gasto' : 'Ambos'
 	);
@@ -28,7 +25,7 @@
 
 <!-- Net spend (outcomes - incomes) as a cash flow: spend in red, net income in green. -->
 {#snippet flow(net: number, currency: Currency)}
-	<Money cents={-net} {currency} kind={net < 0 ? 'income' : 'plain'} />
+	<Money cents={-net} {currency} tone="flow" />
 {/snippet}
 
 <svelte:head>
@@ -41,90 +38,48 @@
 		back={{ href: resolve('/categories'), label: 'Volver a categorías' }}
 	/>
 
-	<section aria-label="Resumen del mes">
-		<Card.Root>
-			<Card.Content>
-				<div class="month-nav">
-					<MonthNav
-						label={data.month.label}
-						prevHref={resolve(`/categories/${c.id}?month=${data.month.prev}`)}
-						nextHref={data.month.isCurrent
-							? null
-							: resolve(`/categories/${c.id}?month=${data.month.next}`)}
-					/>
-				</div>
+	<DetailHero ariaLabel="Resumen del mes">
+		{#snippet top()}
+			<MonthNav
+				label={data.month.label}
+				prevHref={resolve(`/categories/${c.id}?month=${data.month.prev}`)}
+				nextHref={data.month.isCurrent
+					? null
+					: resolve(`/categories/${c.id}?month=${data.month.next}`)}
+			/>
+		{/snippet}
+		{#if single}
+			<HeroAmount cents={-single.net} currency={single.currency} tone="flow" />
+		{:else}
+			{#if data.nets.length === 0}
+				<p class="muted">Sin movimientos en este mes.</p>
+			{:else}
+				<dl class="duo">
+					{#each data.nets as n (n.currency)}
+						<div>
+							<dt>{n.currency}</dt>
+							<dd class="amount">{@render flow(n.net, n.currency)}</dd>
+						</div>
+					{/each}
+				</dl>
+			{/if}
+		{/if}
+	</DetailHero>
 
-				<div class="hero">
-					<IconBadge
-						icon={icon ?? undefined}
-						letter={icon ? undefined : c.name[0]}
-						color={toSwatchKey(c.color)}
-						size="3rem"
-					/>
-					{#if single}
-						<p class="value">{@render flow(single.net, single.currency)}</p>
-					{:else if data.nets.length === 0}
-						<p class="muted">Sin movimientos en este mes.</p>
-					{:else}
-						<dl class="duo">
-							{#each data.nets as n (n.currency)}
-								<div>
-									<dt>{n.currency}</dt>
-									<dd class="amount">{@render flow(n.net, n.currency)}</dd>
-								</div>
-							{/each}
-						</dl>
-					{/if}
-				</div>
-			</Card.Content>
-		</Card.Root>
-	</section>
-
-	<dl class="detail-card data">
-		<div class="item">
-			<dt>Tipo</dt>
-			<dd>{kindLabel}</dd>
-		</div>
-		<div class="item nowrap">
-			<dt>Ícono y color</dt>
-			<dd class="appearance">
-				<IconBadge
-					icon={icon ?? undefined}
-					letter={icon ? undefined : c.name[0]}
-					color={toSwatchKey(c.color)}
-					size="1.5rem"
-				/>
-				<span class="truncate">{iconLabel ? `${iconLabel} · ${colorLabel}` : colorLabel}</span>
-			</dd>
-		</div>
-		<div class="item">
-			<dt>Estado</dt>
-			<dd>{c.archived ? 'Archivada' : 'Activa'}</dd>
-		</div>
-	</dl>
-
-	<Item.Group
-		class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-	>
-		<div role="listitem">
-			<Item.Root>
-				{#snippet child({ props })}
-					<a href={resolve(`/movements?category=${c.id}`)} {...props}>
-						<Item.Content><Item.Title>Ver movimientos</Item.Title></Item.Content>
-						<Item.Actions><Icon name="chevron-right" /></Item.Actions>
-					</a>
-				{/snippet}
-			</Item.Root>
-		</div>
-	</Item.Group>
+	<DetailCard
+		rows={[
+			{ label: 'Tipo', value: kindLabel },
+			{ label: 'Estado', value: c.archived ? 'Archivada' : 'Activa' }
+		]}
+		movementsHref={resolve(`/movements?category=${c.id}`)}
+	/>
 
 	{#if form?.error}
 		<p class="error" role="alert"><Icon name="alert" size="1rem" />{form.error}</p>
 	{/if}
 
-	<div class="actions">
-		<div class="buttons">
-			<Button href={resolve(`/categories/${c.id}/edit`)}>Editar</Button>
+	<DetailActions editHref={resolve(`/categories/${c.id}/edit`)}>
+		{#snippet secondary()}
 			{#if data.actions.canArchive}
 				<form method="POST" action="?/archive" use:enhance>
 					<Button type="submit" variant="outline" class="w-full">Archivar</Button>
@@ -135,10 +90,13 @@
 					<Button type="submit" variant="outline" class="w-full">Desarchivar</Button>
 				</form>
 			{/if}
+		{/snippet}
+		{#snippet destructive()}
 			{#if data.actions.canDelete}
 				<ConfirmDialog
 					triggerLabel="Eliminar"
 					triggerVariant="destructive"
+					triggerClass="w-full"
 					title="¿Eliminar esta categoría?"
 					confirmLabel="Eliminar"
 					action="?/delete"
@@ -146,13 +104,8 @@
 					Esta acción no se puede deshacer.
 				</ConfirmDialog>
 			{/if}
-		</div>
-		{#if data.actions.canArchive}
-			<p class="muted small">
-				Tiene movimientos, así que no se puede eliminar. Podés archivarla para ocultarla.
-			</p>
-		{/if}
-	</div>
+		{/snippet}
+	</DetailActions>
 </div>
 
 <style>
@@ -160,28 +113,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
-	}
-
-	.month-nav {
-		margin-bottom: var(--space-3);
-	}
-
-	.hero {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: var(--space-2);
-		padding-block: var(--space-2);
-		text-align: center;
-	}
-
-	.value {
-		max-width: 100%;
-		font-family: var(--font-display);
-		font-size: clamp(1.5rem, 9vw, 2.75rem);
-		font-weight: 500;
-		line-height: 1.2;
-		overflow-wrap: anywhere;
 	}
 
 	.duo {
@@ -206,51 +137,8 @@
 		color: var(--text-muted);
 	}
 
-	.small {
-		font-size: var(--font-size-sm);
-		text-align: center;
-	}
-
-	.data {
-		margin: 0;
-	}
-
-	.item {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		flex-wrap: wrap;
-		gap: var(--space-3);
-		min-height: 3.5rem;
-		padding: var(--space-2) var(--space-4);
-		border-bottom: 1px solid var(--border);
-	}
-
-	.item:last-child {
-		border-bottom: 0;
-	}
-
-	dt {
-		color: var(--text-muted);
-	}
-
-	dd {
-		margin: 0;
-		min-width: 0;
-		text-align: right;
-		overflow-wrap: anywhere;
-	}
-
 	.amount {
 		white-space: nowrap;
-	}
-
-	.appearance {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		gap: var(--space-2);
-		font-weight: 500;
 	}
 
 	.error {
@@ -259,44 +147,5 @@
 		gap: var(--space-2);
 		color: var(--negative);
 		font-size: var(--font-size-sm);
-	}
-
-	.actions {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-		margin-top: var(--space-2);
-	}
-
-	/* Editar + the state action side by side, equal width. */
-	.buttons {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: var(--space-3);
-	}
-
-	.buttons > :global(*) {
-		width: 100%;
-	}
-
-	.nowrap {
-		flex-wrap: nowrap;
-		gap: var(--space-2);
-	}
-
-	.nowrap dd {
-		flex: 1;
-	}
-
-	.nowrap dt {
-		flex: none;
-	}
-
-	.truncate {
-		font-size: var(--font-size-sm);
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
 	}
 </style>

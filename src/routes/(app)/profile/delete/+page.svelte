@@ -3,7 +3,8 @@
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import DangerCallout from '$lib/components/DangerCallout.svelte';
+	import FormActions from '$lib/components/FormActions.svelte';
 	import { PASSWORD_MAX_LENGTH } from '$lib/limits';
 	import type { ActionData } from './$types';
 
@@ -20,10 +21,10 @@
 <PageHeader title="Eliminar cuenta" close={{ href: resolve('/profile'), label: 'Cerrar' }} />
 
 <div class="page">
-	<p>
+	<DangerCallout>
 		Se borran para siempre tu cuenta y todos tus datos: cuentas, movimientos, categorías y plan. No
 		se puede deshacer.
-	</p>
+	</DangerCallout>
 
 	<ul class="card">
 		<li class:bad={form?.error}>
@@ -42,12 +43,12 @@
 		</li>
 	</ul>
 
-	<div class="actions">
-		<Button href={resolve('/profile')} variant="outline" class="min-h-11 flex-1">Cancelar</Button>
-		<div class="confirm">
+	<FormActions cancelHref="/profile" sticky={false}>
+		{#snippet primary()}
 			<ConfirmDialog
 				triggerLabel="Eliminar cuenta"
 				triggerVariant="destructive"
+				triggerClass="w-full"
 				title="¿Eliminar tu cuenta?"
 				confirmLabel="Eliminar"
 				action="?/delete"
@@ -56,8 +57,8 @@
 			>
 				Se borran para siempre tu cuenta y todos tus datos. No se puede deshacer.
 			</ConfirmDialog>
-		</div>
-	</div>
+		{/snippet}
+	</FormActions>
 </div>
 
 <style>
@@ -81,21 +82,5 @@
 
 	.card > li.bad {
 		box-shadow: inset 3px 0 0 var(--negative);
-	}
-
-	.actions {
-		display: flex;
-		gap: var(--space-3);
-	}
-
-	.confirm {
-		flex: 2;
-		min-width: 0;
-	}
-
-	.confirm :global(button),
-	.confirm :global(summary) {
-		width: 100%;
-		min-height: 2.75rem;
 	}
 </style>

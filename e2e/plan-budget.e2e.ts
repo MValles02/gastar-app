@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import { expect, test, type Browser, type Cookie, type Page } from '@playwright/test';
 import {
 	fillMovement,
 	fillSavings,
@@ -9,11 +9,67 @@ import {
 	pick,
 	postDelete,
 	setCurrencyCookie,
+	signUpVerified,
 	todayInAppTz,
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
 const NOT_OFFERED = 'Elegí una categoría.';
+
+// The figures-delta tests run as this file's own user (1 sign-up, see signUpVerified): no other spec
+// writes its data, unlike the seeded `otro`, whose USD movements other files write in parallel.
+let cookies: Cookie[] = [];
+
+test.beforeAll(async ({ browser, baseURL }) => {
+	test.setTimeout(90_000);
+	const headers = { origin: baseURL!, accept: 'text/html' };
+	const context = await browser.newContext({ baseURL });
+	try {
+		const page = await context.newPage();
+		await signUpVerified(page, context.request, {
+			email: `e2e+budget-${Date.now()}@gastar.local`,
+			password: 'e2e-pass-1234',
+			name: 'E2E Presupuesto'
+		});
+		const create = async (path: string, form: Record<string, string>) => {
+			const res = await page.request.post(path, { form, headers });
+			expect(res.ok()).toBe(true);
+			return res.url().split('/').pop()!;
+		};
+		const account = (name: string, currency: string) =>
+			create('/accounts/new', {
+				name,
+				currency,
+				initialBalance: '500',
+				icon: 'bank',
+				color: 'green'
+			});
+		const usd = await account('Otra cuenta', 'USD');
+		await account('Otra cuenta pesos', 'ARS');
+		const category = await create('/categories/new', { name: 'Ajena', color: 'blue', kind: '' });
+		await create('/plan/recurring/new', {
+			type: 'outcome',
+			description: 'Regla ajena',
+			amount: '50',
+			dayOfMonth: '10',
+			accountId: usd,
+			categoryId: category
+		});
+
+		// A quick USD plan through the wizard: no savings, no limits.
+		await setCurrencyCookie(page, baseURL!, 'USD');
+		await page.goto('/plan/setup?step=3', { waitUntil: 'networkidle' });
+		await fillSavings(page, { option: 'Nada' });
+		await page.getByRole('button', { name: 'Siguiente' }).click();
+		await expect(page).toHaveURL(/\/plan\/setup\?step=4$/);
+		await page.getByRole('link', { name: 'Siguiente' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(page.getByText('Plan guardado.')).toBeVisible();
+		cookies = await context.cookies();
+	} finally {
+		await context.close();
+	}
+});
 
 /** The other seeded user's category id and rule id, read from a second logged-in context. */
 async function foreignIds(browser: Browser, baseURL: string) {
@@ -59,7 +115,7 @@ async function withOutcome(
 			account: o.account,
 			category: 'Ajena'
 		});
-		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		// Look the movement up now so the delete in `finally` is just a POST: the shorter the movement
 		// exists, the less it can disturb specs that compare account totals in parallel.
@@ -71,7 +127,7 @@ async function withOutcome(
 	}
 }
 
-/** The summary figures of /plan by label, as integer cents-free numbers (ARS has no decimals). */
+/** The summary figures of /plan by label, as integer minor-unit magnitudes (ARS has no decimals). */
 async function figures(page: Page) {
 	// Server-rendered, so no hydration wait: keeps the window in which a transient movement exists short.
 	await page.goto('/plan');
@@ -79,19 +135,24 @@ async function figures(page: Page) {
 	const terms = await dl.locator('dt').allInnerTexts();
 	const values = await dl.locator('dd').allInnerTexts();
 	const out: Record<string, number> = {};
-	terms.forEach((t, i) => {
-		const v = values[i];
-		// Fixed payments, savings and spent show a minus; the equation uses their magnitudes.
-		const signed = ['Disponible', 'Para gastar'].includes(t.trim());
-		out[t.trim()] = Number(v.replace(/\D/g, '')) * (signed && /[-−]/.test(v) ? -1 : 1);
-	});
-	// Same page load: the amounts of the active "Pagos fijos" rule rows, which Pagos fijos must equal.
-	const rows = await page
-		.getByRole('region', { name: 'Pagos fijos' })
-		.locator('.rule .amount-col')
-		.allInnerTexts();
-	out['Reglas'] = rows.reduce((a, v) => a + Number(v.replace(/\D/g, '')), 0);
+	// Savings, pending fixed payments and spent show a minus; the equation uses their magnitudes.
+	terms.forEach((t, i) => (out[t.trim()] = Number(values[i].replace(/\D/g, ''))));
+	// Disponible is the hero amount of the summary card (signed).
+	const hero = await page
+		.getByRole('region', { name: /^Disponible · / })
+		.locator('.hero-amount')
+		.innerText();
+	out['Disponible'] = Number(hero.replace(/\D/g, '')) * (/[-−]/.test(hero) ? -1 : 1);
 	return out;
+}
+
+/** The limit edit links on /plan, i.e. which categories have a limit in the cookie's currency. */
+async function limitHrefs(page: Page) {
+	await page.goto('/plan', { waitUntil: 'networkidle' });
+	return page
+		.getByRole('region', { name: 'Límites por categoría' })
+		.locator('a[href^="/plan/limits/"]:not([href$="/new"])')
+		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).pathname).sort());
 }
 
 /**
@@ -136,7 +197,7 @@ test('ARS decimals are rejected in savings and in limits, and nothing is written
 	const superId = await linkId(page.getByRole('link', { name: /Supermercado/ }).first());
 	await page.goto(`/plan/limits/${superId}`, { waitUntil: 'networkidle' });
 	await page.locator('input[name="amount"]').fill('100,5');
-	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await page.getByRole('button', { name: 'Guardar cambios' }).click();
 	await expect(page.getByRole('alert')).toContainText(WHOLE_PESOS_ERROR);
 	await expect(page).toHaveURL(/\/plan\/limits\/[0-9a-f-]{36}/);
 
@@ -188,9 +249,10 @@ test("another user cannot attach a limit to the demo user's category", async ({
 	const context = await browser.newContext({ baseURL });
 	try {
 		const other = await context.newPage();
-		await login(other, OTHER_EMAIL);
+		await context.addCookies(cookies);
 		await setCurrencyCookie(other, baseURL!, 'USD');
-		const before = await figures(other);
+		const limits = () => limitHrefs(other);
+		const before = await limits();
 		const res = await post(other, baseURL!, '/plan/limits/new', {
 			categoryId: superId,
 			amount: '5'
@@ -198,8 +260,7 @@ test("another user cannot attach a limit to the demo user's category", async ({
 		expect(res.status()).toBe(400);
 		expect(await res.text()).toContain(NOT_OFFERED);
 		expect((await other.goto(`/plan/limits/${superId}`))!.status()).toBe(404);
-		const after = await figures(other);
-		expect(after).toEqual(before);
+		expect(await limits()).toEqual(before);
 		await expect(other.getByRole('region', { name: 'Límites por categoría' })).not.toContainText(
 			'Supermercado'
 		);
@@ -226,7 +287,7 @@ test('deleting a category removes its limit', async ({ page, baseURL }) => {
 	try {
 		await page.goto('/categories/new', { waitUntil: 'networkidle' });
 		await page.getByLabel('Nombre').fill(name);
-		await page.getByRole('button', { name: 'Crear categoría' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
 		categoryPath = new URL(page.url()).pathname;
 		const id = categoryPath.split('/').pop()!;
@@ -234,7 +295,7 @@ test('deleting a category removes its limit', async ({ page, baseURL }) => {
 		await page.goto('/plan/limits/new', { waitUntil: 'networkidle' });
 		await pick(page, 'Categoría', name);
 		await page.locator('input[name="amount"]').fill('5.000');
-		await page.getByRole('button', { name: 'Guardar límite' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		const limits = page.getByRole('region', { name: 'Límites por categoría' });
 		await expect(limits).toContainText(name);
@@ -287,7 +348,7 @@ test.describe('without JavaScript', () => {
 	});
 });
 
-test('Disponible = Ingresos - Pagos fijos - Ahorro - Gastado on one page load', async ({
+test('Disponible = Ingresos - Ahorro - Pagos fijos pendientes - Gastado on one page load', async ({
 	page,
 	baseURL
 }) => {
@@ -299,18 +360,18 @@ test('Disponible = Ingresos - Pagos fijos - Ahorro - Gastado on one page load', 
 		const g = await figures(page);
 		expect(g['Ingresos']).toBe(1_500_000);
 		expect(g['Ahorro']).toBe(150_000);
-		expect(g['Pagos fijos']).toBeGreaterThanOrEqual(380_000);
-		expect(g['Pagos fijos']).toBe(g['Reglas']);
-		expect(g['Disponible']).toBe(g['Ingresos'] - g['Pagos fijos'] - g['Ahorro'] - g['Gastado']);
+		expect(g['Disponible']).toBe(
+			g['Ingresos'] - g['Ahorro'] - g['Pagos fijos pendientes'] - g['Gastado']
+		);
 	}).toPass({ timeout: 30_000 });
 	await expect(page.locator('.rule', { hasText: 'Alquiler' })).toContainText('380.000');
 });
 
-// The tests that create movements run as `otro`: no other spec reads its data, so they cannot
-// disturb the demo user's totals (currency.e2e.ts) or Disponible.
+// The tests that create movements run as this file's own user: they cannot disturb the demo user's
+// totals (currency.e2e.ts) or Disponible.
 test.describe('as another user', () => {
 	test.beforeEach(async ({ page, baseURL }) => {
-		await login(page, OTHER_EMAIL);
+		await page.context().addCookies(cookies);
 		await setCurrencyCookie(page, baseURL!, 'USD');
 	});
 
@@ -329,6 +390,66 @@ test.describe('as another user', () => {
 				expect(after['Gastado']).toBe(before['Gastado'] + 1000);
 			}
 		);
+	});
+
+	test('USD Gastado on Plan equals Gastos on Reportes', async ({ page }) => {
+		await expect(async () => {
+			const { Gastado } = await figures(page);
+			await page.goto('/reports');
+			const gastos = page.locator('dl.totals > div').filter({ hasText: 'Gastos' }).locator('dd');
+			expect(Number((await gastos.innerText()).replace(/\D/g, ''))).toBe(Gastado);
+		}).toPass({ timeout: 30_000 });
+	});
+
+	test('paying a fixed payment moves it from Pendientes to Gastado; paying more lowers Disponible', async ({
+		page,
+		baseURL
+	}) => {
+		const description = `Pago regla e2e ${Date.now()}`;
+		const headers = { origin: baseURL!, accept: 'text/html' };
+		await page.goto('/plan', { waitUntil: 'networkidle' });
+		const id = await linkId(page.getByRole('link', { name: /Regla ajena/ }).first());
+		await page.goto(`/movements/new?recurring=${id}`, { waitUntil: 'networkidle' });
+		const accountId = (await page.locator('input[name="accountId"]').getAttribute('value'))!;
+		const categoryId = (await page.locator('input[name="categoryId"]').getAttribute('value'))!;
+		const pay = async (amount: string) => {
+			const res = await page.request.post('/movements/new', {
+				form: {
+					recurringId: id,
+					type: 'outcome',
+					amount,
+					description,
+					accountId,
+					categoryId,
+					occurredAt: todayInAppTz()
+				},
+				headers
+			});
+			expect(res.url()).toMatch(/\/plan\?saved=1$/);
+		};
+		const remove = async () => {
+			for (const href of await findMovements(page, description, 'USD'))
+				await postDelete(page, baseURL!, href);
+		};
+		try {
+			const open = await figures(page);
+			expect(open['Pagos fijos pendientes']).toBeGreaterThanOrEqual(5000);
+
+			await pay('50,00');
+			const exact = await figures(page);
+			expect(exact['Disponible']).toBe(open['Disponible']);
+			expect(exact['Gastado']).toBe(open['Gastado'] + 5000);
+			expect(exact['Pagos fijos pendientes']).toBe(open['Pagos fijos pendientes'] - 5000);
+
+			await remove();
+			await pay('70,00');
+			const over = await figures(page);
+			expect(over['Disponible']).toBe(open['Disponible'] - 2000);
+			expect(over['Gastado']).toBe(open['Gastado'] + 7000);
+			expect(over['Pagos fijos pendientes']).toBe(open['Pagos fijos pendientes'] - 5000);
+		} finally {
+			await remove();
+		}
 	});
 
 	test('an ARS outcome does not change the USD Disponible', async ({ page, baseURL }) => {

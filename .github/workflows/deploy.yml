@@ -2,6 +2,10 @@
 # deploy production (web.gastar.app), pushes to `develop` deploy the development
 # environment (dev.gastar.app). Deploy secrets live in the `production` and
 # `development` GitHub environments, not at repository level.
+# CI checks run on the PR (required by the ruleset) and are not repeated on push.
+# A manual run redeploys the current branch tip, which reached main/develop only
+# through a PR that passed those checks; it must be confirmed by typing the
+# branch name, so a stray click never redeploys production.
 name: Deploy
 
 on:
@@ -10,6 +14,11 @@ on:
     paths-ignore:
       - '**.md'
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type the branch name (main or develop) to confirm the redeploy
+        required: true
+        type: string
 
 permissions: {}
 
@@ -18,14 +27,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  checks:
-    uses: ./.github/workflows/ci.yml
-    permissions:
-      contents: read
-
   publish:
     name: Build and publish to GHCR
-    needs: checks
     # workflow_dispatch can be run from any branch; restrict to main and develop
     # so a manual trigger from any other branch never builds or deploys.
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
@@ -35,11 +38,20 @@ jobs:
       packages: write
     timeout-minutes: 20
     steps:
+      - name: Confirm manual run
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [ "$CONFIRM" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Confirmation '$CONFIRM' does not match branch '$GITHUB_REF_NAME'; nothing was built or deployed."
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

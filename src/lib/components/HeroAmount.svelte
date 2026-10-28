@@ -6,13 +6,15 @@
 	let {
 		cents,
 		currency,
-		kind = 'plain',
+		tone = 'stock',
+		direction,
 		as = 'p',
 		class: className = ''
 	}: {
 		cents: number;
 		currency: 'ARS' | 'USD';
-		kind?: 'income' | 'outcome' | 'transfer' | 'plain';
+		tone?: 'stock' | 'flow';
+		direction?: 'income' | 'outcome' | 'transfer';
 		as?: 'p' | 'dd';
 		class?: string;
 	} = $props();
@@ -21,7 +23,7 @@
 </script>
 
 <svelte:element this={as} class="hero hero-amount {className}" style:--chars={chars}>
-	<span class="fit"><Money {cents} {currency} {kind} /></span>
+	<span class="fit"><Money {cents} {currency} {tone} {direction} /></span>
 </svelte:element>
 
 <style>

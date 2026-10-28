@@ -2,6 +2,7 @@
 	import { RangeCalendar as RangeCalendarPrimitive } from 'bits-ui';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
+	import * as Select from '$lib/components/ui/select/index.js';
 	import { LOCALE } from '$lib/locale';
 	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js';
 
@@ -18,8 +19,6 @@
 
 	const nav =
 		'inline-flex size-11 shrink-0 items-center justify-center rounded-lg hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 outline-none data-[disabled]:opacity-40';
-	const select =
-		'h-11 min-w-0 rounded-lg border border-input bg-background px-2 text-sm capitalize outline-none focus-visible:ring-3 focus-visible:ring-ring/50';
 </script>
 
 <RangeCalendarPrimitive.Root
@@ -43,8 +42,40 @@
 				{/snippet}
 			</RangeCalendarPrimitive.PrevButton>
 			<div class="flex min-w-0 items-center gap-2">
-				<RangeCalendarPrimitive.MonthSelect class={select} aria-label="Mes" />
-				<RangeCalendarPrimitive.YearSelect class={select} aria-label="Año" />
+				<RangeCalendarPrimitive.MonthSelect aria-label="Mes">
+					{#snippet child({ monthItems, selectedMonthItem })}
+						<Select.Root
+							type="single"
+							value={String(selectedMonthItem.value)}
+							onValueChange={(v) => (placeholder = placeholder?.set({ month: Number(v) }))}
+							items={monthItems.map((i) => ({ value: String(i.value), label: i.label }))}
+						>
+							<Select.Trigger aria-label="Mes">{selectedMonthItem.label}</Select.Trigger>
+							<Select.Content>
+								{#each monthItems as item (item.value)}
+									<Select.Item value={String(item.value)} label={item.label} />
+								{/each}
+							</Select.Content>
+						</Select.Root>
+					{/snippet}
+				</RangeCalendarPrimitive.MonthSelect>
+				<RangeCalendarPrimitive.YearSelect aria-label="Año">
+					{#snippet child({ yearItems, selectedYearItem })}
+						<Select.Root
+							type="single"
+							value={String(selectedYearItem.value)}
+							onValueChange={(v) => (placeholder = placeholder?.set({ year: Number(v) }))}
+							items={yearItems.map((i) => ({ value: String(i.value), label: i.label }))}
+						>
+							<Select.Trigger aria-label="Año">{selectedYearItem.label}</Select.Trigger>
+							<Select.Content>
+								{#each yearItems as item (item.value)}
+									<Select.Item value={String(item.value)} label={item.label} />
+								{/each}
+							</Select.Content>
+						</Select.Root>
+					{/snippet}
+				</RangeCalendarPrimitive.YearSelect>
 			</div>
 			<RangeCalendarPrimitive.NextButton>
 				{#snippet child({ props })}

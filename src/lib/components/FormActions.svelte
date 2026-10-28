@@ -1,30 +1,77 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button/index.js';
 
-	/** Cancelar (1/3) + primary submit (2/3) side by side, pinned to the bottom of the viewport. */
+	/**
+	 * Cancel and primary action side by side (50/50), pinned to the bottom of the viewport. The primary
+	 * is a submit button, a link (`submitHref`) or a custom `primary` snippet. Hrefs are unresolved paths.
+	 */
 	let {
 		cancelHref,
+		cancelLabel = 'Cancelar',
 		submitLabel,
+		submitHref,
 		submitting = false,
-		sticky = true
-	}: { cancelHref: string; submitLabel: string; submitting?: boolean; sticky?: boolean } = $props();
+		sticky = true,
+		primary,
+		destructive,
+		form
+	}: {
+		cancelHref: string;
+		cancelLabel?: string;
+		submitLabel?: string;
+		submitHref?: string;
+		submitting?: boolean;
+		sticky?: boolean;
+		primary?: Snippet;
+		/** When set: [destructive | submit] 50/50 on top, cancel full width below. */
+		destructive?: Snippet;
+		/** `id` of a `<form>` elsewhere in the page the submit button submits. */
+		form?: string;
+	} = $props();
 </script>
 
-<div class="bar" class:sticky>
+{#snippet cancel()}
 	<Button
 		href={resolve(cancelHref as '/')}
 		variant="outline"
-		class="h-auto min-h-11 min-w-0 flex-1 whitespace-normal">Cancelar</Button
+		class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal">{cancelLabel}</Button
 	>
+{/snippet}
+
+{#snippet submit()}
 	<Button
 		type="submit"
-		class="h-auto min-h-11 min-w-0 flex-[2] whitespace-normal"
+		{form}
+		class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal"
 		disabled={submitting}
 		aria-busy={submitting ? 'true' : undefined}
 	>
 		{#if submitting}<span class="spin" aria-hidden="true"></span>{/if}{submitLabel}
 	</Button>
+{/snippet}
+
+<div class="bar" class:sticky class:stacked={!!destructive}>
+	{#if destructive}
+		<div class="pair">
+			<div class="half">{@render destructive()}</div>
+			{@render submit()}
+		</div>
+		{@render cancel()}
+	{:else}
+		{@render cancel()}
+		{#if primary}
+			<div class="half">{@render primary()}</div>
+		{:else if submitHref}
+			<Button
+				href={resolve(submitHref as '/')}
+				class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal">{submitLabel}</Button
+			>
+		{:else}
+			{@render submit()}
+		{/if}
+	{/if}
 </div>
 
 <style>
@@ -33,7 +80,25 @@
 		gap: var(--space-3);
 	}
 
+	.bar.stacked {
+		flex-direction: column;
+	}
+
+	.stacked > :global(a) {
+		flex: none;
+	}
+
+	.pair {
+		display: flex;
+		gap: var(--space-3);
+	}
+
 	/* Full-bleed bar pinned to the bottom of the viewport (no tab bar on form screens). */
+	.half {
+		flex: 1 1 0;
+		min-width: 0;
+	}
+
 	.bar.sticky {
 		position: sticky;
 		bottom: 0;

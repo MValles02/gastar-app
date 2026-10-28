@@ -13,10 +13,10 @@
 </script>
 
 <svelte:head>
-	<title>Nombre · Gastar</title>
+	<title>Cambiar nombre · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Nombre" close={{ href: resolve('/profile'), label: 'Cerrar' }} />
+<PageHeader title="Cambiar nombre" close={{ href: resolve('/profile'), label: 'Cerrar' }} />
 
 <form method="POST" use:enhance class="form" novalidate>
 	<ul class="card">
@@ -33,7 +33,7 @@
 			/>
 		</li>
 	</ul>
-	<FormActions cancelHref="/profile" submitLabel="Guardar" />
+	<FormActions cancelHref="/profile" submitLabel="Guardar cambios" />
 </form>
 
 <style>

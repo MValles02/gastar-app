@@ -3,8 +3,8 @@
 	import { enhance } from '$app/forms';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import * as Item from '$lib/components/ui/item/index.js';
-	import IconBadge from '$lib/components/IconBadge.svelte';
+	import ListCard from '$lib/components/ListCard.svelte';
+	import ListRow from '$lib/components/ListRow.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
@@ -59,62 +59,55 @@
 		<p class="email">{data.user.email}</p>
 	</section>
 
-	<Card.Root class="gap-0 overflow-hidden py-0" aria-label="Tu cuenta">
-		<ul class="links">
-			<li>
-				<Item.Root>
-					{#snippet child({ props })}
-						<a href={resolve('/profile/name')} {...props}>
-							<Item.Content><Item.Title>Nombre</Item.Title></Item.Content>
-							<Item.Actions class="min-w-0">
-								<span class="val">{data.user.name}</span>
-								<Icon name="chevron-right" size="1.25rem" />
-							</Item.Actions>
-						</a>
-					{/snippet}
-				</Item.Root>
-			</li>
-			<li>
-				<Item.Root>
-					{#snippet child({ props })}
-						<a href={resolve('/profile/password')} {...props}>
-							<Item.Content><Item.Title>Cambiar contraseña</Item.Title></Item.Content>
-							<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
-						</a>
-					{/snippet}
-				</Item.Root>
-			</li>
-		</ul>
-	</Card.Root>
+	{#snippet pendingValue()}<span class="val"
+			>{data.imports?.state === 'linked' ? data.imports.pending : 0} para revisar</span
+		>{/snippet}
+	{#snippet reconnectValue()}<span class="val">Reconectar</span>{/snippet}
+	{#snippet unlinkedValue()}<span class="val">Sin vincular</span>{/snippet}
 
-	<nav aria-label="Administrar">
-		<Card.Root class="gap-0 overflow-hidden py-0">
-			<ul class="links">
-				<li>
-					<Item.Root>
-						{#snippet child({ props })}
-							<a href={resolve('/accounts')} {...props}>
-								<Item.Media><IconBadge icon="accounts" color={null} neutral /></Item.Media>
-								<Item.Content><Item.Title>Cuentas</Item.Title></Item.Content>
-								<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
-							</a>
-						{/snippet}
-					</Item.Root>
-				</li>
-				<li>
-					<Item.Root>
-						{#snippet child({ props })}
-							<a href={resolve('/categories')} {...props}>
-								<Item.Media><IconBadge icon="categories" color={null} neutral /></Item.Media>
-								<Item.Content><Item.Title>Categorías</Item.Title></Item.Content>
-								<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
-							</a>
-						{/snippet}
-					</Item.Root>
-				</li>
-			</ul>
-		</Card.Root>
-	</nav>
+	<ListCard aria-label="Tu cuenta">
+		<ListRow
+			href={resolve('/profile/name')}
+			lead={{ icon: 'profile', color: null }}
+			title="Cambiar nombre"
+			chevron
+		/>
+		<ListRow
+			href={resolve('/profile/password')}
+			lead={{ icon: 'lock', color: null }}
+			title="Cambiar contraseña"
+			chevron
+		/>
+		<ListRow
+			href={resolve('/accounts')}
+			lead={{ icon: 'accounts', color: null }}
+			title="Cuentas"
+			chevron
+		/>
+		<ListRow
+			href={resolve('/categories')}
+			lead={{ icon: 'categories', color: null }}
+			title="Categorías"
+			chevron
+		/>
+		{#if data.imports?.state === 'linked'}
+			<ListRow
+				href={resolve('/imports')}
+				lead={{ icon: 'phone', color: null }}
+				title="Mercado Pago"
+				value={data.imports.pending > 0 ? pendingValue : undefined}
+				chevron
+			/>
+		{:else if data.imports}
+			<ListRow
+				href={resolve('/profile/mercado-pago')}
+				lead={{ icon: 'phone', color: null }}
+				title="Mercado Pago"
+				value={data.imports.state === 'reconnect' ? reconnectValue : unlinkedValue}
+				chevron
+			/>
+		{/if}
+	</ListCard>
 
 	<Card.Root class="gap-0 overflow-hidden py-0" aria-label="Tema">
 		<form
@@ -207,12 +200,6 @@
 		color: var(--text-muted);
 		max-width: 100%;
 		overflow-wrap: anywhere;
-	}
-
-	.links {
-		list-style: none;
-		margin: 0;
-		padding: 0;
 	}
 
 	.val {

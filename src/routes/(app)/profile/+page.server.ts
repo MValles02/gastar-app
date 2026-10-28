@@ -1,5 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { PREFERENCE_COOKIE_OPTIONS, THEME_COOKIE } from '$lib/server/cookies';
+import { pendingImportCount } from '$lib/server/mp-import-queries';
+import { getConnectionInfo, mpOauthEnabled } from '$lib/server/mp-oauth';
 import type { Actions, PageServerLoad } from './$types';
 
 const THEMES = ['light', 'dark', 'system'] as const;
@@ -10,11 +12,22 @@ const isTheme = (value: unknown): value is Theme =>
 
 const parseTheme = (value: string | undefined): Theme => (isTheme(value) ? value : 'system');
 
-export const load: PageServerLoad = ({ locals, cookies }) => {
+/** The Mercado Pago row: null when the feature is off; `pending` only when imports are usable. */
+async function importsRow(userId: string) {
+	if (!mpOauthEnabled()) return null;
+	const conn = await getConnectionInfo(userId);
+	if (conn?.needsReconnect) return { state: 'reconnect' as const };
+	if (conn?.accountId)
+		return { state: 'linked' as const, pending: await pendingImportCount(userId) };
+	return { state: 'unlinked' as const };
+}
+
+export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const user = locals.user!;
 	return {
 		user: { name: user.name, email: user.email },
-		theme: parseTheme(cookies.get(THEME_COOKIE))
+		theme: parseTheme(cookies.get(THEME_COOKIE)),
+		imports: await importsRow(user.id)
 	};
 };
 

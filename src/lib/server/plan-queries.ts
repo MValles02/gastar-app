@@ -1,4 +1,5 @@
-import { and, desc, eq, gte, inArray, isNotNull, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import {
 	categories,
@@ -20,7 +21,8 @@ import {
 } from './access';
 import type { Currency } from '$lib/money';
 import type { MovementRow } from './movements';
-import { isRecurringActive } from './plan';
+import { currentMonth, TZ } from './month';
+import { HISTORY_MONTHS, isRecurringActive } from './plan';
 
 type Range = { start: Date; end: Date };
 
@@ -30,6 +32,10 @@ const occurredIn = (range: Range) =>
 /** The rule `id`, only if the user may access it. */
 const ownRule = (userId: string, id: string) =>
 	and(eq(recurringMovements.id, id), canAccessRecurring(userId));
+
+// TZ is inlined as a literal: a bound parameter makes SELECT and GROUP BY different expressions.
+const tzLiteral = sql.raw(`'${TZ}'`);
+const localMonth = sql<string>`to_char(${movements.occurredAt} at time zone ${tzLiteral}, 'YYYY-MM')`;
 
 export type RecurringRow = {
 	type: 'income' | 'outcome';
@@ -56,6 +62,8 @@ export function listRecurring(userId: string, cur?: Currency, id?: string) {
 			currency: financialAccounts.currency,
 			categoryId: recurringMovements.categoryId,
 			categoryName: categories.name,
+			categoryIcon: categories.icon,
+			categoryColor: categories.color,
 			categoryArchivedAt: categories.archivedAt
 		})
 		.from(recurringMovements)
@@ -77,13 +85,27 @@ export function listRecurring(userId: string, cur?: Currency, id?: string) {
 		.orderBy(recurringMovements.dayOfMonth, recurringMovements.description);
 }
 
-/** Rules with a linked movement in the range. */
+const ruleAccount = alias(financialAccounts, 'rule_account');
+
+/**
+ * Rules with a linked movement in the range. A link survives edits, so it only counts while the
+ * movement still matches the rule: same type, and an account in the rule account's currency.
+ */
 export function paidRecurring(userId: string, range: Range) {
 	return db
 		.selectDistinct({ recurringId: movements.recurringId })
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.where(and(canAccessMovement(userId), isNotNull(movements.recurringId), occurredIn(range)));
+		.innerJoin(recurringMovements, eq(movements.recurringId, recurringMovements.id))
+		.innerJoin(ruleAccount, eq(recurringMovements.accountId, ruleAccount.id))
+		.where(
+			and(
+				canAccessMovement(userId),
+				occurredIn(range),
+				eq(movements.type, recurringMovements.type),
+				eq(financialAccounts.currency, ruleAccount.currency)
+			)
+		);
 }
 
 export function createRecurring(userId: string, row: RecurringRow) {
@@ -134,7 +156,49 @@ export function deleteRecurring(userId: string, id: string) {
 		.returning({ id: recurringMovements.id });
 }
 
+/**
+ * Unlinked outcomes that happened in each of the `HISTORY_MONTHS` months of `range` with the same
+ * description, account and category: likely recurring. `id` is the group's most recent movement.
+ */
+export function recurringCandidates(userId: string, cur: Currency, range: Range) {
+	return db
+		.select({
+			id: sql<string>`(array_agg(${movements.id} order by ${movements.occurredAt} desc))[1]`,
+			description: sql<string>`min(trim(${movements.description}))`,
+			amount:
+				sql<number>`round(sum(${movements.amount})::numeric / count(distinct ${localMonth}))`.mapWith(
+					Number
+				),
+			dayOfMonth:
+				sql<number>`extract(day from max(${movements.occurredAt}) at time zone ${tzLiteral})`.mapWith(
+					Number
+				),
+			accountId: movements.accountId,
+			categoryId: movements.categoryId
+		})
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.where(
+			and(
+				canAccessMovement(userId),
+				eq(financialAccounts.currency, cur),
+				isNull(financialAccounts.archivedAt),
+				isNull(movements.recurringId),
+				eq(movements.type, 'outcome'),
+				occurredIn(range)
+			)
+		)
+		.groupBy(sql`lower(trim(${movements.description}))`, movements.accountId, movements.categoryId)
+		.having(sql`count(distinct ${localMonth}) >= ${HISTORY_MONTHS}`);
+}
+
 // --- Spending plans ---
+
+/** The user's plan for `cur` when it is the current one (a plan for another month counts as none). */
+export async function currentPlan(userId: string, cur: Currency) {
+	const [plan] = await getPlan(userId, cur);
+	return plan && (plan.month === null || plan.month === currentMonth(new Date())) ? plan : null;
+}
 
 export function getPlan(userId: string, cur: Currency) {
 	return db

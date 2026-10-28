@@ -1,14 +1,11 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import RecurringForm from '../RecurringForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
-	// Follows the form's type toggle live.
-	let type = $state(untrack(() => form?.values?.type || data.type));
-	const title = $derived(type === 'income' ? 'Nuevo ingreso fijo' : 'Nuevo pago fijo');
+	const title = $derived(data.type === 'income' ? 'Nuevo ingreso fijo' : 'Nuevo pago fijo');
 </script>
 
 <svelte:head>
@@ -18,18 +15,19 @@
 <PageHeader {title} close={{ href: data.returnHref, label: 'Cerrar' }} />
 
 <RecurringForm
-	initial={form?.values ?? {
-		type: data.type,
-		description: '',
-		amount: '',
-		accountId: data.accounts.length === 1 ? data.accounts[0].id : '',
-		categoryId: '',
-		dayOfMonth: ''
-	}}
+	initial={form?.values ??
+		data.suggested ?? {
+			type: data.type,
+			description: '',
+			amount: '',
+			accountId: data.accounts.length === 1 ? data.accounts[0].id : '',
+			categoryId: '',
+			dayOfMonth: ''
+		}}
 	errors={form?.errors}
 	accounts={data.accounts}
 	categories={data.categories}
 	submitLabel="Guardar"
 	cancelHref={data.returnHref}
-	bind:type
+	type={data.type}
 />

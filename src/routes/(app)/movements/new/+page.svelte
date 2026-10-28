@@ -87,7 +87,7 @@
 			errors={form?.errors}
 			accounts={data.accounts}
 			categories={data.categories}
-			submitLabel="Guardar movimiento"
+			submitLabel="Guardar"
 			cancelHref={returnTo}
 			recurring={data.recurring ?? undefined}
 			repeatable

@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { swatchVar, toCategoryIconKey, toIconKey, toSwatchKey } from '$lib/appearance';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import DetailActions from '$lib/components/DetailActions.svelte';
+	import DetailHero from '$lib/components/DetailHero.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
-	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { formatMoney } from '$lib/money';
 	import type { PageData } from './$types';
@@ -37,27 +36,14 @@
 		back={{ href: resolve('/movements'), label: 'Volver a movimientos' }}
 	/>
 
-	<section aria-label="Monto">
-		<Card.Root>
-			<Card.Content>
-				<div class="hero">
-					<IconBadge
-						icon={toIconKey(m.accountIcon)}
-						color={toSwatchKey(m.accountColor)}
-						size="3rem"
-					/>
-					<p class="value">
-						<Money
-							cents={m.type === 'outcome' ? -m.amount : m.amount}
-							currency={m.accountCurrency}
-							kind={m.type}
-						/>
-					</p>
-					<p class="type">{typeLabel}</p>
-				</div>
-			</Card.Content>
-		</Card.Root>
-	</section>
+	<DetailHero
+		cents={m.type === 'outcome' ? -m.amount : m.amount}
+		currency={m.accountCurrency}
+		tone="flow"
+		direction={m.type}
+		label={typeLabel}
+		ariaLabel="Monto"
+	/>
 
 	<dl class="data">
 		<div class="item">
@@ -103,9 +89,9 @@
 			<div class="item">
 				<dt>Categoría</dt>
 				<dd class="with-chip">
-					{#if toCategoryIconKey(m.categoryIcon)}
+					{#if m.categoryName}
 						<IconBadge
-							icon={toCategoryIconKey(m.categoryIcon) ?? undefined}
+							icon={toCategoryIconKey(m.categoryIcon) ?? 'categories'}
 							color={toSwatchKey(m.categoryColor)}
 							size="1.5rem"
 						/>
@@ -118,18 +104,20 @@
 		{/if}
 	</dl>
 
-	<div class="actions">
-		<Button href={resolve(`/movements/${data.movement.id}/edit`)}>Editar</Button>
-		<ConfirmDialog
-			triggerLabel="Eliminar"
-			triggerVariant="destructive"
-			title="¿Eliminar movimiento?"
-			confirmLabel="Eliminar"
-			action="?/delete"
-		>
-			No se puede deshacer.
-		</ConfirmDialog>
-	</div>
+	<DetailActions editHref={resolve(`/movements/${data.movement.id}/edit`)}>
+		{#snippet destructive()}
+			<ConfirmDialog
+				triggerLabel="Eliminar"
+				triggerVariant="destructive"
+				triggerClass="w-full"
+				title="¿Eliminar movimiento?"
+				confirmLabel="Eliminar"
+				action="?/delete"
+			>
+				No se puede deshacer.
+			</ConfirmDialog>
+		{/snippet}
+	</DetailActions>
 </div>
 
 <style>
@@ -137,29 +125,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-	}
-
-	.hero {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: var(--space-1);
-		padding: var(--space-3) 0;
-		text-align: center;
-	}
-
-	.value {
-		margin-top: var(--space-3);
-		font-family: var(--font-display);
-		font-size: clamp(2rem, 11vw, 2.75rem);
-		font-weight: 500;
-		line-height: 1.1;
-		overflow-wrap: anywhere;
-	}
-
-	.type {
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
 	}
 
 	.data {
@@ -215,16 +180,5 @@
 		height: 0.75rem;
 		border-radius: 50%;
 		background: var(--tone);
-	}
-
-	/* Editar + Eliminar side by side, equal width (ConfirmDialog renders its own trigger button). */
-	.actions {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: var(--space-3);
-	}
-
-	.actions > :global(*) {
-		width: 100%;
 	}
 </style>

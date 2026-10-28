@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import RecurringForm from '../../RecurringForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
-	// Follows the form's type toggle live.
-	let type = $state(untrack(() => form?.values?.type || data.values.type));
-	const title = $derived(type === 'income' ? 'Ingreso fijo' : 'Pago fijo');
+	// The stored type wins: the server ignores a submitted one.
+	const title = $derived(
+		data.values.type === 'income' ? 'Editar ingreso fijo' : 'Editar pago fijo'
+	);
 </script>
 
 <svelte:head>
@@ -24,5 +24,5 @@
 	categories={data.categories}
 	submitLabel="Guardar cambios"
 	cancelHref={data.detailHref}
-	bind:type
+	type={data.values.type}
 />

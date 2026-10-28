@@ -10,11 +10,12 @@
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
+	import ListCard from '$lib/components/ListCard.svelte';
+	import Money from '$lib/components/Money.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import * as Item from '$lib/components/ui/item/index.js';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -158,19 +159,27 @@
 			</div>
 		{/if}
 	{:else}
+		{#if data.summary}
+			<p class="summary" role="status">
+				{data.summary.count}
+				{data.summary.count === 1
+					? 'movimiento'
+					: 'movimientos'}{#each data.summary.totals as t (t.currency)}&nbsp;· <Money
+						cents={t.net}
+						currency={t.currency}
+						tone="flow"
+					/>{/each}
+			</p>
+		{/if}
 		<div class="groups" aria-busy={navigating.to !== null}>
 			{#each data.groups as g (g.day)}
 				<section aria-labelledby="day-{g.day}">
 					<h2 id="day-{g.day}">{g.heading}</h2>
-					<Item.Group
-						class="gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)"
-					>
+					<ListCard>
 						{#each g.items as m (m.id)}
-							<div role="listitem">
-								<MovementRow {m} />
-							</div>
+							<MovementRow {m} />
 						{/each}
-					</Item.Group>
+					</ListCard>
 				</section>
 			{/each}
 		</div>
@@ -228,6 +237,11 @@
 
 	.groups[aria-busy='true'] {
 		opacity: 0.5;
+	}
+
+	.summary {
+		font-size: var(--font-size-sm);
+		color: var(--text-muted);
 	}
 
 	h2 {

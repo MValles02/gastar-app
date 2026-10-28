@@ -3,10 +3,13 @@ import {
 	deleteMovements,
 	deleteRules,
 	fillRule,
+	findMovements,
 	linkId,
 	login,
 	OTHER_EMAIL,
 	PHONE,
+	pick,
+	postDelete,
 	setCurrencyCookie,
 	SMALL_PHONE,
 	WHOLE_PESOS_ERROR
@@ -27,10 +30,14 @@ test('seeded rules: rent is paid, the gym is inactive and cannot be registered',
 	const inactive = page.getByRole('region', { name: 'Inactivos' });
 	await expect(inactive).toContainText('Gimnasio');
 	await expect(inactive).toContainText('Cuenta archivada');
-	// Inactive rows are fully greyed: the amount is not in the title's text colour.
+	// Inactive rows are fully greyed: amount and title are muted, unlike an active row's title.
 	const gym = inactive.locator('.rule', { hasText: 'Gimnasio' });
 	const color = (sel: string) => gym.locator(sel).evaluate((el) => getComputedStyle(el).color);
-	expect(await color('.amount-col')).not.toBe(await color('[data-slot="item-title"]'));
+	const muted = await color('[data-slot="item-title"]');
+	expect(await color('.row-amount')).toBe(muted);
+	expect(muted).not.toBe(
+		await rent.locator('[data-slot="item-title"]').evaluate((el) => getComputedStyle(el).color)
+	);
 	const id = await linkId(inactive.getByRole('link', { name: /Gimnasio/ }));
 	await page.goto(`/movements/new?recurring=${id}`, { waitUntil: 'networkidle' });
 	await expect(page.getByRole('heading', { level: 1, name: 'Nuevo movimiento' })).toBeVisible();
@@ -156,9 +163,8 @@ test('USD tab shows the empty state', async ({ page, baseURL }) => {
 	await login(page);
 	await setCurrencyCookie(page, baseURL!, 'USD');
 	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await expect(page.getByText('No tenés pagos ni ingresos fijos en dólares.')).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Agregar pago fijo' })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Agregar ingreso fijo' })).toBeVisible();
+	await expect(page.getByText('Sin plan en dólares')).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Agregar pago fijo' })).toHaveCount(0);
 });
 
 test('create a rule, register its payment and clean up', async ({ page, baseURL }) => {
@@ -191,12 +197,50 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		await expect(page.locator('input[name="amount"]')).toHaveValue(/^1\.?500$/);
 		await expect(page.locator('input[name="recurringId"]')).toHaveCount(1);
 		await expect(page.getByText(`Registrás el pago de ${description} de este mes.`)).toBeVisible();
-		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 
 		await expect(page.getByText('Pago registrado.')).toBeVisible();
 		await expect(rule(page, description)).toContainText('Pagado');
 		await expect(rule(page, description).getByRole('link', { name: /Registrar/ })).toHaveCount(0);
 	} finally {
+		await deleteMovements(page, baseURL!, description);
+		await deleteRules(page, baseURL!, description);
+	}
+});
+
+test('a payment edited to an account in another currency no longer marks the rule Pagado', async ({
+	page,
+	baseURL
+}) => {
+	await login(page, OTHER_EMAIL);
+	const description = 'Pago moneda e2e';
+	try {
+		await fillRule(page, {
+			description,
+			amount: '1.500',
+			day: '15',
+			account: 'Otra cuenta pesos',
+			category: 'Ajena'
+		});
+		await page.getByRole('button', { name: 'Guardar' }).click();
+		await expect(page).toHaveURL(/\/plan$/);
+		await rule(page, description).getByRole('link').click();
+		await page.getByRole('link', { name: 'Registrar pago' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(rule(page, description)).toContainText('Pagado');
+
+		const [href] = await findMovements(page, description, 'ARS');
+		await page.goto(`${new URL(href).pathname}/edit`, { waitUntil: 'networkidle' });
+		await pick(page, 'Cuenta', 'Otra cuenta');
+		await page.getByRole('button', { name: 'Guardar cambios' }).click();
+		await expect(page).toHaveURL(new URL(href).pathname);
+
+		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await expect(rule(page, description)).toBeVisible();
+		await expect(rule(page, description)).not.toContainText('Pagado');
+	} finally {
+		for (const href of await findMovements(page, description, 'USD'))
+			await postDelete(page, baseURL!, href);
 		await deleteMovements(page, baseURL!, description);
 		await deleteRules(page, baseURL!, description);
 	}

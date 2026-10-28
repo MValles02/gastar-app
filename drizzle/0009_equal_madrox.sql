@@ -1,0 +1,2 @@
+ALTER TABLE "mp_import_items" DROP CONSTRAINT "mp_import_items_kind_check";--> statement-breakpoint
+ALTER TABLE "mp_import_items" ADD CONSTRAINT "mp_import_items_kind_check" CHECK ("mp_import_items"."kind" IN ('payment', 'account_fund', 'yield', 'payout', 'merchant_payout', 'refund', 'other'));

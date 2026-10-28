@@ -7,6 +7,8 @@ export const SEED_EMAIL = process.env.SEED_EMAIL || 'demo@gastar.local';
 const SEED_PASSWORD = process.env.SEED_PASSWORD || 'demo1234';
 /** Second seeded user, same password: ARS "Otra cuenta pesos", category "Ajena", USD rule "Regla ajena". */
 export const OTHER_EMAIL = 'otro@gastar.local';
+/** Third seeded user, same password: owner of the Mercado Pago import account. */
+export const IMPORT_EMAIL = 'importa@gastar.local';
 
 /** The app time zone (`TZ` in src/lib/server/month.ts, which is not importable here: it uses `$lib`). */
 const APP_TZ = 'America/Argentina/Buenos_Aires';
@@ -33,7 +35,11 @@ export async function submitLogin(page: Page, email: string, password = SEED_PAS
 	await page.getByRole('button', { name: 'Ingresar' }).click();
 }
 
-/** Signs up a fresh user, follows the verification link (which signs them in) and waits for Inicio. */
+/**
+ * Signs up a fresh user, follows the verification link (which signs them in) and waits for Inicio.
+ * Sign-up is rate-limited to 10/hour/IP: one full run makes 7 (signup 3, plan-recurring-suggestions 2,
+ * profile 1, plan-budget 1). New specs must reuse one user per file (sign up in `beforeAll`).
+ */
 export async function signUpVerified(
 	page: Page,
 	request: APIRequestContext,
@@ -73,12 +79,23 @@ export async function pick(page: Page, legend: string, name: string) {
 	await page.getByRole('dialog').getByText(name, { exact: true }).click();
 }
 
+/** Sets the calendar's Select-based month and year (options render in a portal outside the dialog). */
+export async function pickMonthYear(page: Page, dialog: Locator, ymd: string) {
+	const [y, m] = ymd.split('-').map(Number);
+	await dialog.getByLabel('Año', { exact: true }).click();
+	await page.getByRole('option', { name: String(y), exact: true }).click();
+	const month = new Intl.DateTimeFormat('es-AR', { month: 'long', timeZone: 'UTC' }).format(
+		new Date(Date.UTC(y, m - 1, 1))
+	);
+	await dialog.getByLabel('Mes', { exact: true }).click();
+	await page.getByRole('option', { name: month, exact: true }).click();
+}
+
 /** Picks `ymd` (YYYY-MM-DD) in the calendar dialog opened by the button whose name matches `label`. */
 export async function pickDate(page: Page, label: string, ymd: string) {
 	await page.getByRole('button', { name: new RegExp(label) }).click();
 	const dialog = page.getByRole('dialog');
-	await dialog.getByLabel('Año').selectOption(String(Number(ymd.slice(0, 4))));
-	await dialog.getByLabel('Mes', { exact: true }).selectOption(String(Number(ymd.slice(5, 7))));
+	await pickMonthYear(page, dialog, ymd);
 	await dialog.locator(`[data-bits-day][data-value="${ymd}"]`).click();
 }
 
@@ -103,9 +120,9 @@ export async function fillMovement(
 	if (o.date !== undefined) await pickDate(page, 'Fecha', o.date);
 	await page.locator('input[name="amount"]').fill(o.amount);
 	await page.locator('input[name="description"]').fill(o.description);
-	await pick(page, o.destination ? 'Cuenta de origen' : 'Cuenta', o.account);
+	await pick(page, o.destination ? 'Origen' : 'Cuenta', o.account);
 	if (o.category) await pick(page, 'Categoría', o.category);
-	if (o.destination) await pick(page, 'Cuenta de destino', o.destination);
+	if (o.destination) await pick(page, 'Destino', o.destination);
 	if (o.rate !== undefined) await page.locator('input[name="exchangeRate"]').fill(o.rate);
 }
 
@@ -118,9 +135,18 @@ export async function pickDay(page: Page, day: string) {
 /** Opens the new-rule form and fills it (JS pickers); the caller submits. */
 export async function fillRule(
 	page: Page,
-	o: { description: string; amount: string; day: string; account: string; category: string }
+	o: {
+		description: string;
+		amount: string;
+		day: string;
+		account: string;
+		category: string;
+		type?: 'income' | 'outcome';
+	}
 ) {
-	await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
+	await page.goto(`/plan/recurring/new${o.type === 'income' ? '?type=income' : ''}`, {
+		waitUntil: 'networkidle'
+	});
 	await page.locator('input[name="description"]').fill(o.description);
 	await page.locator('input[name="amount"]').fill(o.amount);
 	await pickDay(page, o.day);
@@ -131,7 +157,7 @@ export async function fillRule(
 /** Sets the Ahorro fields (toggle, then value and unit for "Otro"); the caller submits. */
 export async function fillSavings(
 	page: Page,
-	o: { option: 'Nada' | '10 %' | '20 %' | 'Otro'; value?: string; unit?: '%' | '$' }
+	o: { option: 'Nada' | '10%' | '20%' | 'Otro'; value?: string; unit?: '%' | '$' | 'US$' }
 ) {
 	await page.getByRole('radio', { name: o.option, exact: true }).click();
 	if (o.option !== 'Otro') return;

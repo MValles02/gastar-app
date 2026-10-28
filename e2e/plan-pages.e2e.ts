@@ -1,5 +1,7 @@
 import { expect, test, type Browser, type Cookie, type Page } from '@playwright/test';
 import {
+	deleteMovements,
+	deleteRules,
 	fillSavings,
 	linkId,
 	login,
@@ -93,6 +95,8 @@ test.beforeEach(async ({ page }) => {
 
 /** A row of the Disponible card by its label. */
 const kv = (page: Page, label: string) => page.locator('.kv', { hasText: label });
+const available = (page: Page) =>
+	page.getByRole('region', { name: /^Disponible · / }).locator('.hero-amount');
 const limits = (page: Page) => page.getByRole('region', { name: 'Límites por categoría' });
 const savePlan = (page: Page) => page.getByRole('button', { name: 'Guardar', exact: true });
 const hint = (page: Page, text: string) => page.getByText(text, { exact: true });
@@ -114,7 +118,7 @@ test('the wizard creates a plan in five steps, returning from the add screens', 
 	page
 }) => {
 	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await expect(page.getByText('Todavía no tenés un plan en pesos.')).toBeVisible();
+	await expect(page.getByText('Sin plan en pesos')).toBeVisible();
 	await page.getByRole('link', { name: 'Crear plan' }).click();
 	await expect(page).toHaveURL(/\/plan\/setup$/);
 	await expect(page.getByText('Paso 1 de 5')).toBeVisible();
@@ -124,7 +128,7 @@ test('the wizard creates a plan in five steps, returning from the add screens', 
 	// 1. Ingresos: Agregar opens the income form and returns to this step.
 	await page.getByRole('link', { name: 'Agregar' }).click();
 	await expect(page).toHaveURL(/\/plan\/recurring\/new\?type=income&wizard=1$/);
-	await expect(page.getByRole('radio', { name: 'Ingreso' })).toBeChecked();
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nuevo ingreso fijo');
 	await page.locator('input[name="description"]').fill('Sueldo e2e');
 	await page.locator('input[name="amount"]').fill('1.000.000');
 	await pickDay(page, '5');
@@ -142,8 +146,8 @@ test('the wizard creates a plan in five steps, returning from the add screens', 
 
 	// 3. Ahorro: submitting creates the plan.
 	await expect(page).toHaveURL(/\/plan\/setup\?step=3$/);
-	await fillSavings(page, { option: '10 %' });
-	await expect(hint(page, '10 % de $1.000.000 = $100.000')).toBeVisible();
+	await fillSavings(page, { option: '10%' });
+	await expect(hint(page, '10% de $1.000.000 = $100.000')).toBeVisible();
 	await page.getByRole('button', { name: 'Siguiente' }).click();
 
 	// 4. Límites: the suggested ones, then one added by hand.
@@ -155,7 +159,7 @@ test('the wizard creates a plan in five steps, returning from the add screens', 
 	await expect(page).toHaveURL(/\/plan\/limits\/new\?wizard=4$/);
 	await pick(page, 'Categoría', 'Gym e2e');
 	await page.locator('input[name="amount"]').fill('5.000');
-	await page.getByRole('button', { name: 'Guardar límite' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/plan\/setup\?step=4$/);
 	await expect(page.getByRole('link', { name: /Gym e2e/ })).toContainText('5.000');
 	await expect(page.getByRole('link', { name: /Comida e2e/ })).toBeVisible();
@@ -163,11 +167,13 @@ test('the wizard creates a plan in five steps, returning from the add screens', 
 	// 5. Resumen.
 	await page.getByRole('link', { name: 'Siguiente' }).click();
 	await expect(page).toHaveURL(/\/plan\/setup\?step=5$/);
-	const summary = page.locator('dl.equation');
+	const summary = page.locator('dl.figures');
 	await expect(summary).toContainText('1.000.000');
 	await expect(summary).toContainText('100.000');
 	await expect(summary).toContainText('900.000');
-	await page.getByRole('button', { name: 'Guardar plan' }).click();
+	await expect(summary).toContainText('Comida e2e');
+	await expect(summary).toContainText('Gym e2e');
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/plan$/);
 	await expect(page.getByText('Plan guardado.')).toBeVisible();
 	await expect(page.getByRole('region', { name: /^Disponible · / })).toBeVisible();
@@ -189,12 +195,12 @@ test('10 % savings shows its amount and the Disponible card follows an income ch
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await expect(kv(page, 'Ingresos')).toContainText('1.000.000');
 	await expect(kv(page, 'Ahorro')).toContainText('100.000');
-	await expect(kv(page, 'Disponible')).toContainText('900.000');
+	await expect(available(page)).toContainText('900.000');
 
 	await page.getByRole('link', { name: 'Ahorro', exact: true }).click();
 	await expect(page).toHaveURL(/\/plan\/savings$/);
-	await expect(page.getByRole('radio', { name: '10 %', exact: true })).toBeChecked();
-	await expect(hint(page, '10 % de $1.000.000 = $100.000')).toBeVisible();
+	await expect(page.getByRole('radio', { name: '10%', exact: true })).toBeChecked();
+	await expect(hint(page, '10% de $1.000.000 = $100.000')).toBeVisible();
 
 	// Raise the income through the rule's edit form.
 	await page.goto('/plan', { waitUntil: 'networkidle' });
@@ -207,9 +213,9 @@ test('10 % savings shows its amount and the Disponible card follows an income ch
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await expect(kv(page, 'Ingresos')).toContainText('2.000.000');
 	await expect(kv(page, 'Ahorro')).toContainText('200.000');
-	await expect(kv(page, 'Disponible')).toContainText('1.800.000');
+	await expect(available(page)).toContainText('1.800.000');
 	await page.goto('/plan/savings');
-	await expect(hint(page, '10 % de $2.000.000 = $200.000')).toBeVisible();
+	await expect(hint(page, '10% de $2.000.000 = $200.000')).toBeVisible();
 });
 
 test('Otro validates percent and amount, and saves both', async ({ page }) => {
@@ -224,7 +230,7 @@ test('Otro validates percent and amount, and saves both', async ({ page }) => {
 	}
 
 	await fillSavings(page, { option: 'Otro', unit: '%', value: '12,5' });
-	await expect(hint(page, '12,5 % de $2.000.000 = $250.000')).toBeVisible();
+	await expect(hint(page, '12,5% de $2.000.000 = $250.000')).toBeVisible();
 	await savePlan(page).click();
 	await expect(page).toHaveURL(/\/plan(\?planSaved=1)?$/);
 	await expect(page.getByText('Plan guardado.')).toBeVisible();
@@ -264,7 +270,7 @@ test('limits: edit, delete, add with the average, validation and 404s', async ({
 	await expect(page.getByRole('heading', { level: 1, name: 'Límite de Gym e2e' })).toBeVisible();
 	await expect(page.getByText(/^Promedio/)).toHaveCount(0);
 	await page.locator('input[name="amount"]').fill('7.000');
-	await savePlan(page).click();
+	await page.getByRole('button', { name: 'Guardar cambios' }).click();
 	await expect(page).toHaveURL(/\/plan$/);
 	await expect(limits(page)).toContainText('7.000');
 
@@ -272,7 +278,7 @@ test('limits: edit, delete, add with the average, validation and 404s', async ({
 	await limits(page)
 		.getByRole('link', { name: /Comida e2e/ })
 		.click();
-	await expect(page.getByText('Promedio $10.000')).toBeVisible();
+	await expect(page.getByText('Promedio últimos 3 meses = $10.000')).toBeVisible();
 	await page.locator('input[name="amount"]').fill('1.000');
 	await page.getByRole('button', { name: 'Usar promedio' }).click();
 	await expect(page.locator('input[name="amount"]')).toHaveValue(/^10\.?000$/);
@@ -285,18 +291,18 @@ test('limits: edit, delete, add with the average, validation and 404s', async ({
 	// New: validation first, then the average.
 	await limits(page).getByRole('link', { name: 'Agregar' }).click();
 	await expect(page).toHaveURL(/\/plan\/limits\/new$/);
-	await page.getByRole('button', { name: 'Guardar límite' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page.getByRole('alert')).toHaveText('Elegí una categoría.');
 	await pick(page, 'Categoría', 'Comida e2e');
-	await page.getByRole('button', { name: 'Guardar límite' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page.getByRole('alert')).toHaveText('Ingresá un límite válido.');
 	await page.locator('input[name="amount"]').fill('100,5');
-	await page.getByRole('button', { name: 'Guardar límite' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page.getByRole('alert')).toContainText(WHOLE_PESOS_ERROR);
-	await expect(page.getByText('Promedio $10.000')).toBeVisible();
+	await expect(page.getByText('Promedio últimos 3 meses = $10.000')).toBeVisible();
 	await page.getByRole('button', { name: 'Usar promedio' }).click();
 	await expect(page.locator('input[name="amount"]')).toHaveValue(/^10\.?000$/);
-	await page.getByRole('button', { name: 'Guardar límite' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/plan$/);
 	await expect(limits(page)).toContainText('Comida e2e');
 	await expect(limits(page)).toContainText('10.000');
@@ -343,11 +349,11 @@ test('a recurring detail leads to its edit form and back, keeping the wizard ste
 });
 
 test('re-submitting step 3 keeps a this-month-only plan this-month-only', async ({ page }) => {
-	const repeat = page.getByRole('checkbox', { name: 'Usar este plan todos los meses' });
+	const repeat = page.getByRole('switch', { name: 'Usar este plan todos los meses' });
 	const save = async (check: boolean) => {
 		await page.goto('/plan/setup?step=5', { waitUntil: 'networkidle' });
 		if ((await repeat.isChecked()) !== check) await repeat.click();
-		await page.getByRole('button', { name: 'Guardar plan' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Plan guardado.')).toBeVisible();
 	};
 	await save(false);
@@ -367,17 +373,17 @@ test('a USD plan takes cents and can be created and deleted on its own', async (
 }) => {
 	await setCurrencyCookie(page, baseURL!, 'USD');
 	await page.goto('/plan/setup?step=3', { waitUntil: 'networkidle' });
-	await fillSavings(page, { option: 'Otro', unit: '$', value: '10,50' });
+	await fillSavings(page, { option: 'Otro', unit: 'US$', value: '10,50' });
 	await page.getByRole('button', { name: 'Siguiente' }).click();
 	await expect(page).toHaveURL(/\/plan\/setup\?step=4$/);
 	await page.getByRole('link', { name: 'Siguiente' }).click();
-	await page.getByRole('button', { name: 'Guardar plan' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page.getByText('Plan guardado.')).toBeVisible();
 	await expect(kv(page, 'Ahorro')).toContainText('10,50');
 
 	await page.getByRole('button', { name: 'Eliminar plan' }).click();
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
-	await expect(page.getByText('Todavía no tenés un plan en dólares.')).toBeVisible();
+	await expect(page.getByText('Sin plan en dólares')).toBeVisible();
 });
 
 test('Eliminar plan on /plan removes the plan and keeps the fixed incomes', async ({ page }) => {
@@ -386,7 +392,7 @@ test('Eliminar plan on /plan removes the plan and keeps the fixed incomes', asyn
 	await expect(page.getByText('¿Eliminar este plan?')).toBeVisible();
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
 	await expect(page).toHaveURL(/\/plan$/);
-	await expect(page.getByText('Todavía no tenés un plan en pesos.')).toBeVisible();
+	await expect(page.getByText('Sin plan en pesos')).toBeVisible();
 	await expect(page.getByRole('link', { name: /Sueldo e2e/ })).toBeVisible();
 
 	// Without a plan the plan-only screens go back to /plan, and the wizard opens again.
@@ -396,4 +402,67 @@ test('Eliminar plan on /plan removes the plan and keeps the fixed incomes', asyn
 	}
 	await page.goto('/plan/setup');
 	await expect(page).toHaveURL(/\/plan\/setup$/);
+});
+
+test('step 2 suggests repeated outcomes and a tap opens the rule form prefilled', async ({
+	page,
+	baseURL
+}) => {
+	const [y, m] = todayInAppTz().split('-').map(Number);
+	const headers = { origin: baseURL!, accept: 'text/html' };
+	// The same outcome on the 15th of each of the last 3 full months.
+	for (const back of [2, 3, 4]) {
+		const res = await page.request.post('/movements/new', {
+			form: {
+				type: 'outcome',
+				amount: '12345',
+				description: 'Alquiler e2e',
+				accountId: ids.account,
+				categoryId: ids.food,
+				occurredAt: new Date(Date.UTC(y, m - back, 15)).toISOString().slice(0, 10)
+			},
+			headers
+		});
+		expect(res.ok()).toBe(true);
+	}
+	// A one-off in a single month, arranged here: it must not be suggested.
+	const oneOff = await page.request.post('/movements/new', {
+		form: {
+			type: 'outcome',
+			amount: '9999',
+			description: 'Cena suelta e2e',
+			accountId: ids.account,
+			categoryId: ids.food,
+			occurredAt: lastMonth15()
+		},
+		headers
+	});
+	expect(oneOff.ok()).toBe(true);
+	try {
+		await page.goto('/plan/setup?step=2', { waitUntil: 'networkidle' });
+		await expect(page.getByRole('heading', { name: 'Detectamos que se repiten' })).toBeVisible();
+		// The one-off (a single month) is not a suggestion.
+		await expect(page.getByRole('link', { name: /Cena suelta e2e/ })).toHaveCount(0);
+		const suggestion = page.getByRole('link', { name: /Alquiler e2e/ });
+		await expect(suggestion).toContainText('12.345');
+		await expect(suggestion).toContainText('Día 15 · Caja e2e');
+		await suggestion.click();
+
+		await expect(page).toHaveURL(/\/plan\/recurring\/new\?type=outcome&wizard=2&suggestion=/);
+		expect(page.url()).not.toContain('Alquiler');
+		await expect(page.locator('input[name="description"]')).toHaveValue('Alquiler e2e');
+		await expect(page.locator('input[name="amount"]')).toHaveValue('12.345');
+		await expect(page.locator('input[name="dayOfMonth"]')).toHaveValue('15');
+		await expect(page.getByRole('button', { name: /^Cuenta/ })).toContainText('Caja e2e');
+		await expect(page.getByRole('button', { name: /^Categoría/ })).toContainText('Comida e2e');
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+
+		await expect(page).toHaveURL(/\/plan\/setup\?step=2$/);
+		await expect(page.getByRole('link', { name: /Alquiler e2e/ })).toHaveCount(1);
+		await expect(page.getByRole('heading', { name: 'Detectamos que se repiten' })).toHaveCount(0);
+	} finally {
+		await deleteRules(page, baseURL!, 'Alquiler e2e');
+		await deleteMovements(page, baseURL!, 'Alquiler e2e');
+		await deleteMovements(page, baseURL!, 'Cena suelta e2e');
+	}
 });

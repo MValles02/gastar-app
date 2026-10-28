@@ -57,6 +57,34 @@
       "when": 1791990987227,
       "tag": "0007_simple_luke_cage",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792247818167,
+      "tag": "0008_yellow_maggott",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793133187301,
+      "tag": "0009_equal_madrox",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793134949577,
+      "tag": "0010_deep_smiling_tiger",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793145176387,
+      "tag": "0011_lying_supreme_intelligence",
+      "breakpoints": true
     }
   ]
 }

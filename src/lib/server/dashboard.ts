@@ -1,3 +1,4 @@
+import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import type { Currency } from '$lib/money';
 
 export type MovementType = 'income' | 'outcome' | 'transfer';
@@ -53,7 +54,8 @@ export type RecentRow = {
 	accountName: string;
 	accountCurrency: Currency;
 	destinationAccountName: string | null;
-	categoryName: string | null;
+	categoryIcon: string | null;
+	categoryColor: string | null;
 };
 
 export function toRecentItem(row: RecentRow, currency: Currency) {
@@ -68,7 +70,8 @@ export function toRecentItem(row: RecentRow, currency: Currency) {
 		type: row.type,
 		description: row.description,
 		accountName: row.accountName,
-		categoryName: row.categoryName,
+		categoryIcon: toCategoryIconKey(row.categoryIcon),
+		categoryColor: toSwatchKey(row.categoryColor),
 		destinationAccountName: row.destinationAccountName,
 		occurredAt: row.occurredAt,
 		currency,

@@ -17,7 +17,7 @@ import {
 test.describe.configure({ timeout: 60_000 });
 
 const rule = (page: Page, text: string) => page.locator('.rule', { hasText: text });
-const checkbox = (page: Page) => page.getByRole('checkbox', { name: 'Repetir cada mes' });
+const checkbox = (page: Page) => page.getByRole('switch', { name: 'Repetir cada mes' });
 /** A uniquely described ARS outcome as `otro`, filled but not submitted. */
 const fillOutcome = (page: Page, description: string, amount: string) =>
 	fillMovement(page, {
@@ -46,11 +46,9 @@ test('Repetir cada mes creates the rule and a movement linked to it', async ({ p
 	try {
 		await fillOutcome(page, description, '1.000');
 		await expect(checkbox(page)).not.toBeChecked();
-		await expect(
-			page.getByText('Te lo recordamos el mismo día de cada mes. Solo ingresos y gastos.')
-		).toBeVisible();
+		await expect(page.getByText('Te lo recordamos el mismo día de cada mes.')).toBeVisible();
 		await checkbox(page).check();
-		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		// The flag is stripped from the URL, so a reload does not toast again.
 		await expect(page).not.toHaveURL(/saved=/);
@@ -74,7 +72,7 @@ test('unchecked creates no rule', async ({ page, baseURL }) => {
 	await cleanup(page, baseURL!, description);
 	try {
 		await fillOutcome(page, description, '1.000');
-		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		expect(await movementCount(page, description)).toBe(1);
 		await page.goto('/plan', { waitUntil: 'networkidle' });
@@ -84,7 +82,7 @@ test('unchecked creates no rule', async ({ page, baseURL }) => {
 	}
 });
 
-test('a transfer hides the checkbox and never creates a rule', async ({ page, baseURL }) => {
+test('a transfer hides the switch and never creates a rule', async ({ page, baseURL }) => {
 	const description = 'Transferencia e2e';
 	await login(page, OTHER_EMAIL);
 	await cleanup(page, baseURL!, description);
@@ -94,7 +92,7 @@ test('a transfer hides the checkbox and never creates a rule', async ({ page, ba
 		await page.getByRole('radio', { name: 'Transf.' }).check({ force: true });
 		await expect(checkbox(page)).toHaveCount(0);
 
-		// A crafted post (what a no-JS form sends) with the box checked: the server ignores it.
+		// A crafted post (what a no-JS form sends) with the switch on: the server ignores it.
 		const id = async (legend: string, label: RegExp) => {
 			await page.getByRole('button', { name: new RegExp(legend) }).click();
 			const value = await page
@@ -104,8 +102,8 @@ test('a transfer hides the checkbox and never creates a rule', async ({ page, ba
 			await page.keyboard.press('Escape');
 			return value;
 		};
-		const origin = await id('Cuenta de origen', /Otra cuenta pesos/);
-		const destination = await id('Cuenta de destino', /Otra cuenta\s*USD/);
+		const origin = await id('Origen', /Otra cuenta pesos/);
+		const destination = await id('Destino', /Otra cuenta\s*USD/);
 		const res = await page.request.post('/movements/new', {
 			form: {
 				type: 'transfer',
@@ -128,7 +126,7 @@ test('a transfer hides the checkbox and never creates a rule', async ({ page, ba
 	}
 });
 
-test('a rejected post with the box checked writes no movement and no rule', async ({
+test('a rejected post with the switch on writes no movement and no rule', async ({
 	page,
 	browser,
 	baseURL
@@ -170,7 +168,7 @@ test('a rejected post with the box checked writes no movement and no rule', asyn
 	}
 });
 
-test('ARS decimals with the box checked: message, nothing written, box kept', async ({
+test('ARS decimals with the switch on: message, nothing written, switch kept', async ({
 	page,
 	baseURL
 }) => {
@@ -180,7 +178,7 @@ test('ARS decimals with the box checked: message, nothing written, box kept', as
 	try {
 		await fillOutcome(page, description, '1.500,50');
 		await checkbox(page).check();
-		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
 		await expect(page).toHaveURL(/\/movements\/new$/);
 		await expect(checkbox(page)).toBeChecked();
@@ -216,7 +214,7 @@ test('Inicio with a plan shows the same Disponible as /plan and links to it', as
 	await page.goto('/', { waitUntil: 'networkidle' });
 	const card = page.getByRole('region', { name: 'Disponible', exact: true });
 	await expect(card).toBeVisible();
-	await expect(card.getByText(/Vas bien|Atención|Te pasaste/)).toBeVisible();
+	await expect(card.getByText(/Vas bien|Vas rápido|Te pasaste/)).toBeVisible();
 	await expect(card).toContainText(/\/día · \d+\s+(día|días)/);
 	const onHome = await card.locator('.available-amount').innerText();
 
@@ -265,7 +263,7 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 
 		await fillOutcome(page, description, '1.000');
 		await checkbox(page).check();
-		await page.getByRole('button', { name: 'Guardar movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		await page.goto('/plan', { waitUntil: 'networkidle' });
 		const id = await linkId(rule(page, description).locator('a[data-slot="item"]'));
@@ -296,8 +294,10 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 		});
 		const row = page.locator('a[href*="movements/"]').filter({ hasText: description });
 		await expect(row).toHaveCount(1);
-		await expect(row).toContainText('Ajena');
-		await expect(row).not.toContainText(extra);
+		// Rows show the category as an icon only; its name is on the detail page.
+		await row.click();
+		await expect(page.getByText('Ajena', { exact: true })).toBeVisible();
+		await expect(page.getByText(extra)).toHaveCount(0);
 	} finally {
 		await cleanup(page, baseURL!, description);
 		if (extraId) await postDelete(page, baseURL!, `/categories/${extraId}`);

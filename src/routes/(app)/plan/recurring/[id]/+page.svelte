@@ -2,11 +2,13 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import DetailActions from '$lib/components/DetailActions.svelte';
+	import DetailHero from '$lib/components/DetailHero.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import Money from '$lib/components/Money.svelte';
+	import StatusPill from '$lib/components/StatusPill.svelte';
+	import { DUE_TONE } from '$lib/status';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -23,19 +25,14 @@
 <div class="detail">
 	<PageHeader title={data.description} back={{ href: resolve('/plan'), label: 'Volver al plan' }} />
 
-	<section aria-label="Monto">
-		<Card.Root>
-			<Card.Content>
-				<div class="hero">
-					<IconBadge icon={data.category.icon} color={data.category.color} size="3rem" />
-					<p class="value">
-						<Money cents={data.amount} {currency} kind={income ? 'income' : 'outcome'} />
-					</p>
-					<p class="type">{income ? 'Ingreso fijo' : 'Pago fijo'}</p>
-				</div>
-			</Card.Content>
-		</Card.Root>
-	</section>
+	<DetailHero
+		cents={data.amount}
+		{currency}
+		tone="flow"
+		direction={income ? 'income' : 'outcome'}
+		label={income ? 'Ingreso fijo' : 'Pago fijo'}
+		ariaLabel="Monto"
+	/>
 
 	<dl class="data">
 		<div class="item">
@@ -56,40 +53,48 @@
 			<dt>Día</dt>
 			<dd>{data.dayOfMonth} · todos los meses</dd>
 		</div>
+		{#if data.thisMonth}
+			<div class="item">
+				<dt>Este mes</dt>
+				<dd><StatusPill tone={DUE_TONE[data.thisMonth.status]} label={data.thisMonth.label} /></dd>
+			</div>
+		{/if}
 		<div class="item">
 			<dt>Estado</dt>
 			<dd>{data.inactiveReason ?? 'Activo'}</dd>
 		</div>
 	</dl>
 
-	{#if data.inactiveReason}
-		<p class="muted">No se puede registrar.</p>
-	{:else}
-		<Button class="w-full" href={resolve(`/movements/new?recurring=${data.id}`)}>
-			{income ? 'Registrar ingreso' : 'Registrar pago'}
-		</Button>
-	{/if}
-
-	<div class="actions">
-		<div class="buttons">
-			<Button href={resolve(`/plan/recurring/${data.id}/edit${wizardQuery}`)}>Editar</Button>
+	<DetailActions editHref={resolve(`/plan/recurring/${data.id}/edit${wizardQuery}`)}>
+		{#snippet primary()}
+			{#if data.inactiveReason}
+				<p class="muted">No se puede registrar.</p>
+			{:else}
+				<Button class="w-full" href={resolve(`/movements/new?recurring=${data.id}`)}>
+					{income ? 'Registrar ingreso' : 'Registrar pago'}
+				</Button>
+			{/if}
+		{/snippet}
+		{#snippet secondary()}
 			<form method="POST" action="?/archive{wizardQuery.replace('?', '&')}" use:enhance>
 				<Button type="submit" variant="outline" class="w-full">
 					{data.archived ? 'Activar' : 'Desactivar'}
 				</Button>
 			</form>
-		</div>
-		<ConfirmDialog
-			triggerLabel="Eliminar"
-			triggerVariant="destructive"
-			title="¿Eliminar este movimiento fijo?"
-			confirmLabel="Eliminar"
-			action="?/delete{wizardQuery.replace('?', '&')}"
-		>
-			Los movimientos ya registrados se mantienen.
-		</ConfirmDialog>
-		<p class="muted">Desactivarlo lo saca del plan sin borrar nada. Podés activarlo de nuevo.</p>
-	</div>
+		{/snippet}
+		{#snippet destructive()}
+			<ConfirmDialog
+				triggerLabel="Eliminar"
+				triggerVariant="destructive"
+				triggerClass="w-full"
+				title="¿Eliminar este movimiento fijo?"
+				confirmLabel="Eliminar"
+				action="?/delete{wizardQuery.replace('?', '&')}"
+			>
+				Los movimientos ya registrados se mantienen.
+			</ConfirmDialog>
+		{/snippet}
+	</DetailActions>
 </div>
 
 <style>
@@ -97,29 +102,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-	}
-
-	.hero {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: var(--space-1);
-		padding: var(--space-3) 0;
-		text-align: center;
-	}
-
-	.value {
-		margin-top: var(--space-3);
-		font-family: var(--font-display);
-		font-size: clamp(2rem, 11vw, 2.75rem);
-		font-weight: 500;
-		line-height: 1.1;
-		overflow-wrap: anywhere;
-	}
-
-	.type {
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
 	}
 
 	.data {
@@ -165,22 +147,5 @@
 		color: var(--text-muted);
 		font-size: var(--font-size-sm);
 		text-align: center;
-	}
-
-	.actions {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-	}
-
-	/* Editar + Desactivar side by side, equal width. */
-	.buttons {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: var(--space-3);
-	}
-
-	.buttons > :global(*) {
-		width: 100%;
 	}
 </style>

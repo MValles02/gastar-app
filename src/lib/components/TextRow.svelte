@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { groupedAmount } from '$lib/amount-input';
 	import Icon from '$lib/components/Icon.svelte';
 
@@ -18,7 +19,9 @@
 		password = false,
 		autocomplete = 'off',
 		minlength,
-		form
+		form,
+		prefix,
+		end
 	}: {
 		id: string;
 		name: string;
@@ -38,63 +41,93 @@
 		minlength?: number;
 		/** `id` of a `<form>` elsewhere in the page this input submits with. */
 		form?: string;
+		/** Muted text before the input (e.g. the currency symbol), so an empty row reads "$ 0". */
+		prefix?: string;
+		/** Content after the input, inside the row (sibling of the label). */
+		end?: Snippet;
 	} = $props();
 
 	let shown = $state(false);
 </script>
 
 <div class="wrap">
-	<label class="row" for={id}>
-		<span class="k">{label}</span>
-		<input
-			{id}
-			{name}
-			{form}
-			type={password && !shown ? 'password' : 'text'}
-			{maxlength}
-			{minlength}
-			{inputmode}
-			{required}
-			{placeholder}
-			{autocomplete}
-			bind:value
-			{@attach (node) => (amount ? groupedAmount(node) : undefined)}
-			aria-invalid={error ? 'true' : undefined}
-			aria-describedby={error ? errorId : undefined}
-		/>
-		{#if password}
-			<button
-				type="button"
-				class="toggle"
-				aria-pressed={shown}
-				aria-label={shown ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-				onclick={() => (shown = !shown)}
-			>
-				<Icon name={shown ? 'eye-off' : 'eye'} size="1.25rem" />
-			</button>
-		{/if}
-	</label>
+	<div class="row">
+		<label class="lbl" class:has-prefix={!!prefix} for={id}>
+			<span class="k">{label}</span>
+			{#if prefix}<span class="prefix">{prefix}</span>{/if}
+			<input
+				{id}
+				{name}
+				{form}
+				type={password && !shown ? 'password' : 'text'}
+				{maxlength}
+				{minlength}
+				{inputmode}
+				{required}
+				{placeholder}
+				{autocomplete}
+				bind:value
+				{@attach (node) => (amount ? groupedAmount(node) : undefined)}
+				aria-invalid={error ? 'true' : undefined}
+				aria-describedby={error ? errorId : undefined}
+			/>
+			{#if password}
+				<button
+					type="button"
+					class="toggle"
+					aria-pressed={shown}
+					aria-label={shown ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+					onclick={() => (shown = !shown)}
+				>
+					<Icon name={shown ? 'eye-off' : 'eye'} size="1.25rem" />
+				</button>
+			{/if}
+		</label>
+		{#if end}{@render end()}{/if}
+	</div>
 	{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
 </div>
 
 <style>
 	.row {
 		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: 0 var(--space-4);
+	}
+
+	.lbl {
+		display: flex;
+		flex: 1 1 0;
+		min-width: 0;
 		flex-direction: row;
 		align-items: center;
 		gap: var(--space-3);
 		min-height: 3.5rem;
-		padding: 0 var(--space-4);
 		font-size: var(--font-size-base);
 		color: var(--text);
 		cursor: text;
+	}
+
+	.prefix {
+		flex: none;
+		margin-inline-start: auto;
+		margin-inline-end: calc(var(--space-3) * -1 + 0.25rem);
+		color: var(--text-muted);
+	}
+
+	/* The prefix hugs the (right-aligned) value. */
+	.has-prefix input {
+		flex: 0 1 auto;
+		field-sizing: content;
+		min-width: 1ch;
 	}
 
 	.k {
 		flex: none;
 	}
 
-	.row input {
+	.lbl input {
 		flex: 1 1 4rem;
 		min-width: 0;
 		width: auto;
@@ -107,12 +140,12 @@
 		scroll-margin-bottom: 6rem;
 	}
 
-	.row input::placeholder {
+	.lbl input::placeholder {
 		color: var(--text-muted);
 		opacity: 1;
 	}
 
-	.row input:focus-visible {
+	.lbl input:focus-visible {
 		outline-offset: -2px;
 	}
 

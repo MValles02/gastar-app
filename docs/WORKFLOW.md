@@ -43,29 +43,49 @@ Two GitHub rulesets make this a hard block, not just convention. Force push
 and deletion are blocked on both branches:
 
 - `develop`: pull requests only, squash merge only, required status checks
-  `checks` and `gitleaks`.
+  `checks` and `e2e`.
 - `main`: pull requests only, merge commit only, required status checks
-  `checks`, `gitleaks` and `develop-only`. `develop-only` comes from
+  `checks`, `e2e` and `develop-only`. `develop-only` comes from
   `.github/workflows/promotion-guard.yml`: rulesets cannot restrict a PR's
   source branch, so this check fails unless the PR head is `develop` of this
   repository.
 
-- `.github/workflows/ci.yml` runs on every pull request: install, lint,
-  check, build, Playwright E2E, and a `docker build` (no push).
-- `.github/workflows/deploy.yml` re-runs the same CI workflow (via
-  `workflow_call`) before publishing, so a merge can never deploy code that
-  didn't pass checks, even if a PR was merged without waiting for CI.
+Required checks and where they come from:
+
+| Check          | Workflow             | Runs on                | Required on     |
+| -------------- | -------------------- | ---------------------- | --------------- |
+| `checks`       | `ci.yml`             | pull requests          | `develop`, `main` |
+| `e2e`          | `ci.yml`             | pull requests          | `develop`, `main` |
+| `develop-only` | `promotion-guard.yml`| pull requests to `main`| `main`          |
+| `push-scan`    | `secrets-scan.yml`   | pushes to any branch   | not required    |
+
+- `.github/workflows/ci.yml` runs on every pull request: a gitleaks scan of
+  the PR's commits only (shallow checkout sized to the PR), install, lint,
+  check, build (all in `checks`), and Playwright E2E against a production
+  build made with `VITE_E2E=1` (`e2e`).
+- `.github/workflows/secrets-scan.yml` runs gitleaks over the commits of
+  every push, on any branch, so a secret pushed to a feature branch is
+  flagged before a PR exists. It is advisory: if it fails, rotate the secret
+  at its source and rewrite the branch before opening the PR. It is a
+  separate workflow because a push run inside `ci.yml` would add skipped
+  `checks`/`e2e` runs, and GitHub counts skipped as passing.
+- `.github/workflows/deploy.yml` does not re-run CI: the checks run on the PR
+  and are required by the ruleset, so they are not repeated on push.
 
 ## Deploy pipeline
 
 On push to `main` or `develop` (or manual `workflow_dispatch` from either):
 
-1. `checks` — re-runs CI.
-2. `publish` — builds the Docker image and pushes it to GHCR as
+A manual run redeploys the branch tip, which got there only through a PR that
+passed the required checks, so it does not re-run them. It asks for a
+`confirm` input that must equal the branch name (`main` or `develop`);
+otherwise `publish` fails before building anything.
+
+1. `publish` — builds the Docker image and pushes it to GHCR as
    `ghcr.io/mvalles02/gastar-app:latest` (main) or
    `ghcr.io/mvalles02/gastar-app:develop` (develop), plus
    `ghcr.io/mvalles02/gastar-app:sha-<full sha>`.
-3. `deploy` — calls the Dokploy deploy webhook to redeploy the application.
+2. `deploy` — calls the Dokploy deploy webhook to redeploy the application.
    Push to `main` uses the `production` environment and `HEALTH_URL`; push to
    `develop` uses the `development` environment and `DEV_HEALTH_URL`
    (`https://dev.gastar.app/health`). Environment branch policies limit
@@ -78,9 +98,9 @@ Each environment (`production`, `development`) holds its own secrets:
   regenerate it there if it leaks. The app must have Auto Deploy enabled for
   the webhook to be accepted.
 - `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` — a Cloudflare Access
-  service token (`github-actions-deploy`) that the deploy step sends as
+  service token (`gastar-app-deploy`) that the deploy step sends as
   `CF-Access-Client-Id`/`CF-Access-Client-Secret` headers, since
-  `dokploy.mateovalles.cloud/api/deploy*` is protected by Cloudflare Access.
+  `dokploy.mateovalles.com/api/deploy*` is protected by Cloudflare Access.
   The step fails if any of these three secrets is missing.
 
 Required GitHub variables:
@@ -141,9 +161,9 @@ Development uses a separate Dokploy app, `gastar-app-dev`:
 
 - `pnpm dev` binds to loopback (`127.0.0.1`, Vite default port 5173).
 - Database and seed setup: see the README "Local development" section.
-- `pnpm hooks:install` enables the versioned pre-commit hook
-  (`scripts/git-hooks/pre-commit`), which scans staged changes with gitleaks
-  via docker (the commit is blocked if docker is missing; bypass deliberately
-  with `git commit --no-verify`). On Windows it
-  needs Docker Desktop running; the hook is a bash script run by Git for
-  Windows.
+- Git hooks install automatically on `pnpm install` (husky `prepare`). The
+  pre-commit hook runs lint-staged (eslint + prettier on staged files) and a
+  gitleaks scan of staged changes via docker; the scan is skipped with a
+  warning if the docker CLI is missing. If the CLI is installed but the engine
+  is not running (Docker Desktop stopped), the commit is blocked on purpose so
+  nothing is committed unscanned: start Docker Desktop and commit again.

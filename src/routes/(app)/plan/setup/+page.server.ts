@@ -8,20 +8,19 @@ import { preferredCurrency } from '$lib/server/currency-pref';
 import { currentMonth } from '$lib/server/month';
 import { parseSavingsForm } from '$lib/server/plan';
 import {
-	getPlan,
+	currentPlan,
 	planIncome,
 	planLimits,
 	updatePlan,
 	upsertLimits,
 	upsertPlan
 } from '$lib/server/plan-queries';
-import { limitSuggestions, planView, recurringLists } from '$lib/server/plan-view';
-
-/** The user's plan for `cur` when it is the current one (a one-month plan for another month counts as none). */
-async function currentPlan(userId: string, cur: Currency) {
-	const [plan] = await getPlan(userId, cur);
-	return plan && (plan.month === null || plan.month === currentMonth(new Date())) ? plan : null;
-}
+import {
+	limitSuggestions,
+	planView,
+	recurringLists,
+	recurringSuggestions
+} from '$lib/server/plan-view';
 
 /** Suggested limits the wizard can apply: active non-income categories with no limit yet and a suggestion above zero. */
 async function applicableSuggestions(userId: string, cur: Currency, planId: string | null) {
@@ -59,6 +58,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		inactive: [] as Awaited<ReturnType<typeof recurringLists>>['inactive'],
 		income: 0,
 		savings: { savings: plan?.savings ?? 0, savingsPercent: plan?.savingsPercent ?? null },
+		suggestions: [] as Awaited<ReturnType<typeof recurringSuggestions>>,
 		limits: [] as Summary['limits'],
 		canSuggest: false,
 		summary: null as Summary | null,
@@ -67,12 +67,16 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	};
 	const base = { ...none, currency, step };
 	if (step <= 2) {
-		const lists = await recurringLists(userId, currency);
+		const [lists, suggestions] = await Promise.all([
+			recurringLists(userId, currency),
+			step === 2 ? recurringSuggestions(userId, currency) : []
+		]);
 		const type = step === 1 ? 'income' : 'outcome';
 		return {
 			...base,
 			active: step === 1 ? lists.incomes : lists.outcomes,
-			inactive: lists.inactive.filter((r) => r.type === type)
+			inactive: lists.inactive.filter((r) => r.type === type),
+			suggestions
 		};
 	}
 	if (step === 3) return { ...base, income: await planIncome(userId, currency) };

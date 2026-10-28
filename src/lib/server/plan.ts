@@ -59,7 +59,7 @@ export type PlanStatus = 'ok' | 'warn' | 'over';
 
 export const PLAN_STATUS_LABEL: Record<PlanStatus, string> = {
 	ok: 'Vas bien',
-	warn: 'Atención',
+	warn: 'Vas rápido',
 	over: 'Te pasaste'
 };
 
@@ -70,22 +70,28 @@ export function lastFullMonths(ym: string) {
 }
 
 /**
- * Pure: month outcomes (one currency) that count as spent, total and per category. Payments linked to
- * an active rule are skipped (the rule's full amount is already deducted as `bills`); a payment linked
- * to an inactive or deleted rule counts.
+ * Pure: month outcomes (one currency). `total` is all spending (what Reportes calls Gastos), including
+ * payments linked to an active rule; `variable` and `byCategory` leave those out (limits track variable
+ * spending only); `paidIds` are the active rules with at least one payment this month (partial counts).
  */
 export function planSpent(
 	rows: { categoryId: string | null; recurringId: string | null; amount: number }[],
 	activeIds: ReadonlySet<string>
 ) {
 	const byCategory = new Map<string, number>();
+	const paidIds = new Set<string>();
 	let total = 0;
+	let variable = 0;
 	for (const r of rows) {
-		if (r.recurringId && activeIds.has(r.recurringId)) continue;
 		total += r.amount;
+		if (r.recurringId && activeIds.has(r.recurringId)) {
+			paidIds.add(r.recurringId);
+			continue;
+		}
+		variable += r.amount;
 		if (r.categoryId) byCategory.set(r.categoryId, (byCategory.get(r.categoryId) ?? 0) + r.amount);
 	}
-	return { total, byCategory };
+	return { total, variable, byCategory, paidIds };
 }
 
 export type PlanInput = {
@@ -93,9 +99,13 @@ export type PlanInput = {
 	recurringIncome: number;
 	/** Sum of active recurring outcomes. */
 	bills: number;
+	/** Sum of active recurring outcomes with no payment yet this month. */
+	pendingBills: number;
 	savings: number;
-	/** Month outcomes not linked to a recurring rule (bills are already deducted). */
+	/** All month outcomes, including payments linked to recurring rules. */
 	spent: number;
+	/** Month outcomes not linked to an active recurring rule. */
+	variableSpent: number;
 	limits: { categoryId: string; name: string; amount: number; spent: number }[];
 	ym: string;
 	todayYmd: string;
@@ -105,7 +115,7 @@ export type PlanInput = {
 export function planSummary(p: PlanInput & { currency: Currency }) {
 	const income = p.recurringIncome;
 	const forSpending = income - p.bills - p.savings;
-	const available = forSpending - p.spent;
+	const available = income - p.savings - p.spent - p.pendingBills;
 	const days = daysInMonth(p.ym);
 	const elapsed = elapsedDays(p.ym, p.todayYmd);
 	// Today still counts as a day to spend in.
@@ -113,7 +123,10 @@ export function planSummary(p: PlanInput & { currency: Currency }) {
 	// The daily figure is rounded down to whole pesos in ARS, to the cent in USD.
 	const perDayStep = p.currency === 'ARS' ? 100 : 1;
 	const elapsedShare = elapsed / days;
-	const spentShare = forSpending > 0 ? p.spent / forSpending : p.spent > 0 ? 1 : 0;
+	// Pace is variable spending against what variable spending could reach (paid bills are already settled).
+	const variableBudget = available + p.variableSpent;
+	const spentShare =
+		variableBudget > 0 ? p.variableSpent / variableBudget : p.variableSpent > 0 ? 1 : 0;
 	const status: PlanStatus = available < 0 ? 'over' : spentShare > elapsedShare ? 'warn' : 'ok';
 	const limits = p.limits.map((l) => {
 		const share = l.spent / l.amount;
@@ -127,6 +140,7 @@ export function planSummary(p: PlanInput & { currency: Currency }) {
 	return {
 		income,
 		bills: p.bills,
+		pendingBills: p.pendingBills,
 		savings: p.savings,
 		forSpending,
 		spent: p.spent,

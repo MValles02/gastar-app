@@ -19,6 +19,14 @@ Env vars required at runtime:
 | `ADDRESS_HEADER`      | `CF-Connecting-IP`. MUST be set in Dokploy BEFORE (or with) deploying this release: the app refuses to start in production without it |
 | `RESEND_API_KEY`      | Resend API key restricted to the sending domain. The app refuses to start in production without it |
 | `EMAIL_FROM`          | Bare sender address on a domain verified in Resend, e.g. `no-reply@yourdomain`. The app refuses to start in production without it |
+| `MP_CLIENT_ID`        | Optional. Mercado Pago application client id. The Mercado Pago link is on only when `MP_CLIENT_ID`, `MP_CLIENT_SECRET` and `MP_TOKEN_KEY` are all set. The application must list `<ORIGIN>/profile/mercado-pago/callback` as a redirect URL |
+| `MP_CLIENT_SECRET`    | Optional. Mercado Pago application client secret (secret, never commit or log it) |
+| `MP_TOKEN_KEY`        | Optional. Key that encrypts users' Mercado Pago tokens (secret): base64 of 32 bytes, e.g. `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. The app refuses to start in production if it is set with another length. If it is lost or changed, every user must link again |
+| `MP_AUTH_BASE_URL`    | Optional, tests only. Mercado Pago authorization base URL (default `https://auth.mercadopago.com`) |
+| `MP_IMPORT_FROM`      | Optional. First-sync start date `YYYY-MM-DD` (default: 30 days ago) |
+| `MP_SYNC_INTERVAL_HOURS` | Optional. Hours between automatic syncs run inside the server process (default `6`, `0` = off). The first run is ~1 minute after start. Only active when the Mercado Pago link is on. E2E sets it to `0`. |
+| `MP_API_BASE_URL`     | Optional, tests only. Mercado Pago API base URL (default `https://api.mercadopago.com`) |
+| `MP_REPORT_POLL_MS`   | Optional, tests only. Milliseconds between report-ready checks (default `15000`) |
 | `PORT`                | Port to listen on (default `3000`)                    |
 
 `CF-Connecting-IP` is trustworthy only because the origin accepts Cloudflare IPs only (firewall ipset); if the origin is ever exposed directly, the header is spoofable.
@@ -76,7 +84,12 @@ Windows quick start (PowerShell).
    pnpm dev                 # http://localhost:5173
    ```
 
-Demo login: `demo@gastar.local` / `demo1234` (override with `SEED_EMAIL` / `SEED_PASSWORD`).
+`pnpm db:seed` requires `SEED_PASSWORD` (set in `.env`, see `.env.example`; it exits 1 without it). Demo login: `demo@gastar.local` (override with `SEED_EMAIL`) / your `SEED_PASSWORD`.
 The seed refuses to run unless `DATABASE_URL` points at localhost and is safe to re-run.
 
-`pnpm test:e2e` needs the migrated + seeded DB and reuses a running `pnpm dev`.
+Two opt-in flags seed a non-local DB (e.g. dev) without creating users:
+
+- `SEED_ALLOW_REMOTE=1` skips only the localhost check (`NODE_ENV=production` is still refused).
+- `SEED_EXISTING_USER=<email>` seeds that existing user: deletes only their app data (not login rows), skips password and the second demo user.
+
+`pnpm test:e2e` needs the migrated + seeded DB. Locally it reuses a running `pnpm dev` if there is one; otherwise, and always in CI, it builds with `VITE_E2E=1` and serves `node build`. In CI it is the `e2e` check, required on PRs to `develop` and `main` (`docs/WORKFLOW.md`).

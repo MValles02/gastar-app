@@ -4,7 +4,7 @@ import { hashPassword } from 'better-auth/crypto';
 import postgres from 'postgres';
 
 const email = (process.env.SEED_EMAIL || 'demo@gastar.local').trim().toLowerCase();
-const password = process.env.SEED_PASSWORD || 'demo1234';
+const password = process.env.SEED_PASSWORD;
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -23,8 +23,17 @@ try {
 	console.error('Refusing to seed: DATABASE_URL is not a valid URL');
 	process.exit(1);
 }
-if (!LOCAL_HOSTS.includes(hostname)) {
+if (process.env.SEED_ALLOW_REMOTE === '1') {
+	console.warn(`WARNING: SEED_ALLOW_REMOTE=1, seeding non-local host "${hostname}"`);
+} else if (!LOCAL_HOSTS.includes(hostname)) {
 	console.error(`Refusing to seed: DATABASE_URL host "${hostname}" is not local`);
+	process.exit(1);
+}
+// When set, seeds this already-existing user instead of creating the demo users.
+const existingEmail = (process.env.SEED_EXISTING_USER || '').trim().toLowerCase();
+// The demo users need a password; SEED_EXISTING_USER mode never sets one.
+if (!password && !existingEmail) {
+	console.error('SEED_PASSWORD is not set: set it in .env (see .env.example) or the environment');
 	process.exit(1);
 }
 
@@ -40,7 +49,7 @@ const between = (min, max) => min + Math.floor(rand() * (max - min + 1));
 const pick = (arr) => arr[Math.floor(rand() * arr.length)];
 
 const now = new Date();
-const userId = randomUUID();
+let userId = randomUUID(); // replaced by the existing user's id when SEED_EXISTING_USER is set
 
 const accountDefs = [
 	// color and icon are keys from src/lib/appearance.ts (SWATCHES, ACCOUNT_ICONS), not hex
@@ -87,16 +96,23 @@ const accountDefs = [
 	}
 ];
 const categoryDefs = [
-	{ key: 'super', name: 'Supermercado', color: 'orange', kind: 'outcome' },
-	{ key: 'rent', name: 'Alquiler', color: 'violet', kind: 'outcome' },
-	{ key: 'bills', name: 'Servicios', color: 'blue', kind: 'outcome' },
-	{ key: 'transport', name: 'Transporte', color: 'ochre', kind: 'outcome' },
-	{ key: 'out', name: 'Salidas', color: 'plum', kind: 'outcome' },
-	{ key: 'health', name: 'Salud', color: 'green', kind: 'outcome' },
-	{ key: 'salary', name: 'Sueldo', color: 'teal', kind: 'income' },
-	{ key: 'freelance', name: 'Freelance', color: 'blue', kind: 'income' },
-	{ key: 'gifts', name: 'Regalos', color: 'red' },
-	{ key: 'gym', name: 'Gimnasio (viejo)', color: 'violet', kind: 'outcome', archived: true }
+	{ key: 'super', name: 'Supermercado', color: 'orange', icon: 'cart', kind: 'outcome' },
+	{ key: 'rent', name: 'Alquiler', color: 'violet', icon: 'home', kind: 'outcome' },
+	{ key: 'bills', name: 'Servicios', color: 'blue', icon: 'services', kind: 'outcome' },
+	{ key: 'transport', name: 'Transporte', color: 'ochre', icon: 'transport', kind: 'outcome' },
+	{ key: 'out', name: 'Salidas', color: 'plum', icon: 'entertainment', kind: 'outcome' },
+	{ key: 'health', name: 'Salud', color: 'green', icon: 'health', kind: 'outcome' },
+	{ key: 'salary', name: 'Sueldo', color: 'teal', icon: 'salary', kind: 'income' },
+	{ key: 'freelance', name: 'Freelance', color: 'blue', icon: 'salary', kind: 'income' },
+	{ key: 'gifts', name: 'Regalos', color: 'red', icon: 'gift' },
+	{
+		key: 'gym',
+		name: 'Gimnasio (viejo)',
+		color: 'violet',
+		icon: 'health',
+		kind: 'outcome',
+		archived: true
+	}
 ];
 const acc = Object.fromEntries(accountDefs.map((a) => [a.key, { ...a, id: randomUUID() }]));
 const cat = Object.fromEntries(categoryDefs.map((c) => [c.key, { ...c, id: randomUUID() }]));
@@ -105,6 +121,12 @@ const rentRule = randomUUID();
 const gymRule = randomUUID();
 
 const movements = [];
+const today = now.getDate();
+// Random day in [lo, hi]; the current month only draws from 1..today so nothing piles up on today.
+const rday = (m, lo = 1, hi = 28) => {
+	const h = m === 0 ? Math.min(hi, today) : hi;
+	return between(m === 0 ? 1 : lo, h);
+};
 // Buenos Aires local midnight of the date's Buenos Aires day (movements are date-only).
 const BA = 'America/Argentina/Buenos_Aires';
 function dayStartBA(d) {
@@ -118,6 +140,7 @@ function dayStartBA(d) {
 
 // Local-time date in `monthsAgo` months back; future dates are clamped to now, never dropped.
 function add(monthsAgo, day, hour, row) {
+	if (monthsAgo === 0 && day > today) return; // fixed-day item not due yet this month
 	let occurredAt = new Date(
 		now.getFullYear(),
 		now.getMonth() - monthsAgo,
@@ -130,6 +153,7 @@ function add(monthsAgo, day, hour, row) {
 	movements.push({
 		id: randomUUID(),
 		user_id: userId,
+		monthsAgo,
 		type: 'outcome',
 		occurred_at: occurredAt,
 		category_id: null,
@@ -169,12 +193,12 @@ for (let m = 2; m >= 0; m--) {
 	outcome(m, 12, 12, 'Celular', 'mp', 'bills', 15_000);
 	for (let i = 0; i < 6; i++) {
 		const a = pick(['bank', 'mp', 'cash']);
-		outcome(m, between(1, 28), between(9, 20), pick(shops), a, 'super', between(6, 55) * 1000);
+		outcome(m, rday(m), between(9, 20), pick(shops), a, 'super', between(6, 55) * 1000);
 	}
 	for (let i = 0; i < 8; i++) {
 		outcome(
 			m,
-			between(1, 28),
+			rday(m),
 			between(7, 19),
 			pick(['SUBE', 'Uber', 'Nafta']),
 			pick(['mp', 'cash']),
@@ -185,7 +209,7 @@ for (let m = 2; m >= 0; m--) {
 	for (let i = 0; i < 5; i++) {
 		outcome(
 			m,
-			between(1, 28),
+			rday(m),
 			between(12, 23),
 			pick(outings),
 			pick(['mp', 'cash', 'bank']),
@@ -193,13 +217,13 @@ for (let m = 2; m >= 0; m--) {
 			between(35, 180) * 100
 		);
 	}
-	outcome(m, between(10, 25), 16, 'Farmacia', 'mp', 'health', between(8, 40) * 1000);
+	outcome(m, rday(m, 10, 25), 16, 'Farmacia', 'mp', 'health', between(8, 40) * 1000);
 	if (m === 1) outcome(m, 18, 17, 'Consulta médica', 'bank', 'health', 45_000);
 	if (m === 2) outcome(m, 14, 19, 'Regalo cumpleaños', 'bank', 'gifts', 32_000);
 	if (m === 2) outcome(m, 2, 10, 'Gimnasio', 'old', 'gym', 22_000);
 	income(
 		m,
-		between(14, 24),
+		rday(m, 14, 24),
 		15,
 		'Proyecto freelance',
 		'bank',
@@ -272,13 +296,22 @@ const cols = [
 	'recurring_id'
 ];
 
-// Removes a seeded user and everything they own, children before parents.
-async function deleteUserData(tx, id) {
+// Removes a user's app data (not the auth rows), children before parents.
+async function deleteAppData(tx, id) {
 	await tx`delete from movements where user_id = ${id}`;
+	await tx`delete from plan_category_limits where plan_id in (select id from spending_plans where user_id = ${id})`;
 	await tx`delete from spending_plans where user_id = ${id}`;
 	await tx`delete from recurring_movements where user_id = ${id}`;
 	await tx`delete from categories where user_id = ${id}`;
+	await tx`delete from mp_import_items where user_id = ${id}`;
+	await tx`delete from mp_import_rules where user_id = ${id}`;
+	await tx`delete from mp_sync_state where account_id in (select id from financial_accounts where owner_id = ${id})`;
 	await tx`delete from financial_accounts where owner_id = ${id}`;
+}
+
+// Removes a seeded user and everything they own.
+async function deleteUserData(tx, id) {
+	await deleteAppData(tx, id);
 	await tx`delete from session where user_id = ${id}`;
 	await tx`delete from "account" where user_id = ${id}`;
 	await tx`delete from "user" where id = ${id}`;
@@ -287,18 +320,26 @@ async function deleteUserData(tx, id) {
 const sql = postgres(databaseUrl, { max: 1 });
 
 try {
-	const passwordHash = await hashPassword(password);
+	const passwordHash = existingEmail ? null : await hashPassword(password);
 	await sql.begin(async (tx) => {
-		const [existing] = await tx`select id from "user" where email = ${email}`;
-		if (existing) await deleteUserData(tx, existing.id);
-		await tx`
-			insert into "user" (id, name, email, email_verified, created_at, updated_at)
-			values (${userId}, 'Demo', ${email}, true, now(), now())
-		`;
-		await tx`
-			insert into "account" (id, account_id, provider_id, user_id, password, created_at, updated_at)
-			values (${randomUUID()}, ${userId}, 'credential', ${userId}, ${passwordHash}, now(), now())
-		`;
+		if (existingEmail) {
+			const [found] = await tx`select id from "user" where email = ${existingEmail}`;
+			if (!found) throw new Error(`SEED_EXISTING_USER: no user with email "${existingEmail}"`);
+			userId = found.id;
+			for (const mv of movements) mv.user_id = userId;
+			await deleteAppData(tx, userId);
+		} else {
+			const [existing] = await tx`select id from "user" where email = ${email}`;
+			if (existing) await deleteUserData(tx, existing.id);
+			await tx`
+				insert into "user" (id, name, email, email_verified, created_at, updated_at)
+				values (${userId}, 'Demo', ${email}, true, now(), now())
+			`;
+			await tx`
+				insert into "account" (id, account_id, provider_id, user_id, password, created_at, updated_at)
+				values (${randomUUID()}, ${userId}, 'credential', ${userId}, ${passwordHash}, now(), now())
+			`;
+		}
 		await tx`insert into financial_accounts ${tx(
 			Object.values(acc).map((a) => ({
 				id: a.id,
@@ -317,6 +358,7 @@ try {
 				user_id: userId,
 				name: c.name,
 				color: c.color,
+				icon: c.icon ?? null,
 				kind: c.kind ?? null,
 				archived_at: c.archived ? now : null
 			}))
@@ -330,7 +372,8 @@ try {
 				amount: 380_000_00,
 				account_id: acc.bank.id,
 				category_id: cat.rent.id,
-				day_of_month: 3
+				day_of_month: 3,
+				archived_at: null // postgres.js multi-row insert takes columns from the first row
 			},
 			{
 				id: gymRule,
@@ -340,7 +383,8 @@ try {
 				amount: 22_000_00,
 				account_id: acc.old.id,
 				category_id: cat.gym.id,
-				day_of_month: 2
+				day_of_month: 2,
+				archived_at: null
 			},
 			{
 				id: randomUUID(),
@@ -350,12 +394,32 @@ try {
 				amount: 1_500_000_00,
 				account_id: acc.bank.id,
 				category_id: cat.salary.id,
-				day_of_month: 5
+				day_of_month: 5,
+				archived_at: null
+			},
+			{
+				id: randomUUID(),
+				user_id: userId,
+				type: 'outcome',
+				description: 'Netflix',
+				amount: 12_000_00,
+				account_id: acc.mp.id,
+				category_id: cat.bills.id,
+				day_of_month: 15,
+				archived_at: now // paused rule
 			}
 		])}`;
 		await tx`insert into movements ${tx(movements, ...cols)}`;
 
-		// Demo ARS plan: repeats every month, one Supermercado limit.
+		// Demo ARS plan: repeats every month. Salidas limit sits under current-month spending (over),
+		// Transporte limit just above it (near); both rounded to whole thousands of pesos.
+		const spent = (key) =>
+			movements
+				.filter((x) => x.monthsAgo === 0 && x.type === 'outcome' && x.category_id === cat[key].id)
+				.reduce((sum, x) => sum + x.amount, 0);
+		const THOUSAND = 1_000_00;
+		const outLimit = Math.max(1, Math.floor((spent('out') * 0.7) / THOUSAND)) * THOUSAND;
+		const transportLimit = Math.max(1, Math.round(spent('transport') / 0.88 / THOUSAND)) * THOUSAND;
 		const planId = randomUUID();
 		await tx`
 			insert into spending_plans (id, user_id, currency, savings, month)
@@ -363,8 +427,12 @@ try {
 		`;
 		await tx`
 			insert into plan_category_limits (plan_id, category_id, amount)
-			values (${planId}, ${cat.super.id}, ${300_000_00})
+			values (${planId}, ${cat.super.id}, ${300_000_00}),
+				(${planId}, ${cat.out.id}, ${outLimit}),
+				(${planId}, ${cat.transport.id}, ${transportLimit})
 		`;
+
+		if (existingEmail) return;
 
 		// Second user with USD data of its own, for the cross-user (foreign id) e2e tests.
 		const otherEmail = 'otro@gastar.local';
@@ -401,6 +469,24 @@ try {
 			insert into recurring_movements (id, user_id, type, description, amount, account_id, category_id, day_of_month)
 			values (${randomUUID()}, ${otherId}, 'outcome', 'Regla ajena', ${50_00}, ${otherAccountId}, ${otherCategoryId}, 10)
 		`;
+
+		// Third user owning the Mercado Pago account the E2E links through the UI (fixed id kept stable across seeds).
+		const importEmail = 'importa@gastar.local';
+		const [importer] = await tx`select id from "user" where email = ${importEmail}`;
+		if (importer) await deleteUserData(tx, importer.id);
+		const importerId = randomUUID();
+		await tx`
+			insert into "user" (id, name, email, email_verified, created_at, updated_at)
+			values (${importerId}, 'Importa', ${importEmail}, true, now(), now())
+		`;
+		await tx`
+			insert into "account" (id, account_id, provider_id, user_id, password, created_at, updated_at)
+			values (${randomUUID()}, ${importerId}, 'credential', ${importerId}, ${passwordHash}, now(), now())
+		`;
+		await tx`
+			insert into financial_accounts (id, owner_id, name, currency, initial_balance, icon, color)
+			values ('00000000-0000-4000-8000-00000000a001', ${importerId}, 'Mercado Pago', 'ARS', ${50_000_00}, 'phone', 'blue')
+		`;
 	});
 
 	const n = (t) => movements.filter((x) => x.type === t).length;
@@ -408,7 +494,8 @@ try {
 		`Seeded ${Object.keys(acc).length} accounts, ${Object.keys(cat).length} categories, ${movements.length} movements ` +
 			`(${n('income')} income, ${n('outcome')} outcome, ${n('transfer')} transfer).`
 	);
-	console.log(`Login: ${email} / ${password} (dev only)`);
+	if (existingEmail) console.log(`Seeded existing user ${existingEmail} (login unchanged).`);
+	else console.log(`Login: ${email} / ${password} (dev only)`);
 } catch (err) {
 	console.error('Failed to seed:', err.message);
 	process.exitCode = 1;

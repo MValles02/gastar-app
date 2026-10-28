@@ -3,7 +3,7 @@
 ## Money & rate representation
 
 - All monetary amounts are stored as **integer minor units** (bigint cents). E.g. US$ 1.234,56 → `123456`.
-- ARS amounts and exchange rates are whole pesos (multiples of 100): the app validates this on input and shows ARS without decimals. Only USD has cents.
+- Manually entered ARS amounts and all exchange rates are whole pesos (multiples of 100), validated on input; amounts imported from Mercado Pago keep their cents. ARS displays without decimals (rounded half-up).
 - Exchange rate is stored as an **integer hundredths** value (`rate × 100`, bigint). E.g. rate "1 USD = 1500 ARS" → `150000`.
 - A movement's currency is **derived from its account** (`financial_accounts.currency`); it is not stored on the movement.
 
@@ -151,6 +151,84 @@ Optional monthly limit per category.
 
 Constraints: PK `(plan_id, category_id)`.
 
+### `mp_import_items`
+
+Approval inbox for Mercado Pago activity. Imports land here, never on `movements`; approving an item creates the movement and links it.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | pk | |
+| `user_id` | fk → `user.id` | |
+| `account_id` | fk → `financial_accounts.id` | ON DELETE RESTRICT |
+| `external_key` | text | idempotency key from the source |
+| `kind` | text | CHECK in ('payment','account_fund','yield','payout','merchant_payout','refund','other'); `merchant_payout` is a payout with an `EXTERNAL_REFERENCE` (payment at a merchant), `payout` one without (transfer or withdrawal) |
+| `status` | enum('pending','approved','rejected') | default 'pending' |
+| `occurred_at` | timestamptz | |
+| `amount` | bigint, > 0 | exact net, minor units |
+| `is_credit` | boolean | direction of the money |
+| `source_id` | text | |
+| `raw_description` | text | |
+| `counterparty_id`, `counterparty_nickname`, `merchant`, `operation_type`, `poi_type` | text, nullable | |
+| `movement_id` | fk → `movements.id`, nullable | ON DELETE SET NULL |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | |
+
+Constraints: `UNIQUE (user_id, external_key)`. Index: `(user_id, status, occurred_at)`.
+
+Approving is one transaction: a conditional `pending` → `approved` update (zero rows = already handled, nothing written), the movement insert, `movement_id`, and the rule upsert. Rejecting is a conditional `pending` → `rejected` update; the row stays so its external key is never re-imported.
+
+### `mp_import_rules`
+
+Rules learned from approved items, used to pre-fill later ones.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | pk | |
+| `user_id` | fk → `user.id` | |
+| `match_kind` | enum('counterparty','merchant','kind') | |
+| `match_value` | text | |
+| `type` | enum('income','outcome','transfer') | |
+| `category_id` | fk → `categories.id`, nullable | ON DELETE CASCADE |
+| `counter_account_id` | fk → `financial_accounts.id`, nullable | ON DELETE CASCADE |
+| `description` | varchar(60), nullable | |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | |
+
+Constraints: `UNIQUE (user_id, match_kind, match_value)`; CHECK `mp_import_rules_shape_check`: `transfer` ⇒ `counter_account_id` set and `category_id` null; otherwise `category_id` set.
+
+Approval upserts one rule on the item's strongest key: `counterparty` (`operation_type = money_transfer` with a counterparty id) > `merchant` (trimmed, lowercased) > `kind` (only yield, payout, merchant_payout, account_fund); a `refund` item has no key; no key, no rule. Pre-fill is computed at read time from the first matching key in that order and ignored when its target is archived or its type does not fit the item's direction.
+
+### `mp_sync_state`
+
+One row per synced account.
+
+| Column | Type | Notes |
+|---|---|---|
+| `account_id` | pk, fk → `financial_accounts.id` | ON DELETE CASCADE |
+| `synced_until` | timestamptz, nullable | |
+| `running_since` | timestamptz, nullable | |
+| `last_run_at` | timestamptz, nullable | |
+| `last_error` | text, nullable | error code only |
+| `report_balance` | bigint, nullable | deprecated: not read or written since the settlement report (no balance); dropped in a later release |
+| `report_balance_at` | timestamptz, nullable | deprecated, as `report_balance` |
+
+### `mp_connections`
+
+One row per user who linked Mercado Pago (OAuth).
+
+| Column | Type | Notes |
+|---|---|---|
+| `user_id` | pk, fk → `user.id` | ON DELETE CASCADE |
+| `account_id` | uuid, nullable, fk → `financial_accounts.id` | ON DELETE SET NULL; null = linked, no receiving account chosen yet |
+| `mp_user_id` | text | `user_id` of the token response; not unique |
+| `access_token` | text | encrypted |
+| `refresh_token` | text, nullable | encrypted; null when MP grants no `offline_access` |
+| `expires_at` | timestamptz | |
+| `needs_reconnect` | boolean | default false |
+| `created_at`, `updated_at` | timestamptz | |
+
+Encryption: tokens are AES-256-GCM ciphertext, `v1:` + base64(iv(12) | tag(16) | ct), with AAD = `user_id`, keyed by `MP_TOKEN_KEY`. They are never logged or sent to the client.
+
 ## Derived formulas
 
 ### Plan figures (per plan currency, per month; computed in `src/lib/server/plan.ts`)
@@ -202,6 +280,9 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 - `canAccessCategory(userId, cat = categories)` and `categoryOwnedBy(userId)`: the same pair for `categories.user_id`.
 - `canAccessRecurring(userId, r = recurringMovements)` and `recurringOwnedBy(userId)`: the same pair for `recurring_movements.user_id`.
 - `canAccessPlan(userId, p = spendingPlans)` and `planOwnedBy(userId)`: the same pair for `spending_plans.user_id`. Category limits have no owner column; they are reached only by joining their plan.
+- `canAccessImport(userId, i = mpImportItems)` and `importOwnedBy(userId)`: the same pair for `mp_import_items.user_id`.
+- `canAccessMpConnection(userId, c = mpConnections)` and `mpConnectionOwnedBy(userId)`: the same pair for `mp_connections.user_id`.
+- `canAccessImportRule(userId, r = mpImportRules)` and `importRuleOwnedBy(userId)`: the same pair for `mp_import_rules.user_id`. `mp_sync_state` has no owner column; it is reached only by joining its account.
 
 `movements.user_id` is the movement's own owner column; reads, updates and deletes go through `canAccessMovement`, inserts through `movementOwnedBy`.
 
@@ -232,7 +313,7 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 16. `categories.(user_id, name)` is unique.
 17. All account/movement access is authorized through a single ownership-check helper, to keep future shared-account support a one-place change.
 18. `movements.occurred_at` is the Buenos Aires local midnight of the movement's date; readers derive the date in Buenos Aires and tolerate non-midnight legacy values.
-19. New and edited ARS amounts, initial balances and all exchange rates are multiples of 100 (whole pesos); existing non-whole values are tolerated and displayed rounded half-up.
+19. Amounts imported from Mercado Pago keep their cents. Editing a movement may keep its existing amount (even non-whole); new or changed manual ARS amounts, initial balances and all exchange rates are multiples of 100 (whole pesos). Non-whole values are displayed rounded half-up.
 20. Recurring-rule and plan amounts are in the account's or plan's currency and are never summed across currencies. ARS values are whole pesos, validated in the actions.
 21. Plan figures (income, for spending, available, per day, status, limit progress) are computed at read time, never persisted. The plan setup wizard writes step by step (savings creates the plan, each limit and rule is saved on its own screen, the last step sets the plan month); nothing is staged across steps. Creating a movement with "Repetir cada mes" writes the rule and the movement (linked by `recurring_id`) in one transaction.
 22. Deletion: hard-deleting an unreferenced account or category cascades to its recurring rules and plan limits. Deleting a recurring rule sets the linked movements' `recurring_id` to NULL, so history is kept. Archiving does not touch plan rows; rules on an archived account or category are inactive (excluded from plan sums, cannot be logged).
