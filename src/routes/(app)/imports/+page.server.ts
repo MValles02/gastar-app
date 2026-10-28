@@ -133,9 +133,13 @@ export const actions: Actions = {
 			return fail(400, { importFromError: 'Reconectá Mercado Pago primero.' });
 		}
 		// Moving earlier fetches the gap; same or later only trims what is already here.
+		const earlier = ymd < (await getImportFromDay(userId, account.id));
+		// Trimming while a run holds the lease would let it re-insert what was just deleted.
+		const since = earlier ? null : (await getSyncState(userId, account.id))?.runningSince;
 		if (
-			ymd < (await getImportFromDay(userId, account.id)) &&
-			!(await startMpBackfill(userId, from))
+			earlier
+				? !(await startMpBackfill(userId, from))
+				: !!since && Date.now() - since.getTime() < LEASE_MS
 		) {
 			return fail(409, {
 				importFromError: 'Ya hay una sincronización en curso. Probá en unos minutos.'
