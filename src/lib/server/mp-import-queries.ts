@@ -12,21 +12,15 @@ import type { MovementType } from './dashboard';
 import type { MovementRow } from './movements';
 import { createMovement } from './movements-queries';
 import { localDay, TZ } from './month';
-import { mpImportAccountId } from './mp-sync';
+import { getConnectionInfo } from './mp-oauth';
 
 const pending = (userId: string) =>
 	and(canAccessImport(userId), eq(mpImportItems.status, 'pending'));
 
-/** The configured import account when it is the user's, else null. */
+/** The account the user's Mercado Pago connection feeds (also while a reconnect is pending), else null. */
 export async function getImportAccount(userId: string) {
-	const id = mpImportAccountId();
-	if (!id) return null;
-	const [row] = await db
-		.select({ id: financialAccounts.id, name: financialAccounts.name })
-		.from(financialAccounts)
-		.where(and(eq(financialAccounts.id, id), canAccessAccount(userId)))
-		.limit(1);
-	return row ?? null;
+	const conn = await getConnectionInfo(userId);
+	return conn?.accountId ? { id: conn.accountId, name: conn.accountName ?? '' } : null;
 }
 
 const itemColumns = {

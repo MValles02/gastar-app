@@ -8,7 +8,8 @@ import {
 	listImportRules,
 	listPendingImports
 } from '$lib/server/mp-import-queries';
-import { mpConfigured, startMpSync } from '$lib/server/mp-sync';
+import { getConnectionInfo, mpOauthEnabled } from '$lib/server/mp-oauth';
+import { startMpSync } from '$lib/server/mp-sync';
 import { dayHeading, localDay } from '$lib/server/month';
 import { pgErrorCode } from '$lib/server/db/errors';
 import { movementPickers } from '../movements/form.server';
@@ -19,10 +20,11 @@ const LEASE_MS = 15 * 60_000;
 
 const DONE = ['approved', 'rejected', 'stale'] as const;
 
-/** 404 unless the configured import account is the signed-in user's. */
+/** 404 when the feature is off; sends the user to link (or pick an account) when there is no usable connection. */
 async function requireAccount(userId: string) {
+	if (!mpOauthEnabled()) error(404, 'No encontrado');
 	const account = await getImportAccount(userId);
-	if (!account) error(404, 'No encontrado');
+	if (!account) redirect(303, '/profile/mercado-pago');
 	return account;
 }
 
@@ -38,11 +40,11 @@ const countParam = (v: string | null) => (v !== null && /^\d{1,9}$/.test(v) ? Nu
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = locals.user!.id;
 	const account = await requireAccount(userId);
-	const configured = mpConfigured();
+	const needsReconnect = (await getConnectionInfo(userId))?.needsReconnect ?? false;
 	const [sync, items, rules, pickers] = await Promise.all([
 		getSyncState(userId, account.id),
-		configured ? listPendingImports(userId) : [],
-		configured ? listImportRules(userId) : [],
+		listPendingImports(userId),
+		listImportRules(userId),
 		movementPickers(userId)
 	]);
 	const counterAccounts = counterAccountsOf(pickers.accounts, account.id);
@@ -86,7 +88,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	return {
 		suggested,
 		bulk: approved === null ? null : { approved, skipped: skipped ?? 0 },
-		configured,
+		needsReconnect,
 		running,
 		// 'payments' (also before the first step is recorded) or 'report'; null when idle.
 		phase: running ? (sync?.phase === 'report' ? 'report' : 'payments') : null,
@@ -101,14 +103,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 export const actions: Actions = {
 	sync: async ({ locals }) => {
 		await requireAccount(locals.user!.id);
-		if (mpConfigured()) await startMpSync();
+		await startMpSync(locals.user!.id);
 		redirect(303, '/imports');
 	},
 
 	approveSuggested: async ({ locals }) => {
 		const userId = locals.user!.id;
 		const account = await requireAccount(userId);
-		if (!mpConfigured()) redirect(303, '/imports');
 		const [items, rules, pickers] = await Promise.all([
 			listPendingImports(userId),
 			listImportRules(userId),

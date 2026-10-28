@@ -62,7 +62,8 @@ test('tab bar is Inicio, Movimientos, Plan, Reportes plus the Nuevo movimiento b
 
 	await page.goto('/profile', { waitUntil: 'networkidle' });
 	const admin = page.locator('[data-slot="item-group"][aria-label="Tu cuenta"]');
-	await expect(admin.getByRole('link')).toHaveText([
+	// The "Mercado Pago" row exists only when the server has the MP env; it is not part of this check.
+	await expect(admin.getByRole('link').filter({ hasNotText: 'Mercado Pago' })).toHaveText([
 		'Cambiar nombre',
 		'Cambiar contraseña',
 		'Cuentas',

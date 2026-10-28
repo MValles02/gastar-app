@@ -59,7 +59,11 @@
 		<p class="email">{data.user.email}</p>
 	</section>
 
-	{#snippet pendingValue()}<span class="val">{data.imports?.pending} para revisar</span>{/snippet}
+	{#snippet pendingValue()}<span class="val"
+			>{data.imports?.state === 'linked' ? data.imports.pending : 0} para revisar</span
+		>{/snippet}
+	{#snippet reconnectValue()}<span class="val">Reconectar</span>{/snippet}
+	{#snippet unlinkedValue()}<span class="val">Sin vincular</span>{/snippet}
 
 	<ListCard aria-label="Tu cuenta">
 		<ListRow
@@ -86,12 +90,20 @@
 			title="Categorías"
 			chevron
 		/>
-		{#if data.imports}
+		{#if data.imports?.state === 'linked'}
 			<ListRow
 				href={resolve('/imports')}
 				lead={{ icon: 'phone', color: null }}
 				title="Mercado Pago"
 				value={data.imports.pending > 0 ? pendingValue : undefined}
+				chevron
+			/>
+		{:else if data.imports}
+			<ListRow
+				href={resolve('/profile/mercado-pago')}
+				lead={{ icon: 'phone', color: null }}
+				title="Mercado Pago"
+				value={data.imports.state === 'reconnect' ? reconnectValue : unlinkedValue}
 				chevron
 			/>
 		{/if}

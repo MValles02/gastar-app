@@ -4,14 +4,15 @@ import { building } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import { auth } from '$lib/server/auth';
 import { checkEnv } from '$lib/server/env-check';
-import { mpConfigured, runMpSync } from '$lib/server/mp-sync';
+import { mpOauthEnabled } from '$lib/server/mp-oauth';
+import { runMpSyncAll } from '$lib/server/mp-sync';
 import { themeColors } from '$lib/theme';
 import { THEME_COOKIE } from '$lib/server/cookies';
 
 if (!building && process.env.NODE_ENV === 'production') checkEnv(env);
 
 export const init: ServerInit = () => {
-	if (building || !mpConfigured()) return;
+	if (building || !mpOauthEnabled()) return;
 	const raw = env.MP_SYNC_INTERVAL_HOURS;
 	const hours = raw === undefined || raw === '' ? 6 : Number(raw);
 	if (!Number.isFinite(hours) || hours < 0) {
@@ -19,8 +20,8 @@ export const init: ServerInit = () => {
 		return;
 	}
 	if (hours === 0) return;
-	// No extra lock: the DB lease inside runMpSync keeps overlapping containers (start-first deploys) from syncing at once.
-	const run = () => void runMpSync().catch(() => console.error('mp sync scheduler: run failed'));
+	// No extra lock: the DB lease inside runMpSyncAll keeps overlapping containers (start-first deploys) from syncing at once.
+	const run = () => void runMpSyncAll().catch(() => console.error('mp sync scheduler: run failed'));
 	setTimeout(run, 60_000).unref();
 	// Node fires delays above 2^31-1 ms (~24 days) after 1 ms, so cap there.
 	setInterval(run, Math.min(hours * 3_600_000, 2 ** 31 - 1)).unref();

@@ -1,13 +1,14 @@
 import { env } from '$env/dynamic/private';
 import { and, eq, inArray, isNull, lt, max, or, sql } from 'drizzle-orm';
 import { db } from './db';
-import { financialAccounts, mpImportItems, mpSyncState } from './db/schema';
-import { canAccessImport, importOwnedBy } from './access';
+import { financialAccounts, mpConnections, mpImportItems, mpSyncState } from './db/schema';
+import { canAccessAccount, canAccessImport, canAccessMpConnection, importOwnedBy } from './access';
+import { getAccessToken, listUsableConnections, refreshConnection } from './mp-oauth';
 import { dayStart, localDay } from './month';
 
 /** Stored in mp_sync_state.last_error: a code only, never a message or payload. */
 export type MpSyncError =
-	'auth' | 'report_timeout' | 'network' | 'parse' | 'config' | `mp_${number}`;
+	'auth' | 'report_timeout' | 'network' | 'parse' | 'config' | 'reconnect' | `mp_${number}`;
 
 const DEFAULT_BASE_URL = 'https://api.mercadopago.com';
 const HTTP_TIMEOUT_MS = 30_000;
@@ -22,10 +23,13 @@ const POLL_TIMEOUT_MS = 5 * 60_000;
 const DEFAULT_POLL_MS = 15_000;
 const PAGE = 1000; // payments/search max limit
 const BATCH = 500;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const AMOUNT_RE = /^-?\d+(?:[.,]\d{1,2})?$/;
 /** Kinds whose items come from payments/search; their latest date is where the next search starts. */
 const PAYMENT_KINDS = ['payment', 'account_fund', 'refund'];
+/** Refresh the token when it expires within this window (MP tokens last 180 days). */
+const REFRESH_WINDOW_MS = 30 * DAY_MS;
+
+type Auth = { token: string };
 
 type Row = Record<string, string>;
 /** In an upsert's RETURNING: true when the row was inserted, false when an existing one was updated. */
@@ -42,25 +46,14 @@ const batches = <T>(xs: T[]) =>
 		xs.slice(i * BATCH, (i + 1) * BATCH)
 	);
 
-/** MP_IMPORT_ACCOUNT_ID, or null when unset/malformed. */
-export function mpImportAccountId(): string | null {
-	const id = env.MP_IMPORT_ACCOUNT_ID?.trim();
-	return id && UUID_RE.test(id) ? id : null;
-}
-
-/** True when both the token and the account id are set. */
-export function mpConfigured(): boolean {
-	return !!env.MP_ACCESS_TOKEN && mpImportAccountId() !== null;
-}
-
-async function api(path: string, init: RequestInit = {}): Promise<Response> {
+async function api(path: string, { token }: Auth, init: RequestInit = {}): Promise<Response> {
 	let res: Response;
 	try {
 		res = await fetch((env.MP_API_BASE_URL || DEFAULT_BASE_URL) + path, {
 			...init,
 			headers: {
 				...init.headers,
-				Authorization: `Bearer ${env.MP_ACCESS_TOKEN}`
+				Authorization: `Bearer ${token}`
 			},
 			signal: AbortSignal.timeout(HTTP_TIMEOUT_MS)
 		});
@@ -72,8 +65,8 @@ async function api(path: string, init: RequestInit = {}): Promise<Response> {
 	return res;
 }
 
-async function apiJson(path: string, init?: RequestInit): Promise<unknown> {
-	const res = await api(path, init);
+async function apiJson(path: string, auth: Auth, init?: RequestInit): Promise<unknown> {
+	const res = await api(path, auth, init);
 	try {
 		return await res.json();
 	} catch {
@@ -148,7 +141,11 @@ function backfillStart(now: number): Date {
 // ---------- Payments: /v1/payments/search, both sides, in seconds ----------
 
 /** Every payment last updated in [begin, end], oldest update first. Dates need milliseconds. */
-async function searchPayments(begin: Date, end: Date): Promise<Record<string, unknown>[]> {
+async function searchPayments(
+	begin: Date,
+	end: Date,
+	auth: Auth
+): Promise<Record<string, unknown>[]> {
 	const out: Record<string, unknown>[] = [];
 	for (let offset = 0; ; offset += PAGE) {
 		const q = new URLSearchParams({
@@ -160,7 +157,7 @@ async function searchPayments(begin: Date, end: Date): Promise<Record<string, un
 			limit: String(PAGE),
 			offset: String(offset)
 		});
-		const page = obj(await apiJson(`/v1/payments/search?${q}`));
+		const page = obj(await apiJson(`/v1/payments/search?${q}`, auth));
 		if (!Array.isArray(page.results)) throw fail('parse');
 		out.push(...page.results.map(obj));
 		if (page.results.length < PAGE || offset + PAGE >= Number(obj(page.paging).total)) return out;
@@ -189,7 +186,12 @@ function merchantOf(p: Record<string, unknown>): string | null {
  * opposite direction, but only when the payment is still approved (partial refund) or was already imported
  * and not rejected; a payment refunded before it was ever imported nets to zero and is skipped.
  */
-async function syncPayments(accountId: string, ownerId: string, me: string): Promise<number> {
+async function syncPayments(
+	accountId: string,
+	ownerId: string,
+	me: string,
+	auth: Auth
+): Promise<number> {
 	const now = Date.now();
 	const [last] = await db
 		.select({ at: max(mpImportItems.occurredAt) })
@@ -202,7 +204,7 @@ async function syncPayments(accountId: string, ownerId: string, me: string): Pro
 			)
 		);
 	const begin = last?.at ? new Date(last.at.getTime() - PAYMENTS_OVERLAP_MS) : backfillStart(now);
-	const payments = (await searchPayments(begin, new Date(now))).filter(
+	const payments = (await searchPayments(begin, new Date(now), auth)).filter(
 		(p) => str(p.payment_type_id) !== 'credit_card'
 	);
 
@@ -222,7 +224,7 @@ async function syncPayments(accountId: string, ownerId: string, me: string): Pro
 		if (!nicknames.has(id)) {
 			let n: string | null = null;
 			try {
-				n = text(obj(await apiJson(`/users/${encodeURIComponent(id)}`)).nickname);
+				n = text(obj(await apiJson(`/users/${encodeURIComponent(id)}`, auth)).nickname);
 			} catch (e) {
 				if ((e as Error).message === 'auth') throw e;
 			}
@@ -324,9 +326,9 @@ async function syncPayments(accountId: string, ownerId: string, me: string): Pro
 
 // ---------- Settlement report: yields and payouts, minutes in MP's queue ----------
 
-async function downloadSettlement(begin: Date, end: Date): Promise<string> {
+async function downloadSettlement(begin: Date, end: Date, auth: Auth): Promise<string> {
 	const task = obj(
-		await apiJson('/v1/account/settlement_report', {
+		await apiJson('/v1/account/settlement_report', auth, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			// Reports reject milliseconds: send YYYY-MM-DDTHH:MM:SSZ.
@@ -343,7 +345,9 @@ async function downloadSettlement(begin: Date, end: Date): Promise<string> {
 	let doneWithoutFile = false;
 	while (Date.now() < deadline) {
 		await sleep(pollMs);
-		const t = obj(await apiJson(`/v1/account/settlement_report/task/${encodeURIComponent(id)}`));
+		const t = obj(
+			await apiJson(`/v1/account/settlement_report/task/${encodeURIComponent(id)}`, auth)
+		);
 		const status = str(t.status)?.toLowerCase() ?? '';
 		if (TASK_FAILED.has(status)) throw fail('parse');
 		if (!TASK_DONE.has(status)) continue;
@@ -353,7 +357,7 @@ async function downloadSettlement(begin: Date, end: Date): Promise<string> {
 			doneWithoutFile = true;
 			continue;
 		}
-		const res = await api(`/v1/account/settlement_report/${encodeURIComponent(file)}`);
+		const res = await api(`/v1/account/settlement_report/${encodeURIComponent(file)}`, auth);
 		try {
 			return await res.text();
 		} catch {
@@ -407,7 +411,12 @@ function reportItem(r: Row): Omit<Item, 'userId' | 'accountId'> | null {
 }
 
 /** Pulls the settlement report from the last report sync (minus overlap) to now. Returns the new end and the items it added. */
-async function syncReport(accountId: string, ownerId: string, syncedUntil: Date | null) {
+async function syncReport(
+	accountId: string,
+	ownerId: string,
+	syncedUntil: Date | null,
+	auth: Auth
+) {
 	const now = Date.now();
 	const end = new Date(now - END_LAG_MS);
 	const begin = syncedUntil
@@ -421,7 +430,7 @@ async function syncReport(accountId: string, ownerId: string, syncedUntil: Date 
 		const next = from + CHUNK_DAYS * DAY_MS;
 		// Half-open ranges: a row stamped on a boundary belongs to the next chunk only.
 		const to = new Date(next < end.getTime() ? next - 1 : end.getTime());
-		const csv = await downloadSettlement(new Date(from), to);
+		const csv = await downloadSettlement(new Date(from), to, auth);
 		// Each chunk can wait minutes in MP's queue: renew the lease so a long backfill keeps it.
 		await db
 			.update(mpSyncState)
@@ -461,24 +470,25 @@ async function syncReport(accountId: string, ownerId: string, syncedUntil: Date 
 	return { end, added };
 }
 
-type Lease = { accountId: string; ownerId: string; currency: string; syncedUntil: Date | null };
+type Lease = { userId: string; accountId: string; currency: string; syncedUntil: Date | null };
 
-/** Looks up the account, upserts the state row and takes the lease; null when off or held elsewhere. */
-async function acquire(): Promise<Lease | null> {
-	const accountId = mpImportAccountId();
-	if (!mpConfigured() || !accountId) return null;
+/** Loads the user's usable connection with its account and takes the lease; null when off or held elsewhere. */
+async function acquire(userId: string): Promise<Lease | null> {
 	try {
-		// Job has no user session: the account owner is the user.
-		const [acct] = await db
-			.select({ ownerId: financialAccounts.ownerId, currency: financialAccounts.currency })
-			.from(financialAccounts)
-			.where(eq(financialAccounts.id, accountId))
+		const [conn] = await db
+			.select({ accountId: financialAccounts.id, currency: financialAccounts.currency })
+			.from(mpConnections)
+			.innerJoin(financialAccounts, eq(financialAccounts.id, mpConnections.accountId))
+			.where(
+				and(
+					canAccessMpConnection(userId),
+					canAccessAccount(userId),
+					eq(mpConnections.needsReconnect, false)
+				)
+			)
 			.limit(1);
-		if (!acct) {
-			// No account means no state row to record the error on (FK).
-			console.error('mp sync failed: config');
-			return null;
-		}
+		if (!conn) return null;
+		const { accountId } = conn;
 		await db.insert(mpSyncState).values({ accountId }).onConflictDoNothing();
 		const [lease] = await db
 			.update(mpSyncState)
@@ -493,11 +503,23 @@ async function acquire(): Promise<Lease | null> {
 				)
 			)
 			.returning({ syncedUntil: mpSyncState.syncedUntil });
-		return lease ? { accountId, ...acct, syncedUntil: lease.syncedUntil } : null;
+		return lease
+			? { userId, accountId, currency: conn.currency, syncedUntil: lease.syncedUntil }
+			: null;
 	} catch {
 		console.error('mp sync failed: network');
 		return null;
 	}
+}
+
+/** Refreshes the user's tokens (lease held) and returns the new auth, or the error code to record. */
+async function refreshed(userId: string): Promise<Auth> {
+	const outcome = await refreshConnection(userId);
+	if (outcome === 'reconnect') throw fail('reconnect');
+	if (outcome === 'error') throw fail('network');
+	const fresh = await getAccessToken(userId);
+	if (!fresh) throw fail('reconnect');
+	return { token: fresh.token };
 }
 
 /** Runs payments, then the settlement report, under a held lease and releases it. Never throws. */
@@ -506,15 +528,36 @@ async function execute(l: Lease): Promise<void> {
 	let code: MpSyncError | null = null;
 	try {
 		if (l.currency !== 'ARS') throw fail('config');
-		const me = str(obj(await apiJson('/users/me')).id);
+		const stored = await getAccessToken(l.userId);
+		if (!stored) throw fail('reconnect');
+		let auth: Auth = { token: stored.token };
+		// Refresh ahead of expiry; if MP is unreachable the current token may still work.
+		if (stored.expiresAt.getTime() < Date.now() + REFRESH_WINDOW_MS) {
+			try {
+				auth = await refreshed(l.userId);
+			} catch (e) {
+				if ((e as Error).message === 'reconnect' || stored.expiresAt.getTime() <= Date.now())
+					throw e;
+			}
+		}
+		let meJson: unknown;
+		try {
+			meJson = await apiJson('/users/me', auth);
+		} catch (e) {
+			// A 401 here means the token died early: refresh once and retry the run once.
+			if ((e as Error).message !== 'auth') throw e;
+			auth = await refreshed(l.userId);
+			meJson = await apiJson('/users/me', auth);
+		}
+		const me = str(obj(meJson).id);
 		if (!me) throw fail('parse');
-		const paid = await syncPayments(l.accountId, l.ownerId, me);
+		const paid = await syncPayments(l.accountId, l.userId, me, auth);
 		// Progress for the inbox: payments are stored, the report is next.
 		await db
 			.update(mpSyncState)
 			.set({ phase: 'report', newItems: paid })
 			.where(eq(mpSyncState.accountId, l.accountId));
-		const report = await syncReport(l.accountId, l.ownerId, l.syncedUntil);
+		const report = await syncReport(l.accountId, l.userId, l.syncedUntil, auth);
 		await db
 			.update(mpSyncState)
 			.set({ newItems: sql`coalesce(${mpSyncState.newItems}, 0) + ${report.added}` })
@@ -544,15 +587,28 @@ async function execute(l: Lease): Promise<void> {
 	}
 }
 
-/** Full sync: acquire the lease, run payments and the report, release. Never throws; no-op when off or running. */
-export async function runMpSync(): Promise<void> {
-	const lease = await acquire();
-	if (lease) await execute(lease);
+/** Scheduler entry: syncs every usable connection one after another. Never throws; one user failing does not stop the rest. */
+export async function runMpSyncAll(): Promise<void> {
+	let users: string[];
+	try {
+		users = await listUsableConnections();
+	} catch {
+		console.error('mp sync failed: network');
+		return;
+	}
+	for (const userId of users) {
+		try {
+			const lease = await acquire(userId);
+			if (lease) await execute(lease);
+		} catch {
+			console.error('mp sync failed: network');
+		}
+	}
 }
 
-/** Awaits the lease only; payments and the report run in the background while the inbox polls the progress. */
-export async function startMpSync(): Promise<boolean> {
-	const lease = await acquire();
+/** "Sincronizar ahora": awaits the lease only; payments and the report run in the background while the inbox polls the progress. */
+export async function startMpSync(userId: string): Promise<boolean> {
+	const lease = await acquire(userId);
 	if (!lease) return false;
 	void execute(lease);
 	return true;

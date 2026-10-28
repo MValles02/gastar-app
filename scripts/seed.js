@@ -470,7 +470,7 @@ try {
 			values (${randomUUID()}, ${otherId}, 'outcome', 'Regla ajena', ${50_00}, ${otherAccountId}, ${otherCategoryId}, 10)
 		`;
 
-		// Third user owning the Mercado Pago import account (fixed id: the E2E dev server is configured with it).
+		// Third user owning the Mercado Pago account the E2E links through the UI (fixed id kept stable across seeds).
 		const importEmail = 'importa@gastar.local';
 		const [importer] = await tx`select id from "user" where email = ${importEmail}`;
 		if (importer) await deleteUserData(tx, importer.id);

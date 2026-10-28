@@ -42,8 +42,12 @@ export default defineConfig({
 				// Override .env (:5173) so a non-default E2E_PORT passes the CSRF origin check.
 				ORIGIN: BASE_URL,
 				BETTER_AUTH_URL: BASE_URL,
-				MP_ACCESS_TOKEN: 'TEST-fake-mp-token',
-				MP_IMPORT_ACCOUNT_ID: '00000000-0000-4000-8000-00000000a001',
+				// Must match the fake's defaults (e2e/fake-mp.js).
+				MP_CLIENT_ID: 'test-client-id',
+				MP_CLIENT_SECRET: 'test-client-secret',
+				// base64 of 32 ASCII chars.
+				MP_TOKEN_KEY: Buffer.from('0123456789abcdef0123456789abcdef').toString('base64'),
+				MP_AUTH_BASE_URL: MP_URL,
 				MP_API_BASE_URL: MP_URL,
 				MP_REPORT_POLL_MS: '100',
 				// Scheduler off so e2e stays deterministic (syncs only via "Sincronizar ahora").

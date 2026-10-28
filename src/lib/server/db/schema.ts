@@ -411,3 +411,22 @@ export const mpSyncState = pgTable('mp_sync_state', {
 	reportBalance: bigint('report_balance', { mode: 'number' }),
 	reportBalanceAt: timestamp('report_balance_at', { withTimezone: true })
 });
+
+// Tokens are AES-256-GCM ciphertext ("v1:" + base64(iv | tag | ct), AAD = user_id), never plaintext.
+export const mpConnections = pgTable('mp_connections', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	// Null: linked but no receiving account chosen yet.
+	accountId: uuid('account_id').references(() => financialAccounts.id, { onDelete: 'set null' }),
+	mpUserId: text('mp_user_id').notNull(),
+	accessToken: text('access_token').notNull(),
+	refreshToken: text('refresh_token'),
+	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+	needsReconnect: boolean('needs_reconnect').default(false).notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true })
+		.defaultNow()
+		.$onUpdate(() => new Date())
+		.notNull()
+});

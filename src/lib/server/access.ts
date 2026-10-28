@@ -3,6 +3,7 @@ import {
 	categories,
 	financialAccounts,
 	movements,
+	mpConnections,
 	mpImportItems,
 	mpImportRules,
 	recurringMovements,
@@ -75,6 +76,19 @@ export function canAccessImportRule(userId: string, r: { userId: AnyColumn } = m
 
 /** Insert-side counterpart of canAccessImportRule. */
 export function importRuleOwnedBy(userId: string) {
+	return { userId };
+}
+
+/** The single ownership check for Mercado Pago connections. Accepts an alias. */
+export function canAccessMpConnection(
+	userId: string,
+	c: { userId: AnyColumn } = mpConnections
+): SQL {
+	return eq(c.userId, userId);
+}
+
+/** Insert-side counterpart of canAccessMpConnection. */
+export function mpConnectionOwnedBy(userId: string) {
 	return { userId };
 }
 
