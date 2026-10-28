@@ -2,6 +2,7 @@
 	import { CURRENCY_NAME } from '$lib/money';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import { enhance } from '$app/forms';
+	import { enhanceRedirect } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -123,7 +124,13 @@
 	{:else if data.step === 3}
 		<SectionHeader title={titles[2]} />
 		<p class="muted small">Lo apartamos antes de calcular cuánto podés gastar.</p>
-		<form method="POST" action="?/savings" use:enhance class="wizard" novalidate>
+		<form
+			method="POST"
+			action="?/savings"
+			use:enhance={() => enhanceRedirect}
+			class="wizard"
+			novalidate
+		>
 			<SavingsFields
 				income={data.income}
 				currency={data.currency}
@@ -160,7 +167,7 @@
 				tus ingresos.
 			</p>
 		{/if}
-		<form method="POST" action="?/finish" use:enhance class="wizard">
+		<form method="POST" action="?/finish" use:enhance={() => enhanceRedirect} class="wizard">
 			<Card.Root class="gap-0 py-0">
 				<SwitchRow
 					id="repeat"

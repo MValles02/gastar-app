@@ -1,12 +1,17 @@
 <script lang="ts">
 	import '@fontsource-variable/geist-mono';
 	import '../app.css';
+	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
+	import { track } from '$lib/nav-stack.svelte';
 	import { FORM_ROUTES, TAB_ROUTES } from '$lib/form-routes';
 	import favicon from '$lib/assets/favicon.svg';
 	import { Toaster } from '$lib/components/ui/sonner/index.js';
 
 	let { children } = $props();
+
+	// Mirrors the history stack so back/close/save can pop instead of pushing the parent again.
+	afterNavigate(track);
 
 	// Toasts sit above the floating tab bar only on tab routes; form routes have a sticky submit bar
 	// plus Cancelar at the bottom, so they show below the compact header instead.

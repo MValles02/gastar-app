@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { enhanceRedirect } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
 	import FormActions from '$lib/components/FormActions.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -18,7 +19,7 @@
 
 <PageHeader title="Cambiar nombre" close={{ href: resolve('/profile'), label: 'Cerrar' }} />
 
-<form method="POST" use:enhance class="form" novalidate>
+<form method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
 	<ul class="card">
 		<li class:bad={form?.error}>
 			<TextRow

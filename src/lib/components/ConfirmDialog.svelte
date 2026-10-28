@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { followRedirect } from '$lib/nav-stack.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 
@@ -55,12 +56,11 @@
 				id={formId}
 				method="POST"
 				{action}
-				use:enhance={() =>
-					async ({ result, update }) => {
-						if (closeOnFailure || (result.type !== 'failure' && result.type !== 'error'))
-							open = false;
-						await update();
-					}}
+				use:enhance={() => async (input) => {
+					const { type } = input.result;
+					if (closeOnFailure || (type !== 'failure' && type !== 'error')) open = false;
+					await followRedirect(input);
+				}}
 			>
 				<AlertDialog.Footer class="m-0 grid grid-cols-2 border-0 bg-transparent p-0">
 					<AlertDialog.Cancel type="button" class="w-full">Cancelar</AlertDialog.Cancel>

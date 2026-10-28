@@ -7,6 +7,7 @@
 	import * as Avatar from '$lib/components/ui/avatar/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { upOnClick } from '$lib/nav-stack.svelte';
 
 	/**
 	 * Sticky top bar. Full (no `back` and no `close`; the 4 tab pages): [eyebrow + title] [avisos]
@@ -38,11 +39,25 @@
 
 <header class="top-bar">
 	{#if close}
-		<Button class="-ml-2" href={close.href} variant="ghost" size="icon" aria-label={close.label}>
+		<Button
+			class="-ml-2"
+			href={close.href}
+			onclick={upOnClick(close.href)}
+			variant="ghost"
+			size="icon"
+			aria-label={close.label}
+		>
 			<X aria-hidden="true" />
 		</Button>
 	{:else if back}
-		<Button class="-ml-2" href={back.href} variant="ghost" size="icon" aria-label={back.label}>
+		<Button
+			class="-ml-2"
+			href={back.href}
+			onclick={upOnClick(back.href)}
+			variant="ghost"
+			size="icon"
+			aria-label={back.label}
+		>
 			<ChevronLeft aria-hidden="true" />
 		</Button>
 	{/if}
