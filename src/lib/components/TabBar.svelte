@@ -57,6 +57,8 @@
 		gap: var(--space-3);
 		align-items: center;
 		z-index: 10;
+		/* Stays put while the page underneath slides (page transitions, app.css). */
+		view-transition-name: tab-bar;
 	}
 
 	.tabs {

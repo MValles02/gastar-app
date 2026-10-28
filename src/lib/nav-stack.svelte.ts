@@ -1,6 +1,6 @@
 /* eslint-disable svelte/prefer-svelte-reactivity -- URLs here are parsed and compared, never mutated or rendered */
 import { goto, invalidateAll } from '$app/navigation';
-import type { ActionResult, AfterNavigate } from '@sveltejs/kit';
+import type { ActionResult, AfterNavigate, OnNavigate } from '@sveltejs/kit';
 
 /**
  * In-memory mirror of this tab's history entries inside the app (pathname + search), so "up"
@@ -12,6 +12,8 @@ let entries: string[] = [];
 let index = -1;
 /** One-shot: the next tracked navigation replaced the current entry instead of pushing one. */
 let replaceNext = false;
+/** One-shot: how the next tracked navigation animates when it is not a plain push or pop. */
+let transitionNext: 'back' | 'none' | null = null;
 /** Runs once the `history.go` started by `navigateUp` has landed. */
 let afterPop: (() => unknown) | null = null;
 /** A `history.go` from `navigateUp` has not landed yet: `index` is stale, so further ups are ignored. */
@@ -30,6 +32,7 @@ export function track(nav: AfterNavigate) {
 	const key = keyOf(url);
 	const replaced = replaceNext;
 	replaceNext = false;
+	transitionNext = null;
 	// Any landed navigation ends a pop in flight (a superseding one too, which drops its follow-up).
 	popping = false;
 	clearTimeout(poppingTimer);
@@ -98,7 +101,7 @@ export async function navigateUp(href: string, { refresh = false } = {}) {
 
 	if (to >= 0) {
 		const landed = entries[to];
-		if (target.search && landed !== key) afterPop = () => replaceGoto(key, { invalidateAll: true });
+		if (target.search && landed !== key) afterPop = () => replaceAfterPop(key);
 		else if (refresh) afterPop = invalidateAll;
 		pop(to);
 		return;
@@ -107,12 +110,33 @@ export async function navigateUp(href: string, { refresh = false } = {}) {
 	if (target.pathname !== location.pathname)
 		while (first > 0 && pathOf(entries[first - 1]) === location.pathname) first--;
 	if (first === index) {
+		transitionNext = 'back';
 		await replaceGoto(key, { invalidateAll: true });
 		return;
 	}
 	// Pop back to the first entry of the current screen's run (e.g. wizard step 1), then replace it.
-	afterPop = () => replaceGoto(key, { invalidateAll: true });
+	afterPop = () => replaceAfterPop(key);
 	pop(first);
+}
+
+/** The replace that follows a pop: the pop already animated, so this one does not. */
+function replaceAfterPop(key: string) {
+	transitionNext = 'none';
+	return replaceGoto(key, { invalidateAll: true });
+}
+
+/**
+ * Page transition for a navigation, read in the root layout's `onNavigate` (before `track` consumes
+ * the one-shot flags): a push slides forward, a pop (‹, browser/iOS back) or an "up" replace slides
+ * back, and a tab switch (a replace to another screen) crossfades. A change within one screen (month,
+ * currency, filters, search, wizard step) gets none: taps are swallowed while a transition runs.
+ */
+export function transitionOf(nav: OnNavigate): 'forward' | 'back' | 'fade' | null {
+	if (transitionNext) return transitionNext === 'none' ? null : transitionNext;
+	if (nav.from?.url.pathname === nav.to?.url.pathname) return null;
+	if (replaceNext) return 'fade';
+	if (nav.type === 'popstate') return (nav.delta ?? 0) < 0 ? 'back' : 'forward';
+	return 'forward';
 }
 
 function pop(to: number) {
