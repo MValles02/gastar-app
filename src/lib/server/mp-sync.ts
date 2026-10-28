@@ -326,9 +326,32 @@ async function syncPayments(
 
 // ---------- Settlement report: yields and payouts, minutes in MP's queue ----------
 
+/**
+ * Config created in an MP account that has none (the report create answers 404 without one). Columns are
+ * every key the CSV parser below reads. No `scheduled`: MP ignores `frequency` unless scheduling is on.
+ */
+const SETTLEMENT_CONFIG = {
+	file_name_prefix: 'gastar-settlement',
+	include_withdraw: true,
+	display_timezone: 'GMT-03',
+	header_language: 'en',
+	columns: [
+		'EXTERNAL_REFERENCE',
+		'SOURCE_ID',
+		'PAYMENT_METHOD',
+		'TRANSACTION_TYPE',
+		'TRANSACTION_AMOUNT',
+		'TRANSACTION_DATE',
+		'SETTLEMENT_NET_AMOUNT'
+	].map((key) => ({ key })),
+	frequency: { hour: 0, type: 'monthly', value: 1 },
+	show_fee_prevision: false,
+	refund_detailed: true
+};
+
 async function downloadSettlement(begin: Date, end: Date, auth: Auth): Promise<string> {
-	const task = obj(
-		await apiJson('/v1/account/settlement_report', auth, {
+	const create = () =>
+		apiJson('/v1/account/settlement_report', auth, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			// Reports reject milliseconds: send YYYY-MM-DDTHH:MM:SSZ.
@@ -336,8 +359,29 @@ async function downloadSettlement(begin: Date, end: Date, auth: Auth): Promise<s
 				begin_date: begin.toISOString().replace(/\.\d{3}Z$/, 'Z'),
 				end_date: end.toISOString().replace(/\.\d{3}Z$/, 'Z')
 			})
-		})
-	);
+		});
+	let created: unknown;
+	try {
+		created = await create();
+	} catch (e) {
+		if ((e as Error).message !== 'mp_404') throw e;
+		// No config in this account: create one only if none exists (never overwrite), then retry once.
+		let exists = true;
+		try {
+			await api('/v1/account/settlement_report/config', auth);
+		} catch (g) {
+			if ((g as Error).message !== 'mp_404') throw g;
+			exists = false;
+		}
+		if (exists) throw e;
+		await api('/v1/account/settlement_report/config', auth, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(SETTLEMENT_CONFIG)
+		});
+		created = await create();
+	}
+	const task = obj(created);
 	const id = str(task.id);
 	if (!id) throw fail('parse');
 	const pollMs = Number(env.MP_REPORT_POLL_MS) || DEFAULT_POLL_MS;
