@@ -209,10 +209,6 @@ One row per synced account.
 | `running_since` | timestamptz, nullable | |
 | `last_run_at` | timestamptz, nullable | |
 | `last_error` | text, nullable | error code only |
-| `report_balance` | bigint, nullable | still in the DB but no longer declared in the Drizzle schema; the current release never reads or writes it; dropped by the next generated migration, which can ship only once production runs the release without it (#230) |
-| `report_balance_at` | timestamptz, nullable | as `report_balance` |
-
-Until that drop ships, `pnpm db:generate` emits the DROP, so it must not be generated in the same release as this change.
 
 ### `mp_connections`
 
