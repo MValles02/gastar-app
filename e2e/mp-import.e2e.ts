@@ -1,4 +1,5 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
+import postgres from 'postgres';
 import {
 	deleteMovements,
 	findMovements,
@@ -84,6 +85,7 @@ const YIELD_DESC = `Rendimiento MP ${sfx}`;
 let origin = '';
 let categoryUrl = '';
 let secondUrl = '';
+let usdUrl = '';
 let pendingId = '';
 
 /** Rounded whole-peso balance shown on /accounts for the account whose name matches `name`. */
@@ -123,7 +125,7 @@ test.beforeAll(async ({ browser }) => {
 
 test.afterAll(async () => {
 	for (const d of [AMIGA_DESC, PAYOUT_DESC, YIELD_DESC]) await deleteMovements(page, origin, d);
-	for (const url of [secondUrl, categoryUrl]) if (url) await postDelete(page, origin, url);
+	for (const url of [usdUrl, secondUrl, categoryUrl]) if (url) await postDelete(page, origin, url);
 	await page.close();
 });
 
@@ -397,6 +399,50 @@ test('a callback with a tampered state is rejected', async ({ browser }) => {
 	}
 });
 
+test('a failing token endpoint shows the exchange error', async ({ browser }) => {
+	const { ctx, p } = await asUser(browser, OTHER_EMAIL);
+	await fake('/__fake/token-fail', { fail: true });
+	try {
+		await p.goto(MP_PATH, { waitUntil: 'networkidle' });
+		await p.getByRole('button', { name: 'Vincular Mercado Pago' }).click();
+		await expect(p).toHaveURL(/error=exchange/);
+		await expect(p.getByText('Mercado Pago no respondió. Probá de nuevo.')).toBeVisible();
+		await expect(p.getByRole('button', { name: 'Vincular Mercado Pago' })).toBeVisible();
+	} finally {
+		await fake('/__fake/token-fail', { fail: false });
+		await ctx.close();
+	}
+});
+
+test('the receiving account must be an active ARS account of the user', async ({ browser }) => {
+	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
+	await page.getByLabel('Nombre').fill(`Cuenta USD ${sfx}`);
+	await page.getByRole('radio', { name: 'USD' }).check({ force: true });
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
+	usdUrl = page.url();
+	const usdId = usdUrl.split('/').pop()!;
+
+	const { ctx, p } = await asUser(browser, OTHER_EMAIL);
+	await p.goto('/accounts', { waitUntil: 'networkidle' });
+	const otherHref = await p.getByRole('link', { name: /Otra cuenta pesos/ }).getAttribute('href');
+	await ctx.close();
+	const otherId = otherHref!.split('/').pop()!;
+
+	for (const accountId of [otherId, usdId]) {
+		// A form post without JS gets the page back; asking for JSON exposes the action's own result.
+		const res = await page.request.post(`${MP_PATH}?/account`, {
+			headers: { origin, accept: 'application/json' },
+			form: { accountId }
+		});
+		expect(await res.json()).toMatchObject({ type: 'failure', status: 400 });
+	}
+	await page.goto(MP_PATH, { waitUntil: 'networkidle' });
+	await expect(
+		page.getByLabel('Cuenta que recibe los movimientos').locator('option:checked')
+	).toHaveText('Mercado Pago');
+});
+
 test('an expired token is refreshed silently and the sync still works', async () => {
 	const tokens = async () => new Set((await calls()).map((c) => c.authorization));
 	const before = await tokens();
@@ -447,6 +493,34 @@ test('another user links their own account and sees only their own inbox', async
 		expect((await p.goto(`/imports/${pendingId}`))!.status()).toBe(404);
 	} finally {
 		// Leave `otro` as the other specs expect: no items, no connection.
+		await p.request.post('/dev/mp-reset', { headers: { origin } });
+		await ctx.close();
+	}
+});
+
+test('a stored token that cannot be decrypted asks to reconnect', async ({ browser }) => {
+	const { ctx, p } = await asUser(browser, OTHER_EMAIL);
+	const sql = postgres(
+		process.env.DATABASE_URL || 'postgres://gastar:gastar@localhost:5432/gastar'
+	);
+	try {
+		await link(p, 'Otra cuenta pesos');
+		// Same effect as a rotated MP_TOKEN_KEY: the ciphertext no longer opens.
+		await sql`update mp_connections set access_token = 'v1:AAAA'
+			where user_id = (select id from "user" where email = ${OTHER_EMAIL})`;
+		await p.goto('/imports', { waitUntil: 'networkidle' });
+		await Promise.all([
+			p.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/imports')),
+			p.getByRole('button', { name: 'Sincronizar ahora' }).click()
+		]);
+		await expect(async () => {
+			await p.reload();
+			await expect(p.getByRole('link', { name: 'Reconectar' })).toBeVisible();
+		}).toPass({ timeout: 30_000, intervals: [300, 500, 1000] });
+		await p.goto('/profile', { waitUntil: 'networkidle' });
+		await expect(p.getByRole('link', { name: /Mercado Pago/ })).toContainText('Reconectar');
+	} finally {
+		await sql.end();
 		await p.request.post('/dev/mp-reset', { headers: { origin } });
 		await ctx.close();
 	}

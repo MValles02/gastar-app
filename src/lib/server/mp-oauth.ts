@@ -3,7 +3,7 @@ import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { canAccessAccount, canAccessMpConnection, mpConnectionOwnedBy } from './access';
 import { db } from './db';
-import { financialAccounts, mpConnections } from './db/schema';
+import { financialAccounts, mpConnections, mpSyncState } from './db/schema';
 
 const DEFAULT_API_BASE_URL = 'https://api.mercadopago.com';
 const DEFAULT_AUTH_BASE_URL = 'https://auth.mercadopago.com';
@@ -34,7 +34,10 @@ export function encryptToken(plain: string, userId: string): string {
 export function decryptToken(stored: string, userId: string): string {
 	if (!stored.startsWith(FORMAT)) throw new Error('mp token: unknown format');
 	const raw = Buffer.from(stored.slice(FORMAT.length), 'base64');
-	const decipher = createDecipheriv('aes-256-gcm', key(), raw.subarray(0, 12));
+	if (raw.length < 28) throw new Error('mp token: too short');
+	const decipher = createDecipheriv('aes-256-gcm', key(), raw.subarray(0, 12), {
+		authTagLength: 16
+	});
 	decipher.setAAD(Buffer.from(userId));
 	decipher.setAuthTag(raw.subarray(12, 28));
 	return Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString('utf8');
@@ -137,7 +140,19 @@ export async function exchangeCode(
 	await db
 		.insert(mpConnections)
 		.values({ ...mpConnectionOwnedBy(userId), ...tokens })
-		.onConflictDoUpdate({ target: mpConnections.userId, set: tokens });
+		.onConflictDoUpdate({ target: mpConnections.userId, set: tokens })
+		.returning({ accountId: mpConnections.accountId })
+		.then(async ([row]) => {
+			// A relink ends the "reconnect" notice the inbox shows from the last sync.
+			if (row?.accountId) {
+				await db
+					.update(mpSyncState)
+					.set({ lastError: null })
+					.where(
+						and(eq(mpSyncState.accountId, row.accountId), eq(mpSyncState.lastError, 'reconnect'))
+					);
+			}
+		});
 	return true;
 }
 
@@ -159,7 +174,15 @@ export async function refreshConnection(userId: string): Promise<RefreshOutcome>
 		await db
 			.update(mpConnections)
 			.set({ needsReconnect: true })
-			.where(canAccessMpConnection(userId));
+			.where(
+				and(
+					canAccessMpConnection(userId),
+					// Same condition as the success path: a concurrent relink or refresh is not re-flagged.
+					conn.refreshToken
+						? eq(mpConnections.refreshToken, conn.refreshToken)
+						: isNull(mpConnections.refreshToken)
+				)
+			);
 		return 'reconnect';
 	};
 	if (!conn.refreshToken) return reconnect();
@@ -208,7 +231,11 @@ export async function getConnectionInfo(userId: string): Promise<MpConnectionInf
 	return row ?? null;
 }
 
-/** Decrypted access token and expiry for the sync, or null when not linked. Never pass the token to a client. */
+/**
+ * Decrypted access token and expiry for the sync, or null when not linked or the token cannot be decrypted
+ * (wrong or rotated MP_TOKEN_KEY, corrupt data): then the connection is flagged needs_reconnect.
+ * Never pass the token to a client.
+ */
 export async function getAccessToken(userId: string) {
 	const [row] = await db
 		.select({ accessToken: mpConnections.accessToken, expiresAt: mpConnections.expiresAt })
@@ -216,7 +243,15 @@ export async function getAccessToken(userId: string) {
 		.where(canAccessMpConnection(userId))
 		.limit(1);
 	if (!row) return null;
-	return { token: decryptToken(row.accessToken, userId), expiresAt: row.expiresAt };
+	try {
+		return { token: decryptToken(row.accessToken, userId), expiresAt: row.expiresAt };
+	} catch {
+		await db
+			.update(mpConnections)
+			.set({ needsReconnect: true })
+			.where(and(canAccessMpConnection(userId), eq(mpConnections.accessToken, row.accessToken)));
+		return null;
+	}
 }
 
 /** Users whose connection can sync: an account is chosen and no reconnect is pending. */

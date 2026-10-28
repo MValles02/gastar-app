@@ -29,8 +29,13 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 	}
 	if (url.searchParams.get('error')) back('error=denied');
 	const code = url.searchParams.get('code');
-	if (!code || !(await exchangeCode(locals.user!.id, code, saved.verifier as string, url.origin))) {
-		back('error=exchange');
+	let linked = false;
+	try {
+		linked =
+			!!code && (await exchangeCode(locals.user!.id, code, saved.verifier as string, url.origin));
+	} catch {
+		// Nothing from the error is logged or put in the URL: it may carry token material.
 	}
+	if (!linked) back('error=exchange');
 	back('linked=1');
 };

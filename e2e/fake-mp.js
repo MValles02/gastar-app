@@ -29,6 +29,8 @@ let latestRefresh = null;
 let issued = 0;
 let deny = false;
 let revoked = false;
+// Makes /oauth/token answer 500, like Mercado Pago being down.
+let tokenFails = false;
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
 
 const send = (res, status, body, type = 'application/json') => {
@@ -75,6 +77,7 @@ createServer(async (req, res) => {
 		issued = 0;
 		deny = false;
 		revoked = false;
+		tokenFails = false;
 		return send(res, 200, { ok: true });
 	}
 	if (path === '/__fake/report-delay' && req.method === 'POST') {
@@ -118,7 +121,12 @@ createServer(async (req, res) => {
 		res.writeHead(302, { location: back.toString() });
 		return res.end();
 	}
+	if (path === '/__fake/token-fail' && req.method === 'POST') {
+		tokenFails = !!JSON.parse((await readBody(req)) || '{}').fail;
+		return send(res, 200, { ok: true });
+	}
 	if (path === '/oauth/token' && req.method === 'POST') {
+		if (tokenFails) return send(res, 500, { message: 'down' });
 		const body = JSON.parse((await readBody(req)) || '{}');
 		const bad = (error) => send(res, 400, { error, message: error, status: 400 });
 		if (body.client_id !== CLIENT_ID || body.client_secret !== CLIENT_SECRET) {
