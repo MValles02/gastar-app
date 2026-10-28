@@ -1,6 +1,6 @@
 // Back/up pops history like a native stack instead of pushing the parent again (iOS swipe-back = history.back()).
 import { expect, test, type Page } from '@playwright/test';
-import { login, OTHER_EMAIL, PHONE } from './helpers';
+import { login, OTHER_EMAIL, PHONE, setCurrencyCookie } from './helpers';
 
 test.use({ viewport: PHONE });
 
@@ -64,6 +64,66 @@ test('Cancelar pops back to the detail', async ({ page }) => {
 	expect(await historyLength(page)).toBe(length);
 	await page.goBack();
 	await expect(page).toHaveURL(/\/accounts$/);
+});
+
+test('a double tap on Cancelar pops once, to the detail, not the list', async ({ page }) => {
+	await login(page, OTHER_EMAIL);
+	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	await page
+		.getByRole('link', { name: /Otra cuenta pesos/ })
+		.first()
+		.click();
+	await page.getByRole('link', { name: 'Editar' }).click();
+	await expect(page).toHaveURL(/\/edit$/);
+	// Both clicks land before the first pop does.
+	await page.getByRole('link', { name: 'Cancelar' }).evaluate((a: HTMLElement) => {
+		a.click();
+		a.click();
+	});
+	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
+	await expect(page.getByRole('link', { name: 'Editar' })).toBeVisible();
+	await page.goBack();
+	await expect(page).toHaveURL(/\/accounts$/);
+});
+
+test('Guardar plan from a wizard opened on Inicio leaves no wizard step behind /plan', async ({
+	page,
+	baseURL
+}) => {
+	// Demo has no USD plan (see plan-repeat "Inicio without a plan"); deleted again at the end.
+	await login(page);
+	await setCurrencyCookie(page, baseURL!, 'USD');
+	await page.goto('/', { waitUntil: 'networkidle' });
+	await page
+		.getByRole('region', { name: 'Saldo', exact: true })
+		.getByRole('link', { name: 'Crear plan' })
+		.click();
+	await expect(page).toHaveURL(/\/plan\/setup/);
+	try {
+		await page.getByRole('link', { name: 'Siguiente' }).click();
+		await expect(page).toHaveURL(/step=2$/);
+		await page.getByRole('link', { name: 'Siguiente' }).click();
+		await expect(page).toHaveURL(/step=3$/);
+		await page.getByRole('button', { name: 'Siguiente' }).click();
+		await expect(page).toHaveURL(/step=4$/);
+		await page.getByRole('link', { name: 'Siguiente' }).click();
+		await expect(page).toHaveURL(/step=5$/);
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(page.getByText('Plan guardado.')).toBeVisible();
+		await expect(page).toHaveURL(/\/plan$/);
+
+		await page.goBack();
+		await expect(page).not.toHaveURL(/\/plan\/setup/);
+		await expect(page).toHaveURL(/\/$/);
+	} finally {
+		await page.goto('/plan', { waitUntil: 'networkidle' });
+		const remove = page.getByRole('button', { name: 'Eliminar plan' });
+		if (await remove.count()) {
+			await remove.click();
+			await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
+			await expect(page.getByText('Sin plan en dólares')).toBeVisible();
+		}
+	}
 });
 
 test('tab taps replace the entry instead of piling up history', async ({ page }) => {

@@ -1,5 +1,5 @@
 /* eslint-disable svelte/prefer-svelte-reactivity -- URLs here are parsed and compared, never mutated or rendered */
-import { goto, invalidateAll } from '$app/navigation';
+import { goto } from '$app/navigation';
 import type { ActionResult, AfterNavigate } from '@sveltejs/kit';
 
 /**
@@ -14,6 +14,8 @@ let index = -1;
 let replaceNext = false;
 /** Runs once the `history.go` started by `navigateUp` has landed. */
 let afterPop: (() => unknown) | null = null;
+/** A `history.go` from `navigateUp` has not landed yet: `index` is stale, so further ups are ignored. */
+let popping = false;
 
 const keyOf = (url: URL) => url.pathname + url.search;
 const pathOf = (key: string) => key.split('?')[0];
@@ -39,6 +41,7 @@ export function track(nav: AfterNavigate) {
 			entries = [key];
 			index = 0;
 		}
+		popping = false;
 		const done = afterPop;
 		afterPop = null;
 		if (done) void Promise.resolve().then(done);
@@ -66,11 +69,13 @@ export function replaceGoto(href: string, opts: Parameters<typeof goto>[1] = {})
 
 /**
  * Goes "up" to `href`: pops back to it when it is on the stack (the exact URL first, else the same
- * pathname on another page), otherwise replaces the current entry with it. Data is refreshed once
- * the pop lands; when `href` carries a query (e.g. a `?planSaved=1` flag) the popped entry is
- * replaced with it so the flag still reaches the page.
+ * pathname on another page). Otherwise it first pops the run of entries on the current screen (wizard
+ * steps) back to its first entry and replaces that, or replaces the current entry when there is none. The
+ * popstate navigation reruns the loads; when `href` carries a query (e.g. a `?planSaved=1` flag) the
+ * popped entry is replaced with it so the flag still reaches the page. Ignored while a pop is in flight.
  */
 export async function navigateUp(href: string) {
+	if (popping) return;
 	const target = new URL(href, location.href);
 	if (target.origin !== location.origin) {
 		location.assign(target);
@@ -83,13 +88,26 @@ export async function navigateUp(href: string) {
 		for (let i = index - 1; i >= 0 && to < 0; i--)
 			if (pathOf(entries[i]) === target.pathname) to = i;
 
-	if (to < 0) {
+	if (to >= 0) {
+		const landed = entries[to];
+		if (target.search && landed !== key) afterPop = () => replaceGoto(key, { invalidateAll: true });
+		pop(to);
+		return;
+	}
+	let first = index;
+	if (target.pathname !== location.pathname)
+		while (first > 0 && pathOf(entries[first - 1]) === location.pathname) first--;
+	if (first === index) {
 		await replaceGoto(key, { invalidateAll: true });
 		return;
 	}
-	const landed = entries[to];
-	afterPop = () =>
-		target.search && landed !== key ? replaceGoto(key, { invalidateAll: true }) : invalidateAll();
+	// Pop back to the first entry of the current screen's run (e.g. wizard step 1), then replace it.
+	afterPop = () => replaceGoto(key, { invalidateAll: true });
+	pop(first);
+}
+
+function pop(to: number) {
+	popping = true;
 	history.go(to - index);
 }
 
