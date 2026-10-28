@@ -17,7 +17,7 @@ let afterPop: (() => unknown) | null = null;
 /** A `history.go` from `navigateUp` has not landed yet: `index` is stale, so further ups are ignored. */
 let popping = false;
 let poppingTimer: ReturnType<typeof setTimeout> | undefined;
-/** A pop that has not landed by then (it never will) stops blocking the up controls. */
+/** No `popstate` by then means the traversal never started: stop blocking the up controls. */
 const POP_TIMEOUT_MS = 1000;
 
 const keyOf = (url: URL) => url.pathname + url.search;
@@ -30,6 +30,10 @@ export function track(nav: AfterNavigate) {
 	const key = keyOf(url);
 	const replaced = replaceNext;
 	replaceNext = false;
+	// Any landed navigation ends a pop in flight (a superseding one too, which drops its follow-up).
+	popping = false;
+	clearTimeout(poppingTimer);
+	if (nav.type !== 'popstate') afterPop = null;
 
 	if (nav.type === 'enter' || index < 0) {
 		entries = [key];
@@ -44,8 +48,6 @@ export function track(nav: AfterNavigate) {
 			entries = [key];
 			index = 0;
 		}
-		popping = false;
-		clearTimeout(poppingTimer);
 		const done = afterPop;
 		afterPop = null;
 		if (done) void Promise.resolve().then(done);
@@ -116,7 +118,14 @@ export async function navigateUp(href: string, { refresh = false } = {}) {
 function pop(to: number) {
 	popping = true;
 	clearTimeout(poppingTimer);
-	poppingTimer = setTimeout(() => (popping = false), POP_TIMEOUT_MS);
+	// Once popstate fires the load is under way: `track` clears `popping` when it lands, however slow.
+	const arrived = () => clearTimeout(poppingTimer);
+	addEventListener('popstate', arrived, { once: true });
+	poppingTimer = setTimeout(() => {
+		removeEventListener('popstate', arrived);
+		popping = false;
+		afterPop = null;
+	}, POP_TIMEOUT_MS);
 	history.go(to - index);
 }
 

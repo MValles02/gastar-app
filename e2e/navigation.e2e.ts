@@ -114,6 +114,28 @@ test('a double tap on Cancelar pops once, to the detail, not the list', async ({
 	await expect(page).toHaveURL(/\/accounts$/);
 });
 
+test('a second ‹ while a slow pop is still loading is ignored', async ({ page }) => {
+	await login(page);
+	await page.goto('/profile', { waitUntil: 'networkidle' });
+	await page.getByRole('link', { name: 'Cuentas' }).click();
+	await expect(page).toHaveURL(/\/accounts$/);
+	await page.locator('main a[href*="accounts/"]:not([href$="/new"])').first().click();
+	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
+
+	// The list's data takes 2 s, longer than the 1 s fallback timer.
+	await page.route('**/accounts/__data.json**', async (route) => {
+		await new Promise((r) => setTimeout(r, 2000));
+		await route.continue();
+	});
+	await back(page, 'Volver a cuentas');
+	await page.waitForTimeout(1200);
+	await back(page, 'Volver a cuentas');
+
+	await expect(page.getByRole('heading', { level: 1, name: 'Cuentas' })).toBeVisible();
+	await page.waitForTimeout(500);
+	await expect(page).toHaveURL(/\/accounts$/);
+});
+
 test('Guardar plan from a wizard opened on Inicio leaves no wizard step behind /plan', async ({
 	page,
 	baseURL
