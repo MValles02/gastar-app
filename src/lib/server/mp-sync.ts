@@ -190,7 +190,8 @@ async function syncPayments(
 	accountId: string,
 	ownerId: string,
 	me: string,
-	auth: Auth
+	auth: Auth,
+	from?: Date
 ): Promise<number> {
 	const now = Date.now();
 	const [last] = await db
@@ -203,7 +204,8 @@ async function syncPayments(
 				inArray(mpImportItems.kind, PAYMENT_KINDS)
 			)
 		);
-	const begin = last?.at ? new Date(last.at.getTime() - PAYMENTS_OVERLAP_MS) : backfillStart(now);
+	const begin =
+		from ?? (last?.at ? new Date(last.at.getTime() - PAYMENTS_OVERLAP_MS) : backfillStart(now));
 	const payments = (await searchPayments(begin, new Date(now), auth)).filter(
 		(p) => str(p.payment_type_id) !== 'credit_card'
 	);
@@ -459,13 +461,16 @@ async function syncReport(
 	accountId: string,
 	ownerId: string,
 	syncedUntil: Date | null,
-	auth: Auth
+	auth: Auth,
+	from?: Date
 ) {
 	const now = Date.now();
 	const end = new Date(now - END_LAG_MS);
-	const begin = syncedUntil
-		? dayStart(localDay(new Date(syncedUntil.getTime() - OVERLAP_DAYS * DAY_MS)))
-		: backfillStart(now);
+	const begin = from
+		? dayStart(localDay(from))
+		: syncedUntil
+			? dayStart(localDay(new Date(syncedUntil.getTime() - OVERLAP_DAYS * DAY_MS)))
+			: backfillStart(now);
 	if (!begin) throw fail('config');
 
 	// Yield rows sharing a day (across all chunks) are summed before any write; the first row's fields stay.
@@ -566,8 +571,11 @@ async function refreshed(userId: string): Promise<Auth> {
 	return { token: fresh.token };
 }
 
-/** Runs payments, then the settlement report, under a held lease and releases it. Never throws. */
-async function execute(l: Lease): Promise<void> {
+/**
+ * Runs payments, then the settlement report, under a held lease and releases it. Never throws.
+ * With `from` (a backfill) both windows start there and synced_until is left alone.
+ */
+async function execute(l: Lease, from?: Date): Promise<void> {
 	let end: Date | null = null;
 	let code: MpSyncError | null = null;
 	try {
@@ -595,13 +603,13 @@ async function execute(l: Lease): Promise<void> {
 		}
 		const me = str(obj(meJson).id);
 		if (!me) throw fail('parse');
-		const paid = await syncPayments(l.accountId, l.userId, me, auth);
+		const paid = await syncPayments(l.accountId, l.userId, me, auth, from);
 		// Progress for the inbox: payments are stored, the report is next.
 		await db
 			.update(mpSyncState)
 			.set({ phase: 'report', newItems: paid })
 			.where(eq(mpSyncState.accountId, l.accountId));
-		const report = await syncReport(l.accountId, l.userId, l.syncedUntil, auth);
+		const report = await syncReport(l.accountId, l.userId, l.syncedUntil, auth, from);
 		await db
 			.update(mpSyncState)
 			.set({ newItems: sql`coalesce(${mpSyncState.newItems}, 0) + ${report.added}` })
@@ -620,7 +628,7 @@ async function execute(l: Lease): Promise<void> {
 							runningSince: null,
 							phase: null,
 							lastError: null,
-							syncedUntil: end,
+							...(from ? {} : { syncedUntil: end }),
 							lastRunAt: sql`now()`
 						}
 					: { runningSince: null, phase: null, lastError: code }
@@ -655,5 +663,13 @@ export async function startMpSync(userId: string): Promise<boolean> {
 	const lease = await acquire(userId);
 	if (!lease) return false;
 	void execute(lease);
+	return true;
+}
+
+/** "Traer movimientos desde": like startMpSync, but both windows start at `from` and synced_until stays as it is. */
+export async function startMpBackfill(userId: string, from: Date): Promise<boolean> {
+	const lease = await acquire(userId);
+	if (!lease) return false;
+	void execute(lease, from);
 	return true;
 }
