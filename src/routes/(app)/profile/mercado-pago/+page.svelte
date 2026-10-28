@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import DatePicker from '$lib/components/DatePicker.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as NativeSelect from '$lib/components/ui/native-select/index.js';
@@ -57,15 +58,7 @@
 			<!-- novalidate: the server owns the range check and answers with its own message. -->
 			<form method="POST" action="?/backfill" use:enhance novalidate class="field">
 				<h2>Traer movimientos anteriores</h2>
-				<label for="from">Desde</label>
-				<input
-					id="from"
-					type="date"
-					name="from"
-					min={data.earliest}
-					max={data.today}
-					class="date"
-				/>
+				<DatePicker name="from" label="Desde" min={data.earliest} max={data.today} />
 				<p class="hint">
 					Trae pagos y movimientos de Mercado Pago desde esa fecha. Los que ya importaste no se
 					duplican.
@@ -117,15 +110,6 @@
 		margin: 0;
 		font-size: 1rem;
 		font-weight: 600;
-	}
-
-	.date {
-		padding: var(--space-3);
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-card);
-		color: inherit;
-		font: inherit;
 	}
 
 	.hint {

@@ -12,6 +12,7 @@
 		label,
 		value = $bindable(''),
 		min,
+		max,
 		error,
 		errorId
 	}: {
@@ -21,6 +22,8 @@
 		value?: string;
 		/** Earliest pickable day, `YYYY-MM-DD`. */
 		min?: string;
+		/** Latest pickable day, `YYYY-MM-DD`. */
+		max?: string;
 		error?: string;
 		errorId?: string;
 	} = $props();
@@ -43,6 +46,7 @@
 	}
 	const selected = $derived(toDate(value));
 	const minValue = $derived(toDate(min) ?? new CalendarDate(1900, 1, 1));
+	const maxValue = $derived(toDate(max));
 
 	async function choose(day: string) {
 		value = day;
@@ -81,6 +85,7 @@
 			type="single"
 			value={selected}
 			{minValue}
+			{maxValue}
 			initialFocus
 			onValueChange={(v) => v && choose(v.toString())}
 		/>
@@ -88,7 +93,7 @@
 {:else}
 	<div class="field native">
 		<label for="{labelId}-native">{label}</label>
-		<input id="{labelId}-native" type="date" {name} {min} bind:value />
+		<input id="{labelId}-native" type="date" {name} {min} {max} bind:value />
 		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
 	</div>
 {/if}

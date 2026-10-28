@@ -8,6 +8,8 @@ import {
 	MOVEMENT_DETAIL_RE,
 	OTHER_EMAIL,
 	pick,
+	pickDate,
+	pickMonthYear,
 	postDelete,
 	SEED_EMAIL
 } from './helpers';
@@ -385,9 +387,16 @@ const syncedUntil = () =>
 	});
 
 /** Submits "Traer movimientos" for `ymd` from the Mercado Pago page. */
-async function backfillFrom(ymd: string) {
+async function backfillFrom(ymd: string, { typed = false } = {}) {
 	await page.goto(MP_PATH, { waitUntil: 'networkidle' });
-	await page.locator('input[name="from"]').fill(ymd);
+	if (typed) {
+		// The calendar cannot reach these days, so set the hidden value to cover the server check.
+		await page
+			.locator('input[name="from"]')
+			.evaluate((el, v) => ((el as HTMLInputElement).value = v), ymd);
+	} else {
+		await pickDate(page, 'Desde', ymd);
+	}
 	await page.getByRole('button', { name: 'Traer movimientos' }).click();
 }
 
@@ -439,11 +448,22 @@ test('a date out of range is refused and starts no sync', async () => {
 		[daysAgoYmd(366), 'Podés traer hasta 12 meses para atrás.'],
 		[daysAgoYmd(-2), 'Elegí una fecha válida.']
 	]) {
-		await backfillFrom(ymd);
+		await backfillFrom(ymd, { typed: true });
 		await expect(page.getByRole('alert')).toHaveText(message);
 		await expect(page).toHaveURL(new RegExp(`${MP_PATH}$`));
 	}
 	expect((await searchBegins()).length).toBe(searches);
+});
+
+test('a day after today is disabled in the calendar', async () => {
+	const tomorrow = daysAgoYmd(-1);
+	await page.goto(MP_PATH, { waitUntil: 'networkidle' });
+	await page.getByRole('button', { name: /Desde/ }).click();
+	const dialog = page.getByRole('dialog');
+	await pickMonthYear(page, dialog, tomorrow);
+	await expect(dialog.locator(`[data-bits-day][data-value="${tomorrow}"]`)).toHaveAttribute(
+		'data-disabled'
+	);
 });
 
 /** A fresh signed-in session for another seeded user. */
