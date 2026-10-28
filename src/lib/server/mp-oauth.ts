@@ -1,9 +1,15 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
-import { and, eq, isNotNull, isNull } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, lt, min } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
-import { canAccessAccount, canAccessMpConnection, mpConnectionOwnedBy } from './access';
+import {
+	canAccessAccount,
+	canAccessImport,
+	canAccessMpConnection,
+	mpConnectionOwnedBy
+} from './access';
 import { db } from './db';
-import { financialAccounts, mpConnections, mpSyncState } from './db/schema';
+import { financialAccounts, mpConnections, mpImportItems, mpSyncState } from './db/schema';
+import { localDay } from './month';
 
 const DEFAULT_API_BASE_URL = 'https://api.mercadopago.com';
 const DEFAULT_AUTH_BASE_URL = 'https://auth.mercadopago.com';
@@ -287,6 +293,36 @@ export async function setReceivingAccount(userId: string, accountId: string): Pr
 		.where(canAccessMpConnection(userId))
 		.returning({ userId: mpConnections.userId });
 	return rows.length > 0;
+}
+
+/** The effective "importar desde" day (`YYYY-MM-DD`): the chosen one, else the earliest imported item's day, else 30 days back. */
+export async function getImportFromDay(userId: string, accountId: string): Promise<string> {
+	const [row] = await db
+		.select({ chosen: mpConnections.importFrom })
+		.from(mpConnections)
+		.where(canAccessMpConnection(userId))
+		.limit(1);
+	if (row?.chosen) return localDay(row.chosen);
+	const [first] = await db
+		.select({ at: min(mpImportItems.occurredAt) })
+		.from(mpImportItems)
+		.where(and(canAccessImport(userId), eq(mpImportItems.accountId, accountId)));
+	return localDay(first?.at ?? new Date(Date.now() - 30 * 86_400_000));
+}
+
+/** Saves "importar desde" and drops the pending items of the account before it (approved and rejected ones stay). */
+export async function setImportFrom(userId: string, accountId: string, from: Date): Promise<void> {
+	await db.update(mpConnections).set({ importFrom: from }).where(canAccessMpConnection(userId));
+	await db
+		.delete(mpImportItems)
+		.where(
+			and(
+				canAccessImport(userId),
+				eq(mpImportItems.accountId, accountId),
+				eq(mpImportItems.status, 'pending'),
+				lt(mpImportItems.occurredAt, from)
+			)
+		);
 }
 
 /** Deletes the connection. Items, rules and sync state stay. */

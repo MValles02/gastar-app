@@ -422,6 +422,8 @@ export const mpConnections = pgTable('mp_connections', {
 	refreshToken: text('refresh_token'),
 	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
 	needsReconnect: boolean('needs_reconnect').default(false).notNull(),
+	// Local day start of "Importar desde": no sync fetches anything before it. Null: not chosen yet.
+	importFrom: timestamp('import_from', { withTimezone: true }),
 	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp('updated_at', { withTimezone: true })
 		.defaultNow()

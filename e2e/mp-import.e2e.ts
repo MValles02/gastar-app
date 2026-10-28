@@ -388,21 +388,38 @@ const syncedUntil = () =>
 		return (r.synced_until as Date).getTime();
 	});
 
-/** Submits "Traer movimientos" for `ymd` from the Mercado Pago page. */
-async function backfillFrom(ymd: string, { typed = false } = {}) {
-	await page.goto(MP_PATH, { waitUntil: 'networkidle' });
+/** Sets "Importar desde" to `ymd` in the inbox; the picker submits on change. */
+async function importFrom(ymd: string, { typed = false } = {}) {
+	await page.goto('/imports', { waitUntil: 'networkidle' });
 	if (typed) {
-		// The calendar cannot reach these days, so set the hidden value to cover the server check.
-		await page
-			.locator('input[name="from"]')
-			.evaluate((el, v) => ((el as HTMLInputElement).value = v), ymd);
+		// The calendar cannot reach these days, so set the hidden value and fire the change the picker would.
+		await page.locator('input[name="from"]').evaluate((el, v) => {
+			(el as HTMLInputElement).value = v;
+			el.dispatchEvent(new Event('change', { bubbles: true }));
+		}, ymd);
 	} else {
-		await pickDate(page, 'Desde', ymd);
+		await pickDate(page, 'Importar desde', ymd);
 	}
-	await page.getByRole('button', { name: 'Traer movimientos' }).click();
 }
 
-test('bringing older movements searches from the chosen date and keeps synced_until', async () => {
+const lastRunAt = () =>
+	withDb(async (sql) => {
+		const [r] = await sql`select last_run_at from mp_sync_state
+			where account_id = (select account_id from mp_connections
+				where user_id = (select id from "user" where email = ${IMPORT_EMAIL}))`;
+		return (r.last_run_at as Date).getTime();
+	});
+
+/** Runs `start`, then waits for the sync it kicked off to finish (last_run_at moves). */
+async function untilRun(start: () => Promise<unknown>) {
+	const prev = await lastRunAt();
+	await start();
+	await expect
+		.poll(lastRunAt, { timeout: 30_000, intervals: [300, 500, 1000] })
+		.toBeGreaterThan(prev);
+}
+
+test('moving "Importar desde" earlier searches from the chosen date and keeps synced_until', async () => {
 	const from = daysAgoYmd(60);
 	const until = await syncedUntil();
 	const searchesBefore = (await searchBegins()).length;
@@ -413,13 +430,10 @@ test('bringing older movements searches from the chosen date and keeps synced_un
 		and user_id = (select id from "user" where email = ${IMPORT_EMAIL})`
 	);
 
-	await backfillFrom(from);
+	await untilRun(() => importFrom(from));
 	await expect(page).toHaveURL(/\/imports$/);
-	await expect(async () => {
-		await page.reload();
-		await expect(page.getByRole('status')).toContainText('Listo. Última sincronización');
-		await expect(rows()).toHaveCount(3);
-	}).toPass({ timeout: 30_000, intervals: [300, 500, 1000] });
+	await page.reload();
+	await expect(rows()).toHaveCount(3);
 
 	const begin = (await searchBegins())[searchesBefore];
 	expect(new Date(begin - 3 * 3_600_000).toISOString().slice(0, 10)).toBe(from);
@@ -428,20 +442,63 @@ test('bringing older movements searches from the chosen date and keeps synced_un
 	expect(await syncedUntil()).toBe(until);
 });
 
-test('bringing older movements never changes approved or rejected items', async () => {
+test('moving "Importar desde" earlier never changes approved or rejected items', async () => {
 	const before = await itemRows();
 	expect(before.filter((r) => r.status === 'approved').length).toBeGreaterThan(0);
 	expect(before.filter((r) => r.status === 'rejected').length).toBeGreaterThan(0);
 
-	await backfillFrom(daysAgoYmd(60));
+	// Earlier than the 60 days chosen above, so this is a backfill again.
+	await untilRun(() => importFrom(daysAgoYmd(90)));
 	await expect(page).toHaveURL(/\/imports$/);
-	await expect(async () => {
-		await page.reload();
-		await expect(page.getByRole('status')).toContainText('Listo. Última sincronización');
-	}).toPass({ timeout: 30_000, intervals: [300, 500, 1000] });
 
 	expect(await itemRows()).toEqual(before);
 	await expect(rows()).toHaveCount(3);
+});
+
+test('the chosen "Importar desde" day persists across reloads', async () => {
+	await page.goto('/imports', { waitUntil: 'networkidle' });
+	await expect(page.locator('input[name="from"]')).toHaveValue(daysAgoYmd(90));
+});
+
+test('moving "Importar desde" later removes older pending items and the next sync never searches before it', async () => {
+	const today = daysAgoYmd(0);
+	const todayStart = Date.parse(`${today}T03:00:00Z`);
+	const before = await itemRows();
+	const decided = (rs: typeof before) => rs.filter((r) => r.status !== 'pending');
+
+	await importFrom(today);
+	await expect(page).toHaveURL(/\/imports$/);
+	await expect(page.locator('input[name="from"]')).toHaveValue(today);
+
+	// Pending items stamped before today are gone; approved and rejected rows are untouched.
+	await expect
+		.poll(async () => {
+			const [r] = await withDb(
+				(sql) => sql`select count(*)::int as n from mp_import_items
+					where status = 'pending' and occurred_at < ${new Date(todayStart)}
+					and user_id = (select id from "user" where email = ${IMPORT_EMAIL})`
+			);
+			return r.n;
+		})
+		.toBe(0);
+	expect(decided(await itemRows())).toEqual(decided(before));
+
+	const searches = (await searchBegins()).length;
+	const reports = (await reportBegins()).length;
+	await untilRun(async () => {
+		await page.goto('/imports', { waitUntil: 'networkidle' });
+		await page.getByRole('button', { name: 'Sincronizar ahora' }).click();
+	});
+	expect((await searchBegins()).slice(searches).every((b) => b >= todayStart)).toBe(true);
+	expect((await searchBegins()).length).toBeGreaterThan(searches);
+	expect((await reportBegins()).slice(reports).every((b) => Date.parse(b) >= todayStart)).toBe(
+		true
+	);
+
+	// Put the window back so the tests below see the older items again.
+	await untilRun(() => importFrom(daysAgoYmd(60)));
+	await page.reload();
+	await expect(page.locator('input[name="from"]')).toHaveValue(daysAgoYmd(60));
 });
 
 test('a date out of range is refused and starts no sync', async () => {
@@ -450,17 +507,17 @@ test('a date out of range is refused and starts no sync', async () => {
 		[daysAgoYmd(366), 'Podés traer hasta 12 meses para atrás.'],
 		[daysAgoYmd(-2), 'Elegí una fecha válida.']
 	]) {
-		await backfillFrom(ymd, { typed: true });
+		await importFrom(ymd, { typed: true });
 		await expect(page.getByRole('alert')).toHaveText(message);
-		await expect(page).toHaveURL(new RegExp(`${MP_PATH}$`));
+		await expect(page).toHaveURL(/\/imports$/);
 	}
 	expect((await searchBegins()).length).toBe(searches);
 });
 
 test('a day after today is disabled in the calendar', async () => {
 	const tomorrow = daysAgoYmd(-1);
-	await page.goto(MP_PATH, { waitUntil: 'networkidle' });
-	await page.getByRole('button', { name: /Desde/ }).click();
+	await page.goto('/imports', { waitUntil: 'networkidle' });
+	await page.getByRole('button', { name: /Importar desde/ }).click();
 	const dialog = page.getByRole('dialog');
 	await pickMonthYear(page, dialog, tomorrow);
 	await expect(dialog.locator(`[data-bits-day][data-value="${tomorrow}"]`)).toHaveAttribute(
