@@ -498,6 +498,72 @@ test('another user links their own account and sees only their own inbox', async
 	}
 });
 
+/** Links `otro`, syncs once and returns the status text once the run is over; cleans up like its siblings. */
+async function otherSync(browser: Browser, expected: RegExp) {
+	const { ctx, p } = await asUser(browser, OTHER_EMAIL);
+	try {
+		await link(p, 'Otra cuenta pesos');
+		await p.goto('/imports', { waitUntil: 'networkidle' });
+		await Promise.all([
+			p.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/imports')),
+			p.getByRole('button', { name: 'Sincronizar ahora' }).click()
+		]);
+		await expect(async () => {
+			await p.reload();
+			await expect(p.getByRole('status')).toHaveText(expected);
+		}).toPass({ timeout: 30_000, intervals: [300, 500, 1000] });
+		return await p.locator('[data-slot="item-group"] [role="listitem"]').count();
+	} finally {
+		await p.request.post('/dev/mp-reset', { headers: { origin } });
+		await ctx.close();
+	}
+}
+
+const configRequests = async () => (await calls()).filter((c) => c.path.endsWith('/config'));
+// Every column the settlement CSV parser reads.
+const PARSER_COLUMNS = [
+	'EXTERNAL_REFERENCE',
+	'SOURCE_ID',
+	'PAYMENT_METHOD',
+	'TRANSACTION_TYPE',
+	'TRANSACTION_AMOUNT',
+	'TRANSACTION_DATE',
+	'SETTLEMENT_NET_AMOUNT'
+];
+
+test('an account without a report configuration gets one created and syncs', async ({
+	browser
+}) => {
+	await fake('/__fake/settlement-config', { configured: false });
+	try {
+		const items = await otherSync(browser, /Listo\. Última sincronización/);
+		expect(items).toBe(8);
+	} finally {
+		await fake('/__fake/settlement-config', { configured: true });
+	}
+	const posts = (await (await fake('/__fake/settlement-config')).json()) as {
+		include_withdraw: boolean;
+		columns: { key: string }[];
+	}[];
+	expect(posts).toHaveLength(1);
+	expect(posts[0].include_withdraw).toBe(true);
+	expect(posts[0].columns.map((c) => c.key)).toEqual(expect.arrayContaining(PARSER_COLUMNS));
+	expect((await configRequests()).map((c) => c.method)).toEqual(['GET', 'POST']);
+});
+
+test('an existing report configuration is never overwritten when the report still 404s', async ({
+	browser
+}) => {
+	const before = (await configRequests()).length;
+	await fake('/__fake/settlement-config', { configured: true, createStays404: true });
+	try {
+		await otherSync(browser, /No se pudo sincronizar/);
+	} finally {
+		await fake('/__fake/settlement-config', { configured: true });
+	}
+	expect((await configRequests()).slice(before).map((c) => c.method)).toEqual(['GET']);
+});
+
 test('a stored token that cannot be decrypted asks to reconnect', async ({ browser }) => {
 	const { ctx, p } = await asUser(browser, OTHER_EMAIL);
 	const sql = postgres(

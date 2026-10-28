@@ -31,6 +31,16 @@ let deny = false;
 let revoked = false;
 // Makes /oauth/token answer 500, like Mercado Pago being down.
 let tokenFails = false;
+// Settlement report config per OAuth grant (one per linked MP account). New grants start configured
+// unless /__fake/settlement-config says otherwise; `createStays404` keeps the report create at 404 even
+// after a config exists. Config POST bodies are kept for the E2E to assert.
+let grantSeq = 0;
+let currentGrant = 0;
+const tokenGrant = new Map();
+const grantConfig = new Map();
+let newGrantsConfigured = true;
+let createStays404 = false;
+let configPosts = [];
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
 
 const send = (res, status, body, type = 'application/json') => {
@@ -78,8 +88,22 @@ createServer(async (req, res) => {
 		deny = false;
 		revoked = false;
 		tokenFails = false;
+		grantSeq = 0;
+		currentGrant = 0;
+		tokenGrant.clear();
+		grantConfig.clear();
+		newGrantsConfigured = true;
+		createStays404 = false;
+		configPosts = [];
 		return send(res, 200, { ok: true });
 	}
+	if (path === '/__fake/settlement-config' && req.method === 'POST') {
+		const b = JSON.parse((await readBody(req)) || '{}');
+		newGrantsConfigured = b.configured ?? true;
+		createStays404 = !!b.createStays404;
+		return send(res, 200, { ok: true });
+	}
+	if (path === '/__fake/settlement-config') return send(res, 200, configPosts);
 	if (path === '/__fake/report-delay' && req.method === 'POST') {
 		reportDelay = Number(JSON.parse((await readBody(req)) || '{}').ms) || 0;
 		return send(res, 200, { ok: true });
@@ -142,6 +166,8 @@ createServer(async (req, res) => {
 					.digest()
 			);
 			if (entry.method !== 'S256' || hash !== entry.challenge) return bad('invalid_grant');
+			currentGrant = ++grantSeq;
+			grantConfig.set(currentGrant, newGrantsConfigured ? { seeded: true } : null);
 		} else if (body.grant_type === 'refresh_token') {
 			if (revoked || !latestRefresh || body.refresh_token !== latestRefresh) {
 				return bad('invalid_grant');
@@ -151,6 +177,7 @@ createServer(async (req, res) => {
 		const access = `APP_USR-fake-${n}`;
 		latestRefresh = `TG-refresh-${n}`;
 		liveTokens.add(access);
+		tokenGrant.set(access, currentGrant);
 		return send(res, 200, {
 			access_token: access,
 			token_type: 'Bearer',
@@ -171,6 +198,7 @@ createServer(async (req, res) => {
 	if (!liveTokens.has(bearer)) return send(res, 401, { message: 'invalid_token', status: 401 });
 	if (forced) return send(res, forced, { message: 'forced' });
 
+	const grant = tokenGrant.get(bearer);
 	let m;
 	if (path === '/users/me') return send(res, 200, { id: ME });
 	if (path === '/v1/payments/search') {
@@ -195,7 +223,21 @@ createServer(async (req, res) => {
 			paging: { total: all.length, offset, limit }
 		});
 	}
+	// Real MP answers 404 on the report create until the account has a settlement report config.
+	if (path === '/v1/account/settlement_report/config') {
+		if (req.method === 'POST') {
+			const config = JSON.parse((await readBody(req)) || '{}');
+			configPosts.push(config);
+			grantConfig.set(grant, config);
+			return send(res, 201, config);
+		}
+		if (req.method === 'GET' && grantConfig.get(grant)) {
+			return send(res, 200, grantConfig.get(grant));
+		}
+		return send(res, 404, { message: 'not_found' });
+	}
 	if (path === '/v1/account/settlement_report' && req.method === 'POST') {
+		if (!grantConfig.get(grant) || createStays404) return send(res, 404, { message: 'not_found' });
 		// Mirrors the real API: report dates must be YYYY-MM-DDTHH:MM:SSZ (no milliseconds).
 		const body = JSON.parse((await readBody(req)) || '{}');
 		const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
