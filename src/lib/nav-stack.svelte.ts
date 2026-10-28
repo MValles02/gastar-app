@@ -126,13 +126,16 @@ function replaceAfterPop(key: string) {
 }
 
 /**
- * Page transition for a navigation, read in the root layout's `onNavigate` (before `track` consumes
- * the one-shot flags): a push slides forward, a pop (‹, browser/iOS back) or an "up" replace slides
- * back, and a tab switch (a replace to another screen) crossfades. A change within one screen (month,
- * currency, filters, search, wizard step) gets none: taps are swallowed while a transition runs.
+ * Page transition for a navigation, read once in the root layout's `onNavigate` (it consumes
+ * `transitionNext`, so a replace that never lands can't leak it into the next navigation): a push
+ * slides forward, a pop (‹, browser/iOS back) or an "up" replace slides back, and a tab switch (a
+ * replace to another screen) crossfades. A change within one screen (month, currency, filters,
+ * search, wizard step) gets none: taps are swallowed while a transition runs.
  */
 export function transitionOf(nav: OnNavigate): 'forward' | 'back' | 'fade' | null {
-	if (transitionNext) return transitionNext === 'none' ? null : transitionNext;
+	const next = transitionNext;
+	transitionNext = null;
+	if (next) return next === 'none' ? null : next;
 	if (nav.from?.url.pathname === nav.to?.url.pathname) return null;
 	if (replaceNext) return 'fade';
 	if (nav.type === 'popstate') return (nav.delta ?? 0) < 0 ? 'back' : 'forward';
