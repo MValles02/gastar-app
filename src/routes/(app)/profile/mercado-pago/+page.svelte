@@ -54,6 +54,25 @@
 		</form>
 		{#if data.connection.accountId}
 			<Button href={resolve('/imports')} class="w-full">Ver movimientos</Button>
+			<!-- novalidate: the server owns the range check and answers with its own message. -->
+			<form method="POST" action="?/backfill" use:enhance novalidate class="field">
+				<h2>Traer movimientos anteriores</h2>
+				<label for="from">Desde</label>
+				<input
+					id="from"
+					type="date"
+					name="from"
+					min={data.earliest}
+					max={data.today}
+					class="date"
+				/>
+				<p class="hint">
+					Trae pagos y movimientos de Mercado Pago desde esa fecha. Los que ya importaste no se
+					duplican.
+				</p>
+				{#if form?.backfillError}<p class="error" role="alert">{form.backfillError}</p>{/if}
+				<Button type="submit" variant="outline" class="w-full">Traer movimientos</Button>
+			</form>
 		{/if}
 	{/if}
 
@@ -92,6 +111,26 @@
 
 	.field label {
 		font-weight: 600;
+	}
+
+	.field h2 {
+		margin: 0;
+		font-size: 1rem;
+		font-weight: 600;
+	}
+
+	.date {
+		padding: var(--space-3);
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-card);
+		color: inherit;
+		font: inherit;
+	}
+
+	.hint {
+		margin: 0;
+		color: var(--text-muted);
 	}
 
 	.flash {

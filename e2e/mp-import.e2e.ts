@@ -356,6 +356,96 @@ test('bulk approve creates the suggested movements with exact amounts', async ()
 	await expect(page.getByRole('button', { name: /sugerido/ })).toHaveCount(0);
 });
 
+const daysAgoYmd = (n: number) =>
+	new Date(Date.now() - 3 * 3_600_000 - n * DAY_MS).toISOString().slice(0, 10);
+const reportBegins = async () => (await (await fake('/__fake/report-begins')).json()) as string[];
+
+/** Runs `fn` against the importer's rows in mp_import_items / mp_sync_state. */
+async function withDb<T>(fn: (sql: postgres.Sql) => Promise<T>) {
+	const sql = postgres(
+		process.env.DATABASE_URL || 'postgres://gastar:gastar@localhost:5432/gastar'
+	);
+	try {
+		return await fn(sql);
+	} finally {
+		await sql.end();
+	}
+}
+const itemRows = () =>
+	withDb(
+		(sql) => sql`select external_key, status from mp_import_items
+			where user_id = (select id from "user" where email = ${IMPORT_EMAIL}) order by external_key`
+	);
+const syncedUntil = () =>
+	withDb(async (sql) => {
+		const [r] = await sql`select synced_until from mp_sync_state
+			where account_id = (select account_id from mp_connections
+				where user_id = (select id from "user" where email = ${IMPORT_EMAIL}))`;
+		return (r.synced_until as Date).getTime();
+	});
+
+/** Submits "Traer movimientos" for `ymd` from the Mercado Pago page. */
+async function backfillFrom(ymd: string) {
+	await page.goto(MP_PATH, { waitUntil: 'networkidle' });
+	await page.locator('input[name="from"]').fill(ymd);
+	await page.getByRole('button', { name: 'Traer movimientos' }).click();
+}
+
+test('bringing older movements searches from the chosen date and keeps synced_until', async () => {
+	const from = daysAgoYmd(60);
+	const until = await syncedUntil();
+	const searchesBefore = (await searchBegins()).length;
+	const reportsBefore = (await reportBegins()).length;
+	// Drop the pending items so the backfill visibly brings them back.
+	await withDb(
+		(sql) => sql`delete from mp_import_items where status = 'pending'
+		and user_id = (select id from "user" where email = ${IMPORT_EMAIL})`
+	);
+
+	await backfillFrom(from);
+	await expect(page).toHaveURL(/\/imports$/);
+	await expect(async () => {
+		await page.reload();
+		await expect(page.getByRole('status')).toContainText('Listo. Última sincronización');
+		await expect(rows()).toHaveCount(3);
+	}).toPass({ timeout: 30_000, intervals: [300, 500, 1000] });
+
+	const begin = (await searchBegins())[searchesBefore];
+	expect(new Date(begin - 3 * 3_600_000).toISOString().slice(0, 10)).toBe(from);
+	// Reports go in 31-day chunks: the first starts on the chosen local day (03:00Z).
+	expect((await reportBegins())[reportsBefore]).toBe(`${from}T03:00:00Z`);
+	expect(await syncedUntil()).toBe(until);
+});
+
+test('bringing older movements never changes approved or rejected items', async () => {
+	const before = await itemRows();
+	expect(before.filter((r) => r.status === 'approved').length).toBeGreaterThan(0);
+	expect(before.filter((r) => r.status === 'rejected').length).toBeGreaterThan(0);
+
+	await backfillFrom(daysAgoYmd(60));
+	await expect(page).toHaveURL(/\/imports$/);
+	await expect(async () => {
+		await page.reload();
+		await expect(page.getByRole('status')).toContainText('Listo. Última sincronización');
+	}).toPass({ timeout: 30_000, intervals: [300, 500, 1000] });
+
+	expect(await itemRows()).toEqual(before);
+	await expect(rows()).toHaveCount(3);
+});
+
+test('a date out of range is refused and starts no sync', async () => {
+	const searches = (await searchBegins()).length;
+	for (const [ymd, message] of [
+		[daysAgoYmd(366), 'Podés traer hasta 12 meses para atrás.'],
+		[daysAgoYmd(-2), 'Elegí una fecha válida.']
+	]) {
+		await backfillFrom(ymd);
+		await expect(page.getByRole('alert')).toHaveText(message);
+		await expect(page).toHaveURL(new RegExp(`${MP_PATH}$`));
+	}
+	expect((await searchBegins()).length).toBe(searches);
+});
+
 /** A fresh signed-in session for another seeded user. */
 async function asUser(browser: Browser, email: string) {
 	const ctx = await browser.newContext();

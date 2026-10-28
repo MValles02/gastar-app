@@ -41,6 +41,8 @@ const grantConfig = new Map();
 let newGrantsConfigured = true;
 let createStays404 = false;
 let configPosts = [];
+// begin_date of every settlement report created, oldest first; read through /__fake/report-begins.
+let reportBegins = [];
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
 
 const send = (res, status, body, type = 'application/json') => {
@@ -95,8 +97,10 @@ createServer(async (req, res) => {
 		newGrantsConfigured = true;
 		createStays404 = false;
 		configPosts = [];
+		reportBegins = [];
 		return send(res, 200, { ok: true });
 	}
+	if (path === '/__fake/report-begins') return send(res, 200, reportBegins);
 	if (path === '/__fake/settlement-config' && req.method === 'POST') {
 		const b = JSON.parse((await readBody(req)) || '{}');
 		newGrantsConfigured = b.configured ?? true;
@@ -242,6 +246,7 @@ createServer(async (req, res) => {
 		const body = JSON.parse((await readBody(req)) || '{}');
 		const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 		if (!iso.test(body.begin_date) || !iso.test(body.end_date)) return badDate(res);
+		reportBegins.push(body.begin_date);
 		tasks++;
 		taskReadyAt[tasks] = Date.now() + reportDelay;
 		return send(res, 202, { id: tasks, status: 'pending' });
