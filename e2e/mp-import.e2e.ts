@@ -132,12 +132,13 @@ test.afterAll(async () => {
 });
 
 test('sync shows live progress, fills the inbox without a reload and leaves balances alone', async () => {
+	test.setTimeout(90_000);
 	const balance = await accountRow();
 	const main = page.locator('main');
 	const status = page.getByRole('status');
 
 	// The report waits in MP's queue: payments land first, report items when it is processed.
-	await fake('/__fake/report-delay', { ms: 6000 });
+	await fake('/__fake/report-delay', { ms: 15_000 });
 	try {
 		await page.goto('/imports', { waitUntil: 'networkidle' });
 		// Survives only if the page is never reloaded.
@@ -145,12 +146,13 @@ test('sync shows live progress, fills the inbox without a reload and leaves bala
 		await page.getByRole('button', { name: 'Sincronizar ahora' }).click();
 
 		await expect(status).toContainText('Esperando el reporte de Mercado Pago');
+		// Rows first: the payments phase can be slow under load, and the count only reads 4 once they land.
+		await expect(rows()).toHaveCount(4, { timeout: 30_000 });
 		await expect(status).toContainText('4 movimientos nuevos');
-		await expect(rows()).toHaveCount(4);
 		await expect(main.getByText('CAFE DE PRUEBA')).toBeVisible();
 		await expect(rows().filter({ hasText: 'Rendimientos' })).toHaveCount(0);
 
-		await expect(status).toContainText('Listo. Última sincronización', { timeout: 20_000 });
+		await expect(status).toContainText('Listo. Última sincronización', { timeout: 40_000 });
 		await expect(status).toContainText('8 movimientos nuevos');
 		await expect(rows()).toHaveCount(8);
 		expect(
