@@ -66,7 +66,8 @@ test('tab bar is Inicio, Movimientos, Plan, Reportes plus the Nuevo movimiento b
 		'Cambiar nombre',
 		'Cambiar contraseña',
 		'Cuentas',
-		'Categorías'
+		'Categorías',
+		'Mercado Pago Sin vincular'
 	]);
 	await expect(admin.getByRole('link', { name: 'Cuentas' })).toHaveAttribute('href', '/accounts');
 	await expect(admin.getByRole('link', { name: 'Categorías' })).toHaveAttribute(

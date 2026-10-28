@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Browser, type Page } from '@playwright/test';
 import {
 	deleteMovements,
 	findMovements,
@@ -12,7 +12,8 @@ import {
 } from './helpers';
 
 const FAKE = `http://127.0.0.1:${Number(process.env.FAKE_MP_PORT) || 5199}`;
-const TOKEN = 'TEST-fake-mp-token';
+const BEARER_RE = /^Bearer APP_USR-fake-\d+$/;
+const MP_PATH = '/profile/mercado-pago';
 const DAY_MS = 86_400_000;
 
 test.describe.configure({ mode: 'serial' });
@@ -53,6 +54,17 @@ async function syncNow(expected: RegExp) {
 		await page.reload();
 		await expect(page.getByRole('status')).toHaveText(expected);
 	}).toPass({ timeout: 30_000, intervals: [300, 500, 1000] });
+}
+
+/** Links Mercado Pago through the UI (fake OAuth) and picks the receiving account. */
+async function link(p: Page, accountName: string) {
+	await p.goto(MP_PATH, { waitUntil: 'networkidle' });
+	await p.getByRole('button', { name: 'Vincular Mercado Pago' }).click();
+	await expect(p).toHaveURL(/\/profile\/mercado-pago\?linked=1$/);
+	await p.waitForLoadState('networkidle');
+	await p.getByLabel('Cuenta que recibe los movimientos').selectOption({ label: accountName });
+	await p.getByRole('button', { name: 'Guardar' }).click();
+	await expect(p.getByRole('link', { name: 'Ver movimientos' })).toBeVisible();
 }
 
 const accountRow = async () => {
@@ -106,6 +118,7 @@ test.beforeAll(async ({ browser }) => {
 	origin = new URL(page.url()).origin;
 	const res = await page.request.post('/dev/mp-reset', { headers: { origin } });
 	expect(res.status()).toBe(204);
+	await link(page, 'Mercado Pago');
 });
 
 test.afterAll(async () => {
@@ -183,10 +196,15 @@ test('an auth failure shows the sync error', async () => {
 	}
 });
 
-test('every MP call carries the bearer token', async () => {
+test('every MP call carries a token the fake issued, and no page shows it', async () => {
 	const all = await calls();
 	expect(all.length).toBeGreaterThan(0);
-	for (const c of all) expect(c.authorization).toBe(`Bearer ${TOKEN}`);
+	// The fake answers 401 to any bearer it did not issue, so the syncs above prove the stored token works.
+	for (const c of all) expect(c.authorization).toMatch(BEARER_RE);
+	for (const path of [MP_PATH, '/imports', '/profile']) {
+		await page.goto(path, { waitUntil: 'networkidle' });
+		expect(await page.content()).not.toContain('APP_USR');
+	}
 });
 
 test('approving a payment keeps its exact cents, time of day and moves the balance', async () => {
@@ -336,15 +354,126 @@ test('bulk approve creates the suggested movements with exact amounts', async ()
 	await expect(page.getByRole('button', { name: /sugerido/ })).toHaveCount(0);
 });
 
-test('other users get 404 and no Perfil row', async ({ browser }) => {
-	for (const email of [OTHER_EMAIL, SEED_EMAIL]) {
-		const ctx = await browser.newContext();
-		const p = await ctx.newPage();
-		await login(p, email);
+/** A fresh signed-in session for another seeded user. */
+async function asUser(browser: Browser, email: string) {
+	const ctx = await browser.newContext();
+	const p = await ctx.newPage();
+	await login(p, email);
+	return { ctx, p };
+}
+
+test('denying access on Mercado Pago leaves the account unlinked', async ({ browser }) => {
+	const { ctx, p } = await asUser(browser, OTHER_EMAIL);
+	await fake('/__fake/oauth', { deny: true });
+	try {
+		await p.goto(MP_PATH, { waitUntil: 'networkidle' });
+		await p.getByRole('button', { name: 'Vincular Mercado Pago' }).click();
+		await expect(p).toHaveURL(/error=denied/);
+		await expect(p.getByText('Cancelaste la vinculación.')).toBeVisible();
+		await expect(p.getByRole('button', { name: 'Vincular Mercado Pago' })).toBeVisible();
+	} finally {
+		await fake('/__fake/oauth', { deny: false });
+		await ctx.close();
+	}
+});
+
+test('a callback with a tampered state is rejected', async ({ browser }) => {
+	const { ctx, p } = await asUser(browser, OTHER_EMAIL);
+	try {
+		// Starts a real linking (the browser gets the state cookie) but never follows it to Mercado Pago:
+		// the callback then arrives with a state this browser was never given.
+		const start = await p.request.post(`${MP_PATH}?/connect`, {
+			headers: { origin },
+			form: {},
+			maxRedirects: 0
+		});
+		expect(start.ok()).toBe(true);
+		await p.goto(`${MP_PATH}/callback?code=TG-forged&state=tampered`);
+		await expect(p).toHaveURL(/error=state/);
+		await expect(p.getByText('La vinculación venció. Probá de nuevo.')).toBeVisible();
+		await expect(p.getByRole('button', { name: 'Vincular Mercado Pago' })).toBeVisible();
+	} finally {
+		await ctx.close();
+	}
+});
+
+test('an expired token is refreshed silently and the sync still works', async () => {
+	const tokens = async () => new Set((await calls()).map((c) => c.authorization));
+	const before = await tokens();
+	await fake('/__fake/expire', {});
+	await syncNow(/Listo\. Última sincronización/);
+	const after = await tokens();
+	expect([...after].filter((t) => !before.has(t))).not.toHaveLength(0);
+	await expect(page.getByRole('status')).not.toContainText('No se pudo sincronizar');
+	await expect(page.getByRole('button', { name: 'Sincronizar ahora' })).toBeVisible();
+});
+
+test('a revoked connection asks to reconnect in Perfil and in the inbox', async () => {
+	await fake('/__fake/revoke', {});
+	await page.goto('/imports', { waitUntil: 'networkidle' });
+	await Promise.all([
+		page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/imports')),
+		page.getByRole('button', { name: 'Sincronizar ahora' }).click()
+	]);
+	await expect(async () => {
+		await page.reload();
+		await expect(page.getByRole('link', { name: 'Reconectar' })).toBeVisible();
+	}).toPass({ timeout: 30_000, intervals: [300, 500, 1000] });
+	await expect(page.getByRole('button', { name: 'Sincronizar ahora' })).toHaveCount(0);
+	await expect(page.getByRole('status')).toContainText('volver a vincular');
+	// The items already imported stay listed.
+	await expect(rows().first()).toBeVisible();
+
+	await page.goto('/profile', { waitUntil: 'networkidle' });
+	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('Reconectar');
+	await page.goto(MP_PATH, { waitUntil: 'networkidle' });
+	await expect(page.getByRole('button', { name: 'Reconectar' })).toBeVisible();
+});
+
+test('another user links their own account and sees only their own inbox', async ({ browser }) => {
+	const { ctx, p } = await asUser(browser, OTHER_EMAIL);
+	try {
+		await link(p, 'Otra cuenta pesos');
+		await p.getByRole('link', { name: 'Ver movimientos' }).click();
+		await expect(p).toHaveURL(/\/imports$/);
+		await p.waitForLoadState('networkidle');
+		await Promise.all([
+			p.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/imports')),
+			p.getByRole('button', { name: 'Sincronizar ahora' }).click()
+		]);
+		const theirs = p.locator('[data-slot="item-group"] [role="listitem"]');
+		// Their own full import (the fake serves the same payments), not the importer's current inbox.
+		await expect(theirs).toHaveCount(8, { timeout: 30_000 });
 		expect((await p.goto(`/imports/${pendingId}`))!.status()).toBe(404);
-		expect((await p.goto('/imports'))!.status()).toBe(404);
-		await p.goto('/profile', { waitUntil: 'networkidle' });
-		await expect(p.getByRole('link', { name: /Mercado Pago/ })).toHaveCount(0);
+	} finally {
+		// Leave `otro` as the other specs expect: no items, no connection.
+		await p.request.post('/dev/mp-reset', { headers: { origin } });
+		await ctx.close();
+	}
+});
+
+test('disconnecting removes the link and the inbox asks to link again', async () => {
+	await page.goto(MP_PATH, { waitUntil: 'networkidle' });
+	await page.getByRole('button', { name: 'Desvincular' }).click();
+	await expect(page.getByRole('alertdialog')).toContainText('revocar el acceso');
+	await page.getByRole('alertdialog').getByRole('button', { name: 'Desvincular' }).click();
+	await expect(page.getByRole('button', { name: 'Vincular Mercado Pago' })).toBeVisible();
+
+	await page.goto('/imports', { waitUntil: 'networkidle' });
+	await expect(page).toHaveURL(new RegExp(`${MP_PATH}$`));
+	await page.goto('/profile', { waitUntil: 'networkidle' });
+	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('Sin vincular');
+});
+
+test('users without a connection are sent to link and cannot open others items', async ({
+	browser
+}) => {
+	for (const email of [OTHER_EMAIL, SEED_EMAIL]) {
+		const { ctx, p } = await asUser(browser, email);
+		expect((await p.goto(`/imports/${pendingId}`))!.status()).toBe(404);
+		await p.goto('/imports');
+		await expect(p).toHaveURL(new RegExp(`${MP_PATH}$`));
+		await expect(p.getByRole('button', { name: 'Vincular Mercado Pago' })).toBeVisible();
 		await ctx.close();
 	}
 });

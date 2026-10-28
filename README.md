@@ -19,10 +19,12 @@ Env vars required at runtime:
 | `ADDRESS_HEADER`      | `CF-Connecting-IP`. MUST be set in Dokploy BEFORE (or with) deploying this release: the app refuses to start in production without it |
 | `RESEND_API_KEY`      | Resend API key restricted to the sending domain. The app refuses to start in production without it |
 | `EMAIL_FROM`          | Bare sender address on a domain verified in Resend, e.g. `no-reply@yourdomain`. The app refuses to start in production without it |
-| `MP_ACCESS_TOKEN`     | Optional. Mercado Pago access token (secret, never commit or log it). The import is off unless this and `MP_IMPORT_ACCOUNT_ID` are set |
-| `MP_IMPORT_ACCOUNT_ID` | Optional. Id of the ARS account that receives the Mercado Pago import; its owner is the only user who sees the import |
+| `MP_CLIENT_ID`        | Optional. Mercado Pago application client id. The Mercado Pago link is on only when `MP_CLIENT_ID`, `MP_CLIENT_SECRET` and `MP_TOKEN_KEY` are all set. The application must list `<ORIGIN>/profile/mercado-pago/callback` as a redirect URL |
+| `MP_CLIENT_SECRET`    | Optional. Mercado Pago application client secret (secret, never commit or log it) |
+| `MP_TOKEN_KEY`        | Optional. Key that encrypts users' Mercado Pago tokens (secret): base64 of 32 bytes, e.g. `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. The app refuses to start in production if it is set with another length. If it is lost or changed, every user must link again |
+| `MP_AUTH_BASE_URL`    | Optional, tests only. Mercado Pago authorization base URL (default `https://auth.mercadopago.com`) |
 | `MP_IMPORT_FROM`      | Optional. First-sync start date `YYYY-MM-DD` (default: 30 days ago) |
-| `MP_SYNC_INTERVAL_HOURS` | Optional. Hours between automatic syncs run inside the server process (default `6`, `0` = off). The first run is ~1 minute after start. Only active when the import is configured. E2E sets it to `0`. |
+| `MP_SYNC_INTERVAL_HOURS` | Optional. Hours between automatic syncs run inside the server process (default `6`, `0` = off). The first run is ~1 minute after start. Only active when the Mercado Pago link is on. E2E sets it to `0`. |
 | `MP_API_BASE_URL`     | Optional, tests only. Mercado Pago API base URL (default `https://api.mercadopago.com`) |
 | `MP_REPORT_POLL_MS`   | Optional, tests only. Milliseconds between report-ready checks (default `15000`) |
 | `PORT`                | Port to listen on (default `3000`)                    |

@@ -8,6 +8,7 @@
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
+	import ActionLink from '$lib/components/ActionLink.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
@@ -23,7 +24,8 @@
 		report_timeout: 'Mercado Pago tardó demasiado en generar el reporte',
 		network: 'sin conexión con Mercado Pago',
 		parse: 'reporte con formato inesperado',
-		config: 'revisá la cuenta configurada'
+		config: 'revisá la cuenta configurada',
+		reconnect: 'hay que volver a vincular Mercado Pago'
 	};
 
 	const errorLabel = (code: string) =>
@@ -113,89 +115,84 @@
 <PageHeader title="Mercado Pago" back={{ href: resolve('/profile'), label: 'Volver a Perfil' }} />
 
 <div class="page">
-	{#if !data.configured}
-		<Empty.Root>
-			<Empty.Header>
-				<Empty.Media variant="icon"><Icon name="phone" size="1rem" /></Empty.Media>
-				<Empty.Description>La importación de Mercado Pago no está configurada.</Empty.Description>
-			</Empty.Header>
-		</Empty.Root>
-	{:else}
-		{#if data.done && !hydrated}<p role="status">{DONE_MESSAGES[data.done]}</p>{/if}
-		{#if bulkMessage && !data.done && !hydrated}<p role="status">{bulkMessage}</p>{/if}
-		<div class="sync">
-			<div
-				class="status"
-				class:running={data.running}
-				class:error={!data.running && !!data.lastError}
-				role="status"
-			>
-				{#if data.running}<LoaderCircle class="spin" aria-hidden="true" />{/if}
-				<p>
-					{status}
-					{#if detail}<span class="detail">{detail}</span>{/if}
-				</p>
-			</div>
+	{#if data.done && !hydrated}<p role="status">{DONE_MESSAGES[data.done]}</p>{/if}
+	{#if bulkMessage && !data.done && !hydrated}<p role="status">{bulkMessage}</p>{/if}
+	<div class="sync">
+		<div
+			class="status"
+			class:running={data.running}
+			class:error={!data.running && !!data.lastError}
+			role="status"
+		>
+			{#if data.running}<LoaderCircle class="spin" aria-hidden="true" />{/if}
+			<p>
+				{status}
+				{#if detail}<span class="detail">{detail}</span>{/if}
+			</p>
+		</div>
+		{#if data.needsReconnect}
+			<Button href={resolve('/profile/mercado-pago')} variant="outline">Reconectar</Button>
+		{:else}
 			<form method="POST" action="?/sync" use:enhance>
 				<Button type="submit" variant="outline" disabled={data.running}>Sincronizar ahora</Button>
 			</form>
-		</div>
-
-		{#if data.suggested > 0}
-			<ConfirmDialog
-				triggerLabel={data.suggested === 1
-					? 'Aprobar 1 sugerido'
-					: `Aprobar ${data.suggested} sugeridos`}
-				triggerVariant="default"
-				triggerClass="w-full"
-				title={data.suggested === 1
-					? '¿Aprobar 1 movimiento sugerido?'
-					: `¿Aprobar ${data.suggested} movimientos sugeridos?`}
-				confirmLabel="Aprobar"
-				confirmVariant="default"
-				action="?/approveSuggested"
-			>
-				Se crean con la categoría o cuenta sugerida. Los que no tienen sugerencia quedan para
-				revisar.
-			</ConfirmDialog>
 		{/if}
+	</div>
+	<ActionLink href="/profile/mercado-pago" label="Configurar" />
 
-		{#if data.groups.length === 0}
-			<Empty.Root>
-				<Empty.Header>
-					<Empty.Media variant="icon"><Icon name="movements" size="1rem" /></Empty.Media>
-					<Empty.Description>No hay movimientos para revisar.</Empty.Description>
-				</Empty.Header>
-			</Empty.Root>
-		{:else}
-			<div class="groups">
-				{#each data.groups as g (g.day)}
-					<section aria-labelledby="day-{g.day}">
-						<h2 id="day-{g.day}">{g.heading}</h2>
-						<ListCard>
-							{#each g.items as item (item.id)}
-								{#snippet value()}
-									<Money
-										cents={item.amount}
-										currency="ARS"
-										tone="flow"
-										direction={item.isCredit ? 'income' : 'outcome'}
-									/>
-								{/snippet}
-								{#snippet suggestion()}Sugerido: {item.suggestion}{/snippet}
-								<ListRow
-									href={resolve(`/imports/${item.id}`)}
-									lead={{ letter: item.title.charAt(0).toUpperCase(), color: null }}
-									title={item.title}
-									{value}
-									meta={item.suggestion ? suggestion : undefined}
+	{#if data.suggested > 0}
+		<ConfirmDialog
+			triggerLabel={data.suggested === 1
+				? 'Aprobar 1 sugerido'
+				: `Aprobar ${data.suggested} sugeridos`}
+			triggerVariant="default"
+			triggerClass="w-full"
+			title={data.suggested === 1
+				? '¿Aprobar 1 movimiento sugerido?'
+				: `¿Aprobar ${data.suggested} movimientos sugeridos?`}
+			confirmLabel="Aprobar"
+			confirmVariant="default"
+			action="?/approveSuggested"
+		>
+			Se crean con la categoría o cuenta sugerida. Los que no tienen sugerencia quedan para revisar.
+		</ConfirmDialog>
+	{/if}
+
+	{#if data.groups.length === 0}
+		<Empty.Root>
+			<Empty.Header>
+				<Empty.Media variant="icon"><Icon name="movements" size="1rem" /></Empty.Media>
+				<Empty.Description>No hay movimientos para revisar.</Empty.Description>
+			</Empty.Header>
+		</Empty.Root>
+	{:else}
+		<div class="groups">
+			{#each data.groups as g (g.day)}
+				<section aria-labelledby="day-{g.day}">
+					<h2 id="day-{g.day}">{g.heading}</h2>
+					<ListCard>
+						{#each g.items as item (item.id)}
+							{#snippet value()}
+								<Money
+									cents={item.amount}
+									currency="ARS"
+									tone="flow"
+									direction={item.isCredit ? 'income' : 'outcome'}
 								/>
-							{/each}
-						</ListCard>
-					</section>
-				{/each}
-			</div>
-		{/if}
+							{/snippet}
+							{#snippet suggestion()}Sugerido: {item.suggestion}{/snippet}
+							<ListRow
+								href={resolve(`/imports/${item.id}`)}
+								lead={{ letter: item.title.charAt(0).toUpperCase(), color: null }}
+								title={item.title}
+								{value}
+								meta={item.suggestion ? suggestion : undefined}
+							/>
+						{/each}
+					</ListCard>
+				</section>
+			{/each}
+		</div>
 	{/if}
 </div>
 
