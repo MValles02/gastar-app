@@ -15,9 +15,10 @@
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import type { PageData } from './$types';
+	import DatePicker from '$lib/components/DatePicker.svelte';
+	import type { ActionData, PageData } from './$types';
 
-	let { data }: { data: PageData } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const ERROR_LABELS: Record<string, string> = {
 		auth: 'token inválido o vencido',
@@ -138,6 +139,28 @@
 			</form>
 		{/if}
 	</div>
+	{#if !data.needsReconnect}
+		<!-- novalidate: the server owns the range check and answers with its own message. -->
+		<form
+			method="POST"
+			action="?/importFrom"
+			use:enhance
+			novalidate
+			onchange={(e) => e.currentTarget.requestSubmit()}
+		>
+			<fieldset disabled={data.running}>
+				<DatePicker
+					name="from"
+					label="Importar desde"
+					value={data.importFrom}
+					min={data.earliest}
+					max={data.today}
+				/>
+				{#if form?.importFromError}<p class="error" role="alert">{form.importFromError}</p>{/if}
+				{#if !hydrated}<Button type="submit" variant="outline">Guardar fecha</Button>{/if}
+			</fieldset>
+		</form>
+	{/if}
 	<ActionLink href="/profile/mercado-pago" label="Configurar" />
 
 	{#if data.suggested > 0}
@@ -209,6 +232,22 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--space-3);
+	}
+
+	fieldset {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		min-width: 0;
+		margin: 0;
+		padding: 0;
+		border: 0;
+	}
+
+	.error {
+		margin: 0;
+		color: var(--negative);
+		font-size: var(--font-size-sm);
 	}
 
 	.status {

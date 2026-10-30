@@ -92,6 +92,13 @@
       "when": 1793207177113,
       "tag": "0012_drop_report_balance",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793212472523,
+      "tag": "0013_thin_bug",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { error, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import {
 	getImportAccount,
 	getSyncState,
@@ -8,15 +8,23 @@ import {
 	listImportRules,
 	listPendingImports
 } from '$lib/server/mp-import-queries';
-import { getConnectionInfo, mpOauthEnabled } from '$lib/server/mp-oauth';
-import { startMpSync } from '$lib/server/mp-sync';
-import { dayHeading, localDay } from '$lib/server/month';
+import {
+	getConnectionInfo,
+	getImportFromDay,
+	mpOauthEnabled,
+	setImportFrom
+} from '$lib/server/mp-oauth';
+import { startMpBackfill, startMpSync } from '$lib/server/mp-sync';
+import { dayHeading, dayStart, localDay } from '$lib/server/month';
 import { pgErrorCode } from '$lib/server/db/errors';
 import { movementPickers } from '../movements/form.server';
 import { approveWithValues } from './approve.server';
 import type { Actions, PageServerLoad } from './$types';
 
 const LEASE_MS = 15 * 60_000;
+const DAY_MS = 86_400_000;
+const BACKFILL_DAYS = 365;
+const earliestDay = () => localDay(new Date(Date.now() - BACKFILL_DAYS * DAY_MS));
 
 const DONE = ['approved', 'rejected', 'stale'] as const;
 
@@ -89,6 +97,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		suggested,
 		bulk: approved === null ? null : { approved, skipped: skipped ?? 0 },
 		needsReconnect,
+		importFrom: await getImportFromDay(userId, account.id),
+		today,
+		earliest: earliestDay(),
 		running,
 		// 'payments' (also before the first step is recorded) or 'report'; null when idle.
 		phase: running ? (sync?.phase === 'report' ? 'report' : 'payments') : null,
@@ -104,6 +115,37 @@ export const actions: Actions = {
 	sync: async ({ locals }) => {
 		await requireAccount(locals.user!.id);
 		await startMpSync(locals.user!.id);
+		redirect(303, '/imports');
+	},
+
+	importFrom: async ({ locals, request }) => {
+		const userId = locals.user!.id;
+		const account = await requireAccount(userId);
+		const ymd = String((await request.formData()).get('from') ?? '');
+		const from = dayStart(ymd);
+		if (!from || ymd > localDay(new Date())) {
+			return fail(400, { importFromError: 'Elegí una fecha válida.' });
+		}
+		if (ymd < earliestDay()) {
+			return fail(400, { importFromError: 'Podés traer hasta 12 meses para atrás.' });
+		}
+		if ((await getConnectionInfo(userId))?.needsReconnect) {
+			return fail(400, { importFromError: 'Reconectá Mercado Pago primero.' });
+		}
+		// Moving earlier fetches the gap; same or later only trims what is already here.
+		const earlier = ymd < (await getImportFromDay(userId, account.id));
+		// Trimming while a run holds the lease would let it re-insert what was just deleted.
+		const since = earlier ? null : (await getSyncState(userId, account.id))?.runningSince;
+		if (
+			earlier
+				? !(await startMpBackfill(userId, from))
+				: !!since && Date.now() - since.getTime() < LEASE_MS
+		) {
+			return fail(409, {
+				importFromError: 'Ya hay una sincronización en curso. Probá en unos minutos.'
+			});
+		}
+		await setImportFrom(userId, account.id, from);
 		redirect(303, '/imports');
 	},
 
