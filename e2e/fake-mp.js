@@ -41,6 +41,7 @@ const grantConfig = new Map();
 let newGrantsConfigured = true;
 let createStays404 = false;
 let configPosts = [];
+let configPuts = [];
 // begin_date of every settlement report created, oldest first; read through /__fake/report-begins.
 let reportBegins = [];
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
@@ -97,6 +98,7 @@ createServer(async (req, res) => {
 		newGrantsConfigured = true;
 		createStays404 = false;
 		configPosts = [];
+		configPuts = [];
 		reportBegins = [];
 		return send(res, 200, { ok: true });
 	}
@@ -108,6 +110,7 @@ createServer(async (req, res) => {
 		return send(res, 200, { ok: true });
 	}
 	if (path === '/__fake/settlement-config') return send(res, 200, configPosts);
+	if (path === '/__fake/settlement-config-puts') return send(res, 200, configPuts);
 	if (path === '/__fake/report-delay' && req.method === 'POST') {
 		reportDelay = Number(JSON.parse((await readBody(req)) || '{}').ms) || 0;
 		return send(res, 200, { ok: true });
@@ -171,7 +174,12 @@ createServer(async (req, res) => {
 			);
 			if (entry.method !== 'S256' || hash !== entry.challenge) return bad('invalid_grant');
 			currentGrant = ++grantSeq;
-			grantConfig.set(currentGrant, newGrantsConfigured ? { seeded: true } : null);
+			grantConfig.set(
+				currentGrant,
+				newGrantsConfigured
+					? { seeded: true, notification_email_list: ['owner@example.com'] }
+					: null
+			);
 		} else if (body.grant_type === 'refresh_token') {
 			if (revoked || !latestRefresh || body.refresh_token !== latestRefresh) {
 				return bad('invalid_grant');
@@ -234,6 +242,12 @@ createServer(async (req, res) => {
 			configPosts.push(config);
 			grantConfig.set(grant, config);
 			return send(res, 201, config);
+		}
+		if (req.method === 'PUT' && grantConfig.get(grant)) {
+			const config = JSON.parse((await readBody(req)) || '{}');
+			configPuts.push(config);
+			grantConfig.set(grant, config);
+			return send(res, 200, config);
 		}
 		if (req.method === 'GET' && grantConfig.get(grant)) {
 			return send(res, 200, grantConfig.get(grant));

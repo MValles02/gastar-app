@@ -171,10 +171,20 @@ test('sync shows live progress, fills the inbox without a reload and leaves bala
 	await expect(main.getByText('TIENDA CON TARJETA')).toHaveCount(0);
 	await expect(main.getByText('PAGO RECHAZADO')).toHaveCount(0);
 
-	// First run: payments from the 30-day backfill; the settlement config is never touched.
+	// First run: payments from the 30-day backfill; the report config only has its email list emptied.
 	const [first] = await searchBegins();
 	expect(Date.now() - first).toBeGreaterThan(29 * DAY_MS);
-	expect((await calls()).filter((c) => c.path.includes('/config'))).toHaveLength(0);
+	expect((await calls()).filter((c) => c.path.includes('/config')).map((c) => c.method)).toEqual([
+		'GET',
+		'PUT'
+	]);
+	const puts = (await (await fake('/__fake/settlement-config-puts')).json()) as {
+		seeded?: boolean;
+		notification_email_list: string[];
+	}[];
+	expect(puts).toHaveLength(1);
+	expect(puts[0].notification_email_list).toEqual([]);
+	expect(puts[0].seeded).toBe(true);
 
 	expect(await accountRow()).toBe(balance);
 
@@ -184,7 +194,10 @@ test('sync shows live progress, fills the inbox without a reload and leaves bala
 
 test('a second sync searches from the last payment and keeps the same items', async () => {
 	const before = await reportRequests();
+	const configBefore = (await configRequests()).length;
 	await syncNow(/Última sincronización/);
+	// The email list is already empty: only a GET, no PUT.
+	expect((await configRequests()).slice(configBefore).map((c) => c.method)).toEqual(['GET']);
 	expect(await reportRequests()).toBe(before + 1);
 	await expect(rows()).toHaveCount(8);
 	// The newest imported payment is 11 days old; the search restarts there minus 3 days of overlap.
@@ -713,14 +726,17 @@ test('an account without a report configuration gets one created and syncs', asy
 	const posts = (await (await fake('/__fake/settlement-config')).json()) as {
 		include_withdraw: boolean;
 		columns: { key: string }[];
+		notification_email_list: string[];
 	}[];
 	expect(posts).toHaveLength(1);
 	expect(posts[0].include_withdraw).toBe(true);
 	expect(posts[0].columns.map((c) => c.key)).toEqual(expect.arrayContaining(PARSER_COLUMNS));
-	expect((await configRequests()).map((c) => c.method)).toEqual(['GET', 'POST']);
+	expect(posts[0].notification_email_list).toEqual([]);
+	// The silencing GET and the create's own GET both 404; then the config is created.
+	expect((await configRequests()).slice(-3).map((c) => c.method)).toEqual(['GET', 'GET', 'POST']);
 });
 
-test('an existing report configuration is never overwritten when the report still 404s', async ({
+test('an existing report configuration is only changed to empty its email list when the report still 404s', async ({
 	browser
 }) => {
 	const before = (await configRequests()).length;
@@ -730,7 +746,9 @@ test('an existing report configuration is never overwritten when the report stil
 	} finally {
 		await fake('/__fake/settlement-config', { configured: true });
 	}
-	expect((await configRequests()).slice(before).map((c) => c.method)).toEqual(['GET']);
+	const methods = (await configRequests()).slice(before).map((c) => c.method);
+	expect(methods).not.toContain('POST');
+	expect(methods.filter((m) => m === 'PUT').length).toBeLessThanOrEqual(1);
 });
 
 test('a stored token that cannot be decrypted asks to reconnect', async ({ browser }) => {
