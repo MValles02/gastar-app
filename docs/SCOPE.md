@@ -179,7 +179,7 @@ Personal finance PWA for Argentina. Answers two questions:
 - Tokens are stored encrypted, renewed automatically before they expire, and never shown to the client.
 - Sources, pulled on "Sincronizar ahora" and every `MP_SYNC_INTERVAL_HOURS` (default 6):
   - Payments (`/v1/payments/search`, both directions, from the latest imported payment minus three days; incoming amounts are net of MP fees): shown at once. Only approved payments become items; credit-card payments never touch the balance and are skipped. A refund or chargeback becomes a separate "Devolución" item in the opposite direction when the payment is still approved (partial refund) or was already imported and not rejected.
-  - The Mercado Pago settlement report, requested in the background (it waits minutes in MP's queue): only daily yields and payouts. A payout with an external reference is titled "Pago en comercio" (pre-filled Gasto); without one, "Transferencia o retiro" (pre-filled Transf.).
+  - The Mercado Pago settlement report, requested in the background (it waits minutes in MP's queue): only daily yields and payouts. A payout with an external reference is titled "Pago en comercio" (pre-filled Gasto); without one, "Transferencia o retiro" (pre-filled Transf.). Gastar turns off MP's "report ready" emails by emptying the report config's email list on each linked account.
 - Items keep the real time of day (Buenos Aires).
 - Each payment, yield or payout becomes a pending item in a separate inbox, grouped by day, with the pending count shown in Profile. Nothing touches balances or movements until an item is approved. Each row links to `/imports/[id]` (404 unless it is the user's and still pending).
 - Yields are one item per day, with the exact net amount.

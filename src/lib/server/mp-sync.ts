@@ -336,6 +336,7 @@ async function syncPayments(
 /**
  * Config created in an MP account that has none (the report create answers 404 without one). Columns are
  * every key the CSV parser below reads. No `scheduled`: MP ignores `frequency` unless scheduling is on.
+ * An empty `notification_email_list` turns off MP's "report ready" emails.
  */
 const SETTLEMENT_CONFIG = {
 	file_name_prefix: 'gastar-settlement',
@@ -353,8 +354,30 @@ const SETTLEMENT_CONFIG = {
 	].map((key) => ({ key })),
 	frequency: { hour: 0, type: 'monthly', value: 1 },
 	show_fee_prevision: false,
-	refund_detailed: true
+	refund_detailed: true,
+	notification_email_list: [] as string[]
 };
+
+/**
+ * Best effort: empty the email list of an existing config (the only field Gastar ever changes on it) so
+ * MP stops mailing "report ready". A missing config is left for the create-on-404 path. Never fails the sync.
+ */
+async function silenceReportEmails(auth: Auth): Promise<void> {
+	try {
+		const config = obj(await apiJson('/v1/account/settlement_report/config', auth));
+		const list = config.notification_email_list;
+		if (!Array.isArray(list) || list.length === 0) return;
+		await api('/v1/account/settlement_report/config', auth, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ ...config, notification_email_list: [] })
+		});
+	} catch (e) {
+		if ((e as Error).message !== 'mp_404') {
+			console.warn('mp settlement config: could not empty the email list');
+		}
+	}
+}
 
 async function downloadSettlement(begin: Date, end: Date, auth: Auth): Promise<string> {
 	const create = () =>
@@ -368,11 +391,13 @@ async function downloadSettlement(begin: Date, end: Date, auth: Auth): Promise<s
 			})
 		});
 	let created: unknown;
+	await silenceReportEmails(auth);
 	try {
 		created = await create();
 	} catch (e) {
 		if ((e as Error).message !== 'mp_404') throw e;
-		// No config in this account: create one only if none exists (never overwrite), then retry once.
+		// No config in this account: create one only if none exists (never overwrite; the only edit to an
+		// existing config is silenceReportEmails), then retry once.
 		let exists = true;
 		try {
 			await api('/v1/account/settlement_report/config', auth);
