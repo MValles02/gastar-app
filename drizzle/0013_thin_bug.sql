@@ -1,0 +1,1 @@
+ALTER TABLE "mp_connections" ADD COLUMN "import_from" timestamp with time zone;
