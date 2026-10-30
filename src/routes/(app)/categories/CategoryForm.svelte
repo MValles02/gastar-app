@@ -5,7 +5,7 @@
 	import { enhanceRedirect } from '$lib/nav-stack.svelte';
 	import * as Field from '$lib/components/ui/field/index.js';
 	import ColorPicker from '$lib/components/ColorPicker.svelte';
-	import FormActions from '$lib/components/FormActions.svelte';
+	import { SHEET_FORM } from '$lib/sheet.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -17,14 +17,10 @@
 	let {
 		initial,
 		errors = {},
-		mode,
-		cancelHref,
 		disabledKinds = []
 	}: {
 		initial: Values;
 		errors?: Partial<Record<keyof Values, string>>;
-		mode: 'create' | 'edit';
-		cancelHref: string;
 		/** Kinds the category cannot change to (it has movements of the other type). */
 		disabledKinds?: string[];
 	} = $props();
@@ -48,7 +44,7 @@
 	});
 </script>
 
-<form method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
+<form id={SHEET_FORM} method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
 	<ul class="card">
 		<li class:bad={errors.name}>
 			<TextRow
@@ -95,8 +91,6 @@
 			{/if}
 		</li>
 	</ul>
-
-	<FormActions {cancelHref} submitLabel={mode === 'create' ? 'Guardar' : 'Guardar cambios'} />
 </form>
 
 <style>

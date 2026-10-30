@@ -207,7 +207,7 @@ test('10 % savings shows its amount and the Disponible card follows an income ch
 	await page.getByRole('link', { name: /Sueldo e2e/ }).click();
 	await page.getByRole('link', { name: 'Editar' }).click();
 	await page.locator('input[name="amount"]').fill('2.000.000');
-	await page.getByRole('button', { name: 'Guardar cambios' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/plan\/recurring\/[0-9a-f-]{36}$/);
 
 	await page.goto('/plan', { waitUntil: 'networkidle' });
@@ -270,7 +270,7 @@ test('limits: edit, delete, add with the average, validation and 404s', async ({
 	await expect(page.getByRole('heading', { level: 1, name: 'Límite de Gym e2e' })).toBeVisible();
 	await expect(page.getByText(/^Promedio/)).toHaveCount(0);
 	await page.locator('input[name="amount"]').fill('7.000');
-	await page.getByRole('button', { name: 'Guardar cambios' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/plan$/);
 	await expect(limits(page)).toContainText('7.000');
 

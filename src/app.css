@@ -332,7 +332,7 @@
 /*
  * Page transitions (onNavigate in src/routes/+layout.svelte sets data-nav-transition): a push slides
  * the new page in from the right over the old one, which drifts left; a pop reverses it; a tab
- * switch crossfades. Changes within one screen (month, currency, filters) have no transition. The
+ * switch crossfades; a form screen rises and lowers as a sheet. Changes within one screen (month, currency, filters) have no transition. The
  * header and tab bar have their own view-transition-name, so they crossfade in place instead of
  * sliding. Reduced motion never starts a transition.
  */
@@ -364,6 +364,36 @@
 
 :root[data-nav-transition='back']::view-transition-new(root) {
 	animation-name: page-drift-in;
+}
+
+/*
+ * A form sheet (view-transition-name `sheet` only during these, see Sheet.svelte) rises over the
+ * screen it opens from and lowers back off it, from wherever a drag left it; the screens underneath
+ * crossfade (the dimmed strip above the sheet in and out).
+ */
+::view-transition-group(sheet) {
+	z-index: 2;
+}
+
+:root[data-nav-transition='sheet-up']::view-transition-new(sheet) {
+	animation-name: sheet-rise;
+}
+
+:root[data-nav-transition='sheet-down']::view-transition-old(sheet) {
+	animation-name: sheet-lower;
+}
+
+@keyframes sheet-rise {
+	from {
+		transform: translateY(100vh);
+	}
+}
+
+/* Its own height on top of the viewport: a tall sheet scrolled down still leaves the screen. */
+@keyframes sheet-lower {
+	to {
+		transform: translateY(calc(100vh + 100%));
+	}
 }
 
 @keyframes page-enter-right {

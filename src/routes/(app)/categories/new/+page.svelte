@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SheetHeader from '$lib/components/SheetHeader.svelte';
 	import CategoryForm from '../CategoryForm.svelte';
 	import type { ActionData } from './$types';
 
@@ -11,11 +11,6 @@
 	<title>Nueva categoría · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Nueva categoría" close={{ href: resolve('/categories'), label: 'Cerrar' }} />
-
-<CategoryForm
-	mode="create"
-	cancelHref="/categories"
-	initial={form?.values ?? {}}
-	errors={form?.errors}
-/>
+<SheetHeader title="Nueva categoría" cancel={{ href: resolve('/categories') }} submit={{}}>
+	<CategoryForm initial={form?.values ?? {}} errors={form?.errors} />
+</SheetHeader>

@@ -8,7 +8,7 @@
 	import AmountHero from '$lib/components/AmountHero.svelte';
 	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
 	import EntryFields from '$lib/components/EntryFields.svelte';
-	import FormActions from '$lib/components/FormActions.svelte';
+	import { SHEET_FORM } from '$lib/sheet.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
@@ -20,8 +20,6 @@
 		accounts,
 		categories,
 		action = '',
-		submitLabel,
-		cancelHref = '/plan',
 		type
 	}: {
 		initial: Record<Fields, string>;
@@ -29,8 +27,6 @@
 		accounts: Picker[];
 		categories: (Picker & { kind: string | null })[];
 		action?: string;
-		submitLabel: string;
-		cancelHref?: string;
 		/** `income` or `outcome`; fixed for the form and sent as a hidden field. */
 		type: string;
 	} = $props();
@@ -81,7 +77,14 @@
 	});
 </script>
 
-<form method="POST" {action} use:enhance={() => enhanceRedirect} class="form" novalidate>
+<form
+	id={SHEET_FORM}
+	method="POST"
+	{action}
+	use:enhance={() => enhanceRedirect}
+	class="form"
+	novalidate
+>
 	<input type="hidden" name="type" value={type} />
 	{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
 
@@ -194,7 +197,6 @@
 			</div>
 		</BottomDrawer>
 	{/if}
-	<FormActions {cancelHref} {submitLabel} />
 </form>
 
 <style>

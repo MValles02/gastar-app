@@ -1,6 +1,7 @@
 /* eslint-disable svelte/prefer-svelte-reactivity -- URLs here are parsed and compared, never mutated or rendered */
 import { goto, invalidateAll } from '$app/navigation';
 import type { ActionResult, AfterNavigate, OnNavigate } from '@sveltejs/kit';
+import { FORM_ROUTES } from '$lib/form-routes';
 
 /**
  * In-memory mirror of this tab's history entries inside the app (pathname + search), so "up"
@@ -76,6 +77,9 @@ export function replaceGoto(href: string, opts: Parameters<typeof goto>[1] = {})
 	return goto(href, { ...opts, replaceState: true });
 }
 
+/** A pop started by `navigateUp` has not landed yet. */
+export const isPopping = () => popping;
+
 /**
  * Goes "up" to `href`: pops back to it when it is on the stack (the exact URL first, else the same
  * pathname on another page). Otherwise it first pops the run of entries on the current screen (wizard
@@ -130,9 +134,22 @@ function replaceAfterPop(key: string) {
  * `transitionNext`, so a replace that never lands can't leak it into the next navigation): a push
  * slides forward, a pop (‹, browser/iOS back) or an "up" replace slides back, and a tab switch (a
  * replace to another screen) crossfades. A change within one screen (month, currency, filters,
- * search, wizard step) gets none: taps are swallowed while a transition runs.
+ * search, wizard step) gets none: taps are swallowed while a transition runs. A slide into a form
+ * screen from a non-form one raises it as a sheet ('sheet-up'); one out of it lowers it ('sheet-down').
  */
-export function transitionOf(nav: OnNavigate): 'forward' | 'back' | 'fade' | null {
+export function transitionOf(nav: OnNavigate): NavTransition | null {
+	const kind = slideOf(nav);
+	if (kind !== 'forward' && kind !== 'back') return kind;
+	const fromSheet = FORM_ROUTES.has(nav.from?.route.id ?? '');
+	const toSheet = FORM_ROUTES.has(nav.to?.route.id ?? '');
+	if (toSheet && !fromSheet) return 'sheet-up';
+	if (fromSheet && !toSheet) return 'sheet-down';
+	return kind;
+}
+
+export type NavTransition = 'forward' | 'back' | 'fade' | 'sheet-up' | 'sheet-down';
+
+function slideOf(nav: OnNavigate): 'forward' | 'back' | 'fade' | null {
 	const next = transitionNext;
 	transitionNext = null;
 	if (next) return next === 'none' ? null : next;

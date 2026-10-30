@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SheetHeader from '$lib/components/SheetHeader.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
 	import DangerCallout from '$lib/components/DangerCallout.svelte';
-	import FormActions from '$lib/components/FormActions.svelte';
 	import { PASSWORD_MAX_LENGTH } from '$lib/limits';
 	import type { ActionData } from './$types';
 
@@ -18,48 +17,44 @@
 	<title>Eliminar cuenta · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Eliminar cuenta" close={{ href: resolve('/profile'), label: 'Cerrar' }} />
+<SheetHeader title="Eliminar cuenta" cancel={{ href: resolve('/profile') }}>
+	<div class="page">
+		<DangerCallout>
+			Se borran para siempre tu cuenta y todos tus datos: cuentas, movimientos, categorías y plan.
+			No se puede deshacer.
+		</DangerCallout>
 
-<div class="page">
-	<DangerCallout>
-		Se borran para siempre tu cuenta y todos tus datos: cuentas, movimientos, categorías y plan. No
-		se puede deshacer.
-	</DangerCallout>
+		<ul class="card">
+			<li class:bad={form?.error}>
+				<TextRow
+					id="delete-password"
+					name="password"
+					form={FORM_ID}
+					label="Contraseña"
+					bind:value={password}
+					password
+					autocomplete="current-password"
+					maxlength={PASSWORD_MAX_LENGTH}
+					error={form?.error}
+					errorId="delete-error"
+				/>
+			</li>
+		</ul>
 
-	<ul class="card">
-		<li class:bad={form?.error}>
-			<TextRow
-				id="delete-password"
-				name="password"
-				form={FORM_ID}
-				label="Contraseña"
-				bind:value={password}
-				password
-				autocomplete="current-password"
-				maxlength={PASSWORD_MAX_LENGTH}
-				error={form?.error}
-				errorId="delete-error"
-			/>
-		</li>
-	</ul>
-
-	<FormActions cancelHref="/profile" sticky={false}>
-		{#snippet primary()}
-			<ConfirmDialog
-				triggerLabel="Eliminar cuenta"
-				triggerVariant="destructive"
-				triggerClass="w-full"
-				title="¿Eliminar tu cuenta?"
-				confirmLabel="Eliminar"
-				action="?/delete"
-				formId={FORM_ID}
-				closeOnFailure
-			>
-				Se borran para siempre tu cuenta y todos tus datos. No se puede deshacer.
-			</ConfirmDialog>
-		{/snippet}
-	</FormActions>
-</div>
+		<ConfirmDialog
+			triggerLabel="Eliminar cuenta"
+			triggerVariant="destructive"
+			triggerClass="w-full"
+			title="¿Eliminar tu cuenta?"
+			confirmLabel="Eliminar"
+			action="?/delete"
+			formId={FORM_ID}
+			closeOnFailure
+		>
+			Se borran para siempre tu cuenta y todos tus datos. No se puede deshacer.
+		</ConfirmDialog>
+	</div>
+</SheetHeader>
 
 <style>
 	.page {

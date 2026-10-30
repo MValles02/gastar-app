@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SheetHeader from '$lib/components/SheetHeader.svelte';
 	import MovementForm from '../../MovementForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -11,16 +11,15 @@
 	<title>Editar movimiento · Gastar</title>
 </svelte:head>
 
-<PageHeader
+<SheetHeader
 	title="Editar movimiento"
-	close={{ href: resolve(`/movements/${data.id}`), label: 'Cerrar' }}
-/>
-
-<MovementForm
-	initial={form?.values ?? data.values}
-	errors={form?.errors}
-	accounts={data.accounts}
-	categories={data.categories}
-	submitLabel="Guardar cambios"
-	cancelHref={`/movements/${data.id}`}
-/>
+	cancel={{ href: resolve(`/movements/${data.id}`) }}
+	submit={{}}
+>
+	<MovementForm
+		initial={form?.values ?? data.values}
+		errors={form?.errors}
+		accounts={data.accounts}
+		categories={data.categories}
+	/>
+</SheetHeader>

@@ -42,7 +42,7 @@ test('saving an edit pops to the detail, so back lands on the list, not the form
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	await page.getByRole('link', { name: 'Editar' }).click();
 	await expect(page).toHaveURL(/\/edit$/);
-	await page.getByRole('button', { name: 'Guardar cambios' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 
 	await page.goBack();
@@ -79,7 +79,7 @@ test('a save that pops refreshes the layout: new name on Perfil and new initials
 		await page.getByRole('link', { name: 'Cambiar nombre' }).click();
 		await expect(page).toHaveURL(/\/profile\/name$/);
 		await page.getByLabel('Nombre').fill('Zeta Navegación');
-		await page.getByRole('button', { name: 'Guardar cambios' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page).toHaveURL(/\/profile$/);
 		await expect(page.locator('.who .name')).toHaveText('Zeta Navegación');
 
@@ -89,7 +89,7 @@ test('a save that pops refreshes the layout: new name on Perfil and new initials
 	} finally {
 		await page.goto('/profile/name', { waitUntil: 'networkidle' });
 		await page.getByLabel('Nombre').fill(original);
-		await page.getByRole('button', { name: 'Guardar cambios' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page).toHaveURL(/\/profile$/);
 	}
 });

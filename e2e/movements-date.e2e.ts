@@ -61,7 +61,7 @@ test.describe('without JavaScript', () => {
 		await page.getByText(desc).click();
 		await page.getByRole('link', { name: 'Editar' }).click();
 		await expect(page.locator('input[name="occurredAt"]')).toHaveValue('2024-02-29');
-		await page.getByRole('button', { name: 'Guardar cambios' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(dateOf(page)).toHaveText('29/02/2024');
 	});
 
