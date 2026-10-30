@@ -58,39 +58,39 @@
 	title={data.recurring ? 'Registrar pago' : 'Nuevo movimiento'}
 	cancel={{ href: resolve(returnTo as '/') }}
 	submit={data.accounts.length ? {} : undefined}
-/>
-
-{#if data.accounts.length === 0}
-	<Empty.Root>
-		<Empty.Header>
-			<Empty.Media variant="icon"><Icon name="plus" size="1rem" /></Empty.Media>
-			<Empty.Description
-				>Necesitás al menos una cuenta para registrar movimientos.</Empty.Description
-			>
-		</Empty.Header>
-	</Empty.Root>
-	<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
-{:else}
-	{#if data.saved && !form && !hydrated}<p role="status">Movimiento guardado.</p>{/if}
-	{#key data.formKey}
-		<MovementForm
-			initial={form?.values ??
-				data.recurring?.initial ?? {
-					type: 'outcome',
-					amount: '',
-					description: '',
-					accountId: data.defaultAccountId,
-					destinationAccountId: '',
-					exchangeRate: '',
-					categoryId: '',
-					occurredAt: data.now
-				}}
-			errors={form?.errors}
-			accounts={data.accounts}
-			categories={data.categories}
-			recurring={data.recurring ?? undefined}
-			repeatable
-			repeatChecked={form?.values?.repeat === 'on'}
-		/>
-	{/key}
-{/if}
+>
+	{#if data.accounts.length === 0}
+		<Empty.Root>
+			<Empty.Header>
+				<Empty.Media variant="icon"><Icon name="plus" size="1rem" /></Empty.Media>
+				<Empty.Description
+					>Necesitás al menos una cuenta para registrar movimientos.</Empty.Description
+				>
+			</Empty.Header>
+		</Empty.Root>
+		<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
+	{:else}
+		{#if data.saved && !form && !hydrated}<p role="status">Movimiento guardado.</p>{/if}
+		{#key data.formKey}
+			<MovementForm
+				initial={form?.values ??
+					data.recurring?.initial ?? {
+						type: 'outcome',
+						amount: '',
+						description: '',
+						accountId: data.defaultAccountId,
+						destinationAccountId: '',
+						exchangeRate: '',
+						categoryId: '',
+						occurredAt: data.now
+					}}
+				errors={form?.errors}
+				accounts={data.accounts}
+				categories={data.categories}
+				recurring={data.recurring ?? undefined}
+				repeatable
+				repeatChecked={form?.values?.repeat === 'on'}
+			/>
+		{/key}
+	{/if}
+</SheetHeader>

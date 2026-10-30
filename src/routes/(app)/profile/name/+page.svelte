@@ -17,24 +17,24 @@
 	<title>Cambiar nombre · Gastar</title>
 </svelte:head>
 
-<SheetHeader title="Cambiar nombre" cancel={{ href: resolve('/profile') }} submit={{}} />
-
-<form id={SHEET_FORM} method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
-	<ul class="card">
-		<li class:bad={form?.error}>
-			<TextRow
-				id="name"
-				name="name"
-				label="Nombre"
-				bind:value={name}
-				maxlength={80}
-				required
-				error={form?.error}
-				errorId="name-error"
-			/>
-		</li>
-	</ul>
-</form>
+<SheetHeader title="Cambiar nombre" cancel={{ href: resolve('/profile') }} submit={{}}>
+	<form id={SHEET_FORM} method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
+		<ul class="card">
+			<li class:bad={form?.error}>
+				<TextRow
+					id="name"
+					name="name"
+					label="Nombre"
+					bind:value={name}
+					maxlength={80}
+					required
+					error={form?.error}
+					errorId="name-error"
+				/>
+			</li>
+		</ul>
+	</form>
+</SheetHeader>
 
 <style>
 	.form {

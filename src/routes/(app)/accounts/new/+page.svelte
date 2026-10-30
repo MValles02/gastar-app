@@ -11,6 +11,6 @@
 	<title>Nueva cuenta · Gastar</title>
 </svelte:head>
 
-<SheetHeader title="Nueva cuenta" cancel={{ href: resolve('/accounts') }} submit={{}} />
-
-<AccountForm initial={form?.values ?? {}} errors={form?.errors} />
+<SheetHeader title="Nueva cuenta" cancel={{ href: resolve('/accounts') }} submit={{}}>
+	<AccountForm initial={form?.values ?? {}} errors={form?.errors} />
+</SheetHeader>

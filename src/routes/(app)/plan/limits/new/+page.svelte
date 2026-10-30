@@ -17,13 +17,13 @@
 	<title>Nuevo límite · Gastar</title>
 </svelte:head>
 
-<SheetHeader title="Nuevo límite" cancel={{ href: resolve(back as '/') }} submit={{}} />
-
-<LimitForm
-	mode="new"
-	currency={data.currency}
-	{action}
-	categories={data.categories}
-	initial={{ categoryId: form?.values.categoryId ?? '', amount: form?.values.amount ?? '' }}
-	errors={form?.errors}
-/>
+<SheetHeader title="Nuevo límite" cancel={{ href: resolve(back as '/') }} submit={{}}>
+	<LimitForm
+		mode="new"
+		currency={data.currency}
+		{action}
+		categories={data.categories}
+		initial={{ categoryId: form?.values.categoryId ?? '', amount: form?.values.amount ?? '' }}
+		errors={form?.errors}
+	/>
+</SheetHeader>

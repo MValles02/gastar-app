@@ -14,16 +14,16 @@
 	<title>Ahorro · Gastar</title>
 </svelte:head>
 
-<SheetHeader title="Ahorro" cancel={{ href: resolve('/plan') }} submit={{}} />
-
-<form id={SHEET_FORM} method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
-	<SavingsFields
-		income={data.income}
-		currency={data.currency}
-		initial={data}
-		error={form?.message}
-	/>
-</form>
+<SheetHeader title="Ahorro" cancel={{ href: resolve('/plan') }} submit={{}}>
+	<form id={SHEET_FORM} method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
+		<SavingsFields
+			income={data.income}
+			currency={data.currency}
+			initial={data}
+			error={form?.message}
+		/>
+	</form>
+</SheetHeader>
 
 <style>
 	.form {

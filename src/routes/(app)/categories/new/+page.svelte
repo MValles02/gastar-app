@@ -11,6 +11,6 @@
 	<title>Nueva categoría · Gastar</title>
 </svelte:head>
 
-<SheetHeader title="Nueva categoría" cancel={{ href: resolve('/categories') }} submit={{}} />
-
-<CategoryForm initial={form?.values ?? {}} errors={form?.errors} />
+<SheetHeader title="Nueva categoría" cancel={{ href: resolve('/categories') }} submit={{}}>
+	<CategoryForm initial={form?.values ?? {}} errors={form?.errors} />
+</SheetHeader>

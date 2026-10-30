@@ -21,16 +21,16 @@
 	title="Límite de {data.category.name}"
 	cancel={{ href: resolve(back as '/') }}
 	submit={{}}
-/>
-
-<LimitForm
-	mode="edit"
-	currency={data.currency}
-	action="?/save{wizardQuery}"
-	category={data.category}
-	suggested={data.suggested}
-	initial={{ categoryId: data.category.id, amount: form?.amount ?? data.amount }}
-	errors={{ amount: form?.error }}
-	deleteAction="?/delete{wizardQuery}"
-	progress={data.progress}
-/>
+>
+	<LimitForm
+		mode="edit"
+		currency={data.currency}
+		action="?/save{wizardQuery}"
+		category={data.category}
+		suggested={data.suggested}
+		initial={{ categoryId: data.category.id, amount: form?.amount ?? data.amount }}
+		errors={{ amount: form?.error }}
+		deleteAction="?/delete{wizardQuery}"
+		progress={data.progress}
+	/>
+</SheetHeader>

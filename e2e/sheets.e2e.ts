@@ -53,14 +53,45 @@ test('the sheet header: Cancelar top-left, title centered, Guardar top-right, no
 	const header = page.locator('header.sheet-bar');
 	const cancel = (await header.getByRole('link', { name: 'Cancelar' }).boundingBox())!;
 	const title = (await header.getByRole('heading', { level: 1 }).boundingBox())!;
-	const save = header.getByRole('button', { name: 'Guardar', exact: true });
+	const save = page.getByRole('button', { name: 'Guardar', exact: true });
 	const submit = (await save.boundingBox())!;
 	expect(cancel.x).toBeLessThan(PHONE.width / 4);
 	expect(submit.x + submit.width).toBeGreaterThan((PHONE.width * 3) / 4);
+	expect(Math.abs(submit.y + submit.height / 2 - (cancel.y + cancel.height / 2))).toBeLessThan(1);
+	expect(submit.x).toBeGreaterThan(title.x + title.width);
 	expect(Math.abs(title.x + title.width / 2 - PHONE.width / 2)).toBeLessThan(4);
 	await expect(save).toHaveAttribute('type', 'submit');
 	await expect(save).toHaveAttribute('form', 'sheet-form');
 	await expect(page.getByRole('navigation', { name: 'Navegación principal' })).toHaveCount(0);
+});
+
+test('Tab goes Cancelar, the fields, then the top-right Guardar', async ({ page }) => {
+	await openNameSheet(page);
+	await page.getByRole('link', { name: 'Cancelar' }).focus();
+	await page.keyboard.press('Tab');
+	await expect(page.getByLabel('Nombre')).toBeFocused();
+	await page.keyboard.press('Tab');
+	await expect(page.getByRole('button', { name: 'Guardar', exact: true })).toBeFocused();
+	await page.keyboard.press('Shift+Tab');
+	await expect(page.getByLabel('Nombre')).toBeFocused();
+});
+
+test('a drag while a pop is on its way out does not move the sheet', async ({ page }) => {
+	await openNameSheet(page);
+	// Hold Perfil's data so the pop Cancelar starts stays in flight while the grabber is dragged.
+	let release!: () => void;
+	const held = new Promise<void>((r) => (release = r));
+	await page.route('**/profile/__data.json*', async (route) => {
+		await held;
+		await route.continue();
+	});
+	await page.getByRole('link', { name: 'Cancelar' }).click();
+	await page.waitForURL(/\/profile$/);
+	await expect(page.locator('main.sheet')).toBeVisible();
+	expect(await dragGrabber(page, 260, { holdMs: 100 })).toBe('none');
+	expect(await sheetTransform(page)).toBe('none');
+	release();
+	await expect(page.getByRole('link', { name: 'Cambiar nombre' })).toBeVisible();
 });
 
 test('dragging the grabber down past the threshold returns to the origin without a new entry', async ({

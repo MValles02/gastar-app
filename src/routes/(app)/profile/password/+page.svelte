@@ -18,49 +18,49 @@
 	<title>Cambiar contraseña · Gastar</title>
 </svelte:head>
 
-<SheetHeader title="Cambiar contraseña" cancel={{ href: resolve('/profile') }} submit={{}} />
-
-<form
-	id={SHEET_FORM}
-	method="POST"
-	use:enhance={() => (input) => followRedirect(input, { reset: false })}
-	class="form"
-	novalidate
->
-	<ul class="card">
-		<li class:bad={form?.errors?.current}>
-			<TextRow
-				id="current-password"
-				name="currentPassword"
-				label="Contraseña actual"
-				bind:value={current}
-				password
-				autocomplete="current-password"
-				maxlength={PASSWORD_MAX_LENGTH}
-				required
-				error={form?.errors?.current}
-				errorId="current-error"
-			/>
-		</li>
-		<li class:bad={form?.errors?.next}>
-			<TextRow
-				id="new-password"
-				name="newPassword"
-				label="Contraseña nueva"
-				bind:value={next}
-				password
-				autocomplete="new-password"
-				minlength={PASSWORD_MIN_LENGTH}
-				maxlength={PASSWORD_MAX_LENGTH}
-				required
-				error={form?.errors?.next}
-				errorId="next-error"
-			/>
-		</li>
-	</ul>
-	<p class="hint">Mínimo {PASSWORD_MIN_LENGTH} caracteres. Cerramos tus otras sesiones.</p>
-	{#if form?.formError}<p class="error" role="alert">{form.formError}</p>{/if}
-</form>
+<SheetHeader title="Cambiar contraseña" cancel={{ href: resolve('/profile') }} submit={{}}>
+	<form
+		id={SHEET_FORM}
+		method="POST"
+		use:enhance={() => (input) => followRedirect(input, { reset: false })}
+		class="form"
+		novalidate
+	>
+		<ul class="card">
+			<li class:bad={form?.errors?.current}>
+				<TextRow
+					id="current-password"
+					name="currentPassword"
+					label="Contraseña actual"
+					bind:value={current}
+					password
+					autocomplete="current-password"
+					maxlength={PASSWORD_MAX_LENGTH}
+					required
+					error={form?.errors?.current}
+					errorId="current-error"
+				/>
+			</li>
+			<li class:bad={form?.errors?.next}>
+				<TextRow
+					id="new-password"
+					name="newPassword"
+					label="Contraseña nueva"
+					bind:value={next}
+					password
+					autocomplete="new-password"
+					minlength={PASSWORD_MIN_LENGTH}
+					maxlength={PASSWORD_MAX_LENGTH}
+					required
+					error={form?.errors?.next}
+					errorId="next-error"
+				/>
+			</li>
+		</ul>
+		<p class="hint">Mínimo {PASSWORD_MIN_LENGTH} caracteres. Cerramos tus otras sesiones.</p>
+		{#if form?.formError}<p class="error" role="alert">{form.formError}</p>{/if}
+	</form>
+</SheetHeader>
 
 <style>
 	.form {

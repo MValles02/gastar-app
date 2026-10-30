@@ -15,12 +15,12 @@
 	<title>{title} · Gastar</title>
 </svelte:head>
 
-<SheetHeader {title} cancel={{ href: data.detailHref }} submit={{}} />
-
-<RecurringForm
-	initial={form?.values ?? data.values}
-	errors={form?.errors}
-	accounts={data.accounts}
-	categories={data.categories}
-	type={data.values.type}
-/>
+<SheetHeader {title} cancel={{ href: data.detailHref }} submit={{}}>
+	<RecurringForm
+		initial={form?.values ?? data.values}
+		errors={form?.errors}
+		accounts={data.accounts}
+		categories={data.categories}
+		type={data.values.type}
+	/>
+</SheetHeader>

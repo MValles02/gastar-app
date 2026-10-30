@@ -15,11 +15,11 @@
 	title="Editar movimiento"
 	cancel={{ href: resolve(`/movements/${data.id}`) }}
 	submit={{}}
-/>
-
-<MovementForm
-	initial={form?.values ?? data.values}
-	errors={form?.errors}
-	accounts={data.accounts}
-	categories={data.categories}
-/>
+>
+	<MovementForm
+		initial={form?.values ?? data.values}
+		errors={form?.errors}
+		accounts={data.accounts}
+		categories={data.categories}
+	/>
+</SheetHeader>

@@ -50,6 +50,8 @@
 		border-radius: var(--radius-card) var(--radius-card) 0 0;
 		background: var(--bg);
 		box-shadow: var(--shadow-2);
+		/* Clips the bar's safe-area strip while it is not stuck; `clip` keeps sticky working. */
+		overflow: clip;
 		transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
 	}
 

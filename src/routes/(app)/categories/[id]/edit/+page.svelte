@@ -15,10 +15,10 @@
 	title="Editar categoría"
 	cancel={{ href: resolve(`/categories/${data.id}`) }}
 	submit={{}}
-/>
-
-<CategoryForm
-	initial={form?.values ?? data.values}
-	errors={form?.errors}
-	disabledKinds={data.disabledKinds}
-/>
+>
+	<CategoryForm
+		initial={form?.values ?? data.values}
+		errors={form?.errors}
+		disabledKinds={data.disabledKinds}
+	/>
+</SheetHeader>

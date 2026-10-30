@@ -17,44 +17,44 @@
 	<title>Eliminar cuenta · Gastar</title>
 </svelte:head>
 
-<SheetHeader title="Eliminar cuenta" cancel={{ href: resolve('/profile') }} />
+<SheetHeader title="Eliminar cuenta" cancel={{ href: resolve('/profile') }}>
+	<div class="page">
+		<DangerCallout>
+			Se borran para siempre tu cuenta y todos tus datos: cuentas, movimientos, categorías y plan.
+			No se puede deshacer.
+		</DangerCallout>
 
-<div class="page">
-	<DangerCallout>
-		Se borran para siempre tu cuenta y todos tus datos: cuentas, movimientos, categorías y plan. No
-		se puede deshacer.
-	</DangerCallout>
+		<ul class="card">
+			<li class:bad={form?.error}>
+				<TextRow
+					id="delete-password"
+					name="password"
+					form={FORM_ID}
+					label="Contraseña"
+					bind:value={password}
+					password
+					autocomplete="current-password"
+					maxlength={PASSWORD_MAX_LENGTH}
+					error={form?.error}
+					errorId="delete-error"
+				/>
+			</li>
+		</ul>
 
-	<ul class="card">
-		<li class:bad={form?.error}>
-			<TextRow
-				id="delete-password"
-				name="password"
-				form={FORM_ID}
-				label="Contraseña"
-				bind:value={password}
-				password
-				autocomplete="current-password"
-				maxlength={PASSWORD_MAX_LENGTH}
-				error={form?.error}
-				errorId="delete-error"
-			/>
-		</li>
-	</ul>
-
-	<ConfirmDialog
-		triggerLabel="Eliminar cuenta"
-		triggerVariant="destructive"
-		triggerClass="w-full"
-		title="¿Eliminar tu cuenta?"
-		confirmLabel="Eliminar"
-		action="?/delete"
-		formId={FORM_ID}
-		closeOnFailure
-	>
-		Se borran para siempre tu cuenta y todos tus datos. No se puede deshacer.
-	</ConfirmDialog>
-</div>
+		<ConfirmDialog
+			triggerLabel="Eliminar cuenta"
+			triggerVariant="destructive"
+			triggerClass="w-full"
+			title="¿Eliminar tu cuenta?"
+			confirmLabel="Eliminar"
+			action="?/delete"
+			formId={FORM_ID}
+			closeOnFailure
+		>
+			Se borran para siempre tu cuenta y todos tus datos. No se puede deshacer.
+		</ConfirmDialog>
+	</div>
+</SheetHeader>
 
 <style>
 	.page {

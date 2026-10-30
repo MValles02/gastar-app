@@ -11,10 +11,10 @@
 	<title>Editar cuenta · Gastar</title>
 </svelte:head>
 
-<SheetHeader title="Editar cuenta" cancel={{ href: resolve(`/accounts/${data.id}`) }} submit={{}} />
-
-<AccountForm
-	currencyLocked={data.currencyLocked}
-	initial={form?.values ?? data.values}
-	errors={form?.errors}
-/>
+<SheetHeader title="Editar cuenta" cancel={{ href: resolve(`/accounts/${data.id}`) }} submit={{}}>
+	<AccountForm
+		currencyLocked={data.currencyLocked}
+		initial={form?.values ?? data.values}
+		errors={form?.errors}
+	/>
+</SheetHeader>

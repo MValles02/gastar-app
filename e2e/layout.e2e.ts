@@ -301,7 +301,7 @@ test('focus is never hidden under the sticky bar', async ({ page }) => {
 		await page.keyboard.press('Shift+Tab');
 		const top = await page.evaluate(() => {
 			const el = document.activeElement!;
-			return el.closest('main') && !el.closest('header.sheet-bar')
+			return el.closest('main') && !el.closest('header.sheet-bar, .submit-layer')
 				? el.getBoundingClientRect().top
 				: null;
 		});
