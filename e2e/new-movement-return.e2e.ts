@@ -85,8 +85,75 @@ for (const origin of ['/', '/movements']) {
 	});
 }
 
+test('a new transfer returns to its origin', async ({ page }) => {
+	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await openFromFab(page);
+	await expect(page).toHaveURL(/\/movements\/new$/);
+	await page.waitForLoadState('networkidle');
+	await settled(page);
+	await page.getByRole('radio', { name: 'Transf.' }).check({ force: true });
+	await page.locator('input[name="amount"]').fill('1000');
+	await page.locator('input[name="description"]').fill(unique('Origen transferencia'));
+	await pick(page, 'Origen', 'Otra cuenta pesos');
+	await pick(page, 'Destino', 'Otra cuenta');
+	await page.locator('input[name="exchangeRate"]').fill('1000');
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(page).toHaveURL(/\/plan$/);
+	await expect(toast(page)).toBeVisible();
+});
+
+test('a validation error keeps the origin: fixing it and saving returns there', async ({
+	page
+}) => {
+	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await openFromFab(page);
+	await expect(page).toHaveURL(/\/movements\/new$/);
+	await page.waitForLoadState('networkidle');
+	await settled(page);
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(page.getByText(/Ingresá un monto/)).toBeVisible();
+	await expect(page).toHaveURL(/\/movements\/new$/);
+	await fillAndSave(page, unique('Origen tras error'));
+	await expect(page).toHaveURL(/\/plan$/);
+	await expect(toast(page)).toBeVisible();
+});
+
+test('from an account detail, saving pops back to it', async ({ page }) => {
+	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	await page
+		.getByRole('link', { name: /Otra cuenta pesos/ })
+		.first()
+		.click();
+	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
+	const account = pathname(page);
+	await page.waitForLoadState('networkidle');
+	// The detail has no + yet: an in-app link stands in for one (the router handles it like any link).
+	await page.evaluate(() => {
+		const a = document.createElement('a');
+		a.href = '/movements/new';
+		a.textContent = 'Nuevo movimiento (test)';
+		document.querySelector('main')!.prepend(a);
+	});
+	await page.getByRole('link', { name: 'Nuevo movimiento (test)' }).click();
+	await fillAndSave(page, unique('Origen cuenta JS'));
+	await expect.poll(() => pathname(page)).toBe(account);
+	await expect(toast(page)).toBeVisible();
+	// Popped, not pushed: back lands on the accounts list, not the form.
+	await page.goBack();
+	await expect.poll(() => pathname(page)).toBe('/accounts');
+});
+
 test.describe('without JavaScript', () => {
 	test.use({ javaScriptEnabled: false });
+
+	test('a validation error keeps the origin', async ({ page }) => {
+		await page.goto('/plan');
+		await page.getByRole('link', { name: 'Nuevo movimiento' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(page.getByText(/Ingresá un monto/)).toBeVisible();
+		await saveNoJs(page, unique('Origen sin JS error'));
+		await expect(page).toHaveURL(/\/plan\?movementSaved=1$/);
+	});
 
 	// No-JS form: the pickers render as plain radio groups.
 	const option = (page: Page, group: 'Cuenta' | 'Categoría', name: RegExp) =>
@@ -136,7 +203,9 @@ test.describe('without JavaScript', () => {
 			'/.//evil.example/plan',
 			'/a/..//evil.example/plan',
 			'plan',
-			'/movements/new'
+			'/movements/new',
+			'/movements/new/',
+			'/movements/%6Eew'
 		]) {
 			const res = await page.request.post('/movements/new', {
 				form: {

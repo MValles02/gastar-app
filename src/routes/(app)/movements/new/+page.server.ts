@@ -25,13 +25,16 @@ const FLAGS = ['saved', 'planSaved', 'movementSaved'];
 function originPath(value: unknown, base: URL): string | null {
 	if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return null;
 	let url: URL;
+	let path: string;
 	try {
 		url = new URL(value, base);
+		// Compared decoded and without a trailing slash: `/movements/%6Eew/` is this form too.
+		path = decodeURIComponent(url.pathname).replace(/\/+$/, '');
 	} catch {
 		return null;
 	}
 	// Dot segments can normalize to a protocol-relative path (`/.//evil.com` → `//evil.com`).
-	if (url.origin !== base.origin || url.pathname.startsWith('//') || url.pathname === FORM_PATH)
+	if (url.origin !== base.origin || url.pathname.startsWith('//') || path === FORM_PATH)
 		return null;
 	for (const flag of FLAGS) url.searchParams.delete(flag);
 	return url.pathname + url.search;
