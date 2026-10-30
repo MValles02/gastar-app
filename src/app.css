@@ -328,3 +328,74 @@
 	border-radius: var(--radius-card);
 	box-shadow: var(--shadow-1);
 }
+
+/*
+ * Page transitions (onNavigate in src/routes/+layout.svelte sets data-nav-transition): a push slides
+ * the new page in from the right over the old one, which drifts left; a pop reverses it; a tab
+ * switch crossfades. Changes within one screen (month, currency, filters) have no transition. The
+ * header and tab bar have their own view-transition-name, so they crossfade in place instead of
+ * sliding. Reduced motion never starts a transition.
+ */
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+	animation-duration: 0.28s;
+	animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+:root[data-nav-transition='fade']::view-transition-old(root),
+:root[data-nav-transition='fade']::view-transition-new(root) {
+	animation-duration: 0.2s;
+	animation-timing-function: ease;
+}
+
+:root[data-nav-transition='forward']::view-transition-old(root) {
+	animation-name: page-drift-left;
+}
+
+:root[data-nav-transition='forward']::view-transition-new(root) {
+	animation-name: page-enter-right;
+}
+
+:root[data-nav-transition='back']::view-transition-old(root) {
+	z-index: 1;
+	animation-name: page-exit-right;
+}
+
+:root[data-nav-transition='back']::view-transition-new(root) {
+	animation-name: page-drift-in;
+}
+
+@keyframes page-enter-right {
+	from {
+		transform: translateX(100%);
+	}
+}
+
+@keyframes page-drift-left {
+	to {
+		transform: translateX(-30%);
+		opacity: 0.6;
+	}
+}
+
+@keyframes page-exit-right {
+	to {
+		transform: translateX(100%);
+	}
+}
+
+@keyframes page-drift-in {
+	from {
+		transform: translateX(-30%);
+		opacity: 0.6;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*),
+	::view-transition-old(*),
+	::view-transition-new(*) {
+		animation: none;
+	}
+}

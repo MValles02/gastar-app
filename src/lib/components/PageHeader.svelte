@@ -105,6 +105,8 @@
 		-webkit-backdrop-filter: blur(16px);
 		backdrop-filter: blur(16px);
 		border-bottom: 1px solid transparent;
+		/* Crossfades in place while the page underneath slides (page transitions, app.css). */
+		view-transition-name: page-header;
 	}
 
 	/* Sticky only with room to spare: `em` here is the browser's text size, so large text or zoom turns it off (WCAG 2.4.11, 1.4.10). */
