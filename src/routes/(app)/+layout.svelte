@@ -5,15 +5,12 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { stripFlags } from '$lib/nav-stack.svelte';
-	import { FORM_ROUTES, TAB_ROUTES } from '$lib/form-routes';
-	import Sheet from '$lib/components/Sheet.svelte';
+	import { TAB_ROUTES } from '$lib/form-routes';
 	import TabBar from '$lib/components/TabBar.svelte';
 
 	let { children }: { children: Snippet } = $props();
 
 	const showBar = $derived(TAB_ROUTES.has(page.route.id ?? ''));
-	const isSheet = $derived(FORM_ROUTES.has(page.route.id ?? ''));
-
 	// Saving a new movement returns to the screen it was opened from with ?movementSaved=1: toast
 	// once, with a shortcut to add another from the same screen, then strip the flag so a reload does
 	// not toast again. Without JavaScript the server-rendered status stands in until hydration.
@@ -30,22 +27,18 @@
 	});
 </script>
 
-{#if isSheet}
-	<Sheet>{@render children()}</Sheet>
-{:else}
-	<div class="shell">
-		<main class="content" class:with-bar={showBar}>
-			{#if movementSaved && !hydrated}
-				<p role="status" class="saved">
-					Movimiento guardado. <a href={newMovementHref}>Agregar otro</a>
-				</p>
-			{/if}
-			{@render children()}
-		</main>
+<div class="shell">
+	<main class="content" class:with-bar={showBar}>
+		{#if movementSaved && !hydrated}
+			<p role="status" class="saved">
+				Movimiento guardado. <a href={newMovementHref}>Agregar otro</a>
+			</p>
+		{/if}
+		{@render children()}
+	</main>
 
-		{#if showBar}<TabBar />{/if}
-	</div>
-{/if}
+	{#if showBar}<TabBar />{/if}
+</div>
 
 <style>
 	.shell {

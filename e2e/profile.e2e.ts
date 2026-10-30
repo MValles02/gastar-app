@@ -77,11 +77,11 @@ test.describe('account changes', () => {
 		await page.getByRole('link', { name: 'Cambiar nombre' }).click();
 		await expect(page).toHaveURL(/\/profile\/name$/);
 		await page.getByLabel('Nombre').fill('   ');
-		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await page.getByRole('button', { name: 'Guardar cambios' }).click();
 		await expect(page.getByText('Falta el nombre.')).toBeVisible();
 
 		await page.getByLabel('Nombre').fill('  Nombre Nuevo  ');
-		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await page.getByRole('button', { name: 'Guardar cambios' }).click();
 		await expect(page).toHaveURL(/\/profile$/);
 		await expect(page.locator('.who .name')).toHaveText('Nombre Nuevo');
 		await page.goto('/');
@@ -100,7 +100,7 @@ test.describe('account changes', () => {
 		await page.goto('/profile/password', { waitUntil: 'networkidle' });
 		const currentField = page.locator('#current-password');
 		const next = page.locator('#new-password');
-		const save = page.getByRole('button', { name: 'Guardar', exact: true });
+		const save = page.getByRole('button', { name: 'Guardar cambios' });
 
 		await currentField.fill('incorrecta-123');
 		await next.fill(newPassword);

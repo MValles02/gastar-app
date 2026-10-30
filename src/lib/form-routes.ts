@@ -1,4 +1,4 @@
-/** Form routes, shown as a bottom sheet (`Sheet` + `SheetHeader`): toasts show at the top. */
+/** Form routes (sticky action bar at the bottom): toasts show at the top instead. */
 export const FORM_ROUTES = new Set([
 	'/(app)/movements/new',
 	'/(app)/movements/[id]/edit',

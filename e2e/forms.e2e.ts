@@ -40,7 +40,13 @@ test('the account form picks icon and color in drawers and persists them', async
 	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
 	await page.getByLabel('Nombre').fill(`Forms ${Date.now()}`);
 
-	await actionsVisible(page, /^Guardar$/);
+	// Cancelar and Crear cuenta side by side, equal width (50/50), visible without scrolling.
+	const cancel = (await page.getByRole('link', { name: 'Cancelar' }).boundingBox())!;
+	const submit = (await page.getByRole('button', { name: 'Guardar', exact: true }).boundingBox())!;
+	expect(Math.abs(cancel.y - submit.y)).toBeLessThan(2);
+	expect(cancel.x + cancel.width).toBeLessThan(submit.x);
+	expect(Math.abs(submit.width - cancel.width)).toBeLessThan(2);
+	expect(submit.y + submit.height).toBeLessThanOrEqual(667);
 
 	await page.getByRole('button', { name: /^Ícono/ }).click();
 	const banco = page.getByRole('dialog').getByRole('radio', { name: 'Banco' });
@@ -80,15 +86,13 @@ test('a currency-locked account shows a read-only Moneda row', async ({ page }) 
 	await expect(page.locator('input[name="currency"]')).toHaveCount(0);
 });
 
-/** The sheet header: Cancelar top-left, the submit top-right, on one row at the top of the screen. */
-async function actionsVisible(page: Page, submitName: RegExp) {
+const actionsVisible = async (page: Page, submitName: RegExp) => {
 	const cancel = (await page.getByRole('link', { name: 'Cancelar' }).boundingBox())!;
 	const submit = (await page.getByRole('button', { name: submitName }).boundingBox())!;
 	expect(Math.abs(cancel.y - submit.y)).toBeLessThan(2);
 	expect(cancel.x + cancel.width).toBeLessThan(submit.x);
-	expect(submit.x + submit.width).toBeGreaterThan(375 / 2);
-	expect(submit.y + submit.height).toBeLessThanOrEqual(120);
-}
+	expect(submit.y + submit.height).toBeLessThanOrEqual(667);
+};
 
 test('the movement form shows Transf. and both actions without scrolling', async ({ page }) => {
 	await login(page);

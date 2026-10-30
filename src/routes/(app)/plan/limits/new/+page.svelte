@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { parseStep, planReturn } from '$lib/plan-wizard';
-	import SheetHeader from '$lib/components/SheetHeader.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 	import LimitForm from '../LimitForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -17,13 +17,15 @@
 	<title>Nuevo límite · Gastar</title>
 </svelte:head>
 
-<SheetHeader title="Nuevo límite" cancel={{ href: resolve(back as '/') }} submit={{}}>
-	<LimitForm
-		mode="new"
-		currency={data.currency}
-		{action}
-		categories={data.categories}
-		initial={{ categoryId: form?.values.categoryId ?? '', amount: form?.values.amount ?? '' }}
-		errors={form?.errors}
-	/>
-</SheetHeader>
+<PageHeader title="Nuevo límite" close={{ href: resolve(back as '/'), label: 'Cerrar' }} />
+
+<LimitForm
+	mode="new"
+	currency={data.currency}
+	formId="limit-form"
+	{action}
+	cancelHref={back}
+	categories={data.categories}
+	initial={{ categoryId: form?.values.categoryId ?? '', amount: form?.values.amount ?? '' }}
+	errors={form?.errors}
+/>

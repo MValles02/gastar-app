@@ -8,7 +8,7 @@
 	import AmountHero from '$lib/components/AmountHero.svelte';
 	import EntryFields from '$lib/components/EntryFields.svelte';
 	import DatePicker from '$lib/components/DatePicker.svelte';
-	import { SHEET_FORM, sheet } from '$lib/sheet.svelte';
+	import FormActions from '$lib/components/FormActions.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SwitchRow from '$lib/components/SwitchRow.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
@@ -31,6 +31,9 @@
 		errors = {},
 		accounts,
 		categories,
+		submitLabel,
+		cancelHref,
+		returnTo,
 		recurring,
 		repeatable = false,
 		repeatChecked = false
@@ -39,6 +42,10 @@
 		errors?: Partial<Record<Fields, string>>;
 		accounts: (Picker & { currency: Currency })[];
 		categories: (Picker & { kind: string | null })[];
+		submitLabel: string;
+		cancelHref: string;
+		/** Where saving returns to (validated by the action); none keeps the user on the form. */
+		returnTo?: string | null;
 		/** Registering a payment of this recurring rule. */
 		recurring?: { id: string; type: string; description: string };
 		/** Offer "Repetir cada mes" (new incomes and outcomes only). */
@@ -54,10 +61,6 @@
 	];
 
 	let submitting = $state(false);
-	// The sheet header's Guardar shows it.
-	$effect(() => {
-		sheet.submitting = submitting;
-	});
 	let mounted = $state(false);
 	onMount(() => (mounted = true));
 
@@ -122,7 +125,6 @@
 </script>
 
 <form
-	id={SHEET_FORM}
 	method="POST"
 	class="form"
 	class:submitting
@@ -135,6 +137,7 @@
 		};
 	}}
 >
+	{#if returnTo}<input type="hidden" name="returnTo" value={returnTo} />{/if}
 	{#if recurring}
 		<input type="hidden" name="recurringId" value={recurring.id} />
 		<p class="hint note">
@@ -301,6 +304,8 @@
 	{#if repeatable && !recurring && showCategory}
 		<p id="repeat-hint" class="hint pad">Te lo recordamos el mismo día de cada mes.</p>
 	{/if}
+
+	<FormActions {cancelHref} {submitLabel} {submitting} />
 </form>
 
 <style>
@@ -311,7 +316,7 @@
 		padding-top: var(--space-1);
 	}
 
-	.form.submitting > * {
+	.form.submitting > :not(:global(.bar)) {
 		opacity: 0.55;
 	}
 

@@ -193,6 +193,7 @@ test('ARS decimals with the switch on: message, nothing written, switch kept', a
 test('Inicio without a plan offers to create one (demo, USD)', async ({ page, baseURL }) => {
 	await login(page);
 	await setCurrencyCookie(page, baseURL!, 'USD');
+	// Other specs briefly create a demo USD plan; read again until it is gone.
 	await expect(async () => {
 		await page.goto('/', { waitUntil: 'networkidle' });
 		const card = page.getByRole('region', { name: 'Saldo', exact: true });
