@@ -55,7 +55,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			(p) => p.recurringId === rule.id
 		);
 		const s = recurringStatus(rule.dayOfMonth, paid, ym, localDay(now));
-		thisMonth = { status: s.status, label: dueLabel(s.status, s.daysLeft, rule.type) };
+		thisMonth = { status: s.status, label: dueLabel(s, rule.type) };
 	}
 	return {
 		id: rule.id,

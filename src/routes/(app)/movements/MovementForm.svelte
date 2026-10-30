@@ -40,7 +40,7 @@
 		accounts: (Picker & { currency: Currency })[];
 		categories: (Picker & { kind: string | null })[];
 		/** Registering a payment of this recurring rule. */
-		recurring?: { id: string; description: string };
+		recurring?: { id: string; type: string; description: string };
 		/** Offer "Repetir cada mes" (new incomes and outcomes only). */
 		repeatable?: boolean;
 		/** Initial state of the "Repetir cada mes" checkbox (kept when the form is shown again with errors). */
@@ -70,9 +70,11 @@
 	let description = $state(untrack(() => initial.description));
 	let rate = $state(untrack(() => initial.exchangeRate));
 
+	// An income rule fixes the type: no selector and, without JS too, no transfer-only fields.
+	const typeFixed = $derived(recurring?.type === 'income');
 	const isTransfer = $derived(type === 'transfer');
-	const showTransfer = $derived(!mounted || isTransfer);
-	const showCategory = $derived(!mounted || !isTransfer);
+	const showTransfer = $derived(!typeFixed && (!mounted || isTransfer));
+	const showCategory = $derived(typeFixed || !mounted || !isTransfer);
 
 	// After a failed submit, move focus to the first field marked invalid (inputs or picker triggers).
 	$effect(() => {
@@ -136,15 +138,25 @@
 	{#if recurring}
 		<input type="hidden" name="recurringId" value={recurring.id} />
 		<p class="hint note">
-			Registrás el pago de <strong>{recurring.description}</strong> de este mes.
+			Registrás {typeFixed ? 'el ingreso' : 'el pago'} de <strong>{recurring.description}</strong> de
+			este mes.
 		</p>
 	{/if}
 
-	<div class="field">
-		<span id="type-label" class="visually-hidden">Tipo</span>
-		<SegmentedControl name="type" options={typeOptions} bind:value={type} labelledby="type-label" />
-		{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
-	</div>
+	{#if typeFixed}
+		<input type="hidden" name="type" value={type} />
+	{:else}
+		<div class="field">
+			<span id="type-label" class="visually-hidden">Tipo</span>
+			<SegmentedControl
+				name="type"
+				options={typeOptions}
+				bind:value={type}
+				labelledby="type-label"
+			/>
+			{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
+		</div>
+	{/if}
 
 	<AmountHero bind:value={amount} currency={originCurrency} error={errors.amount} autofocus />
 
@@ -188,7 +200,7 @@
 				</li>
 			{/if}
 
-			{#if !mounted || showRate}
+			{#if (!mounted && !typeFixed) || showRate}
 				<li class:bad={errors.exchangeRate}>
 					{#if !mounted}<p class="hint pad">
 							Solo para transferencias entre monedas distintas

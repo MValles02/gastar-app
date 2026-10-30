@@ -1,5 +1,16 @@
 import { expect, test, type Page } from '@playwright/test';
-import { deleteRules, login, OTHER_EMAIL, pick, pickDay, postDelete } from './helpers';
+import {
+	deleteMovements,
+	deleteRules,
+	fillRule,
+	findMovements,
+	linkId,
+	login,
+	OTHER_EMAIL,
+	pick,
+	pickDay,
+	postDelete
+} from './helpers';
 
 // Created accounts (detail URLs) are removed in afterEach. Runs as otro so the demo user's totals stay untouched.
 const createdAccounts: string[] = [];
@@ -111,6 +122,64 @@ test('the recurring form: type from ?type, title, day drawer', async ({ page, ba
 	try {
 		await expect(page.locator('.rule', { hasText: description })).toContainText('Día 15');
 	} finally {
+		await deleteRules(page, baseURL!, description);
+	}
+});
+
+test('an income rule registers as "Registrar ingreso" with no type selector, with and without JS', async ({
+	page,
+	browser,
+	baseURL
+}) => {
+	await login(page, OTHER_EMAIL);
+	const description = `Forms ingreso ${Date.now()}`;
+	try {
+		await fillRule(page, {
+			description,
+			amount: '700',
+			day: '15',
+			account: 'Otra cuenta pesos',
+			category: 'Ajena',
+			type: 'income'
+		});
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(page).toHaveURL(/\/plan$/);
+		const ruleId = await linkId(page.getByRole('link', { name: new RegExp(description) }));
+		const form = `/movements/new?recurring=${ruleId}`;
+
+		await page.goto(form, { waitUntil: 'networkidle' });
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Registrar ingreso');
+		await expect(page.getByRole('radio', { name: /^(Ingreso|Gasto|Transf\.)$/ })).toHaveCount(0);
+		await expect(page.locator('input[name="type"]')).toHaveValue('income');
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(page).toHaveURL(/\/plan$/);
+
+		// No JS: the server-rendered form has no type selector or transfer fields and still saves an income.
+		const noJs = await browser.newContext({
+			baseURL,
+			javaScriptEnabled: false,
+			storageState: await page.context().storageState()
+		});
+		try {
+			const bare = await noJs.newPage();
+			await bare.goto(form);
+			await expect(bare.getByRole('heading', { level: 1 })).toHaveText('Registrar ingreso');
+			await expect(bare.locator('input[name="type"][type="radio"]')).toHaveCount(0);
+			await expect(bare.locator('[name="destinationAccountId"]')).toHaveCount(0);
+			await bare.getByRole('button', { name: 'Guardar', exact: true }).click();
+			await expect(bare).toHaveURL(/\/plan\?saved=1$/);
+		} finally {
+			await noJs.close();
+		}
+
+		const movements = await findMovements(page, description);
+		expect(movements).toHaveLength(2);
+		for (const href of movements) {
+			await page.goto(href);
+			await expect(page.getByRole('region', { name: 'Monto' })).toContainText('Ingreso');
+		}
+	} finally {
+		await deleteMovements(page, baseURL!, description);
 		await deleteRules(page, baseURL!, description);
 	}
 });

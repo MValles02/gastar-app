@@ -47,7 +47,7 @@ Personal finance PWA for Argentina. Answers two questions:
 - Bottom nav: Inicio | Movimientos | Create movement (center "+") | Plan | Reportes.
 - Profile page: "Cuentas" and "Categorías" links (both are reached from Profile and link back to it), theme toggle (light / dark / system), logout, and the account rows:
   - "Nombre" (edit page, updates the user name) and "Cambiar contraseña" (current + new password, min 8; revokes all other sessions, this one stays signed in).
-  - "Eliminar cuenta" (below logout): re-enter the password + confirm; see Deletion.
+  - "Darme de baja" (below logout; deletes the user's own account): re-enter the password + confirm ("¿Darte de baja?"); see Deletion. Financial accounts keep "Eliminar cuenta".
 
 ## Design
 
@@ -94,8 +94,8 @@ Personal finance PWA for Argentina. Answers two questions:
 
 - Route `/plan`, a bottom-nav tab (no back link), h1 "Plan". Currency tabs `ARS | USD`; one currency per screen, never converted or summed. No accounts in the currency: "No tenés cuentas en {pesos|dólares}." + a link to create one.
 - Recurring incomes and payments ("Ingresos fijos", "Pagos fijos"): monthly rules with description, amount (in the account's currency; ARS in whole pesos), due day 1–31 (clamped to the month's last day), account and category.
-- Each row shows description, amount, "Día N", account and a status as text: Cobrado/Pagado, Vence hoy, Mañana, En N días, Venció ayer, Venció hace N días. A rule is paid when a movement linked to it exists in the current month.
-- An unpaid active rule has "Registrar", which opens `/movements/new?recurring=<id>` ("Registrar pago"): the form is prefilled from the rule with today's date, the category is the rule's and cannot be changed, the type and the account's currency must match the rule, and saving links the movement to the rule and returns to `/plan` with "Pago registrado.".
+- Each row shows description, amount, "Día N", account and a status as text: Cobrado/Pagado, Vence hoy, Mañana, En N días, Venció ayer, Venció hace N días. An unregistered income past its day reads "Esperado el día N" with a neutral tone (never red, never in Avisos). A rule is paid when a movement linked to it exists in the current month.
+- An unpaid active rule has "Registrar", which opens `/movements/new?recurring=<id>` ("Registrar pago", or "Registrar ingreso" for an income rule, which hides the type selector and takes the rule's type server-side): the form is prefilled from the rule with today's date, the category is the rule's and cannot be changed, the type and the account's currency must match the rule, and saving links the movement to the rule and returns to `/plan` with "Pago registrado.".
 - A rule is inactive if the rule, its account or its category is archived; inactive rules are listed under "Inactivos" with the reason ("Archivado", "Cuenta archivada", "Categoría archivada") and cannot be registered.
 - Rules open a detail screen `/plan/recurring/[id]` ("Registrar pago", "Editar", "Desactivar" / "Activar", delete with confirmation; the movements already registered are kept) and an edit screen `/plan/recurring/[id]/edit`; create at `/plan/recurring/new`. Another user's or a missing rule is "Movimiento fijo no encontrado." (404).
 - Empty state: "No tenés pagos ni ingresos fijos en {pesos|dólares}." with "Agregar pago fijo" and "Agregar ingreso fijo".
