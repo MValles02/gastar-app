@@ -242,7 +242,7 @@ Dark (stone near-black with emerald primary) does not rely on black shadows, whi
 
 ### Row Feedback
 
-An `Item` row (a link or button via the `child` snippet) fills with `muted` on hover (links only, stock shadcn `hover:bg-muted`) and shows the stock 3px focus ring. Rows are stock shadcn `Item.Media`, `Item.Content` (`Item.Title`, `Item.Description`) and `Item.Actions`; there is no row scale.
+An `Item` row (a link or button via the `child` snippet) fills with `muted` on hover (links only, stock shadcn `hover:bg-muted`) and while pressed (links and buttons, `app.css`), and shows the stock 3px focus ring. Rows are stock shadcn `Item.Media`, `Item.Content` (`Item.Title`, `Item.Description`) and `Item.Actions`; there is no row scale.
 
 ### Named Rules
 
@@ -264,7 +264,7 @@ Shared components live in `src/lib/components/`.
 - **`outline`:** Page-background fill, hairline border, text colour; hover fills `muted`. Used for secondary actions (Cancelar, Archivar, filter trigger).
 - **`destructive`:** Tinted negative fill (10%), negative text. Used for delete triggers.
 - **`link`:** Primary text, underline on hover; inline actions such as "Quitar" and "Usar sugeridos" (destructive ones add `text-destructive`).
-- **States:** Disabled is 0.5 opacity and non-interactive. Focus-visible is a 3px ring (`ring-ring/50`) with a ring-coloured border. Active (not disabled) nudges down 1px.
+- **States:** Disabled is 0.5 opacity and non-interactive. Focus-visible is a 3px ring (`ring-ring/50`) with a ring-coloured border. Active (not disabled) nudges down 1px and takes the variant's hover fill, so a tap shows a press on touch screens.
 
 ### Cards / Containers
 
@@ -345,6 +345,14 @@ The plan setup is one form with four sections. With JS a step list (3px top bord
 ### Nav FAB
 
 A 3.25rem primary square with the 0.875rem card radius and a 24px plus icon, centered in the bottom nav. It is the only element with `--shadow-lift`; hover drops opacity to 0.9 and press scales to 0.96.
+
+### Touch
+
+There is no grey WebKit tap flash (`-webkit-tap-highlight-color: transparent` on `html`); presses show through the `:active` styles above instead, which iOS Safari applies because the root layout listens to `touchstart`. Hover styles only apply where a pointer can hover (`@media (hover: hover)`, Tailwind's default for `hover:`), so a tap never leaves a sticky hover. Small controls keep their visual size and get a 44px hit area from an invisible `::after` centred on them (MonthNav arrows, the password eye, switches) or overhanging the segment (segmented controls, each segment at least 44px wide).
+
+### Navigation Progress
+
+A 3px `--primary` bar fixed at the top (`NavProgress`, below the safe area) appears only when a navigation's data takes longer than 150ms: a 40% segment sliding across in 1.1s on the page-transition curve, or a still full-width bar with reduced motion. It is gone before the page transition starts and is never part of its snapshots.
 
 ## Do's and Don'ts
 

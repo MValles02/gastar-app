@@ -36,6 +36,7 @@
 	<InputGroup.Addon align="inline-end">
 		<InputGroup.Button
 			size="icon-xs"
+			class="relative after:absolute after:inset-[calc(50%-1.4rem)]"
 			aria-pressed={showPassword}
 			onclick={() => (showPassword = !showPassword)}
 		>
