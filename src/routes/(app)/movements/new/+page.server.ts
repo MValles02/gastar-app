@@ -13,6 +13,45 @@ import { failIfUnavailable, movementPickers, resolvePostedMovement } from '../fo
 /** Remembers the account of the last saved movement as the next form's default. */
 const LAST_ACCOUNT_COOKIE = 'last_account';
 
+const FORM_PATH = '/movements/new';
+/** One-shot toast flags that must not ride along on the screen we return to. */
+const FLAGS = ['saved', 'planSaved', 'movementSaved'];
+
+/**
+ * The screen to return to after saving: a same-origin app path other than this form, with its toast
+ * flags dropped, or null. Anything else (absolute or protocol-relative URLs, another origin) is
+ * rejected, so the action can't be turned into an open redirect.
+ */
+function originPath(value: unknown, base: URL): string | null {
+	if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return null;
+	let url: URL;
+	let path: string;
+	try {
+		url = new URL(value, base);
+		// Compared decoded and without a trailing slash: `/movements/%6Eew/` is this form too.
+		path = decodeURIComponent(url.pathname).replace(/\/+$/, '');
+	} catch {
+		return null;
+	}
+	// Dot segments can normalize to a protocol-relative path (`/.//evil.com` → `//evil.com`).
+	if (url.origin !== base.origin || url.pathname.startsWith('//') || path === FORM_PATH)
+		return null;
+	for (const flag of FLAGS) url.searchParams.delete(flag);
+	return url.pathname + url.search;
+}
+
+/** The page the form was opened from, by the Referer (no-JS; the client replaces it with its own). */
+function refererPath(request: Request, base: URL) {
+	const referer = request.headers.get('referer');
+	if (!referer) return null;
+	try {
+		const url = new URL(referer);
+		return url.origin === base.origin ? originPath(url.pathname + url.search, base) : null;
+	} catch {
+		return null;
+	}
+}
+
 /** An active recurring rule owned by the user, or undefined (inactive, foreign and invalid ids alike). */
 async function findRule(userId: string, id: FormDataEntryValue | null) {
 	if (typeof id !== 'string' || !isUuid(id)) return undefined;
@@ -20,7 +59,7 @@ async function findRule(userId: string, id: FormDataEntryValue | null) {
 	return rule && isRecurringActive(rule) ? rule : undefined;
 }
 
-export const load: PageServerLoad = async ({ locals, cookies, url }) => {
+export const load: PageServerLoad = async ({ locals, cookies, url, request }) => {
 	const userId = locals.user!.id;
 	const { accounts, categories } = await movementPickers(userId);
 	const rule = await findRule(userId, url.searchParams.get('recurring'));
@@ -53,12 +92,13 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 			: null,
 		saved: url.searchParams.get('saved') === '1',
 		formKey: crypto.randomUUID(),
+		from: refererPath(request, url),
 		defaultAccountId
 	};
 };
 
 export const actions: Actions = {
-	default: async ({ request, locals, cookies }) => {
+	default: async ({ request, locals, cookies, url }) => {
 		const userId = locals.user!.id;
 		const fd = await request.formData();
 		const rule = await findRule(userId, fd.get('recurringId'));
@@ -68,6 +108,9 @@ export const actions: Actions = {
 		const { values } = parsed;
 		// Keeps the checkbox state when the form is shown again with errors.
 		if (fd.get('repeat') === 'on') values.repeat = 'on';
+		// Keeps the origin when the form is shown again with errors (the Referer is now this form).
+		const returnTo = fd.get('returnTo');
+		if (typeof returnTo === 'string') values.returnTo = returnTo;
 		if (!parsed.ok) return fail(400, { values, errors: parsed.errors });
 		const { data } = parsed;
 
@@ -115,6 +158,10 @@ export const actions: Actions = {
 			return failIfUnavailable(e, values);
 		}
 		cookies.set(LAST_ACCOUNT_COOKIE, data.accountId, PREFERENCE_COOKIE_OPTIONS);
-		redirect(303, rule ? '/plan?saved=1' : '/movements/new?saved=1');
+		if (rule) redirect(303, '/plan?saved=1');
+		// Back to the screen the form was opened from, which toasts; else stay here for the next one.
+		const back = originPath(fd.get('returnTo'), url);
+		if (!back) redirect(303, `${FORM_PATH}?saved=1`);
+		redirect(303, `${back}${back.includes('?') ? '&' : '?'}movementSaved=1`);
 	}
 };

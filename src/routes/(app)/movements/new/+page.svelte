@@ -8,6 +8,7 @@
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import SheetHeader from '$lib/components/SheetHeader.svelte';
+	import { SHEET_FORM } from '$lib/sheet.svelte';
 	import MovementForm from '../MovementForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -47,7 +48,10 @@
 			stripSaved();
 		}
 	});
-	const returnTo = $derived(cameFrom ?? (data.recurring ? '/plan' : '/'));
+	// Where saving returns to (validated by the action): the screen we came from, else the server's
+	// Referer guess (no JS), else none and saving stays here for the next movement.
+	const origin = $derived(cameFrom ?? form?.values?.returnTo ?? data.from ?? null);
+	const returnTo = $derived(origin ?? (data.recurring ? '/plan' : '/'));
 </script>
 
 <svelte:head>
@@ -70,6 +74,7 @@
 		</Empty.Root>
 		<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 	{:else}
+		{#if origin}<input type="hidden" name="returnTo" form={SHEET_FORM} value={origin} />{/if}
 		{#if data.saved && !form && !hydrated}<p role="status">Movimiento guardado.</p>{/if}
 		{#key data.formKey}
 			<MovementForm

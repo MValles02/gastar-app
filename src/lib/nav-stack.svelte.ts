@@ -1,5 +1,5 @@
 /* eslint-disable svelte/prefer-svelte-reactivity -- URLs here are parsed and compared, never mutated or rendered */
-import { goto, invalidateAll } from '$app/navigation';
+import { goto, invalidateAll, replaceState } from '$app/navigation';
 import type { ActionResult, AfterNavigate, OnNavigate } from '@sveltejs/kit';
 import { FORM_ROUTES } from '$lib/form-routes';
 
@@ -75,6 +75,28 @@ export function replaceGoto(href: string, opts: Parameters<typeof goto>[1] = {})
 	replaceNext = true;
 	// eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass resolved same-origin paths
 	return goto(href, { ...opts, replaceState: true });
+}
+
+/**
+ * Shallow `replaceState` that strips one-shot query flags (e.g. `?movementSaved=1`) from the current
+ * URL and keeps the stack's copy in sync, so a later "up" to this screen still sees the flag missing
+ * and replaces the entry with it. Deferred so it runs after `track` has recorded the navigation (the
+ * order of `afterNavigate` callbacks is not fixed), retried while the router is not ready (hard load).
+ */
+export function stripFlags(names: string[], tries = 20) {
+	setTimeout(() => {
+		const url = new URL(location.href);
+		if (!names.some((n) => url.searchParams.has(n))) return;
+		for (const n of names) url.searchParams.delete(n);
+		try {
+			// eslint-disable-next-line svelte/no-navigation-without-resolve -- same-origin current URL
+			replaceState(url.pathname + url.search + url.hash, {});
+		} catch {
+			if (tries > 1) stripFlags(names, tries - 1);
+			return;
+		}
+		if (index >= 0 && pathOf(entries[index]) === url.pathname) entries[index] = keyOf(url);
+	}, 50);
 }
 
 /** A pop started by `navigateUp` has not landed yet. */
