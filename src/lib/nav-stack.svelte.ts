@@ -81,7 +81,7 @@ export function replaceGoto(href: string, opts: Parameters<typeof goto>[1] = {})
 export const isPopping = () => popping;
 
 /**
- * Goes "up" to `href`:pops back to it when it is on the stack (the exact URL first, else the same
+ * Goes "up" to `href`: pops back to it when it is on the stack (the exact URL first, else the same
  * pathname on another page). Otherwise it first pops the run of entries on the current screen (wizard
  * steps) back to its first entry and replaces that, or replaces the current entry when there is none. The
  * popstate navigation reruns the loads; when `href` carries a query (e.g. a `?planSaved=1` flag) the
