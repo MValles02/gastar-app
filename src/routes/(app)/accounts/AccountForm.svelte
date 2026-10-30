@@ -6,7 +6,7 @@
 	import Lock from '@lucide/svelte/icons/lock';
 	import * as Field from '$lib/components/ui/field/index.js';
 	import ColorPicker from '$lib/components/ColorPicker.svelte';
-	import FormActions from '$lib/components/FormActions.svelte';
+	import { SHEET_FORM } from '$lib/sheet.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import IconPicker from '$lib/components/IconPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
@@ -21,15 +21,11 @@
 	let {
 		initial,
 		errors = {},
-		mode,
-		currencyLocked = false,
-		cancelHref
+		currencyLocked = false
 	}: {
 		initial: Values;
 		errors?: Partial<Record<keyof Values, string>>;
-		mode: 'create' | 'edit';
 		currencyLocked?: boolean;
-		cancelHref: string;
 	} = $props();
 
 	let name = $state(untrack(() => initial.name ?? ''));
@@ -49,7 +45,7 @@
 	});
 </script>
 
-<form method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
+<form id={SHEET_FORM} method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
 	<ul class="card">
 		<li class:bad={errors.name}>
 			<TextRow
@@ -121,7 +117,6 @@
 				</p>{/if}
 		</li>
 	</ul>
-	<FormActions {cancelHref} submitLabel={mode === 'create' ? 'Guardar' : 'Guardar cambios'} />
 </form>
 
 <style>

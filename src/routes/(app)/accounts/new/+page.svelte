@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SheetHeader from '$lib/components/SheetHeader.svelte';
 	import AccountForm from '../AccountForm.svelte';
 	import type { ActionData } from './$types';
 
@@ -11,11 +11,6 @@
 	<title>Nueva cuenta · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Nueva cuenta" close={{ href: resolve('/accounts'), label: 'Cerrar' }} />
+<SheetHeader title="Nueva cuenta" cancel={{ href: resolve('/accounts') }} submit={{}} />
 
-<AccountForm
-	mode="create"
-	cancelHref="/accounts"
-	initial={form?.values ?? {}}
-	errors={form?.errors}
-/>
+<AccountForm initial={form?.values ?? {}} errors={form?.errors} />

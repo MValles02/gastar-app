@@ -197,7 +197,7 @@ test('ARS decimals are rejected in savings and in limits, and nothing is written
 	const superId = await linkId(page.getByRole('link', { name: /Supermercado/ }).first());
 	await page.goto(`/plan/limits/${superId}`, { waitUntil: 'networkidle' });
 	await page.locator('input[name="amount"]').fill('100,5');
-	await page.getByRole('button', { name: 'Guardar cambios' }).click();
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page.getByRole('alert')).toContainText(WHOLE_PESOS_ERROR);
 	await expect(page).toHaveURL(/\/plan\/limits\/[0-9a-f-]{36}/);
 

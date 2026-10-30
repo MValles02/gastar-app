@@ -1,21 +1,27 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
-	import { TAB_ROUTES } from '$lib/form-routes';
+	import { FORM_ROUTES, TAB_ROUTES } from '$lib/form-routes';
+	import Sheet from '$lib/components/Sheet.svelte';
 	import TabBar from '$lib/components/TabBar.svelte';
 
 	let { children }: { children: Snippet } = $props();
 
 	const showBar = $derived(TAB_ROUTES.has(page.route.id ?? ''));
+	const isSheet = $derived(FORM_ROUTES.has(page.route.id ?? ''));
 </script>
 
-<div class="shell">
-	<main class="content" class:with-bar={showBar}>
-		{@render children()}
-	</main>
+{#if isSheet}
+	<Sheet>{@render children()}</Sheet>
+{:else}
+	<div class="shell">
+		<main class="content" class:with-bar={showBar}>
+			{@render children()}
+		</main>
 
-	{#if showBar}<TabBar />{/if}
-</div>
+		{#if showBar}<TabBar />{/if}
+	</div>
+{/if}
 
 <style>
 	.shell {

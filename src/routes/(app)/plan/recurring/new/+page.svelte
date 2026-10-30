@@ -1,5 +1,5 @@
 <script lang="ts">
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SheetHeader from '$lib/components/SheetHeader.svelte';
 	import RecurringForm from '../RecurringForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -12,7 +12,7 @@
 	<title>{title} · Gastar</title>
 </svelte:head>
 
-<PageHeader {title} close={{ href: data.returnHref, label: 'Cerrar' }} />
+<SheetHeader {title} cancel={{ href: data.returnHref }} submit={{}} />
 
 <RecurringForm
 	initial={form?.values ??
@@ -27,7 +27,5 @@
 	errors={form?.errors}
 	accounts={data.accounts}
 	categories={data.categories}
-	submitLabel="Guardar"
-	cancelHref={data.returnHref}
 	type={data.type}
 />

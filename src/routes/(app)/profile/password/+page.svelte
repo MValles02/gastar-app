@@ -2,8 +2,8 @@
 	import { enhance } from '$app/forms';
 	import { followRedirect } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
-	import FormActions from '$lib/components/FormActions.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SheetHeader from '$lib/components/SheetHeader.svelte';
+	import { SHEET_FORM } from '$lib/sheet.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
 	import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '$lib/limits';
 	import type { ActionData } from './$types';
@@ -18,9 +18,10 @@
 	<title>Cambiar contraseña · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Cambiar contraseña" close={{ href: resolve('/profile'), label: 'Cerrar' }} />
+<SheetHeader title="Cambiar contraseña" cancel={{ href: resolve('/profile') }} submit={{}} />
 
 <form
+	id={SHEET_FORM}
 	method="POST"
 	use:enhance={() => (input) => followRedirect(input, { reset: false })}
 	class="form"
@@ -59,7 +60,6 @@
 	</ul>
 	<p class="hint">Mínimo {PASSWORD_MIN_LENGTH} caracteres. Cerramos tus otras sesiones.</p>
 	{#if form?.formError}<p class="error" role="alert">{form.formError}</p>{/if}
-	<FormActions cancelHref="/profile" submitLabel="Guardar cambios" />
 </form>
 
 <style>

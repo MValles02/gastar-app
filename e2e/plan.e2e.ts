@@ -54,7 +54,7 @@ test('a rule on an archived account can be edited and stays inactive', async ({ 
 	const edit = async (description: string) => {
 		await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
 		await page.locator('input[name="description"]').fill(description);
-		await page.getByRole('button', { name: 'Guardar cambios' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page).toHaveURL(href);
 		await page.goto('/plan', { waitUntil: 'networkidle' });
 		await expect(
@@ -232,7 +232,7 @@ test('a payment edited to an account in another currency no longer marks the rul
 		const [href] = await findMovements(page, description, 'ARS');
 		await page.goto(`${new URL(href).pathname}/edit`, { waitUntil: 'networkidle' });
 		await pick(page, 'Cuenta', 'Otra cuenta');
-		await page.getByRole('button', { name: 'Guardar cambios' }).click();
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page).toHaveURL(new URL(href).pathname);
 
 		await page.goto('/plan', { waitUntil: 'networkidle' });

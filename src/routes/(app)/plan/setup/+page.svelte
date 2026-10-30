@@ -6,7 +6,7 @@
 	import { resolve } from '$app/paths';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import FormActions from '$lib/components/FormActions.svelte';
+	import { SHEET_FORM } from '$lib/sheet.svelte';
 	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
 	import ActionLink from '$lib/components/ActionLink.svelte';
@@ -14,7 +14,7 @@
 	import SummaryCard from '$lib/components/SummaryCard.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SheetHeader from '$lib/components/SheetHeader.svelte';
 	import SwitchRow from '$lib/components/SwitchRow.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import { WIZARD_STEPS } from '$lib/plan-wizard';
@@ -39,19 +39,19 @@
 	<title>Crear plan · Gastar</title>
 </svelte:head>
 
-<PageHeader
+<!-- Steps 1, 2 and 4 go on with a link; 3 and 5 submit their form. Dragging down always leaves the wizard. -->
+<SheetHeader
 	title="Crear plan en {CURRENCY_NAME[data.currency]}"
-	close={{ href: resolve('/plan'), label: 'Cerrar' }}
+	cancel={data.step === 1
+		? { href: resolve('/plan') }
+		: { href: resolve(stepHref(data.step - 1) as '/'), label: 'Atrás' }}
+	dismissHref={resolve('/plan')}
+	submit={data.step === 3
+		? { label: 'Siguiente' }
+		: data.step === 5
+			? {}
+			: { label: 'Siguiente', href: resolve(stepHref(data.step + 1) as '/') }}
 />
-
-{#snippet bar(submitLabel: string, nextHref?: string)}
-	<FormActions
-		cancelHref={data.step === 1 ? '/plan' : stepHref(data.step - 1)}
-		cancelLabel={data.step === 1 ? 'Cancelar' : 'Atrás'}
-		{submitLabel}
-		submitHref={nextHref}
-	/>
-{/snippet}
 
 {#snippet head()}
 	<SectionHeader title={titles[data.step - 1]} />
@@ -120,11 +120,11 @@
 				{/each}
 			</ListCard>
 		{/if}
-		{@render bar('Siguiente', stepHref(data.step + 1))}
 	{:else if data.step === 3}
 		<SectionHeader title={titles[2]} />
 		<p class="muted small">Lo apartamos antes de calcular cuánto podés gastar.</p>
 		<form
+			id={SHEET_FORM}
 			method="POST"
 			action="?/savings"
 			use:enhance={() => enhanceRedirect}
@@ -137,7 +137,6 @@
 				initial={data.savings}
 				error={form?.message}
 			/>
-			{@render bar('Siguiente')}
 		</form>
 	{:else if data.step === 4}
 		{@render head()}
@@ -149,7 +148,6 @@
 		{/if}
 		<LimitList limits={data.limits} currency={data.currency} wizard={4} />
 		<div class="add"><ActionLink href="/plan/limits/new?wizard=4" label="Agregar" /></div>
-		{@render bar('Siguiente', stepHref(5))}
 	{:else}
 		{@const s = data.summary!}
 		<SectionHeader title="{titles[4]} para {data.monthName}" />
@@ -167,7 +165,13 @@
 				tus ingresos.
 			</p>
 		{/if}
-		<form method="POST" action="?/finish" use:enhance={() => enhanceRedirect} class="wizard">
+		<form
+			id={SHEET_FORM}
+			method="POST"
+			action="?/finish"
+			use:enhance={() => enhanceRedirect}
+			class="wizard"
+		>
 			<Card.Root class="gap-0 py-0">
 				<SwitchRow
 					id="repeat"
@@ -176,7 +180,6 @@
 					checked={data.repeats}
 				/>
 			</Card.Root>
-			{@render bar('Guardar')}
 		</form>
 	{/if}
 </div>

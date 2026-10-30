@@ -7,7 +7,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SheetHeader from '$lib/components/SheetHeader.svelte';
 	import MovementForm from '../MovementForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -54,9 +54,10 @@
 	<title>{data.recurring ? 'Registrar pago' : 'Nuevo movimiento'} · Gastar</title>
 </svelte:head>
 
-<PageHeader
+<SheetHeader
 	title={data.recurring ? 'Registrar pago' : 'Nuevo movimiento'}
-	close={{ href: resolve(returnTo as '/'), label: 'Cerrar' }}
+	cancel={{ href: resolve(returnTo as '/') }}
+	submit={data.accounts.length ? {} : undefined}
 />
 
 {#if data.accounts.length === 0}
@@ -87,8 +88,6 @@
 			errors={form?.errors}
 			accounts={data.accounts}
 			categories={data.categories}
-			submitLabel="Guardar"
-			cancelHref={returnTo}
 			recurring={data.recurring ?? undefined}
 			repeatable
 			repeatChecked={form?.values?.repeat === 'on'}

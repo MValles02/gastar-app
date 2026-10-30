@@ -2,8 +2,8 @@
 	import { enhance } from '$app/forms';
 	import { enhanceRedirect } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
-	import FormActions from '$lib/components/FormActions.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import SheetHeader from '$lib/components/SheetHeader.svelte';
+	import { SHEET_FORM } from '$lib/sheet.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -17,9 +17,9 @@
 	<title>Cambiar nombre · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Cambiar nombre" close={{ href: resolve('/profile'), label: 'Cerrar' }} />
+<SheetHeader title="Cambiar nombre" cancel={{ href: resolve('/profile') }} submit={{}} />
 
-<form method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
+<form id={SHEET_FORM} method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
 	<ul class="card">
 		<li class:bad={form?.error}>
 			<TextRow
@@ -34,7 +34,6 @@
 			/>
 		</li>
 	</ul>
-	<FormActions cancelHref="/profile" submitLabel="Guardar cambios" />
 </form>
 
 <style>

@@ -8,7 +8,7 @@
 	import AmountHero from '$lib/components/AmountHero.svelte';
 	import EntryFields from '$lib/components/EntryFields.svelte';
 	import DatePicker from '$lib/components/DatePicker.svelte';
-	import FormActions from '$lib/components/FormActions.svelte';
+	import { SHEET_FORM, sheet } from '$lib/sheet.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SwitchRow from '$lib/components/SwitchRow.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
@@ -31,8 +31,6 @@
 		errors = {},
 		accounts,
 		categories,
-		submitLabel,
-		cancelHref,
 		recurring,
 		repeatable = false,
 		repeatChecked = false
@@ -41,8 +39,6 @@
 		errors?: Partial<Record<Fields, string>>;
 		accounts: (Picker & { currency: Currency })[];
 		categories: (Picker & { kind: string | null })[];
-		submitLabel: string;
-		cancelHref: string;
 		/** Registering a payment of this recurring rule. */
 		recurring?: { id: string; description: string };
 		/** Offer "Repetir cada mes" (new incomes and outcomes only). */
@@ -58,6 +54,10 @@
 	];
 
 	let submitting = $state(false);
+	// The sheet header's Guardar shows it.
+	$effect(() => {
+		sheet.submitting = submitting;
+	});
 	let mounted = $state(false);
 	onMount(() => (mounted = true));
 
@@ -120,6 +120,7 @@
 </script>
 
 <form
+	id={SHEET_FORM}
 	method="POST"
 	class="form"
 	class:submitting
@@ -288,8 +289,6 @@
 	{#if repeatable && !recurring && showCategory}
 		<p id="repeat-hint" class="hint pad">Te lo recordamos el mismo día de cada mes.</p>
 	{/if}
-
-	<FormActions {cancelHref} {submitLabel} {submitting} />
 </form>
 
 <style>
@@ -300,7 +299,7 @@
 		padding-top: var(--space-1);
 	}
 
-	.form.submitting > :not(:global(.bar)) {
+	.form.submitting > * {
 		opacity: 0.55;
 	}
 
