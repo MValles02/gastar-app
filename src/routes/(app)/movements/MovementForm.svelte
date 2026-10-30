@@ -3,6 +3,7 @@
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import Lock from '@lucide/svelte/icons/lock';
 	import { enhance } from '$app/forms';
+	import { followRedirect } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
 	import AmountHero from '$lib/components/AmountHero.svelte';
 	import EntryFields from '$lib/components/EntryFields.svelte';
@@ -125,8 +126,8 @@
 	novalidate
 	use:enhance={() => {
 		submitting = true;
-		return async ({ update }) => {
-			await update();
+		return async (input) => {
+			await followRedirect(input);
 			submitting = false;
 		};
 	}}

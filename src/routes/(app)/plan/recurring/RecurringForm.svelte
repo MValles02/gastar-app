@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { enhanceRedirect } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -80,7 +81,7 @@
 	});
 </script>
 
-<form method="POST" {action} use:enhance class="form" novalidate>
+<form method="POST" {action} use:enhance={() => enhanceRedirect} class="form" novalidate>
 	<input type="hidden" name="type" value={type} />
 	{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
 

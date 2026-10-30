@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { upOnClick } from '$lib/nav-stack.svelte';
 
 	/**
 	 * Cancel and primary action side by side (50/50), pinned to the bottom of the viewport. The primary
@@ -35,6 +36,7 @@
 {#snippet cancel()}
 	<Button
 		href={resolve(cancelHref as '/')}
+		onclick={upOnClick(resolve(cancelHref as '/'))}
 		variant="outline"
 		class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal">{cancelLabel}</Button
 	>

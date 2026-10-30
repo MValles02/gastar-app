@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { followRedirect } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
 	import FormActions from '$lib/components/FormActions.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -21,10 +22,7 @@
 
 <form
 	method="POST"
-	use:enhance={() =>
-		async ({ update }) => {
-			await update({ reset: false });
-		}}
+	use:enhance={() => (input) => followRedirect(input, { reset: false })}
 	class="form"
 	novalidate
 >
