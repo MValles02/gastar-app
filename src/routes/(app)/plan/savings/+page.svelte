@@ -2,8 +2,8 @@
 	import { enhance } from '$app/forms';
 	import { enhanceRedirect } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
-	import SheetHeader from '$lib/components/SheetHeader.svelte';
-	import { SHEET_FORM } from '$lib/sheet.svelte';
+	import FormActions from '$lib/components/FormActions.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SavingsFields from '../SavingsFields.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -14,16 +14,17 @@
 	<title>Ahorro · Gastar</title>
 </svelte:head>
 
-<SheetHeader title="Ahorro" cancel={{ href: resolve('/plan') }} submit={{}}>
-	<form id={SHEET_FORM} method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
-		<SavingsFields
-			income={data.income}
-			currency={data.currency}
-			initial={data}
-			error={form?.message}
-		/>
-	</form>
-</SheetHeader>
+<PageHeader title="Ahorro" close={{ href: resolve('/plan'), label: 'Cerrar' }} />
+
+<form method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
+	<SavingsFields
+		income={data.income}
+		currency={data.currency}
+		initial={data}
+		error={form?.message}
+	/>
+	<FormActions cancelHref="/plan" submitLabel="Guardar" />
+</form>
 
 <style>
 	.form {

@@ -36,7 +36,7 @@ const settled = (page: Page) =>
 		{ polling: 'raf' }
 	);
 
-/** Fills the open new-movement sheet with a 1-peso outcome (JS pickers) and saves it. */
+/** Fills the open new-movement form with a 1-peso outcome (JS pickers) and saves it. */
 async function fillAndSave(page: Page, description: string) {
 	await expect(page).toHaveURL(/\/movements\/new$/);
 	await page.waitForLoadState('networkidle');

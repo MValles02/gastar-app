@@ -4,7 +4,7 @@
 	import { enhanceRedirect } from '$lib/nav-stack.svelte';
 	import { formatAmountInput, formatMoney, type Currency } from '$lib/money';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import { SHEET_FORM } from '$lib/sheet.svelte';
+	import FormActions from '$lib/components/FormActions.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
@@ -17,7 +17,9 @@
 	let {
 		mode,
 		currency,
+		formId,
 		action,
+		cancelHref,
 		categories = [],
 		category,
 		suggested: fixedSuggested = 0,
@@ -28,7 +30,9 @@
 	}: {
 		mode: 'new' | 'edit';
 		currency: Currency;
+		formId: string;
 		action: string;
+		cancelHref: string;
 		/** New: the categories on offer, each with its suggested limit. */
 		categories?: (Picker & { suggested: number })[];
 		/** Edit: the limit's category. */
@@ -54,7 +58,7 @@
 {/if}
 
 <form
-	id={SHEET_FORM}
+	id={formId}
 	method="POST"
 	{action}
 	use:enhance={() => enhanceRedirect}
@@ -125,16 +129,22 @@
 </form>
 
 {#if mode === 'edit' && deleteAction}
-	<ConfirmDialog
-		triggerLabel="Eliminar límite"
-		triggerVariant="destructive"
-		triggerClass="w-full"
-		title="¿Eliminar este límite?"
-		confirmLabel="Eliminar"
-		action={deleteAction}
-	>
-		Esta acción no se puede deshacer.
-	</ConfirmDialog>
+	<FormActions {cancelHref} submitLabel="Guardar cambios" form={formId}>
+		{#snippet destructive()}
+			<ConfirmDialog
+				triggerLabel="Eliminar límite"
+				triggerVariant="destructive"
+				triggerClass="w-full"
+				title="¿Eliminar este límite?"
+				confirmLabel="Eliminar"
+				action={deleteAction}
+			>
+				Esta acción no se puede deshacer.
+			</ConfirmDialog>
+		{/snippet}
+	</FormActions>
+{:else}
+	<FormActions {cancelHref} submitLabel="Guardar" form={formId} />
 {/if}
 
 <style>

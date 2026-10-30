@@ -254,7 +254,7 @@ test('approving a payment keeps its exact cents, time of day and moves the balan
 test('editing the imported movement keeps its non-whole amount', async () => {
 	const [href] = await findMovements(page, AMIGA_DESC);
 	await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
-	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await page.getByRole('button', { name: 'Guardar cambios' }).click();
 	await expect(page).toHaveURL(MOVEMENT_DETAIL_RE);
 	await expect(page.getByText('Los montos en pesos van sin decimales.')).toHaveCount(0);
 });

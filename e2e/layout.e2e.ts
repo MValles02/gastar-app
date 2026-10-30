@@ -32,9 +32,7 @@ async function h1Top(page: Page, url: string) {
 }
 
 const backLink = (page: Page) =>
-	page.locator(
-		'header.top-bar a[aria-label^="Volver"], header.top-bar a[aria-label="Cerrar"], header a[data-sheet-cancel]'
-	);
+	page.locator('header.top-bar a[aria-label^="Volver"], header.top-bar a[aria-label="Cerrar"]');
 
 for (const width of widths) {
 	test(`login has no horizontal overflow at ${width}px`, async ({ page }) => {
@@ -294,14 +292,14 @@ test('focus is never hidden under the sticky bar', async ({ page }) => {
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
 	await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 	const barBottom = await page
-		.locator('header.sheet-bar')
+		.locator('header.top-bar')
 		.evaluate((el) => el.getBoundingClientRect().bottom);
 	let checked = 0;
 	for (let i = 0; i < 40; i++) {
 		await page.keyboard.press('Shift+Tab');
 		const top = await page.evaluate(() => {
 			const el = document.activeElement!;
-			return el.closest('main') && !el.closest('header.sheet-bar, .submit-layer')
+			return el.closest('main') && !el.closest('header.top-bar')
 				? el.getBoundingClientRect().top
 				: null;
 		});
@@ -377,16 +375,20 @@ test('outcomes are not coloured red on detail pages', async ({ page }) => {
 	await expectOutcomeTone(page);
 });
 
-test('the tab bar is absent on the new-movement sheet and Guardar stays in view when scrolled at 390x844', async ({
+test('the tab bar is absent on the new-movement form and a focused submit stays in view at 390x844', async ({
 	page
 }) => {
 	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
 	await page.getByRole('button', { name: /Fecha/ }).focus();
-	await page.mouse.wheel(0, 2000);
 	const submit = page.getByRole('button', { name: 'Guardar', exact: true });
+	for (let i = 0; i < 6 && !(await submit.evaluate((el) => el === document.activeElement)); i++)
+		await page.keyboard.press('Tab');
+	await expect(submit).toBeFocused();
 	await expect(page.getByRole('navigation', { name: 'Navegación principal' })).toHaveCount(0);
 	await expect(submit).toBeInViewport();
-	expect((await submit.boundingBox())!.y).toBeGreaterThanOrEqual(0);
+	await expect
+		.poll(async () => (await submit.boundingBox())!.y + (await submit.boundingBox())!.height)
+		.toBeLessThanOrEqual(PHONE.height);
 });

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import SheetHeader from '$lib/components/SheetHeader.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 	import AccountForm from '../../AccountForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -11,10 +11,15 @@
 	<title>Editar cuenta · Gastar</title>
 </svelte:head>
 
-<SheetHeader title="Editar cuenta" cancel={{ href: resolve(`/accounts/${data.id}`) }} submit={{}}>
-	<AccountForm
-		currencyLocked={data.currencyLocked}
-		initial={form?.values ?? data.values}
-		errors={form?.errors}
-	/>
-</SheetHeader>
+<PageHeader
+	title="Editar cuenta"
+	close={{ href: resolve(`/accounts/${data.id}`), label: 'Cerrar' }}
+/>
+
+<AccountForm
+	mode="edit"
+	currencyLocked={data.currencyLocked}
+	cancelHref={`/accounts/${data.id}`}
+	initial={form?.values ?? data.values}
+	errors={form?.errors}
+/>

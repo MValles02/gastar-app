@@ -7,8 +7,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
-	import SheetHeader from '$lib/components/SheetHeader.svelte';
-	import { SHEET_FORM } from '$lib/sheet.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 	import MovementForm from '../MovementForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -65,44 +64,42 @@
 	<title>{title} · Gastar</title>
 </svelte:head>
 
-<SheetHeader
-	{title}
-	cancel={{ href: resolve(returnTo as '/') }}
-	submit={data.accounts.length ? {} : undefined}
->
-	{#if data.accounts.length === 0}
-		<Empty.Root>
-			<Empty.Header>
-				<Empty.Media variant="icon"><Icon name="plus" size="1rem" /></Empty.Media>
-				<Empty.Description
-					>Necesitás al menos una cuenta para registrar movimientos.</Empty.Description
-				>
-			</Empty.Header>
-		</Empty.Root>
-		<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
-	{:else}
-		{#if origin}<input type="hidden" name="returnTo" form={SHEET_FORM} value={origin} />{/if}
-		{#if data.saved && !form && !hydrated}<p role="status">Movimiento guardado.</p>{/if}
-		{#key data.formKey}
-			<MovementForm
-				initial={form?.values ??
-					data.recurring?.initial ?? {
-						type: 'outcome',
-						amount: '',
-						description: '',
-						accountId: data.defaultAccountId,
-						destinationAccountId: '',
-						exchangeRate: '',
-						categoryId: '',
-						occurredAt: data.now
-					}}
-				errors={form?.errors}
-				accounts={data.accounts}
-				categories={data.categories}
-				recurring={data.recurring ?? undefined}
-				repeatable
-				repeatChecked={form?.values?.repeat === 'on'}
-			/>
-		{/key}
-	{/if}
-</SheetHeader>
+<PageHeader {title} close={{ href: resolve(returnTo as '/'), label: 'Cerrar' }} />
+
+{#if data.accounts.length === 0}
+	<Empty.Root>
+		<Empty.Header>
+			<Empty.Media variant="icon"><Icon name="plus" size="1rem" /></Empty.Media>
+			<Empty.Description
+				>Necesitás al menos una cuenta para registrar movimientos.</Empty.Description
+			>
+		</Empty.Header>
+	</Empty.Root>
+	<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
+{:else}
+	{#if data.saved && !form && !hydrated}<p role="status">Movimiento guardado.</p>{/if}
+	{#key data.formKey}
+		<MovementForm
+			initial={form?.values ??
+				data.recurring?.initial ?? {
+					type: 'outcome',
+					amount: '',
+					description: '',
+					accountId: data.defaultAccountId,
+					destinationAccountId: '',
+					exchangeRate: '',
+					categoryId: '',
+					occurredAt: data.now
+				}}
+			errors={form?.errors}
+			accounts={data.accounts}
+			categories={data.categories}
+			submitLabel="Guardar"
+			cancelHref={returnTo}
+			returnTo={origin}
+			recurring={data.recurring ?? undefined}
+			repeatable
+			repeatChecked={form?.values?.repeat === 'on'}
+		/>
+	{/key}
+{/if}

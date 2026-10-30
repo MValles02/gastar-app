@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { parseStep, planReturn } from '$lib/plan-wizard';
-	import SheetHeader from '$lib/components/SheetHeader.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 	import LimitForm from '../LimitForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -17,20 +17,21 @@
 	<title>Límite de {data.category.name} · Gastar</title>
 </svelte:head>
 
-<SheetHeader
+<PageHeader
 	title="Límite de {data.category.name}"
-	cancel={{ href: resolve(back as '/') }}
-	submit={{}}
->
-	<LimitForm
-		mode="edit"
-		currency={data.currency}
-		action="?/save{wizardQuery}"
-		category={data.category}
-		suggested={data.suggested}
-		initial={{ categoryId: data.category.id, amount: form?.amount ?? data.amount }}
-		errors={{ amount: form?.error }}
-		deleteAction="?/delete{wizardQuery}"
-		progress={data.progress}
-	/>
-</SheetHeader>
+	close={{ href: resolve(back as '/'), label: 'Cerrar' }}
+/>
+
+<LimitForm
+	mode="edit"
+	currency={data.currency}
+	formId="limit-form"
+	action="?/save{wizardQuery}"
+	cancelHref={back}
+	category={data.category}
+	suggested={data.suggested}
+	initial={{ categoryId: data.category.id, amount: form?.amount ?? data.amount }}
+	errors={{ amount: form?.error }}
+	deleteAction="?/delete{wizardQuery}"
+	progress={data.progress}
+/>

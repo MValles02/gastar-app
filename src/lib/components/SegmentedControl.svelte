@@ -38,7 +38,7 @@
 	{#each options as option (option.value)}
 		<Label
 			class={cn(
-				'text-muted-foreground has-data-[state=checked]:bg-background has-data-[state=checked]:text-foreground has-focus-visible:ring-ring/50 relative min-h-9 min-w-11 flex-1 basis-0 cursor-pointer justify-center rounded-md px-1 text-center [overflow-wrap:anywhere] has-data-[state=checked]:shadow-sm has-focus-visible:ring-3 has-disabled:cursor-not-allowed has-disabled:opacity-50',
+				'text-muted-foreground has-data-[state=checked]:bg-background has-data-[state=checked]:text-foreground has-focus-visible:ring-ring/50 relative min-h-9 min-w-[44px] flex-1 basis-0 cursor-pointer justify-center rounded-md px-1 text-center [overflow-wrap:anywhere] has-data-[state=checked]:shadow-sm has-focus-visible:ring-3 has-disabled:cursor-not-allowed has-disabled:opacity-50',
 				size === 'compact' && 'flex-auto px-2 whitespace-nowrap'
 			)}
 		>
