@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
-	import { DUE_TONE } from '$lib/status';
+	import { dueTone } from '$lib/status';
 	import type { RecurringStatus } from '$lib/server/plan';
 	import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
 	import type { Currency } from '$lib/money';
@@ -53,7 +53,7 @@
 	{value}
 	status={r.reason
 		? { tone: 'neutral', label: r.reason }
-		: { tone: DUE_TONE[r.status!], label: r.label! }}
+		: { tone: dueTone(r.status!, r.type), label: r.label! }}
 	{meta}
 	dimmed={!!r.reason}
 />

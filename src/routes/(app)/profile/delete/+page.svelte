@@ -14,10 +14,10 @@
 </script>
 
 <svelte:head>
-	<title>Eliminar cuenta · Gastar</title>
+	<title>Darme de baja · Gastar</title>
 </svelte:head>
 
-<SheetHeader title="Eliminar cuenta" cancel={{ href: resolve('/profile') }}>
+<SheetHeader title="Darme de baja" cancel={{ href: resolve('/profile') }}>
 	<div class="page">
 		<DangerCallout>
 			Se borran para siempre tu cuenta y todos tus datos: cuentas, movimientos, categorías y plan.
@@ -42,11 +42,11 @@
 		</ul>
 
 		<ConfirmDialog
-			triggerLabel="Eliminar cuenta"
+			triggerLabel="Darme de baja"
 			triggerVariant="destructive"
 			triggerClass="w-full"
-			title="¿Eliminar tu cuenta?"
-			confirmLabel="Eliminar"
+			title="¿Darte de baja?"
+			confirmLabel="Darme de baja"
 			action="?/delete"
 			formId={FORM_ID}
 			closeOnFailure

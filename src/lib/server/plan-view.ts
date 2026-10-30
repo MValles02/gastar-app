@@ -104,7 +104,7 @@ export async function recurringLists(userId: string, cur: Currency, now = new Da
 	const paidIds = new Set(paid.map((p) => p.recurringId));
 	const active = rules.filter(isRecurringActive).map((r) => {
 		const s = recurringStatus(r.dayOfMonth, paidIds.has(r.id), ym, today);
-		return { ...ruleRow(r), status: s.status, label: dueLabel(s.status, s.daysLeft, r.type) };
+		return { ...ruleRow(r), status: s.status, label: dueLabel(s, r.type) };
 	});
 	return {
 		incomes: active.filter((r) => r.type === 'income'),

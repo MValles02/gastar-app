@@ -52,14 +52,21 @@
 	// Referer guess (no JS), else none and saving stays here for the next movement.
 	const origin = $derived(cameFrom ?? form?.values?.returnTo ?? data.from ?? null);
 	const returnTo = $derived(origin ?? (data.recurring ? '/plan' : '/'));
+	const title = $derived(
+		!data.recurring
+			? 'Nuevo movimiento'
+			: data.recurring.type === 'income'
+				? 'Registrar ingreso'
+				: 'Registrar pago'
+	);
 </script>
 
 <svelte:head>
-	<title>{data.recurring ? 'Registrar pago' : 'Nuevo movimiento'} · Gastar</title>
+	<title>{title} · Gastar</title>
 </svelte:head>
 
 <SheetHeader
-	title={data.recurring ? 'Registrar pago' : 'Nuevo movimiento'}
+	{title}
 	cancel={{ href: resolve(returnTo as '/') }}
 	submit={data.accounts.length ? {} : undefined}
 >

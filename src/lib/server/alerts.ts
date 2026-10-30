@@ -63,7 +63,8 @@ const PAYMENT_TONE = {
 
 /**
  * Alerts per currency that has accounts, worked out from existing data (nothing is stored).
- * Fixed payments and incomes first (overdue, then by due day), then the plan, then category limits. Never sums across currencies.
+ * Fixed payments first (overdue, then by due day), then the plan, then category limits. Never sums across currencies.
+ * Fixed incomes never alert: an unregistered one shows neutrally on /plan ("Esperado el día N").
  */
 export async function alerts(userId: string, now = new Date()) {
 	const ym = currentMonth(now);
@@ -79,6 +80,7 @@ export async function alerts(userId: string, now = new Date()) {
 		currencies.map(async (currency: Currency) => {
 			const { active, summary: plan } = await planView(userId, currency, now);
 			const payments = active
+				.filter((r) => r.type !== 'income')
 				.map((r) => ({ r, s: recurringStatus(r.dayOfMonth, paidIds.has(r.id), ym, today) }))
 				.filter(({ s }) => s.status !== 'paid' && s.daysLeft <= DUE_WINDOW_DAYS)
 				.sort((a, b) => a.s.daysLeft - b.s.daysLeft)
@@ -94,13 +96,13 @@ const days = (n: number) => `${n} ${n === 1 ? 'día' : 'días'}`;
 const percent = (share: number) => `${Math.round(share * 100)}%`;
 
 function paymentAlert(rule: ActiveRule, due: DueStatus, currency: Currency): AlertItem {
-	const label = dueLabel(due.status, due.daysLeft, rule.type);
+	const label = dueLabel(due, rule.type);
 	return {
 		id: `rule-${rule.id}`,
 		kind: 'payment',
 		name: rule.description,
 		status: { label, tone: PAYMENT_TONE[due.status] },
-		message: `${formatMoney(rule.amount, currency)} ${rule.type === 'income' ? 'en' : 'desde'} ${rule.accountName}`,
+		message: `${formatMoney(rule.amount, currency)} desde ${rule.accountName}`,
 		href: `/plan/recurring/${rule.id}`,
 		switchCurrency: false,
 		icon: toCategoryIconKey(rule.categoryIcon),

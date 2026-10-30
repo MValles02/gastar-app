@@ -77,6 +77,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url, request }) =>
 		recurring: rule
 			? {
 					id: rule.id,
+					type: rule.type,
 					description: rule.description,
 					initial: {
 						type: rule.type,
@@ -104,6 +105,8 @@ export const actions: Actions = {
 		const rule = await findRule(userId, fd.get('recurringId'));
 		// A payment always takes the rule's category, whatever was posted.
 		if (rule) fd.set('categoryId', rule.categoryId);
+		// An income rule's form has no type selector: the type is the rule's (findRule checked ownership).
+		if (rule?.type === 'income') fd.set('type', 'income');
 		const parsed = parseMovementForm(fd);
 		const { values } = parsed;
 		// Keeps the checkbox state when the form is shown again with errors.

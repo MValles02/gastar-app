@@ -9,9 +9,13 @@ export const PLAN_TONE = {
 	over: 'bad'
 } as const satisfies Record<PlanStatus, StatusTone>;
 
-export const DUE_TONE = {
+const DUE_TONE = {
 	paid: 'ok',
 	today: 'warning',
 	overdue: 'bad',
 	upcoming: 'neutral'
 } as const satisfies Record<RecurringStatus, StatusTone>;
+
+/** A recurring rule's pill tone; an unregistered income past its day is expected, not overdue, so it stays neutral. */
+export const dueTone = (status: RecurringStatus, type: string): StatusTone =>
+	status === 'overdue' && type === 'income' ? 'neutral' : DUE_TONE[status];

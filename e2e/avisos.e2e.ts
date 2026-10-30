@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Cookie, type Page } from '@playwright/test';
 import {
 	deleteMovements,
 	deleteRules,
@@ -10,6 +10,7 @@ import {
 	pick,
 	postDelete,
 	setCurrencyCookie,
+	signUpVerified,
 	todayInAppTz
 } from './helpers';
 
@@ -70,33 +71,78 @@ test('a payment due today alerts until it is registered', async ({ page, baseURL
 	}
 });
 
-test('an overdue fixed income alerts too', async ({ page, baseURL }) => {
-	await login(page, OTHER_EMAIL);
-	const description = `Ingreso aviso e2e ${Date.now()}`;
-	// Yesterday's day of month, or today's on the 1st (nothing is overdue then).
+// Runs as this file's own user (1 sign-up, see signUpVerified): the bell count is exact only when no
+// other spec writes the same user's data.
+test.describe('an overdue fixed income is neutral, never an alert', () => {
 	const dayOfMonth = Number(todayInAppTz().slice(8));
-	const overdue = dayOfMonth > 1;
-	try {
-		await fillRule(page, {
-			description,
-			amount: '2.500',
-			day: String(overdue ? dayOfMonth - 1 : dayOfMonth),
-			account: 'Otra cuenta pesos',
-			category: 'Ajena',
-			type: 'income'
-		});
-		await page.getByRole('button', { name: 'Guardar' }).click();
-		await expect(page).toHaveURL(/\/plan$/);
+	const yesterday = dayOfMonth - 1;
+	let cookies: Cookie[] = [];
 
+	test.beforeAll(async ({ browser, baseURL }) => {
+		test.skip(dayOfMonth === 1, 'Nothing is overdue on the 1st.');
+		test.setTimeout(90_000);
+		const headers = { origin: baseURL!, accept: 'text/html' };
+		const context = await browser.newContext({ baseURL });
+		try {
+			const page = await context.newPage();
+			await signUpVerified(page, context.request, {
+				email: `e2e+avisos-${Date.now()}@gastar.local`,
+				password: 'e2e-pass-1234',
+				name: 'E2E Avisos'
+			});
+			const create = async (path: string, form: Record<string, string>) => {
+				const res = await page.request.post(path, { form, headers });
+				expect(res.ok()).toBe(true);
+				return res.url().split('/').pop()!;
+			};
+			const accountId = await create('/accounts/new', {
+				name: 'Cuenta avisos',
+				currency: 'ARS',
+				initialBalance: '500',
+				icon: 'bank',
+				color: 'green'
+			});
+			const categoryId = await create('/categories/new', {
+				name: 'Varios',
+				color: 'blue',
+				kind: ''
+			});
+			for (const [type, description] of [
+				['income', 'Sueldo avisos'],
+				['outcome', 'Alquiler avisos']
+			])
+				await create('/plan/recurring/new', {
+					type,
+					description,
+					amount: '1000',
+					dayOfMonth: String(yesterday),
+					accountId,
+					categoryId
+				});
+			cookies = await context.cookies();
+		} finally {
+			await context.close();
+		}
+	});
+
+	test('Avisos and the bell skip it, and /plan shows it as expected', async ({ page }) => {
+		await page.context().addCookies(cookies);
 		await page.goto('/notifications');
-		const row = alertRow(page, description);
-		await expect(row).toContainText(overdue ? 'Venció ayer' : 'Vence hoy');
-		await expect(row).toContainText('en Otra cuenta pesos');
-		await row.getByRole('link').click();
-		await expect(page).toHaveURL(/\/plan\/recurring\/[0-9a-f-]{36}$/);
-	} finally {
-		await deleteRules(page, baseURL!, description);
-	}
+		await expect(alertRow(page, 'Alquiler avisos')).toContainText(/Venció/);
+		await expect(alertRow(page, 'Sueldo avisos')).toHaveCount(0);
+		// Only the expense rule counts: the user has no plan, so nothing else alerts.
+		await page.goto('/');
+		await expect(bell(page)).toHaveAttribute('aria-label', 'Avisos: 1');
+
+		await page.goto('/plan');
+		const pill = (text: string) =>
+			page.locator('.rule', { hasText: text }).locator('[data-slot="badge"]');
+		await expect(pill('Sueldo avisos')).toHaveText(`Esperado el día ${yesterday}`);
+		// Neutral: muted colour and no icon, unlike the overdue expense.
+		await expect(pill('Sueldo avisos')).toHaveAttribute('style', /var\(--text-muted\)/);
+		await expect(pill('Sueldo avisos').locator('svg')).toHaveCount(0);
+		await expect(pill('Alquiler avisos')).toHaveAttribute('style', /var\(--negative\)/);
+	});
 });
 
 test('a plan alert opens /plan in its currency, and the page works without JS', async ({
