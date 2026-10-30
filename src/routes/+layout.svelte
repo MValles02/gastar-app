@@ -7,6 +7,7 @@
 	import { FORM_ROUTES, TAB_ROUTES } from '$lib/form-routes';
 	import favicon from '$lib/assets/favicon.svg';
 	import { Toaster } from '$lib/components/ui/sonner/index.js';
+	import NavProgress from '$lib/components/NavProgress.svelte';
 
 	let { children } = $props();
 
@@ -52,9 +53,14 @@
 
 <svelte:window {onpopstate} />
 
+<!-- iOS Safari only applies :active (pressed rows and buttons) when the page listens to touches. -->
+<svelte:document ontouchstart={() => {}} />
+
 <svelte:head>
 	<link rel="icon" href={favicon} />
 </svelte:head>
+
+<NavProgress />
 
 {@render children()}
 

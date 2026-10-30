@@ -92,6 +92,8 @@
 
 	html {
 		-webkit-text-size-adjust: 100%;
+		/* No grey WebKit tap flash: taps get their own :active styles instead (focus-visible stays). */
+		-webkit-tap-highlight-color: transparent;
 		/* Keeps focused/anchored elements clear of the floating tab bar. */
 		scroll-padding-bottom: var(--tabbar-clearance);
 	}
@@ -157,8 +159,14 @@
 			background-color var(--ease-fast);
 	}
 
-	button:not([data-slot]):hover {
-		opacity: 0.9;
+	@media (hover: hover) {
+		button:not([data-slot]):hover {
+			opacity: 0.9;
+		}
+	}
+
+	button:not([data-slot]):active:not(:disabled) {
+		opacity: 0.8;
 	}
 
 	button:not([data-slot]):disabled {
@@ -318,6 +326,15 @@
 	border: 0;
 }
 
+/*
+ * Pressed rows: a link or button Item (ListRow, OptionPicker rows) fills muted while pressed, the
+ * touch counterpart of its hover fill. iOS Safari only applies :active with a touchstart listener on
+ * the page, which src/routes/+layout.svelte adds.
+ */
+:is(a, button)[data-slot='item']:active {
+	background: var(--muted);
+}
+
 /* Surface card for <dl> detail lists */
 .detail-card {
 	list-style: none;
@@ -373,6 +390,11 @@
  */
 ::view-transition-group(sheet) {
 	z-index: 2;
+}
+
+/* The navigation progress bar (NavProgress.svelte) never shows in a transition's snapshots. */
+::view-transition-group(nav-progress) {
+	display: none;
 }
 
 :root[data-nav-transition='sheet-up']::view-transition-new(sheet) {
