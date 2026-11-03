@@ -35,7 +35,7 @@
 
 <Card.Root class="gap-0 overflow-hidden py-0">
 	{#if header}<div class="box">{@render header()}</div>{/if}
-	<dl class="figures" class:bordered={!!header}>
+	<dl class="figures">
 		<div class="kv">
 			<dt>Ingresos</dt>
 			<dd><Money cents={income} {currency} tone="flow" direction="income" /></dd>
@@ -97,10 +97,6 @@
 		font-size: var(--font-size-sm);
 	}
 
-	.figures.bordered {
-		border-top: 1px solid var(--border);
-	}
-
 	.kv {
 		display: flex;
 		align-items: center;
@@ -108,10 +104,6 @@
 		flex-wrap: wrap;
 		gap: 0 var(--space-3);
 		min-height: 3rem;
-	}
-
-	.kv + .kv {
-		border-top: 1px solid var(--border);
 	}
 
 	.figures dt {

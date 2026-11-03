@@ -70,7 +70,7 @@
 
 	.currency {
 		font-family: var(--font-display);
-		font-size: 1.75rem;
+		font-size: var(--font-size-lg);
 		font-weight: 500;
 		color: var(--text-muted);
 	}
@@ -89,7 +89,7 @@
 		caret-color: var(--primary);
 		background: transparent;
 		font-family: var(--font-display);
-		font-size: 2.75rem;
+		font-size: var(--font-size-hero);
 		font-weight: 500;
 		text-align: center;
 		font-variant-numeric: tabular-nums;

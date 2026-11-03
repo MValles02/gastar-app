@@ -126,10 +126,6 @@
 		padding: var(--space-2) var(--space-4);
 	}
 
-	.item + .item {
-		border-top: 1px solid var(--border);
-	}
-
 	dt {
 		color: var(--text-muted);
 	}

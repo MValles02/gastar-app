@@ -32,7 +32,7 @@
 		max-width: 100%;
 		container-type: inline-size;
 		font-family: var(--font-display);
-		font-size: 2.75rem;
+		font-size: var(--font-size-hero);
 		font-weight: 500;
 		letter-spacing: -0.02em;
 		line-height: 1.1;
@@ -40,6 +40,6 @@
 
 	/* Geist Mono advances 0.58em per glyph with the -0.02em tracking; 0.59 keeps a hair of margin. */
 	.fit {
-		font-size: min(2.75rem, calc(100cqi / (var(--chars) * 0.59)));
+		font-size: min(var(--font-size-hero), calc(100cqi / (var(--chars) * 0.59)));
 	}
 </style>

@@ -30,26 +30,42 @@ colors:
   warning-dark: 'oklch(0.879 0.169 91.605)'
   transfer: '#2c5d8a'
   transfer-dark: '#8db8e6'
-  swatch-green: '#2f6b45'
+  swatch-green: '#2e6b34'
   swatch-green-dark: '#7fc79a'
-  swatch-teal: '#1f6a6a'
+  swatch-teal: '#1f6b66'
   swatch-teal-dark: '#6cc4c0'
+  swatch-sky: '#1e6380'
+  swatch-sky-dark: '#7cc3e0'
   swatch-blue: '#2c5d8a'
   swatch-blue-dark: '#8db8e6'
-  swatch-violet: '#5b4a8a'
+  swatch-indigo: '#44508f'
+  swatch-indigo-dark: '#a0abe6'
+  swatch-violet: '#5a4a8a'
   swatch-violet-dark: '#b3a3e6'
   swatch-plum: '#7a3d6b'
   swatch-plum-dark: '#d99ac6'
+  swatch-pink: '#9a3a5c'
+  swatch-pink-dark: '#eba0bb'
   swatch-red: '#9a3b2e'
   swatch-red-dark: '#f0a090'
-  swatch-orange: '#9a5a1f'
+  swatch-orange: '#b4561c'
   swatch-orange-dark: '#f0b27a'
-  swatch-ochre: '#7d6a1e'
+  swatch-amber: '#9a5a1f'
+  swatch-amber-dark: '#ecb36e'
+  swatch-ochre: '#8a6d1a'
   swatch-ochre-dark: '#d9c46e'
+  swatch-olive: '#5f6b1e'
+  swatch-olive-dark: '#bccb72'
+  swatch-brown: '#6e4e36'
+  swatch-brown-dark: '#d0a98a'
+  swatch-slate: '#4a5868'
+  swatch-slate-dark: '#a3b3c6'
+  swatch-gray: '#5e5a54'
+  swatch-gray-dark: '#b8b3ab'
 typography:
   body:
     fontFamily: "'Geist Mono Variable', ui-monospace, monospace"
-    fontSize: '1rem'
+    fontSize: '0.9375rem'
     fontWeight: 400
     lineHeight: 1.5
   headline:
@@ -63,7 +79,7 @@ typography:
     lineHeight: 1.5
   label:
     fontFamily: "'Geist Mono Variable', ui-monospace, monospace"
-    fontSize: '0.875rem'
+    fontSize: '0.8125rem'
     fontWeight: 400
     lineHeight: 1.5
 rounded:
@@ -191,9 +207,32 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 
 ### Swatches
 
-- **Account and category swatches** (`--swatch-green`, `--swatch-teal`, `--swatch-blue`, `--swatch-violet`, `--swatch-plum`, `--swatch-red`, `--swatch-orange`, `--swatch-ochre`): The eight user-pickable accent colours for IconBadge and the color picker, each with a light and a `-dark` value (listed in the frontmatter, defined with `light-dark()` in `app.css`).
+- **Account and category swatches** (`--swatch-<key>`, defined with `light-dark()` in `app.css`, values in the frontmatter): sixteen user-pickable accent colours for IconBadge, Meter and the color picker, in picker order: green Verde, teal Turquesa, sky Celeste, blue Azul, indigo Índigo, violet Violeta, plum Ciruela, pink Rosa, red Rojo, orange Naranja, amber Ámbar, ochre Ocre, olive Oliva, brown Marrón, slate Pizarra, gray Gris. The key is what the database stores (`toSwatchKey`; no DB enum), so existing keys never change.
+- **Tints** are derived, never tokens: IconBadge fills a `color-mix` 14% of the swatch over the surface.
+- **Contrast** (light value vs light surface, dark value vs dark surface / dark page / its 14% tint over the dark surface; WCAG ratios): light is a glyph colour (3:1 needed), dark text-like use needs 4.5:1 on surface and page and 3:1 on the tint. Every swatch passes; the lowest are light orange 4.62 and light ochre 4.63 (both still above 4.5).
+
+| Key    | Light / Dark / Dark on bg / Dark on tint |
+| ------ | ---------------------------------------- |
+| green  | 6.06 / 8.78 / 9.91 / 6.69                |
+| teal   | 5.91 / 8.58 / 9.68 / 6.58                |
+| sky    | 6.29 / 8.95 / 10.10 / 6.80               |
+| blue   | 6.52 / 8.44 / 9.53 / 6.47                |
+| indigo | 7.11 / 7.88 / 8.90 / 6.11                |
+| violet | 7.13 / 7.75 / 8.75 / 6.02                |
+| plum   | 7.32 / 7.82 / 8.83 / 6.07                |
+| pink   | 6.33 / 8.56 / 9.67 / 6.54                |
+| red    | 6.52 / 8.44 / 9.53 / 6.47                |
+| orange | 4.62 / 9.46 / 10.68 / 7.09               |
+| amber  | 5.14 / 9.36 / 10.57 / 7.03               |
+| ochre  | 4.63 / 10.06 / 11.35 / 7.44              |
+| olive  | 5.49 / 9.93 / 11.22 / 7.37               |
+| brown  | 7.06 / 8.10 / 9.15 / 6.24                |
+| slate  | 6.87 / 8.18 / 9.24 / 6.29                |
+| gray   | 6.46 / 8.39 / 9.48 / 6.42                |
 
 ### Named Rules
+
+**The No Divider Lines Rule.** Rows, sections, stats, month headers, form and drawer actions and the sticky header are separated by spacing (padding or gap), never by a rule line. Outlines stay: inputs, buttons, cards and containers keep their borders, and the amount input keeps its 2px focus underline.
 
 **The Action Colour Rule.** Primary marks actions, selection and focus only: button fills, the FAB, the active nav icon and the focus ring. Never use it for link text; links use the text color (links underlined).
 
@@ -206,16 +245,28 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 **Display Font:** none
 **Body Font:** Geist Mono (with ui-monospace, monospace fallback), a variable font loaded via @fontsource-variable/geist-mono, used for body, headings, titles and amounts.
 
-**Character:** A single monospaced family, so amounts and columns align naturally. Hierarchy comes from weight and a short size scale (0.75rem `--font-size-xs`, 0.875rem `--font-size-sm`, 1rem `--font-size-base`, 1.25rem `--font-size-lg`, 1.75rem `--font-size-xl`, plus the 2.25rem hero step) rather than a second family.
+**Character:** A single monospaced family, so amounts and columns align naturally. Hierarchy comes from weight and a short size scale. Weights are 400, 500 and 600 only (never 700; `strong` and `b` are 600).
+
+| Token               | Size | Use                                                               |
+| ------------------- | ---- | ----------------------------------------------------------------- |
+| `--font-size-xs`    | 12px | Caption, meta, badges                                             |
+| `--font-size-sm`    | 13px | Secondary text, sub-lines, labels, section titles, chips          |
+| `--font-size-base`  | 15px | Body (set on `body`), rows, values, buttons, row amounts          |
+| `--font-size-lg`    | 20px | Headings: sheet and dialog titles, detail titles, currency prefix |
+| `--font-size-xl`    | 28px | Page titles                                                       |
+| `--font-size-hero`  | 36px | Display: big amounts, including the amount input                  |
+| `--font-size-input` | 16px | Every text input, textarea and select (16px prevents iOS zoom)    |
+
+The Tailwind `text-xs/sm/base/lg` utilities map to the same tokens in `@theme`, so shadcn parts land on 12/13/15/20; inputs use `text-(length:--font-size-input)`.
 
 ### Hierarchy
 
 - **Headline** (600, h1 to h3, 1.2, letter-spacing -0.01em): Page and section headings.
-- **Title** (600, 1.25rem): The "Gastar" wordmark text on the login screen.
-- **Page title** (500, 1.75rem, 1.2): The `PageHeader` h1 on every screen.
-- **Body** (400, 1rem, 1.5): Default text and fields.
-- **Label** (400, 0.875rem): Form labels in muted ink, and error text in the negative color. Buttons use 0.875rem at weight 500.
-- **Hero** (`--font-size-hero`, 2.25rem): The large balance or amount figure on the dashboard, account detail and movement detail, sized `clamp(1.5rem, 9vw, var(--font-size-hero))` so it shrinks on narrow screens.
+- **Title** (600, 20px): The "Gastar" wordmark text on the login screen.
+- **Page title** (500, 28px, 1.2): The `PageHeader` h1 on every screen.
+- **Body** (400, 15px, 1.5): Default text. Fields are 16px.
+- **Label** (400, 13px): Form labels in muted ink, and error text in the negative color. Buttons use 13px at weight 500.
+- **Hero** (`--font-size-hero`, 36px): The large balance or amount figure on the dashboard, account detail and movement detail, sized `clamp(1.5rem, 9vw, var(--font-size-hero))` so it shrinks on narrow screens.
 
 ### Named Rules
 
@@ -314,7 +365,7 @@ A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) built on the ge
 
 ### Bottom Drawer
 
-A modal bottom drawer (`BottomDrawer`) composed only of the generated shadcn-svelte `Drawer` (vaul-svelte) parts with stock styling: `Drawer.Root`, `Drawer.Content` (popover fill, top corners `rounded-t-xl`, max height 80vh, centred up to 35rem, stock overlay and grab handle), `Drawer.Header` as a row with `Drawer.Title` and a `Drawer.Close` rendered as a ghost icon `Button` (`aria-label="Cerrar"`), then a scrolling body with bottom safe-area padding. The dialog is named by its title; dragging down, clicking the backdrop or pressing Escape closes it.
+A modal bottom drawer (`BottomDrawer`) composed of the generated shadcn-svelte `Drawer` (vaul-svelte) parts: popover fill, 22px top radius, centred up to 35rem, stock overlay. A centred grabber is the only chrome on top (40x5px, 3px radius, `--border-strong`, 8px above and 6px below); there is no X close button. `Drawer.Title` is a 20px/600 heading (inline padding 20px) that names the dialog. The content hugs its height (no fixed height, capped at 85dvh with the body scrolling inside) and the body's bottom padding includes `env(safe-area-inset-bottom)`. No line separates the body from any actions. Dragging down, tapping the scrim or pressing Escape closes it.
 
 ### Option Picker
 
@@ -322,7 +373,7 @@ A field that opens a Bottom Drawer of radio rows. The trigger is a stock `Button
 
 ### Icon and Color Pickers
 
-Shadcn `RadioGroup`s of round swatches (the icon picker shows the ten account icons in IconBadge, the color picker the eight swatches at 2.75rem), each swatch inside a `Label` wrapping an invisible `RadioGroup.Item`. The checked option has a 2px text-color ring (`ring-2 ring-offset-2`, offset in the page background); focus-visible draws a 2px ring-colored outline at 4px offset. Requires JavaScript.
+Shadcn `RadioGroup`s of round swatches (the icon picker shows the ten account icons in IconBadge). The color picker is a grid of 8 per row with 36px circles, 10px between rows and 8px between columns; each cell is 44px tall (circle plus padding) so the hit area stays a touch target, and each radio is labelled with its Spanish name. The checked colour shows a ring (2px surface gap, then 2px in the swatch colour); focus-visible draws a 2px ring-coloured outline outside it. Requires JavaScript.
 
 ### Navigation
 

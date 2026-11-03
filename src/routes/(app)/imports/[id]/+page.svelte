@@ -248,10 +248,6 @@
 		padding: var(--space-2) var(--space-4);
 	}
 
-	.item + .item {
-		border-top: 1px solid var(--border);
-	}
-
 	dt {
 		color: var(--text-muted);
 	}
@@ -288,10 +284,6 @@
 		border: 1px solid var(--border);
 		border-radius: var(--radius-card);
 		box-shadow: var(--shadow-1);
-	}
-
-	.card > li + li {
-		border-top: 1px solid var(--border);
 	}
 
 	.card > li.bad {

@@ -182,13 +182,13 @@
 		border-radius: var(--radius-pill);
 		background: var(--muted);
 		box-shadow: inset 0 0 0 1px var(--border);
-		font-size: 1.5rem;
+		font-size: var(--font-size-lg);
 		font-weight: 600;
 	}
 
 	.name {
 		font-family: var(--font-display);
-		font-size: 1.625rem;
+		font-size: var(--font-size-xl);
 		font-weight: 500;
 		line-height: 1.2;
 		letter-spacing: -0.01em;

@@ -129,7 +129,7 @@
 
 	.duo dd {
 		font-family: var(--font-display);
-		font-size: var(--font-size-xl, 1.5rem);
+		font-size: var(--font-size-xl);
 		font-weight: 500;
 	}
 

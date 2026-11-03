@@ -109,3 +109,9 @@ test('the delete confirm shows Cancelar and the action side by side, and Cancela
 	await page.goto(href!);
 	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });
+
+test('text inputs stay 16px while body text is 15px (no iOS zoom)', async ({ page }) => {
+	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
+	expect(await fontSize(page, 'input[name="name"]')).toBe(16);
+	expect(await fontSize(page, 'body')).toBe(15);
+});
