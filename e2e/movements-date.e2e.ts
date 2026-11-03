@@ -43,10 +43,11 @@ test.describe('without JavaScript', () => {
 		await create(page, desc, '2024-02-29');
 		await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
 		await expect(
+			page.getByRole('heading', { level: 2, name: /^Febrero( de)? 2024$/ })
+		).toBeVisible();
+		await expect(
 			page
-				.locator('section', {
-					has: page.getByRole('heading', { name: 'Jueves 29 de febrero de 2024' })
-				})
+				.locator('section', { has: page.getByRole('heading', { name: 'Jueves 29', exact: true }) })
 				.getByText(desc)
 		).toBeVisible();
 		await page.getByText(desc).click();
@@ -158,6 +159,7 @@ test('the Filtros range calendar sets from and to', async ({ page }) => {
 	await pickMonthYear(page, picker, '2025-03-01');
 	await picker.locator('[data-bits-day][data-value="2025-03-10"]').click();
 	await picker.locator('[data-bits-day][data-value="2025-03-14"]').click();
+	await dialog.getByRole('button', { name: /^Ver/ }).click();
 	await expect(page).toHaveURL(/from=2025-03-10&to=2025-03-14/);
 	await expect(page.getByRole('button', { name: /^Filtros/ })).toContainText('1');
 	await expect(page.getByText('Legado fin del día')).toBeVisible();
@@ -166,11 +168,10 @@ test('the Filtros range calendar sets from and to', async ({ page }) => {
 test('a legacy non-midnight row uses its Buenos Aires date everywhere', async ({ page }) => {
 	const list = '/movements?q=Legado';
 	await page.goto(list, { waitUntil: 'networkidle' });
+	await expect(page.getByRole('heading', { level: 2, name: /^Marzo( de)? 2025$/ })).toBeVisible();
 	await expect(
 		page
-			.locator('section', {
-				has: page.getByRole('heading', { name: 'Viernes 14 de marzo de 2025' })
-			})
+			.locator('section', { has: page.getByRole('heading', { name: 'Viernes 14', exact: true }) })
 			.getByText('Legado fin del día')
 	).toBeVisible();
 	await page.goto(`${list}&from=2025-03-14&to=2025-03-14`);

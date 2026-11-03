@@ -20,6 +20,8 @@
 			destinationAccountName: string | null;
 			categoryIcon: CategoryIconKey | null;
 			categoryColor: SwatchKey | null;
+			/** Cross-currency transfer: the destination amount, shown under the amount. */
+			secondary?: { cents: number; currency: Currency } | null;
 		};
 		/** Pre-formatted day; omitted where a group header already shows it. */
 		date?: string;
@@ -30,6 +32,11 @@
 
 {#snippet value()}
 	<Money cents={m.amount} currency={m.currency} tone="flow" direction={m.type} />
+	{#if m.secondary}
+		<span class="secondary"
+			><Money cents={m.secondary.cents} currency={m.secondary.currency} /></span
+		>
+	{/if}
 {/snippet}
 
 {#snippet dateMeta()}{date}{/snippet}
@@ -86,6 +93,13 @@
 		to {
 			background: transparent;
 		}
+	}
+
+	.secondary {
+		display: block;
+		font-size: var(--font-size-xs);
+		font-weight: 400;
+		color: var(--text-muted);
 	}
 
 	/* Line 2 never wraps: the account truncates first, then the date. */

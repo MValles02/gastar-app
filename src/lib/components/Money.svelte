@@ -5,7 +5,7 @@
 	/**
 	 * Amount with the decimals dimmed ("US$1.250" + ",50"). Font size and weight come from the parent.
 	 * No visible sign: colour carries it. `stock` (balances, totals): text colour, red when negative.
-	 * `flow` (movements): income green, outcome red, transfer text colour; without `direction` it
+	 * `flow` (movements): income green, outcome red, transfer blue; without `direction` it
 	 * follows the sign of `cents`. Zero is always neutral. The sign stays for screen readers.
 	 */
 	let {
@@ -21,17 +21,19 @@
 	} = $props();
 
 	let color = $derived(
-		cents === 0 || direction === 'transfer'
+		cents === 0
 			? 'neutral'
-			: tone === 'flow' && direction
-				? direction === 'income'
-					? 'income'
-					: 'outcome'
-				: tone === 'flow' && cents > 0
-					? 'income'
-					: cents < 0
-						? 'outcome'
-						: 'neutral'
+			: direction === 'transfer'
+				? 'transfer'
+				: tone === 'flow' && direction
+					? direction === 'income'
+						? 'income'
+						: 'outcome'
+					: tone === 'flow' && cents > 0
+						? 'income'
+						: cents < 0
+							? 'outcome'
+							: 'neutral'
 	);
 	let srSign = $derived(cents < 0 ? '-' : direction === 'income' && cents > 0 ? '+' : '');
 	// formatMoney glues the symbol to the number ("US$1.250,50"); the symbol is everything before the first digit.
@@ -59,6 +61,10 @@
 
 	.outcome {
 		color: var(--negative);
+	}
+
+	.transfer {
+		color: var(--transfer);
 	}
 
 	/* Dimmed only on text colour (>= 4.5:1 at 0.7); coloured decimals stay full strength. */

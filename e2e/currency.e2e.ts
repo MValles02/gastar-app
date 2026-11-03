@@ -78,7 +78,7 @@ test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
 	await page.goto('/movements?currency=USD', { waitUntil: 'networkidle' });
 	await expect(page.getByRole('button', { name: /^Filtros/ })).toContainText('1');
 	const dialog = await openFilters(page);
-	await expect(dialog.getByRole('radio', { name: 'USD' })).toBeChecked();
+	await expect(dialog.getByRole('radio', { name: 'Dólares' })).toBeChecked();
 	await page.keyboard.press('Escape');
 	await expect(dialog).toBeHidden();
 	await expect(page.getByText('US$').first()).toBeVisible();
@@ -86,7 +86,8 @@ test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
 
 	await page.goto('/movements?currency=ARS', { waitUntil: 'networkidle' });
 	await expect(page.getByText('$').first()).toBeVisible();
-	await expect(page.getByText('US$')).toHaveCount(0);
+	// A cross-currency transfer lists its destination amount (US$) under the pesos amount.
+	await expect(page.locator('.row-amount > .money').getByText('US$')).toHaveCount(0);
 });
 
 test('an account filter on /movements wins over ?currency=USD', async ({ page }) => {
@@ -96,16 +97,19 @@ test('an account filter on /movements wins over ?currency=USD', async ({ page })
 	const id = page.url().split('/').pop()!;
 	await page.goto(`/movements?account=${id}&currency=USD`, { waitUntil: 'networkidle' });
 	const dialog = await openFilters(page);
-	await expect(dialog.getByRole('radio', { name: 'ARS' })).toBeChecked();
-	await expect(dialog.getByRole('radio', { name: 'ARS' })).toBeDisabled();
+	await expect(dialog.getByRole('radio', { name: 'Pesos' })).toBeChecked();
+	await expect(dialog.getByRole('radio', { name: 'Pesos' })).toBeDisabled();
 	await expect(page.getByText('No hay movimientos')).toHaveCount(0);
 });
 
-test('picking an account in the /movements filter applies it', async ({ page }) => {
+test('picking an account in the /movements filter applies it on "Ver"', async ({ page }) => {
 	await page.goto('/movements', { waitUntil: 'networkidle' });
-	await page.getByRole('button', { name: /^Filtros/ }).click();
-	await page.getByRole('button', { name: /Cuenta/ }).click();
-	await page.getByRole('dialog').locator('button.opt', { hasText: 'Efectivo' }).click();
+	const dialog = await openFilters(page);
+	await dialog.getByRole('button', { name: /^Cuenta/ }).click();
+	await page.getByRole('dialog').last().locator('button.opt', { hasText: 'Efectivo' }).click();
+	await page.keyboard.press('Escape');
+	expect(page.url()).not.toContain('account=');
+	await dialog.getByRole('button', { name: /^Ver/ }).click();
 	await expect(page).toHaveURL(/[?&]account=[0-9a-f-]{36}/);
 });
 

@@ -61,7 +61,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		}
 		let group = month.days.at(-1);
 		if (group?.day !== day) {
-			group = { day, heading: dayHeading(day, today), items: [] };
+			group = { day, heading: dayHeading(day, today, true), items: [] };
 			month.days.push(group);
 		}
 		// Cross-currency transfer shown in its origin currency: the destination amount goes underneath.

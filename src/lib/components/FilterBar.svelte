@@ -22,7 +22,8 @@
 		label = 'Buscar',
 		path,
 		active,
-		filters
+		filters,
+		onfilters
 	}: {
 		q?: string;
 		placeholder?: string;
@@ -30,6 +31,8 @@
 		path: string;
 		active: number;
 		filters: Snippet<[() => void]>;
+		/** Opt-in: the page owns the filters drawer. Filtros calls this and no internal drawer renders. */
+		onfilters?: () => void;
 	} = $props();
 
 	let mounted = $state(false);
@@ -99,7 +102,7 @@
 			variant="outline"
 			class={['shrink-0', active > 0 && 'border-foreground']}
 			aria-haspopup="dialog"
-			onclick={() => (open = true)}
+			onclick={() => (onfilters ? onfilters() : (open = true))}
 		>
 			<SlidersHorizontal size={18} strokeWidth={1.75} aria-hidden="true" />
 			Filtros
@@ -117,17 +120,25 @@
 	</form>
 </noscript>
 
-<BottomDrawer title="Filtros" bind:open>
-	<form method="GET" class="drawer-form" bind:this={drawerForm} onchange={submit} onsubmit={apply}>
-		{#if q}<input type="hidden" name="q" value={q} />{/if}
-		{@render filters(submit)}
-		{#if active > 0}
-			<Button type="button" variant="outline" class="w-full" onclick={clear}>
-				Limpiar filtros
-			</Button>
-		{/if}
-	</form>
-</BottomDrawer>
+{#if !onfilters}
+	<BottomDrawer title="Filtros" bind:open>
+		<form
+			method="GET"
+			class="drawer-form"
+			bind:this={drawerForm}
+			onchange={submit}
+			onsubmit={apply}
+		>
+			{#if q}<input type="hidden" name="q" value={q} />{/if}
+			{@render filters(submit)}
+			{#if active > 0}
+				<Button type="button" variant="outline" class="w-full" onclick={clear}>
+					Limpiar filtros
+				</Button>
+			{/if}
+		</form>
+	</BottomDrawer>
+{/if}
 
 <style>
 	.search {
