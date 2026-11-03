@@ -9,6 +9,10 @@ This file is identical in every app repo (gastar-app, parfam-mdq, gastar-app-lan
 - Single-environment repos (gastar-app-landing: no `develop`): feature branch -> `main` with **squash**. The same files apply; `develop-only` passes with a notice because the `develop` branch does not exist.
 - The default branch is `develop` where it exists, `main` otherwise.
 
+## Auto-merge
+
+`.github/workflows/auto-merge.yml` enables auto-merge (squash) on every non-draft PR opened from a branch of this repo, Dependabot's included, so it merges itself once the required checks are green. The `develop` -> `main` promotion is excluded and stays a manual merge commit. The job uses the `AUTO_MERGE_TOKEN` secret (a fine-grained PAT, stored as both an Actions and a Dependabot secret) so the merge triggers the deploy; without the secret it skips with a notice.
+
 ## CI gate
 
 `.github/workflows/ci.yml` runs on every pull request and is called by `deploy.yml` before a manual deploy.
