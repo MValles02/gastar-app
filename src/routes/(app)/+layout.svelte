@@ -1,43 +1,49 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { afterNavigate, goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
+	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { stripFlags } from '$lib/nav-stack.svelte';
 	import { TAB_ROUTES } from '$lib/form-routes';
 	import TabBar from '$lib/components/TabBar.svelte';
+	import NewMovementDrawer from '$lib/components/NewMovementDrawer.svelte';
+	import { highlightMovement } from '$lib/highlight.svelte';
+	import { undoMovementSaved } from '$lib/undo-toast';
 
 	let { children }: { children: Snippet } = $props();
 
 	const showBar = $derived(TAB_ROUTES.has(page.route.id ?? ''));
-	// Saving a new movement returns to the screen it was opened from with ?movementSaved=1: toast
-	// once, with a shortcut to add another from the same screen, then strip the flag so a reload does
-	// not toast again. Without JavaScript the server-rendered status stands in until hydration.
-	const newMovementHref = resolve('/movements/new');
-	const movementSaved = $derived(page.url.searchParams.get('movementSaved') === '1');
+	// Saving a new movement returns to the screen it was opened from with ?movementSaved=<id>: toast
+	// once (Deshacer deletes it), then strip the flag so a reload does not toast again. Without
+	// JavaScript the server-rendered status stands in until hydration.
+	const movementSaved = $derived(page.url.searchParams.get('movementSaved'));
 	let hydrated = $state(false);
 	onMount(() => (hydrated = true));
+	let toasted: string | null = null;
 	afterNavigate(() => {
 		if (!movementSaved) return;
-		toast.success('Movimiento guardado.', {
-			action: { label: 'Agregar otro', onClick: () => goto(newMovementHref) }
-		});
-		stripFlags(['movementSaved']);
+		// Once per saved id, however many navigations land before the flag is stripped.
+		if (movementSaved !== toasted) {
+			toasted = movementSaved;
+			if (/^[0-9a-f-]{36}$/.test(movementSaved))
+				undoMovementSaved(movementSaved, page.url.searchParams.get('rule'));
+			else toast.success('Movimiento guardado.');
+			highlightMovement(movementSaved);
+		}
+		stripFlags(['movementSaved', 'rule']);
 	});
 </script>
 
 <div class="shell">
 	<main class="content" class:with-bar={showBar}>
 		{#if movementSaved && !hydrated}
-			<p role="status" class="saved">
-				Movimiento guardado. <a href={newMovementHref}>Agregar otro</a>
-			</p>
+			<p role="status" class="saved">Movimiento guardado.</p>
 		{/if}
 		{@render children()}
 	</main>
 
 	{#if showBar}<TabBar />{/if}
+	{#if page.state.newMovement}<NewMovementDrawer data={page.state.newMovement} />{/if}
 </div>
 
 <style>

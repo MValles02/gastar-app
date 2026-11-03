@@ -122,7 +122,7 @@ test('the bottom drawer has a 20px title, no close button, and closes on Escape'
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
 	await page.getByRole('button', { name: /^Cuenta/ }).click();
 	const dialog = page.getByRole('dialog');
-	const title = dialog.getByRole('heading', { name: 'Elegí la cuenta' });
+	const title = dialog.getByRole('heading', { name: 'Cuenta' });
 	await expect(title).toBeVisible();
 	expect(await title.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBe(20);
 	await expect(dialog.getByRole('button', { name: 'Cerrar' })).toHaveCount(0);

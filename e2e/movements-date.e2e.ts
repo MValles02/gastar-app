@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { deleteMovements, login, openFilters, pickDate, pickMonthYear } from './helpers';
+import { deleteMovements, login, openFilters, pickMonthYear, pickMovementDate } from './helpers';
 
 // Descriptions of movements this spec may have created; removed in afterEach.
 const created: string[] = [];
@@ -123,6 +123,7 @@ test.describe('without JavaScript', () => {
 test('the calendar is in Spanish and the week starts on Monday', async ({ page }) => {
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
 	await page.getByRole('button', { name: /Fecha/ }).click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Otra fecha' }).click();
 	const dialog = page.getByRole('dialog');
 	await expect(dialog.getByRole('columnheader').first()).toHaveText(/^lu/i);
 	await expect(dialog.getByRole('columnheader').last()).toHaveText(/^do/i);
@@ -140,7 +141,7 @@ test('the calendar is in Spanish and the week starts on Monday', async ({ page }
 test('the calendar offers no day before 2000', async ({ page }) => {
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
 	expect(await page.locator('input[type="date"]').count()).toBe(0);
-	await pickDate(page, 'Fecha', '2000-01-01');
+	await pickMovementDate(page, '2000-01-01');
 	await expect(page.locator('input[name="occurredAt"]')).toHaveValue('2000-01-01');
 	await page.getByRole('button', { name: /Fecha/ }).click();
 	const dialog = page.getByRole('dialog');

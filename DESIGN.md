@@ -375,6 +375,14 @@ A field that opens a Bottom Drawer of radio rows. The trigger is a stock `Button
 
 Shadcn `RadioGroup`s of round swatches (the icon picker shows the ten account icons in IconBadge). The color picker is a grid of 8 per row with 36px circles, 10px between rows and 8px between columns; each cell is 44px tall (circle plus padding) so the hit area stays a touch target, and each radio is labelled with its Spanish name. The checked colour shows a ring (2px surface gap, then 2px in the swatch colour); focus-visible draws a 2px ring-coloured outline outside it. Requires JavaScript.
 
+### Drawer Stack
+
+Pickers opened from inside a drawer are a second Bottom Drawer stacked on top (`BottomDrawer` with `nested`, vaul `NestedRoot`): the one below stays put, a tap picks and closes, no confirm. `OptionPicker` takes `nested`, an `extra` last row (e.g. "+ Nueva categoría", primary text) and optional item `balance`/`currency` shown at the row end. `BottomDrawer` also takes `hideTitle` (title kept for assistive technology) and `bare` (no padded wrapper, so the content pins its own actions). The "Nuevo movimiento" drawer (`NewMovementDrawer`, opened from the Nav FAB by shallow routing: URL unchanged, back closes it) is the first user: segmented type, hero amount coloured by type (`--negative`, `--positive`, `--transfer`), a rows card, and Cancelar / Guardar pills pinned below the scrolling fields. A row with a missing value gets a full `--negative` border plus one line of the server's message; it clears when the row gets a value.
+
+### Undo Toast and Highlight
+
+`undoToast(message, undo)` (`src/lib/undo-toast.ts`) is the success toast with the single action "Deshacer" (5 s); `undoMovementSaved(id, ruleId)` wires it to the existing delete actions. A freshly saved movement is flagged by `highlightMovement(id)` (`src/lib/highlight.svelte.ts`) for 3 s: `MovementRow` shows a 14% primary tint that fades out (static under reduced motion) and sets `data-highlighted="true"`.
+
 ### Navigation
 
 - **Style:** Fixed translucent bottom bar (`--bg` at 92% with a 12px backdrop blur) with a top hairline, no gap, and `space-2` vertical padding plus the bottom safe-area inset. Five equal slots: two items, the FAB, two items. Each item is an icon only (no visible label; the Spanish name is its `aria-label` and `title`), muted by default, at least 2.75rem tall.

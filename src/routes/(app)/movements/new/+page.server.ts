@@ -8,14 +8,14 @@ import { parseMovementForm } from '$lib/server/movements';
 import { createMovement } from '$lib/server/movements-queries';
 import { isRecurringActive } from '$lib/server/plan';
 import { createMovementWithRule, listRecurring } from '$lib/server/plan-queries';
-import { failIfUnavailable, movementPickers, resolvePostedMovement } from '../form.server';
+import { drawerPickers, failIfUnavailable, resolvePostedMovement } from '../form.server';
 
 /** Remembers the account of the last saved movement as the next form's default. */
 const LAST_ACCOUNT_COOKIE = 'last_account';
 
 const FORM_PATH = '/movements/new';
 /** One-shot toast flags that must not ride along on the screen we return to. */
-const FLAGS = ['saved', 'planSaved', 'movementSaved'];
+const FLAGS = ['saved', 'planSaved', 'movementSaved', 'rule'];
 
 /**
  * The screen to return to after saving: a same-origin app path other than this form, with its toast
@@ -61,7 +61,7 @@ async function findRule(userId: string, id: FormDataEntryValue | null) {
 
 export const load: PageServerLoad = async ({ locals, cookies, url, request }) => {
 	const userId = locals.user!.id;
-	const { accounts, categories } = await movementPickers(userId);
+	const { accounts, categories } = await drawerPickers(userId);
 	const rule = await findRule(userId, url.searchParams.get('recurring'));
 	const last = cookies.get(LAST_ACCOUNT_COOKIE);
 	const defaultAccountId = accounts.some((a) => a.id === last)
@@ -91,7 +91,8 @@ export const load: PageServerLoad = async ({ locals, cookies, url, request }) =>
 					}
 				}
 			: null,
-		saved: url.searchParams.get('saved') === '1',
+		saved: url.searchParams.get('saved') || null,
+		savedRule: url.searchParams.get('rule') || null,
 		formKey: crypto.randomUUID(),
 		from: refererPath(request, url),
 		defaultAccountId
@@ -142,20 +143,26 @@ export const actions: Actions = {
 				});
 		}
 
+		let movementId: string;
+		// Set when "Repetir todos los meses" created a rule: the client's Deshacer removes it too.
+		let ruleId: string | null = null;
 		try {
 			const { type, categoryId } = resolved.row;
 			if (!rule && fd.get('repeat') === 'on' && type !== 'transfer' && categoryId) {
 				// The rule repeats on the movement's Buenos Aires day (clamped by recurringStatus in short months).
-				await createMovementWithRule(userId, resolved.row, {
+				({ movementId, ruleId } = await createMovementWithRule(userId, resolved.row, {
 					type,
 					description: resolved.row.description,
 					amount: resolved.row.amount,
 					accountId: resolved.row.accountId,
 					categoryId,
 					dayOfMonth: Number(localDay(resolved.row.occurredAt).slice(8, 10))
-				});
+				}));
 			} else {
-				await createMovement(userId, { ...resolved.row, recurringId: rule?.id ?? null });
+				[{ id: movementId }] = await createMovement(userId, {
+					...resolved.row,
+					recurringId: rule?.id ?? null
+				});
 			}
 		} catch (e) {
 			return failIfUnavailable(e, values);
@@ -164,7 +171,9 @@ export const actions: Actions = {
 		if (rule) redirect(303, '/plan?saved=1');
 		// Back to the screen the form was opened from, which toasts; else stay here for the next one.
 		const back = originPath(fd.get('returnTo'), url);
-		if (!back) redirect(303, `${FORM_PATH}?saved=1`);
-		redirect(303, `${back}${back.includes('?') ? '&' : '?'}movementSaved=1`);
+		const ruleFlag = ruleId ? `&rule=${ruleId}` : '';
+		if (!back) redirect(303, `${FORM_PATH}?saved=${movementId}${ruleFlag}`);
+		const flags = `movementSaved=${movementId}${ruleFlag}`;
+		redirect(303, `${back}${back.includes('?') ? '&' : '?'}${flags}`);
 	}
 };

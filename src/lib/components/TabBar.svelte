@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto, preloadData, pushState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { markReplace } from '$lib/nav-stack.svelte';
@@ -15,6 +16,17 @@
 		{ href: resolve('/reports'), path: '/reports', label: 'Reportes', icon: ChartColumn }
 	];
 	const newMovementHref = resolve('/movements/new');
+
+	// An unmodified click opens the drawer over this screen (shallow route); anything else is a normal link.
+	async function openDrawer(e: MouseEvent) {
+		if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+			return;
+		e.preventDefault();
+		const result = await preloadData(newMovementHref);
+		if (result.type === 'loaded' && result.status === 200)
+			pushState('', { newMovement: result.data as App.PageState['newMovement'] });
+		else await goto(newMovementHref);
+	}
 
 	function isActive(path: string): boolean {
 		const pathname = page.url.pathname;
@@ -41,7 +53,7 @@
 		{/each}
 	</div>
 
-	<a href={newMovementHref} class="fab" aria-label="Nuevo movimiento">
+	<a href={newMovementHref} class="fab" onclick={openDrawer} aria-label="Nuevo movimiento">
 		<Plus size={24} strokeWidth={1.75} aria-hidden="true" />
 	</a>
 </nav>

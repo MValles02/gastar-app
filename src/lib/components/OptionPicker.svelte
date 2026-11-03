@@ -7,6 +7,8 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import IconBadge from './IconBadge.svelte';
+	import Money from './Money.svelte';
+	import type { Currency } from '$lib/money';
 
 	type Item = {
 		id: string;
@@ -15,6 +17,9 @@
 		color: SwatchKey | null;
 		meta?: string;
 		archived?: boolean;
+		/** Shown at the end of the row, with `currency` (accounts in the new-movement drawer). */
+		balance?: number;
+		currency?: Currency;
 	};
 
 	let {
@@ -28,7 +33,9 @@
 		error,
 		errorId,
 		excludeId,
-		variant = 'field'
+		variant = 'field',
+		nested = false,
+		extra
 	}: {
 		name: string;
 		legend: string;
@@ -42,6 +49,10 @@
 		excludeId?: string;
 		/** `row`: a full-width list row (label left, value right) for grouped cards. */
 		variant?: 'field' | 'row';
+		/** Opens the list as a drawer stacked over the one this picker is rendered in. */
+		nested?: boolean;
+		/** Extra last row of the list; gets a function that closes it. */
+		extra?: Snippet<[() => void]>;
 	} = $props();
 
 	let mounted = $state(false);
@@ -125,7 +136,7 @@
 		<input type="hidden" {name} {value} disabled={!value} bind:this={hidden} />
 		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
 	</div>
-	<BottomDrawer {title} bind:open>
+	<BottomDrawer {title} {nested} bind:open>
 		<div class="options" bind:this={list}>
 			{#each visible as item (item.id)}
 				<Item.Root>
@@ -147,6 +158,11 @@
 									</Item.Description>
 								{/if}
 							</Item.Content>
+							{#if item.balance !== undefined && item.currency}
+								<Item.Actions class="font-medium tabular-nums">
+									<Money cents={item.balance} currency={item.currency} />
+								</Item.Actions>
+							{/if}
 							{#if item.id === value}
 								<Item.Actions
 									><Check size={20} strokeWidth={1.75} aria-hidden="true" /></Item.Actions
@@ -156,6 +172,7 @@
 					{/snippet}
 				</Item.Root>
 			{/each}
+			{#if extra}{@render extra(() => (open = false))}{/if}
 		</div>
 	</BottomDrawer>
 {:else}

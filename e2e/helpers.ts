@@ -76,7 +76,8 @@ export async function openFilters(page: Page) {
 /** Chooses `name` in the JS picker dialog opened by the button whose name matches `legend`. */
 export async function pick(page: Page, legend: string, name: string) {
 	await page.getByRole('button', { name: new RegExp(legend) }).click();
-	await page.getByRole('dialog').getByText(name, { exact: true }).click();
+	// Pickers stack over the drawer they were opened from: the last dialog is the topmost.
+	await page.getByRole('dialog').last().getByText(name, { exact: true }).click();
 }
 
 /** Sets the calendar's Select-based month and year (options render in a portal outside the dialog). */
@@ -99,6 +100,16 @@ export async function pickDate(page: Page, label: string, ymd: string) {
 	await dialog.locator(`[data-bits-day][data-value="${ymd}"]`).click();
 }
 
+/** Picks `ymd` in the movement date drawer (Fecha > Otra fecha > calendar day). */
+export async function pickMovementDate(page: Page, ymd: string) {
+	await page.getByRole('button', { name: /^Fecha/ }).click();
+	const dialog = page.getByRole('dialog').last();
+	if ((await dialog.locator('[data-bits-day]').count()) === 0)
+		await dialog.getByRole('button', { name: 'Otra fecha' }).click();
+	await pickMonthYear(page, dialog, ymd);
+	await dialog.locator(`[data-bits-day][data-value="${ymd}"]`).click();
+}
+
 /** Opens the new-movement form and fills it (JS pickers); the caller submits. */
 export async function fillMovement(
 	page: Page,
@@ -117,12 +128,12 @@ export async function fillMovement(
 	await page
 		.getByRole('radio', { name: o.type === 'Transferencia' ? 'Transf.' : o.type })
 		.check({ force: true });
-	if (o.date !== undefined) await pickDate(page, 'Fecha', o.date);
+	if (o.date !== undefined) await pickMovementDate(page, o.date);
 	await page.locator('input[name="amount"]').fill(o.amount);
 	await page.locator('input[name="description"]').fill(o.description);
-	await pick(page, o.destination ? 'Origen' : 'Cuenta', o.account);
+	await pick(page, o.destination ? 'Desde' : 'Cuenta', o.account);
 	if (o.category) await pick(page, 'Categoría', o.category);
-	if (o.destination) await pick(page, 'Destino', o.destination);
+	if (o.destination) await pick(page, 'Hacia', o.destination);
 	if (o.rate !== undefined) await page.locator('input[name="exchangeRate"]').fill(o.rate);
 }
 
