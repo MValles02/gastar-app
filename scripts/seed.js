@@ -140,7 +140,6 @@ function dayStartBA(d) {
 
 // Local-time date in `monthsAgo` months back; future dates are clamped to now, never dropped.
 function add(monthsAgo, day, hour, row) {
-	if (monthsAgo === 0 && day > today) return; // fixed-day item not due yet this month
 	let occurredAt = new Date(
 		now.getFullYear(),
 		now.getMonth() - monthsAgo,

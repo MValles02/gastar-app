@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
+	import { markReplace } from '$lib/nav-stack.svelte';
 	import House from '@lucide/svelte/icons/house';
 	import List from '@lucide/svelte/icons/list';
 	import CalendarCheck from '@lucide/svelte/icons/calendar-check';
@@ -29,6 +30,8 @@
 			<a
 				href={item.href}
 				class="tab"
+				data-sveltekit-replacestate
+				onclick={markReplace}
 				aria-label={item.label}
 				title={item.label}
 				aria-current={isActive(item.path) ? 'page' : undefined}
@@ -54,6 +57,8 @@
 		gap: var(--space-3);
 		align-items: center;
 		z-index: 10;
+		/* Stays put while the page underneath slides (page transitions, app.css). */
+		view-transition-name: tab-bar;
 	}
 
 	.tabs {

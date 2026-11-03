@@ -2,6 +2,7 @@
 	import { NAME_MAX_LENGTH } from '$lib/limits';
 	import { tick, untrack } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { enhanceRedirect } from '$lib/nav-stack.svelte';
 	import * as Field from '$lib/components/ui/field/index.js';
 	import ColorPicker from '$lib/components/ColorPicker.svelte';
 	import FormActions from '$lib/components/FormActions.svelte';
@@ -47,7 +48,7 @@
 	});
 </script>
 
-<form method="POST" use:enhance class="form" novalidate>
+<form method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
 	<ul class="card">
 		<li class:bad={errors.name}>
 			<TextRow

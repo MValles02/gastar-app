@@ -7,6 +7,7 @@
 	import * as Avatar from '$lib/components/ui/avatar/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { upOnClick } from '$lib/nav-stack.svelte';
 
 	/**
 	 * Sticky top bar. Full (no `back` and no `close`; the 4 tab pages): [eyebrow + title] [avisos]
@@ -38,11 +39,25 @@
 
 <header class="top-bar">
 	{#if close}
-		<Button class="-ml-2" href={close.href} variant="ghost" size="icon" aria-label={close.label}>
+		<Button
+			class="-ml-2"
+			href={close.href}
+			onclick={upOnClick(close.href)}
+			variant="ghost"
+			size="icon"
+			aria-label={close.label}
+		>
 			<X aria-hidden="true" />
 		</Button>
 	{:else if back}
-		<Button class="-ml-2" href={back.href} variant="ghost" size="icon" aria-label={back.label}>
+		<Button
+			class="-ml-2"
+			href={back.href}
+			onclick={upOnClick(back.href)}
+			variant="ghost"
+			size="icon"
+			aria-label={back.label}
+		>
 			<ChevronLeft aria-hidden="true" />
 		</Button>
 	{/if}
@@ -90,6 +105,8 @@
 		-webkit-backdrop-filter: blur(16px);
 		backdrop-filter: blur(16px);
 		border-bottom: 1px solid transparent;
+		/* Crossfades in place while the page underneath slides (page transitions, app.css). */
+		view-transition-name: page-header;
 	}
 
 	/* Sticky only with room to spare: `em` here is the browser's text size, so large text or zoom turns it off (WCAG 2.4.11, 1.4.10). */

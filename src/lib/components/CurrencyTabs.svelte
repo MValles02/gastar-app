@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { CURRENCIES, type Currency } from '$lib/money';
 	import { enhance } from '$app/forms';
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { replaceGoto } from '$lib/nav-stack.svelte';
 	import SegmentedControl from './SegmentedControl.svelte';
 
 	/** ARS | USD radiogroup saved in the `currency` cookie. */
@@ -26,8 +26,12 @@
 				// update() only applies the result on the action's own route, so keep it locally.
 				error = (result.data?.currencyError as string | undefined) ?? '';
 			} else if (result.type === 'redirect') {
-				// eslint-disable-next-line svelte/no-navigation-without-resolve -- server-validated same-origin redirect location
-				await goto(result.location, { invalidateAll: true, keepFocus: true, noScroll: true });
+				// Switching currency is not a new screen: overwrite the entry so back skips it.
+				await replaceGoto(result.location, {
+					invalidateAll: true,
+					keepFocus: true,
+					noScroll: true
+				});
 				form.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.focus();
 			} else {
 				await update({ reset: false });

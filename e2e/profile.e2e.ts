@@ -27,7 +27,7 @@ test('profile layout at 390px: theme row in a card, account rows, delete below l
 	await expect(account.getByRole('link', { name: 'Cambiar contraseña' })).toBeVisible();
 
 	const logout = (await page.getByRole('button', { name: 'Cerrar sesión' }).boundingBox())!;
-	const del = (await page.getByRole('link', { name: 'Eliminar cuenta' }).boundingBox())!;
+	const del = (await page.getByRole('link', { name: 'Darme de baja' }).boundingBox())!;
 	expect(del.y).toBeGreaterThan(logout.y + logout.height);
 	await expectNoHorizontalOverflow(page);
 });
@@ -166,10 +166,10 @@ test.describe('account changes', () => {
 
 		await page.goto('/profile/delete', { waitUntil: 'networkidle' });
 		await page.locator('#delete-password').fill('incorrecta-123');
-		await page.getByRole('button', { name: 'Eliminar cuenta' }).click();
+		await page.getByRole('button', { name: 'Darme de baja' }).click();
 		await page
 			.getByRole('alertdialog')
-			.getByRole('button', { name: 'Eliminar', exact: true })
+			.getByRole('button', { name: 'Darme de baja', exact: true })
 			.click();
 		await expect(page.getByText('La contraseña no es correcta.')).toBeVisible();
 		await expect(page).toHaveURL(/\/profile\/delete$/);
@@ -178,10 +178,10 @@ test.describe('account changes', () => {
 
 		await page.goto('/profile/delete', { waitUntil: 'networkidle' });
 		await page.locator('#delete-password').fill(current);
-		await page.getByRole('button', { name: 'Eliminar cuenta' }).click();
+		await page.getByRole('button', { name: 'Darme de baja' }).click();
 		await page
 			.getByRole('alertdialog')
-			.getByRole('button', { name: 'Eliminar', exact: true })
+			.getByRole('button', { name: 'Darme de baja', exact: true })
 			.click();
 		await expect(page).toHaveURL(/\/login/);
 

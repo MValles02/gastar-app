@@ -26,9 +26,14 @@ export function recurringStatus(dayOfMonth: number, paid: boolean, ym: string, t
 	return { day, daysLeft, status };
 }
 
-export function dueLabel(status: RecurringStatus, daysLeft: number, type: MovementType): string {
+/** An unregistered income past its day is not late, just expected: "Esperado el día N" (`day` is clamped). */
+export function dueLabel(
+	{ status, daysLeft, day }: ReturnType<typeof recurringStatus>,
+	type: MovementType
+): string {
 	if (status === 'paid') return type === 'income' ? 'Cobrado' : 'Pagado';
 	if (status === 'today') return 'Vence hoy';
+	if (status === 'overdue' && type === 'income') return `Esperado el día ${day}`;
 	if (status === 'overdue')
 		return daysLeft === -1 ? 'Venció ayer' : `Venció hace ${-daysLeft} días`;
 	return daysLeft === 1 ? 'Mañana' : `En ${daysLeft} días`;

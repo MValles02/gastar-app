@@ -129,14 +129,15 @@ function parseCsv(text: string): Row[] {
 	return body.map((r) => Object.fromEntries(keys.map((k, i) => [k, (r[i] ?? '').trim()])));
 }
 
-/** First-sync start: MP_IMPORT_FROM, else DEFAULT_BACKFILL_DAYS ago. */
-function backfillStart(now: number): Date {
-	const begin = dayStart(
-		env.MP_IMPORT_FROM?.trim() || localDay(new Date(now - DEFAULT_BACKFILL_DAYS * DAY_MS))
-	);
+/** First-sync start: the user's "importar desde" floor, else DEFAULT_BACKFILL_DAYS ago. */
+function backfillStart(now: number, floor: Date | null): Date {
+	const begin = floor ?? dayStart(localDay(new Date(now - DEFAULT_BACKFILL_DAYS * DAY_MS)));
 	if (!begin) throw fail('config');
 	return begin;
 }
+
+/** The later of two dates, treating the floor as optional. */
+const atLeast = (d: Date, floor: Date | null) => (floor && floor > d ? floor : d);
 
 // ---------- Payments: /v1/payments/search, both sides, in seconds ----------
 
@@ -191,6 +192,7 @@ async function syncPayments(
 	ownerId: string,
 	me: string,
 	auth: Auth,
+	floor: Date | null,
 	from?: Date
 ): Promise<number> {
 	const now = Date.now();
@@ -205,7 +207,10 @@ async function syncPayments(
 			)
 		);
 	const begin =
-		from ?? (last?.at ? new Date(last.at.getTime() - PAYMENTS_OVERLAP_MS) : backfillStart(now));
+		from ??
+		(last?.at
+			? atLeast(new Date(last.at.getTime() - PAYMENTS_OVERLAP_MS), floor)
+			: backfillStart(now, floor));
 	const payments = (await searchPayments(begin, new Date(now), auth)).filter(
 		(p) => str(p.payment_type_id) !== 'credit_card'
 	);
@@ -331,6 +336,7 @@ async function syncPayments(
 /**
  * Config created in an MP account that has none (the report create answers 404 without one). Columns are
  * every key the CSV parser below reads. No `scheduled`: MP ignores `frequency` unless scheduling is on.
+ * An empty `notification_email_list` turns off MP's "report ready" emails.
  */
 const SETTLEMENT_CONFIG = {
 	file_name_prefix: 'gastar-settlement',
@@ -348,8 +354,30 @@ const SETTLEMENT_CONFIG = {
 	].map((key) => ({ key })),
 	frequency: { hour: 0, type: 'monthly', value: 1 },
 	show_fee_prevision: false,
-	refund_detailed: true
+	refund_detailed: true,
+	notification_email_list: [] as string[]
 };
+
+/**
+ * Best effort: empty the email list of an existing config (the only field Gastar ever changes on it) so
+ * MP stops mailing "report ready". A missing config is left for the create-on-404 path. Never fails the sync.
+ */
+async function silenceReportEmails(auth: Auth): Promise<void> {
+	try {
+		const config = obj(await apiJson('/v1/account/settlement_report/config', auth));
+		const list = config.notification_email_list;
+		if (!Array.isArray(list) || list.length === 0) return;
+		await api('/v1/account/settlement_report/config', auth, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ ...config, notification_email_list: [] })
+		});
+	} catch (e) {
+		if ((e as Error).message !== 'mp_404') {
+			console.warn('mp settlement config: could not empty the email list');
+		}
+	}
+}
 
 async function downloadSettlement(begin: Date, end: Date, auth: Auth): Promise<string> {
 	const create = () =>
@@ -363,11 +391,13 @@ async function downloadSettlement(begin: Date, end: Date, auth: Auth): Promise<s
 			})
 		});
 	let created: unknown;
+	await silenceReportEmails(auth);
 	try {
 		created = await create();
 	} catch (e) {
 		if ((e as Error).message !== 'mp_404') throw e;
-		// No config in this account: create one only if none exists (never overwrite), then retry once.
+		// No config in this account: create one only if none exists (never overwrite; the only edit to an
+		// existing config is silenceReportEmails), then retry once.
 		let exists = true;
 		try {
 			await api('/v1/account/settlement_report/config', auth);
@@ -462,6 +492,7 @@ async function syncReport(
 	ownerId: string,
 	syncedUntil: Date | null,
 	auth: Auth,
+	floor: Date | null,
 	from?: Date
 ) {
 	const now = Date.now();
@@ -469,8 +500,15 @@ async function syncReport(
 	const begin = from
 		? dayStart(localDay(from))
 		: syncedUntil
-			? dayStart(localDay(new Date(syncedUntil.getTime() - OVERLAP_DAYS * DAY_MS)))
-			: backfillStart(now);
+			? dayStart(
+					localDay(
+						atLeast(
+							new Date(syncedUntil.getTime() - OVERLAP_DAYS * DAY_MS),
+							floor && dayStart(localDay(floor))
+						)
+					)
+				)
+			: backfillStart(now, floor);
 	if (!begin) throw fail('config');
 
 	// Yield rows sharing a day (across all chunks) are summed before any write; the first row's fields stay.
@@ -519,13 +557,23 @@ async function syncReport(
 	return { end, added };
 }
 
-type Lease = { userId: string; accountId: string; currency: string; syncedUntil: Date | null };
+type Lease = {
+	userId: string;
+	accountId: string;
+	currency: string;
+	syncedUntil: Date | null;
+	floor: Date | null;
+};
 
 /** Loads the user's usable connection with its account and takes the lease; null when off or held elsewhere. */
 async function acquire(userId: string): Promise<Lease | null> {
 	try {
 		const [conn] = await db
-			.select({ accountId: financialAccounts.id, currency: financialAccounts.currency })
+			.select({
+				accountId: financialAccounts.id,
+				currency: financialAccounts.currency,
+				floor: mpConnections.importFrom
+			})
 			.from(mpConnections)
 			.innerJoin(financialAccounts, eq(financialAccounts.id, mpConnections.accountId))
 			.where(
@@ -553,7 +601,13 @@ async function acquire(userId: string): Promise<Lease | null> {
 			)
 			.returning({ syncedUntil: mpSyncState.syncedUntil });
 		return lease
-			? { userId, accountId, currency: conn.currency, syncedUntil: lease.syncedUntil }
+			? {
+					userId,
+					accountId,
+					currency: conn.currency,
+					syncedUntil: lease.syncedUntil,
+					floor: conn.floor
+				}
 			: null;
 	} catch {
 		console.error('mp sync failed: network');
@@ -603,13 +657,13 @@ async function execute(l: Lease, from?: Date): Promise<void> {
 		}
 		const me = str(obj(meJson).id);
 		if (!me) throw fail('parse');
-		const paid = await syncPayments(l.accountId, l.userId, me, auth, from);
+		const paid = await syncPayments(l.accountId, l.userId, me, auth, l.floor, from);
 		// Progress for the inbox: payments are stored, the report is next.
 		await db
 			.update(mpSyncState)
 			.set({ phase: 'report', newItems: paid })
 			.where(eq(mpSyncState.accountId, l.accountId));
-		const report = await syncReport(l.accountId, l.userId, l.syncedUntil, auth, from);
+		const report = await syncReport(l.accountId, l.userId, l.syncedUntil, auth, l.floor, from);
 		await db
 			.update(mpSyncState)
 			.set({ newItems: sql`coalesce(${mpSyncState.newItems}, 0) + ${report.added}` })

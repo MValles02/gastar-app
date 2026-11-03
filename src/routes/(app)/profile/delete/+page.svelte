@@ -15,10 +15,10 @@
 </script>
 
 <svelte:head>
-	<title>Eliminar cuenta · Gastar</title>
+	<title>Darme de baja · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Eliminar cuenta" close={{ href: resolve('/profile'), label: 'Cerrar' }} />
+<PageHeader title="Darme de baja" close={{ href: resolve('/profile'), label: 'Cerrar' }} />
 
 <div class="page">
 	<DangerCallout>
@@ -46,11 +46,11 @@
 	<FormActions cancelHref="/profile" sticky={false}>
 		{#snippet primary()}
 			<ConfirmDialog
-				triggerLabel="Eliminar cuenta"
+				triggerLabel="Darme de baja"
 				triggerVariant="destructive"
 				triggerClass="w-full"
-				title="¿Eliminar tu cuenta?"
-				confirmLabel="Eliminar"
+				title="¿Darte de baja?"
+				confirmLabel="Darme de baja"
 				action="?/delete"
 				formId={FORM_ID}
 				closeOnFailure

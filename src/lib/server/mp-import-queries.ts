@@ -68,23 +68,22 @@ export async function getSyncState(userId: string, accountId: string) {
 	return row ?? null;
 }
 
-/** Dev reset: the user's items and rules, plus the sync state of `accountId` if it is theirs. */
-export function deleteImportData(userId: string, accountId: string) {
+/** Dev reset: the user's items and rules, plus the sync state of every account they own. */
+export function deleteImportData(userId: string) {
 	return db.transaction(async (tx) => {
 		await tx.delete(mpImportItems).where(canAccessImport(userId));
 		await tx.delete(mpImportRules).where(canAccessImportRule(userId));
-		await tx.delete(mpSyncState).where(
-			and(
-				eq(mpSyncState.accountId, accountId),
+		await tx
+			.delete(mpSyncState)
+			.where(
 				inArray(
 					mpSyncState.accountId,
 					tx
 						.select({ id: financialAccounts.id })
 						.from(financialAccounts)
-						.where(and(eq(financialAccounts.id, accountId), canAccessAccount(userId)))
+						.where(canAccessAccount(userId))
 				)
-			)
-		);
+			);
 	});
 }
 

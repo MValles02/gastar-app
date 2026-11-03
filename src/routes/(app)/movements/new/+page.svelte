@@ -47,17 +47,24 @@
 			stripSaved();
 		}
 	});
-	const returnTo = $derived(cameFrom ?? (data.recurring ? '/plan' : '/'));
+	// Where saving returns to (validated by the action): the screen we came from, else the server's
+	// Referer guess (no JS), else none and saving stays here for the next movement.
+	const origin = $derived(cameFrom ?? form?.values?.returnTo ?? data.from ?? null);
+	const returnTo = $derived(origin ?? (data.recurring ? '/plan' : '/'));
+	const title = $derived(
+		!data.recurring
+			? 'Nuevo movimiento'
+			: data.recurring.type === 'income'
+				? 'Registrar ingreso'
+				: 'Registrar pago'
+	);
 </script>
 
 <svelte:head>
-	<title>{data.recurring ? 'Registrar pago' : 'Nuevo movimiento'} · Gastar</title>
+	<title>{title} · Gastar</title>
 </svelte:head>
 
-<PageHeader
-	title={data.recurring ? 'Registrar pago' : 'Nuevo movimiento'}
-	close={{ href: resolve(returnTo as '/'), label: 'Cerrar' }}
-/>
+<PageHeader {title} close={{ href: resolve(returnTo as '/'), label: 'Cerrar' }} />
 
 {#if data.accounts.length === 0}
 	<Empty.Root>
@@ -89,6 +96,7 @@
 			categories={data.categories}
 			submitLabel="Guardar"
 			cancelHref={returnTo}
+			returnTo={origin}
 			recurring={data.recurring ?? undefined}
 			repeatable
 			repeatChecked={form?.values?.repeat === 'on'}

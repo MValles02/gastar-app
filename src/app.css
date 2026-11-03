@@ -92,6 +92,8 @@
 
 	html {
 		-webkit-text-size-adjust: 100%;
+		/* No grey WebKit tap flash: taps get their own :active styles instead (focus-visible stays). */
+		-webkit-tap-highlight-color: transparent;
 		/* Keeps focused/anchored elements clear of the floating tab bar. */
 		scroll-padding-bottom: var(--tabbar-clearance);
 	}
@@ -157,8 +159,14 @@
 			background-color var(--ease-fast);
 	}
 
-	button:not([data-slot]):hover {
-		opacity: 0.9;
+	@media (hover: hover) {
+		button:not([data-slot]):hover {
+			opacity: 0.9;
+		}
+	}
+
+	button:not([data-slot]):active:not(:disabled) {
+		opacity: 0.8;
 	}
 
 	button:not([data-slot]):disabled {
@@ -318,6 +326,15 @@
 	border: 0;
 }
 
+/*
+ * Pressed rows: a link or button Item (ListRow, OptionPicker rows) fills muted while pressed, the
+ * touch counterpart of its hover fill. iOS Safari only applies :active with a touchstart listener on
+ * the page, which src/routes/+layout.svelte adds.
+ */
+:is(a, button)[data-slot='item']:active {
+	background: var(--muted);
+}
+
 /* Surface card for <dl> detail lists */
 .detail-card {
 	list-style: none;
@@ -327,4 +344,80 @@
 	border: 1px solid var(--border);
 	border-radius: var(--radius-card);
 	box-shadow: var(--shadow-1);
+}
+
+/*
+ * Page transitions (onNavigate in src/routes/+layout.svelte sets data-nav-transition): a push slides
+ * the new page in from the right over the old one, which drifts left; a pop reverses it; a tab
+ * switch crossfades. Changes within one screen (month, currency, filters) have no transition. The
+ * header and tab bar have their own view-transition-name, so they crossfade in place instead of
+ * sliding. Reduced motion never starts a transition.
+ */
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+	animation-duration: 0.28s;
+	animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+:root[data-nav-transition='fade']::view-transition-old(root),
+:root[data-nav-transition='fade']::view-transition-new(root) {
+	animation-duration: 0.2s;
+	animation-timing-function: ease;
+}
+
+:root[data-nav-transition='forward']::view-transition-old(root) {
+	animation-name: page-drift-left;
+}
+
+:root[data-nav-transition='forward']::view-transition-new(root) {
+	animation-name: page-enter-right;
+}
+
+:root[data-nav-transition='back']::view-transition-old(root) {
+	z-index: 1;
+	animation-name: page-exit-right;
+}
+
+:root[data-nav-transition='back']::view-transition-new(root) {
+	animation-name: page-drift-in;
+}
+
+/* The navigation progress bar (NavProgress.svelte) never shows in a transition's snapshots. */
+::view-transition-group(nav-progress) {
+	display: none;
+}
+
+@keyframes page-enter-right {
+	from {
+		transform: translateX(100%);
+	}
+}
+
+@keyframes page-drift-left {
+	to {
+		transform: translateX(-30%);
+		opacity: 0.6;
+	}
+}
+
+@keyframes page-exit-right {
+	to {
+		transform: translateX(100%);
+	}
+}
+
+@keyframes page-drift-in {
+	from {
+		transform: translateX(-30%);
+		opacity: 0.6;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*),
+	::view-transition-old(*),
+	::view-transition-new(*) {
+		animation: none;
+	}
 }

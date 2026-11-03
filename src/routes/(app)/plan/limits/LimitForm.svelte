@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack, type ComponentProps } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { enhanceRedirect } from '$lib/nav-stack.svelte';
 	import { formatAmountInput, formatMoney, type Currency } from '$lib/money';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import FormActions from '$lib/components/FormActions.svelte';
@@ -56,7 +57,14 @@
 	<div class="progress"><LimitList limits={[progress]} {currency} linked={false} /></div>
 {/if}
 
-<form id={formId} method="POST" {action} use:enhance class="form" novalidate>
+<form
+	id={formId}
+	method="POST"
+	{action}
+	use:enhance={() => enhanceRedirect}
+	class="form"
+	novalidate
+>
 	<ul class="card">
 		<li class="static">
 			<span>Moneda</span>

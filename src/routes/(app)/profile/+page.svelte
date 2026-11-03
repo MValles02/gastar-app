@@ -152,7 +152,7 @@
 		<Button
 			href={resolve('/profile/delete')}
 			variant="ghost"
-			class="text-destructive hover:text-destructive w-full">Eliminar cuenta</Button
+			class="text-destructive hover:text-destructive w-full">Darme de baja</Button
 		>
 	</div>
 </div>

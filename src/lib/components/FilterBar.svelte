@@ -2,9 +2,9 @@
 	import { onMount, tick, type Snippet } from 'svelte';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
-	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { markReplace, replaceGoto } from '$lib/nav-stack.svelte';
 	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -58,11 +58,11 @@
 		e.preventDefault();
 		const sp = new SvelteURLSearchParams();
 		for (const [k, v] of new FormData(drawerForm!)) if (typeof v === 'string' && v) sp.set(k, v);
-		void goto(resolve(`${path}?${sp}` as '/'), { keepFocus: true, replaceState: true });
+		void replaceGoto(resolve(`${path}?${sp}` as '/'), { keepFocus: true });
 	};
 	const submit = () => tick().then(() => drawerForm?.requestSubmit());
 	const clear = () =>
-		void goto(resolve(`${path}?q=${encodeURIComponent(q)}` as '/'), { keepFocus: true });
+		void replaceGoto(resolve(`${path}?q=${encodeURIComponent(q)}` as '/'), { keepFocus: true });
 </script>
 
 <form
@@ -71,6 +71,7 @@
 	data-sveltekit-keepfocus
 	data-sveltekit-replacestate
 	bind:this={searchForm}
+	onsubmit={() => markReplace()}
 	onchange={() => searchForm?.requestSubmit()}
 	{onformdata}
 >
