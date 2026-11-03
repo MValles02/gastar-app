@@ -66,6 +66,9 @@ export function monthLabel(ym: string, withYear = true): string {
 	);
 }
 
+/** List month header: "Noviembre 2026" (capitalized month, space, year; no "de"). */
+export const monthHeading = (ym: string) => `${monthLabel(ym, false)} ${ym.slice(0, 4)}`;
+
 /** "Ene", "Sep": capitalized first 3 letters, no dot. */
 export function shortMonth(ym: string): string {
 	return monthLabel(ym, false).slice(0, 3);

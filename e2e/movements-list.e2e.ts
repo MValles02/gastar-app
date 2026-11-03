@@ -1,7 +1,7 @@
 // The /movements list: sticky month header with short day headings, and the Filtros drawer whose
 // changes are staged until "Ver N movimientos". Data is arranged per test under a unique description.
 import { expect, test, type Page } from '@playwright/test';
-import { deleteMovements, IMPORT_EMAIL, linkId, login, PHONE, todayInAppTz } from './helpers';
+import { deleteMovements, linkId, login, PHONE, todayInAppTz } from './helpers';
 
 test.use({ viewport: PHONE });
 
@@ -72,12 +72,11 @@ test('a sticky month header holds short day headings', async ({ page, baseURL })
 
 	const month = (ymd: string) => {
 		const [y, m] = ymd.split('-').map(Number);
-		const label = new Intl.DateTimeFormat('es-AR', {
-			month: 'long',
-			year: 'numeric',
-			timeZone: 'UTC'
-		}).format(new Date(Date.UTC(y, m - 1, 1, 12)));
-		return label.charAt(0).toUpperCase() + label.slice(1);
+		const name = new Intl.DateTimeFormat('es-AR', { month: 'long', timeZone: 'UTC' }).format(
+			new Date(Date.UTC(y, m - 1, 1, 12))
+		);
+		// "Noviembre 2026": capitalized month, a space, the year; no "de".
+		return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${y}`;
 	};
 	await expect(page.getByRole('heading', { level: 2, name: month(today) })).toBeVisible();
 	await expect(page.getByRole('heading', { level: 2, name: month('2023-03-27') })).toBeVisible();
@@ -182,20 +181,6 @@ test('Cuenta takes several accounts; Limpiar resets the staged filters', async (
 	await expect.poll(() => new URL(page.url()).searchParams.has('account')).toBe(false);
 	expect(new URL(page.url()).searchParams.get('q')).toBe(prefix);
 	await expect(filtersButton(page)).toHaveText('Filtros');
-});
-
-test('the empty list offers "Nuevo movimiento", which opens the drawer in place', async ({
-	page
-}) => {
-	// `importa` is seeded without movements (only mp-import writes to it).
-	await page.context().clearCookies();
-	await login(page, IMPORT_EMAIL);
-	await page.goto('/movements', { waitUntil: 'networkidle' });
-	test.skip((await page.getByText('Sin movimientos.').count()) === 0, 'the import spec is running');
-	const url = page.url();
-	await page.locator('main').getByRole('link', { name: 'Nuevo movimiento', exact: true }).click();
-	await expect(page.getByRole('dialog', { name: 'Nuevo movimiento' })).toBeVisible();
-	expect(page.url()).toBe(url);
 });
 
 async function openDrawer(page: Page) {

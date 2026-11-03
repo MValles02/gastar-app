@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Currency } from '$lib/money';
+	import { goto, preloadData, pushState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
 	import { highlight } from '$lib/highlight.svelte';
@@ -28,6 +29,20 @@
 	} = $props();
 
 	const highlighted = $derived(highlight.id === m.id);
+
+	// An unmodified click opens the detail drawer over the list (shallow route, URL unchanged);
+	// anything else follows the link.
+	async function open(e: MouseEvent) {
+		if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+			return;
+		if (!(e.target as Element).closest('a')) return;
+		e.preventDefault();
+		const href = resolve(`/movements/${m.id}`);
+		const result = await preloadData(href);
+		if (result.type === 'loaded' && result.status === 200)
+			pushState('', { movement: result.data as App.PageState['movement'] });
+		else await goto(href);
+	}
 </script>
 
 {#snippet value()}
@@ -50,7 +65,8 @@
 {/snippet}
 
 <!-- The wrapper only carries the e2e/test hook; it adds no box. -->
-<div class="hl" data-highlighted={highlighted ? 'true' : undefined}>
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+<div class="hl" data-highlighted={highlighted ? 'true' : undefined} onclick={open}>
 	<ListRow
 		class={highlighted ? 'highlighted' : ''}
 		href={resolve(`/movements/${m.id}`)}

@@ -13,6 +13,8 @@ declare global {
 		/** Shallow-routing state: the "Nuevo movimiento" drawer opened over the current screen. */
 		interface PageState {
 			newMovement?: import('./routes/(app)/movements/new/$types').PageData;
+			/** A movement's detail drawer opened over the list. */
+			movement?: import('./routes/(app)/movements/[id]/$types').PageData;
 		}
 	}
 }

@@ -33,7 +33,8 @@ async function create(page: Page, description: string, date: string) {
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 }
 
-const dateOf = (page: Page) => page.locator('dt', { hasText: 'Fecha' }).locator('+ dd');
+// No JavaScript: the full page's native date input. With JavaScript: the Fecha row of the drawer.
+const dateOf = (page: Page) => page.locator('input[name="occurredAt"]');
 
 test.describe('without JavaScript', () => {
 	test.use({ javaScriptEnabled: false });
@@ -51,7 +52,7 @@ test.describe('without JavaScript', () => {
 				.getByText(desc)
 		).toBeVisible();
 		await page.getByText(desc).click();
-		await expect(dateOf(page)).toHaveText('29/02/2024');
+		await expect(dateOf(page)).toHaveValue('2024-02-29');
 		await expect(dateOf(page)).not.toHaveText(/\d:\d\d/);
 	});
 
@@ -60,7 +61,7 @@ test.describe('without JavaScript', () => {
 		await create(page, desc, '2024-02-29');
 		await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
 		await page.getByText(desc).click();
-		await expect(dateOf(page)).toHaveText('29/02/2024');
+		await expect(dateOf(page)).toHaveValue('2024-02-29');
 	});
 
 	test('an impossible date posted directly is rejected with the value kept', async ({
@@ -181,5 +182,7 @@ test('a legacy non-midnight row uses its Buenos Aires date everywhere', async ({
 
 	await page.goto(list);
 	await page.getByText('Legado fin del día').click();
-	await expect(dateOf(page)).toHaveText('14/03/2025');
+	await expect(page.getByRole('dialog').getByRole('button', { name: /^Fecha/ })).toContainText(
+		'14/03/2025'
+	);
 });

@@ -75,7 +75,7 @@ test('an empty Cuenta filter reads "Todas" with no badge', async ({ page }) => {
 test('detail heroes show the amount without a badge', async ({ page }) => {
 	await page.goto('/movements', { waitUntil: 'networkidle' });
 	await page.locator('main a[href^="/movements/"]').first().click();
-	const hero = page.getByRole('region', { name: 'Monto' });
-	await expect(hero).toBeVisible();
-	await expect(hero.locator('.badge')).toHaveCount(0);
+	const amount = page.getByRole('dialog').getByRole('button', { name: /^Monto: / });
+	await expect(amount).toBeVisible();
+	await expect(amount.locator('.badge')).toHaveCount(0);
 });

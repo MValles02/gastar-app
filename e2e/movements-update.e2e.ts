@@ -50,7 +50,7 @@ test('?/update with only a description persists it', async ({ page, baseURL }) =
 	const res = await postUpdate(page, baseURL!, href, { description: after });
 	expect((await res.json()).type).toBe('success');
 	await page.goto(href);
-	await expect(page.getByRole('heading', { level: 1, name: after })).toBeVisible();
+	await expect(page.getByRole('button', { name: `Descripción: ${after}` })).toBeVisible();
 });
 
 test('?/update rejects an ARS amount with decimals', async ({ page, baseURL }) => {

@@ -4,7 +4,7 @@ import { listAccounts } from '$lib/server/accounts-queries';
 import { listCategories } from '$lib/server/categories-queries';
 import type { Currency } from '$lib/money';
 import { toRecentItem } from '$lib/server/dashboard';
-import { dayHeading, localDay, monthLabel } from '$lib/server/month';
+import { dayHeading, localDay, monthHeading } from '$lib/server/month';
 import { parseMovementFilters } from '$lib/server/movements';
 import { listMovements, PAGE_SIZE, summarizeMovements } from '$lib/server/movements-queries';
 
@@ -56,7 +56,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		const currency = filterCurrency ?? r.accountCurrency;
 		let month = months.at(-1);
 		if (month?.ym !== ym) {
-			month = { ym, label: monthLabel(ym), days: [] };
+			month = { ym, label: monthHeading(ym), days: [] };
 			months.push(month);
 		}
 		let group = month.days.at(-1);
