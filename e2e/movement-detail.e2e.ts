@@ -257,3 +257,24 @@ test('an invalid amount shows the error and keeps the old value', async ({ page,
 	await expect(saved(page)).toHaveCount(0);
 	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('$1.000');
 });
+
+test('Deshacer restores a transfer account change that dropped the rate', async ({
+	page,
+	baseURL
+}) => {
+	const desc = await arrange(page, baseURL!, {
+		type: 'transfer',
+		account: 'Efectivo',
+		destination: 'Ahorro USD',
+		rate: '1000'
+	});
+	const drawer = await openDrawer(page, desc);
+	await pick(page, 'Hacia', 'Banco Galicia');
+	await expect(saved(page)).toBeVisible();
+	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toContainText('Banco Galicia');
+	await expect(drawer.getByRole('button', { name: /^Cotización/ })).toHaveCount(0);
+	await undo(page);
+	await expect(page.getByText('No se pudo deshacer.')).toHaveCount(0);
+	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toContainText('Ahorro USD');
+	await expect(drawer.getByRole('button', { name: 'Cotización: 1.000' })).toBeVisible();
+});

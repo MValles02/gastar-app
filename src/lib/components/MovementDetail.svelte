@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import { refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { autosave, submitAction } from '$lib/autosave';
@@ -68,7 +69,15 @@
 	const path = $derived(resolve(`/movements/${m.id}`));
 
 	function save(fields: Record<string, string>) {
-		const previous = Object.fromEntries(Object.keys(fields).map((k) => [k, values[k]]));
+		// A transfer's account change can drop its rate: undo restores the whole prior state.
+		const touchesAccount = 'accountId' in fields || 'destinationAccountId' in fields;
+		const keys = [
+			...Object.keys(fields),
+			...(isTransfer && touchesAccount
+				? ['accountId', 'destinationAccountId', 'exchangeRate', 'amount']
+				: [])
+		];
+		const previous = Object.fromEntries(keys.map((k) => [k, values[k]]));
 		return autosave<{ movement: Movement }>({
 			path: `${path}?/update`,
 			fields,
@@ -99,6 +108,15 @@
 		}
 		errors[key] = (await save({ ...pending, [key]: id })) ?? '';
 	}
+
+	// Same text as the server (src/lib/server/movements.ts).
+	const RATE_MESSAGE = 'Ingresá la cotización (1 USD = X ARS) en pesos enteros y mayor a cero.';
+	const staged = $derived(Object.keys(pending).length > 0);
+	// Closing with an account change still waiting for its Cotización drops it: say so.
+	$effect(() => () => {
+		if (Object.keys(untrack(() => pending)).length)
+			toast.error('No se guardó el cambio de cuenta.');
+	});
 
 	const saveRate = (next: string) => save({ ...pending, exchangeRate: next });
 
@@ -150,6 +168,7 @@
 				label="Fecha"
 				min="2000-01-01"
 				bind:value={() => values.occurredAt, (v) => void saveField('occurredAt', v)}
+				plain
 				nested={drawer}
 				error={errors.occurredAt}
 				errorId="date-error"
@@ -207,14 +226,17 @@
 								inputmode="numeric"
 								prefix="1 USD = $"
 								value={values.exchangeRate}
+								open={staged}
+								required={staged}
 								onsave={saveRate}
 							>
 								{#snippet display()}
-									1 USD = {m.exchangeRate !== null ? formatMoney(m.exchangeRate, 'ARS') : '$0'}
+									1 USD = {m.exchangeRate !== null ? formatMoney(m.exchangeRate, 'ARS') : '$'}
 								{/snippet}
 							</InlineText>
 						</span>
 					</div>
+					{#if staged}<p class="staged" role="alert">{RATE_MESSAGE}</p>{/if}
 				</li>
 			{/if}
 		{:else}
@@ -355,6 +377,12 @@
 		min-width: 0;
 		text-align: right;
 		font-weight: 500;
+	}
+
+	.staged {
+		padding: 0 var(--space-4) var(--space-3);
+		color: var(--negative);
+		font-size: var(--font-size-sm);
 	}
 
 	.hint {

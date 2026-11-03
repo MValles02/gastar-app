@@ -38,7 +38,7 @@
 	});
 
 	let type = $derived<string>(data.filters.type);
-	// Single-select until the multi-select drawer (T2); the URL already accepts several.
+	// The drawer edits several; the in-page controls show the first.
 	let account = $derived<string>(data.accountIds[0] ?? '');
 	let category = $derived<string>(data.categoryIds[0] ?? '');
 	let from = $derived<string>(data.filters.from);

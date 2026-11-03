@@ -122,7 +122,7 @@
 		<input type="hidden" name="from" value={from} disabled={!from} bind:this={hidden} />
 		<input type="hidden" name="to" value={to} disabled={!to} />
 	</div>
-	<BottomDrawer title="Fechas (Rango)" {nested} bind:open>
+	<BottomDrawer title="Fechas" {nested} bind:open>
 		{#if custom}
 			<RangeCalendar
 				value={range}

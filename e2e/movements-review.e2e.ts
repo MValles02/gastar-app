@@ -43,7 +43,7 @@ test('the Fechas drawer offers presets, a custom range and a single-day summary'
 	let dialog = await openFilters(page);
 	await dialog.getByRole('button', { name: /Fechas/ }).click();
 	const picker = page.getByRole('dialog').last();
-	await expect(picker.getByText('Fechas (Rango)')).toBeVisible();
+	await expect(picker.getByText('Fechas', { exact: true })).toBeVisible();
 	await picker.getByRole('button', { name: 'Este mes' }).click();
 	// Staged: the row reads the preset and nothing navigates until "Ver".
 	await expect(dialog.getByRole('button', { name: /Fechas/ })).toContainText('Este mes');

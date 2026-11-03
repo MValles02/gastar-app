@@ -75,7 +75,7 @@
 					<button
 						{...props}
 						type="button"
-						class="opt {props.class}"
+						class="opt text-left {props.class}"
 						data-value={item.id}
 						aria-pressed={on}
 						onclick={() => toggle(item.id)}

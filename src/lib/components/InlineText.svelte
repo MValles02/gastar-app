@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tick, type Snippet } from 'svelte';
+	import { tick, untrack, type Snippet } from 'svelte';
 
 	/**
 	 * A value shown as text that turns into an input when tapped. Enter or blur saves through `onsave`
@@ -13,9 +13,15 @@
 		inputmode = 'text',
 		prefix,
 		maxlength,
+		open = false,
+		required = false,
 		display,
 		onsave
 	}: {
+		/** Starts in edit mode, focused. */
+		open?: boolean;
+		/** Marks the input required. */
+		required?: boolean;
 		/** The saved value, as it is edited. */
 		value: string;
 		/** Accessible name: the trigger reads "<label>: <value>", the input "<label>". */
@@ -29,8 +35,8 @@
 		onsave: (next: string) => Promise<string | null>;
 	} = $props();
 
-	let editing = $state(false);
-	let draft = $state('');
+	let editing = $state(untrack(() => open));
+	let draft = $state(untrack(() => (open ? value : '')));
 	let error = $state('');
 	let input: HTMLInputElement | null = $state(null);
 	const errorId = $props.id();
@@ -60,6 +66,8 @@
 				bind:value={draft}
 				{inputmode}
 				{maxlength}
+				{required}
+				{@attach (n) => n.focus()}
 				aria-label={label}
 				autocomplete="off"
 				onblur={commit}
