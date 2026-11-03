@@ -12,6 +12,9 @@ export default defineConfig({
 	// writers use the seeded `otro` user, so a spec that asserts exact figures uses data no other
 	// file writes, or its own `signUpVerified` user.
 	fullyParallel: false,
+	// CI runners for this private repo have 2 vCPUs, so Playwright's default (half the cores)
+	// would run every spec on a single worker.
+	workers: process.env.CI ? 2 : undefined,
 	retries: process.env.CI ? 1 : 0,
 	// html feeds the report artifact CI uploads on failure.
 	reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
