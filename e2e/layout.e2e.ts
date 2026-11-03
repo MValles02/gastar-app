@@ -353,7 +353,14 @@ test('back links go up to a fixed parent and tabs have none', async ({ page }) =
 test('new movement returns to the screen it was opened from', async ({ page }) => {
 	await login(page);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await page.getByRole('link', { name: 'Nuevo movimiento' }).click();
+	// The + button opens a drawer now; an in-app link stands in for it to reach the full page.
+	await page.evaluate(() => {
+		const a = document.createElement('a');
+		a.href = '/movements/new';
+		a.textContent = 'Nuevo movimiento (test)';
+		document.querySelector('main')!.prepend(a);
+	});
+	await page.getByRole('link', { name: 'Nuevo movimiento (test)' }).click();
 	await expect(page).toHaveURL(/\/movements\/new$/);
 	await expect.poll(() => pathOf(backLink(page))).toBe('/plan');
 	expect(await pathOf(page.getByRole('link', { name: 'Cancelar' }))).toBe('/plan');

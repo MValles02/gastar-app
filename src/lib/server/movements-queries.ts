@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ilike, inArray, lt, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, inArray, isNotNull, lt, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
@@ -30,6 +30,16 @@ export function createMovement(
 		.insert(movements)
 		.values({ ...row, ...movementOwnedBy(userId) })
 		.returning({ id: movements.id });
+}
+
+/** Movements per category (all time), for ranking the category picker by use. */
+export function categoryUsage(userId: string) {
+	return db
+		.select({ categoryId: movements.categoryId, uses: sql<number>`count(*)`.mapWith(Number) })
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.where(and(canAccessMovement(userId), isNotNull(movements.categoryId)))
+		.groupBy(movements.categoryId);
 }
 
 /** Single filter predicate shared by the list and its summary (same joins: account, dest, categories). */

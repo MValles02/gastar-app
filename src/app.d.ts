@@ -10,6 +10,10 @@ declare global {
 			user: Session['user'] | null;
 			session: Session['session'] | null;
 		}
+		/** Shallow-routing state: the "Nuevo movimiento" drawer opened over the current screen. */
+		interface PageState {
+			newMovement?: import('./routes/(app)/movements/new/$types').PageData;
+		}
 	}
 }
 

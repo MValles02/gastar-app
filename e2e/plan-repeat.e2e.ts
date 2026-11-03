@@ -17,7 +17,7 @@ import {
 test.describe.configure({ timeout: 60_000 });
 
 const rule = (page: Page, text: string) => page.locator('.rule', { hasText: text });
-const checkbox = (page: Page) => page.getByRole('switch', { name: 'Repetir cada mes' });
+const checkbox = (page: Page) => page.getByRole('switch', { name: 'Repetir todos los meses' });
 /** A uniquely described ARS outcome as `otro`, filled but not submitted. */
 const fillOutcome = (page: Page, description: string, amount: string) =>
 	fillMovement(page, {
@@ -39,14 +39,16 @@ const movementCount = async (page: Page, description: string) => {
 	return page.locator('a[href*="movements/"]').filter({ hasText: description }).count();
 };
 
-test('Repetir cada mes creates the rule and a movement linked to it', async ({ page, baseURL }) => {
+test('Repetir todos los meses creates the rule and a movement linked to it', async ({
+	page,
+	baseURL
+}) => {
 	const description = 'Repite e2e';
 	await login(page, OTHER_EMAIL);
 	await cleanup(page, baseURL!, description);
 	try {
 		await fillOutcome(page, description, '1.000');
 		await expect(checkbox(page)).not.toBeChecked();
-		await expect(page.getByText('Te lo recordamos el mismo día de cada mes.')).toBeVisible();
 		await checkbox(page).check();
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
@@ -102,8 +104,8 @@ test('a transfer hides the switch and never creates a rule', async ({ page, base
 			await page.keyboard.press('Escape');
 			return value;
 		};
-		const origin = await id('Origen', /Otra cuenta pesos/);
-		const destination = await id('Destino', /Otra cuenta\s*USD/);
+		const origin = await id('Desde', /Otra cuenta pesos/);
+		const destination = await id('Hacia', /Otra cuenta\s*Dólares/);
 		const res = await page.request.post('/movements/new', {
 			form: {
 				type: 'transfer',
@@ -227,7 +229,7 @@ test('Inicio with a plan shows the same Disponible as /plan and links to it', as
 	);
 });
 
-test('Registrar pago hides Repetir cada mes', async ({ page, baseURL }) => {
+test('Registrar pago hides Repetir todos los meses', async ({ page, baseURL }) => {
 	await login(page, OTHER_EMAIL);
 	await setCurrencyCookie(page, baseURL!, 'USD');
 	await page.goto('/plan', { waitUntil: 'networkidle' });

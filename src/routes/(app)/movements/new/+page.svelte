@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { toast } from 'svelte-sonner';
 	import { afterNavigate, replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { undoMovementSaved } from '$lib/undo-toast';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
@@ -36,14 +36,20 @@
 		try {
 			const url = new URL(page.url);
 			url.searchParams.delete('saved');
+			url.searchParams.delete('rule');
 			replaceState(resolve((url.pathname + url.search + url.hash) as '/'), {});
 		} catch {
 			setTimeout(stripSaved, 50);
 		}
 	};
+	let toasted: string | null = null;
 	afterNavigate(() => {
 		if (data.saved && !form) {
-			toast.success('Movimiento guardado.');
+			// Once per saved id, however many navigations land before the flag is stripped.
+			if (data.saved !== toasted) {
+				toasted = data.saved;
+				undoMovementSaved(data.saved, data.savedRule);
+			}
 			stripSaved();
 		}
 	});

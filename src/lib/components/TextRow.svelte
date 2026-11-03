@@ -147,6 +147,8 @@
 
 	.lbl input:focus-visible {
 		outline-offset: -2px;
+		/* The ring follows the card's rounding instead of a square box. */
+		border-radius: var(--radius-sm);
 	}
 
 	.toggle {

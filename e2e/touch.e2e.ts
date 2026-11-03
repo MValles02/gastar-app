@@ -58,7 +58,7 @@ test.describe('signed in', () => {
 		await page.goto('/movements/new', { waitUntil: 'networkidle' });
 		for (const type of ['Ingreso', 'Gasto', 'Transf.'])
 			await expectHitArea(page.getByRole('radio', { name: type, exact: true }));
-		await expectHitArea(page.getByRole('switch', { name: 'Repetir cada mes' }));
+		await expectHitArea(page.getByRole('switch', { name: 'Repetir todos los meses' }));
 	});
 
 	test('the savings % / $ toggle has 44px hit areas', async ({ page }) => {
