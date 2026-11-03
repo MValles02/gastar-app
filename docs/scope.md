@@ -30,7 +30,7 @@ Personal finance PWA for Argentina. Answers two questions:
 - Phone OTP: future, not MVP.
 - Password reset: by emailed link (sent through Resend).
 - Every user's data is isolated from every other user's.
-- Shared accounts between users: **future**. The data model must leave this door open (see DATA_MODEL.md).
+- Shared accounts between users: **future**. The data model must leave this door open (see data-model.md).
 
 ## Locale & formatting
 

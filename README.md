@@ -78,7 +78,7 @@ Windows quick start (PowerShell).
 
    ```powershell
    docker compose up -d     # Postgres on 127.0.0.1:5432
-   pnpm db:migrate
+   pnpm db:deploy
    pnpm db:seed             # demo data; safe to re-run (resets only the demo user)
    pnpm dev                 # http://localhost:5173
    ```

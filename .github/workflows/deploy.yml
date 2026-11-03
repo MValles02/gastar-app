@@ -1,22 +1,29 @@
 # Image build and Dokploy redeployment for both environments: pushes to `main`
-# deploy production (web.gastar.app), pushes to `develop` deploy the development
-# environment (dev.gastar.app). Deploy secrets live in the `production` and
-# `development` GitHub environments, not at repository level.
-# CI checks run on the PR (required by the ruleset) and are not repeated on push.
-# A manual run redeploys the current branch tip, which reached main/develop only
-# through a PR that passed those checks; it must be confirmed by typing the
-# branch name, so a stray click never redeploys production.
+# deploy production, pushes to `develop` deploy the development environment
+# (a repo without a `develop` branch simply never triggers that path). Deploy
+# secrets live in the `production`/`development` GitHub environments, not at
+# repository level.
+#
+# Checks run on the pull request (and are required by the branch ruleset), so
+# they are not repeated on push. A manual run (workflow_dispatch) has no PR
+# behind it, so it must name the branch it deploys and it runs the full CI
+# workflow (checks + e2e) first; publish and deploy only follow a green run.
+#
+# The VPS has four shared vCPUs, so CI builds the image and the server only
+# pulls the completed artifact.
 name: Deploy
 
 on:
   push:
     branches: [main, develop]
+    # Documentation-only commits do not need an image rebuild or redeployment.
     paths-ignore:
-      - '**.md'
+      - "**.md"
+  # Allows rebuilding without a commit, for example after a build argument change.
   workflow_dispatch:
     inputs:
       confirm:
-        description: Type the branch name (main or develop) to confirm the redeploy
+        description: "Type the selected branch name (main or develop) to build and deploy it"
         required: true
         type: string
 
@@ -27,64 +34,98 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  checks:
+    name: Checks before manual deploy
+    # workflow_dispatch can be run from any branch; restrict to main and develop
+    # and require the typed confirmation to match the selected branch, so a
+    # mis-click never deploys (production in particular).
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+      && inputs.confirm == github.ref_name
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
   publish:
     name: Build and publish to GHCR
-    # workflow_dispatch can be run from any branch; restrict to main and develop
-    # so a manual trigger from any other branch never builds or deploys.
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    needs: checks
+    # A push deploys directly (the checks job is skipped); a manual run deploys
+    # only after its checks succeeded, which also enforces the branch and
+    # confirmation conditions above.
+    if: >-
+      !cancelled()
+      && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+      && (github.event_name == 'push' || needs.checks.result == 'success')
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
-    timeout-minutes: 20
+
     steps:
-      - name: Confirm manual run
-        if: github.event_name == 'workflow_dispatch'
-        env:
-          CONFIRM: ${{ inputs.confirm }}
-        run: |
-          if [ "$CONFIRM" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::Confirmation '$CONFIRM' does not match branch '$GITHUB_REF_NAME'; nothing was built or deployed."
-            exit 1
-          fi
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+
+      # GHCR image names must be lowercase.
+      - name: Resolve image name
+        id: image
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+
+      - name: Extract image metadata
         id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: ghcr.io/mvalles02/gastar-app
+          images: ${{ steps.image.outputs.image }}
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=develop,enable=${{ github.ref == 'refs/heads/develop' }}
             type=sha
-      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+
+      # BUILD_ARGS (DEV_BUILD_ARGS for develop) is a multi-line repository
+      # variable of KEY=VALUE build arguments, may be empty. They are variables,
+      # not secrets: a build inlines them into the image, so changing one
+      # requires workflow_dispatch or a commit-triggered rebuild.
+      - name: Build and publish
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: GIT_SHA=${{ github.sha }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            ${{ github.ref == 'refs/heads/main' && vars.BUILD_ARGS || vars.DEV_BUILD_ARGS }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   deploy:
     name: Deploy to Dokploy
     needs: publish
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    # Explicit result check: on a push the skipped `checks` job is a
+    # transitive dependency, which would otherwise skip this job too.
+    if: >-
+      !cancelled()
+      && needs.publish.result == 'success'
+      && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
-    # Secrets live in the "production" (main only) and "development" (develop
-    # only) environments.
+    timeout-minutes: 15
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
     permissions: {}
-    timeout-minutes: 15
+
     steps:
       - name: Trigger Dokploy deploy
         env:

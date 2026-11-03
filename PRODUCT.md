@@ -34,7 +34,7 @@ It is private and self-hosted, run for the owner and their friends and family on
 - Categories have no type and are shared across currencies, with stats split by currency.
 - Reportes shows one currency and month at a time: totals, 6-month income and outcome bars, spending by category, daily average and biggest outcome. Phone OTP is future work, not MVP.
 - UI text is Spanish (es-AR). Code, docs and identifiers are English.
-- Authoritative detail lives in `docs/SCOPE.md` and `docs/DATA_MODEL.md`.
+- Authoritative detail lives in `docs/scope.md` and `docs/data-model.md`.
 
 ## Brand Commitments
 
