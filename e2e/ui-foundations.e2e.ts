@@ -115,3 +115,17 @@ test('text inputs stay 16px while body text is 15px (no iOS zoom)', async ({ pag
 	expect(await fontSize(page, 'input[name="name"]')).toBe(16);
 	expect(await fontSize(page, 'body')).toBe(15);
 });
+
+test('the bottom drawer has a 20px title, no close button, and closes on Escape', async ({
+	page
+}) => {
+	await page.goto('/movements/new', { waitUntil: 'networkidle' });
+	await page.getByRole('button', { name: /^Cuenta/ }).click();
+	const dialog = page.getByRole('dialog');
+	const title = dialog.getByRole('heading', { name: 'Elegí la cuenta' });
+	await expect(title).toBeVisible();
+	expect(await title.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBe(20);
+	await expect(dialog.getByRole('button', { name: 'Cerrar' })).toHaveCount(0);
+	await page.keyboard.press('Escape');
+	await expect(dialog).toBeHidden();
+});
