@@ -104,7 +104,7 @@ export const accountRelations = relations(account, ({ one }) => ({
 	user: one(user, { fields: [account.userId], references: [user.id] })
 }));
 
-// --- Finance domain tables (see docs/DATA_MODEL.md) ---
+// --- Finance domain tables (see docs/data-model.md) ---
 
 export const currencyEnum = pgEnum('currency', ['ARS', 'USD']);
 export const movementTypeEnum = pgEnum('movement_type', ['income', 'outcome', 'transfer']);
@@ -306,7 +306,7 @@ export const movements = pgTable(
 	]
 );
 
-// --- Mercado Pago import staging (see docs/DATA_MODEL.md) ---
+// --- Mercado Pago import staging (see docs/data-model.md) ---
 
 export const importStatusEnum = pgEnum('import_status', ['pending', 'approved', 'rejected']);
 export const importRuleMatchKindEnum = pgEnum('import_rule_match_kind', [

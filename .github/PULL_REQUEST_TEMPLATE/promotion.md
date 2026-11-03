@@ -4,17 +4,15 @@
 
 ## Migrations in this release
 
-<!-- List each migration and confirm it follows expand/contract (deploys are start-first and migrations run at container start, so it must be safe with the previous release still running). Write "None" if there are no migrations. -->
+<!-- List each migration and confirm it follows expand/contract (deploys are start-first, so it must be safe with the previous release still running). Write "None" if there are no migrations. -->
 
 - [ ] `<migration name>`: expand/contract confirmed
 
-## Required env/secret changes before deploy
+## Required env and secret changes
 
 <!-- Variables or secrets to add/change in Dokploy or GitHub environments before merging. Write "None" if not needed. -->
 
-## Verified on dev.gastar.app
+## Verified on development
 
-- [ ] Sign-up with email verification
-- [ ] Login
-- [ ] Add a movement
-- [ ] `/health` reports the develop SHA
+- [ ] `DEV_HEALTH_URL` reports the develop sha
+- [ ] Flows in `docs/deployment.md` § Promotion checks

@@ -1,169 +1,72 @@
 # Workflow
 
-## Branching & PRs
+This file is identical in every app repo (gastar-app, parfam-mdq, gastar-app-landing). It is copied from `standards/apps/` in the [infra](https://github.com/mvalles02/infra) repo; edit it there, never here. Repo specifics (Dokploy apps, backups, rollback, promotion checks) live in `docs/deployment.md`.
 
-- `develop` is the integration branch; every push auto-deploys
-  https://dev.gastar.app (image tag `:develop`, `development` GitHub
-  environment). Dependabot PRs target `develop`.
-- `main` is production (https://web.gastar.app, `production` GitHub
-  environment); it auto-deploys on every merge (skipped for doc-only changes).
-- All work happens on feature branches, named `feat/`, `fix/`, `chore/`, or
-  `docs/` (e.g. `feat/expense-filters`).
-- Feature branches merge into `develop` via pull request, **squash merge
-  only**.
-- PR titles follow Conventional Commits (`feat: ...`, `fix: ...`,
-  `chore: ...`, `docs: ...`) since the squash commit uses the PR title.
-- `develop` is promoted to `main` through a pull request with a **merge
-  commit**. Never squash the promotion: it creates a commit on `main` that
-  `develop` does not have, so the branches diverge.
+## Branching
 
-Open the promotion PR with the template, then paste the changelog under
-`## Changelog`:
+- Work on a feature branch (`feat/`, `fix/`, `chore/`, `docs/`) and open a PR. Commits follow Conventional Commits.
+- Repos with `develop` (gastar-app, parfam-mdq): feature branch -> `develop` with **squash**; `develop` -> `main` with a **merge commit**, using the promotion PR template (`.github/PULL_REQUEST_TEMPLATE/promotion.md`). Only `develop` of this repo may be merged into `main` (`develop-only` check).
+- Single-environment repos (gastar-app-landing: no `develop`): feature branch -> `main` with **squash**. The same files apply; `develop-only` passes with a notice because the `develop` branch does not exist.
+- The default branch is `develop` where it exists, `main` otherwise.
 
-```bash
-gh pr create --base main --head develop --template .github/PULL_REQUEST_TEMPLATE/promotion.md
-git log --first-parent --format='- %s' origin/main..origin/develop
-```
+## Auto-merge
 
-`gh pr create --template` takes a file path, not a template name. In the web UI
-use `?template=promotion.md` in the compare URL instead.
-
-## Design
-
-- UI-affecting PRs reference the design pass (`/impeccable shape` or `craft`
-  for new screens).
-- Run `/impeccable audit` (and `polish`) before opening the PR.
-- Update root `DESIGN.md` when the visual system changes.
-- Fresh clones: run `npx impeccable install` (project scope); the skill
-  binary is gitignored.
+`.github/workflows/auto-merge.yml` enables auto-merge (squash) on every non-draft PR opened from a branch of this repo, Dependabot's included, so it merges itself once the required checks are green. The `develop` -> `main` promotion is excluded and stays a manual merge commit. The job uses the `AUTO_MERGE_TOKEN` secret (a fine-grained PAT, stored as both an Actions and a Dependabot secret) so the merge triggers the deploy; without the secret it skips with a notice.
 
 ## CI gate
 
-Two GitHub rulesets make this a hard block, not just convention. Force push
-and deletion are blocked on both branches:
+`.github/workflows/ci.yml` runs on every pull request and is called by `deploy.yml` before a manual deploy.
 
-- `develop`: pull requests only, squash merge only, required status checks
-  `checks` and `e2e`.
-- `main`: pull requests only, merge commit only, required status checks
-  `checks`, `e2e` and `develop-only`. `develop-only` comes from
-  `.github/workflows/promotion-guard.yml`: rulesets cannot restrict a PR's
-  source branch, so this check fails unless the PR head is `develop` of this
-  repository.
+| Check | Required on | What it runs |
+| --- | --- | --- |
+| `checks` | every PR | gitleaks over the PR commits, `pnpm lint`, `pnpm typecheck`, `pnpm build`, then `db:deploy` and `test` when present |
+| `e2e` | every PR | Playwright browser install, `db:deploy`, `test:e2e:setup` when present, `pnpm test:e2e` |
+| `develop-only` | PRs into `main` | head must be `develop` of this repo (passes when the repo has no `develop`) |
 
-Required checks and where they come from:
+Both CI jobs run against a throwaway `postgres:17-alpine` (`DATABASE_URL=postgresql://ci:ci@localhost:5432/ci`). `secrets-scan.yml` also scans the commits of every push, on any branch.
 
-| Check          | Workflow             | Runs on                | Required on     |
-| -------------- | -------------------- | ---------------------- | --------------- |
-| `checks`       | `ci.yml`             | pull requests          | `develop`, `main` |
-| `e2e`          | `ci.yml`             | pull requests          | `develop`, `main` |
-| `develop-only` | `promotion-guard.yml`| pull requests to `main`| `main`          |
-| `push-scan`    | `secrets-scan.yml`   | pushes to any branch   | not required    |
+## Script contract
 
-- `.github/workflows/ci.yml` runs on every pull request: a gitleaks scan of
-  the PR's commits only (shallow checkout sized to the PR), install, lint,
-  check, build (all in `checks`), and Playwright E2E against a production
-  build made with `VITE_E2E=1` (`e2e`).
-- `.github/workflows/secrets-scan.yml` runs gitleaks over the commits of
-  every push, on any branch, so a secret pushed to a feature branch is
-  flagged before a PR exists. It is advisory: if it fails, rotate the secret
-  at its source and rewrite the branch before opening the PR. It is a
-  separate workflow because a push run inside `ci.yml` would add skipped
-  `checks`/`e2e` runs, and GitHub counts skipped as passing.
-- `.github/workflows/deploy.yml` does not re-run CI: the checks run on the PR
-  and are required by the ruleset, so they are not repeated on push.
+Every app `package.json` has `packageManager: pnpm@12.6.0`, `engines.node: ">=24"` and a `prepare` script that contains `husky`.
+
+| Script | Required | Meaning |
+| --- | --- | --- |
+| `lint` | yes | `prettier --check .` + eslint |
+| `typecheck` | yes | static types |
+| `build` | yes | builds the deploy artifact |
+| `test:e2e` | yes | Playwright |
+| `test` | optional | integration tests against `DATABASE_URL` |
+| `db:deploy` | optional | apply committed migrations, non-interactive |
+| `test:e2e:setup` | optional | seeds needed by e2e, after `db:deploy` |
+| `ci:env` | optional | `node scripts/ci-env.mjs <checks\|e2e>` prints non-secret `KEY=VALUE` placeholders |
+
+CI appends the `ci:env` output to `$GITHUB_ENV` after `DATABASE_URL`, so a later line wins. Only integration and E2E tests are written, never unit tests.
 
 ## Deploy pipeline
 
-On push to `main` or `develop` (or manual `workflow_dispatch` from either):
+`.github/workflows/deploy.yml`:
 
-A manual run redeploys the branch tip, which got there only through a PR that
-passed the required checks, so it does not re-run them. It asks for a
-`confirm` input that must equal the branch name (`main` or `develop`);
-otherwise `publish` fails before building anything.
+1. A push to `main` or `develop` (markdown-only commits excluded) builds the image in GitHub Actions and publishes it to `ghcr.io/<owner>/<repo>` with tags `latest` (main), `develop` (develop) and `sha-<short>`. CI is not repeated on push: it already ran on the PR.
+2. The `deploy` job (GitHub environment `production` for `main`, `development` for `develop`) calls the Dokploy webhook with the Cloudflare Access service token.
+3. It polls `HEALTH_URL` (`DEV_HEALTH_URL` for develop) until the JSON reports `.status == "ok"` and `.sha` equals the pushed commit, then smoke-tests the home page.
+4. A manual run (`workflow_dispatch`) must be started from `main` or `develop` and the typed branch name must match; it runs `ci.yml` first and publishes only after it is green.
 
-1. `publish` — builds the Docker image and pushes it to GHCR as
-   `ghcr.io/mvalles02/gastar-app:latest` (main) or
-   `ghcr.io/mvalles02/gastar-app:develop` (develop), plus
-   `ghcr.io/mvalles02/gastar-app:sha-<full sha>`.
-2. `deploy` — calls the Dokploy deploy webhook to redeploy the application.
-   Push to `main` uses the `production` environment and `HEALTH_URL`; push to
-   `develop` uses the `development` environment and `DEV_HEALTH_URL`
-   (`https://dev.gastar.app/health`). Environment branch policies limit
-   `production` to `main` and `development` to `develop`.
+## Environments and variables
 
-Each environment (`production`, `development`) holds its own secrets:
-
-- `DOKPLOY_WEBHOOK_URL` — the app's deploy webhook URL (Dokploy → app →
-  Deployments → Webhook URL); it can only redeploy this app, and you can
-  regenerate it there if it leaks. The app must have Auto Deploy enabled for
-  the webhook to be accepted.
-- `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` — a Cloudflare Access
-  service token (`gastar-app-deploy`) that the deploy step sends as
-  `CF-Access-Client-Id`/`CF-Access-Client-Secret` headers, since
-  `dokploy.mateovalles.com/api/deploy*` is protected by Cloudflare Access.
-  The step fails if any of these three secrets is missing.
-
-Required GitHub variables:
-
-- `HEALTH_URL` (main) / `DEV_HEALTH_URL` (develop) — the health check URL the
-  `deploy` job polls after triggering the webhook, waiting for it to report
-  the new commit SHA before smoke-testing the site's home page. The job fails
-  if the one for its branch is not set.
-
-(`GITHUB_TOKEN` is provided automatically and used to push to GHCR.)
-
-## Dokploy app expectations
-
-- Image: `ghcr.io/mvalles02/gastar-app:latest`, pulled with registry
-  credentials for private GHCR.
-- Health check path: `/health`.
-- Rollbacks enabled.
-- Runtime env vars: see the Production section of the [README](../README.md).
-
-Development uses a separate Dokploy app, `gastar-app-dev`:
-
-- Image: `ghcr.io/mvalles02/gastar-app:develop`.
-- Its own Postgres database — never the production DB.
-- Domain `dev.gastar.app`; `BETTER_AUTH_URL` and `ORIGIN` are
-  `https://dev.gastar.app`.
-- Its own `BETTER_AUTH_SECRET`; other env vars as in the README.
+| Where | Name | Meaning |
+| --- | --- | --- |
+| Environment secret | `DOKPLOY_WEBHOOK_URL`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET` | per environment (`production`, `development`), never at repository level |
+| Repository variable | `HEALTH_URL`, `DEV_HEALTH_URL` | health endpoint returning `{"status":"ok","sha":"<commit>"}` |
+| Repository variable | `BUILD_ARGS`, `DEV_BUILD_ARGS` | optional multi-line `KEY=VALUE` image build args (production / development); `GIT_SHA` is always passed |
 
 ## Migrations
 
-- Generate SQL with `pnpm db:generate` (drizzle-kit) and commit the generated
-  files — never hand-edit or edit an already-applied migration.
-- Migrations run automatically at container start (see `Dockerfile`), so they
-  must be backward-compatible with the previous release: a rollback restores
-  the old image, not the old database.
-- Use expand/contract for breaking changes, split over two deploys. Example,
-  renaming a column:
-  1. Deploy 1: add the new column, backfill it, write to both columns, read
-     from the old one.
-  2. Deploy 2: switch reads to the new column, stop writing the old one, then
-     drop it in a later migration.
+Deploys are start-first: the old and new containers overlap on the same database. Every migration is backward compatible with the previous release (expand/contract). Destructive changes (drop, rename) ship in a later release, after no running version uses the old shape. Never edit an applied migration.
 
-## Backups
+## Required checks are not strict
 
-- Enable Dokploy's Postgres backups before the first production deploy.
-- Restoring from a backup is a manual, deliberate operation — it is not part
-  of the automated rollback path.
+The rulesets require `checks` and `e2e` but not `strict` ("require branches to be up to date"). This is a deliberate solo-developer tradeoff: with `strict=true` every open PR would have to update and re-run CI after each merge. Semantic conflicts are caught by CI on the target branch after the merge.
 
-## Rollback
+## Standards
 
-1. In Dokploy, roll back the application to the previous image tag
-   (`sha-<full sha>`).
-2. Because migrations are backward-compatible, the old image keeps working
-   against the current schema — no database rollback needed.
-3. Only restore a database backup if data itself was corrupted, and treat
-   that as a separate, deliberate operation.
-
-## Local development
-
-- `pnpm dev` binds to loopback (`127.0.0.1`, Vite default port 5173).
-- Database and seed setup: see the README "Local development" section.
-- Git hooks install automatically on `pnpm install` (husky `prepare`). The
-  pre-commit hook runs lint-staged (eslint + prettier on staged files) and a
-  gitleaks scan of staged changes via docker; the scan is skipped with a
-  warning if the docker CLI is missing. If the CLI is installed but the engine
-  is not running (Docker Desktop stopped), the commit is blocked on purpose so
-  nothing is committed unscanned: start Docker Desktop and commit again.
+The files listed in `standards/apps/` of the infra repo are the same in every app repo. From the infra checkout, `node scripts/check-standards.mjs` reports drift; see `standards/README.md` there.
