@@ -212,8 +212,8 @@ export type MovementFilterQuery = {
 	from: string;
 	to: string;
 	type: MovementType | '';
-	account: string;
-	category: string;
+	account: string[];
+	category: string[];
 	currency: Currency | '';
 };
 
@@ -221,7 +221,7 @@ export type MovementFilterQuery = {
 export function parseMovementFilters(sp: URLSearchParams) {
 	const get = (k: string) => sp.get(k) ?? '';
 	const day = (k: string) => (validDay(get(k)) ? get(k) : '');
-	const uuid = (k: string) => (isUuid(get(k)) ? get(k) : '');
+	const uuids = (k: string) => [...new Set(sp.getAll(k).filter(isUuid))];
 	let from = day('from');
 	let to = day('to');
 	if (from && to && from > to) [from, to] = [to, from];
@@ -231,19 +231,23 @@ export function parseMovementFilters(sp: URLSearchParams) {
 		from,
 		to,
 		type: TYPES.find((t) => t === get('type')) ?? '',
-		account: uuid('account'),
-		category: uuid('category'),
+		account: uuids('account'),
+		category: uuids('category'),
 		currency: CURRENCIES.find((c) => c === get('currency')) ?? ''
 	};
 	const n = Number(get('page'));
 	const page = Number.isSafeInteger(n) && n >= 1 && n <= MAX_PAGE ? n : 1;
 	// An account filter fixes the currency (its own), so currency only counts as active without one.
-	const shown: Record<string, string> = { ...query };
-	const activeCount = Object.values({
-		...shown,
-		currency: query.account ? '' : query.currency,
-		// Desde + Hasta are one range selection in the UI.
-		to: query.from ? '' : query.to
-	}).filter(Boolean).length;
-	return { values: shown, query, page, activeCount };
+	const { account, category, ...scalars } = query;
+	const shown: Record<string, string> = scalars;
+	const activeCount =
+		Object.values({
+			...shown,
+			currency: account.length ? '' : query.currency,
+			// Desde + Hasta are one range selection in the UI.
+			to: query.from ? '' : query.to
+		}).filter(Boolean).length +
+		(account.length ? 1 : 0) +
+		(category.length ? 1 : 0);
+	return { values: shown, accounts: account, categories: category, query, page, activeCount };
 }

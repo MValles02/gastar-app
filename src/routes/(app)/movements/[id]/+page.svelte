@@ -2,7 +2,6 @@
 	import { resolve } from '$app/paths';
 	import { swatchVar, toCategoryIconKey, toIconKey, toSwatchKey } from '$lib/appearance';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import DetailActions from '$lib/components/DetailActions.svelte';
 	import DetailHero from '$lib/components/DetailHero.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -104,20 +103,16 @@
 		{/if}
 	</dl>
 
-	<DetailActions editHref={resolve(`/movements/${data.movement.id}/edit`)}>
-		{#snippet destructive()}
-			<ConfirmDialog
-				triggerLabel="Eliminar"
-				triggerVariant="destructive"
-				triggerClass="w-full"
-				title="¿Eliminar movimiento?"
-				confirmLabel="Eliminar"
-				action="?/delete"
-			>
-				No se puede deshacer.
-			</ConfirmDialog>
-		{/snippet}
-	</DetailActions>
+	<ConfirmDialog
+		triggerLabel="Eliminar"
+		triggerVariant="destructive"
+		triggerClass="w-full"
+		title="¿Eliminar movimiento?"
+		confirmLabel="Eliminar"
+		action="?/delete"
+	>
+		No se puede deshacer.
+	</ConfirmDialog>
 </div>
 
 <style>

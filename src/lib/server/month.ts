@@ -99,11 +99,17 @@ export function localDay(d: Date): string {
 	}).format(d);
 }
 
-/** "Hoy", "Ayer" or e.g. "Miércoles 30 de septiembre" (year added when not todayYmd's year). */
-export function dayHeading(ymd: string, todayYmd: string): string {
+/** "Hoy", "Ayer" or e.g. "Miércoles 30 de septiembre" (year added when not todayYmd's year); `short`: "Miércoles 30". */
+export function dayHeading(ymd: string, todayYmd: string, short = false): string {
 	if (ymd === todayYmd) return 'Hoy';
 	const at = (s: string) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), 12);
 	if (at(todayYmd) - at(ymd) === DAY_MS) return 'Ayer';
+	if (short)
+		return capitalize(
+			new Intl.DateTimeFormat(LOCALE, { weekday: 'long', day: 'numeric', timeZone: 'UTC' })
+				.format(new Date(at(ymd)))
+				.replace(',', '')
+		);
 	const sameYear = ymd.slice(0, 4) === todayYmd.slice(0, 4);
 	return capitalize(
 		new Intl.DateTimeFormat(LOCALE, {

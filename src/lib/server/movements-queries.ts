@@ -53,8 +53,10 @@ function filterWhere(userId: string, query: MovementFilterQuery) {
 		fromStart ? gte(movements.occurredAt, fromStart) : undefined,
 		toEnd ? lt(movements.occurredAt, toEnd) : undefined,
 		type ? eq(movements.type, type) : undefined,
-		account ? or(eq(movements.accountId, account), eq(dest.id, account)) : undefined,
-		category ? eq(movements.categoryId, category) : undefined,
+		account.length
+			? or(inArray(movements.accountId, account), inArray(dest.id, account))
+			: undefined,
+		category.length ? inArray(movements.categoryId, category) : undefined,
 		currency
 			? or(
 					eq(financialAccounts.currency, currency),

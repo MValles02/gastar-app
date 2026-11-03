@@ -11,7 +11,6 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
-	import Money from '$lib/components/Money.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -21,8 +20,9 @@
 	let { data }: { data: PageData } = $props();
 
 	let type = $derived<string>(data.filters.type);
-	let account = $derived<string>(data.filters.account);
-	let category = $derived<string>(data.filters.category);
+	// Single-select until the multi-select drawer (T2); the URL already accepts several.
+	let account = $derived<string>(data.accountIds[0] ?? '');
+	let category = $derived<string>(data.categoryIds[0] ?? '');
 	let from = $derived<string>(data.filters.from);
 	let to = $derived<string>(data.filters.to);
 	let currency = $derived<string>(data.lockedCurrency ?? data.filters.currency);
@@ -45,6 +45,8 @@
 		// SvelteURLSearchParams: required by the svelte/prefer-svelte-reactivity lint rule.
 		const sp = new SvelteURLSearchParams();
 		for (const [k, v] of Object.entries(data.filters)) if (v) sp.set(k, v);
+		for (const id of data.accountIds) sp.append('account', id);
+		for (const id of data.categoryIds) sp.append('category', id);
 		return sp;
 	};
 	const pageQuery = (page: number) => {
@@ -124,7 +126,7 @@
 		filters={fields}
 	/>
 
-	{#if data.groups.length === 0}
+	{#if data.months.length === 0}
 		{#if data.page > 1}
 			<Empty.Root>
 				<Empty.Header>
@@ -162,24 +164,23 @@
 		{#if data.summary}
 			<p class="summary" role="status">
 				{data.summary.count}
-				{data.summary.count === 1
-					? 'movimiento'
-					: 'movimientos'}{#each data.summary.totals as t (t.currency)}&nbsp;· <Money
-						cents={t.net}
-						currency={t.currency}
-						tone="flow"
-					/>{/each}
+				{data.summary.count === 1 ? 'movimiento' : 'movimientos'}
 			</p>
 		{/if}
 		<div class="groups" aria-busy={navigating.to !== null}>
-			{#each data.groups as g (g.day)}
-				<section aria-labelledby="day-{g.day}">
-					<h2 id="day-{g.day}">{g.heading}</h2>
-					<ListCard>
-						{#each g.items as m (m.id)}
-							<MovementRow {m} />
-						{/each}
-					</ListCard>
+			{#each data.months as mo (mo.ym)}
+				<section class="month" aria-labelledby="month-{mo.ym}">
+					<h2 id="month-{mo.ym}">{mo.label}</h2>
+					{#each mo.days as g (g.day)}
+						<section aria-labelledby="day-{g.day}">
+							<h3 id="day-{g.day}">{g.heading}</h3>
+							<ListCard>
+								{#each g.items as m (m.id)}
+									<MovementRow {m} />
+								{/each}
+							</ListCard>
+						</section>
+					{/each}
 				</section>
 			{/each}
 		</div>
@@ -240,7 +241,18 @@
 		color: var(--text-muted);
 	}
 
+	.month {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-5);
+	}
+
 	h2 {
+		font-size: var(--font-size-md, 1rem);
+		font-weight: 600;
+	}
+
+	h3 {
 		font-size: var(--font-size-sm);
 		font-weight: 600;
 		color: var(--text-muted);

@@ -54,14 +54,11 @@ test.describe('without JavaScript', () => {
 		await expect(dateOf(page)).not.toHaveText(/\d:\d\d/);
 	});
 
-	test('edit keeps the date', async ({ page }) => {
-		const desc = unique('Fecha editar');
+	test('the detail page shows the date', async ({ page }) => {
+		const desc = unique('Fecha detalle');
 		await create(page, desc, '2024-02-29');
 		await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
 		await page.getByText(desc).click();
-		await page.getByRole('link', { name: 'Editar' }).click();
-		await expect(page.locator('input[name="occurredAt"]')).toHaveValue('2024-02-29');
-		await page.getByRole('button', { name: 'Guardar cambios' }).click();
 		await expect(dateOf(page)).toHaveText('29/02/2024');
 	});
 
@@ -184,6 +181,4 @@ test('a legacy non-midnight row uses its Buenos Aires date everywhere', async ({
 	await page.goto(list);
 	await page.getByText('Legado fin del día').click();
 	await expect(dateOf(page)).toHaveText('14/03/2025');
-	await page.getByRole('link', { name: 'Editar' }).click();
-	await expect(page.locator('input[name="occurredAt"]')).toHaveValue('2025-03-14');
 });

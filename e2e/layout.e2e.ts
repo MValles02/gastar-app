@@ -341,8 +341,7 @@ test('back links go up to a fixed parent and tabs have none', async ({ page }) =
 		[`${account}/edit`, account!],
 		[category!, '/categories'],
 		[`${category}/edit`, category!],
-		[movement!, '/movements'],
-		[`${movement}/edit`, movement!]
+		[movement!, '/movements']
 	];
 	for (const [url, back] of rows) {
 		await page.goto(url);

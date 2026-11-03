@@ -46,7 +46,6 @@ test('sub-pages do not render the tab bar', async ({ page }) => {
 	expect(movement && account && category).toBeTruthy();
 	const routes = [
 		'/movements/new',
-		`${movement}/edit`,
 		'/accounts/new',
 		`${account}/edit`,
 		'/categories/new',

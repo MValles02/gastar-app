@@ -4,15 +4,22 @@ import { listAccounts } from '$lib/server/accounts-queries';
 import { listCategories } from '$lib/server/categories-queries';
 import type { Currency } from '$lib/money';
 import { toRecentItem } from '$lib/server/dashboard';
-import { dayHeading, localDay } from '$lib/server/month';
+import { dayHeading, localDay, monthLabel } from '$lib/server/month';
 import { parseMovementFilters } from '$lib/server/movements';
 import { listMovements, PAGE_SIZE, summarizeMovements } from '$lib/server/movements-queries';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = locals.user!.id;
-	const { values, query: parsed, page, activeCount } = parseMovementFilters(url.searchParams);
+	const {
+		values,
+		accounts: accountIds,
+		categories: categoryIds,
+		query: parsed,
+		page,
+		activeCount
+	} = parseMovementFilters(url.searchParams);
 	// An explicit account filter wins over ?currency=.
-	const query = { ...parsed, currency: parsed.account ? ('' as const) : parsed.currency };
+	const query = { ...parsed, currency: accountIds.length ? ('' as const) : parsed.currency };
 
 	const [rows, accountRows, categoryRows, summaryRows] = await Promise.all([
 		listMovements(userId, query, page),
@@ -21,45 +28,60 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		activeCount > 0 ? summarizeMovements(userId, query) : []
 	]);
 
-	// Filter/search active: total matches plus income − outcome per currency (transfers excluded).
-	const summary =
-		activeCount > 0
-			? {
-					count: summaryRows.reduce((a, r) => a + r.count, 0),
-					totals: summaryRows
-						.filter((r) => r.flows > 0)
-						.map((r) => ({ currency: r.currency, net: r.income - r.outcome }))
-						.sort((a, b) => a.currency.localeCompare(b.currency))
-				}
-			: null;
+	// Filter/search active: total matches.
+	const summary = activeCount > 0 ? { count: summaryRows.reduce((a, r) => a + r.count, 0) } : null;
 
 	const today = localDay(new Date());
-	const lockedCurrency: Currency | null = query.account
-		? (accountRows.find((a) => a.id === query.account)?.currency ?? null)
-		: null;
+	// Common currency of the selected accounts (null when none or mixed).
+	const selectedCurrencies = new Set(
+		accountRows.filter((a) => accountIds.includes(a.id)).map((a) => a.currency)
+	);
+	const lockedCurrency: Currency | null =
+		selectedCurrencies.size === 1 ? [...selectedCurrencies][0] : null;
 	const filterCurrency: Currency | undefined = query.currency || lockedCurrency || undefined;
 
 	const hasNext = rows.length > PAGE_SIZE;
-	const groups: {
-		day: string;
-		heading: string;
-		items: (ReturnType<typeof toRecentItem> & { currency: Currency })[];
+	type Item = ReturnType<typeof toRecentItem> & {
+		currency: Currency;
+		secondary: { cents: number; currency: Currency } | null;
+	};
+	const months: {
+		ym: string;
+		label: string;
+		days: { day: string; heading: string; items: Item[] }[];
 	}[] = [];
 	for (const r of rows.slice(0, PAGE_SIZE)) {
 		const day = localDay(r.occurredAt);
+		const ym = day.slice(0, 7);
 		const currency = filterCurrency ?? r.accountCurrency;
-		let group = groups.at(-1);
+		let month = months.at(-1);
+		if (month?.ym !== ym) {
+			month = { ym, label: monthLabel(ym), days: [] };
+			months.push(month);
+		}
+		let group = month.days.at(-1);
 		if (group?.day !== day) {
 			group = { day, heading: dayHeading(day, today), items: [] };
-			groups.push(group);
+			month.days.push(group);
 		}
-		group.items.push({ ...toRecentItem(r, currency), currency });
+		// Cross-currency transfer shown in its origin currency: the destination amount goes underneath.
+		const secondary =
+			r.type === 'transfer' &&
+			currency === r.accountCurrency &&
+			r.destinationCurrency &&
+			r.destinationCurrency !== currency &&
+			r.destinationAmount !== null
+				? { cents: r.destinationAmount, currency: r.destinationCurrency }
+				: null;
+		group.items.push({ ...toRecentItem(r, currency), currency, secondary });
 	}
 
 	return {
 		filters: values,
+		accountIds,
+		categoryIds,
 		lockedCurrency,
-		groups,
+		months,
 		summary,
 		accounts: [
 			{ id: '', name: 'Todas', icon: 'accounts' as const, color: null },
