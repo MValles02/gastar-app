@@ -104,7 +104,6 @@
 		background: color-mix(in srgb, var(--bg) 92%, transparent);
 		-webkit-backdrop-filter: blur(16px);
 		backdrop-filter: blur(16px);
-		border-bottom: 1px solid transparent;
 		/* Crossfades in place while the page underneath slides (page transitions, app.css). */
 		view-transition-name: page-header;
 	}
@@ -115,21 +114,6 @@
 			position: sticky;
 			top: 0;
 			z-index: 9;
-		}
-
-		/* Hairline appears once the page scrolls under the bar. */
-		@supports (animation-timeline: scroll()) {
-			.top-bar {
-				animation: edge linear both;
-				animation-timeline: scroll();
-				animation-range: 0 2rem;
-			}
-
-			@keyframes edge {
-				to {
-					border-bottom-color: var(--border);
-				}
-			}
 		}
 	}
 
@@ -158,7 +142,7 @@
 		overflow-wrap: normal;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		font-size: 1.0625rem;
+		font-size: var(--font-size-base);
 	}
 
 	.bell,

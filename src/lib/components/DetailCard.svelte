@@ -38,7 +38,6 @@
 		gap: var(--space-3);
 		min-height: 3.5rem;
 		padding: var(--space-2) var(--space-4);
-		border-bottom: 1px solid var(--border);
 	}
 
 	dt {
@@ -51,13 +50,5 @@
 		text-align: right;
 		font-weight: 500;
 		overflow-wrap: anywhere;
-	}
-
-	.more {
-		border-top: 1px solid var(--border);
-	}
-
-	.item:last-child {
-		border-bottom: 0;
 	}
 </style>

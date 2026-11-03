@@ -84,7 +84,8 @@ test('list rows keep a single-line title and never overflow at 320px', async ({ 
 		}
 		// Line 2 (chips included) fits one text line: two wrapped lines would be at least 2x its line height.
 		// Avisos (S25.1): the pill sits on its own line and the message may wrap to 2 lines below it.
-		const maxLines = route === '/notifications' ? 3.4 : 1.7;
+		// The pill has a fixed height, so at the 13px secondary size it is worth more than one text line.
+		const maxLines = route === '/notifications' ? 3.6 : 1.7;
 		const lines = page.locator('[role="listitem"] [data-slot="item-description"]');
 		const lineCount = await lines.count();
 		for (let i = 0; i < lineCount; i++) {
@@ -262,15 +263,16 @@ test('category detail navigates months', async ({ page }) => {
 	await expect(label).not.toHaveText(before!);
 });
 
-test('top bar is sticky and shows a hairline once scrolled at 390x844', async ({ page }) => {
+test('top bar is sticky and never draws a divider line, scrolled or not', async ({ page }) => {
 	await page.setViewportSize(PHONE);
 	await login(page);
 	await page.goto('/movements');
 	const bar = page.locator('header.top-bar');
-	const edge = () => bar.evaluate((el) => getComputedStyle(el).borderBottomColor);
-	expect(await edge()).toBe('rgba(0, 0, 0, 0)');
+	const edge = () => bar.evaluate((el) => getComputedStyle(el).borderBottomWidth);
+	expect(await edge()).toBe('0px');
 	await page.evaluate(() => window.scrollTo(0, 600));
-	await expect.poll(edge).not.toBe('rgba(0, 0, 0, 0)');
+	await expect.poll(() => bar.evaluate((el) => getComputedStyle(el).position)).toBe('sticky');
+	expect(await edge()).toBe('0px');
 	const box = await page.getByRole('heading', { level: 1 }).boundingBox();
 	expect(box!.y).toBeGreaterThanOrEqual(0);
 	expect(box!.y).toBeLessThan(100);

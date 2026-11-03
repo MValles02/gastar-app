@@ -239,7 +239,6 @@
 		gap: 0 var(--space-3);
 		min-height: 3rem;
 		padding: 0 1.25rem;
-		border-top: 1px solid var(--border);
 	}
 
 	.k {
@@ -250,7 +249,7 @@
 
 	.am {
 		margin: 0;
-		font-size: 1.0625rem;
+		font-size: var(--font-size-base);
 		font-weight: 600;
 		font-variant-numeric: tabular-nums;
 		overflow-wrap: anywhere;

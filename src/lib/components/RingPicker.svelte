@@ -18,7 +18,9 @@
 		swatch,
 		current,
 		showLabel = false,
-		placeholder
+		placeholder,
+		gridClass = 'flex w-auto flex-wrap gap-2 p-1',
+		cellClass = 'has-data-[state=checked]:ring-foreground has-data-[state=checked]:ring-offset-background has-focus-visible:outline-ring relative block cursor-pointer rounded-full has-data-[state=checked]:ring-2 has-data-[state=checked]:ring-offset-2 has-focus-visible:outline-2 has-focus-visible:outline-offset-4'
 	}: {
 		name: string;
 		legend: string;
@@ -31,6 +33,9 @@
 		showLabel?: boolean;
 		/** Text for the row when nothing is selected. */
 		placeholder?: string;
+		/** Layout classes of the radio grid and of each cell (ColorPicker uses an 8-column grid). */
+		gridClass?: string;
+		cellClass?: string;
 	} = $props();
 
 	let mounted = $state(false);
@@ -55,12 +60,10 @@
 		bind:value
 		{onValueChange}
 		aria-labelledby="{labelId}-legend"
-		class="flex w-auto flex-wrap gap-2 p-1"
+		class={gridClass}
 	>
 		{#each options as option (option.key)}
-			<Label
-				class="has-data-[state=checked]:ring-foreground has-data-[state=checked]:ring-offset-background has-focus-visible:outline-ring relative block cursor-pointer rounded-full has-data-[state=checked]:ring-2 has-data-[state=checked]:ring-offset-2 has-focus-visible:outline-2 has-focus-visible:outline-offset-4"
-			>
+			<Label class={cellClass}>
 				<RadioGroup.Item
 					value={option.key}
 					aria-label={option.label}

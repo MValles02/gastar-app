@@ -212,7 +212,6 @@
 
 	.sub {
 		padding: 0 1.25rem;
-		border-top: 1px solid var(--border);
 	}
 
 	.kv {
@@ -224,10 +223,6 @@
 		min-height: 3rem;
 	}
 
-	.kv + .kv {
-		border-top: 1px solid var(--border);
-	}
-
 	.k {
 		font-size: var(--font-size-sm);
 		font-weight: 500;
@@ -235,7 +230,7 @@
 	}
 
 	.am {
-		font-size: 1.0625rem;
+		font-size: var(--font-size-base);
 		font-weight: 600;
 		font-variant-numeric: tabular-nums;
 	}
@@ -246,7 +241,6 @@
 		justify-content: space-between;
 		min-height: 3rem;
 		padding: 0 var(--space-3) 0 1.25rem;
-		border-top: 1px solid var(--border);
 		font-weight: 500;
 		text-decoration: none;
 		color: var(--text);
@@ -276,7 +270,6 @@
 		align-items: flex-start;
 		gap: var(--space-2);
 		padding: 1.25rem;
-		border-top: 1px solid var(--border);
 	}
 
 	.inline-empty {

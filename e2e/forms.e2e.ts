@@ -71,6 +71,54 @@ test('the account form picks icon and color in drawers and persists them', async
 	await expect(page.getByRole('button', { name: /^Color/ })).toContainText('Naranja');
 });
 
+test('the color picker offers 16 swatches in 8 columns and persists a new one', async ({
+	page
+}) => {
+	const names = [
+		'Verde',
+		'Turquesa',
+		'Celeste',
+		'Azul',
+		'Índigo',
+		'Violeta',
+		'Ciruela',
+		'Rosa',
+		'Rojo',
+		'Naranja',
+		'Ámbar',
+		'Ocre',
+		'Oliva',
+		'Marrón',
+		'Pizarra',
+		'Gris'
+	];
+	await login(page, OTHER_EMAIL);
+	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
+	await page.getByLabel('Nombre').fill(`Colores ${Date.now()}`);
+	await page.getByRole('button', { name: /^Color/ }).click();
+	const dialog = page.getByRole('dialog');
+	await expect(dialog.getByRole('radio')).toHaveCount(16);
+	for (const name of names) await expect(dialog.getByRole('radio', { name })).toBeAttached();
+	// 8 per row: the first and ninth swatch sit in the same column, one row apart.
+	const first = (await dialog.getByRole('radio', { name: 'Verde' }).boundingBox())!;
+	const ninth = (await dialog.getByRole('radio', { name: 'Rojo' }).boundingBox())!;
+	const tenth = (await dialog.getByRole('radio', { name: 'Naranja' }).boundingBox())!;
+	expect(Math.abs(ninth.x - first.x)).toBeLessThan(1);
+	expect(ninth.y).toBeGreaterThan(first.y);
+	expect(tenth.x).toBeGreaterThan(ninth.x);
+	await dialog.getByRole('radio', { name: 'Pizarra' }).click();
+	await expect(dialog).toBeHidden();
+	await expect(page.getByRole('button', { name: /^Color/ })).toContainText('Pizarra');
+
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
+	createdAccounts.push(page.url());
+	await page.goto(`${page.url()}/edit`, { waitUntil: 'networkidle' });
+	await expect(page.getByRole('button', { name: /^Color/ })).toContainText('Pizarra');
+	await page.getByRole('button', { name: /^Color/ }).click();
+	await expect(page.getByRole('dialog').getByRole('radio', { name: 'Pizarra' })).toBeChecked();
+});
+
 test('a currency-locked account shows a read-only Moneda row', async ({ page }) => {
 	await login(page);
 	await page.goto('/accounts', { waitUntil: 'networkidle' });

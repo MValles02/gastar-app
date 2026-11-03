@@ -58,10 +58,6 @@
 		box-shadow: var(--shadow-1);
 	}
 
-	.card > :global(li) + :global(li) {
-		border-top: 1px solid var(--border);
-	}
-
 	.card > :global(li.bad),
 	.card > li.bad {
 		box-shadow: inset 3px 0 0 var(--negative);

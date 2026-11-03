@@ -237,7 +237,6 @@
 		gap: var(--space-3);
 		min-height: var(--tap-target);
 		padding: var(--space-2) 0;
-		border-bottom: 1px solid var(--border);
 		font-size: var(--font-size-base);
 		color: var(--text);
 		cursor: pointer;

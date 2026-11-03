@@ -224,10 +224,6 @@
 		border-radius: var(--radius-card);
 	}
 
-	.group > :global(* + *) {
-		border-top: 1px solid var(--border);
-	}
-
 	.groups {
 		display: flex;
 		flex-direction: column;
