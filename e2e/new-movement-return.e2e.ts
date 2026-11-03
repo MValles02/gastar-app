@@ -65,6 +65,7 @@ test('from Plan, saving returns to Plan with a toast; Agregar otro saves back th
 	await expect(toast(page)).toBeVisible();
 
 	await toast(page).getByRole('button', { name: 'Agregar otro' }).click();
+	await expect(toast(page)).toHaveCount(0);
 	await fillAndSave(page, unique('Origen plan otro'));
 	await expect(page).toHaveURL(/\/plan$/);
 	await expect(toast(page)).toBeVisible();
