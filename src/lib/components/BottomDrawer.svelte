@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import { Drawer as DrawerPrimitive } from 'vaul-svelte';
 	import { drawers } from '$lib/drawer-open.svelte';
 	import * as Drawer from '$lib/components/ui/drawer/index.js';
@@ -25,10 +25,11 @@
 		children: Snippet;
 	} = $props();
 
+	// untrack: the effect must depend on `open` only, not on the counter it writes.
 	$effect(() => {
 		if (!open) return;
-		drawers.open++;
-		return () => drawers.open--;
+		untrack(() => drawers.open++);
+		return () => untrack(() => drawers.open--);
 	});
 </script>
 
