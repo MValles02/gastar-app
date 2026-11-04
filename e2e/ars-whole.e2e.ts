@@ -4,7 +4,6 @@ import {
 	fillMovement,
 	login,
 	OTHER_EMAIL,
-	MOVEMENT_DETAIL_RE,
 	pick,
 	postDelete,
 	WHOLE_PESOS_ERROR
@@ -33,13 +32,18 @@ test.afterEach(async ({ page, baseURL }) => {
 const norm = (s: string | null) => (s ?? '').replace(/[\u00A0\u200B]/g, ' ').trim();
 
 const save = (page: Page) => page.getByRole('button', { name: 'Guardar', exact: true }).click();
+// A row opens the movement drawer over the list (the URL does not change).
 const openDetail = async (page: Page, desc: string, currency: 'ARS' | 'USD' = 'ARS') => {
 	await page.goto(`/movements?q=${encodeURIComponent(desc)}&currency=${currency}`);
 	await page.getByText(desc).click();
-	await expect(page).toHaveURL(MOVEMENT_DETAIL_RE);
+	const drawer = page.getByRole('dialog');
+	await expect(drawer).toBeVisible();
+	return drawer;
 };
-const detailValue = (page: Page, term: string) =>
-	page.locator('dt', { hasText: term }).locator('+ dd');
+const detailHref = async (page: Page, desc: string) => {
+	await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
+	return (await page.locator('a', { hasText: desc }).getAttribute('href'))!;
+};
 
 test('an ARS amount with decimals is rejected and the value kept', async ({ page }) => {
 	await fillMovement(page, {
@@ -67,8 +71,8 @@ test('USD keeps its cents', async ({ page }) => {
 	});
 	await save(page);
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
-	await openDetail(page, desc, 'USD');
-	await expect(page.locator('main')).toContainText(/US\$12,34/);
+	const drawer = await openDetail(page, desc, 'USD');
+	await expect(drawer.getByRole('button', { name: 'Monto: 12,34' })).toContainText(/US\$12,34/);
 });
 
 test('an ARS whole amount shows without decimals everywhere', async ({ page }) => {
@@ -89,9 +93,8 @@ test('an ARS whole amount shows without decimals everywhere', async ({ page }) =
 	expect(norm(await row.textContent())).toMatch(/^-\$1\.500$/);
 
 	await row.click();
-	await expect(page).toHaveURL(MOVEMENT_DETAIL_RE);
-	await expect(page.locator('main')).toContainText(/-\$1\.500/);
-	expect(norm(await page.locator('main').textContent())).toMatch(/-\$1\.500/);
+	const drawer = page.getByRole('dialog');
+	await expect(drawer.getByRole('button', { name: 'Monto: 1.500' })).toHaveText(/^\s*\$1\.500\s*$/);
 
 	await page.goto('/', { waitUntil: 'networkidle' });
 	// Optional minus: other workers' transient `otro` outcomes can push the total below zero.
@@ -125,8 +128,8 @@ test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate
 	await expect(page.locator('p', { hasText: 'En destino' })).toContainText('$12.352');
 	await save(page);
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
-	await openDetail(page, desc, 'USD');
-	expect(norm(await detailValue(page, 'En destino').textContent())).toBe('$12.352');
+	const drawer = await openDetail(page, desc, 'USD');
+	await expect(drawer.locator('p', { hasText: 'En destino' })).toContainText('$12.352');
 });
 
 test('account initial balance: ARS whole only, USD keeps cents, edit prefills the stored value', async ({
@@ -242,15 +245,15 @@ test('Cancelar in the delete confirm closes it and keeps the movement', async ({
 	});
 	await save(page);
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
-	await openDetail(page, desc);
-	const detail = page.url();
+	const detail = await detailHref(page, desc);
+	await page.goto(detail);
 
 	const posts: string[] = [];
 	page.on('request', (r) => {
 		if (r.method() === 'POST') posts.push(r.url());
 	});
 	await page.getByRole('button', { name: 'Eliminar' }).click();
-	await page.getByRole('button', { name: 'Cancelar' }).click();
+	await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
 	await expect(page.getByRole('alertdialog')).toBeHidden();
 	// Cancel sends nothing: a delete would have been requested by the time the dialog closes.
 	expect(posts).toEqual([]);

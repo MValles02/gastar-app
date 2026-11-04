@@ -1,7 +1,6 @@
 /** Form routes (sticky action bar at the bottom): toasts show at the top instead. */
 export const FORM_ROUTES = new Set([
 	'/(app)/movements/new',
-	'/(app)/movements/[id]/edit',
 	'/(app)/accounts/new',
 	'/(app)/accounts/[id]/edit',
 	'/(app)/categories/new',

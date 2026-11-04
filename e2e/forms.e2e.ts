@@ -228,7 +228,10 @@ test('an income rule registers as "Registrar ingreso" with no type selector, wit
 		expect(movements).toHaveLength(2);
 		for (const href of movements) {
 			await page.goto(href);
-			await expect(page.getByRole('region', { name: 'Monto' })).toContainText('Ingreso');
+			// The amount carries the type by colour (income green), not by a tag.
+			await expect(page.getByRole('button', { name: /^Monto: / }).locator('.money')).toHaveClass(
+				/income/
+			);
 		}
 	} finally {
 		await deleteMovements(page, baseURL!, description);

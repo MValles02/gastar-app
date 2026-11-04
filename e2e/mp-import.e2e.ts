@@ -131,6 +131,19 @@ test.afterAll(async () => {
 	await page.close();
 });
 
+// First on purpose: this spec is serial and the only writer of `importa`, so before the first sync the
+// user is guaranteed to have no movements (the empty-state precondition of the Movimientos list).
+test('the empty movements list offers "Nuevo movimiento", which opens the drawer in place', async () => {
+	await page.goto('/movements', { waitUntil: 'networkidle' });
+	await expect(page.getByText('Sin movimientos.')).toBeVisible();
+	const url = page.url();
+	await page.locator('main').getByRole('link', { name: 'Nuevo movimiento', exact: true }).click();
+	await expect(page.getByRole('dialog', { name: 'Nuevo movimiento' })).toBeVisible();
+	expect(page.url()).toBe(url);
+	await page.keyboard.press('Escape');
+	await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
 test('sync shows live progress, fills the inbox without a reload and leaves balances alone', async () => {
 	test.setTimeout(90_000);
 	const balance = await accountRow();
@@ -257,8 +270,8 @@ test('approving a payment keeps its exact cents, time of day and moves the balan
 
 	const [href] = await findMovements(page, AMIGA_DESC);
 	expect(href).toMatch(MOVEMENT_DETAIL_RE);
-	await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
-	await expect(page.locator('input[name="amount"]')).toHaveValue('1.234,56');
+	await page.goto(href, { waitUntil: 'networkidle' });
+	await expect(page.getByRole('button', { name: 'Monto: 1.234,56' })).toBeVisible();
 
 	// Whole-peso display: the delta of the rounded balances is within a peso of the exact one.
 	expect(Math.abs((await balanceOf('Mercado Pago')) - before - 1234.56)).toBeLessThanOrEqual(1);
@@ -266,10 +279,16 @@ test('approving a payment keeps its exact cents, time of day and moves the balan
 
 test('editing the imported movement keeps its non-whole amount', async () => {
 	const [href] = await findMovements(page, AMIGA_DESC);
-	await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
-	await page.getByRole('button', { name: 'Guardar cambios' }).click();
-	await expect(page).toHaveURL(MOVEMENT_DETAIL_RE);
+	await page.goto(href, { waitUntil: 'networkidle' });
+	// Saving another field re-validates the whole movement: the stored cents must not be rejected.
+	await page.getByRole('button', { name: `Descripción: ${AMIGA_DESC}` }).click();
+	await page.getByRole('textbox', { name: 'Descripción' }).fill(`${AMIGA_DESC} editado`);
+	await page.keyboard.press('Enter');
+	await expect(page.getByText('Cambio guardado.')).toBeVisible();
 	await expect(page.getByText('Los montos en pesos van sin decimales.')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Monto: 1.234,56' })).toBeVisible();
+	await page.getByRole('button', { name: 'Deshacer' }).click();
+	await expect(page.getByRole('button', { name: `Descripción: ${AMIGA_DESC}` })).toBeVisible();
 });
 
 test('a remembered rule suggests the category for the next item', async () => {
@@ -360,8 +379,9 @@ test('bulk approve creates the suggested movements with exact amounts', async ()
 		const hrefs = await findMovements(page, desc);
 		expect(hrefs).toHaveLength(count);
 		for (const href of hrefs) {
-			await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
-			amounts.push(await page.locator('input[name="amount"]').inputValue());
+			await page.goto(href, { waitUntil: 'networkidle' });
+			const label = await page.getByRole('button', { name: /^Monto: / }).getAttribute('aria-label');
+			amounts.push(label!.replace('Monto: ', ''));
 		}
 	}
 	expect(amounts.sort()).toEqual(['1.234,56', '7,89', '800,50'].sort());

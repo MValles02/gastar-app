@@ -23,18 +23,12 @@ test('the tab bar shows on the four tabs only', async ({ page }) => {
 	}
 });
 
-test('the filter summary counts matches and totals income minus outcome', async ({ page }) => {
+test('the filter summary is the number of matches', async ({ page }) => {
 	await page.goto('/movements?q=Alquiler&currency=ARS', { waitUntil: 'networkidle' });
 	const summary = page.getByRole('status').filter({ hasText: /movimientos?/ });
-	await expect(summary).toHaveText(/^\s*\d+\s+movimientos?\s·\s/);
+	await expect(summary).toHaveText(/^\s*\d+\s+movimientos?\s*$/);
 	const count = Number((await summary.innerText()).match(/^\s*(\d+)/)![1]);
-	const amounts = await page.locator('.row-amount').allInnerTexts();
-	expect(amounts).toHaveLength(count);
-	// Every "Alquiler" row is an outcome, so the total is minus the sum of the rows.
-	const digits = (s: string) => Number(s.replace(/\D/g, ''));
-	const sum = amounts.reduce((a, t) => a + digits(t), 0);
-	expect(digits(await summary.locator('.money').innerText())).toBe(sum);
-	await expect(summary.locator('.money')).toHaveClass(/outcome/);
+	expect(await page.locator('.row-amount').count()).toBe(count);
 
 	await page.goto('/movements?type=transfer', { waitUntil: 'networkidle' });
 	await expect(page.getByRole('status').filter({ hasText: /movimientos?/ })).toHaveText(
@@ -49,8 +43,12 @@ test('the Fechas drawer offers presets, a custom range and a single-day summary'
 	let dialog = await openFilters(page);
 	await dialog.getByRole('button', { name: /Fechas/ }).click();
 	const picker = page.getByRole('dialog').last();
-	await expect(picker.getByText('Fechas (Rango)')).toBeVisible();
+	await expect(picker.getByText('Fechas', { exact: true })).toBeVisible();
 	await picker.getByRole('button', { name: 'Este mes' }).click();
+	// Staged: the row reads the preset and nothing navigates until "Ver".
+	await expect(dialog.getByRole('button', { name: /Fechas/ })).toContainText('Este mes');
+	expect(page.url()).not.toContain('from=');
+	await dialog.getByRole('button', { name: /^Ver/ }).click();
 	await expect(page).toHaveURL(new RegExp(`from=${todayInAppTz().slice(0, 7)}-01`));
 
 	await page.goto('/movements', { waitUntil: 'networkidle' });
@@ -77,7 +75,7 @@ test('an empty Cuenta filter reads "Todas" with no badge', async ({ page }) => {
 test('detail heroes show the amount without a badge', async ({ page }) => {
 	await page.goto('/movements', { waitUntil: 'networkidle' });
 	await page.locator('main a[href^="/movements/"]').first().click();
-	const hero = page.getByRole('region', { name: 'Monto' });
-	await expect(hero).toBeVisible();
-	await expect(hero.locator('.badge')).toHaveCount(0);
+	const amount = page.getByRole('dialog').getByRole('button', { name: /^Monto: / });
+	await expect(amount).toBeVisible();
+	await expect(amount.locator('.badge')).toHaveCount(0);
 });

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { navigating } from '$app/state';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
@@ -11,18 +12,35 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
-	import Money from '$lib/components/Money.svelte';
+	import MovementFiltersDrawer from '$lib/components/MovementFiltersDrawer.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import { openNewMovement } from '$lib/new-movement';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
+	let filtersOpen = $state(false);
+
+	// The month headers stick under the page header, which is only sticky on tall viewports.
+	let barHeight = $state(0);
+	onMount(() => {
+		const bar = document.querySelector('header');
+		if (!bar) return;
+		const measure = () =>
+			(barHeight = getComputedStyle(bar).position === 'sticky' ? bar.offsetHeight : 0);
+		measure();
+		const ro = new ResizeObserver(measure);
+		ro.observe(bar);
+		return () => ro.disconnect();
+	});
+
 	let type = $derived<string>(data.filters.type);
-	let account = $derived<string>(data.filters.account);
-	let category = $derived<string>(data.filters.category);
+	// The drawer edits several; the in-page controls show the first.
+	let account = $derived<string>(data.accountIds[0] ?? '');
+	let category = $derived<string>(data.categoryIds[0] ?? '');
 	let from = $derived<string>(data.filters.from);
 	let to = $derived<string>(data.filters.to);
 	let currency = $derived<string>(data.lockedCurrency ?? data.filters.currency);
@@ -45,6 +63,8 @@
 		// SvelteURLSearchParams: required by the svelte/prefer-svelte-reactivity lint rule.
 		const sp = new SvelteURLSearchParams();
 		for (const [k, v] of Object.entries(data.filters)) if (v) sp.set(k, v);
+		for (const id of data.accountIds) sp.append('account', id);
+		for (const id of data.categoryIds) sp.append('category', id);
 		return sp;
 	};
 	const pageQuery = (page: number) => {
@@ -122,9 +142,18 @@
 		path="/movements"
 		active={filterCount}
 		filters={fields}
+		onfilters={() => (filtersOpen = true)}
+	/>
+	<MovementFiltersDrawer
+		bind:open={filtersOpen}
+		filters={data.filters}
+		accountIds={data.accountIds}
+		categoryIds={data.categoryIds}
+		accounts={data.accounts}
+		categories={data.categories}
 	/>
 
-	{#if data.groups.length === 0}
+	{#if data.months.length === 0}
 		{#if data.page > 1}
 			<Empty.Root>
 				<Empty.Header>
@@ -145,7 +174,7 @@
 				</Empty.Header>
 			</Empty.Root>
 			<div class="empty-action">
-				<Button href={resolve('/movements/new')}>Nuevo movimiento</Button>
+				<Button href={resolve('/movements/new')} onclick={openNewMovement}>Nuevo movimiento</Button>
 			</div>
 		{:else}
 			<Empty.Root>
@@ -162,24 +191,23 @@
 		{#if data.summary}
 			<p class="summary" role="status">
 				{data.summary.count}
-				{data.summary.count === 1
-					? 'movimiento'
-					: 'movimientos'}{#each data.summary.totals as t (t.currency)}&nbsp;· <Money
-						cents={t.net}
-						currency={t.currency}
-						tone="flow"
-					/>{/each}
+				{data.summary.count === 1 ? 'movimiento' : 'movimientos'}
 			</p>
 		{/if}
-		<div class="groups" aria-busy={navigating.to !== null}>
-			{#each data.groups as g (g.day)}
-				<section aria-labelledby="day-{g.day}">
-					<h2 id="day-{g.day}">{g.heading}</h2>
-					<ListCard>
-						{#each g.items as m (m.id)}
-							<MovementRow {m} />
-						{/each}
-					</ListCard>
+		<div class="groups" style:--month-top="{barHeight}px" aria-busy={navigating.to !== null}>
+			{#each data.months as mo (mo.ym)}
+				<section class="month" aria-labelledby="month-{mo.ym}">
+					<h2 id="month-{mo.ym}">{mo.label}</h2>
+					{#each mo.days as g (g.day)}
+						<section aria-labelledby="day-{g.day}">
+							<h3 id="day-{g.day}">{g.heading}</h3>
+							<ListCard>
+								{#each g.items as m (m.id)}
+									<MovementRow {m} />
+								{/each}
+							</ListCard>
+						</section>
+					{/each}
 				</section>
 			{/each}
 		</div>
@@ -240,7 +268,25 @@
 		color: var(--text-muted);
 	}
 
+	.month {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+
+	/* Sticks under the page header; the page background hides the rows scrolling beneath it. */
 	h2 {
+		position: sticky;
+		top: var(--month-top);
+		z-index: 8;
+		margin-inline: calc(var(--gutter) * -1);
+		padding: var(--space-2) var(--gutter);
+		background: var(--bg);
+		font-size: var(--font-size-base);
+		font-weight: 600;
+	}
+
+	h3 {
 		font-size: var(--font-size-sm);
 		font-weight: 600;
 		color: var(--text-muted);

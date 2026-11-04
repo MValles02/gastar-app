@@ -341,8 +341,7 @@ test('back links go up to a fixed parent and tabs have none', async ({ page }) =
 		[`${account}/edit`, account!],
 		[category!, '/categories'],
 		[`${category}/edit`, category!],
-		[movement!, '/movements'],
-		[`${movement}/edit`, movement!]
+		[movement!, '/movements']
 	];
 	for (const [url, back] of rows) {
 		await page.goto(url);
@@ -373,12 +372,8 @@ async function expectOutcomeTone(page: Page) {
 	expect(await color(value)).toBe(await color(page.getByRole('heading', { level: 1 })));
 }
 
-test('outcomes are not coloured red on detail pages', async ({ page }) => {
+test('outcomes are not coloured red on the category detail page', async ({ page }) => {
 	await login(page);
-	const movement = await firstDetailHref(page, 'movements', '?type=outcome');
-	expect(movement).not.toBeNull();
-	await page.goto(movement!);
-	await expectOutcomeTone(page);
 	await page.goto('/categories');
 	await page.getByRole('link', { name: 'Supermercado' }).click();
 	await expectOutcomeTone(page);

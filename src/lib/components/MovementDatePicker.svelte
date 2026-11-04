@@ -20,7 +20,8 @@
 		min,
 		error,
 		errorId,
-		nested = false
+		nested = false,
+		plain = false
 	}: {
 		name: string;
 		label: string;
@@ -32,6 +33,8 @@
 		errorId?: string;
 		/** Opens the drawer stacked over the one this row is rendered in. */
 		nested?: boolean;
+		/** The row always reads dd/mm/yyyy (no Hoy/Ayer); the drawer keeps its shortcuts. */
+		plain?: boolean;
 	} = $props();
 
 	let mounted = $state(false);
@@ -61,11 +64,13 @@
 	const text = $derived(
 		!selected
 			? 'Elegir fecha'
-			: value === todayYmd
-				? `Hoy, ${dm(value)}`
-				: value === yesterdayYmd
-					? `Ayer, ${dm(value)}`
-					: formatDay(value)
+			: plain
+				? formatDay(value)
+				: value === todayYmd
+					? `Hoy, ${dm(value)}`
+					: value === yesterdayYmd
+						? `Ayer, ${dm(value)}`
+						: formatDay(value)
 	);
 
 	function openSheet() {

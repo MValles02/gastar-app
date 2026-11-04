@@ -230,10 +230,9 @@ test('a payment edited to an account in another currency no longer marks the rul
 		await expect(rule(page, description)).toContainText('Pagado');
 
 		const [href] = await findMovements(page, description, 'ARS');
-		await page.goto(`${new URL(href).pathname}/edit`, { waitUntil: 'networkidle' });
+		await page.goto(new URL(href).pathname, { waitUntil: 'networkidle' });
 		await pick(page, 'Cuenta', 'Otra cuenta');
-		await page.getByRole('button', { name: 'Guardar cambios' }).click();
-		await expect(page).toHaveURL(new URL(href).pathname);
+		await expect(page.getByText('Cambio guardado.')).toBeVisible();
 
 		await page.goto('/plan', { waitUntil: 'networkidle' });
 		await expect(rule(page, description)).toBeVisible();

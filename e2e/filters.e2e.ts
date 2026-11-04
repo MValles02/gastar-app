@@ -72,10 +72,14 @@ test('keyboard selection on the accounts currency control submits the filter', a
 	await expect(page).toHaveURL(/currency=/);
 });
 
-test('the movements drawer type control applies the filter', async ({ page }) => {
+test('the movements drawer type control applies on "Ver N movimientos"', async ({ page }) => {
 	await page.goto('/movements', { waitUntil: 'networkidle' });
 	const dialog = await openFilters(page);
 	await dialog.getByText('Ingresos', { exact: true }).click();
+	// Staged: nothing navigates until the primary action.
+	await expect(dialog.getByRole('button', { name: /^Ver( \d+)? movimientos?$/ })).toBeVisible();
+	expect(page.url()).not.toMatch(/type=/);
+	await dialog.getByRole('button', { name: /^Ver/ }).click();
 	await expect(page).toHaveURL(/type=income/);
 });
 
