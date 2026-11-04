@@ -13,9 +13,4 @@
 
 <PageHeader title="Nueva categoría" close={{ href: resolve('/categories'), label: 'Cerrar' }} />
 
-<CategoryForm
-	mode="create"
-	cancelHref="/categories"
-	initial={form?.values ?? {}}
-	errors={form?.errors}
-/>
+<CategoryForm initial={form?.values ?? {}} errors={form?.errors} />

@@ -152,7 +152,9 @@ test('account initial balance: ARS whole only, USD keeps cents, edit prefills th
 	const create = async (name: string, currency: 'ARS' | 'USD', balance: string) => {
 		await page.goto('/accounts/new');
 		await page.getByLabel('Nombre').fill(name);
-		await page.getByRole('radio', { name: currency }).check({ force: true });
+		await page
+			.getByRole('radio', { name: currency === 'ARS' ? 'Pesos' : 'Dólares' })
+			.check({ force: true });
 		await page.getByLabel('Saldo inicial').fill(balance);
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	};
@@ -168,10 +170,13 @@ test('account initial balance: ARS whole only, USD keeps cents, edit prefills th
 
 	await page.goto('/accounts');
 	await page.getByRole('link', { name: /Otra cuenta pesos/ }).click();
-	await page.getByRole('link', { name: 'Editar' }).click();
-	// scripts/seed.js: Otra cuenta pesos starts at 500_000_00 cents.
+	await page.waitForLoadState('networkidle'); // hydration guard: the inline edit needs JS
+	// scripts/seed.js: Otra cuenta pesos starts at 500_000_00 cents; the edit prefills the stored value.
+	await page.getByRole('button', { name: 'Saldo inicial: 500.000' }).click();
 	await expect(page.getByLabel('Saldo inicial')).toHaveValue('500.000');
-	// The grouped prefill saves unchanged.
-	await page.getByRole('button', { name: 'Guardar cambios' }).click();
-	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
+	// The inline edit rejects decimals in pesos and keeps the stored value.
+	await page.getByLabel('Saldo inicial').fill('100,50');
+	await page.keyboard.press('Enter');
+	await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Saldo inicial: 500.000' })).toBeVisible();
 });

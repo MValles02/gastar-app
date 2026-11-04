@@ -9,9 +9,9 @@ import {
 import { currentMonth, monthRange } from '$lib/server/month';
 
 const KIND_GROUPS = [
-	['outcome', 'Gastos · este mes'],
-	['income', 'Ingresos · este mes'],
-	[null, 'Ambos · este mes']
+	['outcome', 'Gastos'],
+	['income', 'Ingresos'],
+	[null, 'Ambos']
 ] as const;
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -39,10 +39,18 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		nets.set(t.categoryId!, row);
 	}
 	const withTotals = categories.map((c) => ({ ...c, totals: nets.get(c.id) ?? {} }));
+	const sortBy = currency === 'both' ? 'ARS' : currency;
 	const groups = KIND_GROUPS.map(([k, label]) => ({
 		key: k ?? 'both',
 		label,
-		categories: withTotals.filter((c) => c.kind === k)
+		// Biggest month amount first (absolute net of the selected currency; Ambas sorts by pesos).
+		categories: withTotals
+			.filter((c) => c.kind === k)
+			.sort(
+				(a, b) =>
+					Math.abs(b.totals[sortBy] ?? 0) - Math.abs(a.totals[sortBy] ?? 0) ||
+					a.name.localeCompare(b.name)
+			)
 	})).filter((g) => g.categories.length > 0);
 
 	return {

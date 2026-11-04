@@ -220,7 +220,7 @@ test('every MP call carries a token the fake issued, and no page shows it', asyn
 test('approving a payment keeps its exact cents, time of day and moves the balance', async () => {
 	await page.goto('/categories/new');
 	await page.locator('input[name="name"]').fill(CATEGORY);
-	await page.getByRole('radio', { name: 'Ingreso' }).check({ force: true });
+	await page.getByRole('radio', { name: 'Ingresos' }).check({ force: true });
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
 	categoryUrl = page.url();
@@ -539,7 +539,7 @@ test('a callback with a tampered state is rejected', async ({ browser }) => {
 test('the receiving account must be an active ARS account of the user', async ({ browser }) => {
 	await page.goto('/accounts/new');
 	await page.getByLabel('Nombre').fill(`Cuenta USD ${sfx}`);
-	await page.getByRole('radio', { name: 'USD' }).check({ force: true });
+	await page.getByRole('radio', { name: 'Dólares' }).check({ force: true });
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	usdUrl = page.url();

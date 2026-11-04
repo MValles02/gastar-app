@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
@@ -18,12 +19,15 @@
 		title,
 		eyebrow,
 		back,
-		close
+		close,
+		action
 	}: {
 		title: string;
 		eyebrow?: string;
 		back?: { href: string; label: string };
 		close?: { href: string; label: string };
+		/** Little header only: a pill action at the right end (e.g. "Agregar"). */
+		action?: Snippet;
 	} = $props();
 
 	/** Larger alert counts show as "9+". */
@@ -65,6 +69,7 @@
 		{#if kicker && full}<p class="eyebrow">{kicker}</p>{/if}
 		<h1 class:compact={!full}>{title}</h1>
 	</div>
+	{#if action && !full}{@render action()}{/if}
 	{#if header && full}
 		<a
 			class="bell"

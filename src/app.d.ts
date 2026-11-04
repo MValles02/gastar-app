@@ -21,6 +21,10 @@ declare global {
 			limit?: import('./routes/(app)/plan/limits/[categoryId]/$types').PageData;
 			/** The "Nuevo límite" drawer opened over the plan or the wizard. */
 			newLimit?: import('./routes/(app)/plan/limits/new/$types').PageData;
+			/** The "Nueva cuenta" drawer opened over the Cuentas list. */
+			newAccount?: import('./routes/(app)/accounts/new/$types').PageData;
+			/** The "Nueva categoría" drawer opened over the Categorías list. */
+			newCategory?: import('./routes/(app)/categories/new/$types').PageData;
 			/** The Ahorro drawer opened over the plan. */
 			savings?: import('./routes/(app)/plan/savings/$types').PageData;
 		}

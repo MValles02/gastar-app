@@ -1,5 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
-import { deleteMovements, fillMovement, login, OTHER_EMAIL, postDelete } from './helpers';
+import {
+	deleteMovements,
+	fillMovement,
+	firstDetailHref,
+	login,
+	OTHER_EMAIL,
+	postDelete
+} from './helpers';
 
 const DETAIL_RE = /\/categories\/[0-9a-f-]{36}$/;
 const LOCKED = 'Tiene movimientos, solo se puede cambiar a Ambos.';
@@ -19,18 +26,14 @@ test('the list groups by kind and the kind filter keeps Ambos categories', async
 	await page.goto('/categories');
 	const section = (name: string) =>
 		page.locator('section').filter({ has: page.getByRole('heading', { name }) });
-	await expect(
-		section('Gastos · este mes').getByText('Supermercado', { exact: true })
-	).toBeVisible();
-	await expect(section('Ingresos · este mes').getByText('Sueldo', { exact: true })).toBeVisible();
-	await expect(section('Ambos · este mes').getByText('Regalos', { exact: true })).toBeVisible();
+	await expect(section('Gastos').getByText('Supermercado', { exact: true })).toBeVisible();
+	await expect(section('Ingresos').getByText('Sueldo', { exact: true })).toBeVisible();
+	await expect(section('Ambos').getByText('Regalos', { exact: true })).toBeVisible();
 
 	await page.goto('/categories?kind=outcome');
-	await expect(
-		section('Gastos · este mes').getByText('Supermercado', { exact: true })
-	).toBeVisible();
-	await expect(section('Ambos · este mes').getByText('Regalos', { exact: true })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Ingresos · este mes' })).toHaveCount(0);
+	await expect(section('Gastos').getByText('Supermercado', { exact: true })).toBeVisible();
+	await expect(section('Ambos').getByText('Regalos', { exact: true })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Ingresos' })).toHaveCount(0);
 });
 
 test('rows show the month total and Ambas stacks ARS over USD', async ({ page, baseURL }) => {
@@ -81,7 +84,7 @@ test('rows show the month total and Ambas stacks ARS over USD', async ({ page, b
 	}
 });
 
-test('a category with movements can only widen to Ambos, also server-side', async ({
+test('a category with movements can only widen to Ambos, also server-side; the change persists and Deshacer restores it', async ({
 	page,
 	baseURL
 }) => {
@@ -89,7 +92,7 @@ test('a category with movements can only widen to Ambos, also server-side', asyn
 	const stamp = Date.now();
 	const name = `Cat tipo ${stamp}`;
 	const description = `Tipo ${stamp}`;
-	const href = await createCategory(page, name, { kind: 'Gasto' });
+	const href = await createCategory(page, name, { kind: 'Gastos' });
 	try {
 		await fillMovement(page, {
 			type: 'Gasto',
@@ -102,26 +105,118 @@ test('a category with movements can only widen to Ambos, also server-side', asyn
 		// Saving redirects back to /movements/new, so wait for the toast, not the URL.
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 
-		await page.goto(`${href}/edit`);
-		await expect(page.getByRole('radio', { name: 'Ingreso' })).toBeDisabled();
-		await expect(page.getByRole('radio', { name: 'Gasto' })).toBeEnabled();
-		await expect(page.getByRole('radio', { name: 'Ambos' })).toBeEnabled();
+		await page.goto(href, { waitUntil: 'networkidle' }); // hydration guard: the drawer needs JS
+		await page.getByRole('button', { name: /^Se usa para/ }).click();
+		const dialog = page.getByRole('dialog');
+		await expect(dialog.getByRole('button', { name: /^Ingresos/ })).toBeDisabled();
+		await expect(dialog.getByRole('button', { name: /^Gastos/ })).toBeEnabled();
+		await expect(dialog.getByRole('button', { name: /^Ambos/ })).toBeEnabled();
 		await expect(page.getByText(LOCKED)).toHaveCount(0);
+		await page.keyboard.press('Escape');
+		await expect(dialog).toBeHidden();
 
-		const post = (kind: string) =>
-			page.request.post(`${href}/edit`, {
-				form: { name, color: 'green', icon: '', kind },
-				headers: { origin: baseURL!, accept: 'text/html' }
-			});
-		const rejected = await post('income');
-		expect(rejected.status()).toBe(400);
-		expect(await rejected.text()).toContain(LOCKED);
+		const rejected = await page.request.post(`${href}?/update`, {
+			form: { kind: 'income' },
+			headers: { origin: baseURL!, 'x-sveltekit-action': 'true' }
+		});
+		const body = await rejected.json();
+		expect(body.type).toBe('failure');
+		expect(body.data).toContain(LOCKED);
 
-		expect((await post('')).ok()).toBe(true);
-		await page.goto(href);
-		await expect(page.locator('.item', { hasText: 'Tipo' })).toContainText('Ambos');
+		await page.getByRole('button', { name: /^Se usa para/ }).click();
+		await dialog.getByRole('button', { name: /^Ambos/ }).click();
+		await expect(page.getByText('Cambio guardado.')).toBeVisible();
+		await page.reload();
+		await expect(page.getByRole('button', { name: /^Se usa para/ })).toContainText('Ambos');
+		await page.waitForLoadState('networkidle'); // hydration guard: the toast action needs JS
+		await page.getByRole('button', { name: /^Se usa para/ }).click();
+		await dialog.getByRole('button', { name: /^Gastos/ }).click();
+		await expect(page.getByText('Cambio guardado.')).toBeVisible();
+		await page.getByRole('button', { name: 'Deshacer' }).first().click();
+		await expect(page.getByRole('button', { name: /^Se usa para/ })).toContainText('Ambos');
 	} finally {
 		await deleteMovements(page, baseURL!, description);
+		await postDelete(page, baseURL!, href);
+	}
+});
+
+test('category name and icon autosave and Deshacer restores them; the /edit routes are gone', async ({
+	page,
+	baseURL
+}) => {
+	await login(page, OTHER_EMAIL);
+	const name = `Cat auto ${Date.now()}`;
+	const href = await createCategory(page, name);
+	try {
+		await page.waitForLoadState('networkidle'); // hydration guard: the inline edits need JS
+		const h1 = page.getByRole('heading', { level: 1 });
+		const toast = page.getByText('Cambio guardado.');
+
+		await page.getByRole('button', { name: `Nombre: ${name}` }).click();
+		await page.getByLabel('Nombre').fill(`${name} 2`);
+		await page.keyboard.press('Enter');
+		await expect(toast).toBeVisible();
+		await page.reload();
+		await expect(h1).toHaveText(`${name} 2`);
+		await page.waitForLoadState('networkidle'); // hydration guard: the toast action needs JS
+		await page.getByRole('button', { name: `Nombre: ${name} 2` }).click();
+		await page.getByLabel('Nombre').fill(name);
+		await page.keyboard.press('Enter');
+		await expect(toast).toBeVisible();
+		await page.getByRole('button', { name: 'Deshacer' }).first().click();
+		await expect(h1).toHaveText(`${name} 2`);
+		await expect(toast).toHaveCount(0);
+
+		const dialog = page.getByRole('dialog');
+		await page.getByRole('button', { name: 'Ícono y color' }).click();
+		await dialog.getByRole('radio', { name: 'Comida' }).click();
+		await dialog.getByRole('radio', { name: 'Rojo' }).click();
+		await dialog.getByRole('button', { name: 'Listo' }).click();
+		await expect(toast).toBeVisible();
+		await page.getByRole('button', { name: 'Deshacer' }).first().click();
+		await expect(toast).toHaveCount(0);
+		await page.getByRole('button', { name: 'Ícono y color' }).click();
+		await expect(dialog.getByRole('radio', { name: 'Etiqueta' })).toBeChecked();
+		await expect(dialog.getByRole('radio', { name: 'Verde' })).toBeChecked();
+		await page.keyboard.press('Escape');
+
+		// The old edit screens are gone, without a redirect.
+		const account = await firstDetailHref(page, 'accounts');
+		for (const base of [href, account!])
+			expect((await page.goto(`${base}/edit`))!.status()).toBe(404);
+	} finally {
+		await postDelete(page, baseURL!, href);
+	}
+});
+
+test('archiving a category hides it from the new-movement picker and Desarchivar brings it back', async ({
+	page,
+	baseURL
+}) => {
+	await login(page, OTHER_EMAIL);
+	const name = `Cat archivo ${Date.now()}`;
+	const href = await createCategory(page, name);
+	try {
+		/** How many times the new-movement category picker offers the category. */
+		const offered = async () => {
+			await page.goto('/movements/new', { waitUntil: 'networkidle' }); // hydration guard: the picker needs JS
+			await page.getByRole('button', { name: /^Categoría/ }).click();
+			const dialog = page.getByRole('dialog').last();
+			await expect(dialog).toBeVisible();
+			return dialog.getByText(name, { exact: true }).count();
+		};
+		expect(await offered()).toBe(1);
+
+		await page.goto(href, { waitUntil: 'networkidle' }); // hydration guard: the archive form is enhanced
+		await page.getByRole('button', { name: 'Archivar' }).click();
+		await expect(page.getByRole('button', { name: 'Desarchivar' })).toBeVisible();
+		expect(await offered()).toBe(0);
+
+		await page.goto(href, { waitUntil: 'networkidle' }); // hydration guard: the unarchive form is enhanced
+		await page.getByRole('button', { name: 'Desarchivar' }).click();
+		await expect(page.getByRole('button', { name: 'Archivar', exact: true })).toBeVisible();
+		expect(await offered()).toBe(1);
+	} finally {
 		await postDelete(page, baseURL!, href);
 	}
 });

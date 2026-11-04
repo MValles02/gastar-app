@@ -1,6 +1,6 @@
 // Back/up pops history like a native stack instead of pushing the parent again (iOS swipe-back = history.back()).
 import { expect, test, type Page } from '@playwright/test';
-import { login, OTHER_EMAIL, PHONE } from './helpers';
+import { login, PHONE } from './helpers';
 
 test.use({ viewport: PHONE });
 
@@ -29,37 +29,6 @@ test('‹ pops back to the parent: Perfil → Cuentas → cuenta → ‹ → ‹
 	// The entries we popped are forward history now, not behind Perfil.
 	await page.goBack();
 	await expect(page).not.toHaveURL(/\/accounts/);
-});
-
-test('saving an edit pops to the detail, so back lands on the list, not the form; Cancelar pops too', async ({
-	page
-}) => {
-	await login(page, OTHER_EMAIL);
-	await page.goto('/accounts');
-	await page.waitForLoadState('networkidle'); // hydration guard: client-side navigation needs JS
-	await page
-		.getByRole('link', { name: /Otra cuenta pesos/ })
-		.first()
-		.click();
-	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
-	await page.getByRole('link', { name: 'Editar' }).click();
-	await expect(page).toHaveURL(/\/edit$/);
-	await page.getByRole('button', { name: 'Guardar cambios' }).click();
-	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
-
-	await page.goBack();
-	await expect(page).toHaveURL(/\/accounts$/);
-
-	await page
-		.getByRole('link', { name: /Otra cuenta pesos/ })
-		.first()
-		.click();
-	await page.getByRole('link', { name: 'Editar' }).click();
-	await expect(page).toHaveURL(/\/edit$/);
-	await page.getByRole('link', { name: 'Cancelar' }).click();
-	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
-	await page.goBack();
-	await expect(page).toHaveURL(/\/accounts$/);
 });
 
 test('tab taps replace the entry instead of piling up history', async ({ page }) => {
