@@ -1,9 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
 import { login, openFilters, setCurrencyCookie } from './helpers';
 
+/** Inicio switches currency with the Pesos / Dólares pills (toggle buttons). */
+const PILL = { ARS: 'Pesos', USD: 'Dólares' } as const;
+const pill = (page: Page, label: 'ARS' | 'USD') =>
+	page.getByRole('button', { name: PILL[label], exact: true });
+
 async function choose(page: Page, label: 'ARS' | 'USD') {
-	await page.getByRole('radio', { name: label }).check({ force: true });
-	await expect(page.getByRole('radio', { name: label })).toBeChecked();
+	await pill(page, label).click();
+	await expect(pill(page, label)).toHaveAttribute('aria-pressed', 'true');
 	// The POST is async; wait for the cookie so a following navigation does not abort it.
 	await expect
 		.poll(
@@ -35,31 +40,34 @@ test('top bar has no currency control', async ({ page }) => {
 test('Inicio defaults to ARS without a cookie', async ({ page }) => {
 	await page.context().clearCookies({ name: 'currency' });
 	await page.goto('/', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
+	await expect(pill(page, 'ARS')).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('Inicio tab choice survives a reload', async ({ page }) => {
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await choose(page, 'USD');
 	await page.reload({ waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
-	await expect(page.getByText('Saldo', { exact: true })).toBeVisible();
+	await expect(pill(page, 'USD')).toHaveAttribute('aria-pressed', 'true');
+	await expect(page.getByText('Saldo total', { exact: true })).toBeVisible();
 	await expect(page.getByText('US$').first()).toBeVisible();
 });
 
 test('an unknown currency cookie reads as ARS on Inicio', async ({ page, baseURL }) => {
 	await setCurrencyCookie(page, baseURL!, 'EUR');
 	await page.goto('/', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
+	await expect(pill(page, 'ARS')).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('invalid currency shows one alert under the tabs and clears on success', async ({ page }) => {
 	await page.goto('/', { waitUntil: 'networkidle' });
-	await page.locator('input[name="currency"]').evaluate((el) => {
-		const input = el as HTMLInputElement;
-		input.value = 'invalid';
-		input.form!.requestSubmit();
-	});
+	await page
+		.locator('button[name="currency"]')
+		.first()
+		.evaluate((el) => {
+			const button = el as HTMLButtonElement;
+			button.value = 'invalid';
+			button.form!.requestSubmit(button);
+		});
 	await expect(page.getByRole('alert')).toHaveText('Moneda inválida.');
 	await expect(page.getByRole('alert')).toHaveCount(1);
 	await expect(page).toHaveURL(/\/$/);
@@ -71,7 +79,7 @@ test('invalid currency shows one alert under the tabs and clears on success', as
 test('checked tab keeps focus after switching', async ({ page }) => {
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await choose(page, 'USD');
-	await expect(page.getByRole('radio', { name: 'USD' })).toBeFocused();
+	await expect(pill(page, 'USD')).toBeFocused();
 });
 
 test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
@@ -143,12 +151,15 @@ test('Inicio "Ver todos" links to the selected currency', async ({ page }) => {
 test('archived accounts are listed without changing the group totals', async ({ page }) => {
 	const totals = async () =>
 		page.locator('.section-head').evaluateAll((els) => els.map((el) => el.textContent?.trim()));
-	await page.goto('/accounts', { waitUntil: 'networkidle' });
-	await expect(page.getByText('Cuenta Santander (cerrada)')).toHaveCount(0);
-	const before = await totals();
-	await page.goto('/accounts?archived=1', { waitUntil: 'networkidle' });
-	await expect(page.getByText('Cuenta Santander (cerrada)')).toBeVisible();
-	expect(await totals()).toEqual(before);
+	// Other workers briefly write the demo user's ARS data: read both pages again until they agree.
+	await expect(async () => {
+		await page.goto('/accounts', { waitUntil: 'networkidle' });
+		await expect(page.getByText('Cuenta Santander (cerrada)')).toHaveCount(0);
+		const before = await totals();
+		await page.goto('/accounts?archived=1', { waitUntil: 'networkidle' });
+		await expect(page.getByText('Cuenta Santander (cerrada)')).toBeVisible();
+		expect(await totals()).toEqual(before);
+	}).toPass({ timeout: 20_000 });
 });
 
 test('movements and accounts ignore the currency cookie', async ({ page, baseURL }) => {

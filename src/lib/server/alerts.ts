@@ -36,6 +36,10 @@ export type AlertItem = {
 	icon: CategoryIconKey | null;
 	/** The category's swatch (payments and limits); null renders neutral. */
 	color: SwatchKey | null;
+	/** Payments only: the amount due in minor units (shown on the right); null otherwise. */
+	amount: number | null;
+	/** Payments only: the account it is paid from; null otherwise. */
+	accountName: string | null;
 };
 
 /** Swatch key per category id, for the categories the user can access. */
@@ -84,7 +88,7 @@ export async function alerts(userId: string, now = new Date()) {
 				.map((r) => ({ r, s: recurringStatus(r.dayOfMonth, paidIds.has(r.id), ym, today) }))
 				.filter(({ s }) => s.status !== 'paid' && s.daysLeft <= DUE_WINDOW_DAYS)
 				.sort((a, b) => a.s.daysLeft - b.s.daysLeft)
-				.map(({ r, s }) => paymentAlert(r, s, currency));
+				.map(({ r, s }) => paymentAlert(r, s));
 			const planAlerts = plan ? [planAlert(plan, currency), ...limitAlerts(plan, currency)] : [];
 			const items: AlertItem[] = [...payments, ...planAlerts.filter((a) => a !== null)];
 			return { currency, items };
@@ -95,18 +99,20 @@ export async function alerts(userId: string, now = new Date()) {
 const days = (n: number) => `${n} ${n === 1 ? 'día' : 'días'}`;
 const percent = (share: number) => `${Math.round(share * 100)}%`;
 
-function paymentAlert(rule: ActiveRule, due: DueStatus, currency: Currency): AlertItem {
+function paymentAlert(rule: ActiveRule, due: DueStatus): AlertItem {
 	const label = dueLabel(due, rule.type);
 	return {
 		id: `rule-${rule.id}`,
 		kind: 'payment',
 		name: rule.description,
 		status: { label, tone: PAYMENT_TONE[due.status] },
-		message: `${formatMoney(rule.amount, currency)} desde ${rule.accountName}`,
+		message: `${label} · ${rule.accountName}`,
 		href: `/plan/recurring/${rule.id}`,
 		switchCurrency: false,
 		icon: toCategoryIconKey(rule.categoryIcon),
-		color: toSwatchKey(rule.categoryColor)
+		color: toSwatchKey(rule.categoryColor),
+		amount: rule.amount,
+		accountName: rule.accountName
 	};
 }
 
@@ -119,7 +125,9 @@ function planAlert(plan: PlanSummary, currency: Currency): AlertItem | null {
 		href: '/plan',
 		switchCurrency: true,
 		icon: null,
-		color: null
+		color: null,
+		amount: null,
+		accountName: null
 	} as const;
 	if (plan.status === 'over')
 		return {
@@ -156,6 +164,8 @@ function limitAlerts(plan: PlanSummary, currency: Currency): AlertItem[] {
 			href: `/plan/limits/${l.categoryId}`,
 			switchCurrency: true,
 			icon: toCategoryIconKey(l.icon),
-			color: toSwatchKey(l.color)
+			color: toSwatchKey(l.color),
+			amount: null,
+			accountName: null
 		}));
 }

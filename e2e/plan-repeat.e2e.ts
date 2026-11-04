@@ -198,7 +198,7 @@ test('Inicio without a plan offers to create one (demo, USD)', async ({ page, ba
 	// Other specs briefly create a demo USD plan; read again until it is gone.
 	await expect(async () => {
 		await page.goto('/', { waitUntil: 'networkidle' });
-		const card = page.getByRole('region', { name: 'Saldo', exact: true });
+		const card = page.getByRole('region', { name: 'Saldo total', exact: true });
 		await expect(card.getByRole('link', { name: 'Crear plan' })).toHaveAttribute(
 			'href',
 			'/plan/setup'
@@ -217,10 +217,13 @@ test('Inicio with a plan shows the same Disponible as /plan and links to it', as
 	const card = page.getByRole('region', { name: 'Disponible', exact: true });
 	await expect(card).toBeVisible();
 	await expect(card.getByText(/Vas bien|Vas rápido|Te pasaste/)).toBeVisible();
-	await expect(card).toContainText(/\/día · \d+\s+(día|días)/);
+	await expect(card).toContainText(/ por día · (queda 1 día|quedan \d+ días)/);
 	const onHome = await card.locator('.available-amount').innerText();
 
-	await card.getByRole('link', { name: 'Ver plan' }).click();
+	await page
+		.getByRole('navigation', { name: 'Navegación principal' })
+		.getByRole('link', { name: 'Plan', exact: true })
+		.click();
 	await expect(page).toHaveURL(/\/plan$/);
 	const summary = page.getByRole('region', { name: /^Disponible · / });
 	// Inicio renders a negative amount as "-" + newline + amount: compare without whitespace.
