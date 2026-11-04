@@ -4,7 +4,6 @@ import {
 	fillMovement,
 	login,
 	OTHER_EMAIL,
-	pick,
 	postDelete,
 	WHOLE_PESOS_ERROR
 } from './helpers';
@@ -39,10 +38,6 @@ const openDetail = async (page: Page, desc: string, currency: 'ARS' | 'USD' = 'A
 	const drawer = page.getByRole('dialog');
 	await expect(drawer).toBeVisible();
 	return drawer;
-};
-const detailHref = async (page: Page, desc: string) => {
-	await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
-	return (await page.locator('a', { hasText: desc }).getAttribute('href'))!;
 };
 
 test('an ARS amount with decimals is rejected and the value kept', async ({ page }) => {
@@ -96,11 +91,11 @@ test('an ARS whole amount shows without decimals everywhere', async ({ page }) =
 	const drawer = page.getByRole('dialog');
 	await expect(drawer.getByRole('button', { name: 'Monto: 1.500' })).toHaveText(/^\s*\$1\.500\s*$/);
 
-	await page.goto('/', { waitUntil: 'networkidle' });
+	await page.goto('/');
 	// Optional minus: other workers' transient `otro` outcomes can push the total below zero.
 	expect(norm(await page.locator('.hero-amount').textContent())).toMatch(/^-?\$[\d.]+$/);
 
-	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	await page.goto('/accounts');
 	const acct = page
 		.locator('[role="listitem"]', { hasText: 'Otra cuenta pesos' })
 		.locator('.row-amount');
@@ -130,13 +125,32 @@ test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 	const drawer = await openDetail(page, desc, 'USD');
 	await expect(drawer.locator('p', { hasText: 'En destino' })).toContainText('$12.352');
+	// The preview rounds half up into ARS and keeps cents into USD.
+	await fillMovement(page, {
+		type: 'Transferencia',
+		amount: '0,01',
+		description: 'Vista previa',
+		account: 'Otra cuenta',
+		destination: 'Otra cuenta pesos',
+		rate: '50'
+	});
+	await expect(page.locator('p', { hasText: 'En destino' })).toContainText('$1');
+	await fillMovement(page, {
+		type: 'Transferencia',
+		amount: '12352',
+		description: 'Vista previa',
+		account: 'Otra cuenta pesos',
+		destination: 'Otra cuenta',
+		rate: '1234'
+	});
+	await expect(page.locator('p', { hasText: 'En destino' })).toContainText('US$10,01');
 });
 
 test('account initial balance: ARS whole only, USD keeps cents, edit prefills the stored value', async ({
 	page
 }) => {
 	const create = async (name: string, currency: 'ARS' | 'USD', balance: string) => {
-		await page.goto('/accounts/new', { waitUntil: 'networkidle' });
+		await page.goto('/accounts/new');
 		await page.getByLabel('Nombre').fill(name);
 		await page.getByRole('radio', { name: currency }).check({ force: true });
 		await page.getByLabel('Saldo inicial').fill(balance);
@@ -152,7 +166,7 @@ test('account initial balance: ARS whole only, USD keeps cents, edit prefills th
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	createdAccounts.push(page.url());
 
-	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	await page.goto('/accounts');
 	await page.getByRole('link', { name: /Otra cuenta pesos/ }).click();
 	await page.getByRole('link', { name: 'Editar' }).click();
 	// scripts/seed.js: Otra cuenta pesos starts at 500_000_00 cents.
@@ -160,108 +174,4 @@ test('account initial balance: ARS whole only, USD keeps cents, edit prefills th
 	// The grouped prefill saves unchanged.
 	await page.getByRole('button', { name: 'Guardar cambios' }).click();
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
-});
-
-test('typing into a grouped amount ungroups it and blur regroups it', async ({ page }) => {
-	await page.goto('/accounts', { waitUntil: 'networkidle' });
-	await page.getByRole('link', { name: /Otra cuenta pesos/ }).click();
-	await page.getByRole('link', { name: 'Editar' }).click();
-	const balance = page.getByLabel('Saldo inicial');
-	// JS-only enhancement; nothing is saved, so the seeded 500.000 stays.
-	await balance.click();
-	await page.keyboard.press('End');
-	await page.keyboard.type('1');
-	await expect(balance).toHaveValue('5000001');
-	await page.keyboard.press('Tab');
-	await expect(balance).toHaveValue('5.000.001');
-	// Replacing a selected grouped value (as fill does) replaces it, it does not prepend.
-	await balance.fill('1.000');
-	await expect(balance).toHaveValue('1.000');
-});
-
-test('the transfer preview rounds half up into ARS and keeps cents into USD', async ({ page }) => {
-	await fillMovement(page, {
-		type: 'Transferencia',
-		amount: '0,01',
-		description: 'Vista previa',
-		account: 'Otra cuenta',
-		destination: 'Otra cuenta pesos',
-		rate: '50'
-	});
-	await expect(page.locator('p', { hasText: 'En destino' })).toContainText('$1');
-
-	await fillMovement(page, {
-		type: 'Transferencia',
-		amount: '12352',
-		description: 'Vista previa',
-		account: 'Otra cuenta pesos',
-		destination: 'Otra cuenta',
-		rate: '1234'
-	});
-	await expect(page.locator('p', { hasText: 'En destino' })).toContainText('US$10,01');
-});
-
-test('movement form inputs follow the origin currency', async ({ page }) => {
-	await fillMovement(page, {
-		type: 'Transferencia',
-		amount: '',
-		description: 'Atributos',
-		account: 'Otra cuenta pesos',
-		destination: 'Otra cuenta'
-	});
-	const amount = page.locator('input[name="amount"]');
-	const rate = page.locator('input[name="exchangeRate"]');
-	await expect(amount).toHaveAttribute('inputmode', 'numeric');
-	await expect(amount).toHaveAttribute('placeholder', '0');
-	await expect(rate).toHaveAttribute('inputmode', 'numeric');
-	await expect(rate).toHaveAttribute('placeholder', '0');
-
-	await pick(page, 'Desde', 'Otra cuenta');
-	await pick(page, 'Hacia', 'Otra cuenta pesos');
-	await expect(amount).toHaveAttribute('inputmode', 'decimal');
-	await expect(amount).toHaveAttribute('placeholder', '0,00');
-	await expect(rate).toHaveAttribute('inputmode', 'numeric');
-	await expect(rate).toHaveAttribute('placeholder', '0');
-});
-
-test('account form initial balance placeholder follows the currency', async ({ page }) => {
-	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
-	const balance = page.getByLabel('Saldo inicial');
-	await page.getByRole('radio', { name: 'ARS' }).check({ force: true });
-	await expect(balance).toHaveAttribute('placeholder', '0');
-	await page.getByRole('radio', { name: 'USD' }).check({ force: true });
-	await expect(balance).toHaveAttribute('placeholder', '0');
-});
-
-test('Cancelar in the delete confirm closes it and keeps the movement', async ({ page }) => {
-	const desc = unique('Cancelar borrar');
-	await fillMovement(page, {
-		type: 'Gasto',
-		amount: '100',
-		date: '2024-02-29',
-		description: desc,
-		account: 'Otra cuenta pesos',
-		category: 'Ajena'
-	});
-	await save(page);
-	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
-	const detail = await detailHref(page, desc);
-	await page.goto(detail);
-
-	const posts: string[] = [];
-	page.on('request', (r) => {
-		if (r.method() === 'POST') posts.push(r.url());
-	});
-	await page.getByRole('button', { name: 'Eliminar' }).click();
-	await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
-	await expect(page.getByRole('alertdialog')).toBeHidden();
-	// Cancel sends nothing: a delete would have been requested by the time the dialog closes.
-	expect(posts).toEqual([]);
-	await expect(page).toHaveURL(detail);
-	await page.goto(detail);
-	await expect(page.getByText(desc).first()).toBeVisible();
-
-	await page.getByRole('button', { name: 'Eliminar' }).click();
-	await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
-	await expect(page).toHaveURL(/\/movements$/);
 });

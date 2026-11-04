@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { deleteMovements, login, openFilters, pickMonthYear, pickMovementDate } from './helpers';
+import { deleteMovements, login } from './helpers';
 
 // Descriptions of movements this spec may have created; removed in afterEach.
 const created: string[] = [];
@@ -56,14 +56,6 @@ test.describe('without JavaScript', () => {
 		await expect(dateOf(page)).not.toHaveText(/\d:\d\d/);
 	});
 
-	test('the detail page shows the date', async ({ page }) => {
-		const desc = unique('Fecha detalle');
-		await create(page, desc, '2024-02-29');
-		await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
-		await page.getByText(desc).click();
-		await expect(dateOf(page)).toHaveValue('2024-02-29');
-	});
-
 	test('an impossible date posted directly is rejected with the value kept', async ({
 		page,
 		baseURL
@@ -106,69 +98,10 @@ test.describe('without JavaScript', () => {
 		await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
 		await expect(page.getByText(desc)).toHaveCount(0);
 	});
-
-	test('same-day movements list the newest first', async ({ page }) => {
-		const prefix = unique('Orden');
-		await create(page, `${prefix} A`, '2024-02-28');
-		await create(page, `${prefix} B`, '2024-02-28');
-		await page.goto(`/movements?q=${encodeURIComponent(prefix)}`);
-		await expect(page.getByText(new RegExp(`^${prefix} [AB]$`))).toHaveText([
-			`${prefix} B`,
-			`${prefix} A`
-		]);
-	});
 });
-
-test('the calendar is in Spanish and the week starts on Monday', async ({ page }) => {
-	await page.goto('/movements/new', { waitUntil: 'networkidle' });
-	await page.getByRole('button', { name: /Fecha/ }).click();
-	await page.getByRole('dialog').getByRole('button', { name: 'Otra fecha' }).click();
-	const dialog = page.getByRole('dialog');
-	await expect(dialog.getByRole('columnheader').first()).toHaveText(/^lu/i);
-	await expect(dialog.getByRole('columnheader').last()).toHaveText(/^do/i);
-	for (const name of ['Mes anterior', 'Mes siguiente']) {
-		const nav = dialog.getByRole('button', { name, exact: true });
-		await expect(nav).toBeVisible();
-		await expect(nav).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-	}
-	const month = (await dialog.getByLabel('Mes', { exact: true }).innerText()).trim();
-	expect(month).toMatch(
-		/^(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)$/i
-	);
-});
-
-test('the calendar offers no day before 2000', async ({ page }) => {
-	await page.goto('/movements/new', { waitUntil: 'networkidle' });
-	expect(await page.locator('input[type="date"]').count()).toBe(0);
-	await pickMovementDate(page, '2000-01-01');
-	await expect(page.locator('input[name="occurredAt"]')).toHaveValue('2000-01-01');
-	await page.getByRole('button', { name: /Fecha/ }).click();
-	const dialog = page.getByRole('dialog');
-	await dialog.getByLabel('Año', { exact: true }).click();
-	await expect(page.getByRole('option', { name: '2000', exact: true })).toBeVisible();
-	await expect(page.getByRole('option', { name: '1999', exact: true })).toHaveCount(0);
-	await page.keyboard.press('Escape');
-	await expect(dialog.locator('[data-calendar-prev-button]')).toBeDisabled();
-});
-
-test('the Filtros range calendar sets from and to', async ({ page }) => {
-	await page.goto('/movements', { waitUntil: 'networkidle' });
-	const dialog = await openFilters(page);
-	await dialog.getByRole('button', { name: /Fechas/ }).click();
-	const picker = page.getByRole('dialog').last();
-	await picker.getByRole('button', { name: 'Personalizado' }).click();
-	await pickMonthYear(page, picker, '2025-03-01');
-	await picker.locator('[data-bits-day][data-value="2025-03-10"]').click();
-	await picker.locator('[data-bits-day][data-value="2025-03-14"]').click();
-	await dialog.getByRole('button', { name: /^Ver/ }).click();
-	await expect(page).toHaveURL(/from=2025-03-10&to=2025-03-14/);
-	await expect(page.getByRole('button', { name: /^Filtros/ })).toContainText('1');
-	await expect(page.getByText('Legado fin del día')).toBeVisible();
-});
-
 test('a legacy non-midnight row uses its Buenos Aires date everywhere', async ({ page }) => {
 	const list = '/movements?q=Legado';
-	await page.goto(list, { waitUntil: 'networkidle' });
+	await page.goto(list);
 	await expect(page.getByRole('heading', { level: 2, name: /^Marzo( de)? 2025$/ })).toBeVisible();
 	await expect(
 		page

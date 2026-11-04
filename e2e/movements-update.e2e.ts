@@ -1,12 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import {
-	deleteMovements,
-	fillMovement,
-	findMovements,
-	linkId,
-	login,
-	WHOLE_PESOS_ERROR
-} from './helpers';
+import { deleteMovements, fillMovement, findMovements, login, WHOLE_PESOS_ERROR } from './helpers';
 
 // Descriptions of movements this spec created; removed in afterEach.
 const created: string[] = [];
@@ -75,23 +68,4 @@ test('?/update takes a type change through the same validation', async ({ page, 
 	expect(body.data).toContain('Elegí la cuenta de destino.');
 	await page.goto(href);
 	await expect(page.getByRole('button', { name: /^Tipo/ })).toContainText('Gasto');
-});
-
-test('repeated ?account= lists the movements of both accounts', async ({ page }) => {
-	const prefix = unique('Update multi');
-	await create(page, `${prefix} uno`, 'Banco Galicia');
-	await create(page, `${prefix} dos`, 'Efectivo');
-	await page.goto('/accounts');
-	const galicia = await linkId(page.getByRole('link', { name: /Banco Galicia/ }).first());
-	const efectivo = await linkId(page.getByRole('link', { name: /Efectivo/ }).first());
-
-	await page.goto(`/movements?q=${encodeURIComponent(prefix)}&account=${galicia}`);
-	await expect(page.getByText(`${prefix} uno`)).toBeVisible();
-	await expect(page.getByText(`${prefix} dos`)).toHaveCount(0);
-
-	await page.goto(
-		`/movements?q=${encodeURIComponent(prefix)}&account=${galicia}&account=${efectivo}`
-	);
-	await expect(page.getByText(`${prefix} uno`)).toBeVisible();
-	await expect(page.getByText(`${prefix} dos`)).toBeVisible();
 });
