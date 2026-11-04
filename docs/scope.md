@@ -66,7 +66,7 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ### Dashboard
 
-- Currency tabs `ARS | USD` (radiogroup), stored in the `currency` cookie; default ARS. Currencies are never converted or summed together.
+- Currency tabs `ARS | USD` (two toggle pills, "Pesos" / "Dólares"), stored in the `currency` cookie; default ARS. Currencies are never converted or summed together.
 - For the selected currency:
   - Total balance: all accounts of that currency, **including archived**.
   - Month balance: incomes − outcomes (transfers excluded).
@@ -81,14 +81,14 @@ Personal finance PWA for Argentina. Answers two questions:
 ### Reportes
 
 - Route `/reports`, a bottom-nav tab (no back link), h1 "Reportes".
-- Currency tabs `ARS | USD` as on the dashboard; one currency per screen, never converted or summed. No accounts in the currency (archived counted): "No tenés cuentas en {currency}." + "Crear cuenta".
+- Currency tabs `ARS | USD` as on the dashboard; one currency per screen, never converted or summed. No accounts in the currency (archived counted): "No tenés cuentas en {pesos|dólares}." + "Crear cuenta" (no month navigation). Accounts but no movements in the currency in the last 6 months: only "Sin movimientos en {pesos|dólares}.".
 - Month: `?month=YYYY-MM` with previous / next navigation; a future or invalid month falls back to the current one; "Mes siguiente" is disabled on the current month.
 - For the selected currency and month (archived accounts included, transfers excluded):
-  - Totals: Ingresos, Gastos and Resultado (income − outcome, with an explicit sign; equals the dashboard month balance for the current month).
-  - Income and outcome bars for the 6 months ending at the selected month; each pair links to its month.
-  - Gastos por categoría: top 4 categories by net outcome plus "Otros", as a donut and a list (name, %, amount). With no categorised spending: "No hay gastos con categoría en {mes}."
-  - Promedio diario: outcome ÷ elapsed days (the whole month for past months).
-  - Gasto más grande, linking to the movement; hidden when there are no outcomes.
+  - Totals: Ingresos, Gastos and Resultado (income − outcome, shown without a sign and coloured by polarity: green positive, red negative, neutral zero; equals the dashboard month balance for the current month). Ingresos and Gastos sit side by side.
+  - Income and outcome bars for the 6 months ending at the selected month, with a legend; the selected month is highlighted. Each pair links to its month: months change with ‹ › or a tap on a bar (no swipe).
+  - Gastos por categoría: top 4 categories by net outcome plus "Otros" (last, not a link), as horizontal bars: name, %, amount and a bar (no donut). With no categorised spending: "No hay gastos con categoría en {mes}." and "Por día" is hidden.
+  - Por día: outcome ÷ elapsed days (the whole month for past months).
+  - Gasto más grande, linking to the movement; hidden when there are no outcomes. Por día and Gasto más grande share a row.
 
 ### Plan
 

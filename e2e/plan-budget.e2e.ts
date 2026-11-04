@@ -458,7 +458,11 @@ test.describe('as another user', () => {
 			const { Gastado } = await figures(page);
 			await page.goto('/reports');
 			const gastos = page.locator('dl.totals > div').filter({ hasText: 'Gastos' }).locator('dd');
-			expect(Number((await gastos.innerText()).replace(/\D/g, ''))).toBe(Gastado);
+			// Without movements in the last six months Reportes shows no totals: spending is zero.
+			const shown = (await gastos.count())
+				? Number((await gastos.innerText()).replace(/\D/g, ''))
+				: 0;
+			expect(shown).toBe(Gastado);
 		}).toPass({ timeout: 30_000 });
 	});
 

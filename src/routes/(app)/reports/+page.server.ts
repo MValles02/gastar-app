@@ -19,8 +19,8 @@ import { biggestOutcome, monthlyFlows } from '$lib/server/reports-queries';
 
 /** Months in the flow chart, ending at the selected one. */
 const FLOW_MONTHS = 6;
-/** Categories drawn as their own donut slice; the rest are summed into "Otros". */
-const DONUT_TOP = 4;
+/** Categories listed as their own row; the rest are summed into "Otros". */
+const TOP_CATEGORIES = 4;
 
 export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const userId = locals.user!.id;
@@ -71,7 +71,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		net: month.income - month.outcome,
 		dailyAverage: Math.round(month.outcome / days),
 		days,
-		slices: donutSlices(cats),
+		slices: categorySlices(cats),
 		biggest: biggest
 			? {
 					id: biggest.id,
@@ -93,8 +93,8 @@ type CategorySum = {
 	income: number;
 };
 
-/** Donut: net spending per category (integer cents), the top DONUT_TOP plus "Otros". */
-function donutSlices(cats: CategorySum[]) {
+/** Net spending per category (integer cents), the top TOP_CATEGORIES plus "Otros". */
+function categorySlices(cats: CategorySum[]) {
 	const spent = cats
 		.map((c) => ({
 			id: c.id,
@@ -106,15 +106,15 @@ function donutSlices(cats: CategorySum[]) {
 		.filter((c) => c.amount > 0)
 		.sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, 'es'));
 	const totalSpent = spent.reduce((a, c) => a + c.amount, 0);
-	const slices = spent.slice(0, DONUT_TOP);
-	const rest = spent.slice(DONUT_TOP).reduce((a, c) => a + c.amount, 0);
+	const slices = spent.slice(0, TOP_CATEGORIES);
+	const rest = spent.slice(TOP_CATEGORIES).reduce((a, c) => a + c.amount, 0);
 	if (rest > 0) slices.push({ id: 'other', name: 'Otros', color: null, icon: null, amount: rest });
 
 	const percents = wholePercents(
 		slices.map((s) => s.amount),
 		totalSpent
 	);
-	return slices.map((s, i) => ({ ...s, share: s.amount / totalSpent, percent: percents[i] }));
+	return slices.map((s, i) => ({ ...s, percent: percents[i] }));
 }
 
 /** Largest-remainder rounding on integer cents so the shown percentages sum to 100. */
