@@ -104,6 +104,11 @@
 		const other = key === 'accountId' ? destinationId : originId;
 		if (isTransfer && !m.exchangeRate && other && currencyOf(id) !== currencyOf(other)) {
 			pending[key] = id;
+			// The picker returns focus to its row as it closes: take it back for the Cotización.
+			setTimeout(
+				() => document.querySelector<HTMLInputElement>('input[aria-label="Cotización"]')?.focus(),
+				400
+			);
 			return;
 		}
 		errors[key] = (await save({ ...pending, [key]: id })) ?? '';

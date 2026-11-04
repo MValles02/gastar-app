@@ -52,6 +52,8 @@
 
 	async function commit() {
 		if (!editing) return;
+		// A required value cannot be left empty: stay open.
+		if (required && draft.trim() === '') return;
 		editing = false;
 		if (draft !== value) error = (await onsave(draft)) ?? '';
 	}

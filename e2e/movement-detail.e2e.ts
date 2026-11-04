@@ -1,64 +1,79 @@
 // A movement's detail and edit in one drawer over the list: tap a field to change it, every change
-// saves on its own with a Deshacer toast; Eliminar always confirms. Data is arranged per test under a
-// unique description and dated in the past (the demo user's current month stays untouched).
+// saves on its own with a Deshacer toast; Eliminar always confirms. Runs as `otro` (the demo user's
+// totals are read by other specs): each test creates its own ARS accounts "<desc> A"/"<desc> B" and
+// categories "<desc> C1"/"<desc> C2", plus a movement dated in the past, and removes them afterwards.
 import { expect, test, type Page } from '@playwright/test';
 import {
 	deleteMovements,
 	linkId,
 	login,
 	MOVEMENT_DETAIL_RE,
+	OTHER_EMAIL,
 	PHONE,
 	pick,
 	pickMovementDate,
+	postDelete,
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
 test.use({ viewport: PHONE });
 
 const created: string[] = [];
+const createdUrls: string[] = [];
 
 test.beforeEach(async ({ page }) => {
-	await login(page);
+	await login(page, OTHER_EMAIL);
 });
 
 test.afterEach(async ({ page, baseURL }) => {
 	for (const prefix of created.splice(0)) await deleteMovements(page, baseURL!, prefix);
+	for (const url of createdUrls.splice(0)) await postDelete(page, baseURL!, url);
 });
 
 type Seed = {
 	type?: 'outcome' | 'transfer';
 	amount?: string;
-	account?: string;
-	destination?: string;
+	/** 'A' or 'B' (this test's ARS accounts) or 'USD' (the seeded USD account). */
+	account?: 'A' | 'B' | 'USD';
+	destination?: 'A' | 'B' | 'USD';
 	rate?: string;
 	date?: string;
 };
 
-/** Creates one movement (2023-03-27, a Monday, by default) under a unique description and returns it. */
+/** Creates this test's accounts and categories and one movement (2023-03-27, a Monday); returns its description. */
 async function arrange(page: Page, baseURL: string, seed: Seed = {}) {
 	const description = `Detalle ${Date.now()}`;
 	created.push(description);
-	await page.goto('/categories', { waitUntil: 'networkidle' });
-	const categoryId = await linkId(page.getByRole('link', { name: /Supermercado/ }));
+	const headers = { origin: baseURL, accept: 'text/html' };
+	const post = async (path: string, form: Record<string, string>) => {
+		const res = await page.request.post(path, { form, headers });
+		expect(res.ok()).toBe(true);
+		createdUrls.push(res.url());
+		return res.url().split('/').pop()!;
+	};
+	const account = (name: string, color: string) =>
+		post('/accounts/new', { name, currency: 'ARS', initialBalance: '0', icon: 'bank', color });
+	const ids = {
+		A: await account(`${description} A`, 'green'),
+		B: await account(`${description} B`, 'blue'),
+		USD: ''
+	};
+	const c1 = await post('/categories/new', { name: `${description} C1`, color: 'blue', kind: '' });
+	await post('/categories/new', { name: `${description} C2`, color: 'red', kind: '' });
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
-	const accountId = await linkId(
-		page.getByRole('link', { name: new RegExp(seed.account ?? 'Efectivo') })
-	);
-	const destinationAccountId = seed.destination
-		? await linkId(page.getByRole('link', { name: new RegExp(seed.destination) }))
-		: '';
+	ids.USD = await linkId(page.getByRole('link', { name: /^Otra cuenta(?! pesos)/ }));
 	const res = await page.request.post('/movements/new', {
 		form: {
 			type: seed.type ?? 'outcome',
 			amount: seed.amount ?? '1000',
 			description,
-			accountId,
+			accountId: ids[seed.account ?? 'A'],
 			...(seed.type === 'transfer'
-				? { destinationAccountId, exchangeRate: seed.rate ?? '' }
-				: { categoryId }),
+				? { destinationAccountId: ids[seed.destination ?? 'USD'], exchangeRate: seed.rate ?? '' }
+				: { categoryId: c1 }),
 			occurredAt: seed.date ?? '2023-03-27'
 		},
-		headers: { origin: baseURL, accept: 'text/html' }
+		headers
 	});
 	expect(res.ok()).toBe(true);
 	return description;
@@ -89,6 +104,9 @@ async function undo(page: Page) {
 test('the detail opens as a drawer over the list; scroll and filters survive closing', async ({
 	page
 }) => {
+	// Read-only: the demo user has enough movements to scroll.
+	await page.context().clearCookies();
+	await login(page);
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
 	const accountId = await linkId(page.getByRole('link', { name: /Efectivo/ }));
 	const list = `/movements?account=${accountId}`;
@@ -154,20 +172,20 @@ test('description, amount, account, category and date each autosave and Deshacer
 	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('$1.000');
 
 	// Account.
-	await pick(page, 'Cuenta', 'Banco Galicia');
+	await pick(page, 'Cuenta', `${desc} B`);
 	await expect(saved(page)).toBeVisible();
-	await expect(drawer.getByRole('button', { name: /^Cuenta/ })).toContainText('Banco Galicia');
-	await expect(rowOf(page, desc)).toContainText('Banco Galicia');
+	await expect(drawer.getByRole('button', { name: /^Cuenta/ })).toContainText(`${desc} B`);
+	await expect(rowOf(page, desc)).toContainText(`${desc} B`);
 	await undo(page);
-	await expect(drawer.getByRole('button', { name: /^Cuenta/ })).toContainText('Efectivo');
-	await expect(rowOf(page, desc)).toContainText('Efectivo');
+	await expect(drawer.getByRole('button', { name: /^Cuenta/ })).toContainText(`${desc} A`);
+	await expect(rowOf(page, desc)).toContainText(`${desc} A`);
 
 	// Category (the list row shows its icon only: the saved value is checked on reopening).
-	await pick(page, 'Categoría', 'Alquiler');
+	await pick(page, 'Categoría', `${desc} C2`);
 	await expect(saved(page)).toBeVisible();
-	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText('Alquiler');
+	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C2`);
 	await undo(page);
-	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText('Supermercado');
+	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
 
 	// Date: the list groups by day (2023-03-27 is a Monday).
 	await expect(page.getByRole('heading', { level: 3, name: 'Lunes 27' })).toBeVisible();
@@ -187,8 +205,8 @@ test('description, amount, account, category and date each autosave and Deshacer
 test('a transfer shows En destino and follows a changed Cotización', async ({ page, baseURL }) => {
 	const desc = await arrange(page, baseURL!, {
 		type: 'transfer',
-		account: 'Efectivo',
-		destination: 'Ahorro USD',
+		account: 'A',
+		destination: 'USD',
 		rate: '1000'
 	});
 	const drawer = await openDrawer(page, desc);
@@ -241,8 +259,8 @@ test('a direct /movements/<id> renders the detail', async ({ page, baseURL }) =>
 	await expect(page.getByRole('button', { name: `Descripción: ${desc}` })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Monto: 1.000' })).toBeVisible();
 	await expect(page.getByRole('button', { name: /^Fecha/ })).toContainText('27/03/2023');
-	await expect(page.getByRole('button', { name: /^Cuenta/ })).toContainText('Efectivo');
-	await expect(page.getByRole('button', { name: /^Categoría/ })).toContainText('Supermercado');
+	await expect(page.getByRole('button', { name: /^Cuenta/ })).toContainText(`${desc} A`);
+	await expect(page.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
 });
 
 test('an invalid amount shows the error and keeps the old value', async ({ page, baseURL }) => {
@@ -264,17 +282,31 @@ test('Deshacer restores a transfer account change that dropped the rate', async 
 }) => {
 	const desc = await arrange(page, baseURL!, {
 		type: 'transfer',
-		account: 'Efectivo',
-		destination: 'Ahorro USD',
+		account: 'A',
+		destination: 'USD',
 		rate: '1000'
 	});
 	const drawer = await openDrawer(page, desc);
-	await pick(page, 'Hacia', 'Banco Galicia');
+	await pick(page, 'Hacia', `${desc} B`);
 	await expect(saved(page)).toBeVisible();
-	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toContainText('Banco Galicia');
+	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toContainText(`${desc} B`);
 	await expect(drawer.getByRole('button', { name: /^Cotización/ })).toHaveCount(0);
 	await undo(page);
 	await expect(page.getByText('No se pudo deshacer.')).toHaveCount(0);
-	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toContainText('Ahorro USD');
+	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toContainText('Otra cuenta');
 	await expect(drawer.getByRole('button', { name: 'Cotización: 1.000' })).toBeVisible();
+});
+
+test('a cross-currency Hacia opens a focused, required Cotización', async ({ page, baseURL }) => {
+	const desc = await arrange(page, baseURL!, {
+		type: 'transfer',
+		account: 'A',
+		destination: 'B'
+	});
+	const drawer = await openDrawer(page, desc);
+	await pick(page, 'Hacia', 'Otra cuenta');
+	const rate = drawer.getByRole('textbox', { name: 'Cotización' });
+	await expect(rate).toBeVisible();
+	await expect(rate).toBeFocused();
+	await expect(rate).toHaveAttribute('required', '');
 });
