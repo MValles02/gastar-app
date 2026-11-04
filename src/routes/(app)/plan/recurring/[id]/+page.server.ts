@@ -84,6 +84,19 @@ async function detailOf(userId: string, id: string) {
 		account,
 		category,
 		thisMonth,
+		// Pickers for the rows; the rule's own archived account/category stays listed, flagged.
+		accounts: pickers.accounts.some((a) => a.id === account.id)
+			? pickers.accounts.map((a) => ({ ...a, archived: false }))
+			: [
+					...pickers.accounts.map((a) => ({ ...a, archived: false })),
+					{ ...account, archived: true }
+				],
+		categories: pickers.categories.some((c) => c.id === category.id)
+			? pickers.categories.map((c) => ({ ...c, archived: false }))
+			: [
+					...pickers.categories.map((c) => ({ ...c, archived: false })),
+					{ ...category, archived: true }
+				],
 		inactiveReason: inactiveReason(rule),
 		cannotRegister: cannotRegister(rule),
 		archived: rule.archivedAt !== null

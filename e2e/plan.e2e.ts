@@ -44,7 +44,9 @@ test('seeded rules: rent is paid, the gym is inactive and cannot be registered',
 	await expect(page.locator('input[name="recurringId"]')).toHaveCount(0);
 });
 
-test('a rule on an archived account can be edited and stays inactive', async ({ page }) => {
+test('a rule on an archived account says why it cannot be registered and its rows stay editable', async ({
+	page
+}) => {
 	await login(page);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	const link = page
@@ -52,10 +54,16 @@ test('a rule on an archived account can be edited and stays inactive', async ({ 
 		.getByRole('link', { name: /Gimnasio/ });
 	const href = await link.evaluate((a: HTMLAnchorElement) => a.pathname);
 	const edit = async (description: string) => {
-		await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
-		await page.locator('input[name="description"]').fill(description);
-		await page.getByRole('button', { name: 'Guardar cambios' }).click();
-		await expect(page).toHaveURL(href);
+		await page.goto(href, { waitUntil: 'networkidle' });
+		await expect(
+			page.getByText('No se puede registrar mientras la cuenta esté archivada.')
+		).toBeVisible();
+		await expect(page.getByRole('link', { name: /^Registrar/ })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: /^Categoría/ })).toBeEnabled();
+		await page.getByRole('button', { name: /^Descripción:/ }).click();
+		await page.getByRole('textbox', { name: 'Descripción' }).fill(description);
+		await page.getByRole('textbox', { name: 'Descripción' }).press('Enter');
+		await expect(page.getByText('Cambio guardado.').first()).toBeVisible();
 		await page.goto('/plan', { waitUntil: 'networkidle' });
 		await expect(
 			page.getByRole('region', { name: 'Inactivos' }).getByText(description)
@@ -112,7 +120,10 @@ test('empty new rule form shows every required-field message', async ({ page }) 
 		await expect(page.getByText(message)).toBeVisible();
 });
 
-test('deactivate, activate and delete a rule', async ({ page, baseURL }) => {
+test('a rule detail saves its amount with Deshacer, deactivates, activates and deletes', async ({
+	page,
+	baseURL
+}) => {
 	await login(page, OTHER_EMAIL);
 	const description = 'Ciclo e2e';
 	try {
@@ -125,38 +136,65 @@ test('deactivate, activate and delete a rule', async ({ page, baseURL }) => {
 		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
-		const inactive = page.getByRole('region', { name: 'Inactivos' });
-		const open = async () => {
-			await page.goto('/plan', { waitUntil: 'networkidle' });
-			await page
-				.getByRole('link', { name: new RegExp(description) })
-				.first()
-				.click();
-		};
-
 		await rule(page, description).locator('a[data-slot="item"]').click();
+		await expect(page).toHaveURL(/\/plan\/recurring\/[0-9a-f-]{36}$/);
+
+		const amount = page.getByRole('button', { name: /^Monto:/ });
+		await amount.click();
+		await page.getByRole('textbox', { name: 'Monto' }).fill('1200');
+		await page.getByRole('textbox', { name: 'Monto' }).press('Enter');
+		await expect(amount).toContainText('1.200');
+		await page.getByRole('button', { name: 'Deshacer' }).click();
+		await expect(amount).toContainText('900');
+
 		await page.getByRole('button', { name: 'Desactivar' }).click();
-		await expect(page).toHaveURL(/\/plan$/);
-		await expect(inactive).toContainText(description);
-		await expect(inactive).toContainText('Desactivado');
+		await expect(page.getByText('Desactivado', { exact: true })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Activar', exact: true })).toBeVisible();
+		await expect(page.getByRole('button', { name: /^Descripción:/ })).toBeEnabled();
 
-		await open();
-		await page.getByRole('button', { name: 'Activar' }).click();
-		await expect(page).toHaveURL(/\/plan$/);
-		await expect(rule(page, description)).toBeVisible();
-		await expect(
-			page.getByRole('region', { name: 'Inactivos' }).filter({ hasText: description })
-		).toHaveCount(0);
+		await page.getByRole('button', { name: 'Activar', exact: true }).click();
+		await expect(page.getByRole('button', { name: 'Desactivar' })).toBeVisible();
+		await expect(page.getByText('Desactivado', { exact: true })).toHaveCount(0);
 
-		await open();
 		await page.getByRole('button', { name: 'Eliminar' }).click();
-		await expect(page.getByText('¿Eliminar este movimiento fijo?')).toBeVisible();
+		await expect(page.getByText('¿Eliminar este pago fijo?')).toBeVisible();
 		await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(page.getByText(description)).toHaveCount(0);
 	} finally {
 		await deleteRules(page, baseURL!, description);
 	}
+});
+
+test('the new-rule drawer opens over the plan and Guardar waits for amount and description', async ({
+	page
+}) => {
+	await login(page);
+	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await page
+		.getByRole('region', { name: 'Pagos fijos', exact: true })
+		.getByRole('link', { name: 'Agregar' })
+		.click();
+	const drawer = page.getByRole('dialog', { name: 'Nuevo pago fijo' });
+	await expect(drawer).toBeVisible();
+	await expect(page).toHaveURL(/\/plan$/);
+	const save = drawer.getByRole('button', { name: 'Guardar' });
+	await expect(save).toBeDisabled();
+	await drawer.locator('input[name="amount"]').fill('1');
+	await expect(save).toBeDisabled();
+	await drawer.locator('input[name="description"]').fill('Borrador');
+	await expect(save).toBeEnabled();
+	await drawer.getByRole('button', { name: 'Cancelar' }).click();
+	await expect(drawer).toBeHidden();
+	await expect(page).toHaveURL(/\/plan$/);
+});
+
+test('the old rule edit URL is a 404', async ({ page }) => {
+	await login(page);
+	await page.goto('/plan', { waitUntil: 'networkidle' });
+	const id = await linkId(page.locator('.rule a[data-slot="item"]').first());
+	const res = await page.goto(`/plan/recurring/${id}/edit`);
+	expect(res!.status()).toBe(404);
 });
 
 test('USD tab shows the empty state', async ({ page, baseURL }) => {

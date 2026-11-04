@@ -18,6 +18,7 @@
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import SummaryCard from '$lib/components/SummaryCard.svelte';
+	import { openShallow } from '$lib/open-shallow';
 	import { PLAN_TONE } from '$lib/status';
 	import LimitList from './LimitList.svelte';
 	import RecurringRow from './RecurringRow.svelte';
@@ -124,7 +125,10 @@
 				<SectionHeader
 					id="income-heading"
 					title="Ingresos fijos"
-					action={{ href: '/plan/recurring/new?type=income' }}
+					action={{
+						href: '/plan/recurring/new?type=income',
+						onclick: (e) => openShallow(e, resolve('/plan/recurring/new?type=income'), 'newRule')
+					}}
 				/>
 				{#if data.incomes.length}
 					<ListCard>
@@ -139,7 +143,10 @@
 				<SectionHeader
 					id="outcome-heading"
 					title="Pagos fijos"
-					action={{ href: '/plan/recurring/new?type=outcome' }}
+					action={{
+						href: '/plan/recurring/new?type=outcome',
+						onclick: (e) => openShallow(e, resolve('/plan/recurring/new?type=outcome'), 'newRule')
+					}}
 				/>
 				{#if data.outcomes.length}
 					<ListCard>

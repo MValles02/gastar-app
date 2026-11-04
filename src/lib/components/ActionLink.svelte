@@ -2,10 +2,14 @@
 	import { resolve } from '$app/paths';
 
 	/** Underlined text link for section actions ("Agregar", "Ver todos"); `href` is an unresolved app path. */
-	let { href, label = 'Agregar' }: { href: string; label?: string } = $props();
+	let {
+		href,
+		label = 'Agregar',
+		onclick
+	}: { href: string; label?: string; onclick?: (e: MouseEvent) => void } = $props();
 </script>
 
-<a class="action" href={resolve(href as '/')}>{label}</a>
+<a class="action" href={resolve(href as '/')} {onclick}>{label}</a>
 
 <style>
 	.action {

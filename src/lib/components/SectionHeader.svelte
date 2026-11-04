@@ -16,7 +16,7 @@
 		id?: string;
 		level?: 2 | 3;
 		variant?: 'title' | 'group';
-		action?: { href: string; label?: string };
+		action?: { href: string; label?: string; onclick?: (e: MouseEvent) => void };
 		aside?: Snippet;
 	} = $props();
 </script>
@@ -28,7 +28,8 @@
 		<svelte:element this={`h${level}`} {id} class="title">{title}</svelte:element>
 	{/if}
 	{#if aside}{@render aside()}{/if}
-	{#if action}<span class="action"><ActionLink href={action.href} label={action.label} /></span
+	{#if action}<span class="action"
+			><ActionLink href={action.href} label={action.label} onclick={action.onclick} /></span
 		>{/if}
 </div>
 
