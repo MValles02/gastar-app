@@ -113,14 +113,17 @@ test('a plan alert opens /plan in its currency, and the page works without JS', 
 		await expect(row).toContainText('Te pasaste');
 		await row.getByRole('button').click();
 		await expect(page).toHaveURL(/\/plan$/);
-		await expect(page.getByRole('radio', { name: 'ARS' })).toBeChecked();
+		await expect(page.getByRole('button', { name: 'Pesos' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
 	} finally {
 		await setCurrencyCookie(page, baseURL!, 'ARS');
 		if (created) await postDelete(page, baseURL!, `${baseURL}/plan`);
 	}
 });
 
-test('a limit alert explains itself and opens its page in its currency', async ({
+test('a limit alert explains itself and opens its drawer in its currency', async ({
 	page,
 	baseURL
 }) => {
@@ -165,8 +168,9 @@ test('a limit alert explains itself and opens its page in its currency', async (
 		// The message does not repeat the pill's "Te pasaste".
 		await expect(row.locator('.row-meta')).toHaveText('$1 sobre el límite de $1');
 		await row.getByRole('button').click();
-		await expect(page).toHaveURL(/\/plan\/limits\/[0-9a-f-]{36}$/);
-		await expect(page.getByRole('heading', { level: 1, name: 'Límite de Ajena' })).toBeVisible();
+		// The limit opens as a drawer over /plan, and the flag leaves the URL.
+		await expect(page.getByRole('dialog', { name: 'Límite de Ajena' })).toBeVisible();
+		await expect(page).toHaveURL(/\/plan$/);
 	} finally {
 		await setCurrencyCookie(page, baseURL!, 'ARS');
 		await deleteMovements(page, baseURL!, description);

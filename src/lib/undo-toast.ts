@@ -1,10 +1,10 @@
 import { toast } from 'svelte-sonner';
-import { invalidateAll } from '$app/navigation';
+import { refreshAll } from '$app/navigation';
 
 const UUID = /^[0-9a-f-]{36}$/;
 
 /**
- * Success toast with a single "Deshacer" action: runs `undo`, then refreshes the loads. A failed undo
+ * Success toast with a single "Deshacer" action: runs `undo`, then refreshes the loads (`refreshAll`, which keeps a shallow-route drawer open). A failed undo
  * shows an error toast; a successful one adds none.
  */
 export function undoToast(message: string, undo: () => Promise<void>) {
@@ -15,7 +15,7 @@ export function undoToast(message: string, undo: () => Promise<void>) {
 			onClick: async () => {
 				try {
 					await undo();
-					await invalidateAll();
+					await refreshAll();
 				} catch {
 					toast.error('No se pudo deshacer.');
 				}

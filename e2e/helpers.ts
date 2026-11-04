@@ -166,12 +166,12 @@ export async function fillRule(
 	await pick(page, 'Categoría', o.category);
 }
 
-/** Sets the Ahorro fields (toggle, then value and unit for "Otro"); the caller submits. */
+/** Picks an Ahorro list row (and, for "Otro", unit and value); the caller saves (Siguiente / Guardar). */
 export async function fillSavings(
 	page: Page,
 	o: { option: 'Nada' | '10%' | '20%' | 'Otro'; value?: string; unit?: '%' | '$' | 'US$' }
 ) {
-	await page.getByRole('radio', { name: o.option, exact: true }).click();
+	await page.getByRole('button', { name: new RegExp('^' + o.option.replace('%', ' %')) }).click();
 	if (o.option !== 'Otro') return;
 	if (o.unit) await page.getByRole('radio', { name: o.unit, exact: true }).click();
 	await page.locator('input[name="savingsValue"]').fill(o.value ?? '');

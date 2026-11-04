@@ -2,11 +2,12 @@
 	import { CURRENCY_NAME } from '$lib/money';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { afterNavigate, replaceState } from '$app/navigation';
+	import { afterNavigate, preloadData, pushState, replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
+	import ActionLink from '$lib/components/ActionLink.svelte';
 	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
@@ -17,7 +18,7 @@
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
-	import SummaryCard from '$lib/components/SummaryCard.svelte';
+	import { openShallow } from '$lib/open-shallow';
 	import { PLAN_TONE } from '$lib/status';
 	import LimitList from './LimitList.svelte';
 	import RecurringRow from './RecurringRow.svelte';
@@ -28,24 +29,38 @@
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
 	let hydrated = $state(false);
 	onMount(() => (hydrated = true));
-	// Toast once per saved redirect, then strip the flags from the URL so a reload does not toast
-	// again. Runs in afterNavigate because replaceState throws before the router is initialized
-	// (hard load of ?saved=1), hence the retry.
-	const stripFlags = () => {
-		try {
-			const url = new URL(page.url);
-			url.searchParams.delete('saved');
-			url.searchParams.delete('planSaved');
-			replaceState(resolve((url.pathname + url.search + url.hash) as '/'), {});
-		} catch {
-			setTimeout(stripFlags, 50);
-		}
-	};
+	// Strips one-shot flags from the URL so a reload does not repeat them. Runs in afterNavigate because
+	// replaceState throws before the router is initialized (hard load of ?saved=1), hence the retry.
+	const stripFlags = (names: string[]) =>
+		new Promise<void>((done) => {
+			const run = () => {
+				try {
+					const url = new URL(page.url);
+					for (const n of names) url.searchParams.delete(n);
+					replaceState(resolve((url.pathname + url.search + url.hash) as '/'), {});
+					done();
+				} catch {
+					setTimeout(run, 50);
+				}
+			};
+			run();
+		});
+
+	// An alert's `?limit=<categoryId>` opens that limit's drawer over the plan, then drops the flag.
+	async function openLimit(id: string) {
+		const result = await preloadData(resolve(`/plan/limits/${id}`));
+		await stripFlags(['limit']);
+		if (result.type === 'loaded' && result.status === 200)
+			pushState('', { limit: result.data as App.PageState['limit'] });
+	}
+
 	afterNavigate(() => {
 		if (data.saved || data.planSaved) {
 			toast.success(data.saved ? 'Pago registrado.' : 'Plan guardado.');
-			stripFlags();
+			void stripFlags(['saved', 'planSaved']);
 		}
+		const limit = page.url.searchParams.get('limit');
+		if (limit && /^[0-9a-f-]{36}$/.test(limit)) void openLimit(limit);
 	});
 </script>
 
@@ -53,10 +68,32 @@
 	<title>Plan · Gastar</title>
 </svelte:head>
 
+{#snippet addLimit()}
+	<ActionLink
+		href="/plan/limits/new"
+		label="+ Agregar"
+		onclick={(e) => openShallow(e, resolve('/plan/limits/new'), 'newLimit')}
+	/>
+{/snippet}
+{#snippet addIncome()}
+	<ActionLink
+		href="/plan/recurring/new?type=income"
+		label="+ Agregar"
+		onclick={(e) => openShallow(e, resolve('/plan/recurring/new?type=income'), 'newRule')}
+	/>
+{/snippet}
+{#snippet addOutcome()}
+	<ActionLink
+		href="/plan/recurring/new?type=outcome"
+		label="+ Agregar"
+		onclick={(e) => openShallow(e, resolve('/plan/recurring/new?type=outcome'), 'newRule')}
+	/>
+{/snippet}
+
 <PageHeader title="Plan" />
 
 <div class="page">
-	<CurrencyTabs value={data.currency} />
+	<CurrencyTabs value={data.currency} variant="pills" />
 	{#if !hydrated}
 		{#if data.saved}<p role="status">Pago registrado.</p>{/if}
 		{#if data.planSaved}<p role="status">Plan guardado.</p>{/if}
@@ -70,17 +107,8 @@
 		{#if data.plan.summary}
 			{@const s = data.plan.summary}
 			<section aria-labelledby="summary-heading">
-				<SummaryCard
-					currency={data.currency}
-					income={s.income}
-					bills={s.bills}
-					savings={s.savings}
-					forSpending={s.forSpending}
-					spent={s.spent}
-					pendingBills={s.pendingBills}
-					savingsHref={resolve('/plan/savings')}
-				>
-					{#snippet header()}
+				<Card.Root class="gap-0 overflow-hidden py-0">
+					<div class="box">
 						<div class="top">
 							<CardEyebrow as="h2" id="summary-heading"
 								>Disponible · {data.plan.monthName}</CardEyebrow
@@ -92,16 +120,46 @@
 							<Money cents={s.perDay} currency={data.currency} />/día · {s.daysLeft}
 							{s.daysLeft === 1 ? 'día' : 'días'}
 						</p>
-					{/snippet}
-				</SummaryCard>
+					</div>
+					<dl class="figures">
+						<div class="kv">
+							<dt>Ingresos</dt>
+							<dd>
+								<Money cents={s.income} currency={data.currency} tone="flow" direction="income" />
+							</dd>
+						</div>
+						<div class="kv link">
+							<dt>
+								<a
+									href={resolve('/plan/savings')}
+									onclick={(e) => openShallow(e, resolve('/plan/savings'), 'savings')}>Ahorro</a
+								>
+							</dt>
+							<dd><Money cents={s.savings} currency={data.currency} /></dd>
+						</div>
+						<div class="kv">
+							<dt>Pagos fijos pendientes</dt>
+							<dd>
+								<Money
+									cents={-s.pendingBills}
+									currency={data.currency}
+									tone="flow"
+									direction="outcome"
+								/>
+							</dd>
+						</div>
+						<div class="kv">
+							<dt>Gastado</dt>
+							<dd>
+								<Money cents={-s.spent} currency={data.currency} tone="flow" direction="outcome" />
+							</dd>
+						</div>
+					</dl>
+				</Card.Root>
 			</section>
 
 			<section aria-labelledby="limits-heading">
-				<SectionHeader
-					id="limits-heading"
-					title="Límites por categoría"
-					action={{ href: '/plan/limits/new' }}
-				/>
+				<SectionHeader id="limits-heading" title="Límites por categoría" aside={addLimit} />
 				<LimitList limits={s.limits} currency={data.currency} />
 			</section>
 		{:else}
@@ -121,11 +179,7 @@
 
 		{#if data.plan.summary || data.incomes.length || data.outcomes.length || data.inactive.length}
 			<section aria-labelledby="income-heading">
-				<SectionHeader
-					id="income-heading"
-					title="Ingresos fijos"
-					action={{ href: '/plan/recurring/new?type=income' }}
-				/>
+				<SectionHeader id="income-heading" title="Ingresos fijos" aside={addIncome} />
 				{#if data.incomes.length}
 					<ListCard>
 						{#each data.incomes as r (r.id)}<RecurringRow row={r} currency={data.currency} />{/each}
@@ -136,11 +190,7 @@
 			</section>
 
 			<section aria-labelledby="outcome-heading">
-				<SectionHeader
-					id="outcome-heading"
-					title="Pagos fijos"
-					action={{ href: '/plan/recurring/new?type=outcome' }}
-				/>
+				<SectionHeader id="outcome-heading" title="Pagos fijos pendientes" aside={addOutcome} />
 				{#if data.outcomes.length}
 					<ListCard>
 						{#each data.outcomes as r (r.id)}<RecurringRow
@@ -202,6 +252,13 @@
 		font-weight: 500;
 	}
 
+	.box {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+		padding: 1.25rem 1.25rem var(--space-4);
+	}
+
 	.top {
 		display: flex;
 		align-items: center;
@@ -213,6 +270,48 @@
 	.per-day {
 		font-size: var(--font-size-sm);
 		color: var(--text-muted);
+	}
+
+	/* 2x2 grid of figures. */
+	.figures {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: var(--space-4) var(--space-5);
+		padding: var(--space-2) 1.25rem 1.25rem;
+		font-size: var(--font-size-sm);
+	}
+
+	.kv {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+		min-width: 0;
+	}
+
+	.figures dt {
+		font-weight: 500;
+		color: var(--text-muted);
+	}
+
+	.figures dd {
+		margin: 0;
+		font-family: var(--font-display);
+		font-size: var(--font-size-base);
+		font-weight: 500;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.kv.link a {
+		color: inherit;
+		text-decoration: underline;
+	}
+
+	/* The whole figure is the tap target. */
+	.kv.link a::after {
+		content: '';
+		position: absolute;
+		inset: calc(var(--space-2) * -1);
 	}
 
 	.no-plan {

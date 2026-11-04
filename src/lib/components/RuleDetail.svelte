@@ -1,0 +1,263 @@
+<script lang="ts">
+	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
+	import { autosave } from '$lib/autosave';
+	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
+	import { formatAmountInput } from '$lib/money';
+	import { dueTone } from '$lib/status';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import DayOfMonthPicker from '$lib/components/DayOfMonthPicker.svelte';
+	import InlineText from '$lib/components/InlineText.svelte';
+	import Money from '$lib/components/Money.svelte';
+	import OptionPicker from '$lib/components/OptionPicker.svelte';
+	import StatusPill from '$lib/components/StatusPill.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import type { PageData } from '../../routes/(app)/plan/recurring/[id]/$types';
+
+	/**
+	 * A recurring rule's detail and edit in one: tapping a row or the amount changes it, and every change
+	 * saves on its own (`?/update`) with a Deshacer toast. Desactivar / Activar and Eliminar (with confirm)
+	 * sit below; registering links to the new-movement form.
+	 */
+	let { data }: { data: PageData } = $props();
+
+	// A reload (Activar, Desactivar, Deshacer) brings the stored rule back in; a save sets it at once.
+	let r = $derived(data);
+
+	const income = $derived(r.type === 'income');
+	const currency = $derived(r.currency === 'USD' ? 'USD' : 'ARS');
+	const wizardQuery = $derived(data.wizard ? `&wizard=${data.wizard}` : '');
+	const path = $derived(resolve(`/plan/recurring/${r.id}`));
+
+	// What the update action stores, as the strings it takes.
+	const values = $derived<Record<string, string>>({
+		description: r.description,
+		amount: formatAmountInput(r.amount, currency),
+		accountId: r.account.id,
+		categoryId: r.category.id,
+		dayOfMonth: String(r.dayOfMonth)
+	});
+
+	const archived = (name: string, is: boolean) => (is ? `${name} · Archivada` : name);
+	const accounts = $derived(r.accounts.map((a) => ({ ...a, name: archived(a.name, a.archived) })));
+	const categories = $derived(
+		r.categories
+			.filter((c) => c.kind === null || c.kind === r.type)
+			.map((c) => ({ ...c, name: archived(c.name, c.archived) }))
+	);
+
+	// Picker rows report their error here, keyed by field.
+	let errors = $state<Record<string, string>>({});
+
+	async function save(key: string, value: string) {
+		if (value === values[key]) return null;
+		const error = await autosave<{ rule: typeof data }>({
+			path: `${path}?/update`,
+			fields: { [key]: value },
+			previous: { [key]: values[key] },
+			apply: (res) => {
+				r = { ...res.rule, wizard: data.wizard };
+				errors = {};
+			}
+		});
+		errors[key] = error ?? '';
+		return error;
+	}
+
+	const noun = $derived(income ? 'ingreso' : 'pago');
+</script>
+
+{#snippet empty()}<p class="hint">Todavía no hay opciones.</p>{/snippet}
+
+<div class="detail">
+	<div class="top">
+		<p class="kind">
+			{income ? 'Ingreso fijo' : 'Pago fijo'}
+			{#if r.archived}
+				<StatusPill tone="neutral" label="Desactivado" />
+			{:else if r.cannotRegister}
+				<StatusPill tone="warning" label={r.inactiveReason ?? ''} />
+			{:else if r.thisMonth}
+				<StatusPill tone={dueTone(r.thisMonth.status, r.type)} label={r.thisMonth.label} />
+			{/if}
+		</p>
+		<div class="amount {r.type}">
+			<InlineText
+				label="Monto"
+				inputmode="decimal"
+				value={values.amount}
+				onsave={(next) => save('amount', next)}
+			>
+				{#snippet display()}
+					<Money cents={r.amount} {currency} tone="flow" direction={r.type} />
+				{/snippet}
+			</InlineText>
+		</div>
+	</div>
+
+	<ul class="card">
+		<li class="row">
+			<span class="k">Descripción</span>
+			<span class="v">
+				<InlineText
+					label="Descripción"
+					value={values.description}
+					maxlength={DESCRIPTION_MAX_LENGTH}
+					required
+					onsave={(next) => save('description', next)}
+				>
+					{#snippet display()}{r.description}{/snippet}
+				</InlineText>
+			</span>
+		</li>
+		<li>
+			<OptionPicker
+				variant="row"
+				name="accountId"
+				legend="Cuenta"
+				title="Elegí la cuenta"
+				items={accounts}
+				bind:value={() => values.accountId, (v) => void save('accountId', v)}
+				placeholder="Elegir"
+				error={errors.accountId}
+				errorId="account-error"
+				{empty}
+			/>
+		</li>
+		<li>
+			<OptionPicker
+				variant="row"
+				name="categoryId"
+				legend="Categoría"
+				title="Elegí la categoría"
+				items={categories}
+				bind:value={() => values.categoryId, (v) => void save('categoryId', v)}
+				placeholder="Elegir"
+				error={errors.categoryId}
+				errorId="category-error"
+				{empty}
+			/>
+		</li>
+		<li>
+			<DayOfMonthPicker
+				bind:value={() => values.dayOfMonth, (v) => void save('dayOfMonth', v)}
+				error={errors.dayOfMonth}
+				errorId="day-error"
+			/>
+		</li>
+	</ul>
+
+	{#if r.cannotRegister}<p class="reason">{r.cannotRegister}</p>{/if}
+
+	<div class="actions">
+		{#if r.archived}
+			<form method="POST" action="?/archive" use:enhance>
+				<Button type="submit" class="w-full">Activar</Button>
+			</form>
+		{:else}
+			{#if !r.cannotRegister}
+				<Button class="w-full" href={resolve(`/movements/new?recurring=${r.id}`)}>
+					Registrar {noun}
+				</Button>
+			{/if}
+			<form method="POST" action="?/archive" use:enhance>
+				<Button type="submit" variant="outline" class="w-full">Desactivar</Button>
+			</form>
+		{/if}
+		<ConfirmDialog
+			triggerLabel="Eliminar"
+			triggerVariant="destructive"
+			triggerClass="w-full"
+			title="¿Eliminar este {noun} fijo?"
+			confirmLabel="Eliminar"
+			action="?/delete{wizardQuery}"
+		>
+			Los movimientos ya registrados se mantienen.
+		</ConfirmDialog>
+	</div>
+</div>
+
+<style>
+	.detail {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-5);
+	}
+
+	.top {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-1);
+		text-align: center;
+	}
+
+	.kind {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin: 0;
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
+	}
+
+	.amount {
+		max-width: 100%;
+		font-family: var(--font-display);
+		font-size: var(--font-size-hero);
+		font-weight: 500;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.amount.outcome {
+		color: var(--negative);
+	}
+
+	.amount.income {
+		color: var(--positive);
+	}
+
+	.card {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		overflow: hidden;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-card);
+		box-shadow: var(--shadow-1);
+	}
+
+	.row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-3);
+		min-height: 3.5rem;
+		padding: 0 var(--space-4);
+		font-size: var(--font-size-base);
+	}
+
+	.v {
+		min-width: 0;
+		text-align: right;
+		font-weight: 500;
+	}
+
+	.hint {
+		padding: var(--space-4);
+		color: var(--text-muted);
+	}
+
+	.reason {
+		margin: 0;
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
+		text-align: center;
+	}
+
+	.actions {
+		display: grid;
+		gap: var(--space-3);
+	}
+</style>

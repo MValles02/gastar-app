@@ -38,7 +38,7 @@
 	{/if}
 {/snippet}
 
-{#snippet meta()}Día {r.day} · {r.accountName}{/snippet}
+{#snippet meta()}Día {r.day} · {r.reason ?? r.accountName}{/snippet}
 
 <!-- Each row opens the detail, where "Registrar pago" lives. -->
 <ListRow
@@ -51,9 +51,7 @@
 	}}
 	title={r.description}
 	{value}
-	status={r.reason
-		? { tone: 'neutral', label: r.reason }
-		: { tone: dueTone(r.status!, r.type), label: r.label! }}
+	status={r.reason ? undefined : { tone: dueTone(r.status!, r.type), label: r.label! }}
 	{meta}
 	dimmed={!!r.reason}
 />

@@ -8,6 +8,10 @@
 	import TabBar from '$lib/components/TabBar.svelte';
 	import MovementDetailDrawer from '$lib/components/MovementDetailDrawer.svelte';
 	import NewMovementDrawer from '$lib/components/NewMovementDrawer.svelte';
+	import NewRuleDrawer from '$lib/components/NewRuleDrawer.svelte';
+	import LimitDetail from '$lib/components/LimitDetail.svelte';
+	import NewLimitDrawer from '$lib/components/NewLimitDrawer.svelte';
+	import SavingsDrawer from '$lib/components/SavingsDrawer.svelte';
 	import { highlightMovement } from '$lib/highlight.svelte';
 	import { undoMovementSaved } from '$lib/undo-toast';
 
@@ -46,6 +50,14 @@
 	{#if showBar}<TabBar />{/if}
 	{#if page.state.newMovement}<NewMovementDrawer data={page.state.newMovement} />{/if}
 	{#if page.state.movement}<MovementDetailDrawer data={page.state.movement} />{/if}
+	{#if page.state.newRule}<NewRuleDrawer data={page.state.newRule} />{/if}
+	{#if page.state.limit}<LimitDetail
+			data={page.state.limit}
+			variant="drawer"
+			onclose={() => page.state.limit && history.back()}
+		/>{/if}
+	{#if page.state.newLimit}<NewLimitDrawer data={page.state.newLimit} />{/if}
+	{#if page.state.savings}<SavingsDrawer data={page.state.savings} />{/if}
 </div>
 
 <style>

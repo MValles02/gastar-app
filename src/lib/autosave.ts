@@ -1,7 +1,7 @@
 import { deserialize } from '$app/forms';
 import { refreshAll } from '$app/navigation';
 import type { ActionResult } from '@sveltejs/kit';
-import { toast } from 'svelte-sonner';
+import { undoToast } from '$lib/undo-toast';
 
 const UNSAVED = 'No se pudo guardar el cambio.';
 
@@ -53,23 +53,10 @@ export async function autosave<T>({
 	if (result.type !== 'success') return UNSAVED;
 
 	apply(result.data as T);
-	// Not `undoToast`: it refreshes with `invalidateAll`, which resets the shallow-route state and
-	// would close the drawer this is called from. `refreshAll` keeps it.
-	toast.success(message, {
-		duration: 5000,
-		action: {
-			label: 'Deshacer',
-			onClick: async () => {
-				try {
-					const undone = await submitAction(path, { ...previous, undo: '1' });
-					if (undone.type !== 'success') throw new Error(path);
-					apply(undone.data as T);
-					await refreshAll();
-				} catch {
-					toast.error('No se pudo deshacer.');
-				}
-			}
-		}
+	undoToast(message, async () => {
+		const undone = await submitAction(path, { ...previous, undo: '1' });
+		if (undone.type !== 'success') throw new Error(path);
+		apply(undone.data as T);
 	});
 	await refreshAll();
 	return null;
