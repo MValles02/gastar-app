@@ -198,28 +198,30 @@
 
 <div class="detail" class:drawer>
 	<div class="top">
-		<h2 class="description">
-			<InlineText
-				label="Descripción"
-				value={values.description}
-				maxlength={DESCRIPTION_MAX_LENGTH}
-				onsave={(next) => commit({ description: next })}
-			>
-				{#snippet display()}{m.description}{/snippet}
-			</InlineText>
-		</h2>
-		<div class="amount {effType}">
-			<InlineText
-				label="Monto"
-				inputmode="decimal"
-				value={values.amount}
-				onsave={(next) => commit({ amount: next })}
-			>
-				{#snippet display()}
-					<Money cents={m.amount} currency={m.accountCurrency} tone="flow" direction={effType} />
-				{/snippet}
-			</InlineText>
-		</div>
+		<fieldset class="lock" disabled={typeStaged}>
+			<h2 class="description">
+				<InlineText
+					label="Descripción"
+					value={values.description}
+					maxlength={DESCRIPTION_MAX_LENGTH}
+					onsave={(next) => commit({ description: next })}
+				>
+					{#snippet display()}{m.description}{/snippet}
+				</InlineText>
+			</h2>
+			<div class="amount {effType}">
+				<InlineText
+					label="Monto"
+					inputmode="decimal"
+					value={values.amount}
+					onsave={(next) => commit({ amount: next })}
+				>
+					{#snippet display()}
+						<Money cents={m.amount} currency={m.accountCurrency} tone="flow" direction={effType} />
+					{/snippet}
+				</InlineText>
+			</div>
+		</fieldset>
 	</div>
 
 	<ul class="card">
@@ -237,31 +239,35 @@
 			/>
 		</li>
 		<li>
-			<MovementDatePicker
-				name="occurredAt"
-				label="Fecha"
-				min="2000-01-01"
-				bind:value={() => values.occurredAt, (v) => void saveField('occurredAt', v)}
-				plain
-				nested={drawer}
-				error={errors.occurredAt}
-				errorId="date-error"
-			/>
+			<fieldset class="lock" disabled={typeStaged}>
+				<MovementDatePicker
+					name="occurredAt"
+					label="Fecha"
+					min="2000-01-01"
+					bind:value={() => values.occurredAt, (v) => void saveField('occurredAt', v)}
+					plain
+					nested={drawer}
+					error={errors.occurredAt}
+					errorId="date-error"
+				/>
+			</fieldset>
 		</li>
 		<li>
-			<OptionPicker
-				variant="row"
-				name="accountId"
-				legend={isTransfer ? 'Desde' : 'Cuenta'}
-				title={isTransfer ? 'Desde' : 'Cuenta'}
-				items={accounts}
-				bind:value={() => originId, (v) => void saveAccount('accountId', v)}
-				nested={drawer}
-				placeholder="Elegir"
-				error={errors.accountId}
-				errorId="account-error"
-				{empty}
-			/>
+			<fieldset class="lock" disabled={typeStaged}>
+				<OptionPicker
+					variant="row"
+					name="accountId"
+					legend={isTransfer ? 'Desde' : 'Cuenta'}
+					title={isTransfer ? 'Desde' : 'Cuenta'}
+					items={accounts}
+					bind:value={() => originId, (v) => void saveAccount('accountId', v)}
+					nested={drawer}
+					placeholder="Elegir"
+					error={errors.accountId}
+					errorId="account-error"
+					{empty}
+				/>
+			</fieldset>
 		</li>
 		{#if isTransfer}
 			<li data-row="destination">
@@ -473,5 +479,8 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: var(--space-3);
+	}
+	.lock {
+		display: contents;
 	}
 </style>

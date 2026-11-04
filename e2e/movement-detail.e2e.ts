@@ -422,6 +422,10 @@ test('closing with a staged type change saves nothing and says so', async ({ pag
 	// Close the category list, then the drawer, without choosing.
 	await page.keyboard.press('Escape');
 	await expect(prompted(page, `${desc} C2`)).toHaveCount(0);
+	// While the type change is staged only Tipo and the field it asks for stay editable.
+	await expect(drawer.getByRole('button', { name: /^Descripción/ })).toBeDisabled();
+	await expect(drawer.getByRole('button', { name: /^Monto/ })).toBeDisabled();
+	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toBeEnabled();
 	await page.keyboard.press('Escape');
 	await expect(drawer).toHaveCount(0);
 
