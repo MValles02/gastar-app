@@ -10,6 +10,8 @@
 	import NewMovementDrawer from '$lib/components/NewMovementDrawer.svelte';
 	import NewRuleDrawer from '$lib/components/NewRuleDrawer.svelte';
 	import LimitDetail from '$lib/components/LimitDetail.svelte';
+	import NewAccountDrawer from '$lib/components/NewAccountDrawer.svelte';
+	import NewCategoryDrawer from '$lib/components/NewCategoryDrawer.svelte';
 	import NewLimitDrawer from '$lib/components/NewLimitDrawer.svelte';
 	import SavingsDrawer from '$lib/components/SavingsDrawer.svelte';
 	import { highlightMovement } from '$lib/highlight.svelte';
@@ -57,6 +59,8 @@
 			onclose={() => page.state.limit && history.back()}
 		/>{/if}
 	{#if page.state.newLimit}<NewLimitDrawer data={page.state.newLimit} />{/if}
+	{#if page.state.newAccount}<NewAccountDrawer />{/if}
+	{#if page.state.newCategory}<NewCategoryDrawer />{/if}
 	{#if page.state.savings}<SavingsDrawer data={page.state.savings} />{/if}
 </div>
 

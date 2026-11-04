@@ -88,18 +88,18 @@ test('an account filter on /movements wins over ?currency=USD', async ({ page })
 	await expect(page.getByText('No hay movimientos')).toHaveCount(0);
 });
 
-test('accounts are grouped into ARS and USD, and ?currency=USD shows only USD', async ({
+test('accounts are grouped into Pesos and Dólares, and ?currency=USD shows only Dólares', async ({
 	page
 }) => {
 	await page.goto('/accounts');
-	await expect(page.getByRole('heading', { name: 'ARS', exact: true })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'USD', exact: true })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Pesos', exact: true })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Dólares', exact: true })).toBeVisible();
 	await expect(page.getByText('Efectivo')).toBeVisible();
 	await expect(page.getByText('Ahorro USD')).toBeVisible();
 
 	await page.goto('/accounts?currency=USD');
-	await expect(page.getByRole('heading', { name: 'USD', exact: true })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'ARS', exact: true })).toHaveCount(0);
+	await expect(page.getByRole('heading', { name: 'Dólares', exact: true })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Pesos', exact: true })).toHaveCount(0);
 	await expect(page.getByText('Ahorro USD')).toBeVisible();
 	await expect(page.getByText('Efectivo')).toHaveCount(0);
 });

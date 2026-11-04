@@ -13,9 +13,4 @@
 
 <PageHeader title="Nueva cuenta" close={{ href: resolve('/accounts'), label: 'Cerrar' }} />
 
-<AccountForm
-	mode="create"
-	cancelHref="/accounts"
-	initial={form?.values ?? {}}
-	errors={form?.errors}
-/>
+<AccountForm initial={form?.values ?? {}} errors={form?.errors} />

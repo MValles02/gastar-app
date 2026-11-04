@@ -2,9 +2,7 @@
 export const FORM_ROUTES = new Set([
 	'/(app)/movements/new',
 	'/(app)/accounts/new',
-	'/(app)/accounts/[id]/edit',
 	'/(app)/categories/new',
-	'/(app)/categories/[id]/edit',
 	'/(app)/plan/recurring/new',
 	'/(app)/plan/limits/new',
 	'/(app)/plan/limits/[categoryId]',

@@ -14,13 +14,18 @@ test('accounts filters submit on the archived checkbox and the currency control,
 	await page.goto('/accounts');
 	await page.waitForLoadState('networkidle'); // hydration guard: the Filtros drawer needs JS
 	let dialog = await openFilters(page);
-	await dialog.getByRole('checkbox', { name: 'Mostrar archivadas' }).click();
+	await dialog.getByRole('switch', { name: 'Mostrar archivadas' }).click();
+	// Staged: nothing navigates until the drawer closes.
+	expect(page.url()).not.toMatch(/archived=/);
+	await page.keyboard.press('Escape');
+	await expect(dialog).toBeHidden();
 	await expect(page).toHaveURL(/archived=1/);
 	await expect(filtersButton(page)).toContainText('1');
 	await expect(page.getByText('Cuenta Santander (cerrada)')).toBeVisible();
 
-	dialog = page.getByRole('dialog');
-	await dialog.getByRole('radio', { name: 'USD' }).check({ force: true });
+	dialog = await openFilters(page);
+	await dialog.getByText('Dólares', { exact: true }).click();
+	await page.keyboard.press('Escape');
 	await expect(page).toHaveURL(/currency=USD/);
 	await expect(filtersButton(page)).toContainText('2');
 });
@@ -30,6 +35,7 @@ test('the categories kind filter keeps kind-less categories and counts', async (
 	await page.waitForLoadState('networkidle'); // hydration guard: the Filtros drawer needs JS
 	const dialog = await openFilters(page);
 	await dialog.getByText('Gastos', { exact: true }).click();
+	await page.keyboard.press('Escape');
 	await expect(page).toHaveURL(/kind=outcome/);
 	await expect(page.getByText('Supermercado', { exact: true })).toBeVisible();
 	await expect(page.getByText('Regalos', { exact: true })).toBeVisible();

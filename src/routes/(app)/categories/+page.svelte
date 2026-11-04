@@ -2,17 +2,16 @@
 	import { resolve } from '$app/paths';
 	import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
-	import * as Field from '$lib/components/ui/field/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
-	import ActionLink from '$lib/components/ActionLink.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
+	import { openShallow } from '$lib/open-shallow';
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import SwitchRow from '$lib/components/SwitchRow.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { CURRENCIES, type Currency } from '$lib/money';
 	import type { PageData } from './$types';
@@ -23,7 +22,8 @@
 	let kind = $derived<string>(data.filters.kind);
 	let currency = $derived<string>(data.filters.currency);
 	const currencyOptions = [
-		...CURRENCIES.map((c) => ({ value: c, label: c })),
+		{ value: 'ARS', label: 'Pesos' },
+		{ value: 'USD', label: 'Dólares' },
 		{ value: 'both', label: 'Ambas' }
 	];
 
@@ -41,12 +41,24 @@
 </script>
 
 {#snippet archivedMeta()}Archivada{/snippet}
+{#snippet add()}
+	<Button
+		href={resolve('/categories/new')}
+		size="sm"
+		class="rounded-full"
+		onclick={(e) => openShallow(e, resolve('/categories/new'), 'newCategory')}>Agregar</Button
+	>
+{/snippet}
 
 <svelte:head>
 	<title>Categorías · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Categorías" back={{ href: resolve('/profile'), label: 'Volver al perfil' }} />
+<PageHeader
+	title="Categorías"
+	back={{ href: resolve('/profile'), label: 'Volver al perfil' }}
+	action={data.hasAnyCategory ? add : undefined}
+/>
 
 <div class="page">
 	{#if !data.hasAnyCategory}
@@ -59,7 +71,11 @@
 			</Empty.Header>
 		</Empty.Root>
 		<div class="empty-action">
-			<Button href={resolve('/categories/new')}>Crear categoría</Button>
+			<Button
+				href={resolve('/categories/new')}
+				onclick={(e) => openShallow(e, resolve('/categories/new'), 'newCategory')}
+				>Crear categoría</Button
+			>
 		</div>
 	{:else}
 		<FilterBar
@@ -88,20 +104,21 @@
 					labelledby="currency-label"
 					onchange={submit}
 				/>
-				<Field.Field orientation="horizontal" class="min-h-11 w-auto">
-					<Checkbox
-						id="archived"
-						name="archived"
-						value="1"
-						bind:checked={archived}
-						onCheckedChange={submit}
-					/>
-					<Field.Label for="archived">Mostrar archivadas</Field.Label>
-				</Field.Field>
+				<SwitchRow
+					id="archived"
+					name="archived"
+					value="1"
+					label="Mostrar archivadas"
+					bind:checked={
+						() => archived,
+						(v) => {
+							archived = v;
+							submit();
+						}
+					}
+				/>
 			{/snippet}
 		</FilterBar>
-
-		<ActionLink href="/categories/new" />
 
 		{#if data.groups.length === 0}
 			<Empty.Root>
