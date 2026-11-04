@@ -26,12 +26,12 @@
 	mode="edit"
 	currency={data.currency}
 	formId="limit-form"
-	action="?/save{wizardQuery}"
+	action="?/update{wizardQuery}"
 	cancelHref={back}
 	category={data.category}
 	suggested={data.suggested}
-	initial={{ categoryId: data.category.id, amount: form?.amount ?? data.amount }}
-	errors={{ amount: form?.error }}
+	initial={{ categoryId: data.category.id, amount: form?.values?.amount ?? data.amount }}
+	errors={{ amount: form?.errors?.amount }}
 	deleteAction="?/delete{wizardQuery}"
 	progress={data.progress}
 />

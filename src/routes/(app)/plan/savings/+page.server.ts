@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ locals, cookies, request }) => {
+	update: async ({ locals, cookies, request }) => {
 		const userId = locals.user!.id;
 		const currency = preferredCurrency(cookies);
 		if (!(await currentPlan(userId, currency))) redirect(303, '/plan');
@@ -29,6 +29,6 @@ export const actions: Actions = {
 		);
 		if (!r.ok) return fail(400, { message: r.message });
 		await updatePlan(userId, currency, { savings: r.savings, savingsPercent: r.savingsPercent });
-		redirect(303, '/plan?planSaved=1');
+		return { savings: r.savings, savingsPercent: r.savingsPercent };
 	}
 };

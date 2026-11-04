@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { untrack, type ComponentProps } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { enhanceRedirect } from '$lib/nav-stack.svelte';
+	import { enhanceRedirect, navigateUp } from '$lib/nav-stack.svelte';
 	import { formatAmountInput, formatMoney, type Currency } from '$lib/money';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import FormActions from '$lib/components/FormActions.svelte';
@@ -61,7 +61,11 @@
 	id={formId}
 	method="POST"
 	{action}
-	use:enhance={() => enhanceRedirect}
+	use:enhance={() => (input) =>
+		// The edit's `update` answers success instead of redirecting.
+		input.result.type === 'success'
+			? navigateUp(cancelHref, { refresh: true })
+			: enhanceRedirect(input)}
 	class="form"
 	novalidate
 >

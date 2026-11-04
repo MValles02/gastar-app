@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { enhanceRedirect } from '$lib/nav-stack.svelte';
+	import { enhanceRedirect, navigateUp } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
 	import FormActions from '$lib/components/FormActions.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -16,7 +16,17 @@
 
 <PageHeader title="Ahorro" close={{ href: resolve('/plan'), label: 'Cerrar' }} />
 
-<form method="POST" use:enhance={() => enhanceRedirect} class="form" novalidate>
+<form
+	method="POST"
+	action="?/update"
+	use:enhance={() => (input) =>
+		// `update` answers success instead of redirecting.
+		input.result.type === 'success'
+			? navigateUp('/plan?planSaved=1', { refresh: true })
+			: enhanceRedirect(input)}
+	class="form"
+	novalidate
+>
 	<SavingsFields
 		income={data.income}
 		currency={data.currency}

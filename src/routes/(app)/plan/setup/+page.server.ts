@@ -5,10 +5,12 @@ import type { Currency } from '$lib/money';
 import { listAccounts } from '$lib/server/accounts-queries';
 import { listCategories } from '$lib/server/categories-queries';
 import { preferredCurrency } from '$lib/server/currency-pref';
-import { currentMonth } from '$lib/server/month';
-import { parseSavingsForm } from '$lib/server/plan';
+import { currentMonth, localDay, monthRange } from '$lib/server/month';
+import { isRecurringActive, parseSavingsForm, planSpent, planSummary } from '$lib/server/plan';
 import {
 	currentPlan,
+	listRecurring,
+	monthOutcomes,
 	planIncome,
 	planLimits,
 	updatePlan,
@@ -36,6 +38,38 @@ async function applicableSuggestions(userId: string, cur: Currency, planId: stri
 		.filter((l) => l.amount > 0);
 }
 
+/**
+ * What the month has left before any savings (`base`) and the days left in it, computed with
+ * `planSummary` at savings = 0 so the wizard's per-day preview matches `planView` exactly.
+ */
+async function savingsBaseline(userId: string, cur: Currency) {
+	const now = new Date();
+	const ym = currentMonth(now);
+	const [rules, rows] = await Promise.all([
+		listRecurring(userId, cur),
+		monthOutcomes(userId, cur, monthRange(ym))
+	]);
+	const active = rules.filter(isRecurringActive);
+	const spent = planSpent(rows, new Set(active.map((r) => r.id)));
+	const sum = (type: 'income' | 'outcome') =>
+		active.filter((r) => r.type === type).reduce((a, r) => a + r.amount, 0);
+	const s = planSummary({
+		currency: cur,
+		recurringIncome: sum('income'),
+		bills: sum('outcome'),
+		pendingBills: active
+			.filter((r) => r.type === 'outcome' && !spent.paidIds.has(r.id))
+			.reduce((a, r) => a + r.amount, 0),
+		savings: 0,
+		spent: spent.total,
+		variableSpent: spent.variable,
+		limits: [],
+		ym,
+		todayYmd: localDay(now)
+	});
+	return { base: s.available, daysLeft: s.daysLeft };
+}
+
 type Summary = NonNullable<Awaited<ReturnType<typeof planView>>['summary']>;
 
 export const load: PageServerLoad = async ({ locals, cookies, url }) => {
@@ -57,6 +91,8 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		active: [] as Awaited<ReturnType<typeof recurringLists>>['incomes'],
 		inactive: [] as Awaited<ReturnType<typeof recurringLists>>['inactive'],
 		income: 0,
+		/** Step 3: what the month has left before savings, and the days left. */
+		savingsBase: { base: 0, daysLeft: 1 },
 		savings: { savings: plan?.savings ?? 0, savingsPercent: plan?.savingsPercent ?? null },
 		suggestions: [] as Awaited<ReturnType<typeof recurringSuggestions>>,
 		limits: [] as Summary['limits'],
@@ -79,7 +115,13 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 			suggestions
 		};
 	}
-	if (step === 3) return { ...base, income: await planIncome(userId, currency) };
+	if (step === 3) {
+		const [income, savingsBase] = await Promise.all([
+			planIncome(userId, currency),
+			savingsBaseline(userId, currency)
+		]);
+		return { ...base, income, savingsBase };
+	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const { rules, active, ...view } = await planView(userId, currency);

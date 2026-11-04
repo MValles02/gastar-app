@@ -33,10 +33,9 @@ export async function recurringPickers(userId: string) {
 /** Parses the form and checks that the account and category are the user's and active. */
 export async function readRecurringForm(
 	userId: string,
-	request: Request,
-	current?: { accountId: string; categoryId: string; type: string }
+	fd: FormData,
+	current?: { accountId: string; categoryId: string; type: string; archivedOk?: string[] }
 ) {
-	const fd = await request.formData();
 	// An edit never changes the type: the stored one wins over whatever was submitted.
 	if (current) fd.set('type', current.type);
 	const parsed = parseRecurringForm(fd);
@@ -46,16 +45,17 @@ export async function readRecurringForm(
 		getCategory(userId, parsed.data.categoryId)
 	]);
 	const errors: Record<string, string> = {};
-	// An edit may keep the rule's own account/category even if archived since.
-	if (!account || (account.archivedAt && account.id !== current?.accountId))
+	// An edit may keep the rule's own account/category even if archived since; an undo may restore archived ones.
+	const keeps = (id: string, own?: string) => id === own || !!current?.archivedOk?.includes(id);
+	if (!account || (account.archivedAt && !keeps(account.id, current?.accountId)))
 		errors.accountId = 'Elegí una cuenta activa.';
 	else if (!isWholeFor(parsed.data.amount, account.currency)) errors.amount = ARS_WHOLE_MESSAGE;
-	if (!category || (category.archivedAt && category.id !== current?.categoryId))
+	if (!category || (category.archivedAt && !keeps(category.id, current?.categoryId)))
 		errors.categoryId = 'Elegí una categoría activa.';
 	else if (
 		(category.kind === 'income' || category.kind === 'outcome') &&
 		category.kind !== parsed.data.type &&
-		category.id !== current?.categoryId
+		!keeps(category.id, current?.categoryId)
 	)
 		errors.categoryId = kindMismatchMessage(category.kind);
 	if (Object.keys(errors).length > 0)

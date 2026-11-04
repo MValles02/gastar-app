@@ -11,13 +11,14 @@
 		editHref,
 		secondary,
 		destructive
-	}: { primary?: Snippet; editHref: string; secondary?: Snippet; destructive?: Snippet } = $props();
+	}: { primary?: Snippet; editHref?: string; secondary?: Snippet; destructive?: Snippet } =
+		$props();
 </script>
 
 <div class="actions">
 	{#if primary}{@render primary()}{/if}
 	<div class="pair">
-		<Button href={editHref} variant="outline" class="w-full">Editar</Button>
+		{#if editHref}<Button href={editHref} variant="outline" class="w-full">Editar</Button>{/if}
 		{#if secondary}{@render secondary()}{/if}
 	</div>
 	{#if destructive}{@render destructive()}{/if}

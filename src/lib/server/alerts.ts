@@ -161,7 +161,7 @@ function limitAlerts(plan: PlanSummary, currency: Currency): AlertItem[] {
 			message: l.over
 				? `${formatMoney(l.spent - l.amount, currency)} sobre el límite de ${formatMoney(l.amount, currency)}`
 				: `Gastaste ${percent(l.share)} del límite y quedan ${days(plan.daysLeft)}`,
-			href: `/plan/limits/${l.categoryId}`,
+			href: `/plan?limit=${l.categoryId}`,
 			switchCurrency: true,
 			icon: toCategoryIconKey(l.icon),
 			color: toSwatchKey(l.color),

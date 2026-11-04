@@ -70,7 +70,7 @@
 		</div>
 	</dl>
 
-	<DetailActions editHref={resolve(`/plan/recurring/${data.id}/edit${wizardQuery}`)}>
+	<DetailActions>
 		{#snippet primary()}
 			{#if data.inactiveReason}
 				<p class="muted">No se puede registrar.</p>

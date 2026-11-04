@@ -48,7 +48,8 @@ export const load: PageServerLoad = async ({ locals, cookies, params }) => {
 };
 
 export const actions: Actions = {
-	save: async ({ locals, cookies, request, url, params }) => {
+	/** Changes the limit's amount; returns it in cents (what the autosave's Deshacer restores). */
+	update: async ({ locals, cookies, request, params }) => {
 		const userId = locals.user!.id;
 		const currency = preferredCurrency(cookies);
 		const plan = (await currentPlan(userId, currency)) ?? redirect(303, '/plan');
@@ -56,16 +57,17 @@ export const actions: Actions = {
 		const amount = String((await request.formData()).get('amount') ?? '');
 
 		const parsed = parseLimitAmount(amount, currency);
-		if ('message' in parsed) return fail(400, { amount, error: parsed.message });
+		const values = { amount };
+		if ('message' in parsed) return fail(400, { values, errors: { amount: parsed.message } });
 		try {
 			await upsertLimits(userId, plan.id, [
 				{ categoryId: params.categoryId, amount: parsed.cents }
 			]);
 		} catch (e) {
-			if (e instanceof PlanRejected) return fail(400, { amount, error: e.message });
+			if (e instanceof PlanRejected) return fail(400, { values, errors: { amount: e.message } });
 			throw e;
 		}
-		redirect(303, planReturn(url.searchParams.get('wizard')));
+		return { amount: parsed.cents };
 	},
 	delete: async ({ locals, cookies, url, params }) => {
 		const userId = locals.user!.id;
