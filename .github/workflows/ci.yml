@@ -4,9 +4,10 @@ on:
   pull_request:
   # deploy.yml calls this workflow before a manual (workflow_dispatch) deploy,
   # so a dispatch never ships a commit without the same checks a PR gets.
-  # Push scanning lives in secrets-scan.yml, not here: a push-only job in this
-  # workflow would leave skipped `checks`/`e2e` runs on the pushed commit, and
-  # a skipped check satisfies a required status check.
+  # No push trigger: a push-only job in this workflow would leave skipped
+  # `checks`/`e2e` runs on the pushed commit, and a skipped check satisfies a
+  # required status check. Secrets are scanned per PR (`checks`) and by the
+  # husky pre-commit hook.
   workflow_call:
 
 permissions:
@@ -114,10 +115,31 @@ jobs:
           --health-retries 10
 
     steps:
+      # Same depth as in `checks`: on a PR it reaches HEAD^1 (the base tip).
+      - name: Size the fetch
+        id: pr
+        run: echo "depth=$(( $(jq '.pull_request.commits // 0' "$GITHUB_EVENT_PATH") + 1 ))" >> "$GITHUB_OUTPUT"
+
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: ${{ steps.pr.outputs.depth }}
           persist-credentials: false
+
+      # A PR that changes only *.md files skips the Playwright steps but the
+      # job still succeeds, so the required `e2e` check is satisfied. HEAD is
+      # the test merge commit, so HEAD^1..HEAD is exactly the PR's change.
+      # Outside a PR (deploy.yml's workflow_call) this step does not run and
+      # the full e2e always runs.
+      - name: Detect Markdown-only PR
+        id: changes
+        if: github.event_name == 'pull_request'
+        run: |
+          files="$(git diff --name-only HEAD^1 HEAD)"
+          if [ -n "$files" ] && ! grep -qv '\.md$' <<< "$files"; then
+            echo "md_only=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Markdown-only PR: Playwright steps skipped"
+          fi
 
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -137,15 +159,19 @@ jobs:
           pnpm --silent run --if-present ci:env e2e >> "$GITHUB_ENV"
 
       - name: Install Playwright browser
+        if: steps.changes.outputs.md_only != 'true'
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Apply migrations
+        if: steps.changes.outputs.md_only != 'true'
         run: pnpm run --if-present db:deploy
 
       - name: E2E setup
+        if: steps.changes.outputs.md_only != 'true'
         run: pnpm run --if-present test:e2e:setup
 
       - name: E2E tests
+        if: steps.changes.outputs.md_only != 'true'
         run: pnpm test:e2e
 
       - name: Upload Playwright report
