@@ -18,7 +18,7 @@ import {
 test.describe.configure({ timeout: 60_000 });
 
 const bell = (page: Page) => page.locator('header.top-bar a[aria-label^="Avisos"]');
-const pesos = (page: Page) => page.getByRole('region', { name: 'ARS' });
+const pesos = (page: Page) => page.getByRole('region', { name: 'Pesos' });
 const alertRow = (page: Page, text: string) =>
 	pesos(page).locator('[role="listitem"]', { hasText: text });
 
@@ -40,7 +40,8 @@ test('a payment due today alerts until it is registered', async ({ page, baseURL
 		await expect(page.getByRole('heading', { level: 1, name: 'Avisos' })).toBeVisible();
 		const row = alertRow(page, description);
 		await expect(row).toContainText('Vence hoy');
-		await expect(row).toContainText('desde Otra cuenta pesos');
+		await expect(row).toContainText('Otra cuenta pesos');
+		await expect(row).toContainText('$1.500');
 		// The bell lives on the full header (tab pages) only.
 		await page.goto('/');
 		await expect(bell(page)).toHaveAttribute('aria-label', /Avisos: \d+/);

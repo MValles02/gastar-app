@@ -3,17 +3,19 @@
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
+	import ActionLink from '$lib/components/ActionLink.svelte';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import * as Empty from '$lib/components/ui/empty/index.js';
+	import FirstRunChecklist from '$lib/components/FirstRunChecklist.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Meter from '$lib/components/Meter.svelte';
-	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import MovementRow from '$lib/components/MovementRow.svelte';
+	import MpPill from '$lib/components/MpPill.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import { PLAN_TONE } from '$lib/status';
@@ -23,6 +25,8 @@
 	let { data }: { data: PageData } = $props();
 
 	const percent = new Intl.NumberFormat(LOCALE, { style: 'percent' });
+	const currencyWord = $derived(data.currency === 'ARS' ? 'pesos' : 'dólares');
+	const firstRunDone = $derived(data.steps.account && data.steps.movement && data.steps.plan);
 </script>
 
 <svelte:head>
@@ -33,38 +37,28 @@
 
 <div class="dashboard">
 	{#if !data.hasAnyAccount}
-		<Empty.Root>
-			<Empty.Header>
-				<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
-				<Empty.Description>Sin cuentas.</Empty.Description>
-			</Empty.Header>
-		</Empty.Root>
-		<div class="empty-action">
-			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
-		</div>
+		<FirstRunChecklist steps={data.steps} />
 	{:else}
-		<CurrencyTabs value={data.currency} />
+		{#if !firstRunDone}
+			<FirstRunChecklist steps={data.steps} />
+		{/if}
+
+		<div class="pill-row">
+			<CurrencyTabs value={data.currency} variant="pills" />
+			{#if data.mpPending !== null}<MpPill pending={data.mpPending} />{/if}
+		</div>
 
 		{#if !data.hasCurrencyAccount}
 			<Empty.Root>
 				<Empty.Header>
 					<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
-					<Empty.Description>Sin cuentas en {data.currency}.</Empty.Description>
+					<Empty.Description>Sin cuentas en {currencyWord}.</Empty.Description>
 				</Empty.Header>
 			</Empty.Root>
 			<div class="empty-action">
 				<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 			</div>
 		{:else}
-			{#snippet monthNet()}
-				<div class="kv">
-					<span class="k">Mes actual</span>
-					<span class="am net">
-						<Money cents={data.monthNet} currency={data.currency} tone="flow" />
-					</span>
-				</div>
-			{/snippet}
-
 			<section aria-labelledby="summary-heading">
 				<Card.Root class="gap-0 overflow-hidden py-0">
 					{#if data.plan?.summary}
@@ -76,87 +70,98 @@
 							</div>
 							<HeroAmount class="available-amount" cents={s.available} currency={data.currency} />
 							<p class="muted per-day">
-								<Money cents={s.perDay} currency={data.currency} />/día · {s.daysLeft}
-								{s.daysLeft === 1 ? 'día' : 'días'}
+								<Money cents={s.perDay} currency={data.currency} /> por día · {s.daysLeft === 1
+									? 'queda 1 día'
+									: `quedan ${s.daysLeft} días`}
 							</p>
 						</div>
-						<div class="sub">
-							<div class="kv">
-								<span class="k">Saldo</span>
+						<div class="cols">
+							<div class="col">
+								<span class="k">Saldo total</span>
 								<span class="am"><Money cents={data.balance} currency={data.currency} /></span>
 							</div>
-							{@render monthNet()}
+							<div class="col">
+								<span class="k">Resultado del mes</span>
+								<span class="am net">
+									<Money cents={data.monthNet} currency={data.currency} tone="flow" />
+								</span>
+							</div>
 						</div>
-						<a class="footer" href={resolve('/plan')}>
-							Ver plan
-							<Icon name="chevron-right" size="1.25rem" />
-						</a>
 					{:else}
 						<div class="box">
-							<div class="top">
-								<CardEyebrow as="h2" id="summary-heading">Saldo</CardEyebrow>
-							</div>
+							<CardEyebrow as="h2" id="summary-heading">Saldo total</CardEyebrow>
 							<HeroAmount cents={data.balance} currency={data.currency} />
-						</div>
-						<div class="sub">{@render monthNet()}</div>
-						<div class="no-plan">
+							<p class="muted per-day">
+								Resultado del mes
+								<span class="net"
+									><Money cents={data.monthNet} currency={data.currency} tone="flow" /></span
+								>
+							</p>
 							{#if data.plan?.endedMonthName}
 								<p class="strong">Terminó el plan de {data.plan.endedMonthName}.</p>
 							{/if}
-							<Button href={resolve('/plan/setup')} variant="outline">Crear plan</Button>
+						</div>
+						<div class="no-plan">
+							<Button href={resolve('/plan/setup')} class="w-full">Crear plan</Button>
 						</div>
 					{/if}
 				</Card.Root>
 			</section>
 
-			<section aria-labelledby="categories-heading">
-				<SectionHeader id="categories-heading" title="Categorías" />
-				{#if data.topCategories.length === 0}
-					<Card.Root>
-						<Card.Content><p class="muted inline-empty">Sin gastos</p></Card.Content>
-					</Card.Root>
-				{:else}
-					<ListCard>
-						{#each data.topCategories as cat (cat.id)}
-							{#snippet catValue()}
-								<Money
-									cents={cat.net}
-									currency={data.currency}
-									tone="flow"
-									direction={cat.net < 0 ? 'income' : 'outcome'}
+			{#if data.recent.length > 0}
+				<section aria-labelledby="categories-heading">
+					<div class="section-head">
+						<h2 id="categories-heading">Gastos de {data.monthName}</h2>
+						<ActionLink href="/reports" label="Ver reportes" />
+					</div>
+					{#if data.topCategories.length === 0}
+						<Card.Root>
+							<Card.Content><p class="muted inline-empty">No hay gastos.</p></Card.Content>
+						</Card.Root>
+					{:else}
+						<ListCard>
+							{#each data.topCategories as cat (cat.id)}
+								{#snippet catValue()}
+									<Money
+										cents={cat.net}
+										currency={data.currency}
+										tone="flow"
+										direction={cat.net < 0 ? 'income' : 'outcome'}
+									/>
+								{/snippet}
+								{#snippet catMeta()}{percent.format(cat.share)}{/snippet}
+								{#snippet catFooter()}
+									<Meter percent={cat.share * 100} color={swatchVar(cat.color)} />
+								{/snippet}
+								<ListRow
+									lead={{
+										icon: cat.icon ?? undefined,
+										letter: cat.icon ? undefined : cat.name.charAt(0).toUpperCase(),
+										color: toSwatchKey(cat.color)
+									}}
+									title={cat.name}
+									value={catValue}
+									meta={catMeta}
+									footer={catFooter}
 								/>
-							{/snippet}
-							{#snippet catMeta()}{percent.format(cat.share)}{/snippet}
-							{#snippet catFooter()}
-								<Meter percent={cat.share * 100} color={swatchVar(cat.color)} />
-							{/snippet}
-							<ListRow
-								lead={{
-									icon: cat.icon ?? undefined,
-									letter: cat.icon ? undefined : cat.name.charAt(0).toUpperCase(),
-									color: toSwatchKey(cat.color)
-								}}
-								title={cat.name}
-								value={catValue}
-								meta={catMeta}
-								footer={catFooter}
-							/>
-						{/each}
-					</ListCard>
-				{/if}
-			</section>
+							{/each}
+						</ListCard>
+					{/if}
+				</section>
+			{/if}
 
 			<section aria-labelledby="recent-heading">
-				<SectionHeader
-					id="recent-heading"
-					title="Movimientos"
-					action={data.recent.length > 0
-						? { href: `/movements?currency=${data.currency}`, label: 'Ver todos' }
-						: undefined}
-				/>
+				<div class="section-head">
+					<h2 id="recent-heading">Últimos movimientos</h2>
+					{#if data.recent.length > 0}
+						<ActionLink href="/movements?currency={data.currency}" label="Ver todos" />
+					{/if}
+				</div>
 				{#if data.recent.length === 0}
 					<Card.Root>
-						<Card.Content><p class="muted inline-empty">Sin movimientos</p></Card.Content>
+						<Card.Content>
+							<p class="muted inline-empty">Todavía no hay movimientos en {currencyWord}.</p>
+						</Card.Content>
 					</Card.Root>
 				{:else}
 					<ListCard>
@@ -177,6 +182,14 @@
 		gap: var(--space-5);
 	}
 
+	.pill-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-2);
+	}
+
 	.empty-action {
 		display: flex;
 		justify-content: center;
@@ -190,16 +203,33 @@
 		font-weight: 500;
 	}
 
+	.section-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: var(--space-2);
+		margin-bottom: var(--space-1);
+		padding-inline: var(--space-1);
+	}
+
+	.section-head h2 {
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		color: var(--text-muted);
+	}
+
 	/* Summary card */
 	.box {
 		display: flex;
 		flex-direction: column;
 		gap: 0.375rem;
-		padding: 1.25rem 1.25rem var(--space-4);
+		padding: 1.125rem 1.125rem var(--space-4);
 	}
 
 	.top {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--space-3);
@@ -210,22 +240,26 @@
 		font-size: var(--font-size-sm);
 	}
 
-	.sub {
-		padding: 0 1.25rem;
+	.per-day .net {
+		font-weight: 500;
+		font-variant-numeric: tabular-nums;
 	}
 
-	.kv {
+	.cols {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
+	}
+
+	.col {
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		flex-wrap: wrap;
-		gap: 0 var(--space-3);
-		min-height: 3rem;
+		flex-direction: column;
+		gap: 0.125rem;
+		padding: var(--space-3) 1.125rem;
+		min-width: 0;
 	}
 
 	.k {
-		font-size: var(--font-size-sm);
-		font-weight: 500;
+		font-size: var(--font-size-xs);
 		color: var(--text-muted);
 	}
 
@@ -233,43 +267,11 @@
 		font-size: var(--font-size-base);
 		font-weight: 600;
 		font-variant-numeric: tabular-nums;
-	}
-
-	.footer {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		min-height: 3rem;
-		padding: 0 var(--space-3) 0 1.25rem;
-		font-weight: 500;
-		text-decoration: none;
-		color: var(--text);
-	}
-
-	.footer :global(svg) {
-		color: var(--border-strong);
-	}
-
-	@media (hover: hover) {
-		.footer:hover {
-			background: var(--muted);
-		}
-	}
-
-	.footer:active {
-		background: var(--muted);
-	}
-
-	.footer:focus-visible {
-		outline-offset: -2px;
+		white-space: nowrap;
 	}
 
 	.no-plan {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: var(--space-2);
-		padding: 1.25rem;
+		padding: 0.875rem 1.125rem 1.125rem;
 	}
 
 	.inline-empty {
