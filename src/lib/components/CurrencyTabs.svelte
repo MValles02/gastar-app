@@ -5,19 +5,28 @@
 	import { replaceGoto } from '$lib/nav-stack.svelte';
 	import SegmentedControl from './SegmentedControl.svelte';
 
-	/** ARS | USD radiogroup saved in the `currency` cookie. */
-	let { value }: { value: Currency } = $props();
+	/**
+	 * ARS | USD switch saved in the `currency` cookie. Default: a radiogroup labelled ARS / USD (Plan,
+	 * Reportes). `pills`: two toggle buttons labelled Pesos / Dólares (Inicio).
+	 */
+	let { value, variant = 'segmented' }: { value: Currency; variant?: 'segmented' | 'pills' } =
+		$props();
 
 	let selected = $derived(value as string);
 	let form: HTMLFormElement;
 	let error = $state('');
 	const options = CURRENCIES.map((currency) => ({ value: currency, label: currency }));
+	const pills: { value: Currency; label: string }[] = [
+		{ value: 'ARS', label: 'Pesos' },
+		{ value: 'USD', label: 'Dólares' }
+	];
 </script>
 
 <form
 	method="POST"
 	action="/currency"
 	class="currency-tabs"
+	class:pills={variant === 'pills'}
 	bind:this={form}
 	use:enhance={() => {
 		error = '';
@@ -32,7 +41,9 @@
 					keepFocus: true,
 					noScroll: true
 				});
-				form.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.focus();
+				form
+					.querySelector<HTMLElement>('[role="radio"][aria-checked="true"], [aria-pressed="true"]')
+					?.focus();
 			} else {
 				await update({ reset: false });
 			}
@@ -41,13 +52,23 @@
 >
 	<input type="hidden" name="redirectTo" value={page.url.pathname + page.url.search} />
 	<span id="currency-tabs-label" class="visually-hidden">Moneda</span>
-	<SegmentedControl
-		name="currency"
-		{options}
-		bind:value={selected}
-		labelledby="currency-tabs-label"
-		onchange={() => form.requestSubmit()}
-	/>
+	{#if variant === 'pills'}
+		<div role="group" aria-labelledby="currency-tabs-label" class="pill-group">
+			{#each pills as p (p.value)}
+				<button type="submit" name="currency" value={p.value} aria-pressed={value === p.value}>
+					<span class="pill">{p.label}</span>
+				</button>
+			{/each}
+		</div>
+	{:else}
+		<SegmentedControl
+			name="currency"
+			{options}
+			bind:value={selected}
+			labelledby="currency-tabs-label"
+			onchange={() => form.requestSubmit()}
+		/>
+	{/if}
 	{#if error}
 		<p class="error" role="alert">{error}</p>
 	{/if}
@@ -58,5 +79,58 @@
 		margin: var(--space-2) 0 0;
 		font-size: var(--font-size-sm);
 		color: var(--negative);
+	}
+
+	.pills {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+	}
+
+	.pill-group {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+	}
+
+	/* The 32px pill sits in a 44px button so the tap target meets the minimum. */
+	button {
+		display: flex;
+		align-items: center;
+		min-height: var(--tap-target);
+		min-width: var(--tap-target);
+		padding: 0;
+		border: 0;
+		background: none;
+		font: inherit;
+		cursor: pointer;
+	}
+
+	.pill {
+		display: flex;
+		align-items: center;
+		height: 2rem;
+		padding-inline: var(--space-3);
+		border-radius: var(--radius-pill);
+		font-size: var(--font-size-sm);
+		font-weight: 500;
+		color: var(--text-muted);
+		box-shadow: inset 0 0 0 1px var(--border);
+	}
+
+	[aria-pressed='true'] .pill {
+		background: var(--text);
+		color: var(--background);
+		box-shadow: none;
+	}
+
+	button:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: -2px;
+		border-radius: var(--radius-pill);
+	}
+
+	.pills .error {
+		flex-basis: 100%;
 	}
 </style>

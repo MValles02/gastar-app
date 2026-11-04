@@ -38,7 +38,7 @@ export async function submitLogin(page: Page, email: string, password = SEED_PAS
 /**
  * Signs up a fresh user, follows the verification link (which signs them in) and waits for Inicio.
  * Sign-up is rate-limited to 10/hour/IP: one full run makes 9 (signup 3, plan-recurring-suggestions 2,
- * profile 1, plan-budget 1, navigation 1, avisos 1). New specs must reuse one user per file (sign up in `beforeAll`).
+ * profile 1, plan-budget 1, avisos 1, home 1; the navigation wizard-back check lives in home.e2e.ts). New specs must reuse one user per file (sign up in `beforeAll`).
  */
 export async function signUpVerified(
 	page: Page,
