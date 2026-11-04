@@ -16,7 +16,12 @@ import { type MovementData, resolveMovement, UNAVAILABLE_MESSAGE } from '$lib/se
 import { categoryUsage, getMovement } from '$lib/server/movements-queries';
 
 /** Archived accounts/category already referenced by the movement being edited (they stay valid). */
-type KeptRefs = { accountIds: string[]; categoryId: string | null; amount?: number | null };
+type KeptRefs = {
+	accountIds: string[];
+	categoryId: string | null;
+	amount?: number | null;
+	archivedOk?: string[];
+};
 
 export const { notFound, requireId } = notFoundHelpers('Movimiento no encontrado.');
 

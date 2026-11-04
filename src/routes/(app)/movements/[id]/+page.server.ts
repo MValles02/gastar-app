@@ -44,7 +44,18 @@ export const actions: Actions = {
 		const { values } = parsed;
 		if (!parsed.ok) return fail(400, { values, errors: parsed.errors });
 
-		const { resolved } = await resolvePostedMovement(userId, parsed.data, keptRefs(m));
+		// An undo may restore the archived refs the movement had; rows still come from the owner-scoped getAccount/getCategory.
+		const kept = keptRefs(m);
+		const keep =
+			posted.get('undo') === '1'
+				? {
+						...kept,
+						archivedOk: ['accountId', 'destinationAccountId', 'categoryId']
+							.map((k) => posted.get(k))
+							.filter((v): v is string => typeof v === 'string' && v !== '')
+					}
+				: kept;
+		const { resolved } = await resolvePostedMovement(userId, parsed.data, keep);
 		if (!resolved.ok) return fail(400, { values, errors: resolved.errors });
 
 		let rows;
