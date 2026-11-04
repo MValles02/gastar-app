@@ -38,6 +38,8 @@ type Seed = {
 	destination?: 'A' | 'B' | 'USD';
 	rate?: string;
 	date?: string;
+	/** C1 is a Gasto category and C2 an Ingreso one (default: both accept any type). */
+	kinds?: boolean;
 };
 
 /** Creates this test's accounts and categories and one movement (2023-03-27, a Monday); returns its description. */
@@ -58,8 +60,16 @@ async function arrange(page: Page, baseURL: string, seed: Seed = {}) {
 		B: await account(`${description} B`, 'blue'),
 		USD: ''
 	};
-	const c1 = await post('/categories/new', { name: `${description} C1`, color: 'blue', kind: '' });
-	await post('/categories/new', { name: `${description} C2`, color: 'red', kind: '' });
+	const c1 = await post('/categories/new', {
+		name: `${description} C1`,
+		color: 'blue',
+		kind: seed.kinds ? 'outcome' : ''
+	});
+	await post('/categories/new', {
+		name: `${description} C2`,
+		color: 'red',
+		kind: seed.kinds ? 'income' : ''
+	});
 	await page.goto('/accounts', { waitUntil: 'networkidle' });
 	ids.USD = await linkId(page.getByRole('link', { name: /^Otra cuenta(?! pesos)/ }));
 	const res = await page.request.post('/movements/new', {
@@ -309,4 +319,121 @@ test('a cross-currency Hacia opens a focused, required Cotización', async ({ pa
 	await expect(rate).toBeVisible();
 	await expect(rate).toBeFocused();
 	await expect(rate).toHaveAttribute('required', '');
+});
+
+/** The topmost picker, once the staged type has opened the field it still needs. */
+const prompted = (page: Page, name: string) =>
+	page.getByRole('dialog').last().getByText(name, { exact: true });
+
+test('Gasto to Ingreso asks for an Ingreso category, saves once, and Deshacer restores it', async ({
+	page,
+	baseURL
+}) => {
+	const desc = await arrange(page, baseURL!, { kinds: true });
+	const drawer = await openDrawer(page, desc);
+	await expect(drawer.locator('.amount').first()).toHaveClass(/outcome/);
+
+	await pick(page, 'Tipo', 'Ingreso');
+	// The old category is a Gasto one: the category list opens, with Ingreso categories only.
+	await expect(prompted(page, `${desc} C2`)).toBeVisible();
+	await expect(prompted(page, `${desc} C1`)).toHaveCount(0);
+	await expect(saved(page)).toHaveCount(0);
+	await expect(drawer.locator('.amount').first()).toHaveClass(/income/);
+	await prompted(page, `${desc} C2`).click();
+
+	await expect(saved(page)).toBeVisible();
+	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toContainText('Ingreso');
+	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C2`);
+	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('+');
+
+	await undo(page);
+	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toContainText('Gasto');
+	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
+	await expect(drawer.locator('.amount').first()).toHaveClass(/outcome/);
+	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('-$1.000');
+});
+
+test('Gasto to Transferencia asks for Hacia and Deshacer restores the Gasto', async ({
+	page,
+	baseURL
+}) => {
+	const desc = await arrange(page, baseURL!);
+	const drawer = await openDrawer(page, desc);
+
+	await pick(page, 'Tipo', 'Transferencia');
+	await expect(prompted(page, `${desc} B`)).toBeVisible();
+	// Desde is not offered as Hacia.
+	await expect(prompted(page, `${desc} A`)).toHaveCount(0);
+	await expect(saved(page)).toHaveCount(0);
+	await prompted(page, `${desc} B`).click();
+
+	await expect(saved(page)).toBeVisible();
+	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toContainText('Transferencia');
+	await expect(drawer.getByRole('button', { name: /^Desde/ })).toContainText(`${desc} A`);
+	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toContainText(`${desc} B`);
+	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toHaveCount(0);
+
+	await undo(page);
+	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toContainText('Gasto');
+	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toHaveCount(0);
+	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
+	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('-$1.000');
+});
+
+test('Transferencia to Gasto asks for a category; Deshacer restores type, destination, rate and amount', async ({
+	page,
+	baseURL
+}) => {
+	const desc = await arrange(page, baseURL!, {
+		type: 'transfer',
+		account: 'A',
+		destination: 'USD',
+		rate: '1000'
+	});
+	const drawer = await openDrawer(page, desc);
+
+	await pick(page, 'Tipo', 'Gasto');
+	await expect(prompted(page, `${desc} C1`)).toBeVisible();
+	await expect(saved(page)).toHaveCount(0);
+	await prompted(page, `${desc} C1`).click();
+
+	await expect(saved(page)).toBeVisible();
+	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toContainText('Gasto');
+	await expect(drawer.getByRole('button', { name: /^Cuenta/ })).toContainText(`${desc} A`);
+	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
+	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toHaveCount(0);
+
+	await undo(page);
+	await expect(page.getByText('No se pudo deshacer.')).toHaveCount(0);
+	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toContainText('Transferencia');
+	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toContainText('Otra cuenta');
+	await expect(drawer.getByRole('button', { name: 'Cotización: 1.000' })).toBeVisible();
+	await expect(drawer.getByRole('button', { name: 'Monto: 1.000' })).toBeVisible();
+	await expect(drawer.locator('p', { hasText: 'En destino' })).toContainText('US$1,00');
+	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toHaveCount(0);
+});
+
+test('closing with a staged type change saves nothing and says so', async ({ page, baseURL }) => {
+	const desc = await arrange(page, baseURL!, { kinds: true });
+	const drawer = await openDrawer(page, desc);
+
+	await pick(page, 'Tipo', 'Ingreso');
+	await expect(prompted(page, `${desc} C2`)).toBeVisible();
+	// Close the category list, then the drawer, without choosing.
+	await page.keyboard.press('Escape');
+	await expect(prompted(page, `${desc} C2`)).toHaveCount(0);
+	// While the type change is staged only Tipo and the field it asks for stay editable.
+	await expect(drawer.getByRole('button', { name: /^Descripción/ })).toBeDisabled();
+	await expect(drawer.getByRole('button', { name: /^Monto/ })).toBeDisabled();
+	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toBeEnabled();
+	await page.keyboard.press('Escape');
+	await expect(drawer).toHaveCount(0);
+
+	await expect(page.getByText('No se guardó el cambio de tipo.')).toBeVisible();
+	await expect(saved(page)).toHaveCount(0);
+	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('-$1.000');
+	await rowOf(page, desc).click();
+	const reopened = page.getByRole('dialog');
+	await expect(reopened.getByRole('button', { name: /^Tipo/ })).toContainText('Gasto');
+	await expect(reopened.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
 });

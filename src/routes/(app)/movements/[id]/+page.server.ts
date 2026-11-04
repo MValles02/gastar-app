@@ -12,8 +12,9 @@ import {
 	resolvePostedMovement
 } from '../form.server';
 
-// `type` is never accepted: changing a movement's type is not offered.
+// Whitelist of posted fields; `type` goes through the same parse/resolve path as every other field.
 const EDITABLE = [
+	'type',
 	'occurredAt',
 	'description',
 	'amount',
