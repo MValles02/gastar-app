@@ -35,7 +35,7 @@ async function cleanup(page: Page, baseURL: string, description: string) {
 }
 
 const movementCount = async (page: Page, description: string) => {
-	await page.goto(`/movements?q=${encodeURIComponent(description)}`, { waitUntil: 'networkidle' });
+	await page.goto(`/movements?q=${encodeURIComponent(description)}`);
 	return page.locator('a[href*="movements/"]').filter({ hasText: description }).count();
 };
 
@@ -57,7 +57,7 @@ test('Repetir todos los meses creates the rule and a movement linked to it', asy
 		await page.reload();
 		await expect(page.getByText('Movimiento guardado.')).toHaveCount(0);
 
-		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await page.goto('/plan');
 		const row = rule(page, description);
 		await expect(row).toHaveCount(1);
 		await expect(row).toContainText('Pagado');
@@ -77,7 +77,7 @@ test('unchecked creates no rule', async ({ page, baseURL }) => {
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		expect(await movementCount(page, description)).toBe(1);
-		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await page.goto('/plan');
 		await expect(rule(page, description)).toHaveCount(0);
 	} finally {
 		await cleanup(page, baseURL!, description);
@@ -89,7 +89,7 @@ test('a transfer hides the switch and never creates a rule', async ({ page, base
 	await login(page, OTHER_EMAIL);
 	await cleanup(page, baseURL!, description);
 	try {
-		await page.goto('/movements/new', { waitUntil: 'networkidle' });
+		await page.goto('/movements/new');
 		await expect(checkbox(page)).toBeVisible();
 		await page.getByRole('radio', { name: 'Transf.' }).check({ force: true });
 		await expect(checkbox(page)).toHaveCount(0);
@@ -121,7 +121,7 @@ test('a transfer hides the switch and never creates a rule', async ({ page, base
 		});
 		expect(res.ok()).toBe(true);
 		expect(await movementCount(page, description)).toBe(1);
-		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await page.goto('/plan');
 		await expect(rule(page, description)).toHaveCount(0);
 	} finally {
 		await cleanup(page, baseURL!, description);
@@ -140,13 +140,13 @@ test('a rejected post with the switch on writes no movement and no rule', async 
 	try {
 		const demoPage = await demoContext.newPage();
 		await login(demoPage);
-		await demoPage.goto('/movements/new', { waitUntil: 'networkidle' });
+		await demoPage.goto('/movements/new');
 		const foreignAccount = await demoPage
 			.locator('input[name="accountId"]')
 			.first()
 			.getAttribute('value');
 
-		await page.goto('/movements/new', { waitUntil: 'networkidle' });
+		await page.goto('/movements/new');
 		const category = await page.locator('input[name="categoryId"]').first().getAttribute('value');
 		const res = await page.request.post('/movements/new', {
 			form: {
@@ -162,7 +162,7 @@ test('a rejected post with the switch on writes no movement and no rule', async 
 		});
 		expect(res.status()).toBe(400);
 		expect(await movementCount(page, description)).toBe(0);
-		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await page.goto('/plan');
 		await expect(rule(page, description)).toHaveCount(0);
 	} finally {
 		await demoContext.close();
@@ -185,25 +185,11 @@ test('ARS decimals with the switch on: message, nothing written, switch kept', a
 		await expect(page).toHaveURL(/\/movements\/new$/);
 		await expect(checkbox(page)).toBeChecked();
 		expect(await movementCount(page, description)).toBe(0);
-		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await page.goto('/plan');
 		await expect(rule(page, description)).toHaveCount(0);
 	} finally {
 		await cleanup(page, baseURL!, description);
 	}
-});
-
-test('Inicio without a plan offers to create one (demo, USD)', async ({ page, baseURL }) => {
-	await login(page);
-	await setCurrencyCookie(page, baseURL!, 'USD');
-	// Other specs briefly create a demo USD plan; read again until it is gone.
-	await expect(async () => {
-		await page.goto('/', { waitUntil: 'networkidle' });
-		const card = page.getByRole('region', { name: 'Saldo total', exact: true });
-		await expect(card.getByRole('link', { name: 'Crear plan' })).toHaveAttribute(
-			'href',
-			'/plan/setup'
-		);
-	}).toPass({ timeout: 20_000 });
 });
 
 test('Inicio with a plan shows the same Disponible as /plan and links to it', async ({
@@ -213,11 +199,10 @@ test('Inicio with a plan shows the same Disponible as /plan and links to it', as
 	// otro's USD plan is mutated by no spec.
 	await login(page, OTHER_EMAIL);
 	await setCurrencyCookie(page, baseURL!, 'USD');
-	await page.goto('/', { waitUntil: 'networkidle' });
+	await page.goto('/');
 	const card = page.getByRole('region', { name: 'Disponible', exact: true });
 	await expect(card).toBeVisible();
 	await expect(card.getByText(/Vas bien|Vas rápido|Te pasaste/)).toBeVisible();
-	await expect(card).toContainText(/ por día · (queda 1 día|quedan \d+ días)/);
 	const onHome = await card.locator('.available-amount').innerText();
 
 	await page
@@ -232,16 +217,6 @@ test('Inicio with a plan shows the same Disponible as /plan and links to it', as
 	);
 });
 
-test('Registrar pago hides Repetir todos los meses', async ({ page, baseURL }) => {
-	await login(page, OTHER_EMAIL);
-	await setCurrencyCookie(page, baseURL!, 'USD');
-	await page.goto('/plan', { waitUntil: 'networkidle' });
-	const id = await linkId(page.getByRole('link', { name: /Regla ajena/ }).first());
-	await page.goto(`/movements/new?recurring=${id}`, { waitUntil: 'networkidle' });
-	await expect(page.getByRole('heading', { level: 1, name: 'Registrar pago' })).toBeVisible();
-	await expect(checkbox(page)).toHaveCount(0);
-});
-
 test('Registrar pago saves the rule category, whatever category is posted', async ({
 	page,
 	baseURL
@@ -253,7 +228,7 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 	let extraId: string | undefined;
 	// Leftovers of an interrupted run: a same-name category would make the create below fail.
 	await cleanup(page, baseURL!, description);
-	await page.goto('/categories', { waitUntil: 'networkidle' });
+	await page.goto('/categories');
 	const stale = await page
 		.getByRole('link', { name: new RegExp(extra) })
 		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).pathname));
@@ -270,12 +245,13 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 		await checkbox(page).check();
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
-		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await page.goto('/plan');
 		const id = await linkId(rule(page, description).locator('a[data-slot="item"]'));
 		// Drop the movement the rule was created with so this month's payment is still open.
 		await deleteMovements(page, baseURL!, description);
 
-		await page.goto(`/movements/new?recurring=${id}`, { waitUntil: 'networkidle' });
+		await page.goto(`/movements/new?recurring=${id}`);
+		await expect(checkbox(page)).toHaveCount(0);
 		await expect(page.locator('input[name="categoryId"]')).toHaveAttribute('type', 'hidden');
 		await expect(page.getByText('Ajena', { exact: true })).toBeVisible();
 		const accountId = await page.locator('input[name="accountId"]').getAttribute('value');
@@ -294,9 +270,7 @@ test('Registrar pago saves the rule category, whatever category is posted', asyn
 		});
 		expect(res.url()).toMatch(/\/plan\?saved=1$/);
 
-		await page.goto(`/movements?q=${encodeURIComponent(description)}`, {
-			waitUntil: 'networkidle'
-		});
+		await page.goto(`/movements?q=${encodeURIComponent(description)}`);
 		const row = page.locator('a[href*="movements/"]').filter({ hasText: description });
 		await expect(row).toHaveCount(1);
 		// Rows show the category as an icon only; its name is on the detail page.

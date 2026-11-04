@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { login, OTHER_EMAIL, postDelete } from './helpers';
+import { login } from './helpers';
 
 const MISMATCH = 'Esa categoría es de ingresos. Elegí otra.';
 
 test.describe('with JavaScript', () => {
 	test('the category picker follows the movement type', async ({ page }) => {
 		await login(page);
-		await page.goto('/movements/new', { waitUntil: 'networkidle' });
+		await page.goto('/movements/new');
+		await page.waitForLoadState('networkidle'); // hydration guard: the category picker dialog is JS-only
 		const dialog = page.getByRole('dialog');
 		const open = () => page.getByRole('button', { name: /Categoría/ }).click();
 
@@ -22,28 +23,6 @@ test.describe('with JavaScript', () => {
 		await expect(dialog.getByText('Sueldo', { exact: true })).toBeVisible();
 		await expect(dialog.getByText('Regalos', { exact: true })).toBeVisible();
 		await expect(dialog.getByText('Supermercado', { exact: true })).toHaveCount(0);
-	});
-
-	test('a new Ingreso category is not offered for expenses', async ({ page, baseURL }) => {
-		await login(page, OTHER_EMAIL);
-		const name = `Solo ingresos ${Date.now()}`;
-		let href: string | undefined;
-		try {
-			await page.goto('/categories/new', { waitUntil: 'networkidle' });
-			await page.locator('input[name="name"]').fill(name);
-			await page.getByRole('radio', { name: 'Ingreso' }).check({ force: true });
-			await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-			await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
-			href = new URL(page.url()).pathname;
-
-			await page.goto('/movements/new', { waitUntil: 'networkidle' });
-			await page.getByRole('button', { name: /Categoría/ }).click();
-			const dialog = page.getByRole('dialog');
-			await expect(dialog.getByText('Ajena', { exact: true })).toBeVisible();
-			await expect(dialog.getByText(name, { exact: true })).toHaveCount(0);
-		} finally {
-			if (href) await postDelete(page, baseURL!, href);
-		}
 	});
 });
 

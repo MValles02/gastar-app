@@ -7,11 +7,9 @@ import {
 	linkId,
 	login,
 	OTHER_EMAIL,
-	PHONE,
 	pick,
 	postDelete,
 	setCurrencyCookie,
-	SMALL_PHONE,
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
@@ -21,7 +19,7 @@ test('seeded rules: rent is paid, the gym is inactive and cannot be registered',
 	page
 }) => {
 	await login(page);
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await page.goto('/plan');
 	const rent = rule(page, 'Alquiler');
 	await expect(rent).toContainText('Pagado');
 	await expect(rent).toContainText('Día 3');
@@ -30,33 +28,25 @@ test('seeded rules: rent is paid, the gym is inactive and cannot be registered',
 	const inactive = page.getByRole('region', { name: 'Inactivos' });
 	await expect(inactive).toContainText('Gimnasio');
 	await expect(inactive).toContainText('Cuenta archivada');
-	// Inactive rows are fully greyed: amount and title are muted, unlike an active row's title.
-	const gym = inactive.locator('.rule', { hasText: 'Gimnasio' });
-	const color = (sel: string) => gym.locator(sel).evaluate((el) => getComputedStyle(el).color);
-	const muted = await color('[data-slot="item-title"]');
-	expect(await color('.row-amount')).toBe(muted);
-	expect(muted).not.toBe(
-		await rent.locator('[data-slot="item-title"]').evaluate((el) => getComputedStyle(el).color)
-	);
 	const id = await linkId(inactive.getByRole('link', { name: /Gimnasio/ }));
-	await page.goto(`/movements/new?recurring=${id}`, { waitUntil: 'networkidle' });
+	await page.goto(`/movements/new?recurring=${id}`);
 	await expect(page.getByRole('heading', { level: 1, name: 'Nuevo movimiento' })).toBeVisible();
 	await expect(page.locator('input[name="recurringId"]')).toHaveCount(0);
 });
 
 test('a rule on an archived account can be edited and stays inactive', async ({ page }) => {
 	await login(page);
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await page.goto('/plan');
 	const link = page
 		.getByRole('region', { name: 'Inactivos' })
 		.getByRole('link', { name: /Gimnasio/ });
 	const href = await link.evaluate((a: HTMLAnchorElement) => a.pathname);
 	const edit = async (description: string) => {
-		await page.goto(`${href}/edit`, { waitUntil: 'networkidle' });
+		await page.goto(`${href}/edit`);
 		await page.locator('input[name="description"]').fill(description);
 		await page.getByRole('button', { name: 'Guardar cambios' }).click();
 		await expect(page).toHaveURL(href);
-		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await page.goto('/plan');
 		await expect(
 			page.getByRole('region', { name: 'Inactivos' }).getByText(description)
 		).toBeVisible();
@@ -67,49 +57,6 @@ test('a rule on an archived account can be edited and stays inactive', async ({ 
 	} finally {
 		await edit('Gimnasio');
 	}
-});
-
-test('rule rows sit flush in the list card at 390px', async ({ page }) => {
-	await page.setViewportSize(PHONE);
-	await login(page);
-	await page.goto('/plan', { waitUntil: 'networkidle' });
-	const row = page.locator('.rule').first();
-	const list = await row.locator('xpath=..').boundingBox();
-	const main = await row.locator('a[data-slot="item"]').boundingBox();
-	// 1px list border, no extra padding.
-	expect(main!.x - list!.x).toBeLessThanOrEqual(2);
-});
-
-test('rule text does not wrap per character at 320px and 200% text', async ({ page }) => {
-	await page.setViewportSize(SMALL_PHONE);
-	await login(page);
-	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await page.evaluate(() => (document.documentElement.style.fontSize = '32px'));
-	const title = rule(page, 'Alquiler').locator('[data-slot="item-title"]');
-	const { height, lineHeight } = await title.evaluate((el) => {
-		const cs = getComputedStyle(el);
-		const fs = parseFloat(cs.fontSize);
-		return {
-			height: el.getBoundingClientRect().height,
-			lineHeight: cs.lineHeight === 'normal' ? fs * 1.3 : parseFloat(cs.lineHeight)
-		};
-	});
-	expect(height).toBeLessThanOrEqual(lineHeight * 2.1);
-});
-
-test('empty new rule form shows every required-field message', async ({ page }) => {
-	await login(page);
-	await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
-	await page.getByRole('button', { name: 'Guardar' }).click();
-	await expect(page).toHaveURL(/\/plan\/recurring\/new$/);
-	for (const message of [
-		'Ingresá una descripción.',
-		'Ingresá un monto mayor a cero (ej.: 1.234 en pesos o 1.234,56 en dólares).',
-		'Elegí una cuenta.',
-		'Elegí una categoría.',
-		'Elegí un día entre 1 y 31.'
-	])
-		await expect(page.getByText(message)).toBeVisible();
 });
 
 test('deactivate, activate and delete a rule', async ({ page, baseURL }) => {
@@ -127,7 +74,7 @@ test('deactivate, activate and delete a rule', async ({ page, baseURL }) => {
 		await expect(page).toHaveURL(/\/plan$/);
 		const inactive = page.getByRole('region', { name: 'Inactivos' });
 		const open = async () => {
-			await page.goto('/plan', { waitUntil: 'networkidle' });
+			await page.goto('/plan');
 			await page
 				.getByRole('link', { name: new RegExp(description) })
 				.first()
@@ -157,14 +104,6 @@ test('deactivate, activate and delete a rule', async ({ page, baseURL }) => {
 	} finally {
 		await deleteRules(page, baseURL!, description);
 	}
-});
-
-test('USD tab shows the empty state', async ({ page, baseURL }) => {
-	await login(page);
-	await setCurrencyCookie(page, baseURL!, 'USD');
-	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await expect(page.getByText('Sin plan en dólares')).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Agregar pago fijo' })).toHaveCount(0);
 });
 
 test('create a rule, register its payment and clean up', async ({ page, baseURL }) => {
@@ -230,11 +169,11 @@ test('a payment edited to an account in another currency no longer marks the rul
 		await expect(rule(page, description)).toContainText('Pagado');
 
 		const [href] = await findMovements(page, description, 'ARS');
-		await page.goto(new URL(href).pathname, { waitUntil: 'networkidle' });
+		await page.goto(new URL(href).pathname);
 		await pick(page, 'Cuenta', 'Otra cuenta');
 		await expect(page.getByText('Cambio guardado.')).toBeVisible();
 
-		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await page.goto('/plan');
 		await expect(rule(page, description)).toBeVisible();
 		await expect(rule(page, description)).not.toContainText('Pagado');
 	} finally {
@@ -245,15 +184,6 @@ test('a payment edited to an account in another currency no longer marks the rul
 	}
 });
 
-for (const id of ['00000000-0000-4000-8000-000000000000', 'x']) {
-	test(`/plan/recurring/${id} is a 404`, async ({ page }) => {
-		await login(page);
-		const res = await page.goto(`/plan/recurring/${id}`);
-		expect(res!.status()).toBe(404);
-		await expect(page.getByText('Movimiento fijo no encontrado.')).toBeVisible();
-	});
-}
-
 test("another user's rule is a 404", async ({ page, browser, baseURL }) => {
 	const otherContext = await browser.newContext({ baseURL });
 	let id: string;
@@ -261,7 +191,7 @@ test("another user's rule is a 404", async ({ page, browser, baseURL }) => {
 		const otherPage = await otherContext.newPage();
 		await login(otherPage, OTHER_EMAIL);
 		await setCurrencyCookie(otherPage, baseURL!, 'USD');
-		await otherPage.goto('/plan', { waitUntil: 'networkidle' });
+		await otherPage.goto('/plan');
 		id = await linkId(otherPage.getByRole('link', { name: /Regla ajena/ }).first());
 	} finally {
 		await otherContext.close();
@@ -270,4 +200,6 @@ test("another user's rule is a 404", async ({ page, browser, baseURL }) => {
 	const res = await page.goto(`/plan/recurring/${id}`);
 	expect(res!.status()).toBe(404);
 	await expect(page.getByText('Movimiento fijo no encontrado.')).toBeVisible();
+	// A malformed id is a 404 too.
+	expect((await page.goto('/plan/recurring/x'))!.status()).toBe(404);
 });

@@ -46,7 +46,7 @@ async function addOutcomes(page: Page, baseURL: string, mv: Mv, backs = [2, 3, 4
 	}
 }
 
-const suggestions = (page: Page) => page.goto('/plan/setup?step=2', { waitUntil: 'networkidle' });
+const suggestions = (page: Page) => page.goto('/plan/setup?step=2');
 const row = (page: Page, text: string) => page.getByRole('link', { name: new RegExp(text) });
 
 test.beforeAll(async ({ browser, baseURL }) => {
@@ -123,19 +123,13 @@ test.beforeEach(async ({ page }) => {
 	await page.context().addCookies(cookies);
 });
 
-test('an outcome repeated in only 2 of the last 3 full months is not suggested', async ({
+test('outcomes that do not repeat 3 months, are linked, archived or in another currency are not suggested', async ({
 	page,
 	baseURL
 }) => {
+	const headers = { origin: baseURL!, accept: 'text/html' };
 	await addOutcomes(page, baseURL!, { description: 'Dos meses sug e2e' }, [2, 3]);
 	await addOutcomes(page, baseURL!, { description: 'Tres meses sug e2e' });
-	await suggestions(page);
-	await expect(row(page, 'Tres meses sug e2e')).toHaveCount(1);
-	await expect(row(page, 'Dos meses sug e2e')).toHaveCount(0);
-});
-
-test('outcomes linked to a rule (recurringId set) are not suggested', async ({ page, baseURL }) => {
-	const headers = { origin: baseURL!, accept: 'text/html' };
 	// The rule has another name, so only the link (not the rule-name rule) can hide the group.
 	const created = await page.request.post('/plan/recurring/new', {
 		form: {
@@ -149,61 +143,50 @@ test('outcomes linked to a rule (recurringId set) are not suggested', async ({ p
 		headers
 	});
 	expect(created.ok()).toBe(true);
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await page.goto('/plan');
 	const ruleId = await linkId(
 		page.locator('.rule', { hasText: 'Regla vinc sug e2e' }).locator('a[data-slot="item"]')
 	);
 	await addOutcomes(page, baseURL!, { description: 'Vinculado sug e2e', recurringId: ruleId });
-	await addOutcomes(page, baseURL!, { description: 'Suelto sug e2e' });
-	await suggestions(page);
-	await expect(row(page, 'Suelto sug e2e')).toHaveCount(1);
-	await expect(row(page, 'Vinculado sug e2e')).toHaveCount(0);
-});
-
-test('movements on an archived account are not suggested', async ({ page, baseURL }) => {
 	await addOutcomes(page, baseURL!, { description: 'Archivada sug e2e', account: ids.archived });
+	await addOutcomes(page, baseURL!, { description: 'Dolar sug e2e', account: ids.usd });
+
 	await suggestions(page);
+	await expect(row(page, 'Tres meses sug e2e')).toHaveCount(1);
 	await expect(row(page, 'Archivada sug e2e')).toHaveCount(1);
+	await expect(row(page, 'Dos meses sug e2e')).toHaveCount(0);
+	await expect(row(page, 'Vinculado sug e2e')).toHaveCount(0);
+	await expect(row(page, 'Dolar sug e2e')).toHaveCount(0);
+
 	const res = await page.request.post(`/accounts/${ids.archived}?/archive`, {
 		form: {},
-		headers: { origin: baseURL!, accept: 'text/html' }
+		headers
 	});
 	expect(res.ok()).toBe(true);
 	await suggestions(page);
 	await expect(row(page, 'Archivada sug e2e')).toHaveCount(0);
-});
-
-test('only outcomes in the plan currency are suggested', async ({ page, baseURL }) => {
-	await addOutcomes(page, baseURL!, { description: 'Dolar sug e2e', account: ids.usd });
-	await suggestions(page);
-	await expect(row(page, 'Dolar sug e2e')).toHaveCount(0);
 	await setCurrencyCookie(page, baseURL!, 'USD');
 	await suggestions(page);
 	await expect(row(page, 'Dolar sug e2e')).toHaveCount(1);
 });
 
-test('grouping is case-insensitive', async ({ page, baseURL }) => {
+test('grouping is case-insensitive, any category kind is suggested, the amount averages per-month sums', async ({
+	page,
+	baseURL
+}) => {
 	// One movement per month, each with different casing: only one group has 3 months.
 	await addOutcomes(page, baseURL!, { description: 'Mayus sug e2e' }, [2]);
 	await addOutcomes(page, baseURL!, { description: 'MAYUS SUG E2E' }, [3]);
 	await addOutcomes(page, baseURL!, { description: 'mayus sug e2e' }, [4]);
-	await suggestions(page);
-	await expect(row(page, 'sug e2e').filter({ hasText: /mayus/i })).toHaveCount(1);
-});
-
-test('an outcome with no category kind (both) is suggested', async ({ page, baseURL }) => {
 	await addOutcomes(page, baseURL!, { description: 'Mixta sug e2e', category: ids.both });
-	await suggestions(page);
-	await expect(row(page, 'Mixta sug e2e')).toHaveCount(1);
-});
-
-test('the suggested amount averages the per-month sums', async ({ page, baseURL }) => {
-	// Months 2 has two movements (10.000 + 5.000), months 3 and 4 one of 15.000: per-month sums are
+	// Month 2 has two movements (10.000 + 5.000), months 3 and 4 one of 15.000: per-month sums are
 	// 15.000 each. A plain average over the 4 movements would give 11.250.
 	await addOutcomes(page, baseURL!, { description: 'Suma sug e2e', amount: '10000' }, [2]);
 	await addOutcomes(page, baseURL!, { description: 'Suma sug e2e', amount: '5000' }, [2]);
 	await addOutcomes(page, baseURL!, { description: 'Suma sug e2e', amount: '15000' }, [3, 4]);
 	await suggestions(page);
+	await expect(row(page, 'sug e2e').filter({ hasText: /mayus/i })).toHaveCount(1);
+	await expect(row(page, 'Mixta sug e2e')).toHaveCount(1);
 	await expect(row(page, 'Suma sug e2e')).toContainText('15.000');
 });
 
@@ -212,18 +195,11 @@ test("another user's repeated outcome is never suggested", async ({ page }) => {
 	await expect(row(page, 'Aislado sug e2e')).toHaveCount(0);
 });
 
-for (const [name, id] of [
-	['another user suggestion id', () => foreignSuggestionId],
-	['a nonexistent id', () => '6f1d3c1e-0000-4000-8000-000000000000']
-] as const) {
-	test(`the rule form with ${name} is empty`, async ({ page }) => {
-		await page.goto(`/plan/recurring/new?type=outcome&wizard=2&suggestion=${id()}`, {
-			waitUntil: 'networkidle'
-		});
-		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nuevo pago fijo');
-		await expect(page.locator('input[name="description"]')).toHaveValue('');
-		await expect(page.locator('input[name="amount"]')).toHaveValue('');
-		await expect(page.getByRole('button', { name: /^Cuenta/ })).not.toContainText('Caja');
-		await expect(page.getByRole('button', { name: /^Categoría/ })).not.toContainText('sug e2e');
-	});
-}
+test('the rule form with another user suggestion id is empty', async ({ page }) => {
+	await page.goto(`/plan/recurring/new?type=outcome&wizard=2&suggestion=${foreignSuggestionId}`);
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nuevo pago fijo');
+	await expect(page.locator('input[name="description"]')).toHaveValue('');
+	await expect(page.locator('input[name="amount"]')).toHaveValue('');
+	await expect(page.getByRole('button', { name: /^Cuenta/ })).not.toContainText('Caja');
+	await expect(page.getByRole('button', { name: /^Categoría/ })).not.toContainText('sug e2e');
+});

@@ -20,10 +20,12 @@ This file is identical in every app repo (gastar-app, parfam-mdq, gastar-app-lan
 | Check | Required on | What it runs |
 | --- | --- | --- |
 | `checks` | every PR | gitleaks over the PR commits, `pnpm lint`, `pnpm typecheck`, `pnpm build`, then `db:deploy` and `test` when present |
-| `e2e` | every PR | Playwright browser install, `db:deploy`, `test:e2e:setup` when present, `pnpm test:e2e` |
+| `e2e` | every PR | Playwright browser install, `db:deploy`, `test:e2e:setup` when present, `pnpm test:e2e`; on a PR that changes only `*.md` files these steps are skipped and the job passes |
 | `develop-only` | PRs into `main` | head must be `develop` of this repo (passes when the repo has no `develop`) |
 
-Both CI jobs run against a throwaway `postgres:17-alpine` (`DATABASE_URL=postgresql://ci:ci@localhost:5432/ci`). `secrets-scan.yml` also scans the commits of every push, on any branch.
+Both CI jobs run against a throwaway `postgres:17-alpine` (`DATABASE_URL=postgresql://ci:ci@localhost:5432/ci`). Secrets are scanned by gitleaks in `checks` and in the husky pre-commit hook; there is no separate push scan.
+
+Dependabot (`.github/dependabot.yml`) checks npm, Docker and GitHub Actions updates monthly.
 
 ## Script contract
 
