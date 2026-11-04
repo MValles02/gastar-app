@@ -141,7 +141,13 @@ export function resolveMovement(
 		category?: CategoryRef | undefined;
 	},
 	// Archived rows already referenced by the movement being edited stay valid.
-	keep: { accountIds: string[]; categoryId: string | null; amount?: number | null } = {
+	keep: {
+		accountIds: string[];
+		categoryId: string | null;
+		amount?: number | null;
+		/** Ids whose archived checks are skipped (an undo restoring what the movement had). */
+		archivedOk?: string[];
+	} = {
 		accountIds: [],
 		categoryId: null,
 		amount: null
@@ -152,7 +158,11 @@ export function resolveMovement(
 	const base = { ...data, destinationAccountId: null, categoryId: null, exchangeRate: null };
 
 	if (!origin) errors.accountId = MSG.account;
-	else if (origin.archivedAt && !keep.accountIds.includes(origin.id))
+	else if (
+		origin.archivedAt &&
+		!keep.accountIds.includes(origin.id) &&
+		!keep.archivedOk?.includes(origin.id)
+	)
 		errors.accountId = MSG.archivedAccount;
 	else if (
 		!(keep.amount != null && data.amount === keep.amount) &&
@@ -162,7 +172,11 @@ export function resolveMovement(
 
 	if (data.type !== 'transfer') {
 		if (!category) errors.categoryId = MSG.category;
-		else if (category.archivedAt && category.id !== keep.categoryId)
+		else if (
+			category.archivedAt &&
+			category.id !== keep.categoryId &&
+			!keep.archivedOk?.includes(category.id)
+		)
 			errors.categoryId = MSG.archivedCategory;
 		else if (
 			(category.kind === 'income' || category.kind === 'outcome') &&
@@ -179,7 +193,11 @@ export function resolveMovement(
 
 	if (!destination) errors.destinationAccountId = MSG.destination;
 	else if (origin && destination.id === origin.id) errors.destinationAccountId = MSG.sameAccount;
-	else if (destination.archivedAt && !keep.accountIds.includes(destination.id))
+	else if (
+		destination.archivedAt &&
+		!keep.accountIds.includes(destination.id) &&
+		!keep.archivedOk?.includes(destination.id)
+	)
 		errors.destinationAccountId = MSG.archivedAccount;
 	if (Object.keys(errors).length > 0) return { ok: false, errors };
 

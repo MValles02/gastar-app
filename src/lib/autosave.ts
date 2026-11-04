@@ -61,7 +61,7 @@ export async function autosave<T>({
 			label: 'Deshacer',
 			onClick: async () => {
 				try {
-					const undone = await submitAction(path, previous);
+					const undone = await submitAction(path, { ...previous, undo: '1' });
 					if (undone.type !== 'success') throw new Error(path);
 					apply(undone.data as T);
 					await refreshAll();

@@ -42,6 +42,8 @@ type Seed = {
 	kinds?: boolean;
 };
 
+const fixture = { c1: '', c2: '', A: '', B: '' };
+
 /** Creates this test's accounts and categories and one movement (2023-03-27, a Monday); returns its description. */
 async function arrange(page: Page, baseURL: string, seed: Seed = {}) {
 	const description = `Detalle ${Date.now()}`;
@@ -65,7 +67,8 @@ async function arrange(page: Page, baseURL: string, seed: Seed = {}) {
 		color: 'blue',
 		kind: seed.kinds ? 'outcome' : ''
 	});
-	await post('/categories/new', {
+	Object.assign(fixture, { c1, A: ids.A, B: ids.B });
+	fixture.c2 = await post('/categories/new', {
 		name: `${description} C2`,
 		color: 'red',
 		kind: seed.kinds ? 'income' : ''
@@ -436,4 +439,78 @@ test('closing with a staged type change saves nothing and says so', async ({ pag
 	const reopened = page.getByRole('dialog');
 	await expect(reopened.getByRole('button', { name: /^Tipo/ })).toContainText('Gasto');
 	await expect(reopened.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
+});
+
+/** Archives an account or category of this test through its own action. */
+async function archive(page: Page, baseURL: string, path: string) {
+	const res = await page.request.post(`${path}?/archive`, {
+		form: {},
+		headers: { origin: baseURL, accept: 'text/html' }
+	});
+	expect(res.ok()).toBe(true);
+}
+
+test('Deshacer restores an archived category the movement had', async ({ page, baseURL }) => {
+	const desc = await arrange(page, baseURL!);
+	await archive(page, baseURL!, `/categories/${fixture.c1}`);
+	const drawer = await openDrawer(page, desc);
+
+	await pick(page, 'Categoría', `${desc} C2`);
+	await expect(saved(page)).toBeVisible();
+	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C2`);
+	await undo(page);
+	await expect(page.getByText('No se pudo deshacer.')).toHaveCount(0);
+	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
+
+	await page.reload({ waitUntil: 'networkidle' });
+	await rowOf(page, desc).click();
+	await expect(page.getByRole('dialog').getByRole('button', { name: /^Categoría/ })).toContainText(
+		`${desc} C1`
+	);
+});
+
+test('Deshacer restores an archived account the movement had', async ({ page, baseURL }) => {
+	const desc = await arrange(page, baseURL!);
+	await archive(page, baseURL!, `/accounts/${fixture.A}`);
+	const drawer = await openDrawer(page, desc);
+
+	await pick(page, 'Cuenta', `${desc} B`);
+	await expect(saved(page)).toBeVisible();
+	await expect(drawer.getByRole('button', { name: /^Cuenta/ })).toContainText(`${desc} B`);
+	await undo(page);
+	await expect(page.getByText('No se pudo deshacer.')).toHaveCount(0);
+	await expect(drawer.getByRole('button', { name: /^Cuenta/ })).toContainText(`${desc} A`);
+
+	await page.reload({ waitUntil: 'networkidle' });
+	await rowOf(page, desc).click();
+	await expect(page.getByRole('dialog').getByRole('button', { name: /^Cuenta/ })).toContainText(
+		`${desc} A`
+	);
+});
+
+test('a normal update to an archived category or account is still rejected', async ({
+	page,
+	baseURL
+}) => {
+	const desc = await arrange(page, baseURL!);
+	await archive(page, baseURL!, `/categories/${fixture.c2}`);
+	await archive(page, baseURL!, `/accounts/${fixture.B}`);
+	await page.goto(listUrl(desc), { waitUntil: 'networkidle' });
+	const href = await rowOf(page, desc).getAttribute('href');
+	const update = async (form: Record<string, string>) => {
+		const res = await page.request.post(`${href}?/update`, {
+			form,
+			headers: { origin: baseURL!, 'x-sveltekit-action': 'true' }
+		});
+		const body = await res.json();
+		expect(body.type).toBe('failure');
+		return body.data as string;
+	};
+
+	expect(await update({ categoryId: fixture.c2 })).toContain(
+		'Esa categoría está archivada. Elegí otra.'
+	);
+	expect(await update({ accountId: fixture.B })).toContain(
+		'Esa cuenta está archivada. Elegí otra.'
+	);
 });
