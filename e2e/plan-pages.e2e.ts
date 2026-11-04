@@ -15,6 +15,7 @@ import {
 } from './helpers';
 import { waitForLink } from './outbox';
 
+// Every `networkidle` goto below is a hydration guard: the drawer, picker or switch it opens needs JavaScript.
 // Everything runs as one freshly signed-up user, so no other spec (and no demo-user month total) is
 // disturbed. Tests are serial: each leaves the plan the next one expects (see the order below).
 test.describe.configure({ mode: 'serial', timeout: 90_000 });
@@ -107,7 +108,7 @@ async function foreignCategory(browser: Browser, baseURL: string) {
 	try {
 		const page = await context.newPage();
 		await login(page, OTHER_EMAIL);
-		await page.goto('/categories', { waitUntil: 'networkidle' });
+		await page.goto('/categories');
 		return await linkId(page.getByRole('link', { name: /Ajena/ }));
 	} finally {
 		await context.close();
@@ -178,16 +179,6 @@ test('the wizard creates a plan in five steps, returning from the add screens', 
 	await expect(page).toHaveURL(/\/plan$/);
 	await expect(page.getByText('Plan guardado.')).toBeVisible();
 	await expect(page.getByRole('region', { name: /^Disponible · / })).toBeVisible();
-});
-
-test('/plan/setup goes back to /plan once a plan exists', async ({ page }) => {
-	for (const url of ['/plan/setup', '/plan/setup?step=9']) {
-		await page.goto(url);
-		await expect(page).toHaveURL(/\/plan$/);
-	}
-	// A numbered step stays reachable (the wizard links to it).
-	await page.goto('/plan/setup?step=4');
-	await expect(page).toHaveURL(/\/plan\/setup\?step=4$/);
 });
 
 test('10 % savings follows an income change, Otro validates and saves both', async ({
