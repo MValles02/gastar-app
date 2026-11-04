@@ -1,13 +1,12 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import { enhanceRedirect, navigateUp } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
-	import FormActions from '$lib/components/FormActions.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { upOnClick } from '$lib/nav-stack.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import SavingsFields from '../SavingsFields.svelte';
-	import type { ActionData, PageData } from './$types';
+	import SavingsOptions from '../SavingsOptions.svelte';
+	import type { PageData } from './$types';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	let { data }: { data: PageData } = $props();
 </script>
 
 <svelte:head>
@@ -16,28 +15,21 @@
 
 <PageHeader title="Ahorro" close={{ href: resolve('/plan'), label: 'Cerrar' }} />
 
-<form
-	method="POST"
-	action="?/update"
-	use:enhance={() => (input) =>
-		// `update` answers success instead of redirecting.
-		input.result.type === 'success'
-			? navigateUp('/plan?planSaved=1', { refresh: true })
-			: enhanceRedirect(input)}
-	class="form"
-	novalidate
->
-	<SavingsFields
+<div class="page">
+	<SavingsOptions
+		mode="autosave"
 		income={data.income}
 		currency={data.currency}
 		initial={data}
-		error={form?.message}
+		base={data.base}
+		daysLeft={data.daysLeft}
 	/>
-	<FormActions cancelHref="/plan" submitLabel="Guardar" />
-</form>
+	<Button href={resolve('/plan')} onclick={upOnClick(resolve('/plan'))} class="w-full">Listo</Button
+	>
+</div>
 
 <style>
-	.form {
+	.page {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);

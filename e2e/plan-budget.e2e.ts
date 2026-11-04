@@ -162,17 +162,23 @@ async function limitHrefs(page: Page) {
  */
 async function restoreDemoPlan(page: Page, baseURL: string) {
 	await setCurrencyCookie(page, baseURL, 'ARS');
-	await post(page, baseURL, '/plan/savings', {
+	await post(page, baseURL, '/plan/savings?/update', {
 		savingsOption: 'other',
 		savingsUnit: 'amount',
 		savingsValue: '150.000'
 	});
 	await page.goto('/categories', { waitUntil: 'networkidle' });
 	const superId = await linkId(page.getByRole('link', { name: /Supermercado/ }).first());
-	const edit = await post(page, baseURL, `/plan/limits/${superId}?/save`, { amount: '300.000' });
+	const edit = await post(page, baseURL, `/plan/limits/${superId}?/update`, { amount: '300.000' });
 	if (edit.status() === 404)
 		await post(page, baseURL, '/plan/limits/new', { categoryId: superId, amount: '300.000' });
 }
+
+/** The Supermercado limit's meter on /plan; its value text carries "<spent> de <limit>". */
+const superMeter = (page: Page) =>
+	page
+		.getByRole('region', { name: 'Límites por categoría' })
+		.getByRole('meter', { name: 'Límite de Supermercado' });
 
 /** Deletes every category of the signed-in user named `name` (leftovers of an interrupted run). */
 async function deleteCategories(page: Page, baseURL: string, name: string) {
@@ -188,7 +194,9 @@ test('ARS decimals are rejected in savings and in limits, and nothing is written
 }) => {
 	await login(page);
 	await page.goto('/plan/savings', { waitUntil: 'networkidle' });
-	await fillSavings(page, { option: 'Otro', unit: '$', value: '1.000,50' });
+	await page.getByRole('button', { name: /^Otro/ }).click();
+	await page.getByRole('radio', { name: '$', exact: true }).click();
+	await page.locator('input[name="savingsValue"]').fill('1.000,50');
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page.getByRole('alert')).toContainText(WHOLE_PESOS_ERROR);
 	await expect(page).toHaveURL(/\/plan\/savings$/);
@@ -196,15 +204,14 @@ test('ARS decimals are rejected in savings and in limits, and nothing is written
 	await page.goto('/categories', { waitUntil: 'networkidle' });
 	const superId = await linkId(page.getByRole('link', { name: /Supermercado/ }).first());
 	await page.goto(`/plan/limits/${superId}`, { waitUntil: 'networkidle' });
-	await page.locator('input[name="amount"]').fill('100,5');
-	await page.getByRole('button', { name: 'Guardar cambios' }).click();
+	await page.getByRole('button', { name: /^Monto del límite/ }).click();
+	await page.getByLabel('Monto del límite').fill('100,5');
+	await page.getByLabel('Monto del límite').press('Enter');
 	await expect(page.getByRole('alert')).toContainText(WHOLE_PESOS_ERROR);
 	await expect(page).toHaveURL(/\/plan\/limits\/[0-9a-f-]{36}/);
 
 	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('region', { name: 'Límites por categoría' })).toContainText(
-		'300.000'
-	);
+	await expect(superMeter(page)).toHaveAttribute('aria-valuetext', /de \$\s?300\.000$/);
 });
 
 test("another user's category and rule never leak or get written", async ({
@@ -270,9 +277,7 @@ test("another user cannot attach a limit to the demo user's category", async ({
 
 	// The demo plan is untouched: same limit, same income and savings.
 	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('region', { name: 'Límites por categoría' })).toContainText(
-		'300.000'
-	);
+	await expect(superMeter(page)).toHaveAttribute('aria-valuetext', /de \$\s?300\.000$/);
 	const demoAfter = await figures(page);
 	expect(demoAfter['Ingresos']).toBe(demoBefore['Ingresos']);
 	expect(demoAfter['Ahorro']).toBe(demoBefore['Ahorro']);
@@ -299,7 +304,10 @@ test('deleting a category removes its limit', async ({ page, baseURL }) => {
 		await expect(page).toHaveURL(/\/plan$/);
 		const limits = page.getByRole('region', { name: 'Límites por categoría' });
 		await expect(limits).toContainText(name);
-		await expect(limits).toContainText('5.000');
+		await expect(limits.getByRole('meter', { name: `Límite de ${name}` })).toHaveAttribute(
+			'aria-valuetext',
+			/de \$\s?5\.000$/
+		);
 
 		await page.goto(categoryPath, { waitUntil: 'networkidle' });
 		await page.getByRole('button', { name: 'Eliminar' }).click();
@@ -346,6 +354,97 @@ test.describe('without JavaScript', () => {
 			/\/plan\/setup\?step=2$/
 		);
 	});
+});
+
+const limitsRegion = (page: Page) => page.getByRole('region', { name: 'Límites por categoría' });
+
+test('limit drawer: amount autosaves with Deshacer (drawer stays), average saves, delete confirms', async ({
+	page,
+	baseURL
+}) => {
+	await login(page);
+	await restoreDemoPlan(page, baseURL!);
+	try {
+		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await limitsRegion(page)
+			.getByRole('link', { name: /Supermercado/ })
+			.click();
+		const drawer = page.getByRole('dialog', { name: 'Límite de Supermercado' });
+		await expect(drawer).toBeVisible();
+
+		await drawer.getByRole('button', { name: /^Monto del límite/ }).click();
+		await drawer.getByLabel('Monto del límite').fill('310.000');
+		await drawer.getByLabel('Monto del límite').press('Enter');
+		await expect(drawer.getByRole('button', { name: 'Monto del límite: 310.000' })).toBeVisible();
+		await page.getByRole('button', { name: 'Deshacer' }).click();
+		await expect(drawer.getByRole('button', { name: 'Monto del límite: 300.000' })).toBeVisible();
+		// Deshacer refreshes the loads without closing the drawer.
+		await expect(drawer).toBeVisible();
+
+		await drawer.getByRole('button', { name: /^Usar promedio/ }).click();
+		await expect(drawer.getByRole('button', { name: 'Monto del límite: 300.000' })).toHaveCount(0);
+		await expect(drawer).toBeVisible();
+
+		// The Deshacer toast sits over the drawer's actions until it expires.
+		await expect(page.getByRole('button', { name: 'Deshacer' })).toHaveCount(0, {
+			timeout: 10_000
+		});
+		await drawer.getByRole('button', { name: 'Eliminar límite' }).click();
+		const confirm = page.getByRole('alertdialog');
+		await expect(confirm).toContainText('¿Eliminar este límite?');
+		await confirm.getByRole('button', { name: 'Eliminar' }).click();
+		await expect(drawer).toBeHidden();
+		await expect(limitsRegion(page)).not.toContainText('Supermercado');
+	} finally {
+		await restoreDemoPlan(page, baseURL!);
+	}
+});
+
+test('new limit drawer hides a category that already has a limit', async ({ page, baseURL }) => {
+	await login(page);
+	await restoreDemoPlan(page, baseURL!);
+	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await page.getByRole('link', { name: '+ Agregar' }).first().click();
+	const drawer = page.getByRole('dialog', { name: 'Nuevo límite' });
+	await drawer.getByRole('button', { name: /Categoría/ }).click();
+	const list = page.getByRole('dialog').last();
+	await expect(list.getByText('Servicios', { exact: true })).toBeVisible();
+	await expect(list.getByText('Supermercado', { exact: true })).toHaveCount(0);
+	// Guardar waits for a category and an amount.
+	await expect(drawer.getByRole('button', { name: 'Guardar', exact: true })).toBeDisabled();
+});
+
+test('Ahorro drawer: picking 20 % saves and Deshacer restores the previous option', async ({
+	page,
+	baseURL
+}) => {
+	await login(page);
+	await restoreDemoPlan(page, baseURL!);
+	try {
+		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await page.getByRole('link', { name: 'Ahorro', exact: true }).click();
+		const drawer = page.getByRole('dialog', { name: 'Ahorro del mes' });
+		await expect(drawer.getByRole('button', { name: /^Otro/ })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await drawer.getByRole('button', { name: /^20 %/ }).click();
+		await expect(drawer.getByRole('button', { name: /^20 %/ })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await page.getByRole('button', { name: 'Deshacer' }).click();
+		await expect(drawer.getByRole('button', { name: /^Otro/ })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await expect(drawer.getByRole('button', { name: /^20 %/ })).toHaveAttribute(
+			'aria-pressed',
+			'false'
+		);
+	} finally {
+		await restoreDemoPlan(page, baseURL!);
+	}
 });
 
 test('Disponible = Ingresos - Ahorro - Pagos fijos pendientes - Gastado on one page load', async ({

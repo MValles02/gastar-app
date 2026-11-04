@@ -20,7 +20,7 @@
 	import { WIZARD_STEPS } from '$lib/plan-wizard';
 	import LimitList from '../LimitList.svelte';
 	import RecurringRow from '../RecurringRow.svelte';
-	import SavingsFields from '../SavingsFields.svelte';
+	import SavingsOptions from '../SavingsOptions.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -131,7 +131,7 @@
 			class="wizard"
 			novalidate
 		>
-			<SavingsFields
+			<SavingsOptions
 				income={data.income}
 				currency={data.currency}
 				initial={data.savings}

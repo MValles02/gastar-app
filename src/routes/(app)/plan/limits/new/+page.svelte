@@ -20,9 +20,7 @@
 <PageHeader title="Nuevo límite" close={{ href: resolve(back as '/'), label: 'Cerrar' }} />
 
 <LimitForm
-	mode="new"
 	currency={data.currency}
-	formId="limit-form"
 	{action}
 	cancelHref={back}
 	categories={data.categories}
