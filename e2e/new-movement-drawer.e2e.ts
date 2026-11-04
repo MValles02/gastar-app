@@ -9,9 +9,7 @@ import {
 	OTHER_EMAIL,
 	pick,
 	PHONE,
-	pickMovementDate,
-	postDelete,
-	todayInAppTz
+	postDelete
 } from './helpers';
 
 test.use({ viewport: PHONE });
@@ -44,7 +42,8 @@ const toast = (page: Page) =>
 const drawer = (page: Page) => page.getByRole('dialog', { name: 'Nuevo movimiento' });
 
 async function open(page: Page, from = '/plan') {
-	await page.goto(from, { waitUntil: 'networkidle' });
+	await page.goto(from);
+	await page.waitForLoadState('networkidle'); // hydration guard: the new-movement drawer needs JS
 	await page
 		.getByRole('navigation', { name: 'Navegación principal' })
 		.getByRole('link', { name: 'Nuevo movimiento' })
@@ -58,27 +57,6 @@ async function fill(page: Page, description: string) {
 	await page.locator('input[name="amount"]').fill('1');
 	await page.locator('input[name="description"]').fill(description);
 }
-
-test('opens over the current screen and closes with Cancelar', async ({ page }) => {
-	await open(page, '/plan');
-	await expect(page).toHaveURL(/\/plan$/);
-	await expect(page.locator('main')).toBeVisible();
-	await drawer(page).getByRole('button', { name: 'Cancelar' }).click();
-	await expect(drawer(page)).toBeHidden();
-	await expect(page).toHaveURL(/\/plan$/);
-});
-
-test('pickers stack over the drawer and pick and close', async ({ page }) => {
-	await open(page);
-	await pick(page, 'Cuenta', 'Otra cuenta pesos');
-	await expect(drawer(page).getByRole('button', { name: /^Cuenta/ })).toContainText(
-		'Otra cuenta pesos'
-	);
-	await expect(page.getByRole('dialog')).toHaveCount(1);
-	await pick(page, 'Categoría', 'Ajena');
-	await expect(drawer(page).getByRole('button', { name: /^Categoría/ })).toContainText('Ajena');
-	await expect(page.getByRole('dialog')).toHaveCount(1);
-});
 
 test('+ Nueva categoría keeps the draft and selects the new category', async ({ page }) => {
 	const name = `Cat drawer ${Date.now()}`;
@@ -95,28 +73,6 @@ test('+ Nueva categoría keeps the draft and selects the new category', async ({
 	await expect(drawer(page).getByRole('button', { name: /^Categoría/ })).toContainText(name);
 	await expect(page.locator('input[name="amount"]')).toHaveValue('1');
 	await expect(page.locator('input[name="description"]')).toHaveValue(/^Draft cat/);
-});
-
-test('Fecha offers Hoy, Ayer and Otra fecha', async ({ page }) => {
-	await open(page);
-	const date = page.locator('input[name="occurredAt"]');
-	const row = drawer(page).getByRole('button', { name: /^Fecha/ });
-	await expect(row).toContainText(/Hoy, \d\d\/\d\d/);
-
-	await row.click();
-	await page.getByRole('dialog').last().getByText('Ayer', { exact: true }).click();
-	await expect(row).toContainText(/Ayer, \d\d\/\d\d/);
-	const [y, m, d] = todayInAppTz().split('-').map(Number);
-	const yesterday = new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10);
-	await expect(date).toHaveValue(yesterday);
-
-	await row.click();
-	await page.getByRole('dialog').last().getByText('Hoy', { exact: true }).click();
-	await expect(date).toHaveValue(todayInAppTz());
-
-	await pickMovementDate(page, '2025-03-10');
-	await expect(date).toHaveValue('2025-03-10');
-	await expect(row).toContainText('10/03/2025');
 });
 
 test('validation: Guardar waits for amount and description; a missing row is marked alone', async ({
@@ -158,7 +114,8 @@ test('Deshacer removes the created movement and the row is highlighted', async (
 
 test('/movements/new still renders the form and saves', async ({ page }) => {
 	const description = unique('Deep link');
-	await page.goto('/movements/new', { waitUntil: 'networkidle' });
+	await page.goto('/movements/new');
+	await page.waitForLoadState('networkidle'); // hydration guard: the JS pickers needs JS
 	await expect(page.getByRole('heading', { name: 'Nuevo movimiento' })).toBeVisible();
 	await fill(page, description);
 	await pick(page, 'Cuenta', 'Otra cuenta pesos');

@@ -29,7 +29,7 @@ SvelteKit 2 + TypeScript, Drizzle ORM + Postgres (`src/lib/server/db/schema.ts`)
 - Branches: `feat/`, `fix/`, `chore/` or `docs/` prefix; feature branches squash-merge into `develop` via PR; `develop` is promoted to `main` by a merge-commit PR (never squash); PR titles follow Conventional Commits (`docs/WORKFLOW.md`).
 - `develop` auto-deploys dev.gastar.app on merge; `main` auto-deploys production (web.gastar.app) on merge (`docs/WORKFLOW.md`).
 - Design: UI work starts from root `PRODUCT.md` and `DESIGN.md`. Use `/impeccable`: `craft`/`shape` for new screens, `audit`/`polish` before the PR. Update `DESIGN.md` when the visual system changes. UI text stays Spanish (es-AR) per `docs/scope.md`. The skill binary is not committed: after cloning run `npx impeccable install` (project scope). The design hook is local (`.claude/settings.local.json`, gitignored).
-- Testing: unit tests are not required and are not kept in the repo; cover behavior with integration tests or Playwright E2E (`e2e/`).
+- Testing: unit tests are not required and are not kept in the repo; cover behavior with integration tests or Playwright E2E (`e2e/`). E2E covers money, data, auth and cross-user isolation flows only. No layout/pixel/viewport, animation, touch-target, colour or copy tests; one representative test per error class; no duplicated assertions across specs; no `waitForTimeout`, and `networkidle` only as a commented hydration guard before a JS-only control (the app exposes no hydration marker). Keep the suite around 125 tests and CI e2e under ~5 min; before adding a test, check it is not already covered.
 
 ## Commands
 

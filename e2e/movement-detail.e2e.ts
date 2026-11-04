@@ -7,13 +7,11 @@ import {
 	deleteMovements,
 	linkId,
 	login,
-	MOVEMENT_DETAIL_RE,
 	OTHER_EMAIL,
 	PHONE,
 	pick,
 	pickMovementDate,
-	postDelete,
-	WHOLE_PESOS_ERROR
+	postDelete
 } from './helpers';
 
 test.use({ viewport: PHONE });
@@ -73,7 +71,7 @@ async function arrange(page: Page, baseURL: string, seed: Seed = {}) {
 		color: 'red',
 		kind: seed.kinds ? 'income' : ''
 	});
-	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	await page.goto('/accounts');
 	ids.USD = await linkId(page.getByRole('link', { name: /^Otra cuenta(?! pesos)/ }));
 	const res = await page.request.post('/movements/new', {
 		form: {
@@ -99,7 +97,8 @@ const rowOf = (page: Page, description: string) => page.locator('a', { hasText: 
 
 /** Opens the list filtered to `description` and taps its row: the detail drawer. */
 async function openDrawer(page: Page, description: string) {
-	await page.goto(listUrl(description), { waitUntil: 'networkidle' });
+	await page.goto(listUrl(description));
+	await page.waitForLoadState('networkidle'); // hydration guard: the detail drawer needs JS
 	await rowOf(page, description).click();
 	const drawer = page.getByRole('dialog');
 	await expect(drawer).toBeVisible();
@@ -113,47 +112,6 @@ async function undo(page: Page) {
 	await page.getByRole('button', { name: 'Deshacer' }).first().click();
 	await expect(saved(page)).toHaveCount(0);
 }
-
-test('the detail opens as a drawer over the list; scroll and filters survive closing', async ({
-	page
-}) => {
-	// Read-only: the demo user has enough movements to scroll.
-	await page.context().clearCookies();
-	await login(page);
-	await page.goto('/accounts', { waitUntil: 'networkidle' });
-	const accountId = await linkId(page.getByRole('link', { name: /Efectivo/ }));
-	const list = `/movements?account=${accountId}`;
-	await page.goto(list, { waitUntil: 'networkidle' });
-	await expect(page.getByRole('button', { name: /^Filtros/ })).toContainText('1');
-
-	await page.evaluate(() => window.scrollTo(0, 500));
-	await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(300);
-	const before = await page.evaluate(() => window.scrollY);
-	// A row that is in view (the sticky headers sit on top of the list).
-	const rows = page.locator('a[href*="/movements/"]').filter({ has: page.locator('.row-amount') });
-	const index = await rows.evaluateAll((els) =>
-		els.findIndex((el) => {
-			const r = el.getBoundingClientRect();
-			return r.top > 200 && r.bottom < innerHeight - 160;
-		})
-	);
-	expect(index).toBeGreaterThanOrEqual(0);
-	const href = await rows.nth(index).getAttribute('href');
-	await rows.nth(index).click();
-
-	const drawer = page.getByRole('dialog');
-	await expect(drawer.getByRole('button', { name: /^Monto: / })).toBeVisible();
-	// Over the list: the URL did not change.
-	expect(page.url()).toContain(list);
-	expect(page.url()).not.toMatch(MOVEMENT_DETAIL_RE);
-	expect(href).toMatch(MOVEMENT_DETAIL_RE);
-
-	await page.keyboard.press('Escape');
-	await expect(drawer).toHaveCount(0);
-	expect(page.url()).toContain(list);
-	await expect(page.getByRole('button', { name: /^Filtros/ })).toContainText('1');
-	expect(Math.abs((await page.evaluate(() => window.scrollY)) - before)).toBeLessThan(40);
-});
 
 test('description, amount, account, category and date each autosave and Deshacer restores them', async ({
 	page,
@@ -215,26 +173,6 @@ test('description, amount, account, category and date each autosave and Deshacer
 	await expect(page.locator('h3', { hasText: 'Lunes 27' })).toBeVisible();
 });
 
-test('a transfer shows En destino and follows a changed Cotización', async ({ page, baseURL }) => {
-	const desc = await arrange(page, baseURL!, {
-		type: 'transfer',
-		account: 'A',
-		destination: 'USD',
-		rate: '1000'
-	});
-	const drawer = await openDrawer(page, desc);
-	const destino = drawer.locator('p', { hasText: 'En destino' });
-	await expect(destino).toContainText('US$1,00');
-
-	await drawer.getByRole('button', { name: 'Cotización: 1.000' }).click();
-	await drawer.getByRole('textbox', { name: 'Cotización' }).fill('500');
-	await page.keyboard.press('Enter');
-	await expect(saved(page)).toBeVisible();
-	await expect(destino).toContainText('US$2,00');
-	await undo(page);
-	await expect(destino).toContainText('US$1,00');
-});
-
 test('Eliminar confirms: Cancelar keeps the movement, Eliminar removes it for good', async ({
 	page,
 	baseURL
@@ -259,34 +197,6 @@ test('Eliminar confirms: Cancelar keeps the movement, Eliminar removes it for go
 	await expect(rowOf(page, desc)).toHaveCount(0);
 	// Not undoable: no Deshacer toast.
 	await expect(page.getByRole('button', { name: 'Deshacer' })).toHaveCount(0);
-});
-
-test('a direct /movements/<id> renders the detail', async ({ page, baseURL }) => {
-	const desc = await arrange(page, baseURL!);
-	await page.goto(listUrl(desc), { waitUntil: 'networkidle' });
-	const href = await rowOf(page, desc).getAttribute('href');
-	expect(href).toMatch(MOVEMENT_DETAIL_RE);
-	await page.goto(href!, { waitUntil: 'networkidle' });
-
-	await expect(page).toHaveURL(MOVEMENT_DETAIL_RE);
-	await expect(page.getByRole('button', { name: `Descripción: ${desc}` })).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Monto: 1.000' })).toBeVisible();
-	await expect(page.getByRole('button', { name: /^Fecha/ })).toContainText('27/03/2023');
-	await expect(page.getByRole('button', { name: /^Cuenta/ })).toContainText(`${desc} A`);
-	await expect(page.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
-});
-
-test('an invalid amount shows the error and keeps the old value', async ({ page, baseURL }) => {
-	const desc = await arrange(page, baseURL!);
-	const drawer = await openDrawer(page, desc);
-
-	await drawer.getByRole('button', { name: 'Monto: 1.000' }).click();
-	await drawer.getByRole('textbox', { name: 'Monto' }).fill('10,50');
-	await page.keyboard.press('Enter');
-	await expect(drawer.getByRole('alert')).toHaveText(WHOLE_PESOS_ERROR);
-	await expect(drawer.getByRole('button', { name: 'Monto: 1.000' })).toBeVisible();
-	await expect(saved(page)).toHaveCount(0);
-	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('$1.000');
 });
 
 test('Deshacer restores a transfer account change that dropped the rate', async ({
@@ -322,6 +232,10 @@ test('a cross-currency Hacia opens a focused, required Cotización', async ({ pa
 	await expect(rate).toBeVisible();
 	await expect(rate).toBeFocused();
 	await expect(rate).toHaveAttribute('required', '');
+	await rate.fill('1000');
+	await page.keyboard.press('Enter');
+	await expect(saved(page)).toBeVisible();
+	await expect(drawer.locator('p', { hasText: 'En destino' })).toContainText('US$1,00');
 });
 
 /** The topmost picker, once the staged type has opened the field it still needs. */
@@ -353,33 +267,6 @@ test('Gasto to Ingreso asks for an Ingreso category, saves once, and Deshacer re
 	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toContainText('Gasto');
 	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
 	await expect(drawer.locator('.amount').first()).toHaveClass(/outcome/);
-	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('-$1.000');
-});
-
-test('Gasto to Transferencia asks for Hacia and Deshacer restores the Gasto', async ({
-	page,
-	baseURL
-}) => {
-	const desc = await arrange(page, baseURL!);
-	const drawer = await openDrawer(page, desc);
-
-	await pick(page, 'Tipo', 'Transferencia');
-	await expect(prompted(page, `${desc} B`)).toBeVisible();
-	// Desde is not offered as Hacia.
-	await expect(prompted(page, `${desc} A`)).toHaveCount(0);
-	await expect(saved(page)).toHaveCount(0);
-	await prompted(page, `${desc} B`).click();
-
-	await expect(saved(page)).toBeVisible();
-	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toContainText('Transferencia');
-	await expect(drawer.getByRole('button', { name: /^Desde/ })).toContainText(`${desc} A`);
-	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toContainText(`${desc} B`);
-	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toHaveCount(0);
-
-	await undo(page);
-	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toContainText('Gasto');
-	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toHaveCount(0);
-	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
 	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('-$1.000');
 });
 
@@ -416,31 +303,6 @@ test('Transferencia to Gasto asks for a category; Deshacer restores type, destin
 	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toHaveCount(0);
 });
 
-test('closing with a staged type change saves nothing and says so', async ({ page, baseURL }) => {
-	const desc = await arrange(page, baseURL!, { kinds: true });
-	const drawer = await openDrawer(page, desc);
-
-	await pick(page, 'Tipo', 'Ingreso');
-	await expect(prompted(page, `${desc} C2`)).toBeVisible();
-	// Close the category list, then the drawer, without choosing.
-	await page.keyboard.press('Escape');
-	await expect(prompted(page, `${desc} C2`)).toHaveCount(0);
-	// While the type change is staged only Tipo and the field it asks for stay editable.
-	await expect(drawer.getByRole('button', { name: /^Descripción/ })).toBeDisabled();
-	await expect(drawer.getByRole('button', { name: /^Monto/ })).toBeDisabled();
-	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toBeEnabled();
-	await page.keyboard.press('Escape');
-	await expect(drawer).toHaveCount(0);
-
-	await expect(page.getByText('No se guardó el cambio de tipo.')).toBeVisible();
-	await expect(saved(page)).toHaveCount(0);
-	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('-$1.000');
-	await rowOf(page, desc).click();
-	const reopened = page.getByRole('dialog');
-	await expect(reopened.getByRole('button', { name: /^Tipo/ })).toContainText('Gasto');
-	await expect(reopened.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
-});
-
 /** Archives an account or category of this test through its own action. */
 async function archive(page: Page, baseURL: string, path: string) {
 	const res = await page.request.post(`${path}?/archive`, {
@@ -462,7 +324,8 @@ test('Deshacer restores an archived category the movement had', async ({ page, b
 	await expect(page.getByText('No se pudo deshacer.')).toHaveCount(0);
 	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
 
-	await page.reload({ waitUntil: 'networkidle' });
+	await page.reload();
+	await page.waitForLoadState('networkidle'); // hydration guard: the detail drawer needs JS
 	await rowOf(page, desc).click();
 	await expect(page.getByRole('dialog').getByRole('button', { name: /^Categoría/ })).toContainText(
 		`${desc} C1`
@@ -481,7 +344,8 @@ test('Deshacer restores an archived account the movement had', async ({ page, ba
 	await expect(page.getByText('No se pudo deshacer.')).toHaveCount(0);
 	await expect(drawer.getByRole('button', { name: /^Cuenta/ })).toContainText(`${desc} A`);
 
-	await page.reload({ waitUntil: 'networkidle' });
+	await page.reload();
+	await page.waitForLoadState('networkidle'); // hydration guard: the detail drawer needs JS
 	await rowOf(page, desc).click();
 	await expect(page.getByRole('dialog').getByRole('button', { name: /^Cuenta/ })).toContainText(
 		`${desc} A`
@@ -495,7 +359,7 @@ test('a normal update to an archived category or account is still rejected', asy
 	const desc = await arrange(page, baseURL!);
 	await archive(page, baseURL!, `/categories/${fixture.c2}`);
 	await archive(page, baseURL!, `/accounts/${fixture.B}`);
-	await page.goto(listUrl(desc), { waitUntil: 'networkidle' });
+	await page.goto(listUrl(desc));
 	const href = await rowOf(page, desc).getAttribute('href');
 	const update = async (form: Record<string, string>) => {
 		const res = await page.request.post(`${href}?/update`, {

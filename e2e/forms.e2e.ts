@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import {
 	deleteMovements,
 	deleteRules,
@@ -7,46 +7,21 @@ import {
 	linkId,
 	login,
 	OTHER_EMAIL,
-	pick,
-	pickDay,
 	postDelete
 } from './helpers';
 
 // Created accounts (detail URLs) are removed in afterEach. Runs as otro so the demo user's totals stay untouched.
 const createdAccounts: string[] = [];
 
-test.beforeEach(async ({ page }) => {
-	await page.setViewportSize({ width: 375, height: 667 });
-});
-
 test.afterEach(async ({ page, baseURL }) => {
 	for (const href of createdAccounts.splice(0)) await postDelete(page, baseURL!, href);
 });
 
-test('the account form Saldo inicial shows the currency prefix and follows the toggle', async ({
-	page
-}) => {
-	await login(page, OTHER_EMAIL);
-	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
-	const row = page.locator('label[for="initialBalance"]');
-	await expect(row.locator('.prefix')).toHaveText('$');
-	await expect(page.getByLabel('Saldo inicial')).toHaveAttribute('placeholder', '0');
-	await page.getByRole('radio', { name: 'USD' }).check({ force: true });
-	await expect(row.locator('.prefix')).toHaveText('US$');
-});
-
 test('the account form picks icon and color in drawers and persists them', async ({ page }) => {
 	await login(page, OTHER_EMAIL);
-	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
+	await page.goto('/accounts/new');
+	await page.waitForLoadState('networkidle'); // hydration guard: the icon and color drawers needs JS
 	await page.getByLabel('Nombre').fill(`Forms ${Date.now()}`);
-
-	// Cancelar and Crear cuenta side by side, equal width (50/50), visible without scrolling.
-	const cancel = (await page.getByRole('link', { name: 'Cancelar' }).boundingBox())!;
-	const submit = (await page.getByRole('button', { name: 'Guardar', exact: true }).boundingBox())!;
-	expect(Math.abs(cancel.y - submit.y)).toBeLessThan(2);
-	expect(cancel.x + cancel.width).toBeLessThan(submit.x);
-	expect(Math.abs(submit.width - cancel.width)).toBeLessThan(2);
-	expect(submit.y + submit.height).toBeLessThanOrEqual(667);
 
 	await page.getByRole('button', { name: /^Ícono/ }).click();
 	const banco = page.getByRole('dialog').getByRole('radio', { name: 'Banco' });
@@ -64,64 +39,17 @@ test('the account form picks icon and color in drawers and persists them', async
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	createdAccounts.push(page.url());
 	await expect(page.getByText('Ícono y color')).toHaveCount(0);
-	await page.goto(`${page.url()}/edit`, { waitUntil: 'networkidle' });
+	await page.goto(`${page.url()}/edit`);
+	await page.waitForLoadState('networkidle'); // hydration guard: the icon and color drawers needs JS
 	await page.getByRole('button', { name: /^Ícono/ }).click();
 	await expect(page.getByRole('dialog').getByRole('radio', { name: 'Banco' })).toBeChecked();
 	await page.keyboard.press('Escape');
 	await expect(page.getByRole('button', { name: /^Color/ })).toContainText('Naranja');
 });
 
-test('the color picker offers 16 swatches in 8 columns and persists a new one', async ({
-	page
-}) => {
-	const names = [
-		'Verde',
-		'Turquesa',
-		'Celeste',
-		'Azul',
-		'Índigo',
-		'Violeta',
-		'Ciruela',
-		'Rosa',
-		'Rojo',
-		'Naranja',
-		'Ámbar',
-		'Ocre',
-		'Oliva',
-		'Marrón',
-		'Pizarra',
-		'Gris'
-	];
-	await login(page, OTHER_EMAIL);
-	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
-	await page.getByLabel('Nombre').fill(`Colores ${Date.now()}`);
-	await page.getByRole('button', { name: /^Color/ }).click();
-	const dialog = page.getByRole('dialog');
-	await expect(dialog.getByRole('radio')).toHaveCount(16);
-	for (const name of names) await expect(dialog.getByRole('radio', { name })).toBeAttached();
-	// 8 per row: the first and ninth swatch sit in the same column, one row apart.
-	const first = (await dialog.getByRole('radio', { name: 'Verde' }).boundingBox())!;
-	const ninth = (await dialog.getByRole('radio', { name: 'Rojo' }).boundingBox())!;
-	const tenth = (await dialog.getByRole('radio', { name: 'Naranja' }).boundingBox())!;
-	expect(Math.abs(ninth.x - first.x)).toBeLessThan(1);
-	expect(ninth.y).toBeGreaterThan(first.y);
-	expect(tenth.x).toBeGreaterThan(ninth.x);
-	await dialog.getByRole('radio', { name: 'Pizarra' }).click();
-	await expect(dialog).toBeHidden();
-	await expect(page.getByRole('button', { name: /^Color/ })).toContainText('Pizarra');
-
-	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
-	createdAccounts.push(page.url());
-	await page.goto(`${page.url()}/edit`, { waitUntil: 'networkidle' });
-	await expect(page.getByRole('button', { name: /^Color/ })).toContainText('Pizarra');
-	await page.getByRole('button', { name: /^Color/ }).click();
-	await expect(page.getByRole('dialog').getByRole('radio', { name: 'Pizarra' })).toBeChecked();
-});
-
 test('a currency-locked account shows a read-only Moneda row', async ({ page }) => {
 	await login(page);
-	await page.goto('/accounts', { waitUntil: 'networkidle' });
+	await page.goto('/accounts');
 	await page
 		.getByRole('link', { name: /Efectivo/ })
 		.first()
@@ -132,50 +60,6 @@ test('a currency-locked account shows a read-only Moneda row', async ({ page }) 
 	).toHaveCount(0);
 	await expect(page.getByRole('radio', { name: 'USD' })).toHaveCount(0);
 	await expect(page.locator('input[name="currency"]')).toHaveCount(0);
-});
-
-const actionsVisible = async (page: Page, submitName: RegExp) => {
-	const cancel = (await page.getByRole('link', { name: 'Cancelar' }).boundingBox())!;
-	const submit = (await page.getByRole('button', { name: submitName }).boundingBox())!;
-	expect(Math.abs(cancel.y - submit.y)).toBeLessThan(2);
-	expect(cancel.x + cancel.width).toBeLessThan(submit.x);
-	expect(submit.y + submit.height).toBeLessThanOrEqual(667);
-};
-
-test('the movement form shows Transf. and both actions without scrolling', async ({ page }) => {
-	await login(page);
-	await page.goto('/movements/new', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio', { name: 'Transf.' })).toBeAttached();
-	await actionsVisible(page, /^Guardar$/);
-});
-
-test('the recurring form: type from ?type, title, day drawer', async ({ page, baseURL }) => {
-	await login(page, OTHER_EMAIL);
-	await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('radio')).toHaveCount(0);
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nuevo pago fijo');
-	await expect(page.locator('input[name="type"]')).toHaveValue('outcome');
-	await actionsVisible(page, /^Guardar$/);
-
-	await page.goto('/plan/recurring/new?type=income', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nuevo ingreso fijo');
-	await expect(page.locator('input[name="type"]')).toHaveValue('income');
-	await page.goto('/plan/recurring/new', { waitUntil: 'networkidle' });
-
-	const description = `Forms regla ${Date.now()}`;
-	await page.locator('input[name="description"]').fill(description);
-	await page.locator('input[name="amount"]').fill('1000');
-	await pick(page, 'Cuenta', 'Otra cuenta pesos');
-	await pick(page, 'Categoría', 'Ajena');
-	await pickDay(page, '15');
-	await expect(page.getByRole('button', { name: /^Día del mes/ })).toContainText('15');
-	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page).toHaveURL(/\/plan$/);
-	try {
-		await expect(page.locator('.rule', { hasText: description })).toContainText('Día 15');
-	} finally {
-		await deleteRules(page, baseURL!, description);
-	}
 });
 
 test('an income rule registers as "Registrar ingreso" with no type selector, with and without JS', async ({
@@ -199,7 +83,7 @@ test('an income rule registers as "Registrar ingreso" with no type selector, wit
 		const ruleId = await linkId(page.getByRole('link', { name: new RegExp(description) }));
 		const form = `/movements/new?recurring=${ruleId}`;
 
-		await page.goto(form, { waitUntil: 'networkidle' });
+		await page.goto(form);
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Registrar ingreso');
 		await expect(page.getByRole('radio', { name: /^(Ingreso|Gasto|Transf\.)$/ })).toHaveCount(0);
 		await expect(page.locator('input[name="type"]')).toHaveValue('income');
@@ -243,19 +127,16 @@ test('an account without movements offers Editar, Archivar and Eliminar, and lin
 	page
 }) => {
 	await login(page, OTHER_EMAIL);
-	await page.goto('/accounts/new', { waitUntil: 'networkidle' });
+	await page.goto('/accounts/new');
 	await page.getByLabel('Nombre').fill(`Forms acciones ${Date.now()}`);
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	createdAccounts.push(page.url());
 	const id = page.url().split('/').pop();
 
-	const edit = (await page.getByRole('link', { name: 'Editar' }).boundingBox())!;
-	const archive = (await page.getByRole('button', { name: 'Archivar' }).boundingBox())!;
+	await expect(page.getByRole('link', { name: 'Editar' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Archivar' })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Eliminar' })).toBeVisible();
-	expect(Math.abs(edit.y - archive.y)).toBeLessThan(2);
-	expect(Math.abs(edit.width - archive.width)).toBeLessThan(2);
-
 	const link = page.locator('.detail-card').getByRole('link', { name: 'Ver movimientos' });
 	await expect(link).toHaveAttribute('href', `/movements?account=${id}`);
 });

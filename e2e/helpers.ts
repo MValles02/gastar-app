@@ -13,10 +13,7 @@ export const IMPORT_EMAIL = 'importa@gastar.local';
 /** The app time zone (`TZ` in src/lib/server/month.ts, which is not importable here: it uses `$lib`). */
 const APP_TZ = 'America/Argentina/Buenos_Aires';
 
-/** Minimum touch target, in CSS px. */
-export const MIN_TARGET_PX = 44;
 export const PHONE = { width: 390, height: 844 };
-export const SMALL_PHONE = { width: 320, height: 640 };
 
 /** A movement detail URL (no trailing path). */
 export const MOVEMENT_DETAIL_RE = /\/movements\/[0-9a-f-]{36}$/;
@@ -29,6 +26,7 @@ export const todayInAppTz = () =>
 
 /** Fills and submits the login form without checking the outcome. */
 export async function submitLogin(page: Page, email: string, password = SEED_PASSWORD) {
+	// hydration guard: the form must be hydrated before it is filled.
 	await page.goto('/login', { waitUntil: 'networkidle' });
 	await page.getByLabel('Email').fill(email);
 	await page.getByLabel('Contraseña', { exact: true }).fill(password);
@@ -37,14 +35,15 @@ export async function submitLogin(page: Page, email: string, password = SEED_PAS
 
 /**
  * Signs up a fresh user, follows the verification link (which signs them in) and waits for Inicio.
- * Sign-up is rate-limited to 10/hour/IP: one full run makes 9 (signup 3, plan-recurring-suggestions 2,
- * profile 1, plan-budget 1, navigation 1, avisos 1). New specs must reuse one user per file (sign up in `beforeAll`).
+ * Sign-up is rate-limited to 10/hour/IP: one full run makes 8 (signup 3, plan-recurring-suggestions 2,
+ * profile 1, plan-budget 1, navigation 1). New specs must reuse one user per file (sign up in `beforeAll`).
  */
 export async function signUpVerified(
 	page: Page,
 	request: APIRequestContext,
 	o: { email: string; password: string; name: string }
 ) {
+	// hydration guard: the form must be hydrated before it is filled.
 	await page.goto('/signup', { waitUntil: 'networkidle' });
 	await page.getByLabel('Nombre').fill(o.name);
 	await page.getByLabel('Email').fill(o.email);
@@ -124,6 +123,7 @@ export async function fillMovement(
 		date?: string;
 	}
 ) {
+	// hydration guard: the type toggle and pickers need JavaScript.
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
 	await page
 		.getByRole('radio', { name: o.type === 'Transferencia' ? 'Transf.' : o.type })
@@ -155,6 +155,7 @@ export async function fillRule(
 		type?: 'income' | 'outcome';
 	}
 ) {
+	// hydration guard: the day and picker drawers need JavaScript.
 	await page.goto(`/plan/recurring/new${o.type === 'income' ? '?type=income' : ''}`, {
 		waitUntil: 'networkidle'
 	});
@@ -221,12 +222,4 @@ export async function firstDetailHref(page: Page, entity: string, query = '') {
 	await page.goto(`/${entity}${query}`);
 	const link = page.locator(`main a[href*="${entity}/"]:not([href$="/new"])`).first();
 	return (await link.count()) ? pathOf(link) : null;
-}
-
-export async function expectNoHorizontalOverflow(page: Page) {
-	const { scrollWidth, clientWidth } = await page.evaluate(() => ({
-		scrollWidth: document.documentElement.scrollWidth,
-		clientWidth: document.documentElement.clientWidth
-	}));
-	expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
 }
