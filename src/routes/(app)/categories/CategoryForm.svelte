@@ -206,11 +206,11 @@
 		background: transparent;
 	}
 
+	/* Label above, the control across the full row, so the options do not squeeze and wrap. */
 	.kind {
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
+		flex-direction: column;
+		gap: var(--space-2);
 	}
 
 	.label {

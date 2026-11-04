@@ -191,10 +191,19 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 	const name = `Forms archivo ${Date.now()}`;
 	await page.goto('/accounts/new');
 	await page.getByLabel('Nombre').fill(name);
+	await page.getByLabel('Saldo inicial').fill('1234');
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	const url = page.url();
 	createdAccounts.push(url);
+
+	/** The Pesos group total on the list with archived shown, in whole pesos. */
+	const pesosTotal = async () => {
+		await page.goto('/accounts?archived=1');
+		const total = page.locator('section[aria-labelledby="group-ARS"] .group-total');
+		return Number((await total.innerText()).replace(/\D/g, ''));
+	};
+	const totalBefore = await pesosTotal();
 
 	/** How many times the new-movement account picker offers the account. */
 	const offered = async () => {
@@ -211,6 +220,8 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 	await expect(page.getByText('No aparece al registrar movimientos.')).toBeVisible();
 	await expect(page).toHaveURL(url);
 	expect(await offered()).toBe(0);
+	// Archived accounts stay listed but leave the group total, by exactly their balance.
+	expect(totalBefore - (await pesosTotal())).toBe(1234);
 	await page.goto(url, { waitUntil: 'networkidle' }); // hydration guard: the unarchive form is enhanced
 	await page.getByRole('button', { name: 'Desarchivar' }).click();
 	await expect(page.getByRole('button', { name: 'Archivar', exact: true })).toBeVisible();
