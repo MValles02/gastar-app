@@ -64,6 +64,19 @@ test('?/update rejects an ARS amount with decimals', async ({ page, baseURL }) =
 	expect(body.data).toContain(WHOLE_PESOS_ERROR);
 });
 
+test('?/update takes a type change through the same validation', async ({ page, baseURL }) => {
+	const desc = unique('Update tipo');
+	await create(page, desc, 'Banco Galicia');
+	const [href] = await findMovements(page, desc);
+	// A transfer needs its destination: nothing is saved without it.
+	const res = await postUpdate(page, baseURL!, href, { type: 'transfer' });
+	const body = await res.json();
+	expect(body.type).toBe('failure');
+	expect(body.data).toContain('Elegí la cuenta de destino.');
+	await page.goto(href);
+	await expect(page.getByRole('button', { name: /^Tipo/ })).toContainText('Gasto');
+});
+
 test('repeated ?account= lists the movements of both accounts', async ({ page }) => {
 	const prefix = unique('Update multi');
 	await create(page, `${prefix} uno`, 'Banco Galicia');

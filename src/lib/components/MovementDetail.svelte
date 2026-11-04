@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { type ComponentProps, untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -19,7 +19,8 @@
 	/**
 	 * A movement's detail and edit in one: tapping a field changes it, and every change saves on its own
 	 * (`?/update`) with a Deshacer toast. `drawer` lives over the list (shallow route); `page` is the
-	 * full /movements/<id> page. The type is never editable.
+	 * full /movements/<id> page. A type change that needs a field the movement lacks (category, Hacia,
+	 * Cotización) stays staged until that field is picked, then everything saves in one post.
 	 */
 	let {
 		data,
@@ -34,6 +35,7 @@
 
 	// What the update action stores, as the strings it takes (same as `formValues` on the server).
 	const values = $derived<Record<string, string>>({
+		type: m.type,
 		occurredAt: m.occurredAt,
 		description: m.description,
 		amount: formatAmountInput(m.amount, m.accountCurrency),
@@ -43,22 +45,38 @@
 		exchangeRate: m.exchangeRate !== null ? formatAmountInput(m.exchangeRate, 'ARS') : ''
 	});
 
-	const isTransfer = $derived(m.type === 'transfer');
+	// Changes that wait for a field they need (a type or account change missing its category, Hacia or
+	// Cotización): they are saved together, in one post, once nothing is missing.
+	let pending = $state<Record<string, string>>({});
+	const typeStaged = $derived('type' in pending);
+	const effType = $derived((pending.type ?? m.type) as Movement['type']);
+	const isTransfer = $derived(effType === 'transfer');
+
 	const archived = (name: string, is: boolean) => (is ? `${name} · Archivada` : name);
 	const accounts = $derived(
 		data.accounts.map((a) => ({ ...a, name: archived(a.name, a.archived), archived: false }))
 	);
+	const kindFits = (kind: string | null, type: string) => kind === null || kind === type;
 	const categories = $derived(
 		data.categories
-			.filter((c) => c.kind === null || c.kind === m.type || c.id === m.categoryId)
+			.filter((c) => kindFits(c.kind, effType) || (!typeStaged && c.id === m.categoryId))
 			.map((c) => ({ ...c, name: archived(c.name, c.archived), archived: false }))
 	);
+	// The stored category only carries over to a new type whose kind accepts it.
+	const keptCategory = (type: string) => {
+		const c = data.categories.find((c) => c.id === m.categoryId);
+		return m.categoryId && (type === m.type || (c && kindFits(c.kind, type))) ? m.categoryId : '';
+	};
+	const categoryId = $derived(pending.categoryId ?? keptCategory(effType));
+
+	const typeItems: ComponentProps<typeof OptionPicker>['items'] = [
+		{ id: 'outcome', name: 'Gasto', icon: 'cart', color: null },
+		{ id: 'income', name: 'Ingreso', icon: 'plus', color: null },
+		{ id: 'transfer', name: 'Transferencia', icon: 'transfer', color: null }
+	];
 
 	// Picker rows report their error here, keyed by field.
 	let errors = $state<Record<string, string>>({});
-	// An account change that needs a Cotización first (cross-currency, none stored): it waits here and
-	// is saved together with the rate.
-	let pending = $state<Record<string, string>>({});
 	const originId = $derived(pending.accountId ?? m.accountId);
 	const destinationId = $derived(pending.destinationAccountId ?? m.destinationAccountId ?? '');
 	const currencyOf = (id: string) => data.accounts.find((a) => a.id === id)?.currency;
@@ -69,13 +87,15 @@
 	const path = $derived(resolve(`/movements/${m.id}`));
 
 	function save(fields: Record<string, string>) {
-		// A transfer's account change can drop its rate: undo restores the whole prior state.
+		// A type or transfer account change can drop or add fields: undo restores the whole prior state.
 		const touchesAccount = 'accountId' in fields || 'destinationAccountId' in fields;
 		const keys = [
 			...Object.keys(fields),
-			...(isTransfer && touchesAccount
-				? ['accountId', 'destinationAccountId', 'exchangeRate', 'amount']
-				: [])
+			...('type' in fields
+				? ['type', 'accountId', 'destinationAccountId', 'categoryId', 'exchangeRate', 'amount']
+				: isTransfer && touchesAccount
+					? ['accountId', 'destinationAccountId', 'exchangeRate', 'amount']
+					: [])
 		];
 		const previous = Object.fromEntries(keys.map((k) => [k, values[k]]));
 		return autosave<{ movement: Movement }>({
@@ -90,40 +110,76 @@
 		});
 	}
 
+	// What the staged fields still lack before the server can take them (same rules as resolveMovement).
+	function missing(f: Record<string, string>) {
+		const type = f.type ?? m.type;
+		if (type !== 'transfer') {
+			const kept = 'type' in f ? keptCategory(type) : (m.categoryId ?? '');
+			return (f.categoryId ?? kept) ? null : 'category';
+		}
+		const destination = f.destinationAccountId ?? m.destinationAccountId ?? '';
+		if (!destination) return 'destination';
+		const cross = currencyOf(f.accountId ?? m.accountId) !== currencyOf(destination);
+		return cross && !f.exchangeRate && !m.exchangeRate ? 'rate' : null;
+	}
+
+	// The picker returns focus to its row as it closes: take it back (or open the one that is needed).
+	function prompt(what: string) {
+		setTimeout(() => {
+			if (what === 'rate')
+				document.querySelector<HTMLInputElement>('input[aria-label="Cotización"]')?.focus();
+			else
+				document
+					.querySelector<HTMLButtonElement>(`[data-row="${what}"] button[aria-haspopup="dialog"]`)
+					?.click();
+		}, 400);
+	}
+
+	/** Saves the staged fields plus `extra` in one post, or keeps them staged while something is missing. */
+	async function commit(extra: Record<string, string>) {
+		const fields = { ...pending, ...extra };
+		const what = missing(fields);
+		if (!what) return save(fields);
+		Object.assign(pending, extra);
+		if (what === 'category') errors.categoryId = 'Elegí una categoría.';
+		if (what === 'destination') errors.destinationAccountId = 'Elegí la cuenta de destino.';
+		prompt(what);
+		return null;
+	}
+
 	async function saveField(key: string, value: string) {
-		if (value === values[key]) return;
-		errors[key] = (await save({ [key]: value })) ?? '';
+		if (value === (pending[key] ?? (typeStaged ? undefined : values[key]))) return;
+		errors[key] = (await commit({ [key]: value })) ?? '';
 	}
 
 	async function saveAccount(key: 'accountId' | 'destinationAccountId', id: string) {
 		if (id === (pending[key] ?? values[key])) return;
-		if (id === values[key]) {
+		if (id === values[key] && !typeStaged) {
 			delete pending[key];
 			return;
 		}
-		const other = key === 'accountId' ? destinationId : originId;
-		if (isTransfer && !m.exchangeRate && other && currencyOf(id) !== currencyOf(other)) {
-			pending[key] = id;
-			// The picker returns focus to its row as it closes: take it back for the Cotización.
-			setTimeout(
-				() => document.querySelector<HTMLInputElement>('input[aria-label="Cotización"]')?.focus(),
-				400
-			);
-			return;
-		}
-		errors[key] = (await save({ ...pending, [key]: id })) ?? '';
+		errors[key] = (await commit({ [key]: id })) ?? '';
+	}
+
+	async function selectType(next: string) {
+		if (next === effType) return;
+		pending = {};
+		errors = {};
+		if (next === m.type) return;
+		await commit({ type: next });
 	}
 
 	// Same text as the server (src/lib/server/movements.ts).
 	const RATE_MESSAGE = 'Ingresá la cotización (1 USD = X ARS) en pesos enteros y mayor a cero.';
-	const staged = $derived(Object.keys(pending).length > 0);
-	// Closing with an account change still waiting for its Cotización drops it: say so.
+	const needsRate = $derived(crossCurrency && !m.exchangeRate && !pending.exchangeRate);
+	// Closing with a change still waiting for a field drops it: say so.
 	$effect(() => () => {
-		if (Object.keys(untrack(() => pending)).length)
-			toast.error('No se guardó el cambio de cuenta.');
+		const p = untrack(() => pending);
+		if ('type' in p) toast.error('No se guardó el cambio de tipo.');
+		else if (Object.keys(p).length) toast.error('No se guardó el cambio de cuenta.');
 	});
 
-	const saveRate = (next: string) => save({ ...pending, exchangeRate: next });
+	const saveRate = (next: string) => commit({ exchangeRate: next });
 
 	async function remove() {
 		const r = await submitAction(`${path}?/delete`, {});
@@ -147,26 +203,39 @@
 				label="Descripción"
 				value={values.description}
 				maxlength={DESCRIPTION_MAX_LENGTH}
-				onsave={(next) => save({ description: next })}
+				onsave={(next) => commit({ description: next })}
 			>
 				{#snippet display()}{m.description}{/snippet}
 			</InlineText>
 		</h2>
-		<div class="amount {m.type}">
+		<div class="amount {effType}">
 			<InlineText
 				label="Monto"
 				inputmode="decimal"
 				value={values.amount}
-				onsave={(next) => save({ amount: next })}
+				onsave={(next) => commit({ amount: next })}
 			>
 				{#snippet display()}
-					<Money cents={m.amount} currency={m.accountCurrency} tone="flow" direction={m.type} />
+					<Money cents={m.amount} currency={m.accountCurrency} tone="flow" direction={effType} />
 				{/snippet}
 			</InlineText>
 		</div>
 	</div>
 
 	<ul class="card">
+		<li>
+			<OptionPicker
+				variant="row"
+				name="type"
+				legend="Tipo"
+				title="Tipo"
+				items={typeItems}
+				bind:value={() => effType, (v) => void selectType(v)}
+				placeholder="Elegir"
+				nested={drawer}
+				{empty}
+			/>
+		</li>
 		<li>
 			<MovementDatePicker
 				name="occurredAt"
@@ -195,7 +264,7 @@
 			/>
 		</li>
 		{#if isTransfer}
-			<li>
+			<li data-row="destination">
 				<OptionPicker
 					variant="row"
 					name="destinationAccountId"
@@ -216,7 +285,7 @@
 					<p class="row" aria-live="polite">
 						<span class="k">En destino</span>
 						<span class="v">
-							{#if m.destinationAmount !== null && m.destinationCurrency && !pending.accountId && !pending.destinationAccountId}
+							{#if m.destinationAmount !== null && m.destinationCurrency && !pending.accountId && !pending.destinationAccountId && !typeStaged}
 								{formatMoney(m.destinationAmount, m.destinationCurrency)}
 							{:else}—{/if}
 						</span>
@@ -231,8 +300,8 @@
 								inputmode="numeric"
 								prefix="1 USD = $"
 								value={values.exchangeRate}
-								open={staged}
-								required={staged}
+								open={needsRate}
+								required={needsRate}
 								onsave={saveRate}
 							>
 								{#snippet display()}
@@ -241,18 +310,18 @@
 							</InlineText>
 						</span>
 					</div>
-					{#if staged}<p class="staged" role="alert">{RATE_MESSAGE}</p>{/if}
+					{#if needsRate}<p class="staged" role="alert">{RATE_MESSAGE}</p>{/if}
 				</li>
 			{/if}
 		{:else}
-			<li>
+			<li data-row="category">
 				<OptionPicker
 					variant="row"
 					name="categoryId"
 					legend="Categoría"
 					title="Categoría"
 					items={categories}
-					bind:value={() => values.categoryId, (v) => void saveField('categoryId', v)}
+					bind:value={() => categoryId, (v) => void saveField('categoryId', v)}
 					nested={drawer}
 					placeholder="Elegir"
 					error={errors.categoryId}
