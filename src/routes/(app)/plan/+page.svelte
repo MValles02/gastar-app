@@ -190,7 +190,7 @@
 			</section>
 
 			<section aria-labelledby="outcome-heading">
-				<SectionHeader id="outcome-heading" title="Pagos fijos" aside={addOutcome} />
+				<SectionHeader id="outcome-heading" title="Pagos fijos pendientes" aside={addOutcome} />
 				{#if data.outcomes.length}
 					<ListCard>
 						{#each data.outcomes as r (r.id)}<RecurringRow

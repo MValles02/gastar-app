@@ -172,7 +172,7 @@ test('the new-rule drawer opens over the plan and Guardar waits for amount and d
 	await login(page);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await page
-		.getByRole('region', { name: 'Pagos fijos', exact: true })
+		.getByRole('region', { name: 'Pagos fijos pendientes', exact: true })
 		.getByRole('link', { name: 'Agregar' })
 		.click();
 	const drawer = page.getByRole('dialog', { name: 'Nuevo pago fijo' });

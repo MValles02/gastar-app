@@ -9,10 +9,10 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 
 	/**
-	 * The Ahorro choice: Nada, 10 %, 20 % or Otro (a percentage or a fixed amount). `form`: a segmented
-	 * control that posts with the surrounding form (the wizard). `autosave`: a list where every pick saves
-	 * on its own (`/plan/savings?/update`) with a Deshacer toast, each row showing what it saves and what
-	 * is left per day.
+	 * The Ahorro choice as a list: Nada, 10 %, 20 %, Otro (a percentage or a fixed amount), each row showing
+	 * what it saves and what is left per day. `autosave`: every pick saves on its own
+	 * (`/plan/savings?/update`) with a Deshacer toast. `form` (the wizard): nothing saves here; the choice
+	 * posts with the surrounding form as hidden `savingsOption` plus the "Otro" fields.
 	 */
 	let {
 		income,
@@ -29,7 +29,7 @@
 		initial: { savings: number; savingsPercent: number | null };
 		error?: string;
 		mode?: 'form' | 'autosave';
-		/** Autosave: what the month has left before any savings, and the days left in it. */
+		/** What the month has left before any savings, and the days left in it. */
 		base?: number;
 		daysLeft?: number;
 		path?: string;
@@ -55,24 +55,10 @@
 	let unit = $state(start.unit);
 	let value = $state(start.value);
 
-	const options = [
-		{ value: 'none', label: 'Nada' },
-		{ value: '10', label: '10%' },
-		{ value: '20', label: '20%' },
-		{ value: 'other', label: 'Otro' }
-	];
 	const units = $derived([
 		{ value: 'percent', label: '%' },
 		{ value: 'amount', label: currency === 'USD' ? 'US$' : '$' }
 	]);
-
-	// Percent x 100 behind the current choice, or null for none / a fixed amount / an invalid value.
-	const percent = $derived.by(() => {
-		if (option === '10' || option === '20') return Number(option) * 100;
-		if (option !== 'other' || unit !== 'percent') return null;
-		const p = parseAmount(value);
-		return p !== null && p > 0 && p <= 10000 ? p : null;
-	});
 
 	// --- autosave mode ---
 	let stored = $state(start);
@@ -89,12 +75,37 @@
 	const meta = (savings: number) =>
 		`${formatMoney(savings, currency)} · quedan ${formatMoney(perDay(savings), currency)} por día`;
 
-	const rows = $derived([
-		{ key: 'none', label: 'Nada', savings: 0 },
-		{ key: '10', label: '10 %', savings: savingsFromPercent(income, 1000) },
-		{ key: '20', label: '20 %', savings: savingsFromPercent(income, 2000) },
-		{ key: 'other', label: 'Otro', savings: storedSavings }
-	]);
+	// Form mode: what the typed "Otro" value saves, or null while it is not valid yet.
+	const formOther = $derived.by(() => {
+		const v = parseAmount(value);
+		if (v === null || v < 0) return null;
+		if (unit === 'percent') return v > 0 && v <= 10000 ? savingsFromPercent(income, v) : null;
+		return v;
+	});
+
+	const current = $derived(mode === 'form' ? option : editing ? 'other' : stored.option);
+	/** What each row saves; null for "Otro" until it has a value. */
+	const savingsOf = (key: string) =>
+		key === '10'
+			? savingsFromPercent(income, 1000)
+			: key === '20'
+				? savingsFromPercent(income, 2000)
+				: key === 'other'
+					? mode === 'form'
+						? option === 'other'
+							? formOther
+							: null
+						: stored.option === 'other'
+							? storedSavings
+							: null
+					: 0;
+
+	const rows = [
+		{ key: 'none', label: 'Nada' },
+		{ key: '10', label: '10 %' },
+		{ key: '20', label: '20 %' },
+		{ key: 'other', label: 'Otro' }
+	];
 
 	async function save(fields: { option: string; unit: string; value: string }) {
 		const before = stored;
@@ -123,6 +134,10 @@
 	}
 
 	function pick(key: string) {
+		if (mode === 'form') {
+			option = key;
+			return;
+		}
 		if (key === 'other') {
 			editing = true;
 			return;
@@ -133,125 +148,75 @@
 	}
 </script>
 
-{#if mode === 'form'}
-	<div class="fields">
-		<span id="savings-label" class="visually-hidden">Ahorro</span>
-		<SegmentedControl
-			name="savingsOption"
-			{options}
-			bind:value={option}
-			labelledby="savings-label"
-		/>
+{#snippet otherFields(msg: string | undefined)}
+	<ul class="card">
+		<li class:bad={msg}>
+			<TextRow
+				id="savings-value"
+				name="savingsValue"
+				label="Ahorro"
+				bind:value
+				placeholder="0"
+				inputmode="decimal"
+				amount
+				error={msg}
+				errorId="savings-error"
+			>
+				{#snippet end()}
+					<span id="savings-unit-label" class="visually-hidden">Unidad</span>
+					<SegmentedControl
+						name="savingsUnit"
+						options={units}
+						bind:value={unit}
+						labelledby="savings-unit-label"
+						size="compact"
+					/>
+				{/snippet}
+			</TextRow>
+		</li>
+	</ul>
+{/snippet}
 
+<div class="list">
+	{#if mode === 'form'}<input type="hidden" name="savingsOption" value={option} />{/if}
+	{#each rows as row (row.key)}
+		{@const on = row.key === current}
+		{@const saved = savingsOf(row.key)}
+		<button type="button" class="opt" aria-pressed={on} onclick={() => pick(row.key)}>
+			<span class="text">
+				<span class="name">{row.label}</span>
+				{#if saved !== null}<span class="meta">{meta(saved)}</span>{/if}
+			</span>
+			{#if on}<Check size={20} strokeWidth={1.75} aria-hidden="true" />{/if}
+		</button>
+	{/each}
+
+	{#if mode === 'form'}
 		{#if option === 'other'}
-			<ul class="card">
-				<li class:bad={error}>
-					<TextRow
-						id="savings-value"
-						name="savingsValue"
-						label="Ahorro"
-						bind:value
-						placeholder="0"
-						inputmode="decimal"
-						amount
-						{error}
-						errorId="savings-error"
-					>
-						{#snippet end()}
-							<span id="savings-unit-label" class="visually-hidden">Unidad</span>
-							<SegmentedControl
-								name="savingsUnit"
-								options={units}
-								bind:value={unit}
-								labelledby="savings-unit-label"
-								size="compact"
-							/>
-						{/snippet}
-					</TextRow>
-				</li>
-			</ul>
+			<div class="other">{@render otherFields(error)}</div>
 		{:else if error}
 			<p class="error" role="alert">{error}</p>
 		{/if}
-
-		{#if percent !== null}
-			<p class="hint">
-				{percentText(percent)}% de {formatMoney(income, currency)} = {formatMoney(
-					savingsFromPercent(income, percent),
-					currency
-				)}
-			</p>
-		{/if}
-
-		<p class="hint">Ingresos totales: {formatMoney(income, currency)}</p>
-	</div>
-{:else}
-	<div class="list">
-		{#each rows as row (row.key)}
-			{@const on = row.key === (editing ? 'other' : stored.option)}
-			<button type="button" class="opt" aria-pressed={on} onclick={() => pick(row.key)}>
-				<span class="text">
-					<span class="name">{row.label}</span>
-					{#if row.key !== 'other' || stored.option === 'other'}
-						<span class="meta">{meta(row.key === 'other' ? storedSavings : row.savings)}</span>
-					{/if}
-				</span>
-				{#if on}<Check size={20} strokeWidth={1.75} aria-hidden="true" />{/if}
-			</button>
-		{/each}
-
-		{#if editing}
-			<form
-				class="other"
-				onsubmit={(e) => {
-					e.preventDefault();
-					void save({ option: 'other', unit, value });
-				}}
-			>
-				<ul class="card">
-					<li class:bad={message}>
-						<TextRow
-							id="savings-value"
-							name="savingsValue"
-							label="Ahorro"
-							bind:value
-							placeholder="0"
-							inputmode="decimal"
-							amount
-							error={message}
-							errorId="savings-error"
-						>
-							{#snippet end()}
-								<span id="savings-unit-label" class="visually-hidden">Unidad</span>
-								<SegmentedControl
-									name="savingsUnit"
-									options={units}
-									bind:value={unit}
-									labelledby="savings-unit-label"
-									size="compact"
-								/>
-							{/snippet}
-						</TextRow>
-					</li>
-				</ul>
-				<Button type="submit" class="w-full">Guardar</Button>
-			</form>
-		{:else if message}
-			<p class="error" role="alert">{message}</p>
-		{/if}
-	</div>
-{/if}
+	{:else if editing}
+		<form
+			class="other"
+			onsubmit={(e) => {
+				e.preventDefault();
+				void save({ option: 'other', unit, value });
+			}}
+		>
+			{@render otherFields(message)}
+			<Button type="submit" class="w-full">Guardar</Button>
+		</form>
+	{:else if message}
+		<p class="error" role="alert">{message}</p>
+	{/if}
+</div>
 
 <style>
-	.fields,
 	.list {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-3);
-	}
-
-	.list {
-		gap: 0;
 	}
 
 	.opt {
@@ -318,17 +283,9 @@
 		box-shadow: inset 3px 0 0 var(--negative);
 	}
 
-	.hint {
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-	}
-
 	.error {
 		color: var(--negative);
 		font-size: var(--font-size-sm);
-	}
-
-	.list .error {
 		padding: 0 var(--space-4);
 	}
 </style>

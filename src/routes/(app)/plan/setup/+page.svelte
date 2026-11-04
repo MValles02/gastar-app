@@ -1,22 +1,22 @@
 <script lang="ts">
-	import { CURRENCY_NAME } from '$lib/money';
+	import { untrack } from 'svelte';
+	import { CURRENCY_NAME, formatMoney } from '$lib/money';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import { enhance } from '$app/forms';
-	import { enhanceRedirect } from '$lib/nav-stack.svelte';
+	import { followRedirect } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import FormActions from '$lib/components/FormActions.svelte';
 	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
-	import ListCard from '$lib/components/ListCard.svelte';
 	import ActionLink from '$lib/components/ActionLink.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import SummaryCard from '$lib/components/SummaryCard.svelte';
+	import ListCard from '$lib/components/ListCard.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SwitchRow from '$lib/components/SwitchRow.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
+	import { openShallow } from '$lib/open-shallow';
 	import { WIZARD_STEPS } from '$lib/plan-wizard';
 	import LimitList from '../LimitList.svelte';
 	import RecurringRow from '../RecurringRow.svelte';
@@ -33,16 +33,19 @@
 		'Tu plan'
 	];
 	const stepHref = (n: number) => `/plan/setup?step=${n}`;
+
+	let repeat = $state(untrack(() => data.repeats));
+	const total = $derived(data.active.reduce((a, r) => a + r.amount, 0));
+	const perDay = $derived(data.summary?.perDay ?? 0);
+	const newRule = (type: 'income' | 'outcome') =>
+		`/plan/recurring/new?type=${type}&wizard=${data.step}`;
 </script>
 
 <svelte:head>
 	<title>Crear plan · Gastar</title>
 </svelte:head>
 
-<PageHeader
-	title="Crear plan en {CURRENCY_NAME[data.currency]}"
-	close={{ href: resolve('/plan'), label: 'Cerrar' }}
-/>
+<PageHeader title="Crear plan" close={{ href: resolve('/plan'), label: 'Cerrar' }} />
 
 {#snippet bar(submitLabel: string, nextHref?: string)}
 	<FormActions
@@ -53,8 +56,20 @@
 	/>
 {/snippet}
 
-{#snippet head()}
-	<SectionHeader title={titles[data.step - 1]} />
+{#snippet question()}
+	<h2 class="question">{titles[data.step - 1]}</h2>
+{/snippet}
+
+{#snippet add(href: string, key: 'newRule' | 'newLimit')}
+	<ActionLink {href} label="+ Agregar" onclick={(e) => openShallow(e, resolve(href as '/'), key)} />
+{/snippet}
+
+{#snippet addRule()}
+	{@render add(newRule(data.step === 1 ? 'income' : 'outcome'), 'newRule')}
+{/snippet}
+
+{#snippet addLimit()}
+	{@render add('/plan/limits/new?wizard=4', 'newLimit')}
 {/snippet}
 
 <div class="wizard">
@@ -69,31 +84,35 @@
 			</li>
 		{/each}
 	</ol>
-	<CardEyebrow>Paso {data.step} de {WIZARD_STEPS}</CardEyebrow>
+	<CardEyebrow>
+		Plan en {CURRENCY_NAME[data.currency]} · paso {data.step} de {WIZARD_STEPS}
+	</CardEyebrow>
 
 	{#if data.step <= 2}
 		{@const income = data.step === 1}
-		{@render head()}
-		<p class="muted small">
-			{income ? 'Lo que cobrás todos los meses.' : 'Lo que pagás todos los meses.'}
-		</p>
-		{#if data.active.length}
+		{@render question()}
+		{#if !income}<p class="muted small">Alquiler, servicios, suscripciones.</p>{/if}
+		<section class="group">
+			<SectionHeader level={3} title={income ? 'Ingresos fijos' : 'Pagos fijos'} aside={addRule} />
 			<ListCard>
 				{#each data.active as r (r.id)}
 					<RecurringRow row={r} currency={data.currency} wizard={data.step} />
+				{:else}
+					<p class="empty">{income ? 'Sin ingresos fijos.' : 'Sin pagos fijos.'}</p>
 				{/each}
 			</ListCard>
-		{:else}
-			<EmptyState icon="plan" description={income ? 'Sin ingresos fijos.' : 'Sin pagos fijos.'} />
-		{/if}
-		<div class="add">
-			<ActionLink
-				href={income
-					? '/plan/recurring/new?type=income&wizard=1'
-					: '/plan/recurring/new?type=outcome&wizard=2'}
-				label="Agregar"
-			/>
-		</div>
+			{#if data.active.length}
+				<p class="total">
+					<span>Total</span>
+					<Money
+						cents={income ? total : -total}
+						currency={data.currency}
+						tone="flow"
+						direction={income ? 'income' : 'outcome'}
+					/>
+				</p>
+			{/if}
+		</section>
 		{#if data.inactive.length}
 			<SectionHeader level={3} title="Inactivos" />
 			<ListCard>
@@ -107,75 +126,137 @@
 			<p class="muted small">Tocá uno para agregarlo como pago fijo.</p>
 			<ListCard>
 				{#each data.suggestions as s (s.id)}
-					<ListRow
-						href={resolve(`/plan/recurring/new?type=outcome&wizard=2&suggestion=${s.id}`)}
-						lead={{ letter: s.description.charAt(0).toUpperCase(), color: null }}
-						title={s.description}
+					{@const href = `/plan/recurring/new?type=outcome&wizard=2&suggestion=${s.id}`}
+					<!-- The wrapper only carries the click that opens the drawer; it adds no box. -->
+					<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+					<div
+						onclick={(e) =>
+							(e.target as Element).closest('a') && openShallow(e, resolve(href as '/'), 'newRule')}
 					>
-						{#snippet value()}
-							<Money cents={-s.amount} currency={data.currency} tone="flow" direction="outcome" />
-						{/snippet}
-						{#snippet meta()}Día {s.dayOfMonth} · {s.accountName}{/snippet}
-					</ListRow>
+						<ListRow
+							href={resolve(href as '/')}
+							lead={{ letter: s.description.charAt(0).toUpperCase(), color: null }}
+							title={s.description}
+						>
+							{#snippet value()}
+								<Money cents={-s.amount} currency={data.currency} tone="flow" direction="outcome" />
+							{/snippet}
+							{#snippet meta()}Día {s.dayOfMonth} · {s.accountName}{/snippet}
+						</ListRow>
+					</div>
 				{/each}
 			</ListCard>
 		{/if}
 		{@render bar('Siguiente', stepHref(data.step + 1))}
 	{:else if data.step === 3}
-		<SectionHeader title={titles[2]} />
+		{@render question()}
 		<p class="muted small">Lo apartamos antes de calcular cuánto podés gastar.</p>
 		<form
 			method="POST"
 			action="?/savings"
-			use:enhance={() => enhanceRedirect}
+			use:enhance={() => (input) => followRedirect(input, { reset: false })}
 			class="wizard"
 			novalidate
 		>
-			<SavingsOptions
-				income={data.income}
-				currency={data.currency}
-				initial={data.savings}
-				error={form?.message}
-			/>
+			<Card.Root class="gap-0 py-2">
+				<SavingsOptions
+					income={data.income}
+					currency={data.currency}
+					initial={data.savings}
+					base={data.savingsBase.base}
+					daysLeft={data.savingsBase.daysLeft}
+					error={form?.message}
+				/>
+			</Card.Root>
+			{#if data.income === 0}
+				<p class="warn">
+					<CircleAlert size={18} strokeWidth={1.75} aria-hidden="true" />Sin ingresos fijos, el plan
+					da {formatMoney(0, data.currency)} por día.
+				</p>
+			{/if}
 			{@render bar('Siguiente')}
 		</form>
 	{:else if data.step === 4}
-		{@render head()}
-		<p class="muted small">Topes de gasto por categoría.</p>
+		{@render question()}
+		<p class="muted small">Opcional: topes de gasto por categoría.</p>
 		{#if data.canSuggest}
 			<form method="POST" action="?/suggested" use:enhance class="suggest">
-				<Button type="submit" variant="outline">Usar sugeridos</Button>
+				<Button type="submit" variant="outline" class="w-full">Usar sugeridos</Button>
 			</form>
 		{/if}
-		<LimitList limits={data.limits} currency={data.currency} wizard={4} />
-		<div class="add"><ActionLink href="/plan/limits/new?wizard=4" label="Agregar" /></div>
+		<section class="group">
+			<SectionHeader level={3} title="Límites" aside={addLimit} />
+			<LimitList limits={data.limits} currency={data.currency} wizard={4} />
+		</section>
 		{@render bar('Siguiente', stepHref(5))}
 	{:else}
 		{@const s = data.summary!}
-		<SectionHeader title="{titles[4]} para {data.monthName}" />
-		<SummaryCard
-			currency={data.currency}
-			income={s.income}
-			bills={s.bills}
-			savings={s.savings}
-			forSpending={s.forSpending}
-			limits={s.limits}
-		/>
+		<h2 class="question">{titles[4]} para {data.monthName}</h2>
+		<Card.Root class="gap-0 overflow-hidden py-0">
+			<dl class="figures">
+				<div class="kv">
+					<dt>Ingresos</dt>
+					<dd>
+						<Money cents={s.income} currency={data.currency} tone="flow" direction="income" />
+					</dd>
+				</div>
+				<div class="kv">
+					<dt>Pagos fijos</dt>
+					<dd>
+						<Money cents={-s.bills} currency={data.currency} tone="flow" direction="outcome" />
+					</dd>
+				</div>
+				<div class="kv">
+					<dt>Ahorro</dt>
+					<dd><Money cents={s.savings} currency={data.currency} /></dd>
+				</div>
+				{#each s.limits as l (l.categoryId)}
+					<div class="kv">
+						<dt>Límite · {l.name}</dt>
+						<dd><Money cents={l.amount} currency={data.currency} /></dd>
+					</div>
+				{:else}
+					<div class="kv">
+						<dt>Límites</dt>
+						<dd>Sin límites</dd>
+					</div>
+				{/each}
+				<div class="kv sum">
+					<dt>Para gastar</dt>
+					<dd><Money cents={s.forSpending} currency={data.currency} /></dd>
+				</div>
+				<div class="kv">
+					<dt>Por día</dt>
+					<dd>≈ <Money cents={perDay} currency={data.currency} /></dd>
+				</div>
+			</dl>
+		</Card.Root>
 		{#if s.forSpending < 0}
 			<p class="warn">
 				<CircleAlert size={18} strokeWidth={1.75} aria-hidden="true" />Tus pagos y ahorro superan
 				tus ingresos.
 			</p>
 		{/if}
-		<form method="POST" action="?/finish" use:enhance={() => enhanceRedirect} class="wizard">
+		<form
+			method="POST"
+			action="?/finish"
+			use:enhance={() => (input) => followRedirect(input)}
+			class="wizard"
+		>
 			<Card.Root class="gap-0 py-0">
 				<SwitchRow
 					id="repeat"
 					name="repeat"
 					label="Usar este plan todos los meses"
-					checked={data.repeats}
+					bind:checked={repeat}
+					describedby="repeat-note"
 				/>
 			</Card.Root>
+			<p id="repeat-note" class="muted small">
+				{repeat
+					? 'El plan se repite cada mes con tus ingresos y pagos fijos.'
+					: `El plan vale solo para ${data.monthName}.`}
+			</p>
 			{@render bar('Guardar')}
 		</form>
 	{/if}
@@ -186,6 +267,14 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
+	}
+
+	.question {
+		font-family: var(--font-display);
+		font-size: var(--font-size-xl);
+		font-weight: 500;
+		letter-spacing: -0.015em;
+		line-height: 1.2;
 	}
 
 	/* Five-bar progress in the text colour (selection is primary, progress is not). */
@@ -233,7 +322,46 @@
 		display: flex;
 	}
 
-	.add {
+	.empty {
+		padding: var(--space-3) var(--space-4);
+		color: var(--text-muted);
+	}
+
+	.total {
 		display: flex;
+		justify-content: space-between;
+		padding: var(--space-3) var(--space-1) 0;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.figures {
+		padding: 0 1.25rem;
+		font-size: var(--font-size-sm);
+	}
+
+	.kv {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-3);
+		min-height: 3rem;
+	}
+
+	.figures dt {
+		font-weight: 500;
+		color: var(--text-muted);
+	}
+
+	.figures dd {
+		margin: 0;
+		font-weight: 500;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.figures .sum dt,
+	.figures .sum dd {
+		color: var(--text);
+		font-weight: 600;
 	}
 </style>
