@@ -58,6 +58,7 @@
 					<span class="text">
 						<span class="title">{item.title}</span>
 						<span class="hint">{item.hint}</span>
+						{#if locked}<span class="visually-hidden">Primero creá una cuenta.</span>{/if}
 					</span>
 					{#if !item.done && !locked}<Icon name="chevron-right" size="1.25rem" />{/if}
 				{/snippet}

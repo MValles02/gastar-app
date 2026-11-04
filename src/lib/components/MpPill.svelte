@@ -50,7 +50,7 @@
 		border-radius: 50%;
 		background: var(--primary);
 		color: var(--on-primary);
-		font-size: 0.625rem;
+		font-size: var(--font-size-xs);
 		font-weight: 600;
 	}
 
