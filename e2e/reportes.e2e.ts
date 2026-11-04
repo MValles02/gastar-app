@@ -67,19 +67,38 @@ test('Resultado equals the Inicio month balance in ARS and USD', async ({ page, 
 
 test('switching currency keeps the selected past month', async ({ page }) => {
 	const month = await monthsBack(page, 1);
-	await page.getByRole('radio', { name: 'USD' }).check({ force: true });
-	await expect(page.getByRole('radio', { name: 'USD' })).toBeChecked();
+	await page.getByRole('button', { name: 'Dólares' }).click();
+	await expect(page.getByRole('button', { name: 'Dólares' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
 	await expect.poll(() => new URL(page.url()).search).toBe(`?month=${month}`);
 	await expect(page.locator('ul.bars a[aria-current="true"]')).toHaveCount(1);
 });
 
-test('past month totals match its six-month link', async ({ page }) => {
+test('past month totals match its six-month link; tapping a bar opens its month', async ({
+	page
+}) => {
 	await monthsBack(page, 1);
-	const label = (await page.locator('ul.bars a[aria-current="true"]').getAttribute('aria-label'))!;
-	const [, ingresos, gastos] = /ingresos (.*), gastos (.*)$/.exec(norm(label))!;
-	// Strip the visually hidden sign Money keeps for screen readers.
-	expect(norm(await total(page, 'Ingresos').textContent()).replace(/^\+/, '')).toBe(ingresos);
-	expect(norm(await total(page, 'Gastos').textContent()).replace(/^-/, '')).toBe(gastos);
+	const selected = page.locator('ul.bars a[aria-current="true"]');
+	const totalsMatch = async () => {
+		const label = (await selected.getAttribute('aria-label'))!;
+		const [, ingresos, gastos] = /ingresos (.*), gastos (.*)$/.exec(norm(label))!;
+		// Strip the visually hidden sign Money keeps for screen readers.
+		expect(norm(await total(page, 'Ingresos').textContent()).replace(/^\+/, '')).toBe(ingresos);
+		expect(norm(await total(page, 'Gastos').textContent()).replace(/^-/, '')).toBe(gastos);
+	};
+	await totalsMatch();
+
+	// The bar before the selected one: the seed only has data in the last three months, and a
+	// six-month window without movements shows no chart.
+	const href = (await page.locator('ul.bars a').nth(-2).getAttribute('href'))!;
+	const month = new URL(href, page.url()).searchParams.get('month')!;
+	await page.locator(`ul.bars a[href="${href}"]`).click();
+	const bar = page.locator(`ul.bars a[href="${href}"]`);
+	await expect(page).toHaveURL(new RegExp(`\\?month=${month}$`));
+	await expect(bar).toHaveAttribute('aria-current', 'true');
+	await totalsMatch();
 });
 
 // No rounding tolerance needed: the ARS slice amounts are whole pesos (formatMoney shows them exactly) and
