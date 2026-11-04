@@ -35,6 +35,7 @@ export const load: PageServerLoad = async ({ locals, cookies, params }) => {
 	]);
 	return {
 		progress: view.summary?.limits.find((l) => l.categoryId === limit.categoryId),
+		elapsedShare: view.summary?.elapsedShare ?? 0,
 		currency,
 		category: {
 			id: limit.categoryId,

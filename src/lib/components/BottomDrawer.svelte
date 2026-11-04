@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { Drawer as DrawerPrimitive } from 'vaul-svelte';
+	import { drawers } from '$lib/drawer-open.svelte';
 	import * as Drawer from '$lib/components/ui/drawer/index.js';
 
 	let {
@@ -23,10 +24,22 @@
 		bare?: boolean;
 		children: Snippet;
 	} = $props();
+
+	$effect(() => {
+		if (!open) return;
+		drawers.open++;
+		return () => drawers.open--;
+	});
 </script>
 
 {#snippet content()}
-	<Drawer.Content class="mx-auto w-full max-w-[35rem]">
+	<!-- A tap on a toast (Deshacer) is not an outside tap: it must not close the drawer. -->
+	<Drawer.Content
+		class="mx-auto w-full max-w-[35rem]"
+		onInteractOutside={(e) => {
+			if ((e.target as Element | null)?.closest?.('[data-sonner-toast]')) e.preventDefault();
+		}}
+	>
 		<Drawer.Title
 			class={hideTitle ? 'sr-only' : 'px-5 pt-1 pb-3 text-lg leading-snug font-semibold'}
 			>{title}</Drawer.Title

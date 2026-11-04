@@ -48,7 +48,8 @@
 	const amountText = $derived(cents === null ? data.amount : formatAmountInput(cents, currency));
 	const limit = $derived(cents ?? data.progress?.amount ?? 0);
 	const over = $derived(spent > limit);
-	const fast = $derived(!!data.progress?.fast && cents === data.progress?.amount);
+	// Same definition as the server's (plan.ts): within the limit but spending faster than the month elapses.
+	const fast = $derived(limit > 0 && spent <= limit && spent / limit > data.elapsedShare);
 	const pct = $derived(limit > 0 ? Math.min(100, Math.floor((spent * 100) / limit)) : 0);
 
 	let error = $state('');
@@ -110,7 +111,10 @@
 					type="button"
 					variant="ghost"
 					class="average"
-					onclick={() => save(formatAmountInput(data.suggested, currency))}
+					onclick={async () => {
+						const err = await save(formatAmountInput(data.suggested, currency));
+						if (err) error = err;
+					}}
 				>
 					Usar promedio · {formatMoney(data.suggested, currency)}
 				</Button>
