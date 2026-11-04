@@ -73,8 +73,13 @@ test('an empty Cuenta filter reads "Todas" with no badge', async ({ page }) => {
 });
 
 test('detail heroes show the amount without a badge', async ({ page }) => {
-	await page.goto('/movements', { waitUntil: 'networkidle' });
-	await page.locator('main a[href^="/movements/"]').first().click();
+	// A seeded row no spec deletes: the first row of the full list races parallel specs.
+	await page.goto('/movements?q=Alquiler', { waitUntil: 'networkidle' });
+	await page
+		.locator('main a[href^="/movements/"]')
+		.filter({ has: page.getByText('Alquiler', { exact: true }) })
+		.first()
+		.click();
 	const amount = page.getByRole('dialog').getByRole('button', { name: /^Monto: / });
 	await expect(amount).toBeVisible();
 	await expect(amount.locator('.badge')).toHaveCount(0);
