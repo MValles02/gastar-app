@@ -45,8 +45,21 @@ let configPuts = [];
 let reportBegins = [];
 // Body of every release report create attempt (rejected ones included), oldest first.
 let reportCreates = [];
-// While on, a create body carrying `notify` answers 400, like an MP that does not know the field.
-let rejectNotify = false;
+// The writable release report config fields per MP's docs; a PUT with any other key answers 400.
+const WRITABLE_CONFIG_KEYS = [
+	'columns',
+	'file_name_prefix',
+	'frequency',
+	'sftp_info',
+	'separator',
+	'display_timezone',
+	'report_translation',
+	'notification_email_list',
+	'include_withdrawal_at_end',
+	'execute_after_withdrawal',
+	'check_available_balance',
+	'compensate_detail'
+];
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
 
 const send = (res, status, body, type = 'application/json') => {
@@ -103,15 +116,10 @@ createServer(async (req, res) => {
 		configPuts = [];
 		reportBegins = [];
 		reportCreates = [];
-		rejectNotify = false;
 		return send(res, 200, { ok: true });
 	}
 	if (path === '/__fake/report-begins') return send(res, 200, reportBegins);
 	if (path === '/__fake/report-creates') return send(res, 200, reportCreates);
-	if (path === '/__fake/reject-notify' && req.method === 'POST') {
-		rejectNotify = !!JSON.parse((await readBody(req)) || '{}').on;
-		return send(res, 200, { ok: true });
-	}
 	if (path === '/__fake/report-config' && req.method === 'POST') {
 		const b = JSON.parse((await readBody(req)) || '{}');
 		newGrantsConfigured = b.configured ?? true;
@@ -186,7 +194,11 @@ createServer(async (req, res) => {
 				currentGrant,
 				newGrantsConfigured
 					? {
-							seeded: true,
+							// `scheduled` is read-only and `internal_id` undocumented: a PUT must not send them back.
+							scheduled: false,
+							internal_id: 'abc123',
+							file_name_prefix: 'user-prefix',
+							separator: ';',
 							notification_email_list: ['owner@example.com'],
 							columns: [{ key: 'DATE' }, { key: 'USER_COLUMN' }],
 							report_translation: 'es'
@@ -259,6 +271,8 @@ createServer(async (req, res) => {
 		if (req.method === 'PUT' && grantConfig.get(grant)) {
 			const config = JSON.parse((await readBody(req)) || '{}');
 			configPuts.push(config);
+			if (Object.keys(config).some((k) => !WRITABLE_CONFIG_KEYS.includes(k)))
+				return send(res, 400, { message: 'read-only or unknown field in config' });
 			grantConfig.set(grant, config);
 			return send(res, 200, config);
 		}
@@ -274,15 +288,13 @@ createServer(async (req, res) => {
 		const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 		if (!iso.test(body.begin_date) || !iso.test(body.end_date)) return badDate(res);
 		reportCreates.push(body);
-		if (rejectNotify && 'notify' in body)
-			return send(res, 400, { message: 'unknown field notify' });
 		reportBegins.push(body.begin_date);
 		tasks++;
 		taskReadyAt[tasks] = Date.now() + reportDelay;
 		return send(res, 202, {
 			id: tasks,
 			status: 'pending',
-			internal_management: [{ is_visible: true, notify: body.notify ?? true, use_exact_time: true }]
+			internal_management: [{ is_visible: true, notify: true, use_exact_time: true }]
 		});
 	}
 	if ((m = path.match(/^\/v1\/account\/release_report\/task\/(\d+)$/))) {

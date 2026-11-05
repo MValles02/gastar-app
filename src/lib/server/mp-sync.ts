@@ -362,7 +362,7 @@ const REPORT_COLUMNS = [
 /**
  * Config created in an MP account that has none (the report create answers 404 without one). No
  * `scheduled`: MP ignores `frequency` unless scheduling is on. An empty `notification_email_list` is what
- * should stop MP's "report ready" emails; see `reportRecipients` for what it holds. `GMT-03` is Buenos Aires.
+ * should stop MP's "report ready" emails. `GMT-03` is Buenos Aires.
  * `include_withdrawal_at_end` is on so a payout stamped at the very end of a range is never left out
  * (a repeat is harmless: the item key dedupes it).
  */
@@ -377,24 +377,59 @@ const REPORT_CONFIG = {
 };
 
 /**
- * Experiment: MP may fall back to the account owner when the list is empty, so the list holds Gastar's own
- * no-reply sender (reaches nobody). Empty when EMAIL_FROM is unset.
+ * The config fields MP documents as writable ("Atributos configurables"). A PUT sends only these: the GET
+ * also returns read-only and internal keys (`scheduled`, ...) that MP's examples never send.
  */
-function reportRecipients(): string[] {
-	const sender = env.EMAIL_FROM?.trim();
-	return sender ? [sender] : [];
+const WRITABLE_CONFIG_KEYS = [
+	'columns',
+	'file_name_prefix',
+	'frequency',
+	'sftp_info',
+	'separator',
+	'display_timezone',
+	'report_translation',
+	'notification_email_list',
+	'include_withdrawal_at_end',
+	'execute_after_withdrawal',
+	'check_available_balance',
+	'compensate_detail'
+] as const;
+
+/** What the sync needs from a config: no listed address, the parser columns, English headers. */
+function inspectConfig(config: Record<string, unknown>) {
+	const list = Array.isArray(config.notification_email_list) ? config.notification_email_list : [];
+	// MP shows an empty list as [{}] or [null]: only a real address counts.
+	const hasEmails = list.some((e) => typeof e === 'string' && e.trim() !== '');
+	const columns = Array.isArray(config.columns) ? config.columns : [];
+	const have = new Set(columns.map((c) => str(obj(c).key)));
+	const missing = REPORT_COLUMNS.filter((key) => !have.has(key));
+	const translated = config.report_translation != null && config.report_translation !== 'en';
+	return { hasEmails, columns, missing, translated };
 }
 
-/** Set once MP rejects `notify` on a report create, so later creates in this process skip it. */
-let notifyRejected = false;
+/** The PUT body: the user's own writable values, plus our changes. Never `scheduled` or any other key. */
+function configPutBody(config: Record<string, unknown>, columns: unknown[], missing: string[]) {
+	const body: Record<string, unknown> = {};
+	for (const key of WRITABLE_CONFIG_KEYS) {
+		const v = config[key];
+		if (v === undefined || v === null) continue;
+		if (key === 'sftp_info' && Object.keys(obj(v)).length === 0) continue;
+		body[key] = v;
+	}
+	body.notification_email_list = [];
+	body.columns = [...columns, ...missing.map((key) => ({ key }))];
+	if (inspectConfig(config).translated) body.report_translation = 'en';
+	return body;
+}
 
 /**
  * Makes sure the account has a release report config the parser can read, before any report is created.
  * Missing config (404): created. Existing config: never replaced, only edited in place by a PUT of the
- * same object with the email list set to `reportRecipients()` (so MP stops mailing "report ready"), the parser columns
- * appended to the user's own, and the header language set to English when it was translated (the parser
- * reads English keys). Nothing else is touched. The PUT is best effort and never fails the sync: if it
- * does not go through, a CSV without the columns fails as `parse` (see syncReport).
+ * documented writable fields (the user's values kept) with the email list emptied (so MP stops mailing
+ * "report ready"), the parser columns appended to the user's own, and the header language set to English
+ * when it was translated (the parser reads English keys). After the PUT the config is read back and the
+ * outcome logged. All best effort and never fails the sync: if the PUT does not go through, a CSV without
+ * the columns fails as `parse` (see syncReport).
  */
 async function ensureReportConfig(auth: Auth): Promise<void> {
 	const path = `${REPORT}/config`;
@@ -407,7 +442,7 @@ async function ensureReportConfig(auth: Auth): Promise<void> {
 			await api(path, auth, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ ...REPORT_CONFIG, notification_email_list: reportRecipients() })
+				body: JSON.stringify(REPORT_CONFIG)
 			});
 			console.info('mp report: no config, created one');
 			return;
@@ -416,75 +451,38 @@ async function ensureReportConfig(auth: Auth): Promise<void> {
 		console.warn('mp release config: could not read it');
 		return;
 	}
-	const list = Array.isArray(config.notification_email_list) ? config.notification_email_list : [];
-	// MP shows an empty list as [{}] or [null]: only real strings count.
-	const have_ = list
-		.filter((e): e is string => typeof e === 'string' && e.trim() !== '')
-		.map((e) => e.trim().toLowerCase());
-	const want = reportRecipients();
-	const wrongList =
-		have_.length !== want.length || want.some((e, i) => e.toLowerCase() !== have_[i]);
-	const columns = Array.isArray(config.columns) ? config.columns : [];
-	const have = new Set(columns.map((c) => str(obj(c).key)));
-	const missing = REPORT_COLUMNS.filter((key) => !have.has(key));
-	const translated = config.report_translation != null && config.report_translation !== 'en';
-	const needsFix = wrongList || missing.length > 0 || translated;
-	console.info(
-		`mp report: config exists, list length ${have_.length}, wanted ${want.length}, fix-up PUT ${needsFix ? 'needed' : 'not needed'}`
-	);
+	const { hasEmails, columns, missing, translated } = inspectConfig(config);
+	const needsFix = hasEmails || missing.length > 0 || translated;
+	console.info(`mp report: config exists, fix-up PUT ${needsFix ? 'needed' : 'not needed'}`);
 	if (!needsFix) return;
-	let echoed: number | 'unknown';
 	try {
-		const res = await api(path, auth, {
+		await api(path, auth, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				...config,
-				notification_email_list: want,
-				columns: [...columns, ...missing.map((key) => ({ key }))],
-				...(translated ? { report_translation: 'en' } : {})
-			})
+			body: JSON.stringify(configPutBody(config, columns, missing))
 		});
-		const sent = obj(await res.json().catch(() => null)).notification_email_list;
-		echoed = Array.isArray(sent) ? sent.length : 'unknown';
+		const after = inspectConfig(obj(await apiJson(path, auth)));
+		const line = `mp report: config PUT ok, list empty ${after.hasEmails ? 'no' : 'yes'}, columns ok ${after.missing.length === 0 ? 'yes' : 'no'}`;
+		if (after.hasEmails) console.warn(line);
+		else console.info(line);
 	} catch (e) {
 		if ((e as Error).message === 'auth') throw e;
 		console.warn(
-			`mp report: config PUT failed, ${(e as Error).message} ${(e as { detail?: string }).detail ?? ''}`.trimEnd()
+			`mp report: config PUT or read-back failed, ${(e as Error).message} ${(e as { detail?: string }).detail ?? ''}`.trimEnd()
 		);
-		return;
 	}
-	console.info(`mp report: config PUT ok, MP echoed list length ${echoed}`);
 }
 
 async function downloadReport(begin: Date, end: Date, auth: Auth): Promise<string> {
-	// Reports reject milliseconds: send YYYY-MM-DDTHH:MM:SSZ.
-	const dates = {
-		begin_date: begin.toISOString().replace(/\.\d{3}Z$/, 'Z'),
-		end_date: end.toISOString().replace(/\.\d{3}Z$/, 'Z')
-	};
-	const create = (body: object) =>
-		api(REPORT, auth, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(body)
-		});
-	// Experiment: `notify: false` is undocumented on create (MP stores it per report as internal_management).
-	// A 4xx other than 404/auth means MP does not take it: retry once without and stop sending it.
-	let res: Response;
-	let notify = !notifyRejected;
-	try {
-		res = await create(notify ? { ...dates, notify: false } : dates);
-	} catch (e) {
-		const code = (e as Error).message;
-		if (!notify || !/^mp_4\d\d$/.test(code) || code === 'mp_404') throw e;
-		console.warn(
-			`mp report: create with notify rejected, ${code} ${(e as { detail?: string }).detail ?? ''}`.trimEnd()
-		);
-		notifyRejected = true;
-		notify = false;
-		res = await create(dates);
-	}
+	const res = await api(REPORT, auth, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			// Reports reject milliseconds: send YYYY-MM-DDTHH:MM:SSZ.
+			begin_date: begin.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+			end_date: end.toISOString().replace(/\.\d{3}Z$/, 'Z')
+		})
+	});
 	let created: unknown;
 	try {
 		created = await res.json();
@@ -492,7 +490,7 @@ async function downloadReport(begin: Date, end: Date, auth: Auth): Promise<strin
 		throw fail('parse');
 	}
 	console.info(
-		`mp report: create ${res.status}, notify ${notify ? 'sent' : 'not sent (fallback or already rejected)'}, internal_management ${JSON.stringify(obj(created).internal_management ?? null)}`
+		`mp report: create ${res.status}, internal_management ${JSON.stringify(obj(created).internal_management ?? null)}`
 	);
 	const id = str(obj(created).id);
 	if (!id) throw fail('parse');
