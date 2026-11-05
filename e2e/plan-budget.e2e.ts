@@ -475,8 +475,12 @@ test.describe('as another user', () => {
 		await page.goto('/plan');
 		const id = await linkId(page.getByRole('link', { name: /Regla ajena/ }).first());
 		await page.goto(`/movements/new?recurring=${id}`);
-		const accountId = (await page.locator('input[name="accountId"]').getAttribute('value'))!;
-		const categoryId = (await page.locator('input[name="categoryId"]').getAttribute('value'))!;
+		const accountId = (await page
+			.locator('input[name="accountId"]:is(:checked, [type="hidden"])')
+			.getAttribute('value'))!;
+		const categoryId = (await page
+			.locator('input[name="categoryId"]:is(:checked, [type="hidden"])')
+			.getAttribute('value'))!;
 		const pay = async (amount: string) => {
 			const res = await page.request.post('/movements/new', {
 				form: {
