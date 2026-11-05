@@ -50,8 +50,10 @@ test('a payment due today alerts until it is registered', async ({ page, baseURL
 		await row.getByRole('link').click();
 		await expect(page).toHaveURL(/\/plan\/recurring\/[0-9a-f-]{36}$/);
 		await page.getByRole('link', { name: 'Registrar pago' }).click();
-		await expect(page.getByRole('heading', { level: 1, name: 'Registrar pago' })).toBeVisible();
-		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await page
+			.getByRole('dialog', { name: `Registrar ${description}` })
+			.getByRole('button', { name: 'Registrar pago', exact: true })
+			.click();
 		await expect(page.getByText('Pago registrado.')).toBeVisible();
 
 		await page.goto('/notifications');

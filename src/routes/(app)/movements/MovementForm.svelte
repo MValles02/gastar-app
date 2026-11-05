@@ -146,8 +146,8 @@
 		categoryId = c.id;
 	}
 
-	// An income rule fixes the type: no selector and, without JS too, no transfer-only fields.
-	const typeFixed = $derived(recurring?.type === 'income');
+	// A rule fixes the type: no selector and, without JS too, no transfer-only fields.
+	const typeFixed = $derived(!!recurring);
 	const isTransfer = $derived(type === 'transfer');
 	const showTransfer = $derived(!typeFixed && (!mounted || isTransfer));
 	const showCategory = $derived(typeFixed || !mounted || !isTransfer);
@@ -236,14 +236,16 @@
 	{#if returnTo}<input type="hidden" name="returnTo" value={returnTo} />{/if}
 	{#if recurring}
 		<input type="hidden" name="recurringId" value={recurring.id} />
-		<p class="hint note">
-			Registrás {typeFixed ? 'el ingreso' : 'el pago'} de <strong>{recurring.description}</strong> de
-			este mes.
-		</p>
+		{#if !drawer}
+			<p class="hint note">
+				Registrás {recurring.type === 'income' ? 'el ingreso' : 'el pago'} de
+				<strong>{recurring.description}</strong> de este mes.
+			</p>
+		{/if}
 	{/if}
 
 	{#if typeFixed}
-		<input type="hidden" name="type" value={type} />
+		<input type="hidden" name="type" value={recurring?.type ?? type} />
 	{:else}
 		<div class="field" class:centered={drawer}>
 			<span id="type-label" class="visually-hidden">Tipo</span>
@@ -356,10 +358,10 @@
 							<span class="k">Categoría</span>
 							<span class="v">
 								{categories.find((c) => c.id === categoryId)?.name ?? ''}
-								<Lock size={16} strokeWidth={1.75} aria-hidden="true" />
+								{#if !drawer}<Lock size={16} strokeWidth={1.75} aria-hidden="true" />{/if}
 							</span>
 						</p>
-						<p class="hint pad">Se registra en la categoría del pago.</p>
+						{#if !drawer}<p class="hint pad">Se registra en la categoría del pago.</p>{/if}
 					{:else}
 						<OptionPicker
 							variant="row"
@@ -564,6 +566,11 @@
 
 	.locked {
 		color: var(--text-muted);
+	}
+
+	/* The drawer shows the rule's category like any other row (no lock, normal label). */
+	.drawer .locked {
+		color: var(--text);
 	}
 
 	.spread .v {

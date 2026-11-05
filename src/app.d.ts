@@ -33,6 +33,8 @@ declare global {
 			importItem?: import('./routes/(app)/imports/[id]/$types').PageData;
 			/** The Ahorro drawer opened over the plan. */
 			savings?: import('./routes/(app)/plan/savings/$types').PageData;
+			/** The "Registrar <regla fija>" drawer opened over the rule's detail. */
+			registerRule?: import('./routes/(app)/movements/new/$types').PageData;
 		}
 	}
 }

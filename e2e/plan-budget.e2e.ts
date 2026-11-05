@@ -385,7 +385,7 @@ test('Ahorro drawer: picking 20 % saves and Deshacer restores the previous optio
 		// hydration guard: the drawer and picker need JavaScript.
 		await page.goto('/plan', { waitUntil: 'networkidle' });
 		await page.getByRole('link', { name: 'Ahorro', exact: true }).click();
-		const drawer = page.getByRole('dialog', { name: 'Ahorro del mes' });
+		const drawer = page.getByRole('dialog', { name: /^Ahorro de / });
 		await expect(drawer.getByRole('button', { name: /^Otro/ })).toHaveAttribute(
 			'aria-pressed',
 			'true'

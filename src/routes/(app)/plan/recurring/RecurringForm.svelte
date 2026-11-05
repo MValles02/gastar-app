@@ -11,6 +11,7 @@
 	import FormActions from '$lib/components/FormActions.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 	import { parseAmount } from '$lib/money';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
@@ -147,70 +148,97 @@
 			color={drawer ? (type === 'income' ? 'var(--positive)' : 'var(--negative)') : undefined}
 		/>
 
-		<EntryFields
-			bind:description
-			descriptionId="rdescription"
-			descriptionError={shown.description}
-			outlineErrors={drawer}
-		>
-			{#snippet account()}
-				<li class:bad={shown.accountId}>
-					<OptionPicker
-						variant="row"
-						name="accountId"
-						legend="Cuenta"
-						title="Elegí la cuenta"
-						items={accounts}
-						bind:value={accountId}
-						nested={drawer}
-						placeholder="Elegir"
-						error={shown.accountId}
-						errorId="raccount-error"
-					>
-						{#snippet empty()}
-							<p class="hint pad">
-								Todavía no tenés cuentas. <a href={resolve('/accounts/new')}>Crear cuenta</a>
-							</p>
-						{/snippet}
-					</OptionPicker>
-				</li>
-			{/snippet}
+		{#snippet account()}
+			<li class:bad={shown.accountId}>
+				<OptionPicker
+					variant="row"
+					name="accountId"
+					legend="Cuenta"
+					title="Elegí la cuenta"
+					items={accounts}
+					bind:value={accountId}
+					nested={drawer}
+					placeholder="Elegir"
+					error={shown.accountId}
+					errorId="raccount-error"
+				>
+					{#snippet empty()}
+						<p class="hint pad">
+							Todavía no tenés cuentas. <a href={resolve('/accounts/new')}>Crear cuenta</a>
+						</p>
+					{/snippet}
+				</OptionPicker>
+			</li>
+		{/snippet}
 
-			{#snippet category()}
-				<li class:bad={shown.categoryId}>
-					<OptionPicker
-						variant="row"
-						name="categoryId"
-						legend="Categoría"
-						title="Elegí la categoría"
-						items={pickableCategories}
-						bind:value={categoryId}
-						nested={drawer}
-						placeholder="Elegir"
-						error={shown.categoryId}
-						errorId="rcategory-error"
-					>
-						{#snippet empty()}
-							<p class="hint pad">
-								Todavía no tenés categorías. <a href={resolve('/categories/new')}>Crear categoría</a
-								>
-							</p>
-						{/snippet}
-					</OptionPicker>
-				</li>
-			{/snippet}
+		{#snippet category()}
+			<li class:bad={shown.categoryId}>
+				<OptionPicker
+					variant="row"
+					name="categoryId"
+					legend="Categoría"
+					title="Elegí la categoría"
+					items={pickableCategories}
+					bind:value={categoryId}
+					nested={drawer}
+					placeholder="Elegir"
+					error={shown.categoryId}
+					errorId="rcategory-error"
+				>
+					{#snippet empty()}
+						<p class="hint pad">
+							Todavía no tenés categorías. <a href={resolve('/categories/new')}>Crear categoría</a>
+						</p>
+					{/snippet}
+				</OptionPicker>
+			</li>
+		{/snippet}
 
-			{#snippet when()}
-				<li class:bad={shown.dayOfMonth}>
-					<DayOfMonthPicker
-						bind:value={day}
-						nested={drawer}
-						error={shown.dayOfMonth}
-						errorId="rday-error"
-					/>
-				</li>
-			{/snippet}
-		</EntryFields>
+		{#snippet when()}
+			<li class:bad={shown.dayOfMonth}>
+				<DayOfMonthPicker
+					bind:value={day}
+					nested={drawer}
+					error={shown.dayOfMonth}
+					errorId="rday-error"
+				/>
+			</li>
+		{/snippet}
+
+		{#if drawer}
+			<div class="text-field">
+				<label for="rdescription">Descripción</label>
+				<input
+					id="rdescription"
+					name="description"
+					type="text"
+					autocomplete="off"
+					maxlength={DESCRIPTION_MAX_LENGTH}
+					required
+					placeholder={type === 'income' ? 'Ej.: Sueldo' : 'Ej.: Alquiler'}
+					bind:value={description}
+					aria-invalid={shown.description ? 'true' : undefined}
+					aria-describedby={shown.description ? 'rdescription-error' : undefined}
+				/>
+				{#if shown.description}
+					<p class="error" id="rdescription-error" role="alert">{shown.description}</p>
+				{/if}
+			</div>
+			<ul class="card">
+				{@render account()}
+				{@render category()}
+				{@render when()}
+			</ul>
+		{:else}
+			<EntryFields
+				bind:description
+				descriptionId="rdescription"
+				descriptionError={shown.description}
+				{account}
+				{category}
+				{when}
+			/>
+		{/if}
 	{/snippet}
 
 	{#if drawer}
@@ -219,12 +247,12 @@
 			<Button
 				type="button"
 				variant="outline"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0 rounded-full"
+				class="min-w-0 flex-1 basis-0"
 				onclick={() => onclose?.()}>Cancelar</Button
 			>
 			<Button
 				type="submit"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0 rounded-full"
+				class="min-w-0 flex-1 basis-0"
 				disabled={mounted && (!canSave || submitting)}
 				aria-busy={submitting ? 'true' : undefined}>{submitLabel}</Button
 			>
@@ -274,6 +302,48 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
+	}
+
+	.text-field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.text-field label {
+		color: var(--text-muted);
+		font-size: 13px;
+		font-weight: 500;
+	}
+
+	.text-field input {
+		width: 100%;
+		height: 50px;
+		padding: 0 var(--space-4);
+		border: 1px solid var(--border);
+		border-radius: 12px;
+		background: transparent;
+		color: var(--text);
+		font-size: 16px;
+	}
+
+	.text-field input[aria-invalid='true'] {
+		border-color: var(--negative);
+	}
+
+	.card {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		overflow: hidden;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-card);
+		box-shadow: var(--shadow-1);
+	}
+
+	.card > :global(li.bad) {
+		box-shadow: inset 0 0 0 1.5px var(--negative);
 	}
 
 	.hint {

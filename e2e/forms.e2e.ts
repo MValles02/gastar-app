@@ -117,12 +117,14 @@ test('an income rule registers as "Registrar ingreso" with no type selector, wit
 		const ruleId = await linkId(page.getByRole('link', { name: new RegExp(description) }));
 		const form = `/movements/new?recurring=${ruleId}`;
 
-		await page.goto(form);
-		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Registrar ingreso');
-		await expect(page.getByRole('radio', { name: /^(Ingreso|Gasto|Transf\.)$/ })).toHaveCount(0);
-		await expect(page.locator('input[name="type"]')).toHaveValue('income');
-		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-		await expect(page).toHaveURL(/\/plan$/);
+		// With JavaScript, the rule's Registrar opens the drawer over its detail.
+		await page.goto(`/plan/recurring/${ruleId}`, { waitUntil: 'networkidle' }); // hydration guard
+		await page.getByRole('link', { name: 'Registrar ingreso' }).click();
+		const drawer = page.getByRole('dialog', { name: `Registrar ${description}` });
+		await expect(drawer.getByRole('radio', { name: /^(Ingreso|Gasto|Transf\.)$/ })).toHaveCount(0);
+		await expect(drawer.locator('input[name="type"]')).toHaveValue('income');
+		await drawer.getByRole('button', { name: 'Registrar ingreso', exact: true }).click();
+		await expect(page.getByText('Pago registrado.')).toBeVisible();
 
 		// No JS: the server-rendered form has no type selector or transfer fields and still saves an income.
 		const noJs = await browser.newContext({

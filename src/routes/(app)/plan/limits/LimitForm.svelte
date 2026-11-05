@@ -7,7 +7,7 @@
 	import { formatAmountInput, formatMoney, parseAmount, type Currency } from '$lib/money';
 	import FormActions from '$lib/components/FormActions.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
-	import TextRow from '$lib/components/TextRow.svelte';
+	import AmountHero from '$lib/components/AmountHero.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
@@ -110,21 +110,9 @@
 					{/snippet}
 				</OptionPicker>
 			</li>
-			<li class:bad={shown.amount}>
-				<TextRow
-					id="lamount"
-					name="amount"
-					label="Monto"
-					bind:value={amount}
-					prefix={currency === 'USD' ? 'US$' : '$'}
-					placeholder={currency === 'USD' ? '0,00' : '0'}
-					inputmode={currency === 'USD' ? 'decimal' : 'numeric'}
-					amount
-					error={shown.amount}
-					errorId="lamount-error"
-				/>
-			</li>
 		</ul>
+
+		<AmountHero bind:value={amount} {currency} error={shown.amount} id="lamount" />
 
 		{#if suggested > 0}
 			<Button
@@ -143,12 +131,12 @@
 			<Button
 				type="button"
 				variant="outline"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0 rounded-full"
+				class="min-w-0 flex-1 basis-0"
 				onclick={() => onclose?.()}>Cancelar</Button
 			>
 			<Button
 				type="submit"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0 rounded-full"
+				class="min-w-0 flex-1 basis-0"
 				disabled={mounted && (!canSave || submitting)}
 				aria-busy={submitting ? 'true' : undefined}>Guardar</Button
 			>
@@ -192,9 +180,11 @@
 
 	.scroll :global(.average) {
 		align-self: center;
-		font-size: var(--font-size-sm);
-		font-weight: 500;
+		height: 44px;
+		font-size: 15px;
+		font-weight: 600;
 		color: var(--link);
+		text-decoration: none;
 	}
 
 	.actions {
