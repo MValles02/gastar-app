@@ -29,6 +29,8 @@ declare global {
 			password?: import('./routes/(app)/profile/password/$types').PageData;
 			/** The "¿Darte de baja?" drawer opened over Perfil. */
 			deleteAccount?: import('./routes/(app)/profile/delete/$types').PageData;
+			/** A Mercado Pago item's review drawer opened over the inbox. */
+			importItem?: import('./routes/(app)/imports/[id]/$types').PageData;
 			/** The Ahorro drawer opened over the plan. */
 			savings?: import('./routes/(app)/plan/savings/$types').PageData;
 		}

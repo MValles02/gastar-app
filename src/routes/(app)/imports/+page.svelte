@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
+	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import { toast } from 'svelte-sonner';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
@@ -8,17 +9,14 @@
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
-	import ActionLink from '$lib/components/ActionLink.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
-	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import DatePicker from '$lib/components/DatePicker.svelte';
-	import type { ActionData, PageData } from './$types';
+	import ImportRow from './ImportRow.svelte';
+	import type { PageData } from './$types';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	let { data }: { data: PageData } = $props();
 
 	const ERROR_LABELS: Record<string, string> = {
 		auth: 'token inválido o vencido',
@@ -89,23 +87,13 @@
 		n === 0 ? 'Sin movimientos nuevos' : n === 1 ? '1 movimiento nuevo' : `${n} movimientos nuevos`;
 
 	const status = $derived(
-		data.phase === 'payments'
-			? 'Buscando pagos…'
-			: data.phase === 'report'
-				? 'Esperando el reporte de Mercado Pago (rendimientos y pagos en comercios)…'
-				: data.lastError
-					? `No se pudo sincronizar (${errorLabel(data.lastError)})`
-					: data.lastRun
-						? `${watched ? 'Listo. ' : ''}Última sincronización: ${data.lastRun}`
-						: 'Todavía no se sincronizó.'
-	);
-
-	const detail = $derived(
-		data.phase === 'report'
-			? `${newLabel(data.newItems ?? 0)}. Puede tardar de 1 a 3 minutos.`
-			: watched && !data.running && data.newItems !== null
-				? `${newLabel(data.newItems)}.`
-				: null
+		data.needsReconnect
+			? 'Hay que volver a vincular Mercado Pago.'
+			: data.lastError
+				? `No se pudo sincronizar (${errorLabel(data.lastError)})`
+				: watched && data.newItems !== null
+					? `Listo. ${newLabel(data.newItems)}.`
+					: (data.lastRun ?? 'Todavía no se sincronizó')
 	);
 </script>
 
@@ -113,55 +101,40 @@
 	<title>Mercado Pago · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Mercado Pago" back={{ href: resolve('/profile'), label: 'Volver a Perfil' }} />
+<PageHeader title="Mercado Pago" back={{ href: resolve('/'), label: 'Volver al inicio' }} />
 
 <div class="page">
 	{#if data.done && !hydrated}<p role="status">{DONE_MESSAGES[data.done]}</p>{/if}
 	{#if bulkMessage && !data.done && !hydrated}<p role="status">{bulkMessage}</p>{/if}
-	<div class="sync">
-		<div
-			class="status"
-			class:running={data.running}
-			class:error={!data.running && !!data.lastError}
-			role="status"
-		>
-			{#if data.running}<LoaderCircle class="spin" aria-hidden="true" />{/if}
+
+	{#if data.running}
+		<section class="sync running" role="status" aria-label="Sincronización">
+			<LoaderCircle class="spin" aria-hidden="true" />
 			<p>
-				{status}
-				{#if detail}<span class="detail">{detail}</span>{/if}
+				Sincronizando…
+				<span class="detail">Puede tardar unos minutos.</span>
 			</p>
-		</div>
-		{#if data.needsReconnect}
-			<Button href={resolve('/profile/mercado-pago')} variant="outline">Reconectar</Button>
-		{:else}
-			<form method="POST" action="?/sync" use:enhance>
-				<Button type="submit" variant="outline" disabled={data.running}>Sincronizar ahora</Button>
-			</form>
-		{/if}
-	</div>
-	{#if !data.needsReconnect}
-		<!-- novalidate: the server owns the range check and answers with its own message. -->
-		<form
-			method="POST"
-			action="?/importFrom"
-			use:enhance
-			novalidate
-			onchange={(e) => e.currentTarget.requestSubmit()}
-		>
-			<fieldset disabled={data.running}>
-				<DatePicker
-					name="from"
-					label="Importar desde"
-					value={data.importFrom}
-					min={data.earliest}
-					max={data.today}
-				/>
-				{#if form?.importFromError}<p class="error" role="alert">{form.importFromError}</p>{/if}
-				{#if !hydrated}<Button type="submit" variant="outline">Guardar fecha</Button>{/if}
-			</fieldset>
-		</form>
+		</section>
+	{:else}
+		<section class="sync" aria-label="Sincronización">
+			<p class="status" class:error={data.needsReconnect || !!data.lastError} role="status">
+				{status}
+			</p>
+			{#if data.needsReconnect}
+				<Button
+					href={resolve('/profile/mercado-pago')}
+					variant="outline"
+					class="h-10 rounded-full px-4">Reconectar</Button
+				>
+			{:else}
+				<form method="POST" action="?/sync" use:enhance>
+					<Button type="submit" variant="outline" class="h-10 rounded-full px-4">
+						<RefreshCw aria-hidden="true" />Sincronizar
+					</Button>
+				</form>
+			{/if}
+		</section>
 	{/if}
-	<ActionLink href="/profile/mercado-pago" label="Configurar" />
 
 	{#if data.suggested > 0}
 		<ConfirmDialog
@@ -195,22 +168,7 @@
 					<h2 id="day-{g.day}">{g.heading}</h2>
 					<ListCard>
 						{#each g.items as item (item.id)}
-							{#snippet value()}
-								<Money
-									cents={item.amount}
-									currency="ARS"
-									tone="flow"
-									direction={item.isCredit ? 'income' : 'outcome'}
-								/>
-							{/snippet}
-							{#snippet suggestion()}Sugerido: {item.suggestion}{/snippet}
-							<ListRow
-								href={resolve(`/imports/${item.id}`)}
-								lead={{ letter: item.title.charAt(0).toUpperCase(), color: null }}
-								title={item.title}
-								{value}
-								meta={item.suggestion ? suggestion : undefined}
-							/>
+							<ImportRow {item} />
 						{/each}
 					</ListCard>
 				</section>
@@ -223,51 +181,58 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-5);
+		gap: var(--space-4);
 	}
 
+	/* One line: the last sync (or the progress) and its action. */
 	.sync {
 		display: flex;
-		flex-wrap: wrap;
 		align-items: center;
-		justify-content: space-between;
 		gap: var(--space-3);
-	}
-
-	fieldset {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-		min-width: 0;
-		margin: 0;
-		padding: 0;
-		border: 0;
-	}
-
-	.error {
-		margin: 0;
-		color: var(--negative);
-		font-size: var(--font-size-sm);
+		min-height: 3.5rem;
+		padding: var(--space-2) var(--space-4);
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-card);
+		box-shadow: var(--shadow-1);
 	}
 
 	.status {
-		display: flex;
-		flex: 1 1 14rem;
-		align-items: flex-start;
-		gap: var(--space-2);
+		flex: 1;
 		min-width: 0;
-		color: var(--text-muted);
+		margin: 0;
+		font-size: var(--font-size-sm);
+		font-weight: 500;
+	}
+
+	.status.error {
+		color: var(--negative);
+		font-weight: 400;
 		font-size: var(--font-size-sm);
 	}
 
-	.status :global(.spin) {
+	.sync :global(svg) {
 		flex: none;
-		width: 1rem;
+	}
+
+	.sync.running {
+		align-items: flex-start;
+		padding-block: var(--space-3);
+	}
+
+	.sync.running p {
+		margin: 0;
+		font-weight: 500;
+	}
+
+	.sync :global(.spin) {
+		width: 1.25rem;
 		height: 1lh;
+		color: var(--primary);
 	}
 
 	@media (prefers-reduced-motion: no-preference) {
-		.status :global(.spin) {
+		.sync :global(.spin) {
 			animation: spin 1s linear infinite;
 		}
 	}
@@ -278,17 +243,11 @@
 		}
 	}
 
-	.status.running {
-		color: var(--text);
-	}
-
 	.detail {
 		display: block;
 		color: var(--text-muted);
-	}
-
-	.status.error {
-		color: var(--negative);
+		font-size: var(--font-size-sm);
+		font-weight: 400;
 	}
 
 	.groups {

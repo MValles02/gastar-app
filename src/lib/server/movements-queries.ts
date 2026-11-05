@@ -154,8 +154,8 @@ export function updateMovement(userId: string, id: string, row: MovementRow) {
 		.returning({ id: movements.id });
 }
 
-export function deleteMovement(userId: string, id: string) {
-	return db
+export function deleteMovement(userId: string, id: string, executor: DbExecutor = db) {
+	return executor
 		.delete(movements)
 		.where(and(eq(movements.id, id), inArray(movements.id, ownedIds(userId))))
 		.returning({ id: movements.id });

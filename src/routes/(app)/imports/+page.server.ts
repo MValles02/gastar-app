@@ -1,30 +1,33 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import {
+	getImport,
 	getImportAccount,
 	getSyncState,
-	importDateTime,
 	importPrefill,
 	importTitle,
 	listImportRules,
-	listPendingImports
+	listPendingImports,
+	undoApproval
 } from '$lib/server/mp-import-queries';
-import {
-	getConnectionInfo,
-	getImportFromDay,
-	mpOauthEnabled,
-	setImportFrom
-} from '$lib/server/mp-oauth';
-import { startMpBackfill, startMpSync } from '$lib/server/mp-sync';
-import { dayHeading, dayStart, localDay } from '$lib/server/month';
+import { getConnectionInfo, mpOauthEnabled } from '$lib/server/mp-oauth';
+import { startMpSync } from '$lib/server/mp-sync';
+import { dayHeading, localDay } from '$lib/server/month';
+import { isUuid } from '$lib/server/db/util';
 import { pgErrorCode } from '$lib/server/db/errors';
 import { movementPickers } from '../movements/form.server';
 import { approveWithValues } from './approve.server';
 import type { Actions, PageServerLoad } from './$types';
 
 const LEASE_MS = 15 * 60_000;
-const DAY_MS = 86_400_000;
-const BACKFILL_DAYS = 365;
-const earliestDay = () => localDay(new Date(Date.now() - BACKFILL_DAYS * DAY_MS));
+
+/** "Recién", "Hace 5 min", "Hace 2 h", "Hace 3 d". */
+function agoLabel(at: Date, now: Date): string {
+	const min = Math.max(0, Math.floor((now.getTime() - at.getTime()) / 60_000));
+	if (min < 1) return 'Recién';
+	if (min < 60) return `Hace ${min} min`;
+	if (min < 24 * 60) return `Hace ${Math.floor(min / 60)} h`;
+	return `Hace ${Math.floor(min / (24 * 60))} d`;
+}
 
 const DONE = ['approved', 'rejected', 'stale'] as const;
 
@@ -97,15 +100,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		suggested,
 		bulk: approved === null ? null : { approved, skipped: skipped ?? 0 },
 		needsReconnect,
-		importFrom: await getImportFromDay(userId, account.id),
-		today,
-		earliest: earliestDay(),
 		running,
 		// 'payments' (also before the first step is recorded) or 'report'; null when idle.
 		phase: running ? (sync?.phase === 'report' ? 'report' : 'payments') : null,
 		newItems: sync?.newItems ?? null,
 		lastError: sync?.lastError ?? null,
-		lastRun: sync?.lastRunAt ? importDateTime(sync.lastRunAt) : null,
+		lastRun: sync?.lastRunAt ? agoLabel(sync.lastRunAt, now) : null,
 		done: DONE.find((d) => d === done) ?? null,
 		groups
 	};
@@ -118,35 +118,48 @@ export const actions: Actions = {
 		redirect(303, '/imports');
 	},
 
-	importFrom: async ({ locals, request }) => {
+	/** Quick "Aprobar" of one suggested row; answers with the id so the page can offer Deshacer. */
+	approveOne: async ({ locals, request }) => {
 		const userId = locals.user!.id;
 		const account = await requireAccount(userId);
-		const ymd = String((await request.formData()).get('from') ?? '');
-		const from = dayStart(ymd);
-		if (!from || ymd > localDay(new Date())) {
-			return fail(400, { importFromError: 'Elegí una fecha válida.' });
+		const id = String((await request.formData()).get('id') ?? '');
+		if (!isUuid(id)) return fail(400, { message: 'No se pudo aprobar.' });
+		const item = await getImport(userId, id);
+		if (!item || item.status !== 'pending') {
+			return fail(409, { message: 'Ese movimiento ya fue revisado.' });
 		}
-		if (ymd < earliestDay()) {
-			return fail(400, { importFromError: 'Podés traer hasta 12 meses para atrás.' });
+		const [rules, pickers] = await Promise.all([listImportRules(userId), movementPickers(userId)]);
+		const prefill = importPrefill(
+			item,
+			rules,
+			pickers.categories,
+			counterAccountsOf(pickers.accounts, account.id)
+		);
+		// Only rows that show "Aprobar" have a suggestion; the rest go through the review form.
+		if (prefill.suggestion === null) return fail(400, { message: 'Revisá este movimiento.' });
+		try {
+			// The values come from the rule itself: nothing new to remember.
+			const out = await approveWithValues(userId, item, prefill, false);
+			if (out.result === 'approved') return { approvedId: id };
+			return fail(409, { message: 'Ese movimiento ya fue revisado.' });
+		} catch (e) {
+			console.error('[imports] quick approve failed', pgErrorCode(e) ?? 'unknown');
+			return fail(400, { message: 'No se pudo aprobar.' });
 		}
-		if ((await getConnectionInfo(userId))?.needsReconnect) {
-			return fail(400, { importFromError: 'Reconectá Mercado Pago primero.' });
+	},
+
+	/** Deshacer of a quick approval: removes its movement and puts the item back to pending. */
+	undoApprove: async ({ locals, request }) => {
+		const userId = locals.user!.id;
+		await requireAccount(userId);
+		const id = String((await request.formData()).get('id') ?? '');
+		if (!isUuid(id)) return fail(400, { message: 'No se pudo deshacer.' });
+		const result = await undoApproval(userId, id);
+		if (result === 'changed') {
+			return fail(409, { message: 'No se pudo deshacer: el movimiento ya cambió.' });
 		}
-		// Moving earlier fetches the gap; same or later only trims what is already here.
-		const earlier = ymd < (await getImportFromDay(userId, account.id));
-		// Trimming while a run holds the lease would let it re-insert what was just deleted.
-		const since = earlier ? null : (await getSyncState(userId, account.id))?.runningSince;
-		if (
-			earlier
-				? !(await startMpBackfill(userId, from))
-				: !!since && Date.now() - since.getTime() < LEASE_MS
-		) {
-			return fail(409, {
-				importFromError: 'Ya hay una sincronización en curso. Probá en unos minutos.'
-			});
-		}
-		await setImportFrom(userId, account.id, from);
-		redirect(303, '/imports');
+		if (result === 'stale') return fail(409, { message: 'No se pudo deshacer.' });
+		return { undoneId: id };
 	},
 
 	approveSuggested: async ({ locals }) => {
