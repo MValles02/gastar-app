@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import AuthForm from '$lib/components/AuthForm.svelte';
 	import AuthPage from '$lib/components/AuthPage.svelte';
 	import AuthTabs from '$lib/components/AuthTabs.svelte';
@@ -18,7 +19,7 @@
 </svelte:head>
 
 {#if form?.checkEmail}
-	<CheckEmail email={form.checkEmail} />
+	<CheckEmail email={form.checkEmail} kind="verify" backHref={resolve('/signup')} />
 {:else}
 	<AuthPage>
 		<AuthTabs current="signup" />

@@ -5,9 +5,7 @@
 	import AuthPage from '$lib/components/AuthPage.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Field from '$lib/components/ui/field/index.js';
-	import Icon from '$lib/components/Icon.svelte';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
-	import * as Empty from '$lib/components/ui/empty/index.js';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -22,25 +20,20 @@
 </svelte:head>
 
 {#if expired}
-	<main>
-		<Empty.Root class="min-h-dvh">
-			<Empty.Header>
-				<Empty.Media variant="icon" aria-hidden="true"
-					><Icon name="clock" size="1rem" /></Empty.Media
-				>
-				<Empty.Title role="heading" aria-level={1}>Enlace vencido</Empty.Title>
-			</Empty.Header>
-			<Empty.Content>
-				<div class="actions">
-					<Button href={resolve('/forgot-password')} class="w-full">Pedir otro</Button>
-					<a class="link" href={resolve('/login')}>Ir a Ingresar</a>
-				</div>
-			</Empty.Content>
-		</Empty.Root>
-	</main>
+	<AuthPage
+		backHref={resolve('/login')}
+		title="Enlace vencido"
+		icon="clock"
+		description="Los enlaces para cambiar la contraseña duran 1 hora. Pedí uno nuevo."
+	>
+		<div class="actions">
+			<Button href={resolve('/forgot-password')} class="w-full">Pedir otro</Button>
+			<Button href={resolve('/login')} variant="outline" class="w-full">Ir a Ingresar</Button>
+		</div>
+	</AuthPage>
 {:else}
 	<AuthPage backHref={resolve('/login')} title="Nueva contraseña">
-		<AuthForm action="?/reset" submitLabel="Guardar" onupdated={() => (password = '')}>
+		<AuthForm action="?/reset" submitLabel="Guardar contraseña" onupdated={() => (password = '')}>
 			<input type="hidden" name="token" value={data.token} />
 			<Field.Field>
 				<Field.Label for="password">Contraseña</Field.Label>
@@ -66,20 +59,5 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
-		width: 100%;
-		max-width: 360px;
-		margin-top: var(--space-4);
-	}
-
-	.link {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-height: var(--tap-target);
-		font-size: var(--font-size-sm);
-		font-weight: 500;
-		color: var(--text);
-		text-underline-offset: 3px;
-		text-decoration-color: var(--border-strong);
 	}
 </style>

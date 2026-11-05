@@ -18,9 +18,13 @@
 </svelte:head>
 
 {#if form?.checkEmail}
-	<CheckEmail email={form.checkEmail} />
+	<CheckEmail email={form.checkEmail} kind="reset" backHref={resolve('/forgot-password')} />
 {:else}
-	<AuthPage backHref={resolve('/login')} title="Recuperar contraseña">
+	<AuthPage
+		backHref={resolve('/login')}
+		title="Recuperar contraseña"
+		description="Te mandamos un enlace por email."
+	>
 		<AuthForm action="?/request" submitLabel="Enviar enlace">
 			<Field.Field>
 				<Field.Label for="email">Email</Field.Label>

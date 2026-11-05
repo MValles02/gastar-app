@@ -10,13 +10,16 @@
 		action,
 		submitLabel,
 		onupdated,
-		children
+		children,
+		after
 	}: {
 		action: string;
 		submitLabel: string;
 		/** Runs after each submit result is applied (e.g. to clear a password). */
 		onupdated?: () => void;
 		children: Snippet;
+		/** Rendered under the submit button (secondary actions). */
+		after?: Snippet;
 	} = $props();
 
 	let busy = $state(false);
@@ -45,6 +48,7 @@
 	{@render children()}
 
 	<Button type="submit" class="mt-2 w-full" disabled={busy}>{submitLabel}</Button>
+	{@render after?.()}
 </form>
 
 <style>

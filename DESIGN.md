@@ -184,7 +184,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 
 ### Primary
 
-- **Emerald** (`primary`): Primary buttons, the center FAB, the wordmark, the active nav icon and the focus ring. Dark: deeper emerald (`primary-dark`).
+- **Emerald** (`primary`): Primary buttons, the center FAB, the wordmark mark, the active nav icon and the focus ring. Dark: deeper emerald (`primary-dark`).
 
 ### Neutral (cream, stone in dark)
 
@@ -329,6 +329,7 @@ Shared components live in `src/lib/components/`.
 
 - **Day-of-month and option lists:** `DayOfMonthPicker` is a 1–31 grid in a stacked drawer (31 = last day). Choice lists (Ahorro, Categoría) are rows with a checkmark on the selected one; no radios.
 - **App forms:** The same generated shadcn parts with stock styling as the auth forms, stacked (label above control): `Field.Field` with `Field.Label for=` and `Input` (text, number and date), `InputGroup` for the amount (currency symbol as an inline-start addon) and the FilterBar search (search icon addon, `aria-label`), and `NativeSelect` (+ `NativeSelect.Option`) for native selects. Errors are `Field.Error` (`role="alert"`, linked by `aria-describedby`); fields inside the list cards of the account, category, movement and recurring forms sit in a `Field.Field` with `p-4`. `OptionPicker` keeps its custom styling until migrated. Filter checkboxes are the generated shadcn `Checkbox` next to a `Field.Label for=` in a horizontal `Field.Field`; form toggles are `SwitchRow` (below); checkboxes, switches and radios are Bits UI buttons and need JavaScript (no no-JS fallback, except the `OptionPicker` rows).
+- **Auth page (`AuthPage`):** Every signed-out screen: a left-aligned column (max 400px, vertically centered, `space-5` gaps) with the wordmark on top. Screens other than Ingresar / Crear cuenta get a "Volver" link pinned top-left (chevron plus text, 2.75rem tall), then an optional 3.5rem muted rounded status icon, the level-1 title (display, 28px) and a muted description. On Ingresar / Crear cuenta the wordmark is the level-1 heading and there is no back link. The full-width submit button sits right under the form (no pinned bar). `AuthForm` takes an `after` snippet for secondary actions under the button; secondary actions are `outline` buttons.
 - **Auth forms:** Use the generated shadcn parts with stock styling: `Field.Field` per field with `Field.Label for=`, `Input` (2rem tall, `border-input`, 3px ring on focus), `Field.Error` (`role="alert"`, destructive text, linked by `aria-describedby`) and `Field.Description` for hints. `PasswordInput` is an `InputGroup` with an inline-end ghost icon `InputGroup.Button` toggling visibility (`aria-pressed`).
 
 ### Segmented Control
@@ -365,12 +366,12 @@ A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) built on the ge
 - **Profile:** An initial avatar (`--muted` circle, 3.5rem) beside the name and email, then separate cards: a `ListCard` of uniform `ListRow`s with an icon lead and a chevron and a muted value (Cuentas and Categorías with their counts, Mercado Pago with Vincular / Vinculado / Reconectar when connected); a `ListCard` with Nombre (an `InlineText` value, autosaved with Deshacer, no chevron) and Contraseña (opens the shallow-route `PasswordDrawer`); the Tema card (segmented control); a `ListCard` with the "Cerrar sesión" row; and "Darme de baja" as a quiet centered text link in `negative` (44px tall, no button), which opens the shallow-route `DeleteAccountDrawer` (bulleted list of what is erased, password row, bold "No se puede deshacer.", Cancelar / destructive `Button`). Both drawers keep a page variant at their route for direct URLs.
 - **Reportes charts:** The 6-month income and outcome bars and the category donut are `aria-hidden` SVG/CSS; their text equivalents are the per-month link `aria-label` ("{mes}: ingresos X, gastos Y") and the visible slice list (name, %, amount). Tokens: income bar `--positive`, outcome bar `--negative` (income always left, outcome right, as in the legend, so colour is not the only cue), slices `--swatch-green`, `--swatch-orange`, `--swatch-blue`, `--swatch-plum` and `--text-muted` for "Otros". Bars keep full opacity (non-text 3:1); the selected month has a bold label and `aria-current="true"`. The bar row bleeds to the card edges so each month link is at least 2.75rem wide at 320px.
 - **Plan rule row (`/plan`):** A `ListRow` in a `ListCard`, a link to the rule detail (where "Registrar" lives): letter lead, description, `Money` value, a `StatusPill` (`DUE_TONE`: paid ok, today warning, overdue bad, upcoming neutral; inactive rules neutral with the reason) and "Día N · account" as meta; inactive rows are `dimmed`. Status is always text, never colour alone.
-- **Empty (shadcn `Empty`):** `Empty.Root > Empty.Header > Empty.Media variant="icon"` (2rem muted rounded square, 1rem icon) plus `Empty.Description` (muted text), centered; action `Button`s sit below it. Full-screen status pages (check email, expired link) wrap `Empty.Root class="min-h-dvh"` in a `main`, with `Empty.Title` as the level-1 heading and the actions in `Empty.Content`.
+- **Empty (shadcn `Empty`):** `Empty.Root > Empty.Header > Empty.Media variant="icon"` (2rem muted rounded square, 1rem icon) plus `Empty.Description` (muted text), centered; action `Button`s sit below it. Signed-out status screens (check email, expired link) do not use it: they are `AuthPage` with `icon`, `title` and `description` (see Auth page).
 
 ### Icon and Wordmark
 
 - **Icon:** Inline SVG, 24px by default, 24-unit viewBox, `currentColor` 1.75 stroke with round caps and joins, `aria-hidden`. Names: home, accounts, plus, movements, categories, profile, plan, chart, search, chevron-left, chevron-right, transfer, lock, tag, plus the category icons (tag, cart, food, transport, car, health, education, entertainment, gift, travel, services, clothing, pets, salary) and the account icons (bank, wallet, cash, card, piggy-bank, dollar, coins, safe, briefcase, phone).
-- **Wordmark:** A rounded-square ledger mark (two horizontal strokes) plus "Gastar" in title type. Mark fill is primary and strokes are on-primary, so it flips in dark; the text is primary.
+- **Wordmark:** A rounded-square ledger mark (two horizontal strokes) plus "Gastar" in title type. Mark fill is primary and strokes are on-primary, so it flips in dark; the "Gastar" text is `--text` (primary on near-black was too faint in dark).
 
 ### Bottom Drawer
 
@@ -398,7 +399,7 @@ Pickers opened from inside a drawer are a second Bottom Drawer stacked on top (`
 - **Item states:** `aria-current='page'` gives the item a `muted` pill and turns its icon primary. Press scales to 0.96.
 - **Top bar:** See PageHeader above.
 - **Month stepper (`MonthNav`):** Two ghost icon `Button`s (chevron-left and chevron-right, `aria-label` "Mes anterior"/"Mes siguiente") around the `.month-label`; on the current month the forward button is `disabled` with `aria-disabled="true"`.
-- **Auth tabs (`AuthTabs`):** A `ButtonGroup` of two linked `Button`s (Ingresar, Crear cuenta) in a `nav` labelled "Acceso"; the active one is `default`, the other `outline`, with `aria-current="page"`. The bottom nav stays Inicio | Movimientos | + | Plan | Reportes (Cuentas and Categorías live in Profile).
+- **Auth tabs (`AuthTabs`):** A segmented track (`muted`, 3px padding) of two links (Ingresar, Crear cuenta, 2.75rem tall) in a `nav` labelled "Acceso"; the active one has the `background` fill and `text` colour (as the segmented control), with `aria-current="page"`. The bottom nav stays Inicio | Movimientos | + | Plan | Reportes (Cuentas and Categorías live in Profile).
 
 ### Plan Summary and Limit Row
 

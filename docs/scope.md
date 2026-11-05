@@ -28,7 +28,8 @@ Personal finance PWA for Argentina. Answers two questions:
 - Email + password only. Public sign-up; email verification is required before sign-in.
 - Single user at launch; family/friends may be added later (small scale).
 - Phone OTP: future, not MVP.
-- Password reset: by emailed link (sent through Resend).
+- Password reset: by emailed link (sent through Resend). Links last 24 hours (verification) and 1 hour (reset).
+- Screens: Ingresar / Crear cuenta are the entry (tabs, no back link); every other signed-out screen has "Volver" at the top. A wrong password keeps the typed email, clears the password and focuses it. After sign-up, "Revisá tu email" names the address and offers a rate-limited "Reenviar" (60 s countdown). The password-reset confirmation is neutral and never says whether the address has an account. An expired verification link (`/verify-email`) shows the address pre-filled when this browser remembers the one it was sent to (local storage, per browser), so asking for a new link is one tap; an expired reset link offers "Pedir otro" first.
 - Every user's data is isolated from every other user's.
 - Shared accounts between users: **future**. The data model must leave this door open (see data-model.md).
 

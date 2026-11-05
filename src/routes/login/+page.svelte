@@ -23,7 +23,7 @@
 </svelte:head>
 
 {#if form?.checkEmail}
-	<CheckEmail email={form.checkEmail} />
+	<CheckEmail email={form.checkEmail} kind="verify" backHref={resolve('/login')} />
 {:else}
 	<AuthPage>
 		<AuthTabs current="login" />
@@ -84,7 +84,7 @@
 	}
 
 	.forgot {
-		align-self: flex-end;
+		align-self: flex-start;
 		display: inline-flex;
 		align-items: center;
 		min-height: var(--tap-target);
