@@ -180,24 +180,31 @@ test('sync shows live progress, fills the inbox without a reload and leaves bala
 	expect(Date.now() - first).toBeGreaterThan(29 * DAY_MS);
 	// The old settlement report is never requested again (it is what made MP send "report ready" emails).
 	expect((await calls()).filter((c) => c.path.includes('settlement_report'))).toEqual([]);
-	// The existing release config is edited in place by one PUT: emails emptied, the parser columns added
-	// to the user's own, English headers; everything else (seeded) is kept.
+	// The existing release config is edited in place by one PUT (answered 400 by the fake if it carries
+	// `scheduled` or any key MP does not document as writable), then read back: emails emptied, the parser
+	// columns added to the user's own, English headers; the user's other writable fields are kept.
 	expect((await calls()).filter((c) => c.path.includes('/config')).map((c) => c.method)).toEqual([
 		'GET',
-		'PUT'
+		'PUT',
+		'GET'
 	]);
 	const puts = (await (await fake('/__fake/report-config-puts')).json()) as {
-		seeded?: boolean;
+		file_name_prefix?: string;
+		separator?: string;
+		scheduled?: boolean;
+		internal_id?: string;
 		notification_email_list: string[];
 		columns: { key: string }[];
 		report_translation: string;
 	}[];
 	expect(puts).toHaveLength(1);
-	// EMAIL_FROM is unset in e2e (empty in .env.example, absent from playwright.config.ts and CI): the list is [].
 	expect(puts[0].notification_email_list).toEqual([]);
-	// Reports are created asking MP not to notify.
-	expect(((await creates())[0] as { notify?: boolean }).notify).toBe(false);
-	expect(puts[0].seeded).toBe(true);
+	expect(puts[0]).not.toHaveProperty('scheduled');
+	expect(puts[0]).not.toHaveProperty('internal_id');
+	expect(puts[0].file_name_prefix).toBe('user-prefix');
+	expect(puts[0].separator).toBe(';');
+	// Report creates carry only the dates.
+	expect(Object.keys((await creates())[0]).sort()).toEqual(['begin_date', 'end_date']);
 	expect(puts[0].report_translation).toBe('en');
 	expect(puts[0].columns.map((c) => c.key)).toEqual(
 		expect.arrayContaining(['USER_COLUMN', ...PARSER_COLUMNS])
@@ -766,16 +773,12 @@ test('an account without a release report configuration gets one created and syn
 	browser
 }) => {
 	await fake('/__fake/report-config', { configured: false });
-	// MP also 400s on `notify`: the create is retried once without it and the sync still succeeds.
-	await fake('/__fake/reject-notify', { on: true });
 	try {
 		const items = await otherSync(browser, SYNCED);
 		expect(items).toBe(8);
 	} finally {
-		await fake('/__fake/reject-notify', { on: false });
 		await fake('/__fake/report-config', { configured: true });
 	}
-	expect((await creates()).slice(-2).map((b) => 'notify' in b)).toEqual([true, false]);
 	const posts = (await (await fake('/__fake/report-config')).json()) as {
 		display_timezone: string;
 		columns: { key: string }[];
