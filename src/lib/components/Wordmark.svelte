@@ -28,6 +28,6 @@
 		font-size: var(--font-size-lg);
 		font-weight: 600;
 		line-height: 1;
-		color: var(--primary);
+		color: var(--text);
 	}
 </style>
