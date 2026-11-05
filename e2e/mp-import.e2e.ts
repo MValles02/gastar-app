@@ -193,7 +193,10 @@ test('sync shows live progress, fills the inbox without a reload and leaves bala
 		report_translation: string;
 	}[];
 	expect(puts).toHaveLength(1);
+	// EMAIL_FROM is unset in e2e (empty in .env.example, absent from playwright.config.ts and CI): the list is [].
 	expect(puts[0].notification_email_list).toEqual([]);
+	// Reports are created asking MP not to notify.
+	expect(((await creates())[0] as { notify?: boolean }).notify).toBe(false);
 	expect(puts[0].seeded).toBe(true);
 	expect(puts[0].report_translation).toBe('en');
 	expect(puts[0].columns.map((c) => c.key)).toEqual(
@@ -472,6 +475,7 @@ test('bulk approve creates the suggested movements with exact amounts', async ()
 
 const daysAgoYmd = (n: number) =>
 	new Date(Date.now() - 3 * 3_600_000 - n * DAY_MS).toISOString().slice(0, 10);
+const creates = async () => (await (await fake('/__fake/report-creates')).json()) as object[];
 const reportBegins = async () => (await (await fake('/__fake/report-begins')).json()) as string[];
 
 /** Runs `fn` against the importer's rows in mp_import_items / mp_sync_state. */
@@ -762,12 +766,16 @@ test('an account without a release report configuration gets one created and syn
 	browser
 }) => {
 	await fake('/__fake/report-config', { configured: false });
+	// MP also 400s on `notify`: the create is retried once without it and the sync still succeeds.
+	await fake('/__fake/reject-notify', { on: true });
 	try {
 		const items = await otherSync(browser, SYNCED);
 		expect(items).toBe(8);
 	} finally {
+		await fake('/__fake/reject-notify', { on: false });
 		await fake('/__fake/report-config', { configured: true });
 	}
+	expect((await creates()).slice(-2).map((b) => 'notify' in b)).toEqual([true, false]);
 	const posts = (await (await fake('/__fake/report-config')).json()) as {
 		display_timezone: string;
 		columns: { key: string }[];
