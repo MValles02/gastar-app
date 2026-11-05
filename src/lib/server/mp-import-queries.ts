@@ -1,16 +1,23 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import { formatDay } from '$lib/locale';
 import { db } from './db';
-import { financialAccounts, mpImportItems, mpImportRules, mpSyncState } from './db/schema';
+import {
+	financialAccounts,
+	movements,
+	mpImportItems,
+	mpImportRules,
+	mpSyncState
+} from './db/schema';
 import {
 	canAccessAccount,
 	canAccessImport,
 	canAccessImportRule,
+	canAccessMovement,
 	importRuleOwnedBy
 } from './access';
 import type { MovementType } from './dashboard';
 import type { MovementRow } from './movements';
-import { createMovement } from './movements-queries';
+import { createMovement, deleteMovement } from './movements-queries';
 import { localDay, TZ } from './month';
 import { getConnectionInfo } from './mp-oauth';
 
@@ -329,4 +336,42 @@ export async function rejectImport(userId: string, id: string): Promise<'rejecte
 		.where(and(eq(mpImportItems.id, id), pending(userId)))
 		.returning({ id: mpImportItems.id });
 	return rows.length > 0 ? 'rejected' : 'stale';
+}
+
+/**
+ * Undo of an approval, in one transaction: deletes the movement the approval created and puts the item
+ * back to pending. 'changed' when the movement was edited meanwhile, 'stale' when the item is not an
+ * approved one with a movement (still pending, rejected, or its movement was deleted); nothing is
+ * written in either case. Rules are untouched: a quick approval never learns one.
+ */
+export function undoApproval(userId: string, id: string): Promise<'undone' | 'changed' | 'stale'> {
+	return db.transaction(async (tx) => {
+		const [item] = await tx
+			.select({ movementId: mpImportItems.movementId })
+			.from(mpImportItems)
+			.where(
+				and(eq(mpImportItems.id, id), canAccessImport(userId), eq(mpImportItems.status, 'approved'))
+			)
+			.for('update')
+			.limit(1);
+		if (!item?.movementId) return 'stale';
+
+		const [movement] = await tx
+			.select({ createdAt: movements.createdAt, updatedAt: movements.updatedAt })
+			.from(movements)
+			.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+			.where(and(eq(movements.id, item.movementId), canAccessMovement(userId)))
+			.for('update', { of: movements })
+			.limit(1);
+		if (!movement) return 'stale';
+		// An edit stamps updated_at; a fresh movement has both columns from the same insert.
+		if (movement.updatedAt.getTime() !== movement.createdAt.getTime()) return 'changed';
+
+		await deleteMovement(userId, item.movementId, tx);
+		await tx
+			.update(mpImportItems)
+			.set({ status: 'pending', movementId: null })
+			.where(and(eq(mpImportItems.id, id), canAccessImport(userId)));
+		return 'undone';
+	});
 }

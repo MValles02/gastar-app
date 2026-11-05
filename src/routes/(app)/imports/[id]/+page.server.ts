@@ -49,7 +49,6 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			isCredit: item.isCredit,
 			amount: item.amount,
 			dateLabel: importDateTime(item.occurredAt),
-			counterpartyNickname: item.counterpartyNickname,
 			rawDescription: item.rawDescription
 		},
 		initial: {
@@ -59,7 +58,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			counterAccountId: prefill.counterAccountId,
 			remember: ''
 		},
-		review: prefill.review,
+		// No rule suggests anything for it: the form asks which type it is.
+		unknown: prefill.suggestion === null,
 		// Unchecked by default, even when a rule prefilled the form; hidden when there is no stable key.
 		rememberLabel: rememberKey(item)?.label ?? null,
 		categories,

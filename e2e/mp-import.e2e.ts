@@ -44,14 +44,16 @@ const searchBegins = async () =>
 		.filter((r) => r.path === '/v1/payments/search')
 		.map((r) => Date.parse(r.query.begin_date));
 
-/** Clicks "Sincronizar ahora" and reloads until the run is over (the lease is taken before the redirect). */
-async function syncNow(expected: RegExp) {
+const SYNCED = /^(Listo\.|Recién|Hace )/;
+
+/** Clicks "Sincronizar" and reloads until the run is over (the lease is taken before the redirect). */
+async function syncNow(expected = SYNCED) {
 	await page.goto('/imports');
 	await page.waitForLoadState('networkidle'); // hydration guard: the sync button is progressively enhanced
 	// Wait for the action: once it answers, the lease is held and stale statuses can't match.
 	await Promise.all([
 		page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/imports')),
-		page.getByRole('button', { name: 'Sincronizar ahora' }).click()
+		page.getByRole('button', { name: 'Sincronizar' }).click()
 	]);
 	await expect(async () => {
 		await page.reload();
@@ -64,10 +66,9 @@ async function link(p: Page, accountName: string) {
 	await p.goto(MP_PATH);
 	await p.getByRole('button', { name: 'Vincular Mercado Pago' }).click();
 	await expect(p).toHaveURL(/\/profile\/mercado-pago\?linked=1$/);
-	await p.waitForLoadState('networkidle'); // hydration guard: the account select and save are JS-enhanced
-	await p.getByLabel('Cuenta que recibe los movimientos').selectOption({ label: accountName });
-	await p.getByRole('button', { name: 'Guardar' }).click();
-	await expect(p.getByRole('link', { name: 'Ver movimientos' })).toBeVisible();
+	await p.waitForLoadState('networkidle'); // hydration guard: the account picker saves through JS
+	await pick(p, 'Entra en', accountName);
+	await expect(p.getByRole('button', { name: /Entra en/ })).toContainText(accountName);
 }
 
 const accountRow = async () => {
@@ -99,20 +100,22 @@ const balanceOf = async (name: string) => {
 
 const flash = (text: string) => expect(page.getByText(text)).toBeVisible();
 
-/** Opens the detail of the pending item whose list row contains all `texts`. */
+/** Opens the review drawer of the pending item whose list row contains all `texts`. */
 async function openItem(...texts: string[]) {
 	await page.goto('/imports');
+	await page.waitForLoadState('networkidle'); // hydration guard: the drawer is a shallow route opened by JS
 	let row = rows();
 	for (const t of texts) row = row.filter({ hasText: t });
-	await row.getByRole('link').click();
-	await expect(page).toHaveURL(/\/imports\/[0-9a-f-]{36}$/);
-	await page.waitForLoadState('networkidle'); // hydration guard: the confirm dialog replaces its no-JS fallback only after mount
+	await row.getByRole('link').first().click();
+	await expect(drawer()).toBeVisible();
+	await expect(page).toHaveURL(/\/imports$/);
 }
 
-const rememberBox = () => page.getByRole('checkbox', { name: 'Recordar para la próxima' });
+/** The review drawer (the topmost dialog once a picker is open). */
+const drawer = () => page.getByRole('dialog', { name: 'Revisar movimiento' });
+const approve = () => drawer().getByRole('button', { name: 'Aprobar', exact: true });
 
-/** The read-only "Fecha" of the open item. */
-const itemDate = () => page.locator('dt', { hasText: 'Fecha' }).locator('+ dd');
+const rememberBox = () => page.getByRole('checkbox', { name: 'Recordar para la próxima' });
 
 test.beforeAll(async ({ browser }) => {
 	await fake('/__fake/reset', {});
@@ -143,17 +146,18 @@ test('sync shows live progress, fills the inbox without a reload and leaves bala
 		await page.waitForLoadState('networkidle'); // hydration guard: live progress needs JS
 		// Survives only if the page is never reloaded.
 		await page.evaluate(() => ((window as unknown as { __noReload: boolean }).__noReload = true));
-		await page.getByRole('button', { name: 'Sincronizar ahora' }).click();
+		await page.getByRole('button', { name: 'Sincronizar' }).click();
 
-		await expect(status).toContainText('Esperando el reporte de Mercado Pago');
-		// Rows first: the payments phase can be slow under load, and the count only reads 4 once they land.
+		// While it runs the progress replaces the sync row, and nothing counts the new items yet.
+		await expect(status).toContainText('Sincronizando');
+		await expect(page.getByRole('button', { name: 'Sincronizar' })).toHaveCount(0);
+		// Rows first: the payments phase can be slow under load.
 		await expect(rows()).toHaveCount(4, { timeout: 30_000 });
-		await expect(status).toContainText('4 movimientos nuevos');
+		await expect(status).toContainText('Sincronizando');
 		await expect(main.getByText('CAFE DE PRUEBA')).toBeVisible();
 		await expect(rows().filter({ hasText: 'Rendimientos' })).toHaveCount(0);
 
-		await expect(status).toContainText('Listo. Última sincronización', { timeout: 40_000 });
-		await expect(status).toContainText('8 movimientos nuevos');
+		await expect(status).toHaveText('Listo. 8 movimientos nuevos.', { timeout: 40_000 });
 		await expect(rows()).toHaveCount(8);
 		expect(
 			await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload)
@@ -195,7 +199,7 @@ test('sync shows live progress, fills the inbox without a reload and leaves bala
 test('a second sync searches from the last payment and keeps the same items', async () => {
 	const before = await reportRequests();
 	const configBefore = (await configRequests()).length;
-	await syncNow(/Última sincronización/);
+	await syncNow();
 	// The email list is already empty: only a GET, no PUT.
 	expect((await configRequests()).slice(configBefore).map((c) => c.method)).toEqual(['GET']);
 	expect(await reportRequests()).toBe(before + 1);
@@ -232,8 +236,9 @@ test('approving a payment keeps its exact cents, time of day and moves the balan
 
 	const before = await balanceOf('Mercado Pago');
 	await openItem('FAKE AMIGA', '$1.235');
-	await expect(page.locator('dd', { hasText: 'FAKE AMIGA' })).toBeVisible();
-	await expect(itemDate()).toContainText('10:15');
+	await expect(drawer().getByText('FAKE AMIGA').first()).toBeVisible();
+	// The time of day travels with the item.
+	await expect(drawer().getByText(/10:15/)).toBeVisible();
 	await expect(page.getByRole('radio', { name: 'Ingreso' })).toBeChecked();
 	// The fixture names are padded with spaces; the prefilled title must be trimmed.
 	await expect(page.locator('input[name="description"]')).toHaveValue('FAKE AMIGA');
@@ -242,8 +247,9 @@ test('approving a payment keeps its exact cents, time of day and moves the balan
 	await expect(rememberBox()).not.toBeChecked();
 	await expect(page.getByText('Los próximos de FAKE AMIGA se completan así.')).toBeVisible();
 	await rememberBox().check();
-	await page.getByRole('button', { name: 'Aprobar' }).click();
+	await approve().click();
 	await flash('Movimiento aprobado.');
+	await expect(drawer()).toHaveCount(0);
 	await expect(rows().filter({ hasText: '$1.235' })).toHaveCount(0);
 
 	const [href] = await findMovements(page, AMIGA_DESC);
@@ -268,9 +274,10 @@ test('a remembered rule suggests the category for the next item', async () => {
 	await page.goto('/imports');
 	const row = rows().filter({ hasText: 'FAKE AMIGA' });
 	await expect(row).toHaveCount(1);
-	await expect(row).toContainText(`Sugerido: ${CATEGORY}`);
+	await expect(row).toContainText(`${CATEGORY} · sugerido`);
+	pendingId = (await row.getByRole('link').getAttribute('href'))!.split('/').pop()!;
 	await row.getByRole('link').click();
-	pendingId = new URL(page.url()).pathname.split('/').pop()!;
+	await expect(drawer()).toBeVisible();
 	await expect(page.locator('input[name="description"]')).toHaveValue(AMIGA_DESC);
 	await expect(page.getByRole('radio', { name: 'Ingreso' })).toBeChecked();
 	await expect(page.getByRole('button', { name: /Categoría/ })).toContainText(CATEGORY);
@@ -280,12 +287,13 @@ test('a remembered rule suggests the category for the next item', async () => {
 
 test('discarding an item removes it for good', async () => {
 	await openItem('CAFE DE PRUEBA');
-	await page.getByRole('button', { name: 'Descartar' }).click();
+	await drawer().getByRole('button', { name: 'Descartar' }).click();
+	await expect(page.getByRole('alertdialog')).toContainText('no vuelve a aparecer');
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Descartar' }).click();
 	await flash('Movimiento descartado.');
 	await expect(rows().filter({ hasText: 'CAFE DE PRUEBA' })).toHaveCount(0);
 
-	await syncNow(/Última sincronización/);
+	await syncNow();
 	await expect(rows().filter({ hasText: 'CAFE DE PRUEBA' })).toHaveCount(0);
 	await expect(rows().filter({ hasText: '$1.235' })).toHaveCount(0);
 });
@@ -293,12 +301,12 @@ test('discarding an item removes it for good', async () => {
 test('approving a payout as a transfer moves both balances', async () => {
 	const [mpBefore, secondBefore] = [await balanceOf('Mercado Pago'), await balanceOf(SECOND)];
 	await openItem('Transferencia o retiro');
-	await expect(itemDate()).toContainText('15:00');
+	await expect(drawer().getByText(/15:00/)).toBeVisible();
 	await expect(page.getByRole('radio', { name: 'Transf.' })).toBeChecked();
 	await expect(rememberBox()).toHaveCount(0);
 	await page.locator('input[name="description"]').fill(PAYOUT_DESC);
 	await pick(page, 'Destino', SECOND);
-	await page.getByRole('button', { name: 'Aprobar' }).click();
+	await approve().click();
 	await flash('Movimiento aprobado.');
 
 	expect(await balanceOf('Mercado Pago')).toBe(mpBefore - 5000);
@@ -313,7 +321,7 @@ test('approving without remembering leaves the other yield unsuggested', async (
 	await pick(page, 'Categoría', CATEGORY);
 	await expect(page.getByText('Los próximos de Rendimientos se completan así.')).toBeVisible();
 	await expect(rememberBox()).not.toBeChecked();
-	await page.getByRole('button', { name: 'Aprobar' }).click();
+	await approve().click();
 	await flash('Movimiento aprobado.');
 	const other = rows().filter({ hasText: 'Rendimientos' });
 	await expect(other).toHaveCount(1);
@@ -322,6 +330,74 @@ test('approving without remembering leaves the other yield unsuggested', async (
 	await openItem('Rendimientos');
 	await expect(page.locator('input[name="description"]')).toHaveValue('Rendimientos');
 	await expect(page.getByRole('button', { name: /Categoría/ })).not.toContainText(CATEGORY);
+});
+
+/** The pending-or-approved FAKE AMIGA item that still carries the remembered rule, and its movement. */
+const amigaItem = () =>
+	withDb(async (sql) => {
+		const [item] = await sql`select id, status, movement_id from mp_import_items
+			where user_id = (select id from "user" where email = ${IMPORT_EMAIL})
+			and counterparty_nickname ilike '%FAKE AMIGA%' and amount = 80050`;
+		const [m] = await sql`select count(*)::int as n from movements
+			where description = ${AMIGA_DESC}
+			and user_id = (select id from "user" where email = ${IMPORT_EMAIL})`;
+		return { status: item.status as string, movementId: item.movement_id as string | null, n: m.n };
+	});
+
+const amigaItemId = () =>
+	withDb(async (sql) => {
+		const [item] = await sql`select id from mp_import_items
+			where user_id = (select id from "user" where email = ${IMPORT_EMAIL})
+			and counterparty_nickname ilike '%FAKE AMIGA%' and amount = 80050`;
+		return item.id as string;
+	});
+
+/** Quick "Aprobar" on the suggested FAKE AMIGA row; the Deshacer toast stays up. */
+async function quickApprove() {
+	await page.goto('/imports');
+	await page.waitForLoadState('networkidle'); // hydration guard: the quick approve is progressively enhanced
+	await rows().filter({ hasText: 'FAKE AMIGA' }).getByRole('button', { name: 'Aprobar' }).click();
+	await flash('Movimiento aprobado.');
+	await expect(rows().filter({ hasText: 'FAKE AMIGA' })).toHaveCount(0);
+}
+
+test('quick approve creates the movement and Deshacer removes it and returns the item to pending', async () => {
+	const before = await amigaItem();
+	expect(before).toMatchObject({ status: 'pending', movementId: null });
+	const balance = await balanceOf('Mercado Pago');
+
+	await quickApprove();
+	const approved = await amigaItem();
+	expect(approved).toMatchObject({ status: 'approved', n: before.n + 1 });
+	expect(approved.movementId).not.toBeNull();
+
+	await page.getByRole('button', { name: 'Deshacer' }).click();
+	await expect(rows().filter({ hasText: 'FAKE AMIGA' })).toHaveCount(1);
+	expect(await amigaItem()).toEqual(before);
+	expect(await balanceOf('Mercado Pago')).toBe(balance);
+});
+
+test('Deshacer of a quick approve fails and keeps everything when the movement was edited meanwhile', async () => {
+	const before = await amigaItem();
+	await quickApprove();
+	const { movementId } = await amigaItem();
+	// An edit stamps updated_at: move it away from created_at the way updateMovement would.
+	await withDb(
+		(sql) => sql`update movements set updated_at = created_at + interval '1 minute'
+			where id = ${movementId}`
+	);
+	await page.getByRole('button', { name: 'Deshacer' }).click();
+	await expect(page.getByText('No se pudo deshacer.')).toBeVisible();
+	expect(await amigaItem()).toMatchObject({ status: 'approved', movementId, n: before.n + 1 });
+
+	// Put it back as it was (movement unedited) and undo through the action, ending where we began.
+	await withDb((sql) => sql`update movements set updated_at = created_at where id = ${movementId}`);
+	const res = await page.request.post('/imports?/undoApprove', {
+		headers: { origin, accept: 'application/json' },
+		form: { id: await amigaItemId() }
+	});
+	expect(await res.text()).toContain('"success"');
+	expect(await amigaItem()).toEqual(before);
 });
 
 test('bulk approve creates the suggested movements with exact amounts', async () => {
@@ -387,19 +463,12 @@ const syncedUntil = () =>
 		return (r.synced_until as Date).getTime();
 	});
 
-/** Sets "Importar desde" to `ymd` in the inbox; the picker submits on change. */
-async function importFrom(ymd: string, { typed = false } = {}) {
-	await page.goto('/imports');
+/** Sets "Importar desde" to `ymd` in the Mercado Pago settings; the picker saves on its own. */
+async function importFrom(ymd: string) {
+	await page.goto(MP_PATH);
 	await page.waitForLoadState('networkidle'); // hydration guard: the date picker is JS-only
-	if (typed) {
-		// The calendar cannot reach these days, so set the hidden value and fire the change the picker would.
-		await page.locator('input[name="from"]').evaluate((el, v) => {
-			(el as HTMLInputElement).value = v;
-			el.dispatchEvent(new Event('change', { bubbles: true }));
-		}, ymd);
-	} else {
-		await pickDate(page, 'Importar desde', ymd);
-	}
+	await pickDate(page, 'Importar desde', ymd);
+	await expect(page.getByText('Cambio guardado.')).toBeVisible();
 }
 
 const lastRunAt = () =>
@@ -431,8 +500,7 @@ test('moving "Importar desde" earlier searches from the chosen date, keeps synce
 	);
 
 	await untilRun(() => importFrom(from));
-	await expect(page).toHaveURL(/\/imports$/);
-	await page.reload();
+	await page.goto('/imports');
 	await expect(rows()).toHaveCount(3);
 
 	const begin = (await searchBegins())[searchesBefore];
@@ -446,10 +514,10 @@ test('moving "Importar desde" earlier searches from the chosen date, keeps synce
 	expect(decided.filter((r) => r.status === 'approved').length).toBeGreaterThan(0);
 	expect(decided.filter((r) => r.status === 'rejected').length).toBeGreaterThan(0);
 	await untilRun(() => importFrom(daysAgoYmd(90)));
-	await expect(page).toHaveURL(/\/imports$/);
 	expect(await itemRows()).toEqual(decided);
+	await page.goto('/imports');
 	await expect(rows()).toHaveCount(3);
-	await page.reload();
+	await page.goto(MP_PATH);
 	await expect(page.locator('input[name="from"]')).toHaveValue(daysAgoYmd(90));
 });
 
@@ -460,7 +528,6 @@ test('moving "Importar desde" later removes older pending items and the next syn
 	const decided = (rs: typeof before) => rs.filter((r) => r.status !== 'pending');
 
 	await importFrom(today);
-	await expect(page).toHaveURL(/\/imports$/);
 	await expect(page.locator('input[name="from"]')).toHaveValue(today);
 
 	// Pending items stamped before today are gone; approved and rejected rows are untouched.
@@ -481,7 +548,7 @@ test('moving "Importar desde" later removes older pending items and the next syn
 	await untilRun(async () => {
 		await page.goto('/imports');
 		await page.waitForLoadState('networkidle'); // hydration guard: the sync button is progressively enhanced
-		await page.getByRole('button', { name: 'Sincronizar ahora' }).click();
+		await page.getByRole('button', { name: 'Sincronizar' }).click();
 	});
 	expect((await searchBegins()).slice(searches).every((b) => b >= todayStart)).toBe(true);
 	expect((await searchBegins()).length).toBeGreaterThan(searches);
@@ -501,9 +568,14 @@ test('a date out of range is refused and starts no sync', async () => {
 		[daysAgoYmd(366), 'Podés traer hasta 12 meses para atrás.'],
 		[daysAgoYmd(-2), 'Elegí una fecha válida.']
 	]) {
-		await importFrom(ymd, { typed: true });
-		await expect(page.getByRole('alert')).toHaveText(message);
-		await expect(page).toHaveURL(/\/imports$/);
+		// The calendar cannot reach these days: post the action the way the picker would.
+		const res = await page.request.post(`${MP_PATH}?/importFrom`, {
+			headers: { origin, accept: 'application/json' },
+			form: { from: ymd }
+		});
+		const body = await res.text();
+		expect(body).toContain('"failure"');
+		expect(body).toContain(message);
 	}
 	expect((await searchBegins()).length).toBe(searches);
 });
@@ -560,20 +632,18 @@ test('the receiving account must be an active ARS account of the user', async ({
 		expect(await res.json()).toMatchObject({ type: 'failure', status: 400 });
 	}
 	await page.goto(MP_PATH);
-	await expect(
-		page.getByLabel('Cuenta que recibe los movimientos').locator('option:checked')
-	).toHaveText('Mercado Pago');
+	await expect(page.getByRole('button', { name: /Entra en/ })).toContainText('Mercado Pago');
 });
 
 test('an expired token is refreshed silently and the sync still works', async () => {
 	const tokens = async () => new Set((await calls()).map((c) => c.authorization));
 	const before = await tokens();
 	await fake('/__fake/expire', {});
-	await syncNow(/Listo\. Última sincronización/);
+	await syncNow();
 	const after = await tokens();
 	expect([...after].filter((t) => !before.has(t))).not.toHaveLength(0);
 	await expect(page.getByRole('status')).not.toContainText('No se pudo sincronizar');
-	await expect(page.getByRole('button', { name: 'Sincronizar ahora' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Sincronizar' })).toBeVisible();
 });
 
 test('a revoked connection asks to reconnect in Perfil and in the inbox', async () => {
@@ -581,13 +651,13 @@ test('a revoked connection asks to reconnect in Perfil and in the inbox', async 
 	await page.goto('/imports');
 	await Promise.all([
 		page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/imports')),
-		page.getByRole('button', { name: 'Sincronizar ahora' }).click()
+		page.getByRole('button', { name: 'Sincronizar' }).click()
 	]);
 	await expect(async () => {
 		await page.reload();
 		await expect(page.getByRole('link', { name: 'Reconectar' })).toBeVisible();
 	}).toPass({ timeout: 30_000, intervals: [300, 500, 1000] });
-	await expect(page.getByRole('button', { name: 'Sincronizar ahora' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Sincronizar' })).toHaveCount(0);
 	await expect(page.getByRole('status')).toContainText('volver a vincular');
 	// The items already imported stay listed.
 	await expect(rows().first()).toBeVisible();
@@ -602,11 +672,11 @@ test('another user links their own account and sees only their own inbox', async
 	const { ctx, p } = await asUser(browser, OTHER_EMAIL);
 	try {
 		await link(p, 'Otra cuenta pesos');
-		await p.getByRole('link', { name: 'Ver movimientos' }).click();
-		await expect(p).toHaveURL(/\/imports$/);
+		await p.goto('/imports');
+		await p.waitForLoadState('networkidle'); // hydration guard: the sync button is progressively enhanced
 		await Promise.all([
 			p.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/imports')),
-			p.getByRole('button', { name: 'Sincronizar ahora' }).click()
+			p.getByRole('button', { name: 'Sincronizar' }).click()
 		]);
 		const theirs = p.locator('[data-slot="item-group"] [role="listitem"]');
 		// Their own full import (the fake serves the same payments), not the importer's current inbox.
@@ -627,7 +697,7 @@ async function otherSync(browser: Browser, expected: RegExp) {
 		await p.goto('/imports');
 		await Promise.all([
 			p.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/imports')),
-			p.getByRole('button', { name: 'Sincronizar ahora' }).click()
+			p.getByRole('button', { name: 'Sincronizar' }).click()
 		]);
 		await expect(async () => {
 			await p.reload();
@@ -657,7 +727,7 @@ test('an account without a report configuration gets one created and syncs', asy
 }) => {
 	await fake('/__fake/settlement-config', { configured: false });
 	try {
-		const items = await otherSync(browser, /Listo\. Última sincronización/);
+		const items = await otherSync(browser, SYNCED);
 		expect(items).toBe(8);
 	} finally {
 		await fake('/__fake/settlement-config', { configured: true });
@@ -681,7 +751,7 @@ test('an existing report configuration is only changed to empty its email list w
 	const before = (await configRequests()).length;
 	await fake('/__fake/settlement-config', { configured: true, createStays404: true });
 	try {
-		await otherSync(browser, /No se pudo sincronizar/);
+		await otherSync(browser, /^No se pudo sincronizar/);
 	} finally {
 		await fake('/__fake/settlement-config', { configured: true });
 	}
