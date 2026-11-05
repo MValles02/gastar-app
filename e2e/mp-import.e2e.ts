@@ -181,12 +181,11 @@ test('sync shows live progress, fills the inbox without a reload and leaves bala
 	// The old settlement report is never requested again (it is what made MP send "report ready" emails).
 	expect((await calls()).filter((c) => c.path.includes('settlement_report'))).toEqual([]);
 	// The existing release config is edited in place by one PUT (answered 400 by the fake if it carries
-	// `scheduled` or any key MP does not document as writable), then read back: emails emptied, the parser
-	// columns added to the user's own, English headers; the user's other writable fields are kept.
+	// `scheduled` or any key MP does not document as writable): emails emptied, the parser columns added to
+	// the user's own, English headers; the user's other writable fields are kept.
 	expect((await calls()).filter((c) => c.path.includes('/config')).map((c) => c.method)).toEqual([
 		'GET',
-		'PUT',
-		'GET'
+		'PUT'
 	]);
 	const puts = (await (await fake('/__fake/report-config-puts')).json()) as {
 		file_name_prefix?: string;

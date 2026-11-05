@@ -4,7 +4,7 @@ import { db } from './db';
 import { financialAccounts, mpConnections, mpImportItems, mpSyncState } from './db/schema';
 import { canAccessAccount, canAccessImport, canAccessMpConnection, importOwnedBy } from './access';
 import { getAccessToken, listUsableConnections, refreshConnection } from './mp-oauth';
-import { dayStart, localDay } from './month';
+import { dayStart, localDay, TZ } from './month';
 
 /** Stored in mp_sync_state.last_error: a code only, never a message or payload. */
 export type MpSyncError =
@@ -361,8 +361,9 @@ const REPORT_COLUMNS = [
 
 /**
  * Config created in an MP account that has none (the report create answers 404 without one). No
- * `scheduled`: MP ignores `frequency` unless scheduling is on. An empty `notification_email_list` is what
- * should stop MP's "report ready" emails. `GMT-03` is Buenos Aires.
+ * `scheduled`: MP ignores `frequency` unless scheduling is on. An empty `notification_email_list` keeps
+ * extra recipients off MP's "report ready" email; MP mails the account owner on every report anyway, which
+ * is why the scheduler requests it once a day (see runMpSyncAll). `GMT-03` is Buenos Aires.
  * `include_withdrawal_at_end` is on so a payout stamped at the very end of a range is never left out
  * (a repeat is harmless: the item key dedupes it).
  */
@@ -425,10 +426,9 @@ function configPutBody(config: Record<string, unknown>, columns: unknown[], miss
 /**
  * Makes sure the account has a release report config the parser can read, before any report is created.
  * Missing config (404): created. Existing config: never replaced, only edited in place by a PUT of the
- * documented writable fields (the user's values kept) with the email list emptied (so MP stops mailing
- * "report ready"), the parser columns appended to the user's own, and the header language set to English
- * when it was translated (the parser reads English keys). After the PUT the config is read back and the
- * outcome logged. All best effort and never fails the sync: if the PUT does not go through, a CSV without
+ * documented writable fields (the user's values kept) with the email list emptied, the parser columns
+ * appended to the user's own, and the header language set to English when it was translated (the parser
+ * reads English keys). Best effort and never fails the sync: if the PUT does not go through, a CSV without
  * the columns fails as `parse` (see syncReport).
  */
 async function ensureReportConfig(auth: Auth): Promise<void> {
@@ -444,7 +444,6 @@ async function ensureReportConfig(auth: Auth): Promise<void> {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(REPORT_CONFIG)
 			});
-			console.info('mp report: no config, created one');
 			return;
 		}
 		if (code === 'auth') throw e;
@@ -452,23 +451,17 @@ async function ensureReportConfig(auth: Auth): Promise<void> {
 		return;
 	}
 	const { hasEmails, columns, missing, translated } = inspectConfig(config);
-	const needsFix = hasEmails || missing.length > 0 || translated;
-	console.info(`mp report: config exists, fix-up PUT ${needsFix ? 'needed' : 'not needed'}`);
-	if (!needsFix) return;
+	if (!hasEmails && missing.length === 0 && !translated) return;
 	try {
 		await api(path, auth, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(configPutBody(config, columns, missing))
 		});
-		const after = inspectConfig(obj(await apiJson(path, auth)));
-		const line = `mp report: config PUT ok, list empty ${after.hasEmails ? 'no' : 'yes'}, columns ok ${after.missing.length === 0 ? 'yes' : 'no'}`;
-		if (after.hasEmails) console.warn(line);
-		else console.info(line);
 	} catch (e) {
 		if ((e as Error).message === 'auth') throw e;
 		console.warn(
-			`mp report: config PUT or read-back failed, ${(e as Error).message} ${(e as { detail?: string }).detail ?? ''}`.trimEnd()
+			`mp release config: PUT failed, ${(e as Error).message} ${(e as { detail?: string }).detail ?? ''}`.trimEnd()
 		);
 	}
 }
@@ -489,9 +482,6 @@ async function downloadReport(begin: Date, end: Date, auth: Auth): Promise<strin
 	} catch {
 		throw fail('parse');
 	}
-	console.info(
-		`mp report: create ${res.status}, internal_management ${JSON.stringify(obj(created).internal_management ?? null)}`
-	);
 	const id = str(obj(created).id);
 	if (!id) throw fail('parse');
 	const pollMs = Number(env.MP_REPORT_POLL_MS) || DEFAULT_POLL_MS;
@@ -733,11 +723,41 @@ async function refreshed(userId: string): Promise<Auth> {
 	return { token: fresh.token };
 }
 
+/** Buenos Aires hour of the daily release report: MP mails the account owner every time one is ready. */
+const REPORT_HOUR = 8;
+const HOUR_MS = 3_600_000;
+
+/** True during the Buenos Aires hour the scheduler requests the daily release report. */
+export function isReportHour(now: Date): boolean {
+	const hour = new Intl.DateTimeFormat('en-US', { timeZone: TZ, hour: 'numeric', hourCycle: 'h23' })
+		.formatToParts(now)
+		.find((p) => p.type === 'hour')?.value;
+	return Number(hour) === REPORT_HOUR;
+}
+
 /**
- * Runs payments, then the release report, under a held lease and releases it. Never throws.
- * With `from` (a backfill) both windows start there and synced_until is left alone.
+ * Whether the scheduler still owes this account today's report: none since the last REPORT_HOUR, with an
+ * hour of slack because synced_until trails the run (END_LAG_MS) and a manual sync shortly before counts.
  */
-async function execute(l: Lease, from?: Date): Promise<void> {
+function reportDue(syncedUntil: Date | null, now: Date): boolean {
+	if (!syncedUntil) return true;
+	const today = dayStart(localDay(now));
+	if (!today) return false;
+	let last = today.getTime() + REPORT_HOUR * HOUR_MS;
+	if (last > now.getTime()) last -= DAY_MS;
+	return syncedUntil.getTime() < last - HOUR_MS;
+}
+
+/**
+ * Runs payments, then (with `report`) the release report, under a held lease and releases it. Never throws.
+ * synced_until is the report cursor: only a report run moves it, and a backfill (`from`, both windows start
+ * there) leaves it alone.
+ */
+async function execute(
+	l: Lease,
+	{ from, report }: { from?: Date; report: boolean }
+): Promise<void> {
+	let ok = false;
 	let end: Date | null = null;
 	let code: MpSyncError | null = null;
 	try {
@@ -766,17 +786,20 @@ async function execute(l: Lease, from?: Date): Promise<void> {
 		const me = str(obj(meJson).id);
 		if (!me) throw fail('parse');
 		const paid = await syncPayments(l.accountId, l.userId, me, auth, l.floor, from);
-		// Progress for the inbox: payments are stored, the report is next.
+		// Progress for the inbox: payments are stored, the report is next (if any).
 		await db
 			.update(mpSyncState)
-			.set({ phase: 'report', newItems: paid })
+			.set({ phase: report ? 'report' : 'payments', newItems: paid })
 			.where(eq(mpSyncState.accountId, l.accountId));
-		const report = await syncReport(l.accountId, l.userId, l.syncedUntil, auth, l.floor, from);
-		await db
-			.update(mpSyncState)
-			.set({ newItems: sql`coalesce(${mpSyncState.newItems}, 0) + ${report.added}` })
-			.where(eq(mpSyncState.accountId, l.accountId));
-		end = report.end;
+		if (report) {
+			const r = await syncReport(l.accountId, l.userId, l.syncedUntil, auth, l.floor, from);
+			await db
+				.update(mpSyncState)
+				.set({ newItems: sql`coalesce(${mpSyncState.newItems}, 0) + ${r.added}` })
+				.where(eq(mpSyncState.accountId, l.accountId));
+			end = r.end;
+		}
+		ok = true;
 	} catch (e) {
 		code = (e as { mp?: boolean }).mp ? ((e as Error).message as MpSyncError) : 'network';
 		console.error(`mp sync failed: ${code}`);
@@ -785,12 +808,12 @@ async function execute(l: Lease, from?: Date): Promise<void> {
 		await db
 			.update(mpSyncState)
 			.set(
-				end
+				ok
 					? {
 							runningSince: null,
 							phase: null,
 							lastError: null,
-							...(from ? {} : { syncedUntil: end }),
+							...(end && !from ? { syncedUntil: end } : {}),
 							lastRunAt: sql`now()`
 						}
 					: { runningSince: null, phase: null, lastError: code }
@@ -801,8 +824,12 @@ async function execute(l: Lease, from?: Date): Promise<void> {
 	}
 }
 
-/** Scheduler entry: syncs every usable connection one after another. Never throws; one user failing does not stop the rest. */
-export async function runMpSyncAll(): Promise<void> {
+/**
+ * Scheduler entry: syncs every usable connection one after another. Never throws; one user failing does not
+ * stop the rest. Payments always; the release report only with `report` and when the account has not had
+ * one since the last REPORT_HOUR (so a restart or a second container never requests it twice a day).
+ */
+export async function runMpSyncAll(report: boolean): Promise<void> {
 	let users: string[];
 	try {
 		users = await listUsableConnections();
@@ -813,7 +840,8 @@ export async function runMpSyncAll(): Promise<void> {
 	for (const userId of users) {
 		try {
 			const lease = await acquire(userId);
-			if (lease) await execute(lease);
+			if (lease)
+				await execute(lease, { report: report && reportDue(lease.syncedUntil, new Date()) });
 		} catch {
 			console.error('mp sync failed: network');
 		}
@@ -824,7 +852,7 @@ export async function runMpSyncAll(): Promise<void> {
 export async function startMpSync(userId: string): Promise<boolean> {
 	const lease = await acquire(userId);
 	if (!lease) return false;
-	void execute(lease);
+	void execute(lease, { report: true });
 	return true;
 }
 
@@ -832,6 +860,6 @@ export async function startMpSync(userId: string): Promise<boolean> {
 export async function startMpBackfill(userId: string, from: Date): Promise<boolean> {
 	const lease = await acquire(userId);
 	if (!lease) return false;
-	void execute(lease, from);
+	void execute(lease, { from, report: true });
 	return true;
 }

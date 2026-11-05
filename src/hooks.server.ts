@@ -5,7 +5,7 @@ import { env } from '$env/dynamic/private';
 import { auth } from '$lib/server/auth';
 import { checkEnv } from '$lib/server/env-check';
 import { mpOauthEnabled } from '$lib/server/mp-oauth';
-import { runMpSyncAll } from '$lib/server/mp-sync';
+import { isReportHour, runMpSyncAll } from '$lib/server/mp-sync';
 import { themeColors } from '$lib/theme';
 import { THEME_COOKIE } from '$lib/server/cookies';
 
@@ -14,17 +14,32 @@ if (!building && process.env.NODE_ENV === 'production') checkEnv(env);
 export const init: ServerInit = () => {
 	if (building || !mpOauthEnabled()) return;
 	const raw = env.MP_SYNC_INTERVAL_HOURS;
-	const hours = raw === undefined || raw === '' ? 6 : Number(raw);
-	if (!Number.isFinite(hours) || hours < 0) {
+	const hours = raw === undefined || raw === '' ? 1 : Number(raw);
+	if (!Number.isInteger(hours) || hours < 0) {
 		console.error('mp sync scheduler: invalid MP_SYNC_INTERVAL_HOURS');
 		return;
 	}
 	if (hours === 0) return;
-	// No extra lock: the DB lease inside runMpSyncAll keeps overlapping containers (start-first deploys) from syncing at once.
-	const run = () => void runMpSyncAll().catch(() => console.error('mp sync scheduler: run failed'));
-	setTimeout(run, 60_000).unref();
-	// Node fires delays above 2^31-1 ms (~24 days) after 1 ms, so cap there.
-	setInterval(run, Math.min(hours * 3_600_000, 2 ** 31 - 1)).unref();
+	// No extra lock: the DB lease inside runMpSyncAll keeps overlapping containers (start-first deploys) from
+	// syncing at once, and the report-due check keeps them from requesting the daily report twice.
+	const run = (report: boolean) =>
+		void runMpSyncAll(report).catch(() => console.error('mp sync scheduler: run failed'));
+	// Shortly after start: payments, plus the daily report if it was missed while the server was down.
+	setTimeout(() => run(true), 60_000).unref();
+	// On every full hour (Buenos Aires is a whole-hour offset): payments every `hours`, and the release
+	// report (MP emails the owner each time) only at the report hour.
+	let tick = 0;
+	const next = () => {
+		const now = Date.now();
+		const wait = Math.ceil((now + 1) / 3_600_000) * 3_600_000 - now + 1_000;
+		setTimeout(() => {
+			tick++;
+			const report = isReportHour(new Date());
+			if (report || tick % hours === 0) run(report);
+			next();
+		}, wait).unref();
+	};
+	next();
 };
 
 const AUTH_API_PREFIX = '/api/auth/';

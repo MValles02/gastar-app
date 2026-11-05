@@ -23,7 +23,7 @@ Env vars required at runtime:
 | `MP_CLIENT_SECRET`    | Optional. Mercado Pago application client secret (secret, never commit or log it) |
 | `MP_TOKEN_KEY`        | Optional. Key that encrypts users' Mercado Pago tokens (secret): base64 of 32 bytes, e.g. `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. The app refuses to start in production if it is set with another length. If it is lost or changed, every user must link again |
 | `MP_AUTH_BASE_URL`    | Optional, tests only. Mercado Pago authorization base URL (default `https://auth.mercadopago.com`) |
-| `MP_SYNC_INTERVAL_HOURS` | Optional. Hours between automatic syncs run inside the server process (default `6`, `0` = off). The first run is ~1 minute after start. Only active when the Mercado Pago link is on. E2E sets it to `0`. |
+| `MP_SYNC_INTERVAL_HOURS` | Optional. Whole hours between automatic payment syncs run inside the server process, on the full hour (default `1`, `0` = no automatic sync at all). The release report runs automatically only once a day, at 08:00 Buenos Aires (Mercado Pago emails the account owner each time). The first run is ~1 minute after start and also requests the day's report if it was missed. Only active when the Mercado Pago link is on. E2E sets it to `0`. |
 | `MP_API_BASE_URL`     | Optional, tests only. Mercado Pago API base URL (default `https://api.mercadopago.com`) |
 | `MP_REPORT_POLL_MS`   | Optional, tests only. Milliseconds between report-ready checks (default `15000`) |
 | `PORT`                | Port to listen on (default `3000`)                    |
