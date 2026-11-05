@@ -18,7 +18,7 @@ const dir = fileURLToPath(new URL('./fixtures/mp/', import.meta.url));
 let requests = [];
 let tasks = 0;
 let forced = null;
-// Milliseconds a settlement report task stays pending, like MP's queue; set through /__fake/report-delay.
+// Milliseconds a release report task stays pending, like MP's queue; set through /__fake/report-delay.
 let reportDelay = 0;
 const taskReadyAt = [];
 
@@ -31,18 +31,17 @@ let deny = false;
 let revoked = false;
 // Makes /oauth/token answer 500, like Mercado Pago being down.
 let tokenFails = false;
-// Settlement report config per OAuth grant (one per linked MP account). New grants start configured
-// unless /__fake/settlement-config says otherwise; `createStays404` keeps the report create at 404 even
-// after a config exists. Config POST bodies are kept for the E2E to assert.
+// Release report config per OAuth grant (one per linked MP account). New grants start configured, with an
+// owner email, one column of their own and translated headers, unless /__fake/report-config says
+// otherwise. Config POST and PUT bodies are kept for the E2E to assert.
 let grantSeq = 0;
 let currentGrant = 0;
 const tokenGrant = new Map();
 const grantConfig = new Map();
 let newGrantsConfigured = true;
-let createStays404 = false;
 let configPosts = [];
 let configPuts = [];
-// begin_date of every settlement report created, oldest first; read through /__fake/report-begins.
+// begin_date of every release report created, oldest first; read through /__fake/report-begins.
 let reportBegins = [];
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
 
@@ -68,7 +67,7 @@ const readBody = (req) =>
 		req.on('data', (c) => (data += c));
 		req.on('end', () => resolve(data));
 	});
-const reportFile = (n) => `settlement-report-gastar-${n}.csv`;
+const reportFile = (n) => `gastar-release-${n}.csv`;
 const badDate = (res) =>
 	send(res, 400, { message: 'Invalid date parameter', error: 'bad_request', cause: [] });
 
@@ -96,21 +95,19 @@ createServer(async (req, res) => {
 		tokenGrant.clear();
 		grantConfig.clear();
 		newGrantsConfigured = true;
-		createStays404 = false;
 		configPosts = [];
 		configPuts = [];
 		reportBegins = [];
 		return send(res, 200, { ok: true });
 	}
 	if (path === '/__fake/report-begins') return send(res, 200, reportBegins);
-	if (path === '/__fake/settlement-config' && req.method === 'POST') {
+	if (path === '/__fake/report-config' && req.method === 'POST') {
 		const b = JSON.parse((await readBody(req)) || '{}');
 		newGrantsConfigured = b.configured ?? true;
-		createStays404 = !!b.createStays404;
 		return send(res, 200, { ok: true });
 	}
-	if (path === '/__fake/settlement-config') return send(res, 200, configPosts);
-	if (path === '/__fake/settlement-config-puts') return send(res, 200, configPuts);
+	if (path === '/__fake/report-config') return send(res, 200, configPosts);
+	if (path === '/__fake/report-config-puts') return send(res, 200, configPuts);
 	if (path === '/__fake/report-delay' && req.method === 'POST') {
 		reportDelay = Number(JSON.parse((await readBody(req)) || '{}').ms) || 0;
 		return send(res, 200, { ok: true });
@@ -177,7 +174,12 @@ createServer(async (req, res) => {
 			grantConfig.set(
 				currentGrant,
 				newGrantsConfigured
-					? { seeded: true, notification_email_list: ['owner@example.com'] }
+					? {
+							seeded: true,
+							notification_email_list: ['owner@example.com'],
+							columns: [{ key: 'DATE' }, { key: 'USER_COLUMN' }],
+							report_translation: 'es'
+						}
 					: null
 			);
 		} else if (body.grant_type === 'refresh_token') {
@@ -235,8 +237,8 @@ createServer(async (req, res) => {
 			paging: { total: all.length, offset, limit }
 		});
 	}
-	// Real MP answers 404 on the report create until the account has a settlement report config.
-	if (path === '/v1/account/settlement_report/config') {
+	// Real MP answers 404 on the config GET and on the report create until the account has a release config.
+	if (path === '/v1/account/release_report/config') {
 		if (req.method === 'POST') {
 			const config = JSON.parse((await readBody(req)) || '{}');
 			configPosts.push(config);
@@ -254,8 +256,8 @@ createServer(async (req, res) => {
 		}
 		return send(res, 404, { message: 'not_found' });
 	}
-	if (path === '/v1/account/settlement_report' && req.method === 'POST') {
-		if (!grantConfig.get(grant) || createStays404) return send(res, 404, { message: 'not_found' });
+	if (path === '/v1/account/release_report' && req.method === 'POST') {
+		if (!grantConfig.get(grant)) return send(res, 404, { message: 'not_found' });
 		// Mirrors the real API: report dates must be YYYY-MM-DDTHH:MM:SSZ (no milliseconds).
 		const body = JSON.parse((await readBody(req)) || '{}');
 		const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
@@ -265,62 +267,37 @@ createServer(async (req, res) => {
 		taskReadyAt[tasks] = Date.now() + reportDelay;
 		return send(res, 202, { id: tasks, status: 'pending' });
 	}
-	if ((m = path.match(/^\/v1\/account\/settlement_report\/task\/(\d+)$/))) {
-		// Mirrors the real task: status `available` once ready, file under `files`, never a top-level file_name.
+	if ((m = path.match(/^\/v1\/account\/release_report\/task\/(\d+)$/))) {
+		// Mirrors the documented task: `file_name` is null until the status is `processed`.
 		const n = Number(m[1]);
 		if (n < 1 || n > tasks) return send(res, 404, { message: 'not_found' });
 		const ready = Date.now() >= taskReadyAt[n];
 		const now = new Date().toISOString();
 		return send(res, 200, {
-			id: String(n),
-			date_start: now,
-			date_end: now,
-			date_created: now,
-			created_by: 'api',
-			description: 'settlement report',
-			report: { id: 'r1', name: 'settlement', topic: 'settlement', status: 'active' },
-			files: ready
-				? [
-						{
-							type: 'csv',
-							url: 'https://fake.invalid/report',
-							name: reportFile(n),
-							last_download_date: now
-						}
-					]
-				: [],
-			event: null,
-			structure: { id: 's1', version: 1, name: 'settlement-report-gastar' },
-			origin: { type: 'api', data: { date_start: now, date_end: now } },
-			notifiers: [],
-			status: ready ? 'available' : 'pending',
-			notification_data: null,
-			currency_id: 'ARS'
+			id: n,
+			user_id: ME,
+			begin_date: now,
+			end_date: now,
+			created_from: 'manual',
+			is_test: false,
+			is_reserve: false,
+			status: ready ? 'processed' : 'processing',
+			report_type: 'release',
+			generation_date: now,
+			report_id: ready ? 1000 + n : null,
+			last_modified: now,
+			retries: 0,
+			sub_type: 'release',
+			account_id: ME,
+			currency_id: 'ARS',
+			format: 'CSV',
+			file_name: ready ? reportFile(n) : null
 		});
 	}
-	if (path === '/v1/account/settlement_report/list') {
-		// Mirrors the real list: numeric ids unrelated to task ids, `processed` entries carrying file_name.
-		const ready = taskReadyAt.flatMap((at, n) => (n && Date.now() >= at ? [n] : []));
-		return send(
-			res,
-			200,
-			ready.map((n) => ({
-				id: 1000 + n,
-				begin_date: new Date().toISOString(),
-				end_date: new Date().toISOString(),
-				file_name: reportFile(n),
-				created_from: 'manual',
-				status: 'processed',
-				report_type: 'settlement',
-				format: 'CSV',
-				currency_id: 'ARS'
-			}))
-		);
-	}
-	if ((m = path.match(/^\/v1\/account\/settlement_report\/settlement-report-gastar-(\d+)\.csv$/))) {
+	if ((m = path.match(/^\/v1\/account\/release_report\/gastar-release-(\d+)\.csv$/))) {
 		const n = Number(m[1]);
 		return n >= 1 && n <= tasks
-			? send(res, 200, fixture('settlement-report.csv'), 'text/csv')
+			? send(res, 200, fixture('release-report.csv'), 'text/csv')
 			: send(res, 404, { message: 'not found' });
 	}
 	if ((m = path.match(/^\/users\/(\d+)$/))) {

@@ -331,109 +331,120 @@ async function syncPayments(
 	return added;
 }
 
-// ---------- Settlement report: yields and payouts, minutes in MP's queue ----------
+// ---------- Release report ("Liquidaciones"): yields and payouts, minutes in MP's queue ----------
+
+const REPORT = '/v1/account/release_report';
+/**
+ * Every column the CSV parser reads. A new config gets exactly these; an existing one gets the missing
+ * ones appended (reportItem and syncReport would otherwise read blanks).
+ */
+const REPORT_COLUMNS = [
+	'DATE',
+	'SOURCE_ID',
+	'EXTERNAL_REFERENCE',
+	'RECORD_TYPE',
+	'DESCRIPTION',
+	'NET_CREDIT_AMOUNT',
+	'NET_DEBIT_AMOUNT'
+];
 
 /**
- * Config created in an MP account that has none (the report create answers 404 without one). Columns are
- * every key the CSV parser below reads. No `scheduled`: MP ignores `frequency` unless scheduling is on.
- * An empty `notification_email_list` turns off MP's "report ready" emails.
+ * Config created in an MP account that has none (the report create answers 404 without one). No
+ * `scheduled`: MP ignores `frequency` unless scheduling is on. An empty `notification_email_list` is what
+ * turns off MP's "report ready" emails (MP mails the owner only when listed). `GMT-03` is Buenos Aires.
+ * `include_withdrawal_at_end` is on so a payout stamped at the very end of a range is never left out
+ * (a repeat is harmless: the item key dedupes it).
  */
-const SETTLEMENT_CONFIG = {
-	file_name_prefix: 'gastar-settlement',
-	include_withdraw: true,
+const REPORT_CONFIG = {
+	file_name_prefix: 'gastar-release',
 	display_timezone: 'GMT-03',
-	header_language: 'en',
-	columns: [
-		'EXTERNAL_REFERENCE',
-		'SOURCE_ID',
-		'PAYMENT_METHOD',
-		'TRANSACTION_TYPE',
-		'TRANSACTION_AMOUNT',
-		'TRANSACTION_DATE',
-		'SETTLEMENT_NET_AMOUNT'
-	].map((key) => ({ key })),
+	report_translation: 'en',
+	include_withdrawal_at_end: true,
+	columns: REPORT_COLUMNS.map((key) => ({ key })),
 	frequency: { hour: 0, type: 'monthly', value: 1 },
-	show_fee_prevision: false,
-	refund_detailed: true,
 	notification_email_list: [] as string[]
 };
 
 /**
- * Best effort: empty the email list of an existing config (the only field Gastar ever changes on it) so
- * MP stops mailing "report ready". A missing config is left for the create-on-404 path. Never fails the sync.
+ * Makes sure the account has a release report config the parser can read, before any report is created.
+ * Missing config (404): created. Existing config: never replaced, only edited in place by a PUT of the
+ * same object with the email list emptied (so MP stops mailing "report ready"), the parser columns
+ * appended to the user's own, and the header language set to English when it was translated (the parser
+ * reads English keys). Nothing else is touched. The PUT is best effort and never fails the sync: if it
+ * does not go through, a CSV without the columns fails as `parse` (see syncReport).
  */
-async function silenceReportEmails(auth: Auth): Promise<void> {
+async function ensureReportConfig(auth: Auth): Promise<void> {
+	const path = `${REPORT}/config`;
+	let config: Record<string, unknown>;
 	try {
-		const config = obj(await apiJson('/v1/account/settlement_report/config', auth));
-		const list = config.notification_email_list;
-		if (!Array.isArray(list) || list.length === 0) return;
-		await api('/v1/account/settlement_report/config', auth, {
+		config = obj(await apiJson(path, auth));
+	} catch (e) {
+		const code = (e as Error).message;
+		if (code === 'mp_404') {
+			await api(path, auth, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(REPORT_CONFIG)
+			});
+			return;
+		}
+		if (code === 'auth') throw e;
+		console.warn('mp release config: could not read it');
+		return;
+	}
+	const list = Array.isArray(config.notification_email_list) ? config.notification_email_list : [];
+	// MP shows an empty list as [{}] or [null]: only a real address needs removing.
+	const hasEmails = list.some((e) => typeof e === 'string' && e.trim() !== '');
+	const columns = Array.isArray(config.columns) ? config.columns : [];
+	const have = new Set(columns.map((c) => str(obj(c).key)));
+	const missing = REPORT_COLUMNS.filter((key) => !have.has(key));
+	const translated = config.report_translation != null && config.report_translation !== 'en';
+	if (!hasEmails && missing.length === 0 && !translated) return;
+	try {
+		await api(path, auth, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ ...config, notification_email_list: [] })
+			body: JSON.stringify({
+				...config,
+				notification_email_list: [],
+				columns: [...columns, ...missing.map((key) => ({ key }))],
+				...(translated ? { report_translation: 'en' } : {})
+			})
 		});
 	} catch (e) {
-		if ((e as Error).message !== 'mp_404') {
-			console.warn('mp settlement config: could not empty the email list');
-		}
+		if ((e as Error).message === 'auth') throw e;
+		console.warn('mp release config: could not update it');
 	}
 }
 
-async function downloadSettlement(begin: Date, end: Date, auth: Auth): Promise<string> {
-	const create = () =>
-		apiJson('/v1/account/settlement_report', auth, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			// Reports reject milliseconds: send YYYY-MM-DDTHH:MM:SSZ.
-			body: JSON.stringify({
-				begin_date: begin.toISOString().replace(/\.\d{3}Z$/, 'Z'),
-				end_date: end.toISOString().replace(/\.\d{3}Z$/, 'Z')
-			})
-		});
-	let created: unknown;
-	await silenceReportEmails(auth);
-	try {
-		created = await create();
-	} catch (e) {
-		if ((e as Error).message !== 'mp_404') throw e;
-		// No config in this account: create one only if none exists (never overwrite; the only edit to an
-		// existing config is silenceReportEmails), then retry once.
-		let exists = true;
-		try {
-			await api('/v1/account/settlement_report/config', auth);
-		} catch (g) {
-			if ((g as Error).message !== 'mp_404') throw g;
-			exists = false;
-		}
-		if (exists) throw e;
-		await api('/v1/account/settlement_report/config', auth, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(SETTLEMENT_CONFIG)
-		});
-		created = await create();
-	}
-	const task = obj(created);
-	const id = str(task.id);
+async function downloadReport(begin: Date, end: Date, auth: Auth): Promise<string> {
+	const created = await apiJson(REPORT, auth, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		// Reports reject milliseconds: send YYYY-MM-DDTHH:MM:SSZ.
+		body: JSON.stringify({
+			begin_date: begin.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+			end_date: end.toISOString().replace(/\.\d{3}Z$/, 'Z')
+		})
+	});
+	const id = str(obj(created).id);
 	if (!id) throw fail('parse');
 	const pollMs = Number(env.MP_REPORT_POLL_MS) || DEFAULT_POLL_MS;
 	const deadline = Date.now() + POLL_TIMEOUT_MS;
 	let doneWithoutFile = false;
 	while (Date.now() < deadline) {
 		await sleep(pollMs);
-		const t = obj(
-			await apiJson(`/v1/account/settlement_report/task/${encodeURIComponent(id)}`, auth)
-		);
+		const t = obj(await apiJson(`${REPORT}/task/${encodeURIComponent(id)}`, auth));
 		const status = str(t.status)?.toLowerCase() ?? '';
 		if (TASK_FAILED.has(status)) throw fail('parse');
 		if (!TASK_DONE.has(status)) continue;
-		const file = taskFile(t.files);
+		const file = taskFile(t);
 		if (!file) {
 			// The file may lag the status by a poll; if it never shows, the shape is not what we expect.
 			doneWithoutFile = true;
 			continue;
 		}
-		const res = await api(`/v1/account/settlement_report/${encodeURIComponent(file)}`, auth);
+		const res = await api(`${REPORT}/${encodeURIComponent(file)}`, auth);
 		try {
 			return await res.text();
 		} catch {
@@ -443,50 +454,70 @@ async function downloadSettlement(begin: Date, end: Date, auth: Auth): Promise<s
 	throw fail(doneWithoutFile ? 'parse' : 'report_timeout');
 }
 
-/** A ready task reports `available` (`/list` entries say `processed`; task ids differ from list ids). */
-const TASK_DONE = new Set(['available', 'processed']);
+/** A ready task reports `processed` (the documented list status; `available` is the old report's word). */
+const TASK_DONE = new Set(['processed', 'available']);
 const TASK_FAILED = new Set(['failed', 'error', 'errored', 'rejected', 'cancelled', 'canceled']);
 const CSV_FILE_RE = /^[\w.-]+\.csv$/i;
 
-/** The CSV in a task's `files`, entries shaped `{ type, url, name, last_download_date }`. */
-function taskFile(files: unknown): string | null {
-	if (!Array.isArray(files)) return null;
-	const name = files.map((f) => text(obj(f).name)).find((n) => n && CSV_FILE_RE.test(n));
+/** The CSV name of a ready task: its `file_name`, else the first CSV in a `files` list of `{ name }` entries. */
+function taskFile(task: Record<string, unknown>): string | null {
+	const direct = text(task.file_name);
+	if (direct && CSV_FILE_RE.test(direct)) return direct;
+	if (!Array.isArray(task.files)) return null;
+	const name = task.files.map((f) => text(obj(f).name)).find((n) => n && CSV_FILE_RE.test(n));
 	return name ?? null;
 }
 
+/** Net amount of a release row in cents: credit minus debit. Each column is read by magnitude (MP prints debits unsigned). */
+function netCents(r: Row): number {
+	return Math.abs(cents(r.NET_CREDIT_AMOUNT ?? '')) - Math.abs(cents(r.NET_DEBIT_AMOUNT ?? ''));
+}
+
 /**
- * Only daily yields (SETTLEMENT, no payment method, 13-digit SOURCE_ID) and PAYOUTS; every other row
- * is a payment, which payments/search already brings. A payout with an EXTERNAL_REFERENCE is a payment
- * at a merchant (interoperable QR); without one it is a transfer or withdrawal.
+ * Only `release` rows described as `payout` (money leaving the available balance), `asset_management_gain`
+ * or `asset_management_loss` (daily yield); every other row is a payment, which payments/search already
+ * brings, or a balance line. A payout with an EXTERNAL_REFERENCE is a payment at a merchant
+ * (interoperable QR); without one it is a transfer or withdrawal. A yield row is signed (a loss is a debit);
+ * syncReport nets them per local day. Keys are the ones the old settlement report used.
  */
 function reportItem(r: Row): Omit<Item, 'userId' | 'accountId'> | null {
-	const id = r.SOURCE_ID ?? '';
-	const isYield = r.TRANSACTION_TYPE === 'SETTLEMENT' && !r.PAYMENT_METHOD && /^\d{13}$/.test(id);
-	if (!isYield && r.TRANSACTION_TYPE !== 'PAYOUTS') return null;
-	const signed = cents(r.TRANSACTION_AMOUNT || r.SETTLEMENT_NET_AMOUNT || '');
-	// Yields only add and payouts only take; any other sign (a reversal) is not one of them.
-	if (isYield ? signed <= 0 : signed >= 0) return null;
-	const amount = Math.abs(signed);
-	const occurredAt = date(r.TRANSACTION_DATE);
+	if (r.RECORD_TYPE !== 'release') return null;
+	const isYield =
+		r.DESCRIPTION === 'asset_management_gain' || r.DESCRIPTION === 'asset_management_loss';
+	if (!isYield && r.DESCRIPTION !== 'payout') return null;
+	const signed = netCents(r);
+	if (signed === 0) return null;
+	const occurredAt = date(r.DATE);
 	if (isYield) {
 		const day = localDay(occurredAt);
-		const base = { occurredAt, amount, isCredit: true, rawDescription: 'asset_management' };
-		return { ...base, externalKey: `yield:${day}`, kind: 'yield', sourceId: day };
+		const base = { occurredAt, amount: Math.abs(signed), isCredit: signed > 0 };
+		return {
+			...base,
+			externalKey: `yield:${day}`,
+			kind: 'yield',
+			sourceId: day,
+			rawDescription: 'asset_management'
+		};
 	}
+	const id = r.SOURCE_ID ?? '';
 	if (!id) throw fail('parse');
+	// A payout only takes; a credit under that description (a reversal) is not one.
+	if (signed > 0) return null;
 	return {
 		externalKey: `payout:${id}:out`,
 		kind: r.EXTERNAL_REFERENCE ? 'merchant_payout' : 'payout',
 		sourceId: id,
 		occurredAt,
-		amount,
+		amount: -signed,
 		isCredit: false,
 		rawDescription: 'payout'
 	};
 }
 
-/** Pulls the settlement report from the last report sync (minus overlap) to now. Returns the new end and the items it added. */
+/**
+ * Pulls the release report from the last report sync (minus overlap) to now. Returns the new end and the items it added.
+ * The cursor is the one the settlement report left (mp_sync_state.synced_until): the next run continues from it.
+ */
 async function syncReport(
 	accountId: string,
 	ownerId: string,
@@ -511,41 +542,51 @@ async function syncReport(
 			: backfillStart(now, floor);
 	if (!begin) throw fail('config');
 
-	// Yield rows sharing a day (across all chunks) are summed before any write; the first row's fields stay.
+	await ensureReportConfig(auth);
+	// Yield rows sharing a day (across all chunks) are netted before any write (gains minus losses); the first row's fields stay.
 	const items = new Map<string, NonNullable<ReturnType<typeof reportItem>>>();
 	for (let from = begin.getTime(); from < end.getTime(); from += CHUNK_DAYS * DAY_MS) {
 		const next = from + CHUNK_DAYS * DAY_MS;
 		// Half-open ranges: a row stamped on a boundary belongs to the next chunk only.
 		const to = new Date(next < end.getTime() ? next - 1 : end.getTime());
-		const csv = await downloadSettlement(new Date(from), to, auth);
+		const csv = await downloadReport(new Date(from), to, auth);
 		// Each chunk can wait minutes in MP's queue: renew the lease so a long backfill keeps it.
 		await db
 			.update(mpSyncState)
 			.set({ runningSince: sql`now()` })
 			.where(eq(mpSyncState.accountId, accountId));
-		for (const r of parseCsv(csv)) {
+		const parsed = parseCsv(csv);
+		// A config that lacks a parser column (the PUT in ensureReportConfig did not go through) reads as blanks.
+		if (parsed.length && !REPORT_COLUMNS.every((k) => k in parsed[0])) throw fail('parse');
+		for (const r of parsed) {
 			const item = reportItem(r);
 			if (!item) continue;
 			const prev = items.get(item.externalKey);
-			items.set(
-				item.externalKey,
-				prev && item.kind === 'yield' ? { ...prev, amount: prev.amount + item.amount } : item
-			);
+			if (!prev || item.kind !== 'yield') {
+				items.set(item.externalKey, item);
+				continue;
+			}
+			const net = (i: { amount: number; isCredit: boolean }) => (i.isCredit ? i.amount : -i.amount);
+			const sum = net(prev) + net(item);
+			items.set(item.externalKey, { ...prev, amount: Math.abs(sum), isCredit: sum > 0 });
 		}
 	}
 
 	let added = 0;
 	for (const item of items.values()) {
+		// A day whose gains and losses cancel out has nothing to import.
+		if (item.amount === 0) continue;
 		const values = { ...importOwnedBy(ownerId), accountId, ...item };
 		const rows = await db
 			.insert(mpImportItems)
 			.values(values)
 			.onConflictDoUpdate({
 				target: [mpImportItems.userId, mpImportItems.externalKey],
-				// Also relabels and re-times pending items imported by the old release-report sync.
+				// Also relabels, re-times and re-signs pending items imported by the old syncs. Approved and rejected stay.
 				set: {
 					kind: values.kind,
 					amount: values.amount,
+					isCredit: values.isCredit,
 					occurredAt: values.occurredAt,
 					updatedAt: sql`now()`
 				},
@@ -626,7 +667,7 @@ async function refreshed(userId: string): Promise<Auth> {
 }
 
 /**
- * Runs payments, then the settlement report, under a held lease and releases it. Never throws.
+ * Runs payments, then the release report, under a held lease and releases it. Never throws.
  * With `from` (a backfill) both windows start there and synced_until is left alone.
  */
 async function execute(l: Lease, from?: Date): Promise<void> {

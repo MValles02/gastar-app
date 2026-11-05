@@ -146,6 +146,7 @@ export const importTypes = (isCredit: boolean): MovementType[] =>
 type ImportRuleKey = { matchKind: 'counterparty' | 'merchant' | 'kind'; matchValue: string };
 type ImportKeyFields = {
 	kind: string;
+	isCredit: boolean;
 	operationType: string | null;
 	counterpartyId: string | null;
 	merchant: string | null;
@@ -160,8 +161,12 @@ export function importRuleKeys(i: ImportKeyFields): ImportRuleKey[] {
 		keys.push({ matchKind: 'counterparty', matchValue: i.counterpartyId });
 	const merchant = i.merchant?.trim().toLowerCase();
 	if (merchant) keys.push({ matchKind: 'merchant', matchValue: merchant });
-	if (['yield', 'payout', 'merchant_payout', 'account_fund'].includes(i.kind))
-		keys.push({ matchKind: 'kind', matchValue: i.kind });
+	// A net-negative yield day must not share (and overwrite) the rule learned from the usual positive ones.
+	const stable =
+		i.kind === 'yield'
+			? i.isCredit
+			: ['payout', 'merchant_payout', 'account_fund'].includes(i.kind);
+	if (stable) keys.push({ matchKind: 'kind', matchValue: i.kind });
 	return keys;
 }
 

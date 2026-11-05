@@ -36,7 +36,7 @@ const calls = async () =>
 		authorization: string | null;
 	}[];
 const reportRequests = async () =>
-	(await calls()).filter((r) => r.method === 'POST' && r.path === '/v1/account/settlement_report')
+	(await calls()).filter((r) => r.method === 'POST' && r.path === '/v1/account/release_report')
 		.length;
 /** begin_date of every payments search, oldest call first. */
 const searchBegins = async () =>
@@ -175,20 +175,54 @@ test('sync shows live progress, fills the inbox without a reload and leaves bala
 	await expect(main.getByText('TIENDA CON TARJETA')).toHaveCount(0);
 	await expect(main.getByText('PAGO RECHAZADO')).toHaveCount(0);
 
-	// First run: payments from the 30-day backfill; the report config only has its email list emptied.
+	// First run: payments from the 30-day backfill.
 	const [first] = await searchBegins();
 	expect(Date.now() - first).toBeGreaterThan(29 * DAY_MS);
+	// The old settlement report is never requested again (it is what made MP send "report ready" emails).
+	expect((await calls()).filter((c) => c.path.includes('settlement_report'))).toEqual([]);
+	// The existing release config is edited in place by one PUT: emails emptied, the parser columns added
+	// to the user's own, English headers; everything else (seeded) is kept.
 	expect((await calls()).filter((c) => c.path.includes('/config')).map((c) => c.method)).toEqual([
 		'GET',
 		'PUT'
 	]);
-	const puts = (await (await fake('/__fake/settlement-config-puts')).json()) as {
+	const puts = (await (await fake('/__fake/report-config-puts')).json()) as {
 		seeded?: boolean;
 		notification_email_list: string[];
+		columns: { key: string }[];
+		report_translation: string;
 	}[];
 	expect(puts).toHaveLength(1);
 	expect(puts[0].notification_email_list).toEqual([]);
 	expect(puts[0].seeded).toBe(true);
+	expect(puts[0].report_translation).toBe('en');
+	expect(puts[0].columns.map((c) => c.key)).toEqual(
+		expect.arrayContaining(['USER_COLUMN', ...PARSER_COLUMNS])
+	);
+	expect(puts[0].columns.map((c) => c.key)).toHaveLength(
+		new Set(puts[0].columns.map((c) => c.key)).size
+	);
+
+	// Same item keys as the old settlement report (so earlier imports are recognised); a day whose losses
+	// outweigh its gains is one debit yield (12,34 + 5,02 - 20,00 = -2,64).
+	const yields = await withDb(
+		(sql) => sql`select external_key, amount::int as amount, is_credit from mp_import_items
+			where user_id = (select id from "user" where email = ${IMPORT_EMAIL})
+			and kind = 'yield' order by external_key`
+	);
+	expect(yields.map((y) => [y.external_key, y.amount, y.is_credit])).toEqual([
+		[`yield:${daysAgoYmd(14)}`, 264, false],
+		[`yield:${daysAgoYmd(13)}`, 789, true]
+	]);
+	const payouts = await withDb(
+		(sql) => sql`select external_key, kind from mp_import_items
+			where user_id = (select id from "user" where email = ${IMPORT_EMAIL})
+			and kind in ('payout', 'merchant_payout') order by external_key`
+	);
+	expect(payouts.map((p) => [p.external_key, p.kind])).toEqual([
+		['payout:9000000004:out', 'payout'],
+		['payout:9000000005:out', 'merchant_payout']
+	]);
 
 	expect(await accountRow()).toBe(balance);
 
@@ -200,7 +234,7 @@ test('a second sync searches from the last payment and keeps the same items', as
 	const before = await reportRequests();
 	const configBefore = (await configRequests()).length;
 	await syncNow();
-	// The email list is already empty: only a GET, no PUT.
+	// The config is already clean: only a GET, no PUT.
 	expect((await configRequests()).slice(configBefore).map((c) => c.method)).toEqual(['GET']);
 	expect(await reportRequests()).toBe(before + 1);
 	await expect(rows()).toHaveCount(8);
@@ -328,8 +362,9 @@ test('approving without remembering leaves the other yield unsuggested', async (
 	await expect(other).not.toContainText('Sugerido');
 
 	await openItem('Rendimientos');
+	// The remaining yield day lost money: a debit, so it defaults to Gasto.
+	await expect(page.getByRole('radio', { name: 'Gasto' })).toBeChecked();
 	await expect(page.locator('input[name="description"]')).toHaveValue('Rendimientos');
-	await expect(page.getByRole('button', { name: /Categoría/ })).not.toContainText(CATEGORY);
 });
 
 /** The pending-or-approved FAKE AMIGA item that still carries the remembered rule, and its movement. */
@@ -711,53 +746,39 @@ async function otherSync(browser: Browser, expected: RegExp) {
 }
 
 const configRequests = async () => (await calls()).filter((c) => c.path.endsWith('/config'));
-// Every column the settlement CSV parser reads.
+// Every column the release CSV parser reads.
 const PARSER_COLUMNS = [
-	'EXTERNAL_REFERENCE',
+	'DATE',
 	'SOURCE_ID',
-	'PAYMENT_METHOD',
-	'TRANSACTION_TYPE',
-	'TRANSACTION_AMOUNT',
-	'TRANSACTION_DATE',
-	'SETTLEMENT_NET_AMOUNT'
+	'EXTERNAL_REFERENCE',
+	'RECORD_TYPE',
+	'DESCRIPTION',
+	'NET_CREDIT_AMOUNT',
+	'NET_DEBIT_AMOUNT'
 ];
 
-test('an account without a report configuration gets one created and syncs', async ({
+test('an account without a release report configuration gets one created and syncs', async ({
 	browser
 }) => {
-	await fake('/__fake/settlement-config', { configured: false });
+	await fake('/__fake/report-config', { configured: false });
 	try {
 		const items = await otherSync(browser, SYNCED);
 		expect(items).toBe(8);
 	} finally {
-		await fake('/__fake/settlement-config', { configured: true });
+		await fake('/__fake/report-config', { configured: true });
 	}
-	const posts = (await (await fake('/__fake/settlement-config')).json()) as {
-		include_withdraw: boolean;
+	const posts = (await (await fake('/__fake/report-config')).json()) as {
+		display_timezone: string;
 		columns: { key: string }[];
 		notification_email_list: string[];
 	}[];
 	expect(posts).toHaveLength(1);
-	expect(posts[0].include_withdraw).toBe(true);
-	expect(posts[0].columns.map((c) => c.key)).toEqual(expect.arrayContaining(PARSER_COLUMNS));
+	// Buenos Aires day boundaries, only the columns the parser reads, nobody notified.
+	expect(posts[0].display_timezone).toBe('GMT-03');
+	expect(posts[0].columns.map((c) => c.key)).toEqual(PARSER_COLUMNS);
 	expect(posts[0].notification_email_list).toEqual([]);
-	// The silencing GET and the create's own GET both 404; then the config is created.
-	expect((await configRequests()).slice(-3).map((c) => c.method)).toEqual(['GET', 'GET', 'POST']);
-});
-
-test('an existing report configuration is only changed to empty its email list when the report still 404s', async ({
-	browser
-}) => {
-	const before = (await configRequests()).length;
-	await fake('/__fake/settlement-config', { configured: true, createStays404: true });
-	try {
-		await otherSync(browser, /^No se pudo sincronizar/);
-	} finally {
-		await fake('/__fake/settlement-config', { configured: true });
-	}
-	const methods = (await configRequests()).slice(before).map((c) => c.method);
-	expect(methods).not.toContain('POST');
-	expect(methods.filter((m) => m === 'PUT').length).toBeLessThanOrEqual(1);
+	// The config GET 404s, then the config is created; an existing one is never POSTed over.
+	expect((await configRequests()).slice(-2).map((c) => c.method)).toEqual(['GET', 'POST']);
 });
 
 test('disconnecting removes the link and the inbox asks to link again', async () => {
