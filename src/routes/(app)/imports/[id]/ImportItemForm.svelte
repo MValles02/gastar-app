@@ -262,7 +262,7 @@
 							No se importa a tus movimientos y no vuelve a aparecer.
 						</AlertDialog.Description>
 					</AlertDialog.Header>
-					<AlertDialog.Footer class="m-0 grid grid-cols-2 border-0 bg-transparent p-0">
+					<AlertDialog.Footer>
 						<AlertDialog.Cancel type="button" class="w-full">Cancelar</AlertDialog.Cancel>
 						<AlertDialog.Action type="button" variant="destructive" class="w-full" onclick={discard}
 							>Descartar</AlertDialog.Action

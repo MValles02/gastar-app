@@ -56,7 +56,7 @@
 
 <PageHeader
 	title="Categorías"
-	back={{ href: resolve('/profile'), label: 'Volver al perfil' }}
+	back={{ href: resolve('/profile'), label: 'Volver al perfil', text: 'Perfil' }}
 	action={data.hasAnyCategory ? add : undefined}
 />
 
@@ -184,8 +184,8 @@
 		align-items: center;
 		min-height: var(--tap-target);
 		font-weight: 500;
-		color: var(--text);
-		text-decoration: underline;
+		color: var(--link);
+		text-decoration: none;
 	}
 
 	/* Month totals stacked on the right (ARS on top); an empty month is a muted zero. */

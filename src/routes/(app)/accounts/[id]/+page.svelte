@@ -61,7 +61,10 @@
 </svelte:head>
 
 <div class="detail">
-	<PageHeader title={a.name} back={{ href: resolve('/accounts'), label: 'Volver a cuentas' }} />
+	<PageHeader
+		title={a.name}
+		back={{ href: resolve('/accounts'), label: 'Volver a cuentas', text: 'Cuentas' }}
+	/>
 
 	<DetailHero cents={balance} currency={a.currency} label="Saldo" {labelId}>
 		{#snippet top()}
@@ -93,7 +96,7 @@
 			>
 				<span class="k">Ícono y color</span>
 				<span class="v glyph">
-					<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} size="1.75rem" />
+					<IconBadge icon={toIconKey(a.icon)} color={toSwatchKey(a.color)} size="1.625rem" />
 					<ChevronRight
 						size={16}
 						strokeWidth={1.75}

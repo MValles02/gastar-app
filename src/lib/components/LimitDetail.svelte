@@ -150,7 +150,7 @@
 							<AlertDialog.Title>¿Eliminar este límite?</AlertDialog.Title>
 							<AlertDialog.Description>Esta acción no se puede deshacer.</AlertDialog.Description>
 						</AlertDialog.Header>
-						<AlertDialog.Footer class="m-0 grid grid-cols-2 border-0 bg-transparent p-0">
+						<AlertDialog.Footer>
 							<AlertDialog.Cancel type="button" class="w-full">Cancelar</AlertDialog.Cancel>
 							<AlertDialog.Action
 								type="button"
@@ -255,7 +255,7 @@
 		font-family: var(--font-body);
 		font-size: var(--font-size-sm);
 		font-weight: 500;
-		text-decoration: underline;
+		color: var(--link);
 	}
 
 	.card {

@@ -12,8 +12,9 @@
 
 	/**
 	 * Sticky top bar. Full (no `back` and no `close`; the 4 tab pages): [eyebrow + title] [avisos]
-	 * [profile], the eyebrow defaulting to today's date. Little (`back` chevron or `close` X): button +
-	 * one-line truncating title, no eyebrow, bell or avatar; `close` wins over `back`.
+	 * [profile], the eyebrow defaulting to today's date. `back`: a "‹ Parent" link on its own row above
+	 * the full-size title (and `action`). `close`: X button + one-line truncating title. Neither shows
+	 * the eyebrow, bell or avatar; `close` wins over `back`.
 	 */
 	let {
 		title,
@@ -24,9 +25,10 @@
 	}: {
 		title: string;
 		eyebrow?: string;
-		back?: { href: string; label: string };
+		/** `text`: the parent screen's name shown next to the chevron; `label`: the accessible name. */
+		back?: { href: string; label: string; text: string };
 		close?: { href: string; label: string };
-		/** Little header only: a pill action at the right end (e.g. "Agregar"). */
+		/** `back` or `close` header only: a pill action at the right end (e.g. "Agregar"). */
 		action?: Snippet;
 	} = $props();
 
@@ -41,7 +43,7 @@
 	const kicker = $derived(eyebrow ?? header?.date);
 </script>
 
-<header class="top-bar">
+<header class="top-bar" class:stacked={back && !close}>
 	{#if close}
 		<Button
 			class="-ml-2"
@@ -55,21 +57,23 @@
 			<X aria-hidden="true" />
 		</Button>
 	{:else if back}
-		<Button
-			class="-ml-2"
-			href={back.href}
-			data-edge-back
-			onclick={upOnClick(back.href)}
-			variant="ghost"
-			size="icon"
-			aria-label={back.label}
-		>
-			<ChevronLeft aria-hidden="true" />
-		</Button>
+		<!-- Own row: "‹ Parent", 44px, 15px/500; the accessible name ("Volver a …") contains the text. -->
+		<div class="back-row">
+			<Button
+				class="hover:text-(--link) -ml-3 h-11 gap-0.5 rounded-lg pr-3 pl-1 font-medium hover:bg-transparent"
+				href={back.href}
+				data-edge-back
+				onclick={upOnClick(back.href)}
+				variant="ghost"
+				aria-label={back.label}
+			>
+				<ChevronLeft class="size-[22px]" strokeWidth={1.75} aria-hidden="true" />{back.text}
+			</Button>
+		</div>
 	{/if}
 	<div class="titles">
 		{#if kicker && full}<p class="eyebrow">{kicker}</p>{/if}
-		<h1 class:compact={!full}>{title}</h1>
+		<h1 class:compact={!!close}>{title}</h1>
 	</div>
 	{#if action && !full}{@render action()}{/if}
 	{#if header && full}
@@ -142,6 +146,16 @@
 		font-weight: 500;
 		letter-spacing: -0.015em;
 		line-height: 1.2;
+	}
+
+	/* Back link row, then the title 4px below. */
+	.top-bar.stacked {
+		row-gap: var(--space-1);
+		padding-top: calc(var(--space-3) + env(safe-area-inset-top));
+	}
+
+	.back-row {
+		flex: 0 0 100%;
 	}
 
 	h1.compact {

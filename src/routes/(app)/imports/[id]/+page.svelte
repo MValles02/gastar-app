@@ -13,7 +13,7 @@
 
 <PageHeader
 	title="Revisar movimiento"
-	back={{ href: resolve('/imports'), label: 'Volver a Mercado Pago' }}
+	back={{ href: resolve('/imports'), label: 'Volver a Mercado Pago', text: 'Mercado Pago' }}
 />
 
 <ImportItemForm {data} {form} variant="page" />

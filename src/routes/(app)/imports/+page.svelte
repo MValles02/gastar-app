@@ -101,7 +101,10 @@
 	<title>Mercado Pago · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Mercado Pago" back={{ href: resolve('/'), label: 'Volver al inicio' }} />
+<PageHeader
+	title="Mercado Pago"
+	back={{ href: resolve('/'), label: 'Volver al inicio', text: 'Inicio' }}
+/>
 
 <div class="page">
 	{#if data.done && !hydrated}<p role="status">{DONE_MESSAGES[data.done]}</p>{/if}

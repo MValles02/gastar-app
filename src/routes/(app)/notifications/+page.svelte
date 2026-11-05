@@ -14,7 +14,10 @@
 	<title>Avisos · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Avisos" back={{ href: resolve('/'), label: 'Volver al inicio' }} />
+<PageHeader
+	title="Avisos"
+	back={{ href: resolve('/'), label: 'Volver al inicio', text: 'Inicio' }}
+/>
 
 <div class="page">
 	{#if data.groups.length === 0}

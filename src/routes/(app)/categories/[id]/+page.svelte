@@ -75,7 +75,7 @@
 <div class="detail">
 	<PageHeader
 		title={c.name}
-		back={{ href: resolve('/categories'), label: 'Volver a categorías' }}
+		back={{ href: resolve('/categories'), label: 'Volver a categorías', text: 'Categorías' }}
 	/>
 
 	<DetailHero ariaLabel="Resumen del mes" label={data.month.label}>
@@ -122,7 +122,7 @@
 					<IconBadge
 						icon={toCategoryIconKey(c.icon) ?? 'categories'}
 						color={toSwatchKey(c.color)}
-						size="1.75rem"
+						size="1.625rem"
 					/>
 					<ChevronRight
 						size={16}
