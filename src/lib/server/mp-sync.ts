@@ -345,7 +345,8 @@ const REPORT_COLUMNS = [
 	'RECORD_TYPE',
 	'DESCRIPTION',
 	'NET_CREDIT_AMOUNT',
-	'NET_DEBIT_AMOUNT'
+	'NET_DEBIT_AMOUNT',
+	'TRANSACTION_DATE'
 ];
 
 /**
@@ -489,7 +490,9 @@ function reportItem(r: Row): Omit<Item, 'userId' | 'accountId'> | null {
 	if (signed === 0) return null;
 	const occurredAt = date(r.DATE);
 	if (isYield) {
-		const day = localDay(occurredAt);
+		// The day key comes from TRANSACTION_DATE, as with the settlement report, so a day imported before
+		// the switch keeps its key even if MP stamps the release (DATE) on another day.
+		const day = localDay(date(r.TRANSACTION_DATE || r.DATE));
 		const base = { occurredAt, amount: Math.abs(signed), isCredit: signed > 0 };
 		return {
 			...base,

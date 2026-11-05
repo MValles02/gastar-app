@@ -754,7 +754,8 @@ const PARSER_COLUMNS = [
 	'RECORD_TYPE',
 	'DESCRIPTION',
 	'NET_CREDIT_AMOUNT',
-	'NET_DEBIT_AMOUNT'
+	'NET_DEBIT_AMOUNT',
+	'TRANSACTION_DATE'
 ];
 
 test('an account without a release report configuration gets one created and syncs', async ({
