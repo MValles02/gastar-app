@@ -9,11 +9,11 @@ import {
 	pick,
 	pickDay,
 	postDelete,
+	signUpVerified,
 	setCurrencyCookie,
 	todayInAppTz,
 	WHOLE_PESOS_ERROR
 } from './helpers';
-import { waitForLink } from './outbox';
 
 // Every `networkidle` goto below is a hydration guard: the drawer, picker or switch it opens needs JavaScript.
 // Everything runs as one freshly signed-up user, so no other spec (and no demo-user month total) is
@@ -35,14 +35,7 @@ test.beforeAll(async ({ browser, baseURL }) => {
 	try {
 		const page = await context.newPage();
 		const email = `e2e+plan-${Date.now()}@gastar.local`;
-		await page.goto('/signup', { waitUntil: 'networkidle' });
-		await page.getByLabel('Nombre').fill('E2E Plan');
-		await page.getByLabel('Email').fill(email);
-		await page.getByLabel('Contraseña', { exact: true }).fill(password);
-		await page.getByRole('button', { name: 'Crear cuenta' }).click();
-		await expect(page.getByRole('heading', { name: 'Revisá tu email' })).toBeVisible();
-		await page.goto((await waitForLink(context.request, email, /Confirmá/)).link);
-		await expect(page).toHaveURL(/\/$/);
+		await signUpVerified(page, context.request, { email, password, name: 'E2E Plan' });
 
 		const headers = { origin: baseURL!, accept: 'text/html' };
 		// Each create redirects to the new entity's page: its id is the last path segment.

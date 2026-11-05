@@ -2,9 +2,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { SEED_EMAIL, submitLogin } from './helpers';
 import { latestMail, waitForLink } from './outbox';
 
-// Rate limits are in-memory (sign-up 10/h/IP, reset 5/15min/IP, 3/15min/email, resend 5/15min/IP).
-// One full run uses 3 sign-ups (1 hour window) and 2 reset requests (15 min window), so re-running
-// the suite more than 3 times within an hour can hit them; restarting the dev server resets the counters.
+// Rate limits are in-memory (sign-up 50/h/IP in e2e builds, reset 3/15min, resend 3/15min).
+// The full suite makes 9 sign-ups (this file 3); this file also makes 2 reset requests (15 min window),
+// so re-running it within 15 minutes can hit the reset limit; restarting the server resets the counters.
 const password = 'e2e-pass-1234';
 let n = 0;
 const uniqueEmail = () => `e2e+${Date.now()}-${n++}@gastar.local`;
