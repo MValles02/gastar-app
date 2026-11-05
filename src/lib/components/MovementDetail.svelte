@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { type ComponentProps, untrack } from 'svelte';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { toast } from 'svelte-sonner';
 	import { refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -213,6 +214,7 @@
 				<InlineText
 					label="Monto"
 					inputmode="decimal"
+					prefix={m.accountCurrency === 'USD' ? 'US$' : '$'}
 					value={values.amount}
 					onsave={(next) => commit({ amount: next })}
 				>
@@ -290,15 +292,17 @@
 				<li>
 					<p class="row" aria-live="polite">
 						<span class="k">En destino</span>
-						<span class="v">
-							{#if m.destinationAmount !== null && m.destinationCurrency && !pending.accountId && !pending.destinationAccountId && !typeStaged}
-								{formatMoney(m.destinationAmount, m.destinationCurrency)}
-							{:else}—{/if}
-						</span>
+						{#if m.destinationAmount !== null && m.destinationCurrency && !pending.accountId && !pending.destinationAccountId && !typeStaged}
+							<span class="v converted"
+								>{formatMoney(m.destinationAmount, m.destinationCurrency)}</span
+							>
+						{:else}
+							<span class="v muted">—</span>
+						{/if}
 					</p>
 				</li>
 				<li>
-					<div class="row">
+					<div class="row rate">
 						<span class="k">Cotización</span>
 						<span class="v">
 							<InlineText
@@ -311,7 +315,12 @@
 								onsave={saveRate}
 							>
 								{#snippet display()}
-									1 USD = {m.exchangeRate !== null ? formatMoney(m.exchangeRate, 'ARS') : '$'}
+									<span class:muted={m.exchangeRate === null}
+										>{m.exchangeRate !== null
+											? `1 USD = ${formatMoney(m.exchangeRate, 'ARS')}`
+											: 'Ingresar'}</span
+									>
+									<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="chev" />
 								{/snippet}
 							</InlineText>
 						</span>
@@ -456,6 +465,51 @@
 	.v {
 		min-width: 0;
 		text-align: right;
+		font-weight: 500;
+	}
+
+	.converted {
+		color: var(--transfer);
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.muted {
+		color: var(--text-muted);
+		font-weight: 400;
+	}
+
+	/* Cotización reads like the picker rows: the value side is the tap target, chevron at the end. */
+	/* Same label weight as the picker rows (ghost buttons). */
+	.row .k {
+		font-weight: 500;
+	}
+
+	.rate .v {
+		flex: 1;
+	}
+
+	.rate :global(.edit) {
+		white-space: nowrap;
+	}
+
+	.rate :global(.trigger) {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: var(--space-3);
+		width: 100%;
+		cursor: pointer;
+	}
+
+	.rate :global(.chev) {
+		flex: none;
+		color: var(--text-muted);
+	}
+
+	/* The currency symbol stays while the amount is edited, smaller and muted like the read state. */
+	.amount :global(.prefix) {
+		font-size: 0.55em;
 		font-weight: 500;
 	}
 

@@ -3,7 +3,15 @@
 // "Deshacer". The + button opens a drawer instead (new-movement-drawer.e2e.ts). Without JS the action
 // redirects to the same origin (from the Referer); anything else falls back to the form itself.
 import { expect, test, type Page } from '@playwright/test';
-import { deleteMovements, login, OTHER_EMAIL, pick, PHONE, todayInAppTz } from './helpers';
+import {
+	deleteMovements,
+	fillRate,
+	login,
+	OTHER_EMAIL,
+	pick,
+	PHONE,
+	todayInAppTz
+} from './helpers';
 
 test.use({ viewport: PHONE });
 
@@ -86,7 +94,7 @@ test('a new transfer returns to its origin', async ({ page }) => {
 	await page.locator('input[name="description"]').fill(unique('Origen transferencia'));
 	await pick(page, 'Desde', 'Otra cuenta pesos');
 	await pick(page, 'Hacia', 'Otra cuenta');
-	await page.locator('input[name="exchangeRate"]').fill('1000');
+	await fillRate(page, '1000');
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/plan$/);
 	await expect(toast(page)).toBeVisible();

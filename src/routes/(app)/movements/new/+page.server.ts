@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { PREFERENCE_COOKIE_OPTIONS } from '$lib/server/cookies';
+import { preferredCurrency } from '$lib/server/currency-pref';
 import type { Actions, PageServerLoad } from './$types';
 import { isUuid } from '$lib/server/db/util';
 import { formatAmountInput } from '$lib/money';
@@ -64,11 +65,11 @@ export const load: PageServerLoad = async ({ locals, cookies, url, request }) =>
 	const { accounts, categories } = await drawerPickers(userId);
 	const rule = await findRule(userId, url.searchParams.get('recurring'));
 	const last = cookies.get(LAST_ACCOUNT_COOKIE);
+	// The last-used account, else the first active account in the selected currency, else the first one.
+	const currency = preferredCurrency(cookies);
 	const defaultAccountId = accounts.some((a) => a.id === last)
 		? last!
-		: accounts.length === 1
-			? accounts[0].id
-			: '';
+		: ((accounts.find((a) => a.currency === currency) ?? accounts[0])?.id ?? '');
 	const now = localDay(new Date());
 	return {
 		accounts,

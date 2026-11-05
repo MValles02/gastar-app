@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import {
 	deleteMovements,
 	fillMovement,
+	fillRate,
 	login,
 	OTHER_EMAIL,
 	postDelete,
@@ -119,7 +120,7 @@ test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate
 	await expect(page.getByText(/en pesos enteros y mayor a cero/)).toBeVisible();
 	await expect(page).toHaveURL(/\/movements\/new$/);
 
-	await page.locator('input[name="exchangeRate"]').fill('1234');
+	await fillRate(page, '1234');
 	await expect(page.locator('p', { hasText: 'En destino' })).toContainText('$12.352');
 	await save(page);
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
