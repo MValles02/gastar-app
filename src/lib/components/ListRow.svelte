@@ -24,6 +24,7 @@
 		footer,
 		chevron = false,
 		dimmed = false,
+		onclick,
 		class: className = ''
 	}: {
 		/** Already resolved. */
@@ -46,6 +47,8 @@
 		footer?: Snippet;
 		chevron?: boolean;
 		dimmed?: boolean;
+		/** Link only: lets a caller open the target as a drawer (shallow route) on a plain click. */
+		onclick?: (e: MouseEvent) => void;
 		class?: string;
 	} = $props();
 </script>
@@ -94,7 +97,7 @@
 		{#snippet child({ props })}
 			{#if href}
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass a resolved href -->
-				<a {href} {...props}>{@render body()}</a>
+				<a {href} {onclick} {...props}>{@render body()}</a>
 			{:else if submit}
 				<button type="submit" {...props} class={[props.class, 'w-full text-left']}
 					>{@render body()}</button

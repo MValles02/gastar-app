@@ -25,6 +25,10 @@ declare global {
 			newAccount?: import('./routes/(app)/accounts/new/$types').PageData;
 			/** The "Nueva categoría" drawer opened over the Categorías list. */
 			newCategory?: import('./routes/(app)/categories/new/$types').PageData;
+			/** The "Cambiar contraseña" drawer opened over Perfil. */
+			password?: import('./routes/(app)/profile/password/$types').PageData;
+			/** The "¿Darte de baja?" drawer opened over Perfil. */
+			deleteAccount?: import('./routes/(app)/profile/delete/$types').PageData;
 			/** The Ahorro drawer opened over the plan. */
 			savings?: import('./routes/(app)/plan/savings/$types').PageData;
 		}

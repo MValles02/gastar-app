@@ -189,7 +189,7 @@ test('sync shows live progress, fills the inbox without a reload and leaves bala
 	expect(await accountRow()).toBe(balance);
 
 	await page.goto('/profile');
-	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('8');
+	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('Vinculado');
 });
 
 test('a second sync searches from the last payment and keeps the same items', async () => {
@@ -701,7 +701,7 @@ test('disconnecting removes the link and the inbox asks to link again', async ()
 	await page.goto('/imports');
 	await expect(page).toHaveURL(new RegExp(`${MP_PATH}$`));
 	await page.goto('/profile');
-	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('Sin vincular');
+	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('Vincular');
 });
 
 test('users without a connection are sent to link and cannot open others items', async ({

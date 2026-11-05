@@ -13,6 +13,8 @@
 	import NewAccountDrawer from '$lib/components/NewAccountDrawer.svelte';
 	import NewCategoryDrawer from '$lib/components/NewCategoryDrawer.svelte';
 	import NewLimitDrawer from '$lib/components/NewLimitDrawer.svelte';
+	import PasswordDrawer from '$lib/components/PasswordDrawer.svelte';
+	import DeleteAccountDrawer from '$lib/components/DeleteAccountDrawer.svelte';
 	import SavingsDrawer from '$lib/components/SavingsDrawer.svelte';
 	import { highlightMovement } from '$lib/highlight.svelte';
 	import { undoMovementSaved } from '$lib/undo-toast';
@@ -61,6 +63,10 @@
 	{#if page.state.newLimit}<NewLimitDrawer data={page.state.newLimit} />{/if}
 	{#if page.state.newAccount}<NewAccountDrawer />{/if}
 	{#if page.state.newCategory}<NewCategoryDrawer />{/if}
+	{#if page.state.password}<PasswordDrawer />{/if}
+	{#if page.state.deleteAccount}<DeleteAccountDrawer
+			summary={page.state.deleteAccount.summary}
+		/>{/if}
 	{#if page.state.savings}<SavingsDrawer data={page.state.savings} />{/if}
 </div>
 

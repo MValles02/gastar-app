@@ -1,20 +1,27 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
+	import { autosave } from '$lib/autosave';
+	import { openShallow } from '$lib/open-shallow';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import ListCard from '$lib/components/ListCard.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
-	import Icon from '$lib/components/Icon.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import InlineText from '$lib/components/InlineText.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import { themeColors } from '$lib/theme';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
+	/** Same cap as the server's user-name rule. */
+	const NAME_MAX = 80;
+
+	// A save sets the name at once; a reload (Deshacer) brings the stored one back in.
+	let name = $derived(data.user.name);
 	const initials = $derived(
-		data.user.name
+		name
 			.split(/\s+/)
 			.filter(Boolean)
 			.slice(0, 2)
@@ -29,6 +36,16 @@
 		{ value: 'dark', label: 'Oscuro' },
 		{ value: 'system', label: 'Sistema' }
 	];
+
+	async function saveName(next: string) {
+		if (next.trim() === name) return null;
+		return autosave<{ name: string }>({
+			path: '?/name',
+			fields: { name: next },
+			previous: { name },
+			apply: (res) => (name = res.name)
+		});
+	}
 
 	function applyTheme(value: string) {
 		if (value === 'light' || value === 'dark') {
@@ -55,58 +72,64 @@
 <div class="page">
 	<section class="who" aria-label="Usuario">
 		<span class="big" aria-hidden="true">{initials}</span>
-		<p class="name">{data.user.name}</p>
-		<p class="email">{data.user.email}</p>
+		<p class="who-text">
+			<span class="name">{name}</span>
+			<span class="email">{data.user.email}</span>
+		</p>
 	</section>
 
-	{#snippet pendingValue()}<span class="val"
-			>{data.imports?.state === 'linked' ? data.imports.pending : 0} para revisar</span
+	{#snippet accountsCount()}<span class="val">{data.counts.accounts}</span>{/snippet}
+	{#snippet categoriesCount()}<span class="val">{data.counts.categories}</span>{/snippet}
+	{#snippet mpState()}<span class="val"
+			>{data.imports?.state === 'linked'
+				? 'Vinculado'
+				: data.imports?.state === 'reconnect'
+					? 'Reconectar'
+					: 'Vincular'}</span
 		>{/snippet}
-	{#snippet reconnectValue()}<span class="val">Reconectar</span>{/snippet}
-	{#snippet unlinkedValue()}<span class="val">Sin vincular</span>{/snippet}
+	{#snippet nameValue()}
+		<span class="name-edit">
+			<InlineText label="Nombre" value={name} maxlength={NAME_MAX} onsave={saveName}>
+				{#snippet display()}<span class="val">{name}</span>{/snippet}
+			</InlineText>
+		</span>
+	{/snippet}
 
-	<ListCard aria-label="Tu cuenta">
-		<ListRow
-			href={resolve('/profile/name')}
-			lead={{ icon: 'profile', color: null }}
-			title="Cambiar nombre"
-			chevron
-		/>
-		<ListRow
-			href={resolve('/profile/password')}
-			lead={{ icon: 'lock', color: null }}
-			title="Cambiar contraseña"
-			chevron
-		/>
+	<ListCard aria-label="Lo que administrás">
 		<ListRow
 			href={resolve('/accounts')}
 			lead={{ icon: 'accounts', color: null }}
 			title="Cuentas"
+			value={accountsCount}
 			chevron
 		/>
 		<ListRow
 			href={resolve('/categories')}
 			lead={{ icon: 'categories', color: null }}
 			title="Categorías"
+			value={categoriesCount}
 			chevron
 		/>
-		{#if data.imports?.state === 'linked'}
-			<ListRow
-				href={resolve('/imports')}
-				lead={{ icon: 'phone', color: null }}
-				title="Mercado Pago"
-				value={data.imports.pending > 0 ? pendingValue : undefined}
-				chevron
-			/>
-		{:else if data.imports}
+		{#if data.imports}
 			<ListRow
 				href={resolve('/profile/mercado-pago')}
 				lead={{ icon: 'phone', color: null }}
 				title="Mercado Pago"
-				value={data.imports.state === 'reconnect' ? reconnectValue : unlinkedValue}
+				value={mpState}
 				chevron
 			/>
 		{/if}
+	</ListCard>
+
+	<ListCard aria-label="Tu identidad">
+		<ListRow lead={{ icon: 'profile', color: null }} title="Nombre" value={nameValue} />
+		<ListRow
+			href={resolve('/profile/password')}
+			lead={{ icon: 'lock', color: null }}
+			title="Contraseña"
+			chevron
+			onclick={(e: MouseEvent) => openShallow(e, resolve('/profile/password'), 'password')}
+		/>
 	</ListCard>
 
 	<Card.Root class="gap-0 overflow-hidden py-0" aria-label="Tema">
@@ -142,43 +165,39 @@
 		</form>
 	</Card.Root>
 
-	<div class="session">
-		<form method="POST" action="/logout">
-			<Button type="submit" variant="outline" class="w-full"
-				><Icon name="logout" size="1.25rem" />Cerrar sesión</Button
-			>
-		</form>
+	<form method="POST" action="/logout">
+		<ListCard aria-label="Sesión">
+			<ListRow submit lead={{ icon: 'logout', color: null }} title="Cerrar sesión" />
+		</ListCard>
+	</form>
 
-		<Button
-			href={resolve('/profile/delete')}
-			variant="ghost"
-			class="text-destructive hover:text-destructive w-full">Darme de baja</Button
-		>
-	</div>
+	<a
+		class="delete"
+		href={resolve('/profile/delete')}
+		onclick={(e) => openShallow(e, resolve('/profile/delete'), 'deleteAccount')}>Darme de baja</a
+	>
 </div>
 
 <style>
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-6);
+		gap: var(--space-5);
 	}
 
 	.who {
 		display: flex;
-		flex-direction: column;
 		align-items: center;
-		text-align: center;
-		gap: var(--space-1);
+		gap: var(--space-4);
 		min-width: 0;
 	}
 
 	.big {
 		display: grid;
+		flex: none;
 		place-items: center;
-		width: 4.5rem;
-		height: 4.5rem;
-		margin-bottom: var(--space-2);
+		width: 3.5rem;
+		height: 3.5rem;
 		border-radius: var(--radius-pill);
 		background: var(--muted);
 		box-shadow: inset 0 0 0 1px var(--border);
@@ -186,19 +205,23 @@
 		font-weight: 600;
 	}
 
+	.who-text {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+		min-width: 0;
+	}
+
 	.name {
-		font-family: var(--font-display);
-		font-size: var(--font-size-xl);
-		font-weight: 500;
+		font-size: var(--font-size-lg);
+		font-weight: 600;
 		line-height: 1.2;
-		letter-spacing: -0.01em;
-		max-width: 100%;
 		overflow-wrap: anywhere;
 	}
 
 	.email {
 		color: var(--text-muted);
-		max-width: 100%;
+		font-size: var(--font-size-sm);
 		overflow-wrap: anywhere;
 	}
 
@@ -209,6 +232,13 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		color: var(--text-muted);
+		font-weight: 400;
+	}
+
+	/* The 44px tap target would push the value below the row's first line: center it on the title. */
+	.name-edit {
+		display: block;
+		margin-block: calc((1.25rem - var(--tap-target)) / 2);
 	}
 
 	.row {
@@ -228,10 +258,20 @@
 		padding-block: var(--space-1);
 	}
 
-	.session {
+	/* Quiet on purpose: the destructive path is a drawer away, not a button on the screen. */
+	.delete {
+		align-self: center;
 		display: flex;
-		flex-direction: column;
-		gap: var(--space-8, 2rem);
+		align-items: center;
+		min-height: var(--tap-target);
+		padding-inline: var(--space-4);
+		color: var(--negative);
+		font-size: var(--font-size-base);
+		text-decoration: none;
+	}
+
+	.delete:hover {
+		text-decoration: underline;
 	}
 
 	.error {
