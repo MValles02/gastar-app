@@ -4,6 +4,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { stripFlags } from '$lib/nav-stack.svelte';
+	import { edgeSwipeBack, settleEdgeSwipe } from '$lib/edge-swipe-back';
 	import { TAB_ROUTES } from '$lib/form-routes';
 	import TabBar from '$lib/components/TabBar.svelte';
 	import MovementDetailDrawer from '$lib/components/MovementDetailDrawer.svelte';
@@ -31,6 +32,7 @@
 	onMount(() => (hydrated = true));
 	let toasted: string | null = null;
 	afterNavigate(() => {
+		settleEdgeSwipe();
 		if (!movementSaved) return;
 		// Once per saved id, however many navigations land before the flag is stripped.
 		if (movementSaved !== toasted) {
@@ -45,7 +47,7 @@
 </script>
 
 <div class="shell">
-	<main class="content" class:with-bar={showBar}>
+	<main class="content" class:with-bar={showBar} use:edgeSwipeBack>
 		{#if movementSaved && !hydrated}
 			<p role="status" class="saved">Movimiento guardado.</p>
 		{/if}

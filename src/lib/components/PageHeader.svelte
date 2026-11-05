@@ -46,6 +46,7 @@
 		<Button
 			class="-ml-2"
 			href={close.href}
+			data-edge-back
 			onclick={upOnClick(close.href)}
 			variant="ghost"
 			size="icon"
@@ -57,6 +58,7 @@
 		<Button
 			class="-ml-2"
 			href={back.href}
+			data-edge-back
 			onclick={upOnClick(back.href)}
 			variant="ghost"
 			size="icon"

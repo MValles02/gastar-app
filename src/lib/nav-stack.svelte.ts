@@ -14,6 +14,9 @@ let index = -1;
 let replaceNext = false;
 /** One-shot: how the next tracked navigation animates when it is not a plain push or pop. */
 let transitionNext: 'back' | 'none' | null = null;
+/** One-shot: the next navigation was already animated by a gesture (edge swipe), so it gets no transition. */
+let skipTransition = false;
+let skipTimer: ReturnType<typeof setTimeout> | undefined;
 /** Runs once the `history.go` started by `navigateUp` has landed. */
 let afterPop: (() => unknown) | null = null;
 /** A `history.go` from `navigateUp` has not landed yet: `index` is stale, so further ups are ignored. */
@@ -155,6 +158,11 @@ function replaceAfterPop(key: string) {
  * search, wizard step) gets none: taps are swallowed while a transition runs.
  */
 export function transitionOf(nav: OnNavigate): 'forward' | 'back' | 'fade' | null {
+	if (skipTransition) {
+		skipTransition = false;
+		transitionNext = null;
+		return null;
+	}
 	const next = transitionNext;
 	transitionNext = null;
 	if (next) return next === 'none' ? null : next;
@@ -162,6 +170,13 @@ export function transitionOf(nav: OnNavigate): 'forward' | 'back' | 'fade' | nul
 	if (replaceNext) return 'fade';
 	if (nav.type === 'popstate') return (nav.delta ?? 0) < 0 ? 'back' : 'forward';
 	return 'forward';
+}
+
+/** The next navigation gets no page transition (a drag already moved the page); expires if none starts. */
+export function skipNextTransition() {
+	skipTransition = true;
+	clearTimeout(skipTimer);
+	skipTimer = setTimeout(() => (skipTransition = false), POP_TIMEOUT_MS);
 }
 
 function pop(to: number) {
