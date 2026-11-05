@@ -7,7 +7,7 @@
 	import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '$lib/limits';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import FormActions from '$lib/components/FormActions.svelte';
-	import TextRow from '$lib/components/TextRow.svelte';
+	import PasswordInput from '$lib/components/PasswordInput.svelte';
 
 	type Errors = { current?: string; next?: string };
 
@@ -67,37 +67,35 @@
 		};
 	}}
 >
-	<ul class="card">
-		<li class:bad={shown.current}>
-			<TextRow
-				id="current-password"
-				name="currentPassword"
-				label="Contraseña actual"
-				bind:value={current}
-				password
-				autocomplete="current-password"
-				maxlength={PASSWORD_MAX_LENGTH}
-				required
-				error={shown.current}
-				errorId="current-error"
-			/>
-		</li>
-		<li class:bad={shown.next}>
-			<TextRow
-				id="new-password"
-				name="newPassword"
-				label="Contraseña nueva"
-				bind:value={next}
-				password
-				autocomplete="new-password"
-				minlength={PASSWORD_MIN_LENGTH}
-				maxlength={PASSWORD_MAX_LENGTH}
-				required
-				error={shown.next}
-				errorId="next-error"
-			/>
-		</li>
-	</ul>
+	<div class="field">
+		<label for="current-password">Contraseña actual</label>
+		<PasswordInput
+			outlined
+			id="current-password"
+			name="currentPassword"
+			bind:value={current}
+			autocomplete="current-password"
+			maxlength={PASSWORD_MAX_LENGTH}
+			invalid={!!shown.current}
+			describedby={shown.current ? 'current-error' : undefined}
+		/>
+		{#if shown.current}<p class="error" id="current-error" role="alert">{shown.current}</p>{/if}
+	</div>
+	<div class="field">
+		<label for="new-password">Contraseña nueva</label>
+		<PasswordInput
+			outlined
+			id="new-password"
+			name="newPassword"
+			bind:value={next}
+			autocomplete="new-password"
+			minlength={PASSWORD_MIN_LENGTH}
+			maxlength={PASSWORD_MAX_LENGTH}
+			invalid={!!shown.next}
+			describedby={shown.next ? 'next-error' : undefined}
+		/>
+		{#if shown.next}<p class="error" id="next-error" role="alert">{shown.next}</p>{/if}
+	</div>
 	<p class="hint">Mínimo {PASSWORD_MIN_LENGTH} caracteres. Cerramos tus otras sesiones.</p>
 	{#if message}<p class="error" role="alert">{message}</p>{/if}
 
@@ -106,12 +104,12 @@
 			<Button
 				type="button"
 				variant="outline"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0"
+				class="min-w-0 flex-1 basis-0"
 				onclick={() => onclose?.()}>Cancelar</Button
 			>
 			<Button
 				type="submit"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0"
+				class="min-w-0 flex-1 basis-0"
 				disabled={!current || !next || submitting}>Guardar</Button
 			>
 		</div>
@@ -124,29 +122,25 @@
 	.form {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-3);
+		gap: 0.875rem;
 		padding-top: var(--space-1);
 	}
 
-	.card {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-card);
-		box-shadow: var(--shadow-1);
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
 	}
 
-	.card > li.bad {
-		box-shadow: inset 3px 0 0 var(--negative);
+	.field label {
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: var(--text-muted);
 	}
 
 	.hint {
 		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-		padding: 0 var(--space-1);
+		font-size: 0.8125rem;
 	}
 
 	.error {

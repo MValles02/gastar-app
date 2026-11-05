@@ -18,6 +18,7 @@
 	import DeleteAccountDrawer from '$lib/components/DeleteAccountDrawer.svelte';
 	import ImportItemDrawer from '$lib/components/ImportItemDrawer.svelte';
 	import SavingsDrawer from '$lib/components/SavingsDrawer.svelte';
+	import RegisterRuleDrawer from '$lib/components/RegisterRuleDrawer.svelte';
 	import { highlightMovement } from '$lib/highlight.svelte';
 	import { undoMovementSaved } from '$lib/undo-toast';
 
@@ -72,6 +73,7 @@
 		/>{/if}
 	{#if page.state.importItem}<ImportItemDrawer data={page.state.importItem} />{/if}
 	{#if page.state.savings}<SavingsDrawer data={page.state.savings} />{/if}
+	{#if page.state.registerRule}<RegisterRuleDrawer data={page.state.registerRule} />{/if}
 </div>
 
 <style>

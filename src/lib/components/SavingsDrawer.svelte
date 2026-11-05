@@ -10,13 +10,18 @@
 	 */
 	let { data }: { data: PageData } = $props();
 
+	const month = new Date().toLocaleString('es-AR', {
+		month: 'long',
+		timeZone: 'America/Argentina/Buenos_Aires'
+	});
+
 	// The drawer's history entry goes away with the back gesture, the scrim or Escape.
 	function close() {
 		if (page.state.savings) history.back();
 	}
 </script>
 
-<BottomDrawer title="Ahorro del mes" bare open onclose={close}>
+<BottomDrawer title="Ahorro de {month}" bare open onclose={close}>
 	<div class="body">
 		<SavingsOptions
 			mode="autosave"
@@ -31,7 +36,7 @@
 
 <style>
 	.body {
-		padding: 0 var(--space-2) calc(var(--space-4) + env(safe-area-inset-bottom));
+		padding: 0 var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
 		overflow-y: auto;
 	}
 

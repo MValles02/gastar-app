@@ -9,27 +9,40 @@
 		autocomplete,
 		invalid = false,
 		describedby,
-		minlength
+		minlength,
+		maxlength,
+		id = 'password',
+		name = 'password',
+		required = true,
+		outlined = false
 	}: {
 		value?: string;
 		autocomplete: HTMLInputAttributes['autocomplete'];
 		invalid?: boolean;
 		describedby?: string;
 		minlength?: number;
+		maxlength?: number;
+		id?: string;
+		name?: string;
+		required?: boolean;
+		/** Drawer look: a 50px outlined box, 12px radius, 16px text. */
+		outlined?: boolean;
 	} = $props();
 
 	let showPassword = $state(false);
 </script>
 
-<InputGroup.Root>
+<InputGroup.Root class={outlined ? 'h-[50px] rounded-xl' : undefined}>
 	<InputGroup.Input
-		id="password"
+		{id}
 		type={showPassword ? 'text' : 'password'}
-		name="password"
+		{name}
 		{autocomplete}
 		bind:value
-		required
+		{required}
 		{minlength}
+		{maxlength}
+		class={outlined ? 'h-full px-3.5 text-base' : undefined}
 		aria-invalid={invalid ? true : undefined}
 		aria-describedby={describedby}
 	/>

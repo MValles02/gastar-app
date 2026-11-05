@@ -64,8 +64,8 @@
 			{#each days as d (d)}
 				<Button
 					type="button"
-					variant={d === value ? 'default' : 'outline'}
-					class="h-11 rounded-lg px-0 text-sm"
+					variant={d === value ? 'default' : 'ghost'}
+					class="h-10 rounded-full px-0 text-[15px] {d === value ? 'font-semibold' : 'font-normal'}"
 					aria-pressed={d === value}
 					onclick={() => choose(d)}>{d}</Button
 				>
@@ -118,14 +118,14 @@
 	.days {
 		display: grid;
 		grid-template-columns: repeat(7, 1fr);
-		gap: var(--space-2);
+		gap: 4px;
 	}
 
 	.hint {
 		margin: var(--space-3) 0 0;
 		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-		text-align: center;
+		font-size: 13px;
+		text-align: left;
 	}
 
 	.error {
