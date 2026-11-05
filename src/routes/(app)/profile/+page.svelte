@@ -67,7 +67,10 @@
 	<title>Perfil · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Perfil" back={{ href: resolve('/'), label: 'Volver al inicio' }} />
+<PageHeader
+	title="Perfil"
+	back={{ href: resolve('/'), label: 'Volver al inicio', text: 'Inicio' }}
+/>
 
 <div class="page">
 	<section class="who" aria-label="Usuario">

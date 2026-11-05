@@ -65,7 +65,7 @@
 				<Button
 					type="button"
 					variant={d === value ? 'default' : 'outline'}
-					class="h-11 px-0"
+					class="h-11 rounded-lg px-0 text-sm"
 					aria-pressed={d === value}
 					onclick={() => choose(d)}>{d}</Button
 				>

@@ -43,16 +43,17 @@
 		flex: none;
 		align-items: center;
 		justify-content: center;
-		border-radius: var(--radius-pill);
+		/* Rounded square (canvas): 10px at every size. */
+		border-radius: 10px;
 		background: color-mix(in srgb, var(--tone) 14%, transparent);
 		color: var(--tone);
 	}
 
-	/* Absolute size from the badge: a percentage height inside the inline-flex box left the glyph off-center. */
+	/* Glyph at half the tile (36px tile, 18px glyph); absolute so it stays centred in the inline-flex box. */
 	.badge :global(svg) {
 		flex: none;
-		width: calc(var(--badge-size) * 0.55);
-		height: calc(var(--badge-size) * 0.55);
+		width: calc(var(--badge-size) * 0.5);
+		height: calc(var(--badge-size) * 0.5);
 	}
 
 	.letter {

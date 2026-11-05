@@ -14,7 +14,7 @@
 
 <PageHeader
 	title={notFound ? 'No encontrado' : 'Algo salió mal'}
-	back={{ href: resolve('/'), label: 'Volver al inicio' }}
+	back={{ href: resolve('/'), label: 'Volver al inicio', text: 'Inicio' }}
 />
 
 <Empty.Root>

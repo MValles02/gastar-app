@@ -13,10 +13,7 @@
 <div
 	bind:this={ref}
 	data-slot="alert-dialog-footer"
-	class={cn(
-		'bg-muted/50 -mx-4 -mb-4 rounded-b-xl border-t p-4 flex flex-col-reverse gap-2 group-data-[size=sm]/alert-dialog-content:grid group-data-[size=sm]/alert-dialog-content:grid-cols-2 sm:flex-row sm:justify-end',
-		className
-	)}
+	class={cn('mt-2 grid grid-cols-2 gap-2.5 *:w-full *:min-w-0', className)}
 	{...restProps}
 >
 	{@render children?.()}

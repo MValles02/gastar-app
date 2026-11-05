@@ -38,7 +38,7 @@
 		href={resolve(cancelHref as '/')}
 		onclick={upOnClick(resolve(cancelHref as '/'))}
 		variant="outline"
-		class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal">{cancelLabel}</Button
+		class="h-auto min-h-[50px] min-w-0 flex-1 basis-0 whitespace-normal">{cancelLabel}</Button
 	>
 {/snippet}
 
@@ -46,7 +46,7 @@
 	<Button
 		type="submit"
 		{form}
-		class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal"
+		class="h-auto min-h-[50px] min-w-0 flex-1 basis-0 whitespace-normal"
 		disabled={submitting}
 		aria-busy={submitting ? 'true' : undefined}
 	>
@@ -68,7 +68,7 @@
 		{:else if submitHref}
 			<Button
 				href={resolve(submitHref as '/')}
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal">{submitLabel}</Button
+				class="h-auto min-h-[50px] min-w-0 flex-1 basis-0 whitespace-normal">{submitLabel}</Button
 			>
 		{:else}
 			{@render submit()}
