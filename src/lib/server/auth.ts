@@ -68,7 +68,8 @@ export const auth = betterAuth({
 			'/sign-in/email': { window: MINUTE, max: 5 },
 			'/send-verification-email': { window: 15 * MINUTE, max: 3 },
 			'/request-password-reset': { window: 15 * MINUTE, max: 3 },
-			'/sign-up/email': { window: HOUR, max: 10 },
+			// e2e builds sign up many test users from one IP.
+			'/sign-up/email': { window: HOUR, max: import.meta.env.VITE_E2E === '1' ? 50 : 10 },
 			'/verify-email': { window: MINUTE, max: 10 }
 		}
 	},
