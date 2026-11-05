@@ -180,21 +180,31 @@ test('sync shows live progress, fills the inbox without a reload and leaves bala
 	expect(Date.now() - first).toBeGreaterThan(29 * DAY_MS);
 	// The old settlement report is never requested again (it is what made MP send "report ready" emails).
 	expect((await calls()).filter((c) => c.path.includes('settlement_report'))).toEqual([]);
-	// The existing release config is edited in place by one PUT: emails emptied, the parser columns added
-	// to the user's own, English headers; everything else (seeded) is kept.
+	// The existing release config is edited in place by one PUT (answered 400 by the fake if it carries
+	// `scheduled` or any key MP does not document as writable), then read back: emails emptied, the parser
+	// columns added to the user's own, English headers; the user's other writable fields are kept.
 	expect((await calls()).filter((c) => c.path.includes('/config')).map((c) => c.method)).toEqual([
 		'GET',
-		'PUT'
+		'PUT',
+		'GET'
 	]);
 	const puts = (await (await fake('/__fake/report-config-puts')).json()) as {
-		seeded?: boolean;
+		file_name_prefix?: string;
+		separator?: string;
+		scheduled?: boolean;
+		internal_id?: string;
 		notification_email_list: string[];
 		columns: { key: string }[];
 		report_translation: string;
 	}[];
 	expect(puts).toHaveLength(1);
 	expect(puts[0].notification_email_list).toEqual([]);
-	expect(puts[0].seeded).toBe(true);
+	expect(puts[0]).not.toHaveProperty('scheduled');
+	expect(puts[0]).not.toHaveProperty('internal_id');
+	expect(puts[0].file_name_prefix).toBe('user-prefix');
+	expect(puts[0].separator).toBe(';');
+	// Report creates carry only the dates.
+	expect(Object.keys((await creates())[0]).sort()).toEqual(['begin_date', 'end_date']);
 	expect(puts[0].report_translation).toBe('en');
 	expect(puts[0].columns.map((c) => c.key)).toEqual(
 		expect.arrayContaining(['USER_COLUMN', ...PARSER_COLUMNS])
@@ -472,6 +482,7 @@ test('bulk approve creates the suggested movements with exact amounts', async ()
 
 const daysAgoYmd = (n: number) =>
 	new Date(Date.now() - 3 * 3_600_000 - n * DAY_MS).toISOString().slice(0, 10);
+const creates = async () => (await (await fake('/__fake/report-creates')).json()) as object[];
 const reportBegins = async () => (await (await fake('/__fake/report-begins')).json()) as string[];
 
 /** Runs `fn` against the importer's rows in mp_import_items / mp_sync_state. */
