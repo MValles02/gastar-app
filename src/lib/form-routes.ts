@@ -8,7 +8,6 @@ export const FORM_ROUTES = new Set([
 	'/(app)/plan/limits/[categoryId]',
 	'/(app)/plan/savings',
 	'/(app)/plan/setup',
-	'/(app)/profile/name',
 	'/(app)/profile/password',
 	'/(app)/profile/delete'
 ]);

@@ -30,22 +30,34 @@ test.describe('account changes', () => {
 		await expect(page).toHaveURL(/\/$/);
 	};
 
-	test('change name updates the profile and the greeting', async ({ page }) => {
+	test('name autosaves in place, keeps the old one on an error and Deshacer restores it', async ({
+		page
+	}) => {
 		await signIn(page);
 
 		await page.goto('/profile');
-		await page.getByRole('link', { name: 'Cambiar nombre' }).click();
-		await expect(page).toHaveURL(/\/profile\/name$/);
-		await page.getByLabel('Nombre').fill('   ');
-		await page.getByRole('button', { name: 'Guardar cambios' }).click();
-		await expect(page.getByText('Falta el nombre.')).toBeVisible();
+		await page.waitForLoadState('networkidle'); // hydration guard: the inline name edit needs JS
+		const shownName = page.locator('.who .name');
+		const edit = async (value: string) => {
+			await page.getByRole('button', { name: /^Nombre: / }).click();
+			await page.getByRole('textbox', { name: 'Nombre' }).fill(value);
+			await page.getByRole('textbox', { name: 'Nombre' }).press('Enter');
+		};
 
-		await page.getByLabel('Nombre').fill('  Nombre Nuevo  ');
-		await page.getByRole('button', { name: 'Guardar cambios' }).click();
-		await expect(page).toHaveURL(/\/profile$/);
-		await expect(page.locator('.who .name')).toHaveText('Nombre Nuevo');
+		await edit('   ');
+		await expect(page.getByRole('alert').filter({ hasText: 'Falta el nombre.' })).toBeVisible();
+		await expect(shownName).toHaveText('Nombre Viejo');
+
+		await edit('  Nombre Nuevo  ');
+		await expect(shownName).toHaveText('Nombre Nuevo');
+		await page.getByRole('button', { name: 'Deshacer' }).click();
+		await expect(shownName).toHaveText('Nombre Viejo');
+
+		await edit('Nombre Nuevo');
+		await expect(shownName).toHaveText('Nombre Nuevo');
 		await page.goto('/');
 		await expect(page.getByRole('heading', { level: 1, name: /^Hola, Nombre/ })).toBeAttached();
+		expect((await page.request.get('/profile/name')).status()).toBe(404);
 	});
 
 	test('change password revokes other sessions and keeps this one', async ({ page, browser }) => {
@@ -57,24 +69,28 @@ test.describe('account changes', () => {
 		await submitLogin(pageB, email, current);
 		await expect(pageB).toHaveURL(/\/$/);
 
+		// The direct URL is the page variant of the drawer: same form and server errors.
 		await page.goto('/profile/password');
-		const currentField = page.locator('#current-password');
-		const next = page.locator('#new-password');
-		const save = page.getByRole('button', { name: 'Guardar cambios' });
-
-		await currentField.fill('incorrecta-123');
-		await next.fill(newPassword);
-		await save.click();
+		await page.locator('#current-password').fill('incorrecta-123');
+		await page.locator('#new-password').fill(newPassword);
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('La contraseña actual no es correcta.')).toBeVisible();
 
-		await currentField.fill(current);
-		await next.fill('corta');
-		await save.click();
-		await expect(page.getByText('Mínimo 8 caracteres.', { exact: true })).toBeVisible();
+		await page.goto('/profile');
+		await page.waitForLoadState('networkidle'); // hydration guard: the drawer opens only through JS
+		await page.getByRole('link', { name: 'Contraseña' }).click();
+		const drawer = page.getByRole('dialog', { name: 'Cambiar contraseña' });
+		await expect(page).toHaveURL(/\/profile$/);
+		const save = drawer.getByRole('button', { name: 'Guardar', exact: true });
 
-		await currentField.fill(current);
-		await next.fill(newPassword);
+		await drawer.locator('#current-password').fill(current);
+		await drawer.locator('#new-password').fill('corta');
 		await save.click();
+		await expect(drawer.getByText('Mínimo 8 caracteres.', { exact: true }).first()).toBeVisible();
+
+		await drawer.locator('#new-password').fill(newPassword);
+		await save.click();
+		await expect(drawer).toBeHidden();
 		await expect(page).toHaveURL(/\/profile$/);
 		await page.goto('/');
 		await expect(page).toHaveURL(/\/$/);
@@ -124,27 +140,18 @@ test.describe('account changes', () => {
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page).toHaveURL(/\/plan/);
 
-		await page.goto('/profile/delete');
-		await page.waitForLoadState('networkidle'); // hydration guard: the confirm dialog replaces its no-JS fallback only after mount
-		await page.locator('#delete-password').fill('incorrecta-123');
-		await page.getByRole('button', { name: 'Darme de baja' }).click();
-		await page
-			.getByRole('alertdialog')
-			.getByRole('button', { name: 'Darme de baja', exact: true })
-			.click();
-		await expect(page.getByText('La contraseña no es correcta.')).toBeVisible();
-		await expect(page).toHaveURL(/\/profile\/delete$/);
-		await page.goto('/');
-		await expect(page).toHaveURL(/\/$/);
+		await page.goto('/profile');
+		await page.waitForLoadState('networkidle'); // hydration guard: the drawer opens only through JS
+		await page.getByRole('link', { name: 'Darme de baja' }).click();
+		const drawer = page.getByRole('dialog', { name: '¿Darte de baja?' });
+		await expect(page).toHaveURL(/\/profile$/);
+		await expect(drawer).toContainText('1 cuenta y 1 movimiento');
+		await drawer.locator('#delete-password').fill('incorrecta-123');
+		await drawer.getByRole('button', { name: 'Darme de baja' }).click();
+		await expect(drawer.getByText('La contraseña no es correcta.')).toBeVisible();
 
-		await page.goto('/profile/delete');
-		await page.waitForLoadState('networkidle'); // hydration guard: the confirm dialog replaces its no-JS fallback only after mount
-		await page.locator('#delete-password').fill(current);
-		await page.getByRole('button', { name: 'Darme de baja' }).click();
-		await page
-			.getByRole('alertdialog')
-			.getByRole('button', { name: 'Darme de baja', exact: true })
-			.click();
+		await drawer.locator('#delete-password').fill(current);
+		await drawer.getByRole('button', { name: 'Darme de baja' }).click();
 		await expect(page).toHaveURL(/\/login/);
 
 		await page.goto('/');

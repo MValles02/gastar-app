@@ -1,6 +1,8 @@
 import { fail } from '@sveltejs/kit';
+import { auth } from '$lib/server/auth';
+import { userNameError } from '$lib/server/auth-forms';
 import { PREFERENCE_COOKIE_OPTIONS, THEME_COOKIE } from '$lib/server/cookies';
-import { pendingImportCount } from '$lib/server/mp-import-queries';
+import { profileCounts } from '$lib/server/profile-queries';
 import { getConnectionInfo, mpOauthEnabled } from '$lib/server/mp-oauth';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -12,13 +14,12 @@ const isTheme = (value: unknown): value is Theme =>
 
 const parseTheme = (value: string | undefined): Theme => (isTheme(value) ? value : 'system');
 
-/** The Mercado Pago row: null when the feature is off; `pending` only when imports are usable. */
+/** The Mercado Pago row: null when the feature is off, else the link state it shows as its value. */
 async function importsRow(userId: string) {
 	if (!mpOauthEnabled()) return null;
 	const conn = await getConnectionInfo(userId);
 	if (conn?.needsReconnect) return { state: 'reconnect' as const };
-	if (conn?.accountId)
-		return { state: 'linked' as const, pending: await pendingImportCount(userId) };
+	if (conn?.accountId) return { state: 'linked' as const };
 	return { state: 'unlinked' as const };
 }
 
@@ -27,11 +28,22 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	return {
 		user: { name: user.name, email: user.email },
 		theme: parseTheme(cookies.get(THEME_COOKIE)),
+		counts: await profileCounts(user.id),
 		imports: await importsRow(user.id)
 	};
 };
 
 export const actions: Actions = {
+	/** Saves the name as typed in the row (`undo` posts the previous one back through the same action). */
+	name: async ({ request }) => {
+		const name = String((await request.formData()).get('name') ?? '').trim();
+		const error = userNameError(name);
+		if (error) return fail(400, { errors: { name: error } });
+
+		await auth.api.updateUser({ body: { name }, headers: request.headers });
+		return { name };
+	},
+
 	theme: async ({ request, cookies }) => {
 		const data = await request.formData();
 		const value = data.get('theme');
