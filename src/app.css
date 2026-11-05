@@ -444,3 +444,8 @@
 		animation: none;
 	}
 }
+
+/* Edge-swipe back (src/lib/edge-swipe-back.ts): the dragged page may sit past the right edge. */
+html.edge-swiping {
+	overflow-x: clip;
+}
