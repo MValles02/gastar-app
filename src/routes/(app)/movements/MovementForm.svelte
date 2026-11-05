@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Currency } from '$lib/money';
+	import { MOVEMENT_MESSAGES } from '$lib/movement-messages';
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import Lock from '@lucide/svelte/icons/lock';
@@ -79,14 +80,6 @@
 		{ value: 'transfer', label: 'Transf.' }
 	];
 
-	// Same texts as parseMovementForm / resolveMovement (src/lib/server/movements.ts), shown on the row
-	// without a round trip.
-	const MSG = {
-		account: 'Elegí una cuenta.',
-		destination: 'Elegí la cuenta de destino.',
-		category: 'Elegí una categoría.',
-		rate: 'Ingresá la cotización (1 USD = X ARS) en pesos enteros y mayor a cero.'
-	};
 	const AMOUNT_COLOR = {
 		outcome: 'var(--negative)',
 		income: 'var(--positive)',
@@ -211,12 +204,13 @@
 	/** The rows still missing a value (drawer): same fields and messages as the server. */
 	function missing() {
 		const e: Partial<Record<Fields, string>> = {};
-		if (!accountId) e.accountId = MSG.account;
+		if (!accountId) e.accountId = MOVEMENT_MESSAGES.account;
 		if (isTransfer) {
-			if (!destinationId) e.destinationAccountId = MSG.destination;
+			if (!destinationId) e.destinationAccountId = MOVEMENT_MESSAGES.destination;
 			const r = parseAmount(rate);
-			if (showRate && (r === null || r <= 0 || !isWholeFor(r, 'ARS'))) e.exchangeRate = MSG.rate;
-		} else if (!categoryId) e.categoryId = MSG.category;
+			if (showRate && (r === null || r <= 0 || !isWholeFor(r, 'ARS')))
+				e.exchangeRate = MOVEMENT_MESSAGES.rate;
+		} else if (!categoryId) e.categoryId = MOVEMENT_MESSAGES.category;
 		return e;
 	}
 </script>
