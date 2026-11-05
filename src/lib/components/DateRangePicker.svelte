@@ -11,13 +11,16 @@
 	let {
 		legend = 'Fechas',
 		from = $bindable(''),
-		to = $bindable('')
+		to = $bindable(''),
+		nested = false
 	}: {
 		legend?: string;
 		/** `YYYY-MM-DD`, or '' when empty. */
 		from?: string;
 		/** `YYYY-MM-DD`, or '' when empty. */
 		to?: string;
+		/** Opens the list as a drawer stacked over the one this picker is rendered in. */
+		nested?: boolean;
 	} = $props();
 
 	let mounted = $state(false);
@@ -36,19 +39,6 @@
 			return undefined;
 		}
 	}
-	const range = $derived({ start: toDate(from), end: toDate(to) });
-	const summary = $derived(
-		from && to
-			? from === to
-				? formatDay(from)
-				: `${formatDay(from)} – ${formatDay(to)}`
-			: from
-				? `Desde ${formatDay(from)}`
-				: to
-					? `Hasta ${formatDay(to)}`
-					: ''
-	);
-
 	const presets = [
 		{
 			label: 'Este mes',
@@ -72,6 +62,29 @@
 			}
 		}
 	];
+	const range = $derived({ start: toDate(from), end: toDate(to) });
+	// A range that equals a preset reads as the preset ("Este mes").
+	const presetLabel = $derived(
+		from && to
+			? presets.find((p) => {
+					const [s, e] = p.range();
+					return s.toString() === from && e.toString() === to;
+				})?.label
+			: undefined
+	);
+	const summary = $derived(
+		presetLabel
+			? presetLabel
+			: from && to
+				? from === to
+					? formatDay(from)
+					: `${formatDay(from)} – ${formatDay(to)}`
+				: from
+					? `Desde ${formatDay(from)}`
+					: to
+						? `Hasta ${formatDay(to)}`
+						: ''
+	);
 
 	function openSheet() {
 		custom = false;
@@ -109,7 +122,7 @@
 		<input type="hidden" name="from" value={from} disabled={!from} bind:this={hidden} />
 		<input type="hidden" name="to" value={to} disabled={!to} />
 	</div>
-	<BottomDrawer title="Fechas (Rango)" bind:open>
+	<BottomDrawer title="Fechas" {nested} bind:open>
 		{#if custom}
 			<RangeCalendar
 				value={range}

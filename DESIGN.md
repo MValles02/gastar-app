@@ -30,26 +30,42 @@ colors:
   warning-dark: 'oklch(0.879 0.169 91.605)'
   transfer: '#2c5d8a'
   transfer-dark: '#8db8e6'
-  swatch-green: '#2f6b45'
+  swatch-green: '#2e6b34'
   swatch-green-dark: '#7fc79a'
-  swatch-teal: '#1f6a6a'
+  swatch-teal: '#1f6b66'
   swatch-teal-dark: '#6cc4c0'
+  swatch-sky: '#1e6380'
+  swatch-sky-dark: '#7cc3e0'
   swatch-blue: '#2c5d8a'
   swatch-blue-dark: '#8db8e6'
-  swatch-violet: '#5b4a8a'
+  swatch-indigo: '#44508f'
+  swatch-indigo-dark: '#a0abe6'
+  swatch-violet: '#5a4a8a'
   swatch-violet-dark: '#b3a3e6'
   swatch-plum: '#7a3d6b'
   swatch-plum-dark: '#d99ac6'
+  swatch-pink: '#9a3a5c'
+  swatch-pink-dark: '#eba0bb'
   swatch-red: '#9a3b2e'
   swatch-red-dark: '#f0a090'
-  swatch-orange: '#9a5a1f'
+  swatch-orange: '#b4561c'
   swatch-orange-dark: '#f0b27a'
-  swatch-ochre: '#7d6a1e'
+  swatch-amber: '#9a5a1f'
+  swatch-amber-dark: '#ecb36e'
+  swatch-ochre: '#8a6d1a'
   swatch-ochre-dark: '#d9c46e'
+  swatch-olive: '#5f6b1e'
+  swatch-olive-dark: '#bccb72'
+  swatch-brown: '#6e4e36'
+  swatch-brown-dark: '#d0a98a'
+  swatch-slate: '#4a5868'
+  swatch-slate-dark: '#a3b3c6'
+  swatch-gray: '#5e5a54'
+  swatch-gray-dark: '#b8b3ab'
 typography:
   body:
     fontFamily: "'Geist Mono Variable', ui-monospace, monospace"
-    fontSize: '1rem'
+    fontSize: '0.9375rem'
     fontWeight: 400
     lineHeight: 1.5
   headline:
@@ -63,7 +79,7 @@ typography:
     lineHeight: 1.5
   label:
     fontFamily: "'Geist Mono Variable', ui-monospace, monospace"
-    fontSize: '0.875rem'
+    fontSize: '0.8125rem'
     fontWeight: 400
     lineHeight: 1.5
 rounded:
@@ -168,7 +184,7 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 
 ### Primary
 
-- **Emerald** (`primary`): Primary buttons, the center FAB, the wordmark, the active nav icon and the focus ring. Dark: deeper emerald (`primary-dark`).
+- **Emerald** (`primary`): Primary buttons, the center FAB, the wordmark mark, the active nav icon and the focus ring. Dark: deeper emerald (`primary-dark`).
 
 ### Neutral (cream, stone in dark)
 
@@ -191,9 +207,32 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 
 ### Swatches
 
-- **Account and category swatches** (`--swatch-green`, `--swatch-teal`, `--swatch-blue`, `--swatch-violet`, `--swatch-plum`, `--swatch-red`, `--swatch-orange`, `--swatch-ochre`): The eight user-pickable accent colours for IconBadge and the color picker, each with a light and a `-dark` value (listed in the frontmatter, defined with `light-dark()` in `app.css`).
+- **Account and category swatches** (`--swatch-<key>`, defined with `light-dark()` in `app.css`, values in the frontmatter): sixteen user-pickable accent colours for IconBadge, Meter and the color picker, in picker order: green Verde, teal Turquesa, sky Celeste, blue Azul, indigo Índigo, violet Violeta, plum Ciruela, pink Rosa, red Rojo, orange Naranja, amber Ámbar, ochre Ocre, olive Oliva, brown Marrón, slate Pizarra, gray Gris. The key is what the database stores (`toSwatchKey`; no DB enum), so existing keys never change.
+- **Tints** are derived, never tokens: IconBadge fills a `color-mix` 14% of the swatch over the surface.
+- **Contrast** (light value vs light surface, dark value vs dark surface / dark page / its 14% tint over the dark surface; WCAG ratios): light is a glyph colour (3:1 needed), dark text-like use needs 4.5:1 on surface and page and 3:1 on the tint. Every swatch passes; the lowest are light orange 4.62 and light ochre 4.63 (both still above 4.5).
+
+| Key    | Light / Dark / Dark on bg / Dark on tint |
+| ------ | ---------------------------------------- |
+| green  | 6.06 / 8.78 / 9.91 / 6.69                |
+| teal   | 5.91 / 8.58 / 9.68 / 6.58                |
+| sky    | 6.29 / 8.95 / 10.10 / 6.80               |
+| blue   | 6.52 / 8.44 / 9.53 / 6.47                |
+| indigo | 7.11 / 7.88 / 8.90 / 6.11                |
+| violet | 7.13 / 7.75 / 8.75 / 6.02                |
+| plum   | 7.32 / 7.82 / 8.83 / 6.07                |
+| pink   | 6.33 / 8.56 / 9.67 / 6.54                |
+| red    | 6.52 / 8.44 / 9.53 / 6.47                |
+| orange | 4.62 / 9.46 / 10.68 / 7.09               |
+| amber  | 5.14 / 9.36 / 10.57 / 7.03               |
+| ochre  | 4.63 / 10.06 / 11.35 / 7.44              |
+| olive  | 5.49 / 9.93 / 11.22 / 7.37               |
+| brown  | 7.06 / 8.10 / 9.15 / 6.24                |
+| slate  | 6.87 / 8.18 / 9.24 / 6.29                |
+| gray   | 6.46 / 8.39 / 9.48 / 6.42                |
 
 ### Named Rules
+
+**The No Divider Lines Rule.** Rows, sections, stats, month headers, form and drawer actions and the sticky header are separated by spacing (padding or gap), never by a rule line. Outlines stay: inputs, buttons, cards and containers keep their borders, and the amount input keeps its 2px focus underline.
 
 **The Action Colour Rule.** Primary marks actions, selection and focus only: button fills, the FAB, the active nav icon and the focus ring. Never use it for link text; links use the text color (links underlined).
 
@@ -206,16 +245,28 @@ The theme is switched via `data-theme` on `<html>` (`light`, `dark`, or absent f
 **Display Font:** none
 **Body Font:** Geist Mono (with ui-monospace, monospace fallback), a variable font loaded via @fontsource-variable/geist-mono, used for body, headings, titles and amounts.
 
-**Character:** A single monospaced family, so amounts and columns align naturally. Hierarchy comes from weight and a short size scale (0.75rem `--font-size-xs`, 0.875rem `--font-size-sm`, 1rem `--font-size-base`, 1.25rem `--font-size-lg`, 1.75rem `--font-size-xl`, plus the 2.25rem hero step) rather than a second family.
+**Character:** A single monospaced family, so amounts and columns align naturally. Hierarchy comes from weight and a short size scale. Weights are 400, 500 and 600 only (never 700; `strong` and `b` are 600).
+
+| Token               | Size | Use                                                               |
+| ------------------- | ---- | ----------------------------------------------------------------- |
+| `--font-size-xs`    | 12px | Caption, meta, badges                                             |
+| `--font-size-sm`    | 13px | Secondary text, sub-lines, labels, section titles, chips          |
+| `--font-size-base`  | 15px | Body (set on `body`), rows, values, buttons, row amounts          |
+| `--font-size-lg`    | 20px | Headings: sheet and dialog titles, detail titles, currency prefix |
+| `--font-size-xl`    | 28px | Page titles                                                       |
+| `--font-size-hero`  | 36px | Display: big amounts, including the amount input                  |
+| `--font-size-input` | 16px | Every text input, textarea and select (16px prevents iOS zoom)    |
+
+The Tailwind `text-xs/sm/base/lg` utilities map to the same tokens in `@theme`, so shadcn parts land on 12/13/15/20; inputs use `text-(length:--font-size-input)`.
 
 ### Hierarchy
 
 - **Headline** (600, h1 to h3, 1.2, letter-spacing -0.01em): Page and section headings.
-- **Title** (600, 1.25rem): The "Gastar" wordmark text on the login screen.
-- **Page title** (500, 1.75rem, 1.2): The `PageHeader` h1 on every screen.
-- **Body** (400, 1rem, 1.5): Default text and fields.
-- **Label** (400, 0.875rem): Form labels in muted ink, and error text in the negative color. Buttons use 0.875rem at weight 500.
-- **Hero** (`--font-size-hero`, 2.25rem): The large balance or amount figure on the dashboard, account detail and movement detail, sized `clamp(1.5rem, 9vw, var(--font-size-hero))` so it shrinks on narrow screens.
+- **Title** (600, 20px): The "Gastar" wordmark text on the login screen.
+- **Page title** (500, 28px, 1.2): The `PageHeader` h1 on every screen.
+- **Body** (400, 15px, 1.5): Default text. Fields are 16px.
+- **Label** (400, 13px): Form labels in muted ink, and error text in the negative color. Buttons use 13px at weight 500.
+- **Hero** (`--font-size-hero`, 36px): The large balance or amount figure on the dashboard, account detail and movement detail, sized `clamp(1.5rem, 9vw, var(--font-size-hero))` so it shrinks on narrow screens.
 
 ### Named Rules
 
@@ -250,7 +301,7 @@ An `Item` row (a link or button via the `child` snippet) fills with `muted` on h
 
 ## Shapes
 
-Three radii: `--radius` 0.625rem (`rounded.md`) for buttons, fields, the segmented track and the option picker trigger; `--radius-card` 0.875rem (`rounded.card`) for cards, list cards and the FAB; and a full pill (`rounded.pill`, 999px) for the avatar (a 2.75rem circle). The wordmark mark and the empty-state badge reuse them (an 8px-radius mark; a 3.5rem tinted circle). Borders are always 1px in the border token. Transitions are 0.15s ease on opacity, color and background-color. When `prefers-reduced-motion: no-preference` also holds, `transform` is added so pressed buttons, nav items and the FAB scale down (0.98 for buttons, 0.96 for the rest); with reduced motion there is no press scale. Screens change with a page transition (View Transitions API, `app.css`), 0.28s on an iOS-like curve (`cubic-bezier(0.32, 0.72, 0, 1)`): opening a child screen slides it in from the right while the old one drifts left and dims; going back reverses it; switching tabs crossfades in 0.2s. Changes within one screen (month, currency, filters, search) update in place with no transition, since taps are ignored while one runs. The header and tab bar crossfade in place instead of sliding. There is no page transition with reduced motion, without browser support, or when the browser already animated the back swipe.
+Three radii: `--radius` 0.625rem (`rounded.md`) for buttons, fields, the segmented track and the option picker trigger; `--radius-card` 0.875rem (`rounded.card`) for cards, list cards and the FAB; and a full pill (`rounded.pill`, 999px) for the avatar (a 2.75rem circle). The wordmark mark and the empty-state badge reuse them (an 8px-radius mark; a 3.5rem tinted circle). Borders are always 1px in the border token. Transitions are 0.15s ease on opacity, color and background-color. When `prefers-reduced-motion: no-preference` also holds, `transform` is added so pressed buttons, nav items and the FAB scale down (0.98 for buttons, 0.96 for the rest); with reduced motion there is no press scale. Screens change with a page transition (View Transitions API, `app.css`), 0.28s on an iOS-like curve (`cubic-bezier(0.32, 0.72, 0, 1)`): opening a child screen slides it in from the right while the old one drifts left and dims; going back reverses it; switching tabs crossfades in 0.2s. Changes within one screen (month, currency, filters, search) update in place with no transition, since taps are ignored while one runs. The header and tab bar crossfade in place instead of sliding. There is no page transition with reduced motion, without browser support, or when the browser already animated the back swipe. In the installed PWA (standalone display mode only; a Safari tab already has the system swipe) a touch starting within 20px of the left edge and dragging right moves the whole page with the finger (`edgeSwipeBack`, `src/lib/edge-swipe-back.ts`, on the `(app)` layout's `main`): a surface-coloured page with a soft left shadow slides over the background. The gesture is claimed after 10px only when horizontal travel is at least 1.5x the vertical, so vertical scroll, horizontal scrollers that are scrolled, inputs, sliders and text selections keep their touches. Past 35% of the width, or a flick (over 0.5px/ms and 40px), the page finishes sliding out (0.2s) and the screen's own back or close control is clicked (same pop-or-replace logic as the button, with no second page transition); otherwise it springs back in 0.28s on the same curve. It exists only where the header has a back or close control (never on tabs or auth screens) and never while a drawer or dialog is open. With reduced motion the page does not follow the finger; release past the threshold still navigates.
 
 ## Components
 
@@ -276,7 +327,9 @@ Shared components live in `src/lib/components/`.
 
 ### Inputs / Fields
 
+- **Day-of-month and option lists:** `DayOfMonthPicker` is a 1–31 grid in a stacked drawer (31 = last day). Choice lists (Ahorro, Categoría) are rows with a checkmark on the selected one; no radios.
 - **App forms:** The same generated shadcn parts with stock styling as the auth forms, stacked (label above control): `Field.Field` with `Field.Label for=` and `Input` (text, number and date), `InputGroup` for the amount (currency symbol as an inline-start addon) and the FilterBar search (search icon addon, `aria-label`), and `NativeSelect` (+ `NativeSelect.Option`) for native selects. Errors are `Field.Error` (`role="alert"`, linked by `aria-describedby`); fields inside the list cards of the account, category, movement and recurring forms sit in a `Field.Field` with `p-4`. `OptionPicker` keeps its custom styling until migrated. Filter checkboxes are the generated shadcn `Checkbox` next to a `Field.Label for=` in a horizontal `Field.Field`; form toggles are `SwitchRow` (below); checkboxes, switches and radios are Bits UI buttons and need JavaScript (no no-JS fallback, except the `OptionPicker` rows).
+- **Auth page (`AuthPage`):** Every signed-out screen: a left-aligned column (max 400px, vertically centered, `space-5` gaps) with the wordmark on top. Screens other than Ingresar / Crear cuenta get a "Volver" link pinned top-left (chevron plus text, 2.75rem tall), then an optional 3.5rem muted rounded status icon, the level-1 title (display, 28px) and a muted description. On Ingresar / Crear cuenta the wordmark is the level-1 heading and there is no back link. The full-width submit button sits right under the form (no pinned bar). `AuthForm` takes an `after` snippet for secondary actions under the button; secondary actions are `outline` buttons.
 - **Auth forms:** Use the generated shadcn parts with stock styling: `Field.Field` per field with `Field.Label for=`, `Input` (2rem tall, `border-input`, 3px ring on focus), `Field.Error` (`role="alert"`, destructive text, linked by `aria-describedby`) and `Field.Description` for hints. `PasswordInput` is an `InputGroup` with an inline-end ghost icon `InputGroup.Button` toggling visibility (`aria-pressed`).
 
 ### Segmented Control
@@ -293,36 +346,52 @@ A `muted` track (no edge, 3px padding, 2px gap, 0.625rem radius) built on the ge
 - **ActionLink:** The underlined text-colour link for section actions ("Agregar", "Ver todos"), 0.875rem weight 500, 2.75rem tall. It replaces the old add-row cards: lists get "Agregar" under their `SectionHeader` (Cuentas and Categorías, right under the `FilterBar`).
 - **Detail tone:** Amounts never show a visible "+" or "-"; colour carries the direction: income `positive`, outcome `negative`, transfer `transfer`. Category net is shown as a cash flow (spend `negative`, net income `positive`).
 - **Destructive cue:** The confirm-delete trigger ("Eliminar") in the detail actions uses the `negative` text colour and a 50% `negative` border; other actions stay neutral.
-- **FilterBar:** Wrapping flex form with `space-2` by `space-3` gaps. The search field takes the full first row (search icon inset left); a segmented control or filters disclosure takes its own full row; a checkbox label stays compact (auto width) and shares a row when it fits. The form submits on native `change` and on a click of any checkbox or radio inside it (Bits controls fire no `change`). On the movements list the filters `summary` is an inline pill (surface fill, hairline border, 2.75rem tall).
-- **List day headings:** Movements group by day under a small heading (0.875rem, 600, muted text, `space-4` inline padding) rather than a body-size title.
+- **FilterBar:** Wrapping flex form with `space-2` by `space-3` gaps. The search field takes the full first row (search icon inset left); a segmented control or filters disclosure takes its own full row; a checkbox label stays compact (auto width) and shares a row when it fits. The form submits on native `change` and on a click of any checkbox or radio inside it (Bits controls fire no `change`). The Filtros pill button carries a count badge when filters are active. The optional `onfilters` prop hands the drawer to the page: Filtros calls it and the bar renders no drawer of its own (the Movimientos list; Cuentas and Categorías keep the built-in one, which is staged: nothing navigates while it is open and closing it applies the choices).
+- **Movements filters drawer (`MovementFiltersDrawer`):** A `BottomDrawer` ("Filtros", `bare`) with Moneda (Ambas / Pesos / Dólares) and Tipo (Todos / Gastos / Ingresos / Transf.) segmented controls, then one card of rows: Fechas (`DateRangePicker nested`; the value reads "Todas", a range or the preset label such as "Este mes"), Cuenta and Categoría (`MultiPicker`). Nothing navigates while it is open: changes are staged and applied by the primary pill "Ver N movimientos" (N is the server count for the staged filters, debounced; "Ver movimientos" while loading), next to the outline "Limpiar" (resets the staged filters, keeps the search term). Actions are pinned below the scrolling fields like the new-movement drawer. Moneda is disabled while any account is staged (the accounts decide it; mixed currencies read "Ambas"). There are no removable filter chips.
+- **MultiPicker:** A row trigger (label left; value right: "Todas", the one name, or "N cuentas" / "N categorías"; chevron) that opens a stacked `BottomDrawer` of toggle rows (`Item` buttons, `aria-pressed`, icon badge, name, optional right-hand meta such as the account currency). The check sits left of the right-hand meta and only on selected rows; toggling keeps the list open, Escape or a swipe closes it.
+- **List month and day headings:** Movements group under a sticky month header (`h2`, 15px, 600, `--bg` fill, offset below the sticky page header) holding one muted day heading per day (`h3`, 13px, 600, `space-4` inline padding): "Hoy", "Ayer", then the capitalised weekday and day ("Lunes 26"). With filters active a plain muted "N movimientos" line precedes the list. A cross-currency transfer row shows the destination amount under the amount in 12px muted.
 - **CurrencyTabs:** `ARS | USD` `SegmentedControl` in a form posting to `/currency` (cookie `currency`); a failure shows a `role="alert"` line under it, and focus returns to the checked radio after switching.
-- **Money:** An amount with the decimals dimmed for USD only (ARS has no decimal part; 70% opacity, text-colour amounts only, to keep 4.5:1; coloured decimals stay full), `tabular-nums`, the number breaks only after the symbol gap and at thousands separators (`<wbr>` after each `.`), never inside a digit group; no visible sign: `tone` colours it. `stock` (default; balances, totals) is the text colour, negative when below zero. `flow` (movements) follows `direction`: `income` positive, `outcome` negative, `transfer` the text colour (the `transfer` colour stays for transfer tiles and icons); without `direction` it follows the sign. Zero is always the text colour. A visually hidden "-"/"+" keeps the direction for screen readers. Font size and weight come from the parent. `HeroAmount` takes the same `tone`/`direction`. A transfer's amount keeps the text colour; the `transfer` colour only tints its glyph.
-- **DetailHero:** The amount card of the movement, recurring-rule, account and category detail pages: a `Card` with a centered `HeroAmount` and a muted label below (type, "Saldo"), no icon. A `top` snippet holds a month nav (category) and `children` replaces the amount (empty or multi-currency states). The account hero is `stock`; the others are `flow`.
-- **ListRow / ListCard:** One row component for every list. `ListRow` is a `listitem` wrapping a stock `Item.Root` (link via `href`, `submit` button or plain block) with: an optional `lead` (`IconBadge`, fixed 2.25rem, icon or letter, neutral when no colour); line 1 `Item.Title` (truncated) with the `value` (`.row-amount`, display font, top-aligned, right) beside it; line 2 `Item.Description` with a `StatusPill`, then `.row-meta` (truncating) and `metaEnd`; an optional full-width `footer` (a `Meter`); `chevron` for navigation rows; `dimmed` mutes the lead, title and value (archived accounts and categories, inactive rules). The status pill never sits on line 1, so it cannot overlap an amount. `MovementRow` is a `ListRow`: lead is the category icon (or the description initial) in the category colour, neutral without a category, and a transfer uses the `transfer` colour on the glyph only (`IconBadge glyph`, neutral tile); with a `date`, line 2 is the date in meta and the account (or "Origen → Destino" for a transfer) end-aligned in `metaEnd`, without it the account or transfer pair is the meta; no category name; `Money tone="flow"`.
+- **Money:** An amount with the decimals dimmed for USD only (ARS has no decimal part; 70% opacity, text-colour amounts only, to keep 4.5:1; coloured decimals stay full), `tabular-nums`, the number breaks only after the symbol gap and at thousands separators (`<wbr>` after each `.`), never inside a digit group; no visible sign: `tone` colours it. `stock` (default; balances, totals) is the text colour, negative when below zero. `flow` (movements) follows `direction`: `income` positive, `outcome` negative, `transfer` the `transfer` blue; without `direction` it follows the sign. Zero is always the text colour. A visually hidden "-"/"+" keeps the direction for screen readers. Font size and weight come from the parent. `HeroAmount` takes the same `tone`/`direction`.
+- **DetailHero:** The amount card of the recurring-rule, account and category detail pages: a `Card` with a centered `HeroAmount` and a muted label below (type, "Saldo"), no icon. A `top` snippet holds a month nav (category) and `children` replaces the amount (empty or multi-currency states). The account hero is `stock`; the others are `flow`.
+- **Movement detail drawer (`MovementDetail`):** Detail and edit are one screen, a bottom drawer over the list (shallow route; the full `/movements/[id]` page renders the same component). Description (20px, 600) and amount (36px, coloured by type, no sign) sit centered on top as `InlineText`: tap to edit, Enter or blur saves, Escape cancels. Below, one card of rows (Fecha, Cuenta, Categoría; transfers: Fecha, Desde, Hacia, En destino, Cotización) whose pickers stack as nested drawers. Every change saves on its own (`autosave`) with a "Cambio guardado." toast and Deshacer; a rejected change shows the server message under the row and keeps the old value. Bottom: Eliminar (always confirms, never undoable) and Listo. The first row under the amount is Tipo (Gasto / Ingreso / Transferencia, a nested single-select list with a check on the current one; the amount colour follows it). A type change that needs a field the movement lacks (a category of the new kind, Hacia, or a Cotización) stays staged and opens that field; everything then saves in one post. Closing with it still staged saves nothing and toasts "No se guardó el cambio de tipo."
+- **Inline-edit primitives:** `InlineText` (value as a tap-to-edit button labelled "Label: value", input labelled "Label", error below) and `autosave`/`submitAction` (`src/lib/autosave.ts`) are reusable by other screens.
+- **ListRow / ListCard:** One row component for every list. `ListRow` is a `listitem` wrapping a stock `Item.Root` (link via `href`, `submit` button or plain block) with: an optional `lead` (`IconBadge`, fixed 2.25rem, icon or letter, neutral when no colour); line 1 `Item.Title` (truncated) with the `value` (`.row-amount`, display font, top-aligned, right) beside it; line 2 `Item.Description` with a `StatusPill`, then `.row-meta` (truncating) and `metaEnd`; an optional full-width `footer` (a `Meter`); `chevron` for navigation rows; `dimmed` mutes the lead, title and value (archived accounts and categories, inactive rules). The status pill never sits on line 1, so it cannot overlap an amount. `MovementRow` is a `ListRow`: lead is the category icon (or the description initial) in the category colour, neutral without a category, and a transfer uses the `transfer` colour on the glyph only (`IconBadge glyph`, neutral tile); with a `date`, line 2 is the date in meta and the account (or "Origen → Destino" for a transfer) end-aligned in `metaEnd`, without it the account or transfer pair is the meta; no category name; `Money tone="flow"`; an optional `secondary` amount (a cross-currency transfer's destination amount) renders in 12px muted under the amount.
 - **Meter:** A 0.375rem track (`muted`) with a fill in a swatch colour; with a `label` it is `role="meter"` with `aria-valuetext` (limits). Used by plan limits and the Inicio category rows.
 - **StatusPill:** A `Badge` with a 14% tint of the tone colour as fill and the tone colour as text: `ok` (positive, check), `warning` (amber, clock), `bad` (negative, alert circle), `neutral` (muted fill, muted text, no icon). Tone maps live in `$lib/status` (`PLAN_TONE`, `DUE_TONE`); the label is always text.
 - **SectionHeader / CardEyebrow:** `SectionHeader` (`.section-head`) is a wrapping flex row: the title (1.25rem, 600) or, for `variant="group"`, a `CardEyebrow` h2; an `aside` (group total) on the same line at the right; an `action` (`ActionLink`) on its own line under the title. `CardEyebrow` is the single small uppercase muted label (0.75rem, 600, 0.06em tracking) used above figures and groups.
-- **Profile:** The user name and email, then one `ListCard` ("Tu cuenta") of uniform `ListRow`s, each with an icon lead and a chevron and no value: Cambiar nombre (profile), Cambiar contraseña (lock), Cuentas, Categorías and, when connected, Mercado Pago; then the theme control and the "Cerrar sesión" button as separate sections. The delete-account page opens with a `DangerCallout` (1px negative border, card radius, alert icon).
+- **Inicio currency pills:** `CurrencyTabs variant="pills"` (Inicio only; Plan and Reportes keep the segmented ARS / USD control): "Pesos" and "Dólares" toggle buttons (`aria-pressed`), a 2rem pill (active: `--text` fill with `--background` text; inactive: muted text with a 1px `--border` inset ring) inside a 2.75rem button. Tap only; it posts to `/currency` and swaps in place.
+- **Mercado Pago pill (`MpPill`):** Right of the currency pills on Inicio, only when Mercado Pago is linked. A 2rem pill in a 2.75rem link to `/imports`: with pending items a `--positive` tint with a `--primary` "MP" circle and "N para revisar"; with none a quiet outlined "al día". Its aria-label spells out the count.
+- **Mercado Pago:** Settings (`/profile/mercado-pago`) are one intro card with a single primary button when unlinked, and a `ListCard` of picker rows ("Entra en" `OptionPicker`, "Importar desde" `DatePicker`, both autosaving with Deshacer) plus an outline "Desvincular" when linked. The inbox opens with one 3.5rem sync card (last sync text left, an outline pill "Sincronizar" right; while running a spinner with "Sincronizando…" replaces it), then the full-width "Aprobar N sugeridos". `ImportRow`: a letter or "?" badge, title and one meta line (`--warning` for "No sabemos qué es"), and on the right the flow-coloured amount over a 2rem pill ("Aprobar" in the `--positive` tint, "Revisar" outlined, each in a 44px tap area); the title link stretches over the row. The review is the shallow-route `ImportItemDrawer` (summary card, type segmented, a `ListCard` of Descripción and Categoría or Origen / Destino rows, then Descartar / Aprobar side by side); `/imports/[id]` renders the same form as a page.
+- **First-run checklist (`FirstRunChecklist`):** "Empezá en 3 pasos" card on Inicio while any of account, movement or plan is missing (derived from existing data). Numbered rows (2rem circle: `--primary` for the first open step, muted otherwise; a check glyph and muted title when done, not a link). Without an account only step 1 is a link and the rest are dimmed to 50%. Step 2 opens the new-movement drawer like the + button.
+- **Profile:** An initial avatar (`--muted` circle, 3.5rem) beside the name and email, then separate cards: a `ListCard` of uniform `ListRow`s with an icon lead and a chevron and a muted value (Cuentas and Categorías with their counts, Mercado Pago with Vincular / Vinculado / Reconectar when connected); a `ListCard` with Nombre (an `InlineText` value, autosaved with Deshacer, no chevron) and Contraseña (opens the shallow-route `PasswordDrawer`); the Tema card (segmented control); a `ListCard` with the "Cerrar sesión" row; and "Darme de baja" as a quiet centered text link in `negative` (44px tall, no button), which opens the shallow-route `DeleteAccountDrawer` (bulleted list of what is erased, password row, bold "No se puede deshacer.", Cancelar / destructive `Button`). Both drawers keep a page variant at their route for direct URLs.
 - **Reportes charts:** The 6-month income and outcome bars and the category donut are `aria-hidden` SVG/CSS; their text equivalents are the per-month link `aria-label` ("{mes}: ingresos X, gastos Y") and the visible slice list (name, %, amount). Tokens: income bar `--positive`, outcome bar `--negative` (income always left, outcome right, as in the legend, so colour is not the only cue), slices `--swatch-green`, `--swatch-orange`, `--swatch-blue`, `--swatch-plum` and `--text-muted` for "Otros". Bars keep full opacity (non-text 3:1); the selected month has a bold label and `aria-current="true"`. The bar row bleeds to the card edges so each month link is at least 2.75rem wide at 320px.
 - **Plan rule row (`/plan`):** A `ListRow` in a `ListCard`, a link to the rule detail (where "Registrar" lives): letter lead, description, `Money` value, a `StatusPill` (`DUE_TONE`: paid ok, today warning, overdue bad, upcoming neutral; inactive rules neutral with the reason) and "Día N · account" as meta; inactive rows are `dimmed`. Status is always text, never colour alone.
-- **Empty (shadcn `Empty`):** `Empty.Root > Empty.Header > Empty.Media variant="icon"` (2rem muted rounded square, 1rem icon) plus `Empty.Description` (muted text), centered; action `Button`s sit below it. Full-screen status pages (check email, expired link) wrap `Empty.Root class="min-h-dvh"` in a `main`, with `Empty.Title` as the level-1 heading and the actions in `Empty.Content`.
+- **Empty (shadcn `Empty`):** `Empty.Root > Empty.Header > Empty.Media variant="icon"` (2rem muted rounded square, 1rem icon) plus `Empty.Description` (muted text), centered; action `Button`s sit below it. Signed-out status screens (check email, expired link) do not use it: they are `AuthPage` with `icon`, `title` and `description` (see Auth page).
 
 ### Icon and Wordmark
 
 - **Icon:** Inline SVG, 24px by default, 24-unit viewBox, `currentColor` 1.75 stroke with round caps and joins, `aria-hidden`. Names: home, accounts, plus, movements, categories, profile, plan, chart, search, chevron-left, chevron-right, transfer, lock, tag, plus the category icons (tag, cart, food, transport, car, health, education, entertainment, gift, travel, services, clothing, pets, salary) and the account icons (bank, wallet, cash, card, piggy-bank, dollar, coins, safe, briefcase, phone).
-- **Wordmark:** A rounded-square ledger mark (two horizontal strokes) plus "Gastar" in title type. Mark fill is primary and strokes are on-primary, so it flips in dark; the text is primary.
+- **Wordmark:** A rounded-square ledger mark (two horizontal strokes) plus "Gastar" in title type. Mark fill is primary and strokes are on-primary, so it flips in dark; the "Gastar" text is `--text` (primary on near-black was too faint in dark).
 
 ### Bottom Drawer
 
-A modal bottom drawer (`BottomDrawer`) composed only of the generated shadcn-svelte `Drawer` (vaul-svelte) parts with stock styling: `Drawer.Root`, `Drawer.Content` (popover fill, top corners `rounded-t-xl`, max height 80vh, centred up to 35rem, stock overlay and grab handle), `Drawer.Header` as a row with `Drawer.Title` and a `Drawer.Close` rendered as a ghost icon `Button` (`aria-label="Cerrar"`), then a scrolling body with bottom safe-area padding. The dialog is named by its title; dragging down, clicking the backdrop or pressing Escape closes it.
+A modal bottom drawer (`BottomDrawer`) composed of the generated shadcn-svelte `Drawer` (vaul-svelte) parts: popover fill, 22px top radius, centred up to 35rem, stock overlay. A centred grabber is the only chrome on top (40x5px, 3px radius, `--border-strong`, 8px above and 6px below); there is no X close button. `Drawer.Title` is a 20px/600 heading (inline padding 20px) that names the dialog. The content hugs its height (no fixed height, capped at 85dvh with the body scrolling inside) and the body's bottom padding includes `env(safe-area-inset-bottom)`. No line separates the body from any actions. Dragging down, tapping the scrim or pressing Escape closes it.
 
 ### Option Picker
 
 A field that opens a Bottom Drawer of radio rows. The trigger is a stock `Button` (`outline`, full width, content left-aligned) showing the selected row or a muted placeholder; the `row` variant is a 3.5rem `ghost` button with the label left and value plus chevron right. Each drawer row is a stock `Item` button: `Item.Media` with the icon badge, `Item.Title` (the name) and an optional `Item.Description` (such as " · Archivada"); the selected row (`aria-pressed`) shows a trailing check in `Item.Actions`. Hover fills the row `muted`; focus-visible is the stock 3px ring. Choosing a row closes the drawer and returns focus to the trigger. Without JavaScript the rows render inline as a plain radio group.
 
-### Icon and Color Pickers
+### Icon and Color Drawer
 
-Shadcn `RadioGroup`s of round swatches (the icon picker shows the ten account icons in IconBadge, the color picker the eight swatches at 2.75rem), each swatch inside a `Label` wrapping an invisible `RadioGroup.Item`. The checked option has a 2px text-color ring (`ring-2 ring-offset-2`, offset in the page background); focus-visible draws a 2px ring-colored outline at 4px offset. Requires JavaScript.
+`IconColorDrawer` ("Ícono y color") is the one picker for account and category icon and color, a stacked Bottom Drawer: a large `IconBadge` preview, the icon grid (6 per row, round `IconBadge` cells) and the sixteen swatches (8 per row, 36px circles in 44px cells, each radio labelled with its Spanish name; the checked colour shows a ring, 2px surface gap then 2px in the swatch colour; focus-visible a 2px ring-coloured outline). The choice is staged; Listo hands it to the caller (detail screens autosave it with Deshacer, the new-account and new-category drawers keep it in the form) and Cancelar discards it. Requires JavaScript.
+
+### Drawer Stack
+
+Pickers opened from inside a drawer are a second Bottom Drawer stacked on top (`BottomDrawer` with `nested`, vaul `NestedRoot`): the one below stays put, a tap picks and closes, no confirm. `OptionPicker` takes `nested`, an `extra` last row (e.g. "+ Nueva categoría", primary text) and optional item `balance`/`currency` shown at the row end. `BottomDrawer` also takes `hideTitle` (title kept for assistive technology) and `bare` (no padded wrapper, so the content pins its own actions). The "Nuevo movimiento" drawer (`NewMovementDrawer`, opened from the Nav FAB by shallow routing: URL unchanged, back closes it) is the first user: segmented type, hero amount coloured by type (`--negative`, `--positive`, `--transfer`), a rows card, and Cancelar / Guardar pills pinned below the scrolling fields. A row with a missing value gets a full `--negative` border plus one line of the server's message; it clears when the row gets a value.
+
+### Undo Toast and Highlight
+
+`undoToast(message, undo)` (`src/lib/undo-toast.ts`) is the success toast with the single action "Deshacer" (5 s); `undoMovementSaved(id, ruleId)` wires it to the existing delete actions. A freshly saved movement is flagged by `highlightMovement(id)` (`src/lib/highlight.svelte.ts`) for 3 s: `MovementRow` shows a 14% primary tint that fades out (static under reduced motion) and sets `data-highlighted="true"`.
 
 ### Navigation
 
@@ -330,7 +399,7 @@ Shadcn `RadioGroup`s of round swatches (the icon picker shows the ten account ic
 - **Item states:** `aria-current='page'` gives the item a `muted` pill and turns its icon primary. Press scales to 0.96.
 - **Top bar:** See PageHeader above.
 - **Month stepper (`MonthNav`):** Two ghost icon `Button`s (chevron-left and chevron-right, `aria-label` "Mes anterior"/"Mes siguiente") around the `.month-label`; on the current month the forward button is `disabled` with `aria-disabled="true"`.
-- **Auth tabs (`AuthTabs`):** A `ButtonGroup` of two linked `Button`s (Ingresar, Crear cuenta) in a `nav` labelled "Acceso"; the active one is `default`, the other `outline`, with `aria-current="page"`. The bottom nav stays Inicio | Movimientos | + | Plan | Reportes (Cuentas and Categorías live in Profile).
+- **Auth tabs (`AuthTabs`):** A segmented track (`muted`, 3px padding) of two links (Ingresar, Crear cuenta, 2.75rem tall) in a `nav` labelled "Acceso"; the active one has the `background` fill and `text` colour (as the segmented control), with `aria-current="page"`. The bottom nav stays Inicio | Movimientos | + | Plan | Reportes (Cuentas and Categorías live in Profile).
 
 ### Plan Summary and Limit Row
 

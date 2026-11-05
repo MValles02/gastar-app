@@ -141,7 +141,13 @@ export function resolveMovement(
 		category?: CategoryRef | undefined;
 	},
 	// Archived rows already referenced by the movement being edited stay valid.
-	keep: { accountIds: string[]; categoryId: string | null; amount?: number | null } = {
+	keep: {
+		accountIds: string[];
+		categoryId: string | null;
+		amount?: number | null;
+		/** Ids whose archived checks are skipped (an undo restoring what the movement had). */
+		archivedOk?: string[];
+	} = {
 		accountIds: [],
 		categoryId: null,
 		amount: null
@@ -152,7 +158,11 @@ export function resolveMovement(
 	const base = { ...data, destinationAccountId: null, categoryId: null, exchangeRate: null };
 
 	if (!origin) errors.accountId = MSG.account;
-	else if (origin.archivedAt && !keep.accountIds.includes(origin.id))
+	else if (
+		origin.archivedAt &&
+		!keep.accountIds.includes(origin.id) &&
+		!keep.archivedOk?.includes(origin.id)
+	)
 		errors.accountId = MSG.archivedAccount;
 	else if (
 		!(keep.amount != null && data.amount === keep.amount) &&
@@ -162,7 +172,11 @@ export function resolveMovement(
 
 	if (data.type !== 'transfer') {
 		if (!category) errors.categoryId = MSG.category;
-		else if (category.archivedAt && category.id !== keep.categoryId)
+		else if (
+			category.archivedAt &&
+			category.id !== keep.categoryId &&
+			!keep.archivedOk?.includes(category.id)
+		)
 			errors.categoryId = MSG.archivedCategory;
 		else if (
 			(category.kind === 'income' || category.kind === 'outcome') &&
@@ -179,7 +193,11 @@ export function resolveMovement(
 
 	if (!destination) errors.destinationAccountId = MSG.destination;
 	else if (origin && destination.id === origin.id) errors.destinationAccountId = MSG.sameAccount;
-	else if (destination.archivedAt && !keep.accountIds.includes(destination.id))
+	else if (
+		destination.archivedAt &&
+		!keep.accountIds.includes(destination.id) &&
+		!keep.archivedOk?.includes(destination.id)
+	)
 		errors.destinationAccountId = MSG.archivedAccount;
 	if (Object.keys(errors).length > 0) return { ok: false, errors };
 
@@ -212,8 +230,8 @@ export type MovementFilterQuery = {
 	from: string;
 	to: string;
 	type: MovementType | '';
-	account: string;
-	category: string;
+	account: string[];
+	category: string[];
 	currency: Currency | '';
 };
 
@@ -221,7 +239,7 @@ export type MovementFilterQuery = {
 export function parseMovementFilters(sp: URLSearchParams) {
 	const get = (k: string) => sp.get(k) ?? '';
 	const day = (k: string) => (validDay(get(k)) ? get(k) : '');
-	const uuid = (k: string) => (isUuid(get(k)) ? get(k) : '');
+	const uuids = (k: string) => [...new Set(sp.getAll(k).filter(isUuid))];
 	let from = day('from');
 	let to = day('to');
 	if (from && to && from > to) [from, to] = [to, from];
@@ -231,19 +249,23 @@ export function parseMovementFilters(sp: URLSearchParams) {
 		from,
 		to,
 		type: TYPES.find((t) => t === get('type')) ?? '',
-		account: uuid('account'),
-		category: uuid('category'),
+		account: uuids('account'),
+		category: uuids('category'),
 		currency: CURRENCIES.find((c) => c === get('currency')) ?? ''
 	};
 	const n = Number(get('page'));
 	const page = Number.isSafeInteger(n) && n >= 1 && n <= MAX_PAGE ? n : 1;
 	// An account filter fixes the currency (its own), so currency only counts as active without one.
-	const shown: Record<string, string> = { ...query };
-	const activeCount = Object.values({
-		...shown,
-		currency: query.account ? '' : query.currency,
-		// Desde + Hasta are one range selection in the UI.
-		to: query.from ? '' : query.to
-	}).filter(Boolean).length;
-	return { values: shown, query, page, activeCount };
+	const { account, category, ...scalars } = query;
+	const shown: Record<string, string> = scalars;
+	const activeCount =
+		Object.values({
+			...shown,
+			currency: account.length ? '' : query.currency,
+			// Desde + Hasta are one range selection in the UI.
+			to: query.from ? '' : query.to
+		}).filter(Boolean).length +
+		(account.length ? 1 : 0) +
+		(category.length ? 1 : 0);
+	return { values: shown, accounts: account, categories: category, query, page, activeCount };
 }

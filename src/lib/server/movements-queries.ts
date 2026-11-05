@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ilike, inArray, lt, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, inArray, isNotNull, lt, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
@@ -32,6 +32,16 @@ export function createMovement(
 		.returning({ id: movements.id });
 }
 
+/** Movements per category (all time), for ranking the category picker by use. */
+export function categoryUsage(userId: string) {
+	return db
+		.select({ categoryId: movements.categoryId, uses: sql<number>`count(*)`.mapWith(Number) })
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.where(and(canAccessMovement(userId), isNotNull(movements.categoryId)))
+		.groupBy(movements.categoryId);
+}
+
 /** Single filter predicate shared by the list and its summary (same joins: account, dest, categories). */
 function filterWhere(userId: string, query: MovementFilterQuery) {
 	const { q, from, to, type, account, category, currency } = query;
@@ -43,8 +53,10 @@ function filterWhere(userId: string, query: MovementFilterQuery) {
 		fromStart ? gte(movements.occurredAt, fromStart) : undefined,
 		toEnd ? lt(movements.occurredAt, toEnd) : undefined,
 		type ? eq(movements.type, type) : undefined,
-		account ? or(eq(movements.accountId, account), eq(dest.id, account)) : undefined,
-		category ? eq(movements.categoryId, category) : undefined,
+		account.length
+			? or(inArray(movements.accountId, account), inArray(dest.id, account))
+			: undefined,
+		category.length ? inArray(movements.categoryId, category) : undefined,
 		currency
 			? or(
 					eq(financialAccounts.currency, currency),
@@ -142,8 +154,8 @@ export function updateMovement(userId: string, id: string, row: MovementRow) {
 		.returning({ id: movements.id });
 }
 
-export function deleteMovement(userId: string, id: string) {
-	return db
+export function deleteMovement(userId: string, id: string, executor: DbExecutor = db) {
+	return executor
 		.delete(movements)
 		.where(and(eq(movements.id, id), inArray(movements.id, ownedIds(userId))))
 		.returning({ id: movements.id });

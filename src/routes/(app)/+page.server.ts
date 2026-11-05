@@ -3,16 +3,20 @@ import type { PageServerLoad } from './$types';
 import {
 	accountSummary,
 	categorySums,
+	hasAnyMovement,
+	hasAnyPlan,
 	originTypeSums,
 	recentMovements,
 	transfersInSum
 } from '$lib/server/dashboard-queries';
 import { monthNet, toRecentItem, topCategories, totalBalance } from '$lib/server/dashboard';
 import { preferredCurrency } from '$lib/server/currency-pref';
-import { currentMonth, dateLabel, monthRange } from '$lib/server/month';
+import { currentMonth, dayHeading, localDay, monthLabel, monthRange } from '$lib/server/month';
 import { categorySwatches } from '$lib/server/alerts';
 import { toCategoryIconKey } from '$lib/appearance';
 import { planView } from '$lib/server/plan-view';
+import { getImportAccount, pendingImportCount } from '$lib/server/mp-import-queries';
+import { mpOauthEnabled } from '$lib/server/mp-oauth';
 
 type TopCategory = ReturnType<typeof topCategories>[number] & {
 	color: SwatchKey | null;
@@ -30,7 +34,25 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const hasAnyAccount = summary.some((s) => s.count > 0);
 	const row = summary.find((s) => s.currency === currency);
 	const hasCurrencyAccount = (row?.count ?? 0) > 0;
-	const base = { currency, hasAnyAccount, hasCurrencyAccount };
+
+	// Mercado Pago pill: only for a linked user (also while a reconnect is pending); counts both currencies.
+	const mpPending = async () =>
+		mpOauthEnabled() && (await getImportAccount(userId)) ? await pendingImportCount(userId) : null;
+	const [hasMovement, hasPlan, mpPendingCount] = await Promise.all([
+		hasAnyAccount ? hasAnyMovement(userId) : false,
+		hasAnyAccount ? hasAnyPlan(userId) : false,
+		mpPending()
+	]);
+	const base = {
+		currency,
+		hasAnyAccount,
+		hasCurrencyAccount,
+		monthName: monthLabel(value, false).toLowerCase(),
+		/** Done state of the first-run checklist steps. */
+		steps: { account: hasAnyAccount, movement: hasMovement, plan: hasPlan },
+		/** Pending Mercado Pago items; null when not linked or the feature is off. */
+		mpPending: mpPendingCount
+	};
 
 	if (!hasCurrencyAccount) {
 		return {
@@ -82,7 +104,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		})),
 		recent: recent.map((r) => {
 			const { occurredAt, ...item } = toRecentItem(r, currency);
-			return { ...item, dateLabel: dateLabel(occurredAt) };
+			return { ...item, dateLabel: dayHeading(localDay(occurredAt), localDay(now), true) };
 		})
 	};
 };

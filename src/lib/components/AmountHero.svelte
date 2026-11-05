@@ -9,7 +9,8 @@
 		error,
 		name = 'amount',
 		id = 'amount',
-		autofocus = false
+		autofocus = false,
+		color
 	}: {
 		value: string;
 		currency?: Currency;
@@ -17,11 +18,13 @@
 		name?: string;
 		id?: string;
 		autofocus?: boolean;
+		/** CSS colour of the digits (e.g. by movement type); defaults to the text colour. */
+		color?: string;
 	} = $props();
 </script>
 
 <div class="amount-block">
-	<label class="amount" class:sm={value.length > 11}>
+	<label class="amount" class:sm={value.length > 11} style:--amount-color={color}>
 		<span class="visually-hidden">Monto</span>
 		<span class="currency">{currency === 'USD' ? 'US$' : '$'}</span>
 		<!-- svelte-ignore a11y_autofocus -->
@@ -70,7 +73,7 @@
 
 	.currency {
 		font-family: var(--font-display);
-		font-size: 1.75rem;
+		font-size: var(--font-size-lg);
 		font-weight: 500;
 		color: var(--text-muted);
 	}
@@ -87,9 +90,10 @@
 		outline: none;
 		box-shadow: none;
 		caret-color: var(--primary);
+		color: var(--amount-color, var(--text));
 		background: transparent;
 		font-family: var(--font-display);
-		font-size: 2.75rem;
+		font-size: var(--font-size-hero);
 		font-weight: 500;
 		text-align: center;
 		font-variant-numeric: tabular-nums;

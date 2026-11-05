@@ -1,15 +1,17 @@
 <script lang="ts">
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
-	import { enhanceRedirect } from '$lib/nav-stack.svelte';
+	import { followRedirect } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import AmountHero from '$lib/components/AmountHero.svelte';
-	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
+	import DayOfMonthPicker from '$lib/components/DayOfMonthPicker.svelte';
 	import EntryFields from '$lib/components/EntryFields.svelte';
 	import FormActions from '$lib/components/FormActions.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
+	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import { parseAmount } from '$lib/money';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 	type Fields = 'type' | 'description' | 'amount' | 'accountId' | 'categoryId' | 'dayOfMonth';
@@ -22,28 +24,52 @@
 		action = '',
 		submitLabel,
 		cancelHref = '/plan',
-		type
+		type: initialType,
+		variant = 'page',
+		onsaved,
+		onclose
 	}: {
 		initial: Record<Fields, string>;
 		errors?: Partial<Record<Fields, string>>;
 		accounts: Picker[];
 		categories: (Picker & { kind: string | null })[];
+		/** Page: the form's action. Drawer: the query (e.g. `?wizard=2`) added to /plan/recurring/new. */
 		action?: string;
 		submitLabel: string;
 		cancelHref?: string;
-		/** `income` or `outcome`; fixed for the form and sent as a hidden field. */
+		/** `income` or `outcome`: where the Pago / Ingreso switch starts. */
 		type: string;
+		/**
+		 * `drawer`: the new-rule drawer (stacked pickers, Guardar waits for amount and description, posts to
+		 * /plan/recurring/new and reports the result instead of navigating). `page`: a full page.
+		 */
+		variant?: 'page' | 'drawer';
+		/** Drawer: the save succeeded. */
+		onsaved?: () => void;
+		/** Drawer: Cancelar. */
+		onclose?: () => void;
 	} = $props();
 
+	const drawer = $derived(variant === 'drawer');
+	const typeOptions = [
+		{ value: 'outcome', label: 'Pago' },
+		{ value: 'income', label: 'Ingreso' }
+	];
+
+	let type = $state(untrack(() => initialType));
 	let accountId = $state(untrack(() => initial.accountId));
 	let amount = $state(untrack(() => initial.amount));
 	let description = $state(untrack(() => initial.description));
 	let day = $state(untrack(() => initial.dayOfMonth));
-	let dayOpen = $state(false);
-	let dayTrigger: HTMLButtonElement | null = $state(null);
 	let categoryId = $state(untrack(() => initial.categoryId));
 	let mounted = $state(false);
+	let submitting = $state(false);
 	onMount(() => (mounted = true));
+
+	// Errors from the drawer's post; the page shows the server-rendered `errors` instead.
+	let fieldErrors = $state<Partial<Record<Fields, string>>>({});
+	const shown = $derived({ ...errors, ...fieldErrors });
+	const canSave = $derived((parseAmount(amount) ?? 0) > 0 && description.trim() !== '');
 
 	// The rule's own saved category stays pickable.
 	const pickableCategories = $derived(
@@ -59,18 +85,8 @@
 		const meta = accounts.find((a) => a.id === accountId)?.meta;
 		return meta === 'USD' ? 'USD' : meta === 'ARS' ? 'ARS' : undefined;
 	});
-	const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
-	async function chooseDay(d: string) {
-		day = d;
-		dayOpen = false;
-		await tick();
-		dayTrigger?.focus();
-	}
-
-	// After a failed submit, move focus to the first field marked invalid (inputs or picker triggers).
-	$effect(() => {
-		if (!Object.values(errors).some(Boolean)) return;
+	const focusFirstError = () =>
 		tick().then(() => {
 			document
 				.querySelector<HTMLElement>(
@@ -78,123 +94,145 @@
 				)
 				?.focus();
 		});
+
+	// After a failed submit, move focus to the first field marked invalid (inputs or picker triggers).
+	$effect(() => {
+		if (Object.values(errors).some(Boolean)) focusFirstError();
 	});
 </script>
 
-<form method="POST" {action} use:enhance={() => enhanceRedirect} class="form" novalidate>
-	<input type="hidden" name="type" value={type} />
-	{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
+<form
+	method="POST"
+	action={drawer ? resolve('/plan/recurring/new') + action : action}
+	class="form"
+	class:drawer
+	class:submitting
+	novalidate
+	use:enhance={() => {
+		submitting = true;
+		return async (input) => {
+			if (!drawer) {
+				await followRedirect(input);
+				submitting = false;
+				return;
+			}
+			const { result } = input;
+			if (result.type === 'redirect') onsaved?.();
+			else if (result.type === 'failure') {
+				fieldErrors = (result.data?.errors ?? {}) as typeof fieldErrors;
+				focusFirstError();
+			} else toast.error('No se pudo guardar.');
+			submitting = false;
+		};
+	}}
+>
+	{#snippet fields()}
+		<div class="field">
+			<span id="rtype-label" class="visually-hidden">Tipo</span>
+			<SegmentedControl
+				name="type"
+				options={typeOptions}
+				bind:value={type}
+				labelledby="rtype-label"
+			/>
+			{#if shown.type}<p class="error" role="alert">{shown.type}</p>{/if}
+		</div>
 
-	<AmountHero bind:value={amount} {currency} error={errors.amount} id="ramount" />
+		<AmountHero
+			bind:value={amount}
+			{currency}
+			error={shown.amount}
+			id="ramount"
+			autofocus={drawer}
+			color={drawer ? (type === 'income' ? 'var(--positive)' : 'var(--negative)') : undefined}
+		/>
 
-	<EntryFields bind:description descriptionId="rdescription" descriptionError={errors.description}>
-		{#snippet account()}
-			<li class:bad={errors.accountId}>
-				<OptionPicker
-					variant="row"
-					name="accountId"
-					legend="Cuenta"
-					title="Elegí la cuenta"
-					items={accounts}
-					bind:value={accountId}
-					placeholder="Elegir"
-					error={errors.accountId}
-					errorId="raccount-error"
-				>
-					{#snippet empty()}
-						<p class="hint pad">
-							Todavía no tenés cuentas. <a href={resolve('/accounts/new')}>Crear cuenta</a>
-						</p>
-					{/snippet}
-				</OptionPicker>
-			</li>
-		{/snippet}
-
-		{#snippet category()}
-			<li class:bad={errors.categoryId}>
-				<OptionPicker
-					variant="row"
-					name="categoryId"
-					legend="Categoría"
-					title="Elegí la categoría"
-					items={pickableCategories}
-					bind:value={categoryId}
-					placeholder="Elegir"
-					error={errors.categoryId}
-					errorId="rcategory-error"
-				>
-					{#snippet empty()}
-						<p class="hint pad">
-							Todavía no tenés categorías. <a href={resolve('/categories/new')}>Crear categoría</a>
-						</p>
-					{/snippet}
-				</OptionPicker>
-			</li>
-		{/snippet}
-
-		{#snippet when()}
-			<li class:bad={errors.dayOfMonth}>
-				{#if mounted}
-					<Button
-						variant="ghost"
-						class="h-14 w-full scroll-mb-24 justify-between gap-3 rounded-none px-4"
-						aria-haspopup="dialog"
-						aria-labelledby="rday-label rday-value"
-						aria-describedby={errors.dayOfMonth ? 'rday-error' : undefined}
-						bind:ref={dayTrigger}
-						onclick={() => (dayOpen = true)}
+		<EntryFields
+			bind:description
+			descriptionId="rdescription"
+			descriptionError={shown.description}
+			outlineErrors={drawer}
+		>
+			{#snippet account()}
+				<li class:bad={shown.accountId}>
+					<OptionPicker
+						variant="row"
+						name="accountId"
+						legend="Cuenta"
+						title="Elegí la cuenta"
+						items={accounts}
+						bind:value={accountId}
+						nested={drawer}
+						placeholder="Elegir"
+						error={shown.accountId}
+						errorId="raccount-error"
 					>
-						<span id="rday-label" class="text-base font-normal">Día del mes</span>
-						<span id="rday-value" class="flex-1 text-right" class:text-muted-foreground={!day}>
-							{day || 'Elegir'}
-						</span>
-						<ChevronRight
-							size={16}
-							strokeWidth={1.75}
-							aria-hidden="true"
-							class="text-muted-foreground"
-						/>
-					</Button>
-					<!-- The Drawer is portaled out of the form, so the value submits through this input. -->
-					<input type="hidden" name="dayOfMonth" value={day} />
-				{:else}
-					<label class="row" for="rday">
-						<span>Día del mes</span>
-						<input
-							id="rday"
-							name="dayOfMonth"
-							type="number"
-							inputmode="numeric"
-							min="1"
-							max="31"
-							value={day}
-							aria-invalid={errors.dayOfMonth ? 'true' : undefined}
-							aria-describedby={errors.dayOfMonth ? 'rday-error' : undefined}
-						/>
-					</label>
-				{/if}
-				{#if errors.dayOfMonth}
-					<p class="error pad" id="rday-error" role="alert">{errors.dayOfMonth}</p>
-				{/if}
-			</li>
-		{/snippet}
-	</EntryFields>
-	{#if mounted}
-		<BottomDrawer title="Día del mes" bind:open={dayOpen}>
-			<div class="days">
-				{#each days as d (d)}
-					<Button
-						type="button"
-						variant={d === day ? 'default' : 'outline'}
-						class="h-11 px-0"
-						aria-pressed={d === day}
-						onclick={() => chooseDay(d)}>{d}</Button
+						{#snippet empty()}
+							<p class="hint pad">
+								Todavía no tenés cuentas. <a href={resolve('/accounts/new')}>Crear cuenta</a>
+							</p>
+						{/snippet}
+					</OptionPicker>
+				</li>
+			{/snippet}
+
+			{#snippet category()}
+				<li class:bad={shown.categoryId}>
+					<OptionPicker
+						variant="row"
+						name="categoryId"
+						legend="Categoría"
+						title="Elegí la categoría"
+						items={pickableCategories}
+						bind:value={categoryId}
+						nested={drawer}
+						placeholder="Elegir"
+						error={shown.categoryId}
+						errorId="rcategory-error"
 					>
-				{/each}
-			</div>
-		</BottomDrawer>
+						{#snippet empty()}
+							<p class="hint pad">
+								Todavía no tenés categorías. <a href={resolve('/categories/new')}>Crear categoría</a
+								>
+							</p>
+						{/snippet}
+					</OptionPicker>
+				</li>
+			{/snippet}
+
+			{#snippet when()}
+				<li class:bad={shown.dayOfMonth}>
+					<DayOfMonthPicker
+						bind:value={day}
+						nested={drawer}
+						error={shown.dayOfMonth}
+						errorId="rday-error"
+					/>
+				</li>
+			{/snippet}
+		</EntryFields>
+	{/snippet}
+
+	{#if drawer}
+		<div class="scroll">{@render fields()}</div>
+		<div class="actions">
+			<Button
+				type="button"
+				variant="outline"
+				class="h-auto min-h-11 min-w-0 flex-1 basis-0 rounded-full"
+				onclick={() => onclose?.()}>Cancelar</Button
+			>
+			<Button
+				type="submit"
+				class="h-auto min-h-11 min-w-0 flex-1 basis-0 rounded-full"
+				disabled={mounted && (!canSave || submitting)}
+				aria-busy={submitting ? 'true' : undefined}>{submitLabel}</Button
+			>
+		</div>
+	{:else}
+		{@render fields()}
+		<FormActions {cancelHref} {submitLabel} {submitting} />
 	{/if}
-	<FormActions {cancelHref} {submitLabel} />
 </form>
 
 <style>
@@ -203,6 +241,39 @@
 		flex-direction: column;
 		gap: var(--space-5);
 		padding-top: var(--space-1);
+	}
+
+	.form.drawer {
+		flex: 1;
+		min-height: 0;
+		gap: 0;
+		padding-top: 0;
+	}
+
+	.scroll {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-5);
+		min-height: 0;
+		overflow-y: auto;
+		padding: var(--space-1) var(--space-4) var(--space-4);
+	}
+
+	.form.submitting .scroll {
+		opacity: 0.55;
+	}
+
+	.actions {
+		display: flex;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
+		background: var(--popover);
+	}
+
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
 	}
 
 	.hint {
@@ -217,32 +288,5 @@
 	.error {
 		color: var(--negative);
 		font-size: var(--font-size-sm);
-	}
-
-	.row {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		min-height: 3.5rem;
-		padding: 0 var(--space-4);
-		font-size: var(--font-size-base);
-	}
-
-	.row input {
-		flex: 1 1 4rem;
-		min-width: 0;
-		width: auto;
-		min-height: 3.5rem;
-		padding: 0;
-		border: 0;
-		border-radius: 0;
-		background: transparent;
-		text-align: right;
-	}
-
-	.days {
-		display: grid;
-		grid-template-columns: repeat(7, 1fr);
-		gap: var(--space-2);
 	}
 </style>

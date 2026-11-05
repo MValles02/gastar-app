@@ -34,12 +34,20 @@ export const CATEGORY_ICONS = [
 export const SWATCHES = [
 	{ key: 'green', label: 'Verde' },
 	{ key: 'teal', label: 'Turquesa' },
+	{ key: 'sky', label: 'Celeste' },
 	{ key: 'blue', label: 'Azul' },
+	{ key: 'indigo', label: 'Índigo' },
 	{ key: 'violet', label: 'Violeta' },
 	{ key: 'plum', label: 'Ciruela' },
+	{ key: 'pink', label: 'Rosa' },
 	{ key: 'red', label: 'Rojo' },
 	{ key: 'orange', label: 'Naranja' },
-	{ key: 'ochre', label: 'Ocre' }
+	{ key: 'amber', label: 'Ámbar' },
+	{ key: 'ochre', label: 'Ocre' },
+	{ key: 'olive', label: 'Oliva' },
+	{ key: 'brown', label: 'Marrón' },
+	{ key: 'slate', label: 'Pizarra' },
+	{ key: 'gray', label: 'Gris' }
 ] as const;
 
 export type AccountIconKey = (typeof ACCOUNT_ICONS)[number]['key'];

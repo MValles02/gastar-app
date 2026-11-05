@@ -2,19 +2,17 @@
 	import { resolve } from '$app/paths';
 	import { toIconKey, toSwatchKey } from '$lib/appearance';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
-	import * as Field from '$lib/components/ui/field/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Icon from '$lib/components/Icon.svelte';
-	import ActionLink from '$lib/components/ActionLink.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
+	import { openShallow } from '$lib/open-shallow';
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import { CURRENCIES } from '$lib/money';
+	import SwitchRow from '$lib/components/SwitchRow.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -23,17 +21,30 @@
 	let currency = $derived<string>(data.filters.currency);
 	const currencyOptions = [
 		{ value: '', label: 'Ambas' },
-		...CURRENCIES.map((c) => ({ value: c, label: c }))
+		{ value: 'ARS', label: 'Pesos' },
+		{ value: 'USD', label: 'Dólares' }
 	];
 </script>
 
 {#snippet archivedMeta()}Archivada{/snippet}
+{#snippet add()}
+	<Button
+		href={resolve('/accounts/new')}
+		size="sm"
+		class="rounded-full"
+		onclick={(e) => openShallow(e, resolve('/accounts/new'), 'newAccount')}>Agregar</Button
+	>
+{/snippet}
 
 <svelte:head>
 	<title>Cuentas · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Cuentas" back={{ href: resolve('/profile'), label: 'Volver al perfil' }} />
+<PageHeader
+	title="Cuentas"
+	back={{ href: resolve('/profile'), label: 'Volver al perfil' }}
+	action={data.hasAnyAccount ? add : undefined}
+/>
 
 <div class="page">
 	{#if !data.hasAnyAccount}
@@ -46,7 +57,10 @@
 			</Empty.Header>
 		</Empty.Root>
 		<div class="empty-action">
-			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
+			<Button
+				href={resolve('/accounts/new')}
+				onclick={(e) => openShallow(e, resolve('/accounts/new'), 'newAccount')}>Crear cuenta</Button
+			>
 		</div>
 	{:else}
 		<FilterBar
@@ -65,20 +79,21 @@
 					labelledby="currency-label"
 					onchange={submit}
 				/>
-				<Field.Field orientation="horizontal" class="min-h-11 w-auto">
-					<Checkbox
-						id="archived"
-						name="archived"
-						value="1"
-						bind:checked={archived}
-						onCheckedChange={submit}
-					/>
-					<Field.Label for="archived">Mostrar archivadas</Field.Label>
-				</Field.Field>
+				<SwitchRow
+					id="archived"
+					name="archived"
+					value="1"
+					label="Mostrar archivadas"
+					bind:checked={
+						() => archived,
+						(v) => {
+							archived = v;
+							submit();
+						}
+					}
+				/>
 			{/snippet}
 		</FilterBar>
-
-		<ActionLink href="/accounts/new" />
 
 		{#if data.groups.length === 0}
 			<Empty.Root>

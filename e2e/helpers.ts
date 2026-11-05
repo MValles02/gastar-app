@@ -13,10 +13,7 @@ export const IMPORT_EMAIL = 'importa@gastar.local';
 /** The app time zone (`TZ` in src/lib/server/month.ts, which is not importable here: it uses `$lib`). */
 const APP_TZ = 'America/Argentina/Buenos_Aires';
 
-/** Minimum touch target, in CSS px. */
-export const MIN_TARGET_PX = 44;
 export const PHONE = { width: 390, height: 844 };
-export const SMALL_PHONE = { width: 320, height: 640 };
 
 /** A movement detail URL (no trailing path). */
 export const MOVEMENT_DETAIL_RE = /\/movements\/[0-9a-f-]{36}$/;
@@ -29,6 +26,7 @@ export const todayInAppTz = () =>
 
 /** Fills and submits the login form without checking the outcome. */
 export async function submitLogin(page: Page, email: string, password = SEED_PASSWORD) {
+	// hydration guard: the form must be hydrated before it is filled.
 	await page.goto('/login', { waitUntil: 'networkidle' });
 	await page.getByLabel('Email').fill(email);
 	await page.getByLabel('Contraseña', { exact: true }).fill(password);
@@ -37,14 +35,15 @@ export async function submitLogin(page: Page, email: string, password = SEED_PAS
 
 /**
  * Signs up a fresh user, follows the verification link (which signs them in) and waits for Inicio.
- * Sign-up is rate-limited to 10/hour/IP: one full run makes 9 (signup 3, plan-recurring-suggestions 2,
- * profile 1, plan-budget 1, navigation 1, avisos 1). New specs must reuse one user per file (sign up in `beforeAll`).
+ * Sign-up is rate-limited to 10/hour/IP: one full run makes 8 (signup 3, plan-recurring-suggestions 2,
+ * profile 1, plan-budget 1, home 1). New specs must reuse one user per file (sign up in `beforeAll`).
  */
 export async function signUpVerified(
 	page: Page,
 	request: APIRequestContext,
 	o: { email: string; password: string; name: string }
 ) {
+	// hydration guard: the form must be hydrated before it is filled.
 	await page.goto('/signup', { waitUntil: 'networkidle' });
 	await page.getByLabel('Nombre').fill(o.name);
 	await page.getByLabel('Email').fill(o.email);
@@ -76,7 +75,8 @@ export async function openFilters(page: Page) {
 /** Chooses `name` in the JS picker dialog opened by the button whose name matches `legend`. */
 export async function pick(page: Page, legend: string, name: string) {
 	await page.getByRole('button', { name: new RegExp(legend) }).click();
-	await page.getByRole('dialog').getByText(name, { exact: true }).click();
+	// Pickers stack over the drawer they were opened from: the last dialog is the topmost.
+	await page.getByRole('dialog').last().getByText(name, { exact: true }).click();
 }
 
 /** Sets the calendar's Select-based month and year (options render in a portal outside the dialog). */
@@ -99,6 +99,16 @@ export async function pickDate(page: Page, label: string, ymd: string) {
 	await dialog.locator(`[data-bits-day][data-value="${ymd}"]`).click();
 }
 
+/** Picks `ymd` in the movement date drawer (Fecha > Otra fecha > calendar day). */
+export async function pickMovementDate(page: Page, ymd: string) {
+	await page.getByRole('button', { name: /^Fecha/ }).click();
+	const dialog = page.getByRole('dialog').last();
+	if ((await dialog.locator('[data-bits-day]').count()) === 0)
+		await dialog.getByRole('button', { name: 'Otra fecha' }).click();
+	await pickMonthYear(page, dialog, ymd);
+	await dialog.locator(`[data-bits-day][data-value="${ymd}"]`).click();
+}
+
 /** Opens the new-movement form and fills it (JS pickers); the caller submits. */
 export async function fillMovement(
 	page: Page,
@@ -113,16 +123,17 @@ export async function fillMovement(
 		date?: string;
 	}
 ) {
+	// hydration guard: the type toggle and pickers need JavaScript.
 	await page.goto('/movements/new', { waitUntil: 'networkidle' });
 	await page
 		.getByRole('radio', { name: o.type === 'Transferencia' ? 'Transf.' : o.type })
 		.check({ force: true });
-	if (o.date !== undefined) await pickDate(page, 'Fecha', o.date);
+	if (o.date !== undefined) await pickMovementDate(page, o.date);
 	await page.locator('input[name="amount"]').fill(o.amount);
 	await page.locator('input[name="description"]').fill(o.description);
-	await pick(page, o.destination ? 'Origen' : 'Cuenta', o.account);
+	await pick(page, o.destination ? 'Desde' : 'Cuenta', o.account);
 	if (o.category) await pick(page, 'Categoría', o.category);
-	if (o.destination) await pick(page, 'Destino', o.destination);
+	if (o.destination) await pick(page, 'Hacia', o.destination);
 	if (o.rate !== undefined) await page.locator('input[name="exchangeRate"]').fill(o.rate);
 }
 
@@ -144,6 +155,7 @@ export async function fillRule(
 		type?: 'income' | 'outcome';
 	}
 ) {
+	// hydration guard: the day and picker drawers need JavaScript.
 	await page.goto(`/plan/recurring/new${o.type === 'income' ? '?type=income' : ''}`, {
 		waitUntil: 'networkidle'
 	});
@@ -154,12 +166,12 @@ export async function fillRule(
 	await pick(page, 'Categoría', o.category);
 }
 
-/** Sets the Ahorro fields (toggle, then value and unit for "Otro"); the caller submits. */
+/** Picks an Ahorro list row (and, for "Otro", unit and value); the caller saves (Siguiente / Guardar). */
 export async function fillSavings(
 	page: Page,
 	o: { option: 'Nada' | '10%' | '20%' | 'Otro'; value?: string; unit?: '%' | '$' | 'US$' }
 ) {
-	await page.getByRole('radio', { name: o.option, exact: true }).click();
+	await page.getByRole('button', { name: new RegExp('^' + o.option.replace('%', ' %')) }).click();
 	if (o.option !== 'Otro') return;
 	if (o.unit) await page.getByRole('radio', { name: o.unit, exact: true }).click();
 	await page.locator('input[name="savingsValue"]').fill(o.value ?? '');
@@ -210,12 +222,4 @@ export async function firstDetailHref(page: Page, entity: string, query = '') {
 	await page.goto(`/${entity}${query}`);
 	const link = page.locator(`main a[href*="${entity}/"]:not([href$="/new"])`).first();
 	return (await link.count()) ? pathOf(link) : null;
-}
-
-export async function expectNoHorizontalOverflow(page: Page) {
-	const { scrollWidth, clientWidth } = await page.evaluate(() => ({
-		scrollWidth: document.documentElement.scrollWidth,
-		clientWidth: document.documentElement.clientWidth
-	}));
-	expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
 }

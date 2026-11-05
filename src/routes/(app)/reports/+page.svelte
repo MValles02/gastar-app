@@ -3,17 +3,19 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
-	import * as Empty from '$lib/components/ui/empty/index.js';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import MonthNav from '$lib/components/MonthNav.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
+	import Meter from '$lib/components/Meter.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
 	import HeroAmount from '$lib/components/HeroAmount.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { formatMoney } from '$lib/money';
+	import { CURRENCY_NAME, formatMoney } from '$lib/money';
+	import { markReplace } from '$lib/nav-stack.svelte';
 	import { swatchVar, toSwatchKey } from '$lib/appearance';
 	import type { PageData } from './$types';
 
@@ -34,165 +36,172 @@
 <PageHeader title="Reportes" />
 
 <div class="page">
-	<CurrencyTabs value={data.currency} />
-
-	<div class="month-nav">
-		<MonthNav
-			label={data.nav.label}
-			prevHref={resolve(`/reports?month=${data.nav.prev}`)}
-			nextHref={data.nav.isCurrent ? null : resolve(`/reports?month=${data.nav.next}`)}
-		/>
-	</div>
+	<CurrencyTabs value={data.currency} variant="pills" />
 
 	{#if !data.hasCurrency}
-		<Empty.Root>
-			<Empty.Header>
-				<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
-				<Empty.Description>Sin cuentas en {data.currency}.</Empty.Description>
-			</Empty.Header>
-		</Empty.Root>
-		<div class="empty-action">
+		<EmptyState icon="accounts" description="No tenés cuentas en {CURRENCY_NAME[data.currency]}.">
 			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
-		</div>
+		</EmptyState>
 	{:else}
 		{@const max = Math.max(1, ...data.bars.flatMap((b) => [b.income, b.outcome]))}
-		<section aria-label="Totales del mes">
-			<Card.Root class="gap-0 overflow-hidden py-0">
-				<dl class="totals">
-					<div class="box">
-						<CardEyebrow as="dt">Resultado</CardEyebrow>
-						<HeroAmount as="dd" cents={data.net} currency={data.currency} tone="flow" />
-					</div>
-					<div class="kv">
-						<dt class="k">Ingresos</dt>
-						<dd class="am">
-							<Money cents={data.income} currency={data.currency} tone="flow" direction="income" />
-						</dd>
-					</div>
-					<div class="kv">
-						<dt class="k">Gastos</dt>
-						<dd class="am">
-							<Money
-								cents={neg(data.outcome)}
-								currency={data.currency}
-								tone="flow"
-								direction="outcome"
-							/>
-						</dd>
-					</div>
-				</dl>
-			</Card.Root>
-		</section>
+		<div class="month-nav">
+			<MonthNav
+				label={data.nav.label}
+				prevHref={resolve(`/reports?month=${data.nav.prev}`)}
+				nextHref={data.nav.isCurrent ? null : resolve(`/reports?month=${data.nav.next}`)}
+			/>
+		</div>
 
-		<section aria-labelledby="flow-heading">
-			<SectionHeader id="flow-heading" title="Últimos 6 meses" />
-			<Card.Root>
-				<Card.Content>
-					<ul class="bars">
-						{#each data.bars as b (b.ym)}
-							<li class:current={b.ym === data.nav.ym}>
-								<a
-									href={resolve(`/reports?month=${b.ym}`)}
-									aria-current={b.ym === data.nav.ym ? 'true' : undefined}
-									aria-label="{b.name}: ingresos {money(b.income)}, gastos {money(b.outcome)}"
-								>
-									<span class="cols" aria-hidden="true">
-										{#if b.income > 0}<span class="bar in" style:height="{(b.income / max) * 100}%"
-											></span>{/if}{#if b.outcome > 0}<span
-												class="bar out"
-												style:height="{(b.outcome / max) * 100}%"
-											></span>{/if}
-									</span>
-									<span class="bar-label" aria-hidden="true">{b.label}</span>
-								</a>
-							</li>
-						{/each}
-					</ul>
-					<p class="legend" aria-hidden="true">
-						<span><i class="in"></i>Ingresos</span>
-						<span><i class="out"></i>Gastos</span>
-					</p>
-				</Card.Content>
-			</Card.Root>
-		</section>
-
-		<section aria-labelledby="cat-heading">
-			<SectionHeader id="cat-heading" title="Categorías" />
-			{#if data.slices.length === 0}
+		{#if data.bars.every((b) => b.income === 0 && b.outcome === 0)}
+			<p class="empty-inline">Sin movimientos en {CURRENCY_NAME[data.currency]}.</p>
+		{:else}
+			<section aria-label="Totales del mes">
 				<Card.Root class="gap-0 overflow-hidden py-0">
-					<p class="empty-inline">No hay gastos con categoría en {data.nav.label.toLowerCase()}.</p>
+					<dl class="totals">
+						<div class="box">
+							<CardEyebrow as="dt">Resultado</CardEyebrow>
+							<HeroAmount as="dd" cents={data.net} currency={data.currency} tone="flow" />
+						</div>
+						<div class="kv">
+							<dt class="k">Ingresos</dt>
+							<dd class="am">
+								<Money
+									cents={data.income}
+									currency={data.currency}
+									tone="flow"
+									direction="income"
+								/>
+							</dd>
+						</div>
+						<div class="kv">
+							<dt class="k">Gastos</dt>
+							<dd class="am">
+								<Money
+									cents={neg(data.outcome)}
+									currency={data.currency}
+									tone="flow"
+									direction="outcome"
+								/>
+							</dd>
+						</div>
+					</dl>
 				</Card.Root>
-			{:else}
-				<svg viewBox="0 0 42 42" class="donut" aria-hidden="true">
-					{#each data.slices as s, i (s.id)}
-						{@const offset = data.slices.slice(0, i).reduce((a, x) => a + x.share * 100, 0)}
-						{@const len = s.share * 100 - (data.slices.length > 1 ? 0.6 : 0)}
-						<circle
-							cx="21"
-							cy="21"
-							r="17.6"
-							fill="none"
-							stroke={sliceColor(s)}
-							stroke-width="6.8"
-							pathLength="100"
-							stroke-dasharray="{len} {100 - len}"
-							stroke-dashoffset={25 - offset}
-						/>
-					{/each}
-				</svg>
-				<ListCard>
-					{#each data.slices as s (s.id)}
-						{#snippet sliceValue()}
-							<Money cents={s.amount} currency={data.currency} />
-						{/snippet}
-						{#snippet sliceMeta()}{s.percent}%{/snippet}
-						<ListRow
-							href={s.id === 'other'
-								? undefined
-								: resolve(`/categories/${s.id}?month=${data.nav.ym}`)}
-							lead={s.id === 'other'
-								? { icon: 'categories', color: null }
-								: {
-										icon: s.icon ?? undefined,
-										letter: s.icon ? undefined : s.name.charAt(0).toUpperCase(),
-										color: toSwatchKey(s.color)
-									}}
-							title={s.name}
-							value={sliceValue}
-							meta={sliceMeta}
-						/>
-					{/each}
-				</ListCard>
-			{/if}
-		</section>
+			</section>
 
-		<section class="facts" aria-label="Datos del mes">
-			<Card.Root>
-				<Card.Content>
-					<div class="fact-card">
-						<CardEyebrow>Por día</CardEyebrow>
-						<p class="fact"><Money cents={data.dailyAverage} currency={data.currency} /></p>
-						<p class="label">{data.days} {data.days === 1 ? 'día' : 'días'}</p>
-					</div>
-				</Card.Content>
-			</Card.Root>
-			{#if data.biggest}
-				<a class="fact-link" href={resolve(`/movements/${data.biggest.id}`)}>
-					<Card.Root>
-						<Card.Content>
-							<div class="fact-card">
-								<CardEyebrow>Gasto más grande</CardEyebrow>
-								<Icon name="chevron-right" size="1rem" />
-								<p class="fact">
-									<Money cents={neg(data.biggest.amount)} currency={data.currency} />
-								</p>
-								<p class="label">{data.biggest.description} · {data.biggest.date}</p>
-							</div>
-						</Card.Content>
+			<section aria-labelledby="flow-heading">
+				<SectionHeader id="flow-heading" title="Últimos 6 meses" />
+				<Card.Root>
+					<Card.Content>
+						<ul class="bars">
+							{#each data.bars as b (b.ym)}
+								<li class:current={b.ym === data.nav.ym}>
+									<a
+										href={resolve(`/reports?month=${b.ym}`)}
+										data-sveltekit-replacestate
+										onclick={markReplace}
+										aria-current={b.ym === data.nav.ym ? 'true' : undefined}
+										aria-label="{b.name}: ingresos {money(b.income)}, gastos {money(b.outcome)}"
+									>
+										<span class="cols" aria-hidden="true">
+											{#if b.income > 0}<span
+													class="bar in"
+													style:height="{(b.income / max) * 100}%"
+												></span>{/if}{#if b.outcome > 0}<span
+													class="bar out"
+													style:height="{(b.outcome / max) * 100}%"
+												></span>{/if}
+										</span>
+										<span class="bar-label" aria-hidden="true">{b.label}</span>
+									</a>
+								</li>
+							{/each}
+						</ul>
+						<p class="legend" aria-hidden="true">
+							<span><i class="in"></i>Ingresos</span>
+							<span><i class="out"></i>Gastos</span>
+						</p>
+					</Card.Content>
+				</Card.Root>
+			</section>
+
+			<section aria-labelledby="cat-heading">
+				<SectionHeader id="cat-heading" title="Gastos por categoría" />
+				{#if data.slices.length === 0}
+					<Card.Root class="gap-0 overflow-hidden py-0">
+						<p class="empty-card">No hay gastos con categoría en {data.nav.label.toLowerCase()}.</p>
 					</Card.Root>
-				</a>
+				{:else}
+					<ListCard>
+						{#each data.slices as s (s.id)}
+							{#snippet sliceValue()}
+								<Money cents={s.amount} currency={data.currency} tone="flow" direction="outcome" />
+							{/snippet}
+							{#snippet sliceMeta()}{s.percent}%{/snippet}
+							{#snippet sliceFooter()}
+								<Meter percent={s.percent} color={sliceColor(s)} />
+							{/snippet}
+							<ListRow
+								href={s.id === 'other'
+									? undefined
+									: resolve(`/categories/${s.id}?month=${data.nav.ym}`)}
+								lead={s.id === 'other'
+									? { icon: 'categories', color: null }
+									: {
+											icon: s.icon ?? undefined,
+											letter: s.icon ? undefined : s.name.charAt(0).toUpperCase(),
+											color: toSwatchKey(s.color)
+										}}
+								title={s.name}
+								value={sliceValue}
+								meta={sliceMeta}
+								footer={sliceFooter}
+							/>
+						{/each}
+					</ListCard>
+				{/if}
+			</section>
+
+			{#if data.slices.length > 0 || data.biggest}
+				<section
+					class="facts"
+					class:single={data.slices.length === 0 || !data.biggest}
+					aria-label="Datos del mes"
+				>
+					{#if data.slices.length > 0}
+						<Card.Root>
+							<Card.Content>
+								<div class="fact-card">
+									<CardEyebrow>Por día</CardEyebrow>
+									<p class="fact"><Money cents={data.dailyAverage} currency={data.currency} /></p>
+									<p class="label">{data.days} {data.days === 1 ? 'día' : 'días'}</p>
+								</div>
+							</Card.Content>
+						</Card.Root>
+					{/if}
+					{#if data.biggest}
+						<a class="fact-link" href={resolve(`/movements/${data.biggest.id}`)}>
+							<Card.Root>
+								<Card.Content>
+									<div class="fact-card">
+										<CardEyebrow>Gasto más grande</CardEyebrow>
+										<Icon name="chevron-right" size="1rem" />
+										<p class="fact">
+											<Money
+												cents={neg(data.biggest.amount)}
+												currency={data.currency}
+												tone="flow"
+												direction="outcome"
+											/>
+										</p>
+										<p class="label">{data.biggest.description} · {data.biggest.date}</p>
+									</div>
+								</Card.Content>
+							</Card.Root>
+						</a>
+					{/if}
+				</section>
 			{/if}
-		</section>
+		{/if}
 	{/if}
 </div>
 
@@ -201,11 +210,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-	}
-
-	.empty-action {
-		display: flex;
-		justify-content: center;
 	}
 
 	.label {
@@ -217,12 +221,22 @@
 		margin: calc(-1 * var(--space-2));
 	}
 
-	/* Resultado card: same shape as Disponible on Inicio and Plan. */
+	.empty-inline {
+		padding: var(--space-8) var(--space-5);
+		text-align: center;
+		font-size: var(--font-size-sm);
+		color: var(--text-muted);
+	}
+
+	/* Resultado spans the card; Ingresos and Gastos sit side by side beneath it. */
 	.totals {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
 		margin: 0;
 	}
 
 	.box {
+		grid-column: 1 / -1;
 		display: flex;
 		flex-direction: column;
 		gap: 0.375rem;
@@ -233,24 +247,21 @@
 
 	.kv {
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		flex-wrap: wrap;
-		gap: 0 var(--space-3);
-		min-height: 3rem;
-		padding: 0 1.25rem;
-		border-top: 1px solid var(--border);
+		flex-direction: column;
+		gap: 0.125rem;
+		min-width: 0;
+		padding: var(--space-1) 1.25rem var(--space-4);
 	}
 
 	.k {
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-xs);
 		font-weight: 500;
 		color: var(--text-muted);
 	}
 
 	.am {
 		margin: 0;
-		font-size: 1.0625rem;
+		font-size: var(--font-size-base);
 		font-weight: 600;
 		font-variant-numeric: tabular-nums;
 		overflow-wrap: anywhere;
@@ -272,7 +283,7 @@
 		gap: var(--space-2);
 		min-height: var(--tap-target);
 		padding: var(--space-2) 0 0.375rem;
-		border-radius: 0.75rem;
+		border-radius: var(--radius);
 		text-decoration: none;
 		color: var(--text-muted);
 		transition: background-color 0.12s ease;
@@ -323,6 +334,7 @@
 	.legend {
 		display: flex;
 		flex-wrap: wrap;
+		justify-content: center;
 		gap: var(--space-1) var(--space-4);
 		margin-top: var(--space-1);
 		font-size: var(--font-size-xs);
@@ -340,17 +352,10 @@
 		display: inline-block;
 		width: 8px;
 		height: 8px;
-		border-radius: 50%;
+		border-radius: 2px;
 	}
 
-	.donut {
-		display: block;
-		width: 8.5rem;
-		height: 8.5rem;
-		margin: 0 auto var(--space-3);
-	}
-
-	.empty-inline {
+	.empty-card {
 		display: flex;
 		align-items: center;
 		min-height: 3.5rem;
@@ -360,9 +365,13 @@
 	}
 
 	.facts {
-		display: flex;
-		flex-direction: column;
+		display: grid;
+		grid-template-columns: 1fr 1fr;
 		gap: var(--space-3);
+	}
+
+	.facts.single {
+		grid-template-columns: 1fr;
 	}
 
 	.fact-link {
@@ -402,10 +411,10 @@
 
 	.fact {
 		margin-top: 2px;
-		font-family: var(--font-display);
-		font-size: clamp(0.875rem, 17cqi, 1.5rem);
-		font-weight: 500;
-		letter-spacing: -0.01em;
+		/* 15px as the other row amounts; shrinks to 12px only when a long amount would not fit. */
+		font-size: clamp(var(--font-size-xs), 12cqi, var(--font-size-base));
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
 		line-height: 1.2;
 		white-space: nowrap;
 	}

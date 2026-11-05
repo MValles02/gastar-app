@@ -1,15 +1,21 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { dev } from '$app/environment';
+import { toIconKey, toSwatchKey } from '$lib/appearance';
+import { dayStart, localDay } from '$lib/server/month';
+import { getImportAccount, getSyncState } from '$lib/server/mp-import-queries';
 import {
 	deleteConnection,
 	getConnectionInfo,
+	getImportFromDay,
 	listReceivingAccounts,
 	mpOauthEnabled,
 	OAUTH_COOKIE,
 	OAUTH_PATH,
+	setImportFrom,
 	setReceivingAccount,
 	startAuthorization
 } from '$lib/server/mp-oauth';
+import { startMpBackfill } from '$lib/server/mp-sync';
 import type { Actions, PageServerLoad } from './$types';
 
 const FLASHES = {
@@ -18,13 +24,32 @@ const FLASHES = {
 	exchange: 'Mercado Pago no respondió. Probá de nuevo.'
 } as const;
 
+const LEASE_MS = 15 * 60_000;
+const DAY_MS = 86_400_000;
+const BACKFILL_DAYS = 365;
+const earliestDay = () => localDay(new Date(Date.now() - BACKFILL_DAYS * DAY_MS));
+const isRunning = (since: Date | null | undefined) =>
+	!!since && Date.now() - since.getTime() < LEASE_MS;
+
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!mpOauthEnabled()) error(404);
 	const userId = locals.user!.id;
 	const code = url.searchParams.get('error');
+	const connection = await getConnectionInfo(userId);
+	const account = connection?.accountId ? await getImportAccount(userId) : null;
 	return {
-		connection: await getConnectionInfo(userId),
-		accounts: await listReceivingAccounts(userId),
+		connection,
+		accounts: (await listReceivingAccounts(userId)).map((a) => ({
+			id: a.id,
+			name: a.name,
+			icon: toIconKey(a.icon),
+			color: toSwatchKey(a.color)
+		})),
+		// The minimum date of every sync; only once an account receives the movements.
+		importFrom: account ? await getImportFromDay(userId, account.id) : null,
+		today: localDay(new Date()),
+		earliest: earliestDay(),
+		running: account ? isRunning((await getSyncState(userId, account.id))?.runningSince) : false,
 		linked: url.searchParams.get('linked') === '1',
 		flash: code && code in FLASHES ? FLASHES[code as keyof typeof FLASHES] : null
 	};
@@ -44,13 +69,46 @@ export const actions: Actions = {
 		redirect(303, authorizeUrl);
 	},
 
+	/** Autosaved: answers with the stored value (an undo posts the previous one the same way). */
 	account: async ({ locals, request }) => {
 		if (!mpOauthEnabled()) error(404);
 		const accountId = String((await request.formData()).get('accountId') ?? '');
 		if (!(await setReceivingAccount(locals.user!.id, accountId))) {
-			return fail(400, { error: 'Elegí una cuenta en pesos.' });
+			return fail(400, { errors: { accountId: 'Elegí una cuenta en pesos.' } });
 		}
-		redirect(303, OAUTH_PATH);
+		return { accountId };
+	},
+
+	/** Autosaved "Importar desde": the minimum date of every sync. */
+	importFrom: async ({ locals, request }) => {
+		if (!mpOauthEnabled()) error(404);
+		const userId = locals.user!.id;
+		const account = await getImportAccount(userId);
+		if (!account) return fail(400, { errors: { from: 'Elegí primero la cuenta.' } });
+		const ymd = String((await request.formData()).get('from') ?? '');
+		const from = dayStart(ymd);
+		if (!from || ymd > localDay(new Date())) {
+			return fail(400, { errors: { from: 'Elegí una fecha válida.' } });
+		}
+		if (ymd < earliestDay()) {
+			return fail(400, { errors: { from: 'Podés traer hasta 12 meses para atrás.' } });
+		}
+		if ((await getConnectionInfo(userId))?.needsReconnect) {
+			return fail(400, { errors: { from: 'Reconectá Mercado Pago primero.' } });
+		}
+		// Moving earlier fetches the gap; same or later only trims what is already here.
+		const earlier = ymd < (await getImportFromDay(userId, account.id));
+		// Trimming while a run holds the lease would let it re-insert what was just deleted.
+		const busy = earlier
+			? !(await startMpBackfill(userId, from))
+			: isRunning((await getSyncState(userId, account.id))?.runningSince);
+		if (busy) {
+			return fail(409, {
+				errors: { from: 'Ya hay una sincronización en curso. Probá en unos minutos.' }
+			});
+		}
+		await setImportFrom(userId, account.id, from);
+		return { from: ymd };
 	},
 
 	disconnect: async ({ locals }) => {

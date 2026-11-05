@@ -51,6 +51,12 @@
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);
 	--radius-xl: calc(var(--radius) + 4px);
+
+	/* Same scale as the --font-size-* tokens, so shadcn parts land on 12/13/15/20. */
+	--text-xs: var(--font-size-xs);
+	--text-sm: var(--font-size-sm);
+	--text-base: var(--font-size-base);
+	--text-lg: var(--font-size-lg);
 }
 
 @layer base {
@@ -123,6 +129,7 @@
 		background: var(--bg);
 		color: var(--text);
 		font-family: var(--font-body);
+		font-size: var(--font-size-base);
 		font-weight: 400;
 	}
 
@@ -132,6 +139,12 @@
 		font-weight: 600;
 		line-height: 1.2;
 		letter-spacing: -0.01em;
+	}
+
+	/* Weights are 400/500/600 only. */
+	strong,
+	b {
+		font-weight: 600;
 	}
 
 	a {
@@ -178,7 +191,7 @@
 	input:not([type='radio'], [type='checkbox'], [data-slot]),
 	select:not([data-slot]) {
 		font-family: inherit;
-		font-size: var(--font-size-base);
+		font-size: var(--font-size-input);
 		color: var(--text);
 		background: var(--surface);
 		border: 1px solid var(--border-strong);
@@ -230,14 +243,22 @@
 	--segment-selected: light-dark(oklch(0.98 0.012 85), oklch(0.374 0.01 67.558));
 	--scrim: light-dark(rgb(12 10 9 / 0.42), rgb(0 0 0 / 0.62));
 	--skeleton: light-dark(rgb(28 25 23 / 0.07), rgb(250 250 249 / 0.08));
-	--swatch-green: light-dark(#2f6b45, #7fc79a);
-	--swatch-teal: light-dark(#1f6a6a, #6cc4c0);
+	--swatch-green: light-dark(#2e6b34, #7fc79a);
+	--swatch-teal: light-dark(#1f6b66, #6cc4c0);
+	--swatch-sky: light-dark(#1e6380, #7cc3e0);
 	--swatch-blue: light-dark(#2c5d8a, #8db8e6);
-	--swatch-violet: light-dark(#5b4a8a, #b3a3e6);
+	--swatch-indigo: light-dark(#44508f, #a0abe6);
+	--swatch-violet: light-dark(#5a4a8a, #b3a3e6);
 	--swatch-plum: light-dark(#7a3d6b, #d99ac6);
+	--swatch-pink: light-dark(#9a3a5c, #eba0bb);
 	--swatch-red: light-dark(#9a3b2e, #f0a090);
-	--swatch-orange: light-dark(#9a5a1f, #f0b27a);
-	--swatch-ochre: light-dark(#7d6a1e, #d9c46e);
+	--swatch-orange: light-dark(#b4561c, #f0b27a);
+	--swatch-amber: light-dark(#9a5a1f, #ecb36e);
+	--swatch-ochre: light-dark(#8a6d1a, #d9c46e);
+	--swatch-olive: light-dark(#5f6b1e, #bccb72);
+	--swatch-brown: light-dark(#6e4e36, #d0a98a);
+	--swatch-slate: light-dark(#4a5868, #a3b3c6);
+	--swatch-gray: light-dark(#5e5a54, #b8b3ab);
 
 	/* shadcn-svelte names, aliased to the tokens above. */
 	--background: var(--bg);
@@ -282,12 +303,14 @@
 	/* Amounts and page titles also use Geist Mono, per the shadcn preset. */
 	--font-display: 'Geist Mono Variable', ui-monospace, monospace;
 
+	/* 12 caption/meta, 13 secondary, 15 body, 20 headings, 28 page titles, 36 display; inputs stay 16 (iOS zoom). */
 	--font-size-xs: 0.75rem;
-	--font-size-sm: 0.875rem;
-	--font-size-base: 1rem;
+	--font-size-sm: 0.8125rem;
+	--font-size-base: 0.9375rem;
 	--font-size-lg: 1.25rem;
 	--font-size-xl: 1.75rem;
 	--font-size-hero: 2.25rem;
+	--font-size-input: 1rem;
 
 	/* Elevation scale: shadow-1 (cards, list containers) < shadow-2 (raised/overlay) < shadow-lift (FAB). */
 	--shadow-1: 0 1px 2px light-dark(rgb(0 0 0 / 0.04), rgb(0 0 0 / 0.2));
@@ -420,4 +443,9 @@
 	::view-transition-new(*) {
 		animation: none;
 	}
+}
+
+/* Edge-swipe back (src/lib/edge-swipe-back.ts): the dragged page may sit past the right edge. */
+html.edge-swiping {
+	overflow-x: clip;
 }

@@ -11,9 +11,10 @@ Refs #  (partial fix: the issue stays open) -->
 ## Checks run
 
 - [ ] `pnpm lint`
-- [ ] `pnpm check`
+- [ ] `pnpm typecheck`
 - [ ] `pnpm build`
-- [ ] UI changes: `/impeccable audit` run (see docs/WORKFLOW.md)
+- [ ] `pnpm test` (if the repo has it)
+- [ ] `pnpm test:e2e` (if a covered flow changed)
 
 ## Migration
 

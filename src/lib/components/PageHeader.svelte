@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
@@ -18,12 +19,15 @@
 		title,
 		eyebrow,
 		back,
-		close
+		close,
+		action
 	}: {
 		title: string;
 		eyebrow?: string;
 		back?: { href: string; label: string };
 		close?: { href: string; label: string };
+		/** Little header only: a pill action at the right end (e.g. "Agregar"). */
+		action?: Snippet;
 	} = $props();
 
 	/** Larger alert counts show as "9+". */
@@ -42,6 +46,7 @@
 		<Button
 			class="-ml-2"
 			href={close.href}
+			data-edge-back
 			onclick={upOnClick(close.href)}
 			variant="ghost"
 			size="icon"
@@ -53,6 +58,7 @@
 		<Button
 			class="-ml-2"
 			href={back.href}
+			data-edge-back
 			onclick={upOnClick(back.href)}
 			variant="ghost"
 			size="icon"
@@ -65,6 +71,7 @@
 		{#if kicker && full}<p class="eyebrow">{kicker}</p>{/if}
 		<h1 class:compact={!full}>{title}</h1>
 	</div>
+	{#if action && !full}{@render action()}{/if}
 	{#if header && full}
 		<a
 			class="bell"
@@ -104,7 +111,6 @@
 		background: color-mix(in srgb, var(--bg) 92%, transparent);
 		-webkit-backdrop-filter: blur(16px);
 		backdrop-filter: blur(16px);
-		border-bottom: 1px solid transparent;
 		/* Crossfades in place while the page underneath slides (page transitions, app.css). */
 		view-transition-name: page-header;
 	}
@@ -115,21 +121,6 @@
 			position: sticky;
 			top: 0;
 			z-index: 9;
-		}
-
-		/* Hairline appears once the page scrolls under the bar. */
-		@supports (animation-timeline: scroll()) {
-			.top-bar {
-				animation: edge linear both;
-				animation-timeline: scroll();
-				animation-range: 0 2rem;
-			}
-
-			@keyframes edge {
-				to {
-					border-bottom-color: var(--border);
-				}
-			}
 		}
 	}
 
@@ -158,7 +149,7 @@
 		overflow-wrap: normal;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		font-size: 1.0625rem;
+		font-size: var(--font-size-base);
 	}
 
 	.bell,

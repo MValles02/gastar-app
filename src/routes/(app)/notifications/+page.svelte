@@ -1,8 +1,7 @@
 <script lang="ts">
-	import * as Empty from '$lib/components/ui/empty/index.js';
-	import Icon from '$lib/components/Icon.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
+	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import { resolve } from '$app/paths';
@@ -19,19 +18,24 @@
 
 <div class="page">
 	{#if data.groups.length === 0}
-		<Empty.Root>
-			<Empty.Header>
-				<Empty.Media variant="icon"><Icon name="bell" size="1rem" /></Empty.Media>
-				<Empty.Description>Estás al día.</Empty.Description>
-			</Empty.Header>
-		</Empty.Root>
+		<p class="empty">Estás al día.</p>
 	{:else}
 		{#each data.groups as g (g.currency)}
 			<section aria-labelledby="alerts-{g.currency}">
-				<SectionHeader id="alerts-{g.currency}" title={g.currency} variant="group" />
+				<SectionHeader
+					id="alerts-{g.currency}"
+					title={g.currency === 'ARS' ? 'Pesos' : 'Dólares'}
+					variant="group"
+				/>
 				<ListCard>
 					{#each g.items as n (n.id)}
 						{#snippet message()}{n.message}{/snippet}
+						{#snippet dueMeta()}
+							<span class:overdue={n.status.tone === 'bad'}>{n.status.label}</span> · {n.accountName}
+						{/snippet}
+						{#snippet amount()}
+							<Money cents={n.amount ?? 0} currency={g.currency} tone="flow" direction="outcome" />
+						{/snippet}
 						{#snippet row(submit: boolean)}
 							<ListRow
 								href={submit ? undefined : n.href}
@@ -42,8 +46,9 @@
 										? { icon: n.icon, color: n.color }
 										: { letter: n.name.charAt(0).toUpperCase(), color: n.color }}
 								title={n.name}
-								status={n.status}
-								meta={message}
+								status={n.kind === 'payment' ? undefined : n.status}
+								value={n.kind === 'payment' ? amount : undefined}
+								meta={n.kind === 'payment' ? dueMeta : message}
 								metaLines={2}
 							/>
 						{/snippet}
@@ -69,5 +74,15 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
+	}
+
+	.empty {
+		padding: var(--space-8) var(--space-5);
+		text-align: center;
+		color: var(--text-muted);
+	}
+
+	.overdue {
+		color: var(--negative);
 	}
 </style>

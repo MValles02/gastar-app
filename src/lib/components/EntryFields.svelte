@@ -14,7 +14,8 @@
 		account,
 		category,
 		when,
-		extra
+		extra,
+		outlineErrors = false
 	}: {
 		description: string;
 		descriptionId: string;
@@ -23,10 +24,12 @@
 		category?: Snippet;
 		when: Snippet;
 		extra?: Snippet;
+		/** A row with an error gets a full red border instead of the left bar. */
+		outlineErrors?: boolean;
 	} = $props();
 </script>
 
-<ul class="card">
+<ul class="card" class:outline-errors={outlineErrors}>
 	<li class:bad={descriptionError}>
 		<TextRow
 			id={descriptionId}
@@ -58,12 +61,13 @@
 		box-shadow: var(--shadow-1);
 	}
 
-	.card > :global(li) + :global(li) {
-		border-top: 1px solid var(--border);
-	}
-
 	.card > :global(li.bad),
 	.card > li.bad {
 		box-shadow: inset 3px 0 0 var(--negative);
+	}
+
+	.card.outline-errors > :global(li.bad),
+	.card.outline-errors > li.bad {
+		box-shadow: inset 0 0 0 1.5px var(--negative);
 	}
 </style>

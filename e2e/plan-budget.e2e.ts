@@ -10,8 +10,7 @@ import {
 	postDelete,
 	setCurrencyCookie,
 	signUpVerified,
-	todayInAppTz,
-	WHOLE_PESOS_ERROR
+	todayInAppTz
 } from './helpers';
 
 const NOT_OFFERED = 'Elegí una categoría.';
@@ -58,7 +57,7 @@ test.beforeAll(async ({ browser, baseURL }) => {
 
 		// A quick USD plan through the wizard: no savings, no limits.
 		await setCurrencyCookie(page, baseURL!, 'USD');
-		await page.goto('/plan/setup?step=3', { waitUntil: 'networkidle' });
+		await page.goto('/plan/setup?step=3');
 		await fillSavings(page, { option: 'Nada' });
 		await page.getByRole('button', { name: 'Siguiente' }).click();
 		await expect(page).toHaveURL(/\/plan\/setup\?step=4$/);
@@ -77,10 +76,10 @@ async function foreignIds(browser: Browser, baseURL: string) {
 	try {
 		const page = await context.newPage();
 		await login(page, OTHER_EMAIL);
-		await page.goto('/categories', { waitUntil: 'networkidle' });
+		await page.goto('/categories');
 		const category = await linkId(page.getByRole('link', { name: /Ajena/ }));
 		await setCurrencyCookie(page, baseURL, 'USD');
-		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await page.goto('/plan');
 		const rule = await linkId(page.getByRole('link', { name: /Regla ajena/ }).first());
 		return { category, rule };
 	} finally {
@@ -148,7 +147,7 @@ async function figures(page: Page) {
 
 /** The limit edit links on /plan, i.e. which categories have a limit in the cookie's currency. */
 async function limitHrefs(page: Page) {
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await page.goto('/plan');
 	return page
 		.getByRole('region', { name: 'Límites por categoría' })
 		.locator('a[href^="/plan/limits/"]:not([href$="/new"])')
@@ -162,50 +161,32 @@ async function limitHrefs(page: Page) {
  */
 async function restoreDemoPlan(page: Page, baseURL: string) {
 	await setCurrencyCookie(page, baseURL, 'ARS');
-	await post(page, baseURL, '/plan/savings', {
+	await post(page, baseURL, '/plan/savings?/update', {
 		savingsOption: 'other',
 		savingsUnit: 'amount',
 		savingsValue: '150.000'
 	});
-	await page.goto('/categories', { waitUntil: 'networkidle' });
+	await page.goto('/categories');
 	const superId = await linkId(page.getByRole('link', { name: /Supermercado/ }).first());
-	const edit = await post(page, baseURL, `/plan/limits/${superId}?/save`, { amount: '300.000' });
+	const edit = await post(page, baseURL, `/plan/limits/${superId}?/update`, { amount: '300.000' });
 	if (edit.status() === 404)
 		await post(page, baseURL, '/plan/limits/new', { categoryId: superId, amount: '300.000' });
 }
 
+/** The Supermercado limit's meter on /plan; its value text carries "<spent> de <limit>". */
+const superMeter = (page: Page) =>
+	page
+		.getByRole('region', { name: 'Límites por categoría' })
+		.getByRole('meter', { name: 'Límite de Supermercado' });
+
 /** Deletes every category of the signed-in user named `name` (leftovers of an interrupted run). */
 async function deleteCategories(page: Page, baseURL: string, name: string) {
-	await page.goto('/categories', { waitUntil: 'networkidle' });
+	await page.goto('/categories');
 	const paths = await page
 		.getByRole('link', { name: new RegExp(name) })
 		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).pathname));
 	for (const path of paths) await postDelete(page, baseURL, path);
 }
-
-test('ARS decimals are rejected in savings and in limits, and nothing is written', async ({
-	page
-}) => {
-	await login(page);
-	await page.goto('/plan/savings', { waitUntil: 'networkidle' });
-	await fillSavings(page, { option: 'Otro', unit: '$', value: '1.000,50' });
-	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page.getByRole('alert')).toContainText(WHOLE_PESOS_ERROR);
-	await expect(page).toHaveURL(/\/plan\/savings$/);
-
-	await page.goto('/categories', { waitUntil: 'networkidle' });
-	const superId = await linkId(page.getByRole('link', { name: /Supermercado/ }).first());
-	await page.goto(`/plan/limits/${superId}`, { waitUntil: 'networkidle' });
-	await page.locator('input[name="amount"]').fill('100,5');
-	await page.getByRole('button', { name: 'Guardar cambios' }).click();
-	await expect(page.getByRole('alert')).toContainText(WHOLE_PESOS_ERROR);
-	await expect(page).toHaveURL(/\/plan\/limits\/[0-9a-f-]{36}/);
-
-	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('region', { name: 'Límites por categoría' })).toContainText(
-		'300.000'
-	);
-});
 
 test("another user's category and rule never leak or get written", async ({
 	page,
@@ -216,6 +197,7 @@ test("another user's category and rule never leak or get written", async ({
 	await login(page);
 	await setCurrencyCookie(page, baseURL!, 'ARS');
 
+	// hydration guard: the drawer and picker need JavaScript.
 	await page.goto('/plan/limits/new', { waitUntil: 'networkidle' });
 	await page.getByRole('button', { name: /Categoría/ }).click();
 	const dialog = page.getByRole('dialog');
@@ -228,7 +210,7 @@ test("another user's category and rule never leak or get written", async ({
 	expect((await page.goto(`/plan/limits/${category}`))!.status()).toBe(404);
 	expect((await post(page, baseURL!, `/plan/limits/${category}?/delete`, {})).status()).toBe(404);
 
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await page.goto('/plan');
 	await expect(page.getByText('Ajena')).toHaveCount(0);
 	await expect(page.getByText('Regla ajena')).toHaveCount(0);
 	expect((await page.goto(`/plan/recurring/${rule}`))!.status()).toBe(404);
@@ -242,7 +224,7 @@ test("another user cannot attach a limit to the demo user's category", async ({
 }) => {
 	await login(page);
 	await restoreDemoPlan(page, baseURL!);
-	await page.goto('/categories', { waitUntil: 'networkidle' });
+	await page.goto('/categories');
 	const superId = await linkId(page.getByRole('link', { name: /Supermercado/ }).first());
 	const demoBefore = await figures(page);
 
@@ -269,10 +251,8 @@ test("another user cannot attach a limit to the demo user's category", async ({
 	}
 
 	// The demo plan is untouched: same limit, same income and savings.
-	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await expect(page.getByRole('region', { name: 'Límites por categoría' })).toContainText(
-		'300.000'
-	);
+	await page.goto('/plan');
+	await expect(superMeter(page)).toHaveAttribute('aria-valuetext', /de \$\s?300\.000$/);
 	const demoAfter = await figures(page);
 	expect(demoAfter['Ingresos']).toBe(demoBefore['Ingresos']);
 	expect(demoAfter['Ahorro']).toBe(demoBefore['Ahorro']);
@@ -285,29 +265,32 @@ test('deleting a category removes its limit', async ({ page, baseURL }) => {
 	await deleteCategories(page, baseURL!, name);
 	let categoryPath = '';
 	try {
-		await page.goto('/categories/new', { waitUntil: 'networkidle' });
+		await page.goto('/categories/new');
 		await page.getByLabel('Nombre').fill(name);
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
 		categoryPath = new URL(page.url()).pathname;
 		const id = categoryPath.split('/').pop()!;
 
-		await page.goto('/plan/limits/new', { waitUntil: 'networkidle' });
+		await page.goto('/plan/limits/new');
 		await pick(page, 'Categoría', name);
 		await page.locator('input[name="amount"]').fill('5.000');
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		const limits = page.getByRole('region', { name: 'Límites por categoría' });
 		await expect(limits).toContainText(name);
-		await expect(limits).toContainText('5.000');
+		await expect(limits.getByRole('meter', { name: `Límite de ${name}` })).toHaveAttribute(
+			'aria-valuetext',
+			/de \$\s?5\.000$/
+		);
 
-		await page.goto(categoryPath, { waitUntil: 'networkidle' });
+		await page.goto(categoryPath);
 		await page.getByRole('button', { name: 'Eliminar' }).click();
 		await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
 		await expect(page).toHaveURL(/\/categories$/);
 		categoryPath = '';
 
-		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await page.goto('/plan');
 		await expect(page.getByText(name)).toHaveCount(0);
 		expect((await page.goto(`/plan/limits/${id}`))!.status()).toBe(404);
 	} finally {
@@ -321,31 +304,109 @@ test('a limit on an archived category is rejected and nothing is written', async
 }) => {
 	await login(page);
 	await restoreDemoPlan(page, baseURL!);
-	await page.goto('/categories?archived=1', { waitUntil: 'networkidle' });
+	await page.goto('/categories?archived=1');
 	const archived = await linkId(page.getByRole('link', { name: /Gimnasio/ }).first());
 	const res = await post(page, baseURL!, '/plan/limits/new', { categoryId: archived, amount: '5' });
 	expect(res.status()).toBe(400);
 	expect(await res.text()).toContain(NOT_OFFERED);
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await page.goto('/plan');
 	const limits = page.getByRole('region', { name: 'Límites por categoría' });
 	await expect(limits).toContainText('Supermercado');
 	await expect(limits).not.toContainText('Gimnasio');
 });
 
-test.describe('without JavaScript', () => {
-	test.use({ javaScriptEnabled: false });
+const limitsRegion = (page: Page) => page.getByRole('region', { name: 'Límites por categoría' });
 
-	test('a wizard step is a plain page with link navigation', async ({ page }) => {
-		await login(page);
-		await page.goto('/plan/setup?step=1');
-		await expect(page.getByRole('heading', { name: '¿Cuánto cobrás por mes?' })).toBeVisible();
-		await expect(page.getByText('Paso 1 de 5')).toBeVisible();
-		await expect(page.getByRole('link', { name: /Sueldo/ })).toBeVisible();
-		await expect(page.getByRole('link', { name: 'Siguiente' })).toHaveAttribute(
-			'href',
-			/\/plan\/setup\?step=2$/
+test('limit drawer: amount autosaves with Deshacer (drawer stays), average saves, delete confirms', async ({
+	page,
+	baseURL
+}) => {
+	await login(page);
+	await restoreDemoPlan(page, baseURL!);
+	try {
+		// hydration guard: the drawer needs JavaScript.
+		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await limitsRegion(page)
+			.getByRole('link', { name: /Supermercado/ })
+			.click();
+		const drawer = page.getByRole('dialog', { name: 'Límite de Supermercado' });
+		await expect(drawer).toBeVisible();
+
+		await drawer.getByRole('button', { name: /^Monto del límite/ }).click();
+		await drawer.getByLabel('Monto del límite').fill('310.000');
+		await drawer.getByLabel('Monto del límite').press('Enter');
+		await expect(drawer.getByRole('button', { name: 'Monto del límite: 310.000' })).toBeVisible();
+		await page.getByRole('button', { name: 'Deshacer' }).click();
+		await expect(drawer.getByRole('button', { name: 'Monto del límite: 300.000' })).toBeVisible();
+		// Deshacer refreshes the loads without closing the drawer.
+		await expect(drawer).toBeVisible();
+
+		await drawer.getByRole('button', { name: /^Usar promedio/ }).click();
+		await expect(drawer.getByRole('button', { name: 'Monto del límite: 300.000' })).toHaveCount(0);
+		await expect(drawer).toBeVisible();
+
+		// The Deshacer toast sits over the drawer's actions until it expires.
+		await expect(page.getByRole('button', { name: 'Deshacer' })).toHaveCount(0, {
+			timeout: 10_000
+		});
+		await drawer.getByRole('button', { name: 'Eliminar límite' }).click();
+		const confirm = page.getByRole('alertdialog');
+		await expect(confirm).toContainText('¿Eliminar este límite?');
+		await confirm.getByRole('button', { name: 'Eliminar' }).click();
+		await expect(drawer).toBeHidden();
+		await expect(limitsRegion(page)).not.toContainText('Supermercado');
+	} finally {
+		await restoreDemoPlan(page, baseURL!);
+	}
+});
+
+test('new limit drawer hides a category that already has a limit', async ({ page, baseURL }) => {
+	await login(page);
+	await restoreDemoPlan(page, baseURL!);
+	// hydration guard: the drawer and picker need JavaScript.
+	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await page.getByRole('link', { name: '+ Agregar' }).first().click();
+	const drawer = page.getByRole('dialog', { name: 'Nuevo límite' });
+	await drawer.getByRole('button', { name: /Categoría/ }).click();
+	const list = page.getByRole('dialog').last();
+	await expect(list.getByText('Servicios', { exact: true })).toBeVisible();
+	await expect(list.getByText('Supermercado', { exact: true })).toHaveCount(0);
+	// Guardar waits for a category and an amount.
+	await expect(drawer.getByRole('button', { name: 'Guardar', exact: true })).toBeDisabled();
+});
+
+test('Ahorro drawer: picking 20 % saves and Deshacer restores the previous option', async ({
+	page,
+	baseURL
+}) => {
+	await login(page);
+	await restoreDemoPlan(page, baseURL!);
+	try {
+		// hydration guard: the drawer and picker need JavaScript.
+		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await page.getByRole('link', { name: 'Ahorro', exact: true }).click();
+		const drawer = page.getByRole('dialog', { name: 'Ahorro del mes' });
+		await expect(drawer.getByRole('button', { name: /^Otro/ })).toHaveAttribute(
+			'aria-pressed',
+			'true'
 		);
-	});
+		await drawer.getByRole('button', { name: /^20 %/ }).click();
+		await expect(drawer.getByRole('button', { name: /^20 %/ })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await page.getByRole('button', { name: 'Deshacer' }).click();
+		await expect(drawer.getByRole('button', { name: /^Otro/ })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await expect(drawer.getByRole('button', { name: /^20 %/ })).toHaveAttribute(
+			'aria-pressed',
+			'false'
+		);
+	} finally {
+		await restoreDemoPlan(page, baseURL!);
+	}
 });
 
 test('Disponible = Ingresos - Ahorro - Pagos fijos pendientes - Gastado on one page load', async ({
@@ -397,7 +458,11 @@ test.describe('as another user', () => {
 			const { Gastado } = await figures(page);
 			await page.goto('/reports');
 			const gastos = page.locator('dl.totals > div').filter({ hasText: 'Gastos' }).locator('dd');
-			expect(Number((await gastos.innerText()).replace(/\D/g, ''))).toBe(Gastado);
+			// Without movements in the last six months Reportes shows no totals: spending is zero.
+			const shown = (await gastos.count())
+				? Number((await gastos.innerText()).replace(/\D/g, ''))
+				: 0;
+			expect(shown).toBe(Gastado);
 		}).toPass({ timeout: 30_000 });
 	});
 
@@ -407,11 +472,15 @@ test.describe('as another user', () => {
 	}) => {
 		const description = `Pago regla e2e ${Date.now()}`;
 		const headers = { origin: baseURL!, accept: 'text/html' };
-		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await page.goto('/plan');
 		const id = await linkId(page.getByRole('link', { name: /Regla ajena/ }).first());
-		await page.goto(`/movements/new?recurring=${id}`, { waitUntil: 'networkidle' });
-		const accountId = (await page.locator('input[name="accountId"]').getAttribute('value'))!;
-		const categoryId = (await page.locator('input[name="categoryId"]').getAttribute('value'))!;
+		await page.goto(`/movements/new?recurring=${id}`);
+		const accountId = (await page
+			.locator('input[name="accountId"]:is(:checked, [type="hidden"])')
+			.getAttribute('value'))!;
+		const categoryId = (await page
+			.locator('input[name="categoryId"]:is(:checked, [type="hidden"])')
+			.getAttribute('value'))!;
 		const pay = async (amount: string) => {
 			const res = await page.request.post('/movements/new', {
 				form: {

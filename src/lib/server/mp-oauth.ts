@@ -272,7 +272,12 @@ export async function listUsableConnections(): Promise<string[]> {
 /** The user's active ARS accounts, the only valid receiving accounts. */
 export async function listReceivingAccounts(userId: string) {
 	return db
-		.select({ id: financialAccounts.id, name: financialAccounts.name })
+		.select({
+			id: financialAccounts.id,
+			name: financialAccounts.name,
+			icon: financialAccounts.icon,
+			color: financialAccounts.color
+		})
 		.from(financialAccounts)
 		.where(
 			and(

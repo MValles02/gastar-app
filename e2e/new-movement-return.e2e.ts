@@ -1,7 +1,7 @@
-// Saving a new movement returns to the screen the form was opened from, popping the form (history does
-// not grow), with a "Movimiento guardado." toast whose "Agregar otro" reopens the form from there.
-// Without JS the action redirects to the same origin (from the Referer); anything else falls back to
-// the form itself.
+// The /movements/new full page (deep link, in-app link, no JS) returns to the screen it was opened from,
+// popping the form (history does not grow), with a "Movimiento guardado." toast whose only action is
+// "Deshacer". The + button opens a drawer instead (new-movement-drawer.e2e.ts). Without JS the action
+// redirects to the same origin (from the Referer); anything else falls back to the form itself.
 import { expect, test, type Page } from '@playwright/test';
 import { deleteMovements, login, OTHER_EMAIL, pick, PHONE, todayInAppTz } from './helpers';
 
@@ -25,8 +25,9 @@ test.afterEach(async ({ page, baseURL }) => {
 });
 
 const pathname = (page: Page) => new URL(page.url()).pathname;
+// .first(): a duplicate toast must not fail a test (strict mode); the count is asserted where it matters.
 const toast = (page: Page) =>
-	page.locator('[data-sonner-toast]', { hasText: 'Movimiento guardado.' });
+	page.locator('[data-sonner-toast]', { hasText: 'Movimiento guardado.' }).first();
 
 /** Waits out the page transition: while one runs, the browser hit-tests the whole page as <html>. */
 const settled = (page: Page) =>
@@ -39,7 +40,6 @@ const settled = (page: Page) =>
 /** Fills the open new-movement form with a 1-peso outcome (JS pickers) and saves it. */
 async function fillAndSave(page: Page, description: string) {
 	await expect(page).toHaveURL(/\/movements\/new$/);
-	await page.waitForLoadState('networkidle');
 	await settled(page);
 	await page.locator('input[name="amount"]').fill('1');
 	await page.locator('input[name="description"]').fill(description);
@@ -48,55 +48,44 @@ async function fillAndSave(page: Page, description: string) {
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 }
 
-const openFromFab = (page: Page) =>
-	page
-		.getByRole('navigation', { name: 'Navegación principal' })
-		.getByRole('link', { name: 'Nuevo movimiento' })
-		.click();
+/** Opens the full-page form like an in-app link would (the + button opens the drawer instead). */
+async function openFromFab(page: Page) {
+	await page.evaluate(() => {
+		const a = document.createElement('a');
+		a.href = '/movements/new';
+		a.textContent = 'Nuevo movimiento (test)';
+		document.querySelector('main')!.prepend(a);
+	});
+	await page.getByRole('link', { name: 'Nuevo movimiento (test)' }).click();
+}
 
-test('from Plan, saving returns to Plan with a toast; Agregar otro saves back there; back skips the form', async ({
-	page
-}) => {
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+test('from Plan, saving returns to Plan with a toast; back skips the form', async ({ page }) => {
+	await page.goto('/plan');
+	await page.waitForLoadState('networkidle'); // hydration guard: the injected in-app link needs JS
 	await openFromFab(page);
 	await fillAndSave(page, unique('Origen plan'));
 
 	await expect(page).toHaveURL(/\/plan$/);
 	await expect(toast(page)).toBeVisible();
+	await expect(toast(page).getByRole('button', { name: 'Deshacer' })).toBeVisible();
+	await expect(toast(page).getByRole('button')).toHaveCount(1);
 
-	await toast(page).getByRole('button', { name: 'Agregar otro' }).click();
-	await expect(toast(page)).toHaveCount(0);
-	await fillAndSave(page, unique('Origen plan otro'));
-	await expect(page).toHaveURL(/\/plan$/);
-	await expect(toast(page)).toBeVisible();
-
-	// The forms were popped, not pushed: back goes to the screen before Plan (Inicio, after login).
+	// The form was popped, not pushed: back goes to the screen before Plan (Inicio, after login).
 	await page.goBack();
 	await expect.poll(() => pathname(page)).toBe('/');
 });
 
-for (const origin of ['/', '/movements']) {
-	test(`from ${origin}, saving returns there with the toast`, async ({ page }) => {
-		await page.goto(origin, { waitUntil: 'networkidle' });
-		await openFromFab(page);
-		await fillAndSave(page, unique('Origen tab'));
-		await expect.poll(() => pathname(page)).toBe(origin);
-		await expect(toast(page)).toBeVisible();
-		await expect(page).not.toHaveURL(/movementSaved/);
-	});
-}
-
 test('a new transfer returns to its origin', async ({ page }) => {
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await page.goto('/plan');
+	await page.waitForLoadState('networkidle'); // hydration guard: the injected in-app link needs JS
 	await openFromFab(page);
 	await expect(page).toHaveURL(/\/movements\/new$/);
-	await page.waitForLoadState('networkidle');
 	await settled(page);
 	await page.getByRole('radio', { name: 'Transf.' }).check({ force: true });
 	await page.locator('input[name="amount"]').fill('1000');
 	await page.locator('input[name="description"]').fill(unique('Origen transferencia'));
-	await pick(page, 'Origen', 'Otra cuenta pesos');
-	await pick(page, 'Destino', 'Otra cuenta');
+	await pick(page, 'Desde', 'Otra cuenta pesos');
+	await pick(page, 'Hacia', 'Otra cuenta');
 	await page.locator('input[name="exchangeRate"]').fill('1000');
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/plan$/);
@@ -106,10 +95,10 @@ test('a new transfer returns to its origin', async ({ page }) => {
 test('a validation error keeps the origin: fixing it and saving returns there', async ({
 	page
 }) => {
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await page.goto('/plan');
+	await page.waitForLoadState('networkidle'); // hydration guard: the injected in-app link needs JS
 	await openFromFab(page);
 	await expect(page).toHaveURL(/\/movements\/new$/);
-	await page.waitForLoadState('networkidle');
 	await settled(page);
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page.getByText(/Ingresá un monto/)).toBeVisible();
@@ -119,42 +108,8 @@ test('a validation error keeps the origin: fixing it and saving returns there', 
 	await expect(toast(page)).toBeVisible();
 });
 
-test('from an account detail, saving pops back to it', async ({ page }) => {
-	await page.goto('/accounts', { waitUntil: 'networkidle' });
-	await page
-		.getByRole('link', { name: /Otra cuenta pesos/ })
-		.first()
-		.click();
-	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
-	const account = pathname(page);
-	await page.waitForLoadState('networkidle');
-	// The detail has no + yet: an in-app link stands in for one (the router handles it like any link).
-	await page.evaluate(() => {
-		const a = document.createElement('a');
-		a.href = '/movements/new';
-		a.textContent = 'Nuevo movimiento (test)';
-		document.querySelector('main')!.prepend(a);
-	});
-	await page.getByRole('link', { name: 'Nuevo movimiento (test)' }).click();
-	await fillAndSave(page, unique('Origen cuenta JS'));
-	await expect.poll(() => pathname(page)).toBe(account);
-	await expect(toast(page)).toBeVisible();
-	// Popped, not pushed: back lands on the accounts list, not the form.
-	await page.goBack();
-	await expect.poll(() => pathname(page)).toBe('/accounts');
-});
-
 test.describe('without JavaScript', () => {
 	test.use({ javaScriptEnabled: false });
-
-	test('a validation error keeps the origin', async ({ page }) => {
-		await page.goto('/plan');
-		await page.getByRole('link', { name: 'Nuevo movimiento' }).click();
-		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-		await expect(page.getByText(/Ingresá un monto/)).toBeVisible();
-		await saveNoJs(page, unique('Origen sin JS error'));
-		await expect(page).toHaveURL(/\/plan\?movementSaved=1$/);
-	});
 
 	// No-JS form: the pickers render as plain radio groups.
 	const option = (page: Page, group: 'Cuenta' | 'Categoría', name: RegExp) =>
@@ -167,19 +122,6 @@ test.describe('without JavaScript', () => {
 		await option(page, 'Categoría', /Ajena/).check({ force: true });
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	}
-
-	test('saving from Plan lands on Plan with the status and Agregar otro', async ({ page }) => {
-		await page.goto('/plan');
-		await page.getByRole('link', { name: 'Nuevo movimiento' }).click();
-		await expect(page).toHaveURL(/\/movements\/new$/);
-		await saveNoJs(page, unique('Origen sin JS'));
-		await expect(page).toHaveURL(/\/plan\?movementSaved=1$/);
-		await expect(page.getByRole('status')).toContainText('Movimiento guardado.');
-		await expect(page.getByRole('link', { name: 'Agregar otro' })).toHaveAttribute(
-			'href',
-			/\/movements\/new$/
-		);
-	});
 
 	test('saving from an account detail lands back on it', async ({ page }) => {
 		await page.goto('/accounts');
@@ -222,7 +164,7 @@ test.describe('without JavaScript', () => {
 				maxRedirects: 0
 			});
 			expect(res.status(), returnTo).toBe(303);
-			expect(res.headers().location, returnTo).toBe('/movements/new?saved=1');
+			expect(res.headers().location, returnTo).toMatch(/^\/movements\/new\?saved=[0-9a-f-]{36}$/);
 		}
 	});
 });

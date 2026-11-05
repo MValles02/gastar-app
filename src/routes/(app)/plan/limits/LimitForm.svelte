@@ -1,85 +1,98 @@
 <script lang="ts">
-	import { untrack, type ComponentProps } from 'svelte';
+	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
-	import { enhanceRedirect } from '$lib/nav-stack.svelte';
-	import { formatAmountInput, formatMoney, type Currency } from '$lib/money';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import { resolve } from '$app/paths';
+	import { followRedirect } from '$lib/nav-stack.svelte';
+	import { formatAmountInput, formatMoney, parseAmount, type Currency } from '$lib/money';
 	import FormActions from '$lib/components/FormActions.svelte';
-	import IconBadge from '$lib/components/IconBadge.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import LimitList from '../LimitList.svelte';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 
-	/** Shared form for a new and an existing category limit. */
+	/**
+	 * New category limit. `drawer`: the new-limit drawer (stacked picker, posts to /plan/limits/new and
+	 * reports the result instead of navigating). `page`: the full page.
+	 */
 	let {
-		mode,
 		currency,
-		formId,
-		action,
-		cancelHref,
+		action = '',
+		cancelHref = '/plan',
 		categories = [],
-		category,
-		suggested: fixedSuggested = 0,
 		initial,
 		errors,
-		deleteAction,
-		progress
+		variant = 'page',
+		onsaved,
+		onclose
 	}: {
-		mode: 'new' | 'edit';
 		currency: Currency;
-		formId: string;
-		action: string;
-		cancelHref: string;
-		/** New: the categories on offer, each with its suggested limit. */
+		/** Page: the form's action. Drawer: the query (e.g. `?wizard=4`) added to /plan/limits/new. */
+		action?: string;
+		cancelHref?: string;
+		/** The categories on offer (none has a limit yet), each with its suggested limit. */
 		categories?: (Picker & { suggested: number })[];
-		/** Edit: the limit's category. */
-		category?: Pick<Picker, 'id' | 'name' | 'icon' | 'color'>;
-		/** Edit: the suggested limit of the category. */
-		suggested?: number;
 		initial: { categoryId: string; amount: string };
 		errors?: { categoryId?: string; amount?: string };
-		deleteAction?: string;
-		/** Edit: the limit's progress this month. */
-		progress?: ComponentProps<typeof LimitList>['limits'][number];
+		variant?: 'page' | 'drawer';
+		/** Drawer: the save succeeded. */
+		onsaved?: () => void;
+		/** Drawer: Cancelar. */
+		onclose?: () => void;
 	} = $props();
 
+	const drawer = $derived(variant === 'drawer');
 	let categoryId = $state(untrack(() => initial.categoryId));
 	let amount = $state(untrack(() => initial.amount));
-	const suggested = $derived(
-		mode === 'edit' ? fixedSuggested : (categories.find((c) => c.id === categoryId)?.suggested ?? 0)
-	);
+	let mounted = $state(false);
+	let submitting = $state(false);
+	onMount(() => (mounted = true));
+
+	// Errors from the drawer's post; the page shows the server-rendered `errors` instead.
+	let fieldErrors = $state<{ categoryId?: string; amount?: string }>({});
+	const shown = $derived({ ...errors, ...fieldErrors });
+	const suggested = $derived(categories.find((c) => c.id === categoryId)?.suggested ?? 0);
+	const canSave = $derived(categoryId !== '' && (parseAmount(amount) ?? 0) > 0);
+
+	const focusFirstError = () =>
+		tick().then(() => {
+			document
+				.querySelector<HTMLElement>(
+					'form [aria-invalid="true"], form button[aria-describedby$="-error"]'
+				)
+				?.focus();
+		});
 </script>
 
-{#if progress}
-	<div class="progress"><LimitList limits={[progress]} {currency} linked={false} /></div>
-{/if}
-
 <form
-	id={formId}
 	method="POST"
-	{action}
-	use:enhance={() => enhanceRedirect}
+	action={drawer ? resolve('/plan/limits/new') + action : action}
 	class="form"
+	class:drawer
+	class:submitting
 	novalidate
+	use:enhance={() => {
+		submitting = true;
+		return async (input) => {
+			if (!drawer) {
+				await followRedirect(input);
+				submitting = false;
+				return;
+			}
+			const { result } = input;
+			if (result.type === 'redirect') onsaved?.();
+			else if (result.type === 'failure') {
+				fieldErrors = (result.data?.errors ?? {}) as typeof fieldErrors;
+				focusFirstError();
+			} else toast.error('No se pudo guardar.');
+			submitting = false;
+		};
+	}}
 >
-	<ul class="card">
-		<li class="static">
-			<span>Moneda</span>
-			<span class="value">{currency}</span>
-		</li>
-		{#if mode === 'edit' && category}
-			<li class="static">
-				<span>Categoría</span>
-				<span class="value">
-					<IconBadge icon={category.icon} color={category.color} size="1.5rem" />
-					<span class="name">{category.name}</span>
-				</span>
-			</li>
-		{:else}
-			<li class:bad={errors?.categoryId}>
+	<div class="scroll">
+		<ul class="card">
+			<li class:bad={shown.categoryId}>
 				<OptionPicker
 					variant="row"
 					name="categoryId"
@@ -87,8 +100,9 @@
 					title="Elegí la categoría"
 					items={categories}
 					bind:value={categoryId}
+					nested={drawer}
 					placeholder="Elegir"
-					error={errors?.categoryId}
+					error={shown.categoryId}
 					errorId="lcategory-error"
 				>
 					{#snippet empty()}
@@ -96,56 +110,53 @@
 					{/snippet}
 				</OptionPicker>
 			</li>
-		{/if}
-		<li class:bad={errors?.amount}>
-			<TextRow
-				id="lamount"
-				name="amount"
-				label="Monto"
-				bind:value={amount}
-				prefix={currency === 'USD' ? 'US$' : '$'}
-				placeholder={currency === 'USD' ? '0,00' : '0'}
-				inputmode={currency === 'USD' ? 'decimal' : 'numeric'}
-				amount
-				error={errors?.amount}
-				errorId="lamount-error"
-			/>
-		</li>
-	</ul>
+			<li class:bad={shown.amount}>
+				<TextRow
+					id="lamount"
+					name="amount"
+					label="Monto"
+					bind:value={amount}
+					prefix={currency === 'USD' ? 'US$' : '$'}
+					placeholder={currency === 'USD' ? '0,00' : '0'}
+					inputmode={currency === 'USD' ? 'decimal' : 'numeric'}
+					amount
+					error={shown.amount}
+					errorId="lamount-error"
+				/>
+			</li>
+		</ul>
 
-	{#if suggested > 0}
-		<div class="average">
-			<p class="hint">Promedio últimos 3 meses = {formatMoney(suggested, currency)}</p>
+		{#if suggested > 0}
+			<Button
+				type="button"
+				variant="ghost"
+				class="average"
+				onclick={() => (amount = formatAmountInput(suggested, currency))}
+			>
+				Usar promedio · {formatMoney(suggested, currency)}
+			</Button>
+		{/if}
+	</div>
+
+	{#if drawer}
+		<div class="actions">
 			<Button
 				type="button"
 				variant="outline"
-				size="sm"
-				onclick={() => (amount = formatAmountInput(suggested, currency))}
+				class="h-auto min-h-11 min-w-0 flex-1 basis-0 rounded-full"
+				onclick={() => onclose?.()}>Cancelar</Button
 			>
-				Usar promedio
-			</Button>
+			<Button
+				type="submit"
+				class="h-auto min-h-11 min-w-0 flex-1 basis-0 rounded-full"
+				disabled={mounted && (!canSave || submitting)}
+				aria-busy={submitting ? 'true' : undefined}>Guardar</Button
+			>
 		</div>
+	{:else}
+		<FormActions {cancelHref} submitLabel="Guardar" {submitting} />
 	{/if}
 </form>
-
-{#if mode === 'edit' && deleteAction}
-	<FormActions {cancelHref} submitLabel="Guardar cambios" form={formId}>
-		{#snippet destructive()}
-			<ConfirmDialog
-				triggerLabel="Eliminar límite"
-				triggerVariant="destructive"
-				triggerClass="w-full"
-				title="¿Eliminar este límite?"
-				confirmLabel="Eliminar"
-				action={deleteAction}
-			>
-				Esta acción no se puede deshacer.
-			</ConfirmDialog>
-		{/snippet}
-	</FormActions>
-{:else}
-	<FormActions {cancelHref} submitLabel="Guardar" form={formId} />
-{/if}
 
 <style>
 	.form {
@@ -156,8 +167,41 @@
 		padding-bottom: var(--space-3);
 	}
 
-	.progress {
-		margin-bottom: var(--space-3);
+	.form.drawer {
+		flex: 1;
+		min-height: 0;
+		gap: 0;
+		padding: 0;
+	}
+
+	.scroll {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		min-height: 0;
+		overflow-y: auto;
+	}
+
+	.drawer .scroll {
+		padding: var(--space-1) var(--space-4) var(--space-4);
+	}
+
+	.form.submitting .scroll {
+		opacity: 0.55;
+	}
+
+	.scroll :global(.average) {
+		align-self: center;
+		font-size: var(--font-size-sm);
+		font-weight: 500;
+		text-decoration: underline;
+	}
+
+	.actions {
+		display: flex;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
+		background: var(--popover);
 	}
 
 	.card {
@@ -171,35 +215,8 @@
 		box-shadow: var(--shadow-1);
 	}
 
-	.card > li + li {
-		border-top: 1px solid var(--border);
-	}
-
 	.card > li.bad {
 		box-shadow: inset 3px 0 0 var(--negative);
-	}
-
-	.static {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-		min-height: 3.5rem;
-		padding: 0 var(--space-4);
-	}
-
-	.value {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		min-width: 0;
-		font-weight: 500;
-	}
-
-	.name {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
 	}
 
 	.hint {
@@ -209,12 +226,5 @@
 
 	.hint.pad {
 		padding: var(--space-3) var(--space-4);
-	}
-
-	.average {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
 	}
 </style>

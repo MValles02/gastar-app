@@ -36,7 +36,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 export const actions: Actions = {
 	default: async ({ locals, request, url }) => {
 		const userId = locals.user!.id;
-		const r = await readRecurringForm(userId, request);
+		const r = await readRecurringForm(userId, await request.formData());
 		if (r.failure) return r.failure;
 		await createRecurring(userId, r.data);
 		redirect(303, planReturn(url.searchParams.get('wizard')));

@@ -3,6 +3,7 @@
 	import '../app.css';
 	import { afterNavigate, onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
+	import { drawers } from '$lib/drawer-open.svelte';
 	import { track, transitionOf } from '$lib/nav-stack.svelte';
 	import { FORM_ROUTES, TAB_ROUTES } from '$lib/form-routes';
 	import favicon from '$lib/assets/favicon.svg';
@@ -41,9 +42,10 @@
 
 	// Toasts sit above the floating tab bar only on tab routes; form routes have a sticky submit bar
 	// plus Cancelar at the bottom, so they show below the compact header instead.
-	const isForm = $derived(FORM_ROUTES.has(page.route.id ?? ''));
+	// While a bottom drawer is open they also go to the top (the drawer's actions sit at the bottom).
+	const onTop = $derived(FORM_ROUTES.has(page.route.id ?? '') || drawers.open > 0);
 	const toastOffset = $derived(
-		isForm
+		onTop
 			? { top: 'calc(4.5rem + env(safe-area-inset-top))' }
 			: TAB_ROUTES.has(page.route.id ?? '')
 				? { bottom: 'var(--tabbar-clearance)' }
@@ -65,7 +67,7 @@
 {@render children()}
 
 <Toaster
-	position={isForm ? 'top-center' : 'bottom-center'}
+	position={onTop ? 'top-center' : 'bottom-center'}
 	duration={4000}
 	containerAriaLabel="Notificaciones"
 	offset={toastOffset}

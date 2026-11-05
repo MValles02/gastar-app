@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick, type Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import { resolve } from '$app/paths';
@@ -12,9 +12,9 @@
 	import Icon from './Icon.svelte';
 
 	/**
-	 * Search field + "Filtros" button. Every other filter lives in the drawer (`filters`), which applies
-	 * on change by navigating to `path`. `active` counts the non-default filters (the search term excluded).
-	 * `filters` gets a callback to apply right away: Bits radios and checkboxes fire no native change event.
+	 * Search field + "Filtros" button. Every other filter lives in the drawer (`filters`), which is staged and applies
+	 * when it closes, by navigating to `path`. `active` counts the non-default filters (the search term excluded).
+	 * (The `filters` callback is a no-op here, kept for the no-JS form and the movements list.)
 	 */
 	let {
 		q = '',
@@ -22,7 +22,8 @@
 		label = 'Buscar',
 		path,
 		active,
-		filters
+		filters,
+		onfilters
 	}: {
 		q?: string;
 		placeholder?: string;
@@ -30,6 +31,8 @@
 		path: string;
 		active: number;
 		filters: Snippet<[() => void]>;
+		/** Opt-in: the page owns the filters drawer. Filtros calls this and no internal drawer renders. */
+		onfilters?: () => void;
 	} = $props();
 
 	let mounted = $state(false);
@@ -60,7 +63,6 @@
 		for (const [k, v] of new FormData(drawerForm!)) if (typeof v === 'string' && v) sp.set(k, v);
 		void replaceGoto(resolve(`${path}?${sp}` as '/'), { keepFocus: true });
 	};
-	const submit = () => tick().then(() => drawerForm?.requestSubmit());
 	const clear = () =>
 		void replaceGoto(resolve(`${path}?q=${encodeURIComponent(q)}` as '/'), { keepFocus: true });
 </script>
@@ -99,7 +101,7 @@
 			variant="outline"
 			class={['shrink-0', active > 0 && 'border-foreground']}
 			aria-haspopup="dialog"
-			onclick={() => (open = true)}
+			onclick={() => (onfilters ? onfilters() : (open = true))}
 		>
 			<SlidersHorizontal size={18} strokeWidth={1.75} aria-hidden="true" />
 			Filtros
@@ -117,17 +119,20 @@
 	</form>
 </noscript>
 
-<BottomDrawer title="Filtros" bind:open>
-	<form method="GET" class="drawer-form" bind:this={drawerForm} onchange={submit} onsubmit={apply}>
-		{#if q}<input type="hidden" name="q" value={q} />{/if}
-		{@render filters(submit)}
-		{#if active > 0}
-			<Button type="button" variant="outline" class="w-full" onclick={clear}>
-				Limpiar filtros
-			</Button>
-		{/if}
-	</form>
-</BottomDrawer>
+{#if !onfilters}
+	<!-- Staged: nothing navigates while the drawer is open; closing it applies the choices. -->
+	<BottomDrawer title="Filtros" bind:open onclose={() => drawerForm?.requestSubmit()}>
+		<form method="GET" class="drawer-form" bind:this={drawerForm} onsubmit={apply}>
+			{#if q}<input type="hidden" name="q" value={q} />{/if}
+			{@render filters(() => {})}
+			{#if active > 0}
+				<Button type="button" variant="outline" class="w-full" onclick={clear}>
+					Limpiar filtros
+				</Button>
+			{/if}
+		</form>
+	</BottomDrawer>
+{/if}
 
 <style>
 	.search {

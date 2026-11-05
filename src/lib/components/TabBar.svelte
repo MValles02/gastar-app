@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { markReplace } from '$lib/nav-stack.svelte';
+	import { openNewMovement } from '$lib/new-movement';
 	import House from '@lucide/svelte/icons/house';
 	import List from '@lucide/svelte/icons/list';
 	import CalendarCheck from '@lucide/svelte/icons/calendar-check';
@@ -41,7 +42,7 @@
 		{/each}
 	</div>
 
-	<a href={newMovementHref} class="fab" aria-label="Nuevo movimiento">
+	<a href={newMovementHref} class="fab" onclick={openNewMovement} aria-label="Nuevo movimiento">
 		<Plus size={24} strokeWidth={1.75} aria-hidden="true" />
 	</a>
 </nav>
