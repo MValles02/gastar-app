@@ -91,7 +91,7 @@
 		margin-block: calc(-1 * var(--space-3)) calc(-1 * var(--space-2));
 		font-size: var(--font-size-sm);
 		font-weight: 500;
-		text-underline-offset: 3px;
-		text-decoration-color: var(--border-strong);
+		color: var(--link);
+		text-decoration: none;
 	}
 </style>

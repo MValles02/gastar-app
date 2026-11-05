@@ -230,14 +230,16 @@
 	--surface: light-dark(oklch(0.98 0.012 85), oklch(0.216 0.006 56.043));
 	--surface-raised: light-dark(oklch(0.98 0.012 85), oklch(0.216 0.006 56.043));
 	--muted: light-dark(oklch(0.925 0.022 82), oklch(0.268 0.007 34.298));
-	--text: light-dark(oklch(0.18 0.012 60), oklch(0.985 0.001 106.423));
-	--text-muted: light-dark(oklch(0.52 0.022 70), oklch(0.709 0.01 56.259));
-	--border: light-dark(oklch(0.895 0.02 80), oklch(1 0 0 / 10%));
-	--border-strong: light-dark(oklch(0.68 0.025 70), oklch(0.553 0.013 58.071));
-	--primary: light-dark(oklch(0.508 0.118 165.612), oklch(0.432 0.095 166.913));
+	--text: light-dark(#221d17, oklch(0.985 0.001 106.423));
+	--text-muted: light-dark(#6b6257, oklch(0.709 0.01 56.259));
+	--border: light-dark(#e3dbcb, oklch(1 0 0 / 10%));
+	--border-strong: light-dark(#a69b8a, oklch(0.553 0.013 58.071));
+	--primary: light-dark(#0b7656, oklch(0.432 0.095 166.913));
+	/* Inline text links: primary in light; a lighter green in dark, where the primary fill is too dark for text. */
+	--link: light-dark(#0b7656, oklch(0.8 0.11 166));
 	--on-primary: light-dark(oklch(0.979 0.021 166.113), oklch(0.979 0.021 166.113));
 	--positive: light-dark(#2e6b34, #8bd68f);
-	--negative: light-dark(oklch(0.577 0.245 27.325), oklch(0.704 0.191 22.216));
+	--negative: light-dark(#c4140c, oklch(0.704 0.191 22.216));
 	--warning: light-dark(oklch(0.555 0.163 48.998), oklch(0.879 0.169 91.605));
 	--transfer: light-dark(#2c5d8a, #8db8e6);
 	--segment-selected: light-dark(oklch(0.98 0.012 85), oklch(0.374 0.01 67.558));
@@ -274,7 +276,7 @@
 	--accent: var(--muted);
 	--accent-foreground: var(--text);
 	--destructive: var(--negative);
-	--destructive-foreground: light-dark(oklch(0.98 0.012 85), #1c1917);
+	--destructive-foreground: light-dark(#fff7f5, #1c1917);
 	--input: var(--border-strong);
 	--ring: var(--primary);
 

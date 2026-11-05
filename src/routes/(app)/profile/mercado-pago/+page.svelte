@@ -56,7 +56,10 @@
 	<title>Mercado Pago · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Mercado Pago" back={{ href: resolve('/profile'), label: 'Volver a Perfil' }} />
+<PageHeader
+	title="Mercado Pago"
+	back={{ href: resolve('/profile'), label: 'Volver a Perfil', text: 'Perfil' }}
+/>
 
 <div class="page">
 	{#if data.flash}<p class="flash bad" role="alert">{data.flash}</p>{/if}

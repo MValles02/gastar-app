@@ -113,7 +113,7 @@
 			>
 			<Button
 				type="submit"
-				variant="destructive"
+				variant="danger"
 				class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal"
 				disabled={!password || submitting}>Darme de baja</Button
 			>
@@ -123,7 +123,7 @@
 			{#snippet primary()}
 				<Button
 					type="submit"
-					variant="destructive"
+					variant="danger"
 					class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal"
 					disabled={submitting}>Darme de baja</Button
 				>

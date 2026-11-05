@@ -103,7 +103,7 @@
 {#snippet current()}
 	<span id="{labelId}-value" class="current" class:placeholder={!selected}>
 		{#if selected}
-			<IconBadge icon={selected.icon} color={selected.color} size={isRow ? '1.5rem' : '2rem'} />
+			<IconBadge icon={selected.icon} color={selected.color} size={isRow ? '1.625rem' : '2rem'} />
 			<span class="name">{selected.name}</span>
 		{:else}
 			{placeholder}
@@ -121,7 +121,7 @@
 			variant={isRow ? 'ghost' : 'outline'}
 			class={isRow
 				? 'trigger h-14 w-full scroll-mb-24 justify-between gap-3 rounded-none px-4'
-				: 'trigger w-full justify-start'}
+				: 'trigger h-11 w-full justify-start rounded-lg px-2.5 text-sm font-medium'}
 			aria-haspopup="dialog"
 			aria-labelledby="{labelId} {labelId}-value"
 			aria-describedby={error ? errorId : undefined}

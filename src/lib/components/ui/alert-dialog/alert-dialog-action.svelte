@@ -22,6 +22,10 @@
 <AlertDialogPrimitive.Action
 	bind:ref
 	data-slot="alert-dialog-action"
-	class={cn(buttonVariants({ variant, size }), '', className)}
+	class={cn(
+		buttonVariants({ variant: variant === 'destructive' ? 'danger' : variant, size }),
+		'',
+		className
+	)}
 	{...restProps}
 />

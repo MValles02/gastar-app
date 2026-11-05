@@ -194,7 +194,7 @@
 		align-self: center;
 		font-size: var(--font-size-sm);
 		font-weight: 500;
-		text-decoration: underline;
+		color: var(--link);
 	}
 
 	.actions {

@@ -42,7 +42,7 @@
 
 <PageHeader
 	title="Cuentas"
-	back={{ href: resolve('/profile'), label: 'Volver al perfil' }}
+	back={{ href: resolve('/profile'), label: 'Volver al perfil', text: 'Perfil' }}
 	action={data.hasAnyAccount ? add : undefined}
 />
 
@@ -154,13 +154,14 @@
 		align-items: center;
 		min-height: var(--tap-target);
 		font-weight: 500;
-		color: var(--text);
-		text-decoration: underline;
+		color: var(--link);
+		text-decoration: none;
 	}
 
 	.group-total {
 		font-family: var(--font-display);
-		font-size: var(--font-size-base);
-		font-weight: 500;
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		color: var(--text);
 	}
 </style>

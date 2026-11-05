@@ -99,7 +99,7 @@
 		<Button
 			type="button"
 			variant="outline"
-			class={['shrink-0', active > 0 && 'border-foreground']}
+			class={['h-11 shrink-0 px-3.5 font-medium', active > 0 && 'border-foreground']}
 			aria-haspopup="dialog"
 			onclick={() => (onfilters ? onfilters() : (open = true))}
 		>
