@@ -83,13 +83,6 @@
 
 	{#snippet accountsCount()}<span class="val">{data.counts.accounts}</span>{/snippet}
 	{#snippet categoriesCount()}<span class="val">{data.counts.categories}</span>{/snippet}
-	{#snippet mpState()}<span class="val"
-			>{data.imports?.state === 'linked'
-				? 'Vinculado'
-				: data.imports?.state === 'reconnect'
-					? 'Reconectar'
-					: 'Vincular'}</span
-		>{/snippet}
 	{#snippet nameValue()}
 		<span class="name-edit">
 			<InlineText label="Nombre" value={name} maxlength={NAME_MAX} onsave={saveName}>
@@ -113,12 +106,11 @@
 			value={categoriesCount}
 			chevron
 		/>
-		{#if data.imports}
+		{#if data.vinculaciones}
 			<ListRow
-				href={resolve('/profile/mercado-pago')}
+				href={resolve('/profile/vinculaciones')}
 				lead={{ icon: 'phone', color: null }}
-				title="Mercado Pago"
-				value={mpState}
+				title="Vinculaciones"
 				chevron
 			/>
 		{/if}

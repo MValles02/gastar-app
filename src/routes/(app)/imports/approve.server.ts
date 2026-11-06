@@ -6,23 +6,23 @@ import {
 	listImportRules,
 	listPendingImports,
 	type ImportItem
-} from '$lib/server/mp-import-queries';
+} from '$lib/server/import-queries';
 import { pgErrorCode } from '$lib/server/db/errors';
 import { movementPickers, resolvePostedMovement } from '../movements/form.server';
 
 /** Active ARS accounts other than the import account: the only valid counter accounts. */
-const counterAccountsOf = <A extends { currency: string; id: string }>(
+export const counterAccountsOf = <A extends { currency: string; id: string }>(
 	accounts: A[],
 	importAccountId: string
 ) => accounts.filter((a) => a.currency === 'ARS' && a.id !== importAccountId);
 
 /** Rules and pickers needed to compute an item's suggestion. */
-export async function suggestionContext(userId: string, importAccountId: string) {
+export async function suggestionContext(userId: string) {
 	const [rules, pickers] = await Promise.all([listImportRules(userId), movementPickers(userId)]);
 	return {
 		rules,
 		categories: pickers.categories,
-		counterAccounts: counterAccountsOf(pickers.accounts, importAccountId)
+		accounts: pickers.accounts
 	};
 }
 
@@ -34,7 +34,12 @@ export async function approveSuggestion(
 	item: ImportItem,
 	ctx: SuggestionContext
 ): Promise<'none' | 'approved' | 'stale'> {
-	const prefill = importPrefill(item, ctx.rules, ctx.categories, ctx.counterAccounts);
+	const prefill = importPrefill(
+		item,
+		ctx.rules,
+		ctx.categories,
+		counterAccountsOf(ctx.accounts, item.accountId)
+	);
 	// Only rows that show "Aprobar" have a suggestion; the rest go through the review form.
 	if (prefill.suggestion === null) return 'none';
 	// The values come from the rule itself: nothing new to remember.
@@ -43,11 +48,8 @@ export async function approveSuggestion(
 }
 
 /** Approves every pending item that has a suggestion; failures count as skipped. */
-export async function approveSuggestedImports(userId: string, importAccountId: string) {
-	const [items, ctx] = await Promise.all([
-		listPendingImports(userId),
-		suggestionContext(userId, importAccountId)
-	]);
+export async function approveSuggestedImports(userId: string) {
+	const [items, ctx] = await Promise.all([listPendingImports(userId), suggestionContext(userId)]);
 	let approved = 0;
 	let skipped = 0;
 	for (const item of items) {

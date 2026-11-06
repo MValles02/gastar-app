@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { dev } from '$app/environment';
-import { deleteImportData } from '$lib/server/mp-import-queries';
+import { deleteImportData } from '$lib/server/import-queries';
 import { deleteConnection } from '$lib/server/mp-oauth';
 import type { RequestHandler } from './$types';
 

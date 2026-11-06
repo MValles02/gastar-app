@@ -58,7 +58,11 @@
 
 <PageHeader
 	title="Mercado Pago"
-	back={{ href: resolve('/profile'), label: 'Volver a Perfil', text: 'Perfil' }}
+	back={{
+		href: resolve('/profile/vinculaciones'),
+		label: 'Volver a Vinculaciones',
+		text: 'Vinculaciones'
+	}}
 />
 
 <div class="page">

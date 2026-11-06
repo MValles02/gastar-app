@@ -1,20 +1,24 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import {
 	getImport,
-	getImportAccount,
-	getSyncState,
 	importPrefill,
+	importSourcesEnabled,
 	importTitle,
 	listPendingImports,
 	undoApproval
-} from '$lib/server/mp-import-queries';
-import { getConnectionInfo, mpOauthEnabled } from '$lib/server/mp-oauth';
-import { startMpSync } from '$lib/server/mp-sync';
+} from '$lib/server/import-queries';
+import { getConnectionInfo, getMpImportAccount } from '$lib/server/mp-oauth';
+import { getSyncState, startMpSync } from '$lib/server/mp-sync';
 import { dayHeading, localDay } from '$lib/server/month';
 import { isUuid } from '$lib/server/db/util';
 import { pgErrorCode } from '$lib/server/db/errors';
+import {
+	approveSuggestedImports,
+	approveSuggestion,
+	counterAccountsOf,
+	suggestionContext
+} from './approve.server';
 import { requireUser } from '$lib/server/require-user';
-import { approveSuggestedImports, approveSuggestion, suggestionContext } from './approve.server';
 import type { Actions, PageServerLoad } from './$types';
 
 const LEASE_MS = 15 * 60_000;
@@ -30,12 +34,9 @@ function agoLabel(at: Date, now: Date): string {
 
 const DONE = ['approved', 'rejected', 'stale'] as const;
 
-/** 404 when the feature is off; sends the user to link (or pick an account) when there is no usable connection. */
-async function requireAccount(userId: string) {
-	if (!mpOauthEnabled()) error(404, 'No encontrado');
-	const account = await getImportAccount(userId);
-	if (!account) redirect(303, '/profile/mercado-pago');
-	return account;
+/** 404 when no import source is available. */
+function requireSources() {
+	if (!importSourcesEnabled()) error(404, 'No encontrado');
 }
 
 const ALREADY_REVIEWED = 'Ese movimiento ya fue revisado.';
@@ -46,13 +47,13 @@ const countParam = (v: string | null) => (v !== null && /^\d{1,9}$/.test(v) ? Nu
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
-	const account = await requireAccount(userId);
+	requireSources();
+	const mp = await getMpImportAccount(userId);
+	const [items, ctx] = await Promise.all([listPendingImports(userId), suggestionContext(userId)]);
+	// Nothing to review and no source linked: send the user to the connections.
+	if (!mp && items.length === 0) redirect(303, '/profile/vinculaciones');
+	const sync = mp ? await getSyncState(userId, mp.id) : null;
 	const needsReconnect = (await getConnectionInfo(userId))?.needsReconnect ?? false;
-	const [sync, items, ctx] = await Promise.all([
-		getSyncState(userId, account.id),
-		listPendingImports(userId),
-		suggestionContext(userId, account.id)
-	]);
 
 	const now = new Date();
 	const today = localDay(now);
@@ -75,7 +76,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			group = { day, heading: dayHeading(day, today), items: [] };
 			groups.push(group);
 		}
-		const suggestion = importPrefill(i, ctx.rules, ctx.categories, ctx.counterAccounts).suggestion;
+		const suggestion = importPrefill(
+			i,
+			ctx.rules,
+			ctx.categories,
+			counterAccountsOf(ctx.accounts, i.accountId)
+		).suggestion;
 		if (suggestion !== null) suggested++;
 		group.items.push({
 			id: i.id,
@@ -91,6 +97,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const approved = countParam(url.searchParams.get('approved'));
 	const skipped = countParam(url.searchParams.get('skipped'));
 	return {
+		mpLinked: !!mp,
 		suggested,
 		bulk: approved === null ? null : { approved, skipped: skipped ?? 0 },
 		needsReconnect,
@@ -107,20 +114,22 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
 	sync: async ({ locals }) => {
-		await requireAccount(requireUser(locals).id);
-		await startMpSync(requireUser(locals).id);
+		requireSources();
+		const userId = requireUser(locals).id;
+		if (!(await getMpImportAccount(userId))) redirect(303, '/profile/vinculaciones');
+		await startMpSync(userId);
 		redirect(303, '/imports');
 	},
 
 	/** Quick "Aprobar" of one suggested row; answers with the id so the page can offer Deshacer. */
 	approveOne: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
-		const account = await requireAccount(userId);
+		requireSources();
 		const id = String((await request.formData()).get('id') ?? '');
 		if (!isUuid(id)) return fail(400, { message: APPROVE_FAILED });
 		const item = await getImport(userId, id);
 		if (!item || item.status !== 'pending') return fail(409, { message: ALREADY_REVIEWED });
-		const ctx = await suggestionContext(userId, account.id);
+		const ctx = await suggestionContext(userId);
 		try {
 			const out = await approveSuggestion(userId, item, ctx);
 			if (out === 'none') return fail(400, { message: 'Revisá este movimiento.' });
@@ -135,7 +144,7 @@ export const actions: Actions = {
 	/** Deshacer of a quick approval: removes its movement and puts the item back to pending. */
 	undoApprove: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
-		await requireAccount(userId);
+		requireSources();
 		const id = String((await request.formData()).get('id') ?? '');
 		if (!isUuid(id)) return fail(400, { message: 'No se pudo deshacer.' });
 		const result = await undoApproval(userId, id);
@@ -148,8 +157,8 @@ export const actions: Actions = {
 
 	approveSuggested: async ({ locals }) => {
 		const userId = requireUser(locals).id;
-		const account = await requireAccount(userId);
-		const { approved, skipped } = await approveSuggestedImports(userId, account.id);
+		requireSources();
+		const { approved, skipped } = await approveSuggestedImports(userId);
 		redirect(303, `/imports?approved=${approved}&skipped=${skipped}`);
 	}
 };

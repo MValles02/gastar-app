@@ -1,4 +1,5 @@
 import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
+import { requireUser } from '$lib/server/require-user';
 import type { PageServerLoad } from './$types';
 import {
 	categorySums,
@@ -13,9 +14,8 @@ import { preferredCurrency } from '$lib/server/currency-pref';
 import { currentMonth, dayHeading, localDay, monthLabel, monthRange } from '$lib/server/month';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { accountSummaryOnce, planViewOnce } from '$lib/server/plan-view';
-import { getImportAccount, pendingImportCount } from '$lib/server/mp-import-queries';
-import { mpOauthEnabled } from '$lib/server/mp-oauth';
-import { requireUser } from '$lib/server/require-user';
+import { pendingImportCount } from '$lib/server/import-queries';
+import { getMpImportAccount, mpOauthEnabled } from '$lib/server/mp-oauth';
 
 type TopCategory = ReturnType<typeof topCategories>[number] & {
 	color: SwatchKey | null;
@@ -31,7 +31,9 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 
 	// Mercado Pago pill: only for a linked user (also while a reconnect is pending); counts both currencies.
 	const mpPending = async () =>
-		mpOauthEnabled() && (await getImportAccount(userId)) ? await pendingImportCount(userId) : null;
+		mpOauthEnabled() && (await getMpImportAccount(userId))
+			? await pendingImportCount(userId)
+			: null;
 	const [summary, anyMovement, anyPlan, mpPendingCount] = await Promise.all([
 		accountSummaryOnce(userId),
 		hasAnyMovement(userId),
