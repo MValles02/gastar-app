@@ -199,14 +199,6 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 	const url = page.url();
 	createdAccounts.push(url);
 
-	/** The Pesos group total on the list with archived shown, in whole pesos. */
-	const pesosTotal = async () => {
-		await page.goto('/accounts?archived=1');
-		const total = page.locator('section[aria-labelledby="group-ARS"] .group-total');
-		return Number((await total.innerText()).replace(/\D/g, ''));
-	};
-	const totalBefore = await pesosTotal();
-
 	/** How many times the new-movement account picker offers the account. */
 	const offered = async () => {
 		await page.goto('/movements/new', { waitUntil: 'networkidle' }); // hydration guard: the picker needs JS
@@ -222,8 +214,28 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 	await expect(page.getByText('No aparece al registrar movimientos.')).toBeVisible();
 	await expect(page).toHaveURL(url);
 	expect(await offered()).toBe(0);
-	// Archived accounts stay listed but leave the group total, by exactly their balance.
-	expect(totalBefore - (await pesosTotal())).toBe(1234);
+	// Archived accounts stay listed but leave the group total. Checked on one snapshot of the
+	// list (read in a single evaluate), so other specs changing this user's accounts cannot skew it.
+	await page.goto('/accounts?archived=1');
+	const group = page.locator('section[aria-labelledby="group-ARS"]');
+	const snapshot = await group.evaluate((el) => {
+		const pesos = (s: string) => (s.includes('-') ? -1 : 1) * Number(s.replace(/\D/g, ''));
+		const rows = [...el.querySelectorAll('[role="listitem"]')].map(
+			(r) => (r as HTMLElement).innerText
+		);
+		const active = rows.filter((r) => !r.includes('Archivada'));
+		return {
+			total: pesos((el.querySelector('.group-total') as HTMLElement).innerText),
+			activeSum: active.reduce((s, r) => s + pesos(r.split('\n').pop()!), 0),
+			activeCount: active.length,
+			ours: rows.find((r) => r.includes(name)) ?? ''
+		};
+	});
+	// ARS shows each balance rounded to whole pesos (imported ones keep cents), so the rounded rows
+	// may drift from the rounded total by up to 1 peso per row; counting our 1.234 would not.
+	expect(Math.abs(snapshot.total - snapshot.activeSum)).toBeLessThanOrEqual(snapshot.activeCount);
+	expect(snapshot.ours).toContain('Archivada');
+	expect(snapshot.ours.replace(name, '')).toContain('1.234');
 	await page.goto(url, { waitUntil: 'networkidle' }); // hydration guard: the unarchive form is enhanced
 	await page.getByRole('button', { name: 'Desarchivar' }).click();
 	await expect(page.getByRole('button', { name: 'Archivar', exact: true })).toBeVisible();
