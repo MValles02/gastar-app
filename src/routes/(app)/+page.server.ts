@@ -1,7 +1,6 @@
 import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
 import type { PageServerLoad } from './$types';
 import {
-	accountSummary,
 	categorySums,
 	hasAnyMovement,
 	hasAnyPlan,
@@ -14,7 +13,7 @@ import { preferredCurrency } from '$lib/server/currency-pref';
 import { currentMonth, dayHeading, localDay, monthLabel, monthRange } from '$lib/server/month';
 import { categorySwatches } from '$lib/server/alerts';
 import { toCategoryIconKey } from '$lib/appearance';
-import { planView } from '$lib/server/plan-view';
+import { accountSummaryOnce, planViewOnce } from '$lib/server/plan-view';
 import { getImportAccount, pendingImportCount } from '$lib/server/mp-import-queries';
 import { mpOauthEnabled } from '$lib/server/mp-oauth';
 
@@ -30,7 +29,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const value = currentMonth(now);
 	const range = monthRange(value);
 
-	const summary = await accountSummary(userId);
+	const summary = await accountSummaryOnce(userId);
 	const hasAnyAccount = summary.some((s) => s.count > 0);
 	const row = summary.find((s) => s.currency === currency);
 	const hasCurrencyAccount = (row?.count ?? 0) > 0;
@@ -71,7 +70,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		originTypeSums(userId, currency, range),
 		categorySums(userId, currency, range),
 		recentMovements(userId, currency),
-		planView(userId, currency, now)
+		planViewOnce(userId, currency, now)
 	]);
 
 	const top = topCategories(cats);

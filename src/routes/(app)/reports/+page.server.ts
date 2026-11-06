@@ -2,7 +2,8 @@ import type { PageServerLoad } from './$types';
 import { toCategoryIconKey, toSwatchKey, type CategoryIconKey } from '$lib/appearance';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import { hasAccountsIn } from '$lib/server/dashboard';
-import { accountSummary, categorySums } from '$lib/server/dashboard-queries';
+import { categorySums } from '$lib/server/dashboard-queries';
+import { accountSummaryOnce } from '$lib/server/plan-view';
 import {
 	currentMonth,
 	dateLabel,
@@ -37,7 +38,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		isCurrent: ym >= current
 	};
 
-	const summary = await accountSummary(userId);
+	const summary = await accountSummaryOnce(userId);
 	if (!hasAccountsIn(summary, currency)) return { currency, nav, hasCurrency: false as const };
 
 	const months = lastMonths(ym, FLOW_MONTHS);
