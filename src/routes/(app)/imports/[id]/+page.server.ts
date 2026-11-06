@@ -1,5 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
+import { formatDay } from '$lib/locale';
+import { localDay } from '$lib/server/month';
 import { isUuid } from '$lib/server/db/util';
 import { notFoundHelpers } from '$lib/server/not-found';
 import {
@@ -12,7 +14,7 @@ import {
 	rememberKey
 } from '$lib/server/import-queries';
 import { failIfUnavailable, movementPickers } from '../../movements/form.server';
-import { approveWithValues } from '$lib/server/import-approve';
+import { approveWithValues, counterAccountsOf } from '$lib/server/import-approve';
 import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -26,13 +28,10 @@ async function findItem(userId: string, id: string) {
 	return item;
 }
 
-/** Active ARS accounts other than the import account: the only valid counter accounts (no exchange rate). */
-async function pickers(userId: string, importAccountId: string) {
+/** Categories and the valid counter accounts of the item. */
+async function pickers(userId: string, item: { accountId: string; currency: string }) {
 	const { accounts, categories } = await movementPickers(userId);
-	return {
-		categories,
-		accounts: accounts.filter((a) => a.currency === 'ARS' && a.id !== importAccountId)
-	};
+	return { categories, accounts: counterAccountsOf(accounts, item) };
 }
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -40,7 +39,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const item = await findItem(userId, params.id);
 	if (item.status !== 'pending') notFound();
 	const [{ categories, accounts }, rules] = await Promise.all([
-		pickers(userId, item.accountId),
+		pickers(userId, item),
 		listImportRules(userId)
 	]);
 	const prefill = importPrefill(item, rules, categories, accounts);
@@ -49,7 +48,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			id: item.id,
 			isCredit: item.isCredit,
 			amount: item.amount,
-			dateLabel: importDateTime(item.occurredAt),
+			currency: item.currency,
+			// Card statement lines carry a day, not a time.
+			dateLabel:
+				item.source === 'mercado_pago'
+					? importDateTime(item.occurredAt)
+					: formatDay(localDay(item.occurredAt)),
 			rawDescription: item.rawDescription
 		},
 		initial: {
@@ -95,11 +99,14 @@ export const actions: Actions = {
 		else if (values.description.length > DESCRIPTION_MAX_LENGTH)
 			errors.description = `La descripción puede tener hasta ${DESCRIPTION_MAX_LENGTH} caracteres.`;
 
-		const { accounts } = await pickers(userId, item.accountId);
+		const { accounts } = await pickers(userId, item);
 		if (type === 'transfer') {
 			if (!isUuid(values.counterAccountId)) errors.counterAccountId = 'Elegí la cuenta.';
 			else if (!accounts.some((a) => a.id === values.counterAccountId))
-				errors.counterAccountId = 'Elegí una cuenta en pesos que no esté archivada.';
+				errors.counterAccountId =
+					item.currency === 'USD'
+						? 'Elegí una cuenta en dólares que no esté archivada.'
+						: 'Elegí una cuenta en pesos que no esté archivada.';
 		} else if (type && !isUuid(values.categoryId)) errors.categoryId = 'Elegí una categoría.';
 		if (Object.keys(errors).length > 0) return fail(400, { values, errors });
 

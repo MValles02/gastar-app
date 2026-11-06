@@ -16,6 +16,7 @@ import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { accountSummaryOnce, planViewOnce } from '$lib/server/plan-view';
 import { pendingImportCount } from '$lib/server/import-queries';
 import { getMpImportAccount, mpOauthEnabled } from '$lib/server/mp-oauth';
+import { getGaliciaConnection } from '$lib/server/galicia';
 
 type TopCategory = ReturnType<typeof topCategories>[number] & {
 	color: SwatchKey | null;
@@ -29,9 +30,11 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const value = currentMonth(now);
 	const range = monthRange(value);
 
-	// Mercado Pago pill: only for a linked user (also while a reconnect is pending); counts both currencies.
+	// Imports pill: only for a user with a source set up (Mercado Pago linked, also while a reconnect is
+	// pending, or a Banco Galicia account chosen); counts both currencies.
 	const mpPending = async () =>
-		mpOauthEnabled() && (await getMpImportAccount(userId))
+		(mpOauthEnabled() && (await getMpImportAccount(userId))) ||
+		(await getGaliciaConnection(userId))?.arsAccountId
 			? await pendingImportCount(userId)
 			: null;
 	const [summary, anyMovement, anyPlan, mpPendingCount] = await Promise.all([

@@ -54,7 +54,8 @@
 	const stripDone = () => {
 		try {
 			const url = new URL(page.url);
-			for (const k of ['done', 'approved', 'skipped']) url.searchParams.delete(k);
+			for (const k of ['done', 'approved', 'skipped', 'imported', 'auto'])
+				url.searchParams.delete(k);
 			replaceState(resolve((url.pathname + url.search + url.hash) as '/'), {});
 		} catch {
 			setTimeout(stripDone, 50);
@@ -66,6 +67,9 @@
 			stripDone();
 		} else if (data.bulk && bulkMessage) {
 			(data.bulk.skipped === 0 && data.bulk.approved > 0 ? toast.success : toast.info)(bulkMessage);
+			stripDone();
+		} else if (data.upload && uploadMessage) {
+			(data.upload.created > 0 ? toast.success : toast.info)(uploadMessage);
 			stripDone();
 		}
 	});
@@ -91,6 +95,13 @@
 	const autoLabel = (n: number) =>
 		n === 1 ? '1 aprobado automáticamente' : `${n} aprobados automáticamente`;
 
+	// After a statement upload: "3 movimientos nuevos, 2 aprobados automáticamente."
+	const uploadMessage = $derived(
+		data.upload
+			? `${newLabel(data.upload.created)}${data.upload.auto ? `, ${autoLabel(data.upload.auto)}` : ''}.`
+			: null
+	);
+
 	const status = $derived(
 		data.needsReconnect
 			? 'Hay que volver a vincular Mercado Pago.'
@@ -114,6 +125,9 @@
 <div class="page">
 	{#if data.done && !hydrated}<p role="status">{DONE_MESSAGES[data.done]}</p>{/if}
 	{#if bulkMessage && !data.done && !hydrated}<p role="status">{bulkMessage}</p>{/if}
+	{#if uploadMessage && !data.done && !data.bulk && !hydrated}<p role="status">
+			{uploadMessage}
+		</p>{/if}
 
 	<!-- The sync line is Mercado Pago's: without a link only the pending items show. -->
 	{#if data.mpLinked && data.running}

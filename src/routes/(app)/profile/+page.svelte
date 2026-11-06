@@ -106,14 +106,12 @@
 			value={categoriesCount}
 			chevron
 		/>
-		{#if data.vinculaciones}
-			<ListRow
-				href={resolve('/profile/vinculaciones')}
-				lead={{ icon: 'phone', color: null }}
-				title="Vinculaciones"
-				chevron
-			/>
-		{/if}
+		<ListRow
+			href={resolve('/profile/vinculaciones')}
+			lead={{ icon: 'phone', color: null }}
+			title="Vinculaciones"
+			chevron
+		/>
 	</ListCard>
 
 	<ListCard aria-label="Tu identidad">

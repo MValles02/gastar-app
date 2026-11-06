@@ -10,11 +10,11 @@ import {
 import { pgErrorCode } from './db/errors';
 import { movementPickers, resolvePostedMovement } from './movement-pickers';
 
-/** Active ARS accounts other than the import account: the only valid counter accounts. */
+/** Active accounts in the item's currency other than its own: the only valid counter accounts (no exchange rate). */
 export const counterAccountsOf = <A extends { currency: string; id: string }>(
 	accounts: A[],
-	importAccountId: string
-) => accounts.filter((a) => a.currency === 'ARS' && a.id !== importAccountId);
+	item: { accountId: string; currency: string }
+) => accounts.filter((a) => a.currency === item.currency && a.id !== item.accountId);
 
 /** Rules and pickers needed to compute an item's suggestion. */
 export async function suggestionContext(userId: string) {
@@ -42,7 +42,7 @@ export async function approveSuggestion(
 		item,
 		ctx.rules,
 		ctx.categories,
-		counterAccountsOf(ctx.accounts, item.accountId)
+		counterAccountsOf(ctx.accounts, item)
 	);
 	// Only rows that show "Aprobar" have a suggestion; the rest go through the review form.
 	if (prefill.suggestion === null) return 'none';

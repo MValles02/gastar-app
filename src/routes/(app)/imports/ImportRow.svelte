@@ -9,7 +9,7 @@
 	import { undoToast } from '$lib/undo-toast';
 
 	/**
-	 * One pending Mercado Pago item. The whole row opens its review; a suggested row also has a quick
+	 * One pending imported item. The whole row opens its review; a suggested row also has a quick
 	 * "Aprobar" (with Deshacer) and an unknown one a "Revisar" shortcut to the same review.
 	 */
 	let {
@@ -19,8 +19,11 @@
 			id: string;
 			title: string;
 			amount: number;
+			currency: 'ARS' | 'USD';
 			isCredit: boolean;
 			suggestion: string | null;
+			/** Where it came from, only when the inbox mixes sources. */
+			source: string | null;
 		};
 	} = $props();
 
@@ -43,14 +46,16 @@
 	<div class="text">
 		<a {href} class="title" onclick={open}>{item.title}</a>
 		<span class="meta" class:unknown={item.suggestion === null}>
-			{item.suggestion === null ? 'No sabemos qué es' : `${item.suggestion} · sugerido`}
+			{item.source ? `${item.source} · ` : ''}{item.suggestion === null
+				? 'No sabemos qué es'
+				: `${item.suggestion} · sugerido`}
 		</span>
 	</div>
 	<div class="side">
 		<span class="amount">
 			<Money
 				cents={item.amount}
-				currency="ARS"
+				currency={item.currency}
 				tone="flow"
 				direction={item.isCredit ? 'income' : 'outcome'}
 			/>

@@ -3,7 +3,6 @@ import { auth } from '$lib/server/auth';
 import { userNameError } from '$lib/server/auth-forms';
 import { PREFERENCE_COOKIE_OPTIONS, THEME_COOKIE } from '$lib/server/cookies';
 import { profileCounts } from '$lib/server/profile-queries';
-import { importSourcesEnabled } from '$lib/server/import-queries';
 import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -20,8 +19,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	return {
 		user: { name: user.name, email: user.email },
 		theme: parseTheme(cookies.get(THEME_COOKIE)),
-		counts: await profileCounts(user.id),
-		vinculaciones: importSourcesEnabled()
+		counts: await profileCounts(user.id)
 	};
 };
 

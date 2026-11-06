@@ -3,6 +3,7 @@ import {
 	allMovementsOf,
 	canAccessAccount,
 	canAccessCategory,
+	canAccessGaliciaConnection,
 	canAccessImport,
 	canAccessImportRule,
 	canAccessMpConnection,
@@ -13,6 +14,7 @@ import { db } from './db';
 import {
 	categories,
 	financialAccounts,
+	galiciaConnections,
 	movements,
 	mpConnections,
 	mpImportItems,
@@ -27,12 +29,13 @@ import {
 
 /**
  * Hard-deletes a user and everything they own in one transaction, in FK-safe order:
- * Mercado Pago import rows and movements (restrict FKs to accounts/categories) first, then the rest, then the user
+ * import rows and connections (Mercado Pago, Banco Galicia) and movements (restrict FKs to accounts/categories) first, then the rest, then the user
  * (sessions and credential accounts cascade). Irreversible.
  */
 export async function deleteUserAndData(userId: string): Promise<void> {
 	await db.transaction(async (tx) => {
 		await tx.delete(mpConnections).where(canAccessMpConnection(userId));
+		await tx.delete(galiciaConnections).where(canAccessGaliciaConnection(userId));
 		await tx.delete(mpImportItems).where(canAccessImport(userId));
 		await tx.delete(mpImportRules).where(canAccessImportRule(userId));
 		const ownAccounts = tx
