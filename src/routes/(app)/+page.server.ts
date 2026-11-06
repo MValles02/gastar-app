@@ -1,7 +1,6 @@
 import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
 import type { PageServerLoad } from './$types';
 import {
-	accountSummary,
 	categorySums,
 	hasAnyMovement,
 	hasAnyPlan,
@@ -12,9 +11,8 @@ import {
 import { monthNet, toRecentItem, topCategories, totalBalance } from '$lib/server/dashboard';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import { currentMonth, dayHeading, localDay, monthLabel, monthRange } from '$lib/server/month';
-import { categorySwatches } from '$lib/server/alerts';
-import { toCategoryIconKey } from '$lib/appearance';
-import { planView } from '$lib/server/plan-view';
+import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
+import { accountSummaryOnce, planViewOnce } from '$lib/server/plan-view';
 import { getImportAccount, pendingImportCount } from '$lib/server/mp-import-queries';
 import { mpOauthEnabled } from '$lib/server/mp-oauth';
 
@@ -30,19 +28,20 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const value = currentMonth(now);
 	const range = monthRange(value);
 
-	const summary = await accountSummary(userId);
-	const hasAnyAccount = summary.some((s) => s.count > 0);
-	const row = summary.find((s) => s.currency === currency);
-	const hasCurrencyAccount = (row?.count ?? 0) > 0;
-
 	// Mercado Pago pill: only for a linked user (also while a reconnect is pending); counts both currencies.
 	const mpPending = async () =>
 		mpOauthEnabled() && (await getImportAccount(userId)) ? await pendingImportCount(userId) : null;
-	const [hasMovement, hasPlan, mpPendingCount] = await Promise.all([
-		hasAnyAccount ? hasAnyMovement(userId) : false,
-		hasAnyAccount ? hasAnyPlan(userId) : false,
+	const [summary, anyMovement, anyPlan, mpPendingCount] = await Promise.all([
+		accountSummaryOnce(userId),
+		hasAnyMovement(userId),
+		hasAnyPlan(userId),
 		mpPending()
 	]);
+	const hasAnyAccount = summary.some((s) => s.count > 0);
+	const row = summary.find((s) => s.currency === currency);
+	const hasCurrencyAccount = (row?.count ?? 0) > 0;
+	const hasMovement = hasAnyAccount && anyMovement;
+	const hasPlan = hasAnyAccount && anyPlan;
 	const base = {
 		currency,
 		hasAnyAccount,
@@ -71,14 +70,11 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		originTypeSums(userId, currency, range),
 		categorySums(userId, currency, range),
 		recentMovements(userId, currency),
-		planView(userId, currency, now)
+		planViewOnce(userId, currency, now)
 	]);
 
 	const top = topCategories(cats);
-	const swatches = await categorySwatches(
-		userId,
-		top.map((c) => c.id)
-	);
+	const swatches = new Map(cats.map((c) => [c.id, toSwatchKey(c.color)]));
 	const icons = new Map(
 		cats.map((c) => [c.id, toCategoryIconKey(c.icon) ?? ('categories' as const)])
 	);

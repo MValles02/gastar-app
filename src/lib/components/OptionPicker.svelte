@@ -78,6 +78,23 @@
 		target?.focus();
 	}
 
+	// Arrow/Home/End move focus between the rows (wraps at the ends).
+	function navigate(e: KeyboardEvent) {
+		const keys = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
+		if (!keys.includes(e.key) || !list) return;
+		const rows = [...list.querySelectorAll<HTMLElement>('button.opt')];
+		if (rows.length === 0) return;
+		e.preventDefault();
+		const i = rows.indexOf(document.activeElement as HTMLElement);
+		const next =
+			e.key === 'Home'
+				? 0
+				: e.key === 'End'
+					? rows.length - 1
+					: (i + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length;
+		rows[next].focus();
+	}
+
 	async function choose(id: string) {
 		value = id;
 		open = false;
@@ -150,6 +167,7 @@
 							data-value={item.id}
 							aria-pressed={on}
 							onclick={() => choose(item.id)}
+							onkeydown={navigate}
 						>
 							<Item.Media
 								><IconBadge icon={item.icon} color={item.color} size="1.875rem" /></Item.Media

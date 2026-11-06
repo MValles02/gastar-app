@@ -1,4 +1,5 @@
 <script lang="ts">
+	import EmptyState from '$lib/components/EmptyState.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
@@ -22,7 +23,10 @@
 
 <div class="page">
 	{#if data.groups.length === 0}
-		<p class="empty">Estás al día.</p>
+		<EmptyState
+			icon="bell"
+			description="Estás al día. Acá vas a ver los pagos fijos por vencer y los límites o el plan cuando vayan rápido o se pasen."
+		/>
 	{:else}
 		{#each data.groups as g (g.currency)}
 			<section aria-labelledby="alerts-{g.currency}">
@@ -86,12 +90,6 @@
 
 	.page :global([data-slot='item']) {
 		min-height: 3.75rem;
-	}
-
-	.empty {
-		padding: var(--space-8) var(--space-5);
-		text-align: center;
-		color: var(--text-muted);
 	}
 
 	.overdue {

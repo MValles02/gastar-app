@@ -53,7 +53,7 @@
 		</div>
 
 		{#if data.bars.every((b) => b.income === 0 && b.outcome === 0)}
-			<p class="empty-inline">Sin movimientos en {CURRENCY_NAME[data.currency]}.</p>
+			<EmptyState icon="chart" description="Sin movimientos en {CURRENCY_NAME[data.currency]}." />
 		{:else}
 			<section aria-label="Totales del mes">
 				<Card.Root class="gap-0 overflow-hidden py-0">
@@ -218,13 +218,6 @@
 
 	.month-nav {
 		margin: calc(-1 * var(--space-2));
-	}
-
-	.empty-inline {
-		padding: var(--space-8) var(--space-5);
-		text-align: center;
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
 	}
 
 	/* Resultado spans the card; Ingresos and Gastos sit side by side beneath it. */

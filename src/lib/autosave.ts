@@ -44,7 +44,7 @@ export async function autosave<T>({
 	try {
 		result = await submitAction(path, fields);
 	} catch {
-		return UNSAVED;
+		return 'No se pudo guardar. Revisá tu conexión.';
 	}
 	if (result.type === 'failure') {
 		const errors = (result.data as { errors?: Record<string, string> } | undefined)?.errors;
