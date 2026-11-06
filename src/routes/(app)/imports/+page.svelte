@@ -6,7 +6,7 @@
 	import { toast } from 'svelte-sonner';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
-	import { afterNavigate, invalidateAll, replaceState } from '$app/navigation';
+	import { afterNavigate, refreshAll, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
@@ -72,9 +72,10 @@
 
 	// Poll while the lease is held (also a scheduled run found on load): the progress and the list
 	// fill in on their own, payments first and the report items when the report lands (1-3 min).
+	// refreshAll keeps the review drawer's shallow-route state (invalidateAll would reset it and close it).
 	$effect(() => {
 		if (!data.running) return;
-		const id = setInterval(() => invalidateAll(), 2000);
+		const id = setInterval(() => refreshAll(), 2000);
 		return () => clearInterval(id);
 	});
 
