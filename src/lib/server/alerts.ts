@@ -1,4 +1,3 @@
-import { and, inArray } from 'drizzle-orm';
 import type { StatusTone } from '../status';
 import {
 	toCategoryIconKey,
@@ -7,10 +6,7 @@ import {
 	type SwatchKey
 } from '../appearance';
 import { CURRENCIES, formatMoney, type Currency } from '../money';
-import { canAccessCategory } from './access';
 import { hasAccountsIn } from './dashboard';
-import { db } from './db';
-import { categories } from './db/schema';
 import { currentMonth, localDay, monthRange } from './month';
 import { dueLabel, recurringStatus, type RecurringStatus } from './plan';
 import { paidRecurring } from './plan-queries';
@@ -40,16 +36,6 @@ export type AlertItem = {
 	/** Payments only: the account it is paid from; null otherwise. */
 	accountName: string | null;
 };
-
-/** Swatch key per category id, for the categories the user can access. */
-export async function categorySwatches(userId: string, ids: string[]) {
-	if (ids.length === 0) return new Map<string, SwatchKey | null>();
-	const rows = await db
-		.select({ id: categories.id, color: categories.color })
-		.from(categories)
-		.where(and(canAccessCategory(userId), inArray(categories.id, ids)));
-	return new Map(rows.map((r) => [r.id, toSwatchKey(r.color)]));
-}
 
 type PlanView = Awaited<ReturnType<typeof planView>>;
 type ActiveRule = PlanView['active'][number];
