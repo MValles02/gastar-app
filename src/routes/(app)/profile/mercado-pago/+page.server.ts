@@ -3,11 +3,11 @@ import { formFail } from '$lib/form';
 import { dev } from '$app/environment';
 import { accountOption } from '$lib/server/account-options';
 import { dayStart, localDay } from '$lib/server/month';
-import { getImportAccount, getSyncState } from '$lib/server/mp-import-queries';
 import {
 	deleteConnection,
 	getConnectionInfo,
 	getImportFromDay,
+	getMpImportAccount,
 	listReceivingAccounts,
 	mpOauthEnabled,
 	OAUTH_COOKIE,
@@ -16,7 +16,7 @@ import {
 	setReceivingAccount,
 	startAuthorization
 } from '$lib/server/mp-oauth';
-import { startMpBackfill } from '$lib/server/mp-sync';
+import { getSyncState, startMpBackfill } from '$lib/server/mp-sync';
 import type { Actions, PageServerLoad } from './$types';
 
 const FLASHES = {
@@ -37,7 +37,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = locals.user!.id;
 	const code = url.searchParams.get('error');
 	const connection = await getConnectionInfo(userId);
-	const account = connection?.accountId ? await getImportAccount(userId) : null;
+	const account = connection?.accountId ? await getMpImportAccount(userId) : null;
 	return {
 		connection,
 		accounts: (await listReceivingAccounts(userId)).map(accountOption),
@@ -79,7 +79,7 @@ export const actions: Actions = {
 	importFrom: async ({ locals, request }) => {
 		if (!mpOauthEnabled()) error(404);
 		const userId = locals.user!.id;
-		const account = await getImportAccount(userId);
+		const account = await getMpImportAccount(userId);
 		if (!account) return formFail(400, { errors: { from: 'Elegí primero la cuenta.' } });
 		const ymd = String((await request.formData()).get('from') ?? '');
 		const from = dayStart(ymd);

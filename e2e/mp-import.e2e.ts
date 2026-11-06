@@ -235,7 +235,7 @@ test('sync shows live progress, fills the inbox without a reload and leaves bala
 
 	expect(await accountRow()).toBe(balance);
 
-	await page.goto('/profile');
+	await page.goto('/profile/vinculaciones');
 	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('Vinculado');
 });
 
@@ -258,7 +258,7 @@ test('every MP call carries a token the fake issued, and no page shows it', asyn
 	expect(all.length).toBeGreaterThan(0);
 	// The fake answers 401 to any bearer it did not issue, so the syncs above prove the stored token works.
 	for (const c of all) expect(c.authorization).toMatch(BEARER_RE);
-	for (const path of [MP_PATH, '/imports', '/profile']) {
+	for (const path of [MP_PATH, '/imports', '/profile', '/profile/vinculaciones']) {
 		await page.goto(path);
 		expect(await page.content()).not.toContain('APP_USR');
 	}
@@ -707,7 +707,7 @@ test('a revoked connection asks to reconnect in Perfil and in the inbox', async 
 	// The items already imported stay listed.
 	await expect(rows().first()).toBeVisible();
 
-	await page.goto('/profile');
+	await page.goto('/profile/vinculaciones');
 	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('Reconectar');
 	await page.goto(MP_PATH);
 	await expect(page.getByRole('button', { name: 'Reconectar' })).toBeVisible();
@@ -792,7 +792,7 @@ test('an account without a release report configuration gets one created and syn
 	expect((await configRequests()).slice(-2).map((c) => c.method)).toEqual(['GET', 'POST']);
 });
 
-test('disconnecting removes the link and the inbox asks to link again', async () => {
+test('disconnecting removes the link and the inbox keeps only the pending items', async () => {
 	await page.goto(MP_PATH);
 	await page.waitForLoadState('networkidle'); // hydration guard: the disconnect confirm dialog needs JS
 	await page.getByRole('button', { name: 'Desvincular' }).click();
@@ -800,9 +800,12 @@ test('disconnecting removes the link and the inbox asks to link again', async ()
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Desvincular' }).click();
 	await expect(page.getByRole('button', { name: 'Vincular Mercado Pago' })).toBeVisible();
 
+	// Disconnecting keeps the imported items: the inbox still lists them, without a sync line.
 	await page.goto('/imports');
-	await expect(page).toHaveURL(new RegExp(`${MP_PATH}$`));
-	await page.goto('/profile');
+	await expect(page).toHaveURL(/\/imports$/);
+	await expect(rows().first()).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Sincronizar' })).toHaveCount(0);
+	await page.goto('/profile/vinculaciones');
 	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('Vincular');
 });
 
@@ -813,8 +816,8 @@ test('users without a connection are sent to link and cannot open others items',
 		const { ctx, p } = await asUser(browser, email);
 		expect((await p.goto(`/imports/${pendingId}`))!.status()).toBe(404);
 		await p.goto('/imports');
-		await expect(p).toHaveURL(new RegExp(`${MP_PATH}$`));
-		await expect(p.getByRole('button', { name: 'Vincular Mercado Pago' })).toBeVisible();
+		await expect(p).toHaveURL(/\/profile\/vinculaciones$/);
+		await expect(p.getByRole('link', { name: /Mercado Pago/ })).toContainText('Vincular');
 		await ctx.close();
 	}
 });

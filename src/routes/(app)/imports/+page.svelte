@@ -98,11 +98,11 @@
 </script>
 
 <svelte:head>
-	<title>Mercado Pago · Gastar</title>
+	<title>Importados · Gastar</title>
 </svelte:head>
 
 <PageHeader
-	title="Mercado Pago"
+	title="Importados"
 	back={{ href: resolve('/'), label: 'Volver al inicio', text: 'Inicio' }}
 />
 
@@ -110,7 +110,8 @@
 	{#if data.done && !hydrated}<p role="status">{DONE_MESSAGES[data.done]}</p>{/if}
 	{#if bulkMessage && !data.done && !hydrated}<p role="status">{bulkMessage}</p>{/if}
 
-	{#if data.running}
+	<!-- The sync line is Mercado Pago's: without a link only the pending items show. -->
+	{#if data.mpLinked && data.running}
 		<section class="sync running" role="status" aria-label="Sincronización">
 			<LoaderCircle class="spin" aria-hidden="true" />
 			<p>
@@ -118,7 +119,7 @@
 				<span class="detail">Puede tardar unos minutos.</span>
 			</p>
 		</section>
-	{:else}
+	{:else if data.mpLinked}
 		<section class="sync" aria-label="Sincronización">
 			<p class="status" class:error={data.needsReconnect || !!data.lastError} role="status">
 				{status}

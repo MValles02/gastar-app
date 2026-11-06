@@ -19,16 +19,13 @@ import type { MovementType } from './dashboard';
 import type { MovementRow } from './movements';
 import { createMovement, deleteMovement } from './movements-queries';
 import { localDay, TZ } from './month';
-import { getConnectionInfo } from './mp-oauth';
+import { mpOauthEnabled } from './mp-oauth';
 
 const pending = (userId: string) =>
 	and(canAccessImport(userId), eq(mpImportItems.status, 'pending'));
 
-/** The account the user's Mercado Pago connection feeds (also while a reconnect is pending), else null. */
-export async function getImportAccount(userId: string) {
-	const conn = await getConnectionInfo(userId);
-	return conn?.accountId ? { id: conn.accountId, name: conn.accountName ?? '' } : null;
-}
+/** True when at least one import source is available (today only Mercado Pago). */
+export const importSourcesEnabled = () => mpOauthEnabled();
 
 const itemColumns = {
 	id: mpImportItems.id,
@@ -56,23 +53,6 @@ export function listPendingImports(userId: string) {
 export async function pendingImportCount(userId: string): Promise<number> {
 	const [row] = await db.select({ n: count() }).from(mpImportItems).where(pending(userId));
 	return row.n;
-}
-
-export async function getSyncState(userId: string, accountId: string) {
-	const [row] = await db
-		.select({
-			syncedUntil: mpSyncState.syncedUntil,
-			runningSince: mpSyncState.runningSince,
-			lastRunAt: mpSyncState.lastRunAt,
-			lastError: mpSyncState.lastError,
-			phase: mpSyncState.phase,
-			newItems: mpSyncState.newItems
-		})
-		.from(mpSyncState)
-		.innerJoin(financialAccounts, eq(mpSyncState.accountId, financialAccounts.id))
-		.where(and(eq(mpSyncState.accountId, accountId), canAccessAccount(userId)))
-		.limit(1);
-	return row ?? null;
 }
 
 /** Dev reset: the user's items and rules, plus the sync state of every account they own. */

@@ -10,7 +10,7 @@ import {
 	listImportRules,
 	rejectImport,
 	rememberKey
-} from '$lib/server/mp-import-queries';
+} from '$lib/server/import-queries';
 import { failIfUnavailable, movementPickers } from '../../movements/form.server';
 import { approveWithValues } from '../approve.server';
 import type { Actions, PageServerLoad } from './$types';

@@ -863,3 +863,20 @@ export async function startMpBackfill(userId: string, from: Date): Promise<boole
 	void execute(lease, { from, report: true });
 	return true;
 }
+
+export async function getSyncState(userId: string, accountId: string) {
+	const [row] = await db
+		.select({
+			syncedUntil: mpSyncState.syncedUntil,
+			runningSince: mpSyncState.runningSince,
+			lastRunAt: mpSyncState.lastRunAt,
+			lastError: mpSyncState.lastError,
+			phase: mpSyncState.phase,
+			newItems: mpSyncState.newItems
+		})
+		.from(mpSyncState)
+		.innerJoin(financialAccounts, eq(mpSyncState.accountId, financialAccounts.id))
+		.where(and(eq(mpSyncState.accountId, accountId), canAccessAccount(userId)))
+		.limit(1);
+	return row ?? null;
+}
