@@ -88,21 +88,22 @@
 </script>
 
 {#snippet option(day: string | null, title: string, meta?: string)}
-	{@const on = day ? value === day : other}
+	{@const on = day ? !other && value === day : other}
 	<Item.Root>
 		{#snippet child({ props })}
 			<button
 				{...props}
 				type="button"
 				class="opt {props.class}"
+				class:on
 				aria-pressed={on}
 				onclick={() => (day ? choose(day) : (other = true))}
 			>
 				<Item.Content><Item.Title>{title}</Item.Title></Item.Content>
-				{#if meta}<Item.Actions class="tabular-nums">{meta}</Item.Actions>{/if}
-				{#if on && !meta}<Item.Actions
+				{#if on}<Item.Actions class="check"
 						><Check size={20} strokeWidth={1.75} aria-hidden="true" /></Item.Actions
 					>{/if}
+				{#if meta}<Item.Actions class="meta tabular-nums">{meta}</Item.Actions>{/if}
 			</button>
 		{/snippet}
 	</Item.Root>
@@ -132,13 +133,19 @@
 		<div class="options">
 			{@render option(todayYmd, 'Hoy', dm(todayYmd))}
 			{@render option(yesterdayYmd, 'Ayer', dm(yesterdayYmd))}
-			{@render option(null, 'Otra fecha')}
+			{@render option(
+				null,
+				'Otra fecha',
+				other && selected && value !== todayYmd && value !== yesterdayYmd ? dm(value) : undefined
+			)}
 		</div>
 		{#if other}
 			<Calendar
 				type="single"
 				value={selected}
 				{minValue}
+				captionLayout="label"
+				class="mt-3"
 				initialFocus
 				onValueChange={(v) => v && choose(v.toString())}
 			/>
@@ -163,9 +170,40 @@
 		padding: var(--space-4);
 	}
 
+	/* Hoy, Ayer and Otra fecha share one bordered card, like the account and category pickers. */
 	.options {
 		display: flex;
 		flex-direction: column;
+		overflow: hidden;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-card);
+	}
+
+	.opt {
+		min-height: 58px;
+		gap: var(--space-3);
+		padding: var(--space-2) var(--space-4);
+		border: 0;
+		border-radius: 0;
+	}
+
+	.opt :global([data-slot='item-title']) {
+		font-size: var(--font-size-base);
+		font-weight: 400;
+	}
+
+	.opt.on :global([data-slot='item-title']) {
+		font-weight: 600;
+	}
+
+	.opt :global(.check) {
+		color: var(--primary);
+	}
+
+	.opt :global(.meta) {
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
 	}
 
 	.label,

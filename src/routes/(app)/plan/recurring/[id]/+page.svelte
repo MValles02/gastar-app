@@ -15,5 +15,8 @@
 	<title>{data.description} · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Plan" back={{ href: resolve(back as '/'), label: 'Volver al plan' }} />
+<PageHeader
+	title="Plan"
+	back={{ href: resolve(back as '/'), label: 'Volver al plan', text: 'Plan' }}
+/>
 <RuleDetail {data} />

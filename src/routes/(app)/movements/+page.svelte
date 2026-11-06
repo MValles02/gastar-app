@@ -5,7 +5,6 @@
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import Lock from '@lucide/svelte/icons/lock';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import DateRangePicker from '$lib/components/DateRangePicker.svelte';
 	import * as Empty from '$lib/components/ui/empty/index.js';
@@ -43,13 +42,6 @@
 	let category = $derived<string>(data.categoryIds[0] ?? '');
 	let from = $derived<string>(data.filters.from);
 	let to = $derived<string>(data.filters.to);
-	let currency = $derived<string>(data.lockedCurrency ?? data.filters.currency);
-
-	const currencyOptions = [
-		{ value: '', label: 'Ambas' },
-		{ value: 'ARS', label: 'ARS' },
-		{ value: 'USD', label: 'USD' }
-	];
 
 	const typeOptions = [
 		{ value: '', label: 'Todos' },
@@ -63,6 +55,7 @@
 		// SvelteURLSearchParams: required by the svelte/prefer-svelte-reactivity lint rule.
 		const sp = new SvelteURLSearchParams();
 		for (const [k, v] of Object.entries(data.filters)) if (v) sp.set(k, v);
+		if (data.allDates) sp.set('all', '1');
 		for (const id of data.accountIds) sp.append('account', id);
 		for (const id of data.categoryIds) sp.append('category', id);
 		return sp;
@@ -85,20 +78,6 @@
 <PageHeader title="Movimientos" />
 
 {#snippet fields(submit: () => void)}
-	<span id="currency-label" class="visually-hidden">Moneda</span>
-	<SegmentedControl
-		name="currency"
-		options={currencyOptions}
-		bind:value={currency}
-		labelledby="currency-label"
-		disabled={data.lockedCurrency !== null}
-		onchange={submit}
-	/>
-	{#if data.lockedCurrency !== null}
-		<p class="lock">
-			<Lock size={14} strokeWidth={1.75} aria-hidden="true" />Moneda de la cuenta
-		</p>
-	{/if}
 	<span id="type-label" class="visually-hidden">Tipo</span>
 	<SegmentedControl
 		name="type"
@@ -139,7 +118,6 @@
 		q={data.filters.q}
 		label="Buscar"
 		placeholder="Buscar"
-		path="/movements"
 		active={filterCount}
 		filters={fields}
 		onfilters={() => (filtersOpen = true)}
@@ -234,14 +212,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-	}
-
-	.lock {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
 	}
 
 	/* Rows of one card, like the movement form. */

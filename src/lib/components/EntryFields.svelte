@@ -1,16 +1,16 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
-	import TextRow from '$lib/components/TextRow.svelte';
 
 	/**
-	 * The field card shared by the movement and recurring forms, in a fixed order: description, account,
-	 * category, when, extra. The snippets emit their own `<li>`.
+	 * The fields shared by the movement and recurring forms: a labelled Descripción input, then one card
+	 * with account, category and when, then `extra` in a card of its own. The snippets emit their own `<li>`.
 	 */
 	let {
 		description = $bindable(),
 		descriptionId,
 		descriptionError,
+		placeholder,
 		account,
 		category,
 		when,
@@ -20,6 +20,7 @@
 		description: string;
 		descriptionId: string;
 		descriptionError?: string;
+		placeholder?: string;
 		account: Snippet;
 		category?: Snippet;
 		when: Snippet;
@@ -29,27 +30,72 @@
 	} = $props();
 </script>
 
+<div class="text-field">
+	<label for={descriptionId}>Descripción</label>
+	<input
+		id={descriptionId}
+		name="description"
+		type="text"
+		autocomplete="off"
+		maxlength={DESCRIPTION_MAX_LENGTH}
+		required
+		{placeholder}
+		bind:value={description}
+		aria-invalid={descriptionError ? 'true' : undefined}
+		aria-describedby={descriptionError ? `${descriptionId}-error` : undefined}
+	/>
+	{#if descriptionError}
+		<p class="error" id="{descriptionId}-error" role="alert">{descriptionError}</p>
+	{/if}
+</div>
+
 <ul class="card" class:outline-errors={outlineErrors}>
-	<li class:bad={descriptionError}>
-		<TextRow
-			id={descriptionId}
-			name="description"
-			label="Descripción"
-			bind:value={description}
-			placeholder="Agregar"
-			maxlength={DESCRIPTION_MAX_LENGTH}
-			required
-			error={descriptionError}
-			errorId="{descriptionId}-error"
-		/>
-	</li>
 	{@render account()}
 	{#if category}{@render category()}{/if}
 	{@render when()}
-	{#if extra}{@render extra()}{/if}
 </ul>
 
+{#if extra}
+	<ul class="card">{@render extra()}</ul>
+{/if}
+
 <style>
+	.text-field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.text-field label {
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
+		font-weight: 500;
+	}
+
+	.text-field input {
+		width: 100%;
+		height: 50px;
+		padding: 0 var(--space-4);
+		border: 1px solid var(--input);
+		border-radius: 12px;
+		background: transparent;
+		color: var(--text);
+		font-size: 16px;
+	}
+
+	.text-field input::placeholder {
+		color: var(--text-muted);
+	}
+
+	.text-field input[aria-invalid='true'] {
+		border-color: var(--negative);
+	}
+
+	.error {
+		color: var(--negative);
+		font-size: var(--font-size-sm);
+	}
+
 	.card {
 		list-style: none;
 		margin: 0;
@@ -61,13 +107,11 @@
 		box-shadow: var(--shadow-1);
 	}
 
-	.card > :global(li.bad),
-	.card > li.bad {
+	.card > :global(li.bad) {
 		box-shadow: inset 3px 0 0 var(--negative);
 	}
 
-	.card.outline-errors > :global(li.bad),
-	.card.outline-errors > li.bad {
+	.card.outline-errors > :global(li.bad) {
 		box-shadow: inset 0 0 0 1.5px var(--negative);
 	}
 </style>

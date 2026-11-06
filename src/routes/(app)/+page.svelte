@@ -122,6 +122,7 @@
 						<ListCard>
 							{#each data.topCategories as cat (cat.id)}
 								{#snippet catValue()}
+									<span class="pct">{percent.format(cat.share)}</span>
 									<Money
 										cents={cat.net}
 										currency={data.currency}
@@ -129,7 +130,6 @@
 										direction={cat.net < 0 ? 'income' : 'outcome'}
 									/>
 								{/snippet}
-								{#snippet catMeta()}{percent.format(cat.share)}{/snippet}
 								{#snippet catFooter()}
 									<Meter percent={cat.share * 100} color={swatchVar(cat.color)} />
 								{/snippet}
@@ -141,7 +141,6 @@
 									}}
 									title={cat.name}
 									value={catValue}
-									meta={catMeta}
 									footer={catFooter}
 								/>
 							{/each}
@@ -154,7 +153,7 @@
 				<div class="section-head">
 					<h2 id="recent-heading">Últimos movimientos</h2>
 					{#if data.recent.length > 0}
-						<ActionLink href="/movements?currency={data.currency}" label="Ver todos" />
+						<ActionLink href="/movements?currency={data.currency}&all=1" label="Ver todos" />
 					{/if}
 				</div>
 				{#if data.recent.length === 0}
@@ -179,7 +178,19 @@
 	.dashboard {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-5);
+		gap: 0.875rem;
+	}
+
+	/* Canvas row height: 60px minimum for every list row on Inicio. */
+	.dashboard :global([data-slot='item']) {
+		min-height: 3.75rem;
+	}
+
+	.pct {
+		margin-right: var(--space-2);
+		font-size: var(--font-size-sm);
+		font-weight: 400;
+		color: var(--text-muted);
 	}
 
 	.pill-row {
@@ -209,7 +220,7 @@
 		align-items: baseline;
 		justify-content: space-between;
 		gap: var(--space-2);
-		margin-bottom: var(--space-1);
+		margin-bottom: 0.875rem;
 		padding-inline: var(--space-1);
 	}
 

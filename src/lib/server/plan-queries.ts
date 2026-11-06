@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, lt, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import {
@@ -214,7 +214,16 @@ export function getPlan(userId: string, cur: Currency) {
 		.limit(1);
 }
 
+/** `planLimits` of the user's plan for `cur` (one per currency), so it can run alongside `getPlan`. */
+export function planLimitsByCurrency(userId: string, cur: Currency) {
+	return limitRows(userId, eq(spendingPlans.currency, cur));
+}
+
 export function planLimits(userId: string, planId: string) {
+	return limitRows(userId, eq(planCategoryLimits.planId, planId));
+}
+
+function limitRows(userId: string, where: SQL | undefined) {
 	return db
 		.select({
 			categoryId: planCategoryLimits.categoryId,
@@ -232,7 +241,7 @@ export function planLimits(userId: string, planId: string) {
 			categories,
 			and(eq(planCategoryLimits.categoryId, categories.id), canAccessCategory(userId))
 		)
-		.where(eq(planCategoryLimits.planId, planId))
+		.where(where)
 		.orderBy(desc(planCategoryLimits.amount), categories.name);
 }
 

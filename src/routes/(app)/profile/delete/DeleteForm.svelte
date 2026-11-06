@@ -6,7 +6,7 @@
 	import { PASSWORD_MAX_LENGTH } from '$lib/limits';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import FormActions from '$lib/components/FormActions.svelte';
-	import TextRow from '$lib/components/TextRow.svelte';
+	import PasswordInput from '$lib/components/PasswordInput.svelte';
 
 	type Summary = { accounts: number; movements: number; categories: number; hasPlan: boolean };
 
@@ -85,21 +85,21 @@
 		{/if}
 	</div>
 
-	<ul class="card">
-		<li class:bad={message}>
-			<TextRow
-				id="delete-password"
-				name="password"
-				label="Contraseña"
-				bind:value={password}
-				password
-				autocomplete="current-password"
-				maxlength={PASSWORD_MAX_LENGTH}
-				error={message}
-				errorId="delete-error"
-			/>
-		</li>
-	</ul>
+	<div class="field">
+		<label for="delete-password">Contraseña</label>
+		<PasswordInput
+			outlined
+			id="delete-password"
+			name="password"
+			bind:value={password}
+			autocomplete="current-password"
+			maxlength={PASSWORD_MAX_LENGTH}
+			required={false}
+			invalid={!!message}
+			describedby={message ? 'delete-error' : undefined}
+		/>
+		{#if message}<p class="error" id="delete-error" role="alert">{message}</p>{/if}
+	</div>
 
 	<p class="final">No se puede deshacer.</p>
 
@@ -108,13 +108,13 @@
 			<Button
 				type="button"
 				variant="outline"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0"
+				class="min-w-0 flex-1 basis-0"
 				onclick={() => onclose?.()}>Cancelar</Button
 			>
 			<Button
 				type="submit"
-				variant="destructive"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal"
+				variant="danger"
+				class="min-w-0 flex-1 basis-0 whitespace-normal"
 				disabled={!password || submitting}>Darme de baja</Button
 			>
 		</div>
@@ -123,8 +123,8 @@
 			{#snippet primary()}
 				<Button
 					type="submit"
-					variant="destructive"
-					class="h-auto min-h-11 min-w-0 flex-1 basis-0 whitespace-normal"
+					variant="danger"
+					class="min-w-0 flex-1 basis-0 whitespace-normal"
 					disabled={submitting}>Darme de baja</Button
 				>
 			{/snippet}
@@ -153,22 +153,25 @@
 		color: var(--text-muted);
 	}
 
-	.card {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-card);
-		box-shadow: var(--shadow-1);
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
 	}
 
-	.card > li.bad {
-		box-shadow: inset 3px 0 0 var(--negative);
+	.field label {
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: var(--text-muted);
+	}
+
+	.error {
+		color: var(--negative);
+		font-size: var(--font-size-sm);
 	}
 
 	.final {
+		font-size: 0.9375rem;
 		font-weight: 600;
 	}
 

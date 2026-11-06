@@ -2,7 +2,9 @@
 	import { untrack, type Snippet } from 'svelte';
 	import { Drawer as DrawerPrimitive } from 'vaul-svelte';
 	import { drawers } from '$lib/drawer-open.svelte';
+	import X from '@lucide/svelte/icons/x';
 	import * as Drawer from '$lib/components/ui/drawer/index.js';
+	import { buttonVariants } from '$lib/components/ui/button/index.js';
 
 	let {
 		title,
@@ -41,10 +43,24 @@
 			if ((e.target as Element | null)?.closest?.('[data-sonner-toast]')) e.preventDefault();
 		}}
 	>
-		<Drawer.Title
-			class={hideTitle ? 'sr-only' : 'px-5 pt-1 pb-3 text-lg leading-snug font-semibold'}
-			>{title}</Drawer.Title
-		>
+		<div class="flex items-start">
+			<Drawer.Title
+				class={hideTitle
+					? 'sr-only'
+					: 'min-w-0 flex-1 px-5 pt-1 pb-3 text-lg leading-snug font-semibold'}
+				>{title}</Drawer.Title
+			>
+			<Drawer.Close
+				aria-label="Cerrar"
+				class={buttonVariants({
+					variant: 'ghost',
+					size: 'icon',
+					class: 'text-muted-foreground mr-2 -mt-2 -mb-1 ml-auto size-11 shrink-0'
+				})}
+			>
+				<X size={20} strokeWidth={1.75} aria-hidden="true" />
+			</Drawer.Close>
+		</div>
 		{#if bare}
 			{@render children()}
 		{:else}
@@ -55,7 +71,7 @@
 	</Drawer.Content>
 {/snippet}
 
-<!-- No close button: the scrim, a swipe down or Escape close it. The content hugs its height (capped in Drawer.Content). -->
+<!-- Closes through the X button, the scrim, a swipe down or Escape (all fire onclose). The content hugs its height (capped in Drawer.Content). -->
 {#if nested}
 	<DrawerPrimitive.NestedRoot
 		bind:open

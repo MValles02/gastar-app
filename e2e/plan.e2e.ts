@@ -127,12 +127,16 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 
 		await row.getByRole('link').click();
 		await page.getByRole('link', { name: 'Registrar pago' }).click();
-		await expect(page.getByRole('heading', { level: 1, name: 'Registrar pago' })).toBeVisible();
-		await expect(page.locator('input[name="description"]')).toHaveValue(description);
-		await expect(page.locator('input[name="amount"]')).toHaveValue(/^1\.?500$/);
-		await expect(page.locator('input[name="recurringId"]')).toHaveCount(1);
-		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		const drawer = page.getByRole('dialog', { name: `Registrar ${description}` });
+		await expect(drawer.locator('input[name="description"]')).toHaveValue(description);
+		await expect(drawer.locator('input[name="amount"]')).toHaveValue(/^1\.?500$/);
+		await expect(drawer.locator('input[name="recurringId"]')).toHaveCount(1);
+		await drawer.getByRole('button', { name: 'Registrar pago', exact: true }).click();
+		await expect(page.getByText('Pago registrado.')).toBeVisible();
+		// Paid this month: the detail no longer offers to register it again.
+		await expect(page.getByRole('link', { name: 'Registrar pago' })).toHaveCount(0);
 
+		await page.goto('/plan');
 		await expect(rule(page, description)).toContainText('Pagado');
 		await expect(rule(page, description).getByRole('link', { name: /Registrar/ })).toHaveCount(0);
 	} finally {
@@ -159,7 +163,9 @@ test('a payment edited to an account in another currency no longer marks the rul
 		await expect(page).toHaveURL(/\/plan$/);
 		await rule(page, description).getByRole('link').click();
 		await page.getByRole('link', { name: 'Registrar pago' }).click();
-		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await page.getByRole('button', { name: 'Registrar pago', exact: true }).click();
+		await expect(page.getByText('Pago registrado.')).toBeVisible();
+		await page.goto('/plan');
 		await expect(rule(page, description)).toContainText('Pagado');
 
 		const [href] = await findMovements(page, description, 'ARS');

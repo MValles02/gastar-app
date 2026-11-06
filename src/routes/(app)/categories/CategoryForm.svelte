@@ -155,13 +155,11 @@
 			<Button
 				type="button"
 				variant="outline"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0"
+				class="min-w-0 flex-1 basis-0"
 				onclick={() => onclose?.()}>Cancelar</Button
 			>
-			<Button
-				type="submit"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0"
-				disabled={!name.trim() || submitting}>Guardar</Button
+			<Button type="submit" class="min-w-0 flex-1 basis-0" disabled={!name.trim() || submitting}
+				>Guardar</Button
 			>
 		</div>
 	{:else}
@@ -214,8 +212,9 @@
 	}
 
 	.label {
-		font-size: var(--font-size-base);
-		color: var(--text);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: var(--text-muted);
 	}
 
 	.actions {

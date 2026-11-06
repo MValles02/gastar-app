@@ -53,7 +53,7 @@
 		</div>
 
 		{#if data.bars.every((b) => b.income === 0 && b.outcome === 0)}
-			<p class="empty-inline">Sin movimientos en {CURRENCY_NAME[data.currency]}.</p>
+			<EmptyState icon="chart" description="Sin movimientos en {CURRENCY_NAME[data.currency]}." />
 		{:else}
 			<section aria-label="Totales del mes">
 				<Card.Root class="gap-0 overflow-hidden py-0">
@@ -128,15 +128,15 @@
 				<SectionHeader id="cat-heading" title="Gastos por categoría" />
 				{#if data.slices.length === 0}
 					<Card.Root class="gap-0 overflow-hidden py-0">
-						<p class="empty-card">No hay gastos con categoría en {data.nav.label.toLowerCase()}.</p>
+						<p class="empty-card">No hay gastos.</p>
 					</Card.Root>
 				{:else}
 					<ListCard>
 						{#each data.slices as s (s.id)}
 							{#snippet sliceValue()}
+								<span class="pct">{s.percent}%</span>
 								<Money cents={s.amount} currency={data.currency} tone="flow" direction="outcome" />
 							{/snippet}
-							{#snippet sliceMeta()}{s.percent}%{/snippet}
 							{#snippet sliceFooter()}
 								<Meter percent={s.percent} color={sliceColor(s)} />
 							{/snippet}
@@ -153,7 +153,6 @@
 										}}
 								title={s.name}
 								value={sliceValue}
-								meta={sliceMeta}
 								footer={sliceFooter}
 							/>
 						{/each}
@@ -219,13 +218,6 @@
 
 	.month-nav {
 		margin: calc(-1 * var(--space-2));
-	}
-
-	.empty-inline {
-		padding: var(--space-8) var(--space-5);
-		text-align: center;
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
 	}
 
 	/* Resultado spans the card; Ingresos and Gastos sit side by side beneath it. */
@@ -353,6 +345,14 @@
 		width: 8px;
 		height: 8px;
 		border-radius: 2px;
+	}
+
+	/* Canvas: the share sits beside the amount, muted. */
+	.pct {
+		margin-right: var(--space-2);
+		font-size: var(--font-size-sm);
+		font-weight: 400;
+		color: var(--text-muted);
 	}
 
 	.empty-card {

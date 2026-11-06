@@ -179,17 +179,19 @@
 
 <div class="list">
 	{#if mode === 'form'}<input type="hidden" name="savingsOption" value={option} />{/if}
-	{#each rows as row (row.key)}
-		{@const on = row.key === current}
-		{@const saved = savingsOf(row.key)}
-		<button type="button" class="opt" aria-pressed={on} onclick={() => pick(row.key)}>
-			<span class="text">
-				<span class="name">{row.label}</span>
-				{#if saved !== null}<span class="meta">{meta(saved)}</span>{/if}
-			</span>
-			{#if on}<Check size={20} strokeWidth={1.75} aria-hidden="true" />{/if}
-		</button>
-	{/each}
+	<div class="opts" class:boxed={mode === 'autosave'}>
+		{#each rows as row (row.key)}
+			{@const on = row.key === current}
+			{@const saved = savingsOf(row.key)}
+			<button type="button" class="opt" aria-pressed={on} onclick={() => pick(row.key)}>
+				<span class="text">
+					<span class="name" class:on>{row.label}</span>
+					{#if saved !== null}<span class="meta">{meta(saved)}</span>{/if}
+				</span>
+				{#if on}<Check size={20} strokeWidth={1.75} aria-hidden="true" class="check" />{/if}
+			</button>
+		{/each}
+	</div>
 
 	{#if mode === 'form'}
 		{#if option === 'other'}
@@ -259,6 +261,37 @@
 	.meta {
 		color: var(--text-muted);
 		font-size: var(--font-size-sm);
+	}
+
+	/* Autosave: the four options share one bordered card. */
+	.boxed {
+		overflow: hidden;
+		border: 1px solid var(--border);
+		border-radius: 14px;
+	}
+
+	.boxed .opt {
+		min-height: 58px;
+		padding: 8px 16px;
+		border-radius: 0;
+	}
+
+	.boxed .name {
+		font-size: 15px;
+		font-weight: 400;
+	}
+
+	.boxed .name.on {
+		font-weight: 600;
+	}
+
+	.boxed .meta {
+		font-size: 13px;
+	}
+
+	.boxed :global(.check) {
+		flex: none;
+		color: var(--primary);
 	}
 
 	.other {

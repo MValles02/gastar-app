@@ -1,6 +1,6 @@
 import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
+import { MOVEMENT_MESSAGES as MSG } from '$lib/movement-messages';
 import {
-	AMOUNT_EXAMPLE,
 	ARS_WHOLE_MESSAGE,
 	convertAmount,
 	CURRENCIES,
@@ -10,7 +10,7 @@ import {
 } from '$lib/money';
 import { isUuid } from './db/util';
 import type { MovementType } from './dashboard';
-import { dayStart } from './month';
+import { dayStart, localDay } from './month';
 
 export type MovementData = {
 	type: MovementType;
@@ -54,27 +54,6 @@ const MAX_PAGE = 10000;
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 // Year 9999 is rejected so the day after `to` is always representable.
 const validDay = (s: string) => YMD_RE.test(s) && s < '9999' && dayStart(s) !== null;
-
-const MSG = {
-	type: 'Elegí un tipo de movimiento.',
-	date: 'Ingresá una fecha válida.',
-	descEmpty: 'Ingresá una descripción.',
-	descLong: `La descripción puede tener hasta ${DESCRIPTION_MAX_LENGTH} caracteres.`,
-	amount: `Ingresá un monto mayor a cero ${AMOUNT_EXAMPLE}.`,
-	account: 'Elegí una cuenta.',
-	archivedAccount: 'Esa cuenta está archivada. Elegí otra.',
-	destination: 'Elegí la cuenta de destino.',
-	sameAccount: 'Elegí una cuenta distinta de la de origen.',
-	rate: 'Ingresá la cotización (1 USD = X ARS) en pesos enteros y mayor a cero.',
-	zero: 'El monto convertido da 0. Revisá el monto o la cotización.',
-	overflow: 'El monto convertido es demasiado grande.',
-	category: 'Elegí una categoría.',
-	archivedCategory: 'Esa categoría está archivada. Elegí otra.',
-	kindMismatch: {
-		income: 'Esa categoría es de ingresos. Elegí otra.',
-		outcome: 'Esa categoría es de gastos. Elegí otra.'
-	}
-};
 
 export const kindMismatchMessage = (kind: 'income' | 'outcome') => MSG.kindMismatch[kind];
 
@@ -268,4 +247,24 @@ export function parseMovementFilters(sp: URLSearchParams) {
 		(account.length ? 1 : 0) +
 		(category.length ? 1 : 0);
 	return { values: shown, accounts: account, categories: category, query, page, activeCount };
+}
+
+/**
+ * Movimientos defaults to "Este mes" (month start up to today) when the URL has no dates; `all=1` is
+ * the explicit way to see every date. Shared by the list and the drawer's count so both agree.
+ * `explicitDefault`: the URL spells out the default range, which is not an active filter.
+ */
+export function applyDefaultRange(
+	query: MovementFilterQuery,
+	sp: URLSearchParams,
+	today = localDay(new Date())
+) {
+	const monthStart = `${today.slice(0, 7)}-01`;
+	const noDates = !query.from && !query.to;
+	const allDates = noDates && sp.get('all') === '1';
+	return {
+		query: noDates && !allDates ? { ...query, from: monthStart, to: today } : query,
+		allDates,
+		explicitDefault: query.from === monthStart && query.to === today
+	};
 }

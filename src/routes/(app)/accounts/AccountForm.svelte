@@ -107,7 +107,7 @@
 			<Input
 				id="name"
 				name="name"
-				placeholder="Nombre"
+				placeholder="Ej.: Banco Galicia"
 				autocomplete="off"
 				maxlength={NAME_MAX_LENGTH}
 				aria-invalid={shown.name ? 'true' : undefined}
@@ -135,7 +135,9 @@
 	{#if shown.currency}<p class="error" role="alert">{shown.currency}</p>{/if}
 
 	<Field.Field>
-		<Field.Label for="initialBalance">Saldo inicial</Field.Label>
+		<Field.Label for="initialBalance" class="text-[0.8125rem] font-medium text-(--text-muted)"
+			>Saldo inicial</Field.Label
+		>
 		<Input
 			id="initialBalance"
 			name="initialBalance"
@@ -144,7 +146,7 @@
 			autocomplete="off"
 			aria-invalid={shown.initialBalance ? 'true' : undefined}
 			aria-describedby={shown.initialBalance ? 'balance-error' : undefined}
-			class="h-11"
+			class="h-[50px] rounded-xl px-3.5"
 			bind:value={initialBalance}
 		/>
 		{#if shown.initialBalance}
@@ -157,13 +159,11 @@
 			<Button
 				type="button"
 				variant="outline"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0"
+				class="min-w-0 flex-1 basis-0"
 				onclick={() => onclose?.()}>Cancelar</Button
 			>
-			<Button
-				type="submit"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0"
-				disabled={!name.trim() || submitting}>Guardar</Button
+			<Button type="submit" class="min-w-0 flex-1 basis-0" disabled={!name.trim() || submitting}
+				>Guardar</Button
 			>
 		</div>
 	{:else}
@@ -216,8 +216,9 @@
 	}
 
 	.label {
-		font-size: var(--font-size-base);
-		color: var(--text);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: var(--text-muted);
 	}
 
 	.actions {

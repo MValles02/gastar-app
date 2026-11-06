@@ -16,13 +16,26 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const currency = CURRENCIES.find((c) => c === url.searchParams.get('currency')) ?? '';
 	const archived = url.searchParams.get('archived') === '1';
 
-	const [summary, accounts, sums, ins] = await Promise.all([
+	const [summary, all, sums, ins] = await Promise.all([
 		accountSummary(userId),
-		listAccounts(userId, { q, currency: currency || undefined, archived }),
+		listAccounts(userId, { archived: true }),
 		accountOriginSums(userId),
 		accountTransfersIn(userId)
 	]);
 
+	// The drawer counts the staged choice client-side from these (every account, archived included).
+	const matches = (name: string) => name.toLowerCase().includes(q.toLowerCase());
+	const facets = all.map((a) => ({
+		currency: a.currency,
+		archived: a.archivedAt !== null,
+		match: matches(a.name)
+	}));
+	const accounts = all.filter(
+		(a) =>
+			(archived || a.archivedAt === null) &&
+			(!currency || a.currency === currency) &&
+			matches(a.name)
+	);
 	const accountsWithBalance = withBalances(accounts, sums, ins);
 	const groups = CURRENCY_GROUPS.flatMap(([cur, label]) => {
 		const items = accountsWithBalance.filter((a) => a.currency === cur);
@@ -33,6 +46,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	return {
 		filters: { q, archived, currency },
+		facets,
 		hasAnyAccount: summary.some((s) => s.count > 0),
 		groups
 	};

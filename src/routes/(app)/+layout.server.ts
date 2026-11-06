@@ -15,7 +15,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	const user = locals.user!;
 	const name = user.name?.trim() || user.email;
 	const now = new Date();
-	const date = dayFmt.format(now).replace(',', '');
+	const date = dayFmt.format(now);
 	// Counts alerts, not money, so adding across currencies is fine. Refreshed on full loads and form actions.
 	// A failure here must not take down every screen: log it and show no badge.
 	let alertCount = 0;
@@ -27,7 +27,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	return {
 		alertCount,
 		header: {
-			date: date.charAt(0).toUpperCase() + date.slice(1),
+			date,
 			firstName: name.split(/[\s@]/)[0],
 			initials: name
 				.split(/\s+/)

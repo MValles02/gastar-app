@@ -16,6 +16,7 @@
 		open = false,
 		required = false,
 		display,
+		invalid,
 		onsave
 	}: {
 		/** Starts in edit mode, focused. */
@@ -32,6 +33,8 @@
 		maxlength?: number;
 		/** How the value reads when not editing. */
 		display: Snippet;
+		/** `id` of an error shown by the parent: marks the value invalid and described by it. */
+		invalid?: string;
 		onsave: (next: string) => Promise<string | null>;
 	} = $props();
 
@@ -71,6 +74,8 @@
 				{required}
 				{@attach (n) => n.focus()}
 				aria-label={label}
+				aria-invalid={invalid ? 'true' : undefined}
+				aria-describedby={invalid}
 				autocomplete="off"
 				onblur={commit}
 				onkeydown={(e) => {
@@ -89,7 +94,7 @@
 			type="button"
 			class="trigger"
 			aria-label="{label}: {value}"
-			aria-describedby={error ? errorId : undefined}
+			aria-describedby={error ? errorId : invalid}
 			onclick={start}
 		>
 			{@render display()}

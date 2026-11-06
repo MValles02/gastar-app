@@ -7,6 +7,7 @@ import {
 	findMovements,
 	login,
 	OTHER_EMAIL,
+	fillRate,
 	pick,
 	PHONE,
 	postDelete
@@ -64,7 +65,7 @@ test('+ Nueva categoría keeps the draft and selects the new category', async ({
 	await open(page);
 	await fill(page, unique('Draft cat'));
 	await page.getByRole('button', { name: /^Categoría/ }).click();
-	await page.getByRole('button', { name: '+ Nueva categoría' }).click();
+	await page.getByRole('button', { name: 'Nueva categoría', exact: true }).click();
 	const create = page.getByRole('dialog', { name: 'Nueva categoría' });
 	await expect(create.getByRole('button', { name: 'Guardar' })).toBeDisabled();
 	await create.getByLabel('Nombre').fill(name);
@@ -73,6 +74,21 @@ test('+ Nueva categoría keeps the draft and selects the new category', async ({
 	await expect(drawer(page).getByRole('button', { name: /^Categoría/ })).toContainText(name);
 	await expect(page.locator('input[name="amount"]')).toHaveValue('1');
 	await expect(page.locator('input[name="description"]')).toHaveValue(/^Draft cat/);
+});
+
+test('Cuenta comes preselected and the movement is saved to that account', async ({ page }) => {
+	const description = unique('Preseleccion');
+	await open(page);
+	const account = drawer(page).getByRole('button', { name: /^Cuenta/ });
+	await expect(account).not.toContainText('Elegir');
+	const name = (await account.innerText()).replace(/^Cuentas*/, '').trim();
+	await fill(page, description);
+	await pick(page, 'Categoría', 'Ajena');
+	await save(page).click();
+	await expect(toast(page)).toBeVisible();
+	const [href] = await findMovements(page, description);
+	await page.goto(href);
+	await expect(page.getByRole('button', { name: `Cuenta ${name}` })).toBeVisible();
 });
 
 test('validation: Guardar waits for amount and description; a missing row is marked alone', async ({
@@ -161,9 +177,12 @@ test('a cross-currency transfer shows Cotización and En destino', async ({ page
 	await page.locator('input[name="amount"]').fill('1000');
 	await pick(page, 'Desde', 'Otra cuenta pesos');
 	await pick(page, 'Hacia', 'Otra cuenta');
-	await expect(page.locator('input[name="exchangeRate"]')).toBeVisible();
+	await expect(drawer(page).getByRole('button', { name: /^Cotización/ })).toBeVisible();
 	const dest = drawer(page).locator('p', { hasText: 'En destino' });
 	await expect(dest).toContainText('—');
-	await page.locator('input[name="exchangeRate"]').fill('1000');
+	await fillRate(page, '1000');
 	await expect(dest).toContainText('US$1');
+	await expect(drawer(page).getByRole('button', { name: /^Cotización/ })).toContainText(
+		'1 USD = $1.000'
+	);
 });

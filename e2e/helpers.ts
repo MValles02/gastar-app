@@ -35,8 +35,9 @@ export async function submitLogin(page: Page, email: string, password = SEED_PAS
 
 /**
  * Signs up a fresh user, follows the verification link (which signs them in) and waits for Inicio.
- * Sign-up is rate-limited to 10/hour/IP: one full run makes 8 (signup 3, plan-recurring-suggestions 2,
- * profile 1, plan-budget 1, home 1). New specs must reuse one user per file (sign up in `beforeAll`).
+ * The e2e build allows 50 sign-ups/hour/IP (production: 10). One full run makes 9 (signup 3,
+ * plan-recurring-suggestions 2, plan-pages 1, profile 1, plan-budget 1, home 1). New specs must still
+ * reuse one user per file (sign up in `beforeAll`).
  */
 export async function signUpVerified(
 	page: Page,
@@ -99,14 +100,28 @@ export async function pickDate(page: Page, label: string, ymd: string) {
 	await dialog.locator(`[data-bits-day][data-value="${ymd}"]`).click();
 }
 
-/** Picks `ymd` in the movement date drawer (Fecha > Otra fecha > calendar day). */
+/** Picks `ymd` in the movement date drawer (Fecha > Otra fecha > month arrows > calendar day). */
 export async function pickMovementDate(page: Page, ymd: string) {
 	await page.getByRole('button', { name: /^Fecha/ }).click();
 	const dialog = page.getByRole('dialog').last();
 	if ((await dialog.locator('[data-bits-day]').count()) === 0)
 		await dialog.getByRole('button', { name: 'Otra fecha' }).click();
-	await pickMonthYear(page, dialog, ymd);
+	// The heading carries the shown month as data-month="YYYY-MM"; step to the target with the arrows.
+	const heading = dialog.locator('[data-month]');
+	const months = (ym: string) => Number(ym.slice(0, 4)) * 12 + Number(ym.slice(5, 7));
+	const steps = months(ymd) - months((await heading.getAttribute('data-month'))!);
+	const arrow = dialog.getByRole('button', { name: steps < 0 ? 'Mes anterior' : 'Mes siguiente' });
+	for (let i = 0; i < Math.abs(steps); i++) await arrow.click();
+	await expect(heading).toHaveAttribute('data-month', ymd.slice(0, 7));
 	await dialog.locator(`[data-bits-day][data-value="${ymd}"]`).click();
+}
+
+/** Types `rate` into the Cotización row (tap the row, type, Enter) of the new-movement form. */
+export async function fillRate(page: Page, rate: string) {
+	const input = page.getByRole('textbox', { name: 'Cotización' });
+	if (!(await input.isVisible())) await page.getByRole('button', { name: /^Cotización/ }).click();
+	await input.fill(rate);
+	await input.press('Enter');
 }
 
 /** Opens the new-movement form and fills it (JS pickers); the caller submits. */
@@ -134,7 +149,7 @@ export async function fillMovement(
 	await pick(page, o.destination ? 'Desde' : 'Cuenta', o.account);
 	if (o.category) await pick(page, 'Categoría', o.category);
 	if (o.destination) await pick(page, 'Hacia', o.destination);
-	if (o.rate !== undefined) await page.locator('input[name="exchangeRate"]').fill(o.rate);
+	if (o.rate !== undefined) await fillRate(page, o.rate);
 }
 
 /** Picks a day of the month in the "Día del mes" drawer of a rule form. */
@@ -187,7 +202,8 @@ export const postDelete = (page: Page, baseURL: string, href: string) =>
 /** Detail URLs of the movements a /movements search for `query` lists. */
 export async function findMovements(page: Page, query: string, currency?: 'ARS' | 'USD') {
 	const filter = currency ? `&currency=${currency}` : '';
-	await page.goto(`/movements?q=${encodeURIComponent(query)}${filter}`);
+	// all=1: the list defaults to this month, and the movements may be dated anywhere.
+	await page.goto(`/movements?q=${encodeURIComponent(query)}${filter}&all=1`);
 	const hrefs = await page
 		.locator('a[href*="movements/"]')
 		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));

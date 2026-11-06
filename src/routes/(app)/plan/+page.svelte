@@ -110,15 +110,14 @@
 				<Card.Root class="gap-0 overflow-hidden py-0">
 					<div class="box">
 						<div class="top">
-							<CardEyebrow as="h2" id="summary-heading"
-								>Disponible · {data.plan.monthName}</CardEyebrow
-							>
+							<CardEyebrow as="h2" id="summary-heading">Disponible</CardEyebrow>
 							<StatusPill tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
 						</div>
 						<HeroAmount cents={s.available} currency={data.currency} />
 						<p class="per-day">
-							<Money cents={s.perDay} currency={data.currency} />/día · {s.daysLeft}
-							{s.daysLeft === 1 ? 'día' : 'días'}
+							<Money cents={s.perDay} currency={data.currency} /> por día · {s.daysLeft === 1
+								? 'queda 1 día'
+								: `quedan ${s.daysLeft} días`}
 						</p>
 					</div>
 					<dl class="figures">
@@ -128,17 +127,8 @@
 								<Money cents={s.income} currency={data.currency} tone="flow" direction="income" />
 							</dd>
 						</div>
-						<div class="kv link">
-							<dt>
-								<a
-									href={resolve('/plan/savings')}
-									onclick={(e) => openShallow(e, resolve('/plan/savings'), 'savings')}>Ahorro</a
-								>
-							</dt>
-							<dd><Money cents={s.savings} currency={data.currency} /></dd>
-						</div>
 						<div class="kv">
-							<dt>Pagos fijos pendientes</dt>
+							<dt>Pagos fijos</dt>
 							<dd>
 								<Money
 									cents={-s.pendingBills}
@@ -147,6 +137,16 @@
 									direction="outcome"
 								/>
 							</dd>
+						</div>
+						<div class="kv link">
+							<dt>
+								<a
+									href={resolve('/plan/savings')}
+									onclick={(e) => openShallow(e, resolve('/plan/savings'), 'savings')}
+									>Ahorro<span aria-hidden="true">&nbsp;›</span></a
+								>
+							</dt>
+							<dd><Money cents={s.savings} currency={data.currency} /></dd>
 						</div>
 						<div class="kv">
 							<dt>Gastado</dt>
@@ -221,6 +221,7 @@
 				<ConfirmDialog
 					triggerLabel="Eliminar plan"
 					triggerVariant="destructive"
+					triggerClass="h-11 border-transparent bg-transparent px-4 font-normal hover:bg-transparent dark:border-transparent dark:bg-transparent"
 					title="¿Eliminar este plan?"
 					confirmLabel="Eliminar"
 					action="?/delete"
@@ -304,7 +305,7 @@
 
 	.kv.link a {
 		color: inherit;
-		text-decoration: underline;
+		text-decoration: none;
 	}
 
 	/* The whole figure is the tap target. */

@@ -135,10 +135,12 @@ async function figures(page: Page) {
 	const values = await dl.locator('dd').allInnerTexts();
 	const out: Record<string, number> = {};
 	// Savings, pending fixed payments and spent show a minus; the equation uses their magnitudes.
-	terms.forEach((t, i) => (out[t.trim()] = Number(values[i].replace(/\D/g, ''))));
+	terms.forEach(
+		(t, i) => (out[t.replace(/\s*›$/, '').trim()] = Number(values[i].replace(/\D/g, '')))
+	);
 	// Disponible is the hero amount of the summary card (signed).
 	const hero = await page
-		.getByRole('region', { name: /^Disponible · / })
+		.getByRole('region', { name: /^Disponible$/ })
 		.locator('.hero-amount')
 		.innerText();
 	out['Disponible'] = Number(hero.replace(/\D/g, '')) * (/[-−]/.test(hero) ? -1 : 1);
@@ -385,7 +387,7 @@ test('Ahorro drawer: picking 20 % saves and Deshacer restores the previous optio
 		// hydration guard: the drawer and picker need JavaScript.
 		await page.goto('/plan', { waitUntil: 'networkidle' });
 		await page.getByRole('link', { name: 'Ahorro', exact: true }).click();
-		const drawer = page.getByRole('dialog', { name: 'Ahorro del mes' });
+		const drawer = page.getByRole('dialog', { name: /^Ahorro de / });
 		await expect(drawer.getByRole('button', { name: /^Otro/ })).toHaveAttribute(
 			'aria-pressed',
 			'true'
@@ -409,7 +411,7 @@ test('Ahorro drawer: picking 20 % saves and Deshacer restores the previous optio
 	}
 });
 
-test('Disponible = Ingresos - Ahorro - Pagos fijos pendientes - Gastado on one page load', async ({
+test('Disponible = Ingresos - Ahorro - Pagos fijos - Gastado on one page load', async ({
 	page,
 	baseURL
 }) => {
@@ -421,9 +423,7 @@ test('Disponible = Ingresos - Ahorro - Pagos fijos pendientes - Gastado on one p
 		const g = await figures(page);
 		expect(g['Ingresos']).toBe(1_500_000);
 		expect(g['Ahorro']).toBe(150_000);
-		expect(g['Disponible']).toBe(
-			g['Ingresos'] - g['Ahorro'] - g['Pagos fijos pendientes'] - g['Gastado']
-		);
+		expect(g['Disponible']).toBe(g['Ingresos'] - g['Ahorro'] - g['Pagos fijos'] - g['Gastado']);
 	}).toPass({ timeout: 30_000 });
 	await expect(page.locator('.rule', { hasText: 'Alquiler' })).toContainText('380.000');
 });
@@ -502,20 +502,20 @@ test.describe('as another user', () => {
 		};
 		try {
 			const open = await figures(page);
-			expect(open['Pagos fijos pendientes']).toBeGreaterThanOrEqual(5000);
+			expect(open['Pagos fijos']).toBeGreaterThanOrEqual(5000);
 
 			await pay('50,00');
 			const exact = await figures(page);
 			expect(exact['Disponible']).toBe(open['Disponible']);
 			expect(exact['Gastado']).toBe(open['Gastado'] + 5000);
-			expect(exact['Pagos fijos pendientes']).toBe(open['Pagos fijos pendientes'] - 5000);
+			expect(exact['Pagos fijos']).toBe(open['Pagos fijos'] - 5000);
 
 			await remove();
 			await pay('70,00');
 			const over = await figures(page);
 			expect(over['Disponible']).toBe(open['Disponible'] - 2000);
 			expect(over['Gastado']).toBe(open['Gastado'] + 7000);
-			expect(over['Pagos fijos pendientes']).toBe(open['Pagos fijos pendientes'] - 5000);
+			expect(over['Pagos fijos']).toBe(open['Pagos fijos'] - 5000);
 		} finally {
 			await remove();
 		}

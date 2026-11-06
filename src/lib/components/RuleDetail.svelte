@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { autosave } from '$lib/autosave';
 	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
+	import { openShallow } from '$lib/open-shallow';
 	import { formatAmountInput } from '$lib/money';
 	import { dueTone } from '$lib/status';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
@@ -155,8 +156,13 @@
 				<Button type="submit" class="w-full">Activar</Button>
 			</form>
 		{:else}
-			{#if !r.cannotRegister}
-				<Button class="w-full" href={resolve(`/movements/new?recurring=${r.id}`)}>
+			{#if !r.cannotRegister && r.thisMonth?.status !== 'paid'}
+				<Button
+					class="w-full"
+					href={resolve(`/movements/new?recurring=${r.id}`)}
+					onclick={(e: MouseEvent) =>
+						openShallow(e, resolve(`/movements/new?recurring=${r.id}`), 'registerRule')}
+				>
 					Registrar {noun}
 				</Button>
 			{/if}

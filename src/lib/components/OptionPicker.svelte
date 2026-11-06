@@ -78,6 +78,23 @@
 		target?.focus();
 	}
 
+	// Arrow/Home/End move focus between the rows (wraps at the ends).
+	function navigate(e: KeyboardEvent) {
+		const keys = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
+		if (!keys.includes(e.key) || !list) return;
+		const rows = [...list.querySelectorAll<HTMLElement>('button.opt')];
+		if (rows.length === 0) return;
+		e.preventDefault();
+		const i = rows.indexOf(document.activeElement as HTMLElement);
+		const next =
+			e.key === 'Home'
+				? 0
+				: e.key === 'End'
+					? rows.length - 1
+					: (i + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length;
+		rows[next].focus();
+	}
+
 	async function choose(id: string) {
 		value = id;
 		open = false;
@@ -103,7 +120,7 @@
 {#snippet current()}
 	<span id="{labelId}-value" class="current" class:placeholder={!selected}>
 		{#if selected}
-			<IconBadge icon={selected.icon} color={selected.color} size={isRow ? '1.5rem' : '2rem'} />
+			<IconBadge icon={selected.icon} color={selected.color} size={isRow ? '1.625rem' : '2rem'} />
 			<span class="name">{selected.name}</span>
 		{:else}
 			{placeholder}
@@ -121,7 +138,7 @@
 			variant={isRow ? 'ghost' : 'outline'}
 			class={isRow
 				? 'trigger h-14 w-full scroll-mb-24 justify-between gap-3 rounded-none px-4'
-				: 'trigger w-full justify-start'}
+				: 'trigger h-11 w-full justify-start rounded-lg px-2.5 text-sm font-medium'}
 			aria-haspopup="dialog"
 			aria-labelledby="{labelId} {labelId}-value"
 			aria-describedby={error ? errorId : undefined}
@@ -139,17 +156,22 @@
 	<BottomDrawer {title} {nested} bind:open>
 		<div class="options" bind:this={list}>
 			{#each visible as item (item.id)}
+				{@const on = item.id === value}
 				<Item.Root>
 					{#snippet child({ props })}
 						<button
 							{...props}
 							type="button"
 							class="opt {props.class}"
+							class:on
 							data-value={item.id}
-							aria-pressed={item.id === value}
+							aria-pressed={on}
 							onclick={() => choose(item.id)}
+							onkeydown={navigate}
 						>
-							<Item.Media><IconBadge icon={item.icon} color={item.color} /></Item.Media>
+							<Item.Media
+								><IconBadge icon={item.icon} color={item.color} size="1.875rem" /></Item.Media
+							>
 							<Item.Content>
 								<Item.Title>{item.name}</Item.Title>
 								{#if item.meta || item.archived}
@@ -158,22 +180,22 @@
 									</Item.Description>
 								{/if}
 							</Item.Content>
-							{#if item.balance !== undefined && item.currency}
-								<Item.Actions class="font-medium tabular-nums">
-									<Money cents={item.balance} currency={item.currency} />
-								</Item.Actions>
-							{/if}
-							{#if item.id === value}
-								<Item.Actions
+							{#if on}
+								<Item.Actions class="check"
 									><Check size={20} strokeWidth={1.75} aria-hidden="true" /></Item.Actions
 								>
+							{/if}
+							{#if item.balance !== undefined && item.currency}
+								<Item.Actions class="font-semibold tabular-nums">
+									<Money cents={item.balance} currency={item.currency} tone="stock" />
+								</Item.Actions>
 							{/if}
 						</button>
 					{/snippet}
 				</Item.Root>
 			{/each}
-			{#if extra}{@render extra(() => (open = false))}{/if}
 		</div>
+		{#if extra}{@render extra(() => (open = false))}{/if}
 	</BottomDrawer>
 {:else}
 	<div class="field">
@@ -270,9 +292,36 @@
 		outline-offset: 2px;
 	}
 
+	/* The options share one bordered card (14px), rows split by nothing but their height. */
 	.options {
 		display: flex;
 		flex-direction: column;
+		overflow: hidden;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-card);
+	}
+
+	.opt {
+		min-height: 58px;
+		gap: var(--space-3);
+		padding: var(--space-2) var(--space-4);
+		border: 0;
+		border-radius: 0;
+		font-size: var(--font-size-base);
+	}
+
+	.opt :global([data-slot='item-title']) {
+		font-size: var(--font-size-base);
+		font-weight: 400;
+	}
+
+	.opt.on :global([data-slot='item-title']) {
+		font-weight: 600;
+	}
+
+	.opt :global(.check) {
+		color: var(--primary);
 	}
 
 	.name {
