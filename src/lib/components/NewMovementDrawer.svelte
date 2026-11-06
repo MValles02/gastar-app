@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll, preloadData, replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { highlightMovement } from '$lib/highlight.svelte';
@@ -20,6 +20,19 @@
 		if (page.state.newMovement) history.back();
 	}
 
+	// Swaps this drawer for "Nueva cuenta" in the same history entry (replaceState), so closing it
+	// returns to the page underneath. Modified clicks and failed loads follow the link.
+	async function createAccount(e: MouseEvent) {
+		if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+			return;
+		e.preventDefault();
+		const href = resolve('/accounts/new');
+		const result = await preloadData(href);
+		if (result.type === 'loaded' && result.status === 200)
+			replaceState('', { newAccount: result.data as App.PageState['newAccount'] });
+		else await goto(href);
+	}
+
 	async function saved({ id, ruleId }: { id: string; ruleId: string | null }) {
 		undoMovementSaved(id, ruleId);
 		// Refresh before the pop: a popstate landing first reuses the stale loads.
@@ -33,7 +46,7 @@
 	{#if data.accounts.length === 0}
 		<div class="empty">
 			<p>Necesitás al menos una cuenta para registrar movimientos.</p>
-			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
+			<Button href={resolve('/accounts/new')} onclick={createAccount}>Crear cuenta</Button>
 		</div>
 	{:else}
 		<MovementForm
