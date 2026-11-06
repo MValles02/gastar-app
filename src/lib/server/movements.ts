@@ -5,6 +5,7 @@ import {
 	convertAmount,
 	CURRENCIES,
 	type Currency,
+	isValidRate,
 	isWholeFor,
 	parseAmount
 } from '$lib/money';
@@ -188,8 +189,7 @@ export function resolveMovement(
 			row: { ...base, destinationAccountId: d.id, destinationAmount: data.amount }
 		};
 	}
-	if (!data.exchangeRate || data.exchangeRate <= 0 || !isWholeFor(data.exchangeRate, 'ARS'))
-		return { ok: false, errors: { exchangeRate: MSG.rate } };
+	if (!isValidRate(data.exchangeRate)) return { ok: false, errors: { exchangeRate: MSG.rate } };
 	const converted = convertAmount(data.amount, data.exchangeRate, o.currency, d.currency);
 	if (converted === null) return { ok: false, errors: { amount: MSG.overflow } };
 	if (converted <= 0) return { ok: false, errors: { amount: MSG.zero } };

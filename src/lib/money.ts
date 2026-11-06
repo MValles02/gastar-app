@@ -28,6 +28,10 @@ export const AMOUNT_EXAMPLE = '(ej.: 1.234 en pesos o 1.234,56 en dólares)';
 export const isWholeFor = (cents: number, currency: Currency) =>
 	currency === 'USD' || cents % 100 === 0;
 
+/** True for a usable exchange rate: positive and whole pesos (integer hundredths of "1 USD = X ARS"). */
+export const isValidRate = (rate: number | null): rate is number =>
+	rate !== null && rate > 0 && isWholeFor(rate, 'ARS');
+
 const AMOUNT_RE = /^(-?)(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}))?$/;
 /** Integer digits accepted by parseAmount; keeps the cents within Number.MAX_SAFE_INTEGER. */
 const MAX_INT_DIGITS = 13;
@@ -72,4 +76,20 @@ export function convertAmount(
 	const r = BigInt(rate);
 	const out = from === 'USD' ? ((a * r + 5000n) / 10000n) * 100n : (2n * a * 100n + r) / (2n * r);
 	return out > BigInt(Number.MAX_SAFE_INTEGER) ? null : Number(out);
+}
+
+/**
+ * Converts what the user typed (es-AR amount and rate strings) between currencies; null when
+ * either is invalid or not positive. Unlike isValidRate, a fractional-peso rate still converts.
+ */
+export function convertInput(
+	amount: string,
+	rate: string,
+	from: Currency,
+	to: Currency
+): number | null {
+	const a = parseAmount(amount);
+	const r = parseAmount(rate);
+	if (a === null || a <= 0 || r === null || r <= 0) return null;
+	return convertAmount(a, r, from, to);
 }
