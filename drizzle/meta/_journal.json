@@ -99,6 +99,13 @@
       "when": 1793212472523,
       "tag": "0013_thin_bug",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793992903161,
+      "tag": "0014_living_hellfire_club",
+      "breakpoints": true
     }
   ]
 }

@@ -36,7 +36,9 @@
 		/>
 	</ListCard>
 
-	<p class="hint">Traé tus movimientos sin tipearlos. Vos aprobás cada uno antes de que cuente.</p>
+	<p class="hint">
+		Traé tus movimientos sin tipearlos. Lo que reconocemos se aprueba solo; el resto lo revisás vos.
+	</p>
 </div>
 
 <style>

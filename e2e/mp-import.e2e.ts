@@ -328,6 +328,54 @@ test('a remembered rule suggests the category for the next item', async () => {
 	await expect(rememberBox()).not.toBeChecked();
 });
 
+test('a sync auto-approves recognized items, and one undone stays for review on the next sync', async () => {
+	test.setTimeout(90_000);
+	const before = await balanceOf('Mercado Pago');
+	const status = page.getByRole('status');
+	// A short report wait keeps the run visible, so the page itself shows how it ended.
+	await fake('/__fake/report-delay', { ms: 3_000 });
+	try {
+		await page.goto('/imports');
+		await page.waitForLoadState('networkidle'); // hydration guard: live progress needs JS
+		await page.getByRole('button', { name: 'Sincronizar' }).click();
+		await expect(status).toContainText('Sincronizando');
+		await expect(status).toHaveText(/^Listo\. .*, 1 aprobado automáticamente\.$/, {
+			timeout: 40_000
+		});
+	} finally {
+		await fake('/__fake/report-delay', { ms: 0 });
+	}
+	// The remembered counterparty is approved; an unknown item stays for review.
+	await expect(rows().filter({ hasText: 'FAKE AMIGA' })).toHaveCount(0);
+	await expect(rows().filter({ hasText: 'CAFE DE PRUEBA' })).toContainText('No sabemos qué es');
+	const approved = await amigaItem();
+	expect(approved.status).toBe('approved');
+	expect(approved.movementId).not.toBeNull();
+	expect(Math.abs((await balanceOf('Mercado Pago')) - before - 800.5)).toBeLessThanOrEqual(1);
+
+	await page.goto('/imports');
+	await page.getByRole('link', { name: /1 aprobado automáticamente/ }).click();
+	await expect(page).toHaveURL(/\/imports\/auto$/);
+	await page.waitForLoadState('networkidle'); // hydration guard: Deshacer answers with a toast
+	const auto = page.getByRole('listitem').filter({ hasText: 'FAKE AMIGA' });
+	await expect(auto).toContainText(CATEGORY);
+	await auto.getByRole('button', { name: /Deshacer/ }).click();
+	await flash('Aprobación deshecha. Quedó para revisar.');
+	await expect(auto).toHaveCount(0);
+	expect(await amigaItem()).toMatchObject({
+		status: 'pending',
+		movementId: null,
+		n: approved.n - 1
+	});
+	expect(await balanceOf('Mercado Pago')).toBe(before);
+
+	// Undone once, never auto-approved again: still suggested for a manual approval.
+	await syncNow();
+	expect(await amigaItem()).toMatchObject({ status: 'pending', movementId: null });
+	await expect(rows().filter({ hasText: 'FAKE AMIGA' })).toContainText(`${CATEGORY} · sugerido`);
+	await expect(page.getByRole('link', { name: /aprobados? automáticamente/ })).toHaveCount(0);
+});
+
 test('discarding an item removes it for good', async () => {
 	await openItem('CAFE DE PRUEBA');
 	await drawer().getByRole('button', { name: 'Descartar' }).click();

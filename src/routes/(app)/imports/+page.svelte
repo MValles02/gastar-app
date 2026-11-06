@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import { toast } from 'svelte-sonner';
@@ -86,13 +87,16 @@
 	const newLabel = (n: number) =>
 		n === 0 ? 'Sin movimientos nuevos' : n === 1 ? '1 movimiento nuevo' : `${n} movimientos nuevos`;
 
+	const autoLabel = (n: number) =>
+		n === 1 ? '1 aprobado automáticamente' : `${n} aprobados automáticamente`;
+
 	const status = $derived(
 		data.needsReconnect
 			? 'Hay que volver a vincular Mercado Pago.'
 			: data.lastError
 				? `No se pudo sincronizar (${errorLabel(data.lastError)})`
 				: watched && data.newItems !== null
-					? `Listo. ${newLabel(data.newItems)}.`
+					? `Listo. ${newLabel(data.newItems)}${data.autoApproved ? `, ${autoLabel(data.autoApproved)}` : ''}.`
 					: (data.lastRun ?? 'Todavía no se sincronizó')
 	);
 </script>
@@ -138,6 +142,13 @@
 				</form>
 			{/if}
 		</section>
+	{/if}
+
+	{#if data.autoCount > 0}
+		<a class="auto" href={resolve('/imports/auto')}>
+			<span class="label">{autoLabel(data.autoCount)}</span>
+			<ChevronRight aria-hidden="true" />
+		</a>
 	{/if}
 
 	{#if data.suggested > 0}
@@ -252,6 +263,36 @@
 		color: var(--text-muted);
 		font-size: var(--font-size-sm);
 		font-weight: 400;
+	}
+
+	/* A quiet line, not a card: what already counted, one tap away from undoing it. */
+	.auto {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-height: 2.75rem;
+		padding-inline: var(--space-4);
+		color: var(--text);
+		font-size: var(--font-size-sm);
+		font-weight: 500;
+		text-decoration: none;
+	}
+
+	.auto .label {
+		flex: 1;
+	}
+
+	.auto :global(svg) {
+		flex: none;
+		width: 1rem;
+		height: 1rem;
+		color: var(--text-muted);
+	}
+
+	.auto:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: 2px;
+		border-radius: var(--radius-card);
 	}
 
 	.groups {
