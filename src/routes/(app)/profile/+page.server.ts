@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import { auth } from '$lib/server/auth';
 import { userNameError } from '$lib/server/auth-forms';
 import { PREFERENCE_COOKIE_OPTIONS, THEME_COOKIE } from '$lib/server/cookies';
@@ -38,7 +38,7 @@ export const actions: Actions = {
 	name: async ({ request }) => {
 		const name = String((await request.formData()).get('name') ?? '').trim();
 		const error = userNameError(name);
-		if (error) return fail(400, { errors: { name: error } });
+		if (error) return formFail(400, { errors: { name: error } });
 
 		await auth.api.updateUser({ body: { name }, headers: request.headers });
 		return { name };
@@ -49,7 +49,7 @@ export const actions: Actions = {
 		const value = data.get('theme');
 
 		if (!isTheme(value)) {
-			return fail(400, { error: 'Tema inválido.' });
+			return formFail(400, { formError: 'Tema inválido.' });
 		}
 
 		cookies.set(THEME_COOKIE, value, PREFERENCE_COOKIE_OPTIONS);

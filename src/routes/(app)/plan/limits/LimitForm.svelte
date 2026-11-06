@@ -4,7 +4,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { followRedirect } from '$lib/nav-stack.svelte';
-	import { formatAmountInput, formatMoney, parseAmount, type Currency } from '$lib/money';
+	import { formatAmountInput, formatMoney, isPositiveAmount, type Currency } from '$lib/money';
 	import FormActions from '$lib/components/FormActions.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import AmountHero from '$lib/components/AmountHero.svelte';
@@ -53,7 +53,7 @@
 	let fieldErrors = $state<{ categoryId?: string; amount?: string }>({});
 	const shown = $derived({ ...errors, ...fieldErrors });
 	const suggested = $derived(categories.find((c) => c.id === categoryId)?.suggested ?? 0);
-	const canSave = $derived(categoryId !== '' && (parseAmount(amount) ?? 0) > 0);
+	const canSave = $derived(categoryId !== '' && isPositiveAmount(amount));
 
 	const focusFirstError = () =>
 		tick().then(() => {

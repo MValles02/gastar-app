@@ -1,4 +1,5 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { formatAmountInput } from '$lib/money';
@@ -59,13 +60,14 @@ export const actions: Actions = {
 
 		const parsed = parseLimitAmount(amount, currency);
 		const values = { amount };
-		if ('message' in parsed) return fail(400, { values, errors: { amount: parsed.message } });
+		if ('message' in parsed) return formFail(400, { values, errors: { amount: parsed.message } });
 		try {
 			await upsertLimits(userId, plan.id, [
 				{ categoryId: params.categoryId, amount: parsed.cents }
 			]);
 		} catch (e) {
-			if (e instanceof PlanRejected) return fail(400, { values, errors: { amount: e.message } });
+			if (e instanceof PlanRejected)
+				return formFail(400, { values, errors: { amount: e.message } });
 			throw e;
 		}
 		return { amount: parsed.cents };

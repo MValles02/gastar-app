@@ -1,6 +1,7 @@
-import { fail } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import { type Currency, formatAmountInput } from '$lib/money';
-import { toCategoryIconKey, toIconKey, toSwatchKey } from '$lib/appearance';
+import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
+import { accountOption } from '$lib/server/account-options';
 import { withBalances } from '$lib/server/accounts';
 import {
 	accountOriginSums,
@@ -9,7 +10,7 @@ import {
 	listAccounts
 } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
-import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
+import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/validation';
 import { dateLabel, localDay } from '$lib/server/month';
 import { notFoundHelpers } from '$lib/server/not-found';
 import { type MovementData, resolveMovement, UNAVAILABLE_MESSAGE } from '$lib/server/movements';
@@ -109,10 +110,7 @@ export async function movementPickers(userId: string, keep?: KeptRefs) {
 		accounts: accountRows
 			.filter((a) => !a.archivedAt || keep?.accountIds.includes(a.id))
 			.map((a) => ({
-				id: a.id,
-				name: a.name,
-				icon: toIconKey(a.icon),
-				color: toSwatchKey(a.color),
+				...accountOption(a),
 				meta: a.currency,
 				currency: a.currency,
 				archived: a.archivedAt !== null
@@ -169,6 +167,6 @@ export async function resolvePostedMovement(userId: string, data: MovementData, 
 /** A write that hit an account/category deleted meanwhile fails on the form; anything else rethrows. */
 export function failIfUnavailable(e: unknown, values: Record<string, string>) {
 	if (pgErrorCode(e) === PG_FOREIGN_KEY_VIOLATION)
-		return fail(400, { values, errors: { accountId: UNAVAILABLE_MESSAGE } });
+		return formFail(400, { values, errors: { accountId: UNAVAILABLE_MESSAGE } });
 	throw e;
 }

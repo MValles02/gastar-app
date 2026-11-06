@@ -1,5 +1,6 @@
-import { fail, redirect } from '@sveltejs/kit';
-import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
+import { redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
+import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/validation';
 import type { Actions, PageServerLoad } from './$types';
 import { notFoundHelpers } from '$lib/server/not-found';
 import {
@@ -73,7 +74,7 @@ export const actions: Actions = {
 			if (typeof v === 'string') fd.set(k, v);
 		}
 		const parsed = parseAccountForm(fd, 'edit');
-		if (!parsed.ok) return fail(400, { values: parsed.values, errors: parsed.errors });
+		if (!parsed.ok) return formFail(400, { values: parsed.values, errors: parsed.errors });
 		const rows = await updateAccount(userId, params.id, parsed.data);
 		if (rows.length === 0) notFound();
 		return await detailOf(userId, params.id);
@@ -84,13 +85,13 @@ export const actions: Actions = {
 		const userId = locals.user!.id;
 		requireId(params.id);
 		if (await isAccountReferenced(userId, params.id))
-			return fail(409, { error: DELETE_REFERENCED_MESSAGE });
+			return formFail(409, { formError: DELETE_REFERENCED_MESSAGE });
 		let rows;
 		try {
 			rows = await deleteAccount(userId, params.id);
 		} catch (e) {
 			if (pgErrorCode(e) === PG_FOREIGN_KEY_VIOLATION)
-				return fail(409, { error: DELETE_REFERENCED_MESSAGE });
+				return formFail(409, { formError: DELETE_REFERENCED_MESSAGE });
 			throw e;
 		}
 		if (rows.length === 0) notFound();

@@ -42,6 +42,9 @@ export function parseAmount(input: string): number | null {
 	return cents === 0 ? 0 : m[1] ? -cents : cents;
 }
 
+/** True when the es-AR input parses to a strictly positive amount. */
+export const isPositiveAmount = (input: string) => (parseAmount(input) ?? 0) > 0;
+
 /**
  * Cents to an editable string with "." thousands grouping: "-1.234" (whole ARS) or "-1.234,56".
  * Never rounds, so editing shows the exact stored value; round-trips with parseAmount.

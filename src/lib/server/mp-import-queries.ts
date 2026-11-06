@@ -1,5 +1,5 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
-import { formatDay } from '$lib/locale';
+import { formatDay, LOCALE } from '$lib/locale';
 import { db } from './db';
 import {
 	financialAccounts,
@@ -130,7 +130,7 @@ export function importTitle(i: TitleFields): string {
 
 /** dd/mm/aaaa hh:mm, 24 h, Buenos Aires. */
 export function importDateTime(d: Date): string {
-	const time = new Intl.DateTimeFormat('es-AR', {
+	const time = new Intl.DateTimeFormat(LOCALE, {
 		timeZone: TZ,
 		hour: '2-digit',
 		minute: '2-digit',

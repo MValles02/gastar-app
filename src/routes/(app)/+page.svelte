@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { LOCALE } from '$lib/locale';
+	import { formatPercent } from '$lib/locale';
 	import { resolve } from '$app/paths';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
@@ -24,7 +24,6 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const percent = new Intl.NumberFormat(LOCALE, { style: 'percent' });
 	const currencyWord = $derived(data.currency === 'ARS' ? 'pesos' : 'dólares');
 	const firstRunDone = $derived(data.steps.account && data.steps.movement && data.steps.plan);
 </script>
@@ -122,7 +121,7 @@
 						<ListCard>
 							{#each data.topCategories as cat (cat.id)}
 								{#snippet catValue()}
-									<span class="pct">{percent.format(cat.share)}</span>
+									<span class="pct">{formatPercent(cat.share)}</span>
 									<Money
 										cents={cat.net}
 										currency={data.currency}

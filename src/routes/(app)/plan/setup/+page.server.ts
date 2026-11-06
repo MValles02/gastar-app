@@ -1,4 +1,5 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { parseStep } from '$lib/plan-wizard';
 import type { Currency } from '$lib/money';
@@ -144,7 +145,7 @@ export const actions: Actions = {
 			await planIncome(userId, currency),
 			currency
 		);
-		if (!r.ok) return fail(400, { message: r.message });
+		if (!r.ok) return formFail(400, { formError: r.message });
 		const plan = await currentPlan(userId, currency);
 		await upsertPlan(userId, currency, {
 			savings: r.savings,

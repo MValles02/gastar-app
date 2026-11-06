@@ -24,6 +24,6 @@
 	{action}
 	cancelHref={back}
 	categories={data.categories}
-	initial={{ categoryId: form?.values.categoryId ?? '', amount: form?.values.amount ?? '' }}
+	initial={{ categoryId: form?.values?.categoryId ?? '', amount: form?.values?.amount ?? '' }}
 	errors={form?.errors}
 />

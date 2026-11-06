@@ -22,7 +22,13 @@
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { convertAmount, formatMoney, isWholeFor, parseAmount } from '$lib/money';
+	import {
+		convertAmount,
+		formatMoney,
+		isWholeFor,
+		isPositiveAmount,
+		parseAmount
+	} from '$lib/money';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 	type Fields =
@@ -208,7 +214,7 @@
 	});
 
 	// Drawer: Guardar waits for the two fields every movement needs; the rest is checked on press.
-	const canSave = $derived((parseAmount(amount) ?? 0) > 0 && description.trim() !== '');
+	const canSave = $derived(isPositiveAmount(amount) && description.trim() !== '');
 
 	/** The rows still missing a value (drawer): same fields and messages as the server. */
 	function missing() {
