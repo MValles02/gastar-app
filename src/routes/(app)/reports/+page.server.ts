@@ -38,16 +38,15 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		isCurrent: ym >= current
 	};
 
-	const summary = await accountSummaryOnce(userId);
-	if (!hasAccountsIn(summary, currency)) return { currency, nav, hasCurrency: false as const };
-
 	const months = lastMonths(ym, FLOW_MONTHS);
 	const range = monthRange(ym);
-	const [flows, cats, [biggest]] = await Promise.all([
+	const [summary, flows, cats, [biggest]] = await Promise.all([
+		accountSummaryOnce(userId),
 		monthlyFlows(userId, currency, { start: monthRange(months[0]).start, end: range.end }),
 		categorySums(userId, currency, range),
 		biggestOutcome(userId, currency, range)
 	]);
+	if (!hasAccountsIn(summary, currency)) return { currency, nav, hasCurrency: false as const };
 
 	const bars = months.map((m) => {
 		const f = flows.find((x) => x.month === m);
