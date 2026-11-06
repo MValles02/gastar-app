@@ -340,6 +340,10 @@ export const mpImportItems = pgTable(
 		operationType: text('operation_type'),
 		poiType: text('poi_type'),
 		movementId: uuid('movement_id').references(() => movements.id, { onDelete: 'set null' }),
+		// Set when the approval was automatic (a learned rule after an import); cleared by an undo.
+		autoApprovedAt: timestamp('auto_approved_at', { withTimezone: true }),
+		// The user undid an automatic approval: the item is never auto-approved again.
+		autoApproveBlocked: boolean('auto_approve_blocked').default(false).notNull(),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp('updated_at', { withTimezone: true })
 			.defaultNow()
@@ -407,7 +411,9 @@ export const mpSyncState = pgTable('mp_sync_state', {
 	// Step of the running sync ('payments' | 'report'), read only while the lease is held.
 	phase: text('phase'),
 	// Items the current (or last) run stored: payments first, report items added when it lands.
-	newItems: integer('new_items')
+	newItems: integer('new_items'),
+	// Items the last run approved automatically; null while running or before the first run that recorded it.
+	autoApproved: integer('auto_approved')
 });
 
 // Tokens are AES-256-GCM ciphertext ("v1:" + base64(iv | tag | ct), AAD = user_id), never plaintext.

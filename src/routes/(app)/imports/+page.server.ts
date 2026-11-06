@@ -4,6 +4,7 @@ import {
 	importPrefill,
 	importSourcesEnabled,
 	importTitle,
+	listAutoApproved,
 	listPendingImports,
 	undoApproval
 } from '$lib/server/import-queries';
@@ -17,7 +18,7 @@ import {
 	approveSuggestion,
 	counterAccountsOf,
 	suggestionContext
-} from './approve.server';
+} from '$lib/server/import-approve';
 import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -49,9 +50,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
 	requireSources();
 	const mp = await getMpImportAccount(userId);
-	const [items, ctx] = await Promise.all([listPendingImports(userId), suggestionContext(userId)]);
+	const [items, ctx, autoRows] = await Promise.all([
+		listPendingImports(userId),
+		suggestionContext(userId),
+		listAutoApproved(userId)
+	]);
 	// Nothing to review and no source linked: send the user to the connections.
-	if (!mp && items.length === 0) redirect(303, '/profile/vinculaciones');
+	if (!mp && items.length === 0 && autoRows.length === 0) redirect(303, '/profile/vinculaciones');
 	const sync = mp ? await getSyncState(userId, mp.id) : null;
 	const needsReconnect = (await getConnectionInfo(userId))?.needsReconnect ?? false;
 
@@ -105,10 +110,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		// 'payments' (also before the first step is recorded) or 'report'; null when idle.
 		phase: running ? (sync?.phase === 'report' ? 'report' : 'payments') : null,
 		newItems: sync?.newItems ?? null,
+		autoApproved: sync?.autoApproved ?? null,
 		lastError: sync?.lastError ?? null,
 		lastRun: sync?.lastRunAt ? agoLabel(sync.lastRunAt, now) : null,
 		done: DONE.find((d) => d === done) ?? null,
-		groups
+		groups,
+		// Approved automatically in the last 30 days; the line opens their list (/imports/auto).
+		autoCount: autoRows.length
 	};
 };
 
@@ -141,7 +149,7 @@ export const actions: Actions = {
 		}
 	},
 
-	/** Deshacer of a quick approval: removes its movement and puts the item back to pending. */
+	/** Deshacer of a quick or automatic approval: removes its movement and puts the item back to pending. */
 	undoApprove: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
 		requireSources();

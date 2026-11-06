@@ -170,12 +170,16 @@ Approval inbox for Mercado Pago activity. Imports land here, never on `movements
 | `raw_description` | text | |
 | `counterparty_id`, `counterparty_nickname`, `merchant`, `operation_type`, `poi_type` | text, nullable | |
 | `movement_id` | fk → `movements.id`, nullable | ON DELETE SET NULL |
+| `auto_approved_at` | timestamptz, nullable | set when the approval was automatic; cleared by an undo |
+| `auto_approve_blocked` | boolean, default false | the user undid an automatic approval: never auto-approved again |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
 
 Constraints: `UNIQUE (user_id, external_key)`. Index: `(user_id, status, occurred_at)`.
 
 Approving is one transaction: a conditional `pending` → `approved` update (zero rows = already handled, nothing written), the movement insert, `movement_id`, and the rule upsert. Rejecting is a conditional `pending` → `rejected` update; the row stays so its external key is never re-imported.
+
+Auto-approval (`autoApprovePending(userId)`, source-agnostic, run after every sync run before the lease is released) approves, through the same transaction, every pending item whose read-time prefill is a usable rule, skipping `auto_approve_blocked` items; it never writes a rule and an item whose movement fails validation stays pending. It stamps `auto_approved_at`. Undoing an approval (one transaction: delete the unedited movement, item back to `pending`) clears `auto_approved_at` and, when it was set, sets `auto_approve_blocked`.
 
 ### `mp_import_rules`
 
@@ -209,6 +213,9 @@ One row per synced account.
 | `running_since` | timestamptz, nullable | |
 | `last_run_at` | timestamptz, nullable | |
 | `last_error` | text, nullable | error code only |
+| `phase` | text, nullable | step of the running sync |
+| `new_items` | integer, nullable | items the current/last run stored |
+| `auto_approved` | integer, nullable | items the last run approved automatically |
 
 ### `mp_connections`
 

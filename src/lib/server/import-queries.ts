@@ -1,7 +1,9 @@
-import { and, count, desc, eq, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, gt, inArray, isNotNull, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { formatDay, LOCALE } from '$lib/locale';
 import { db } from './db';
 import {
+	categories,
 	financialAccounts,
 	movements,
 	mpImportItems,
@@ -39,7 +41,8 @@ const itemColumns = {
 	counterpartyNickname: mpImportItems.counterpartyNickname,
 	merchant: mpImportItems.merchant,
 	operationType: mpImportItems.operationType,
-	rawDescription: mpImportItems.rawDescription
+	rawDescription: mpImportItems.rawDescription,
+	autoApproveBlocked: mpImportItems.autoApproveBlocked
 };
 
 export function listPendingImports(userId: string) {
@@ -267,7 +270,7 @@ export type ApproveRule = {
 
 /**
  * One transaction: claim the pending item, insert the movement, link it and, when `remember` is set,
- * learn the rule (no rule is created or changed otherwise).
+ * learn the rule (no rule is created or changed otherwise). `auto` stamps it as an automatic approval.
  * 'stale' (nothing written) when the item is no longer pending.
  */
 export function approveImport(
@@ -275,12 +278,13 @@ export function approveImport(
 	item: ImportItem,
 	row: MovementRow,
 	rule: ApproveRule,
-	remember: boolean
+	remember: boolean,
+	auto = false
 ): Promise<'approved' | 'stale'> {
 	return db.transaction(async (tx) => {
 		const [claimed] = await tx
 			.update(mpImportItems)
-			.set({ status: 'approved' })
+			.set({ status: 'approved', autoApprovedAt: auto ? sql`now()` : null })
 			.where(and(eq(mpImportItems.id, item.id), pending(userId)))
 			.returning({ id: mpImportItems.id });
 		if (!claimed) return 'stale';
@@ -327,7 +331,8 @@ export async function rejectImport(userId: string, id: string): Promise<'rejecte
  * Undo of an approval, in one transaction: deletes the movement the approval created and puts the item
  * back to pending. 'changed' when the movement was edited meanwhile, 'stale' when the item is not an
  * approved one with a movement (still pending, rejected, or its movement was deleted); nothing is
- * written in either case. Rules are untouched: a quick approval never learns one.
+ * written in either case. Rules are untouched: a quick approval never learns one. Undoing an automatic
+ * approval also blocks the item from being auto-approved again (it stays for manual review).
  */
 export function undoApproval(userId: string, id: string): Promise<'undone' | 'changed' | 'stale'> {
 	return db.transaction(async (tx) => {
@@ -355,8 +360,57 @@ export function undoApproval(userId: string, id: string): Promise<'undone' | 'ch
 		await deleteMovement(userId, item.movementId, tx);
 		await tx
 			.update(mpImportItems)
-			.set({ status: 'pending', movementId: null })
+			.set({
+				status: 'pending',
+				movementId: null,
+				autoApprovedAt: null,
+				autoApproveBlocked: sql`${mpImportItems.autoApproveBlocked} or ${mpImportItems.autoApprovedAt} is not null`
+			})
 			.where(and(eq(mpImportItems.id, id), canAccessImport(userId)));
 		return 'undone';
 	});
+}
+
+const counter = alias(financialAccounts, 'counter');
+
+/**
+ * Items approved automatically in the last 30 days whose movement still exists, newest first, with the
+ * category (income/outcome) or counter account (transfer) of that movement.
+ */
+export function listAutoApproved(userId: string) {
+	return db
+		.select({
+			id: mpImportItems.id,
+			kind: mpImportItems.kind,
+			isCredit: mpImportItems.isCredit,
+			amount: mpImportItems.amount,
+			occurredAt: mpImportItems.occurredAt,
+			counterpartyNickname: mpImportItems.counterpartyNickname,
+			merchant: mpImportItems.merchant,
+			rawDescription: mpImportItems.rawDescription,
+			autoApprovedAt: mpImportItems.autoApprovedAt,
+			category: categories.name,
+			counterAccount: counter.name
+		})
+		.from(mpImportItems)
+		.innerJoin(movements, eq(movements.id, mpImportItems.movementId))
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.leftJoin(categories, eq(categories.id, movements.categoryId))
+		.leftJoin(
+			counter,
+			eq(
+				counter.id,
+				sql`case when ${movements.accountId} = ${mpImportItems.accountId} then ${movements.destinationAccountId} else ${movements.accountId} end`
+			)
+		)
+		.where(
+			and(
+				canAccessImport(userId),
+				canAccessMovement(userId),
+				eq(mpImportItems.status, 'approved'),
+				isNotNull(mpImportItems.autoApprovedAt),
+				gt(mpImportItems.autoApprovedAt, sql`now() - interval '30 days'`)
+			)
+		)
+		.orderBy(desc(mpImportItems.autoApprovedAt), desc(mpImportItems.occurredAt));
 }

@@ -12,7 +12,7 @@ import {
 	rememberKey
 } from '$lib/server/import-queries';
 import { failIfUnavailable, movementPickers } from '../../movements/form.server';
-import { approveWithValues } from '../approve.server';
+import { approveWithValues } from '$lib/server/import-approve';
 import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
 
