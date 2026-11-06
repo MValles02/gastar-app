@@ -90,7 +90,7 @@ async function arrange(page: Page, baseURL: string, seed: Seed = {}) {
 	return description;
 }
 
-const listUrl = (description: string) => `/movements?q=${encodeURIComponent(description)}`;
+const listUrl = (description: string) => `/movements?q=${encodeURIComponent(description)}&all=1`;
 
 /** The list row of `description`, behind or without the drawer (CSS: the modal hides it from roles). */
 const rowOf = (page: Page, description: string) => page.locator('a', { hasText: description });

@@ -105,10 +105,10 @@ test('past month totals match its six-month link; tapping a bar opens its month'
 // the percentages use largest-remainder rounding, so they always total exactly 100.
 test('category slices sum to 100 % and to the month spending', async ({ page }) => {
 	await page.goto('/reports');
-	const pcts = await rows(page).locator('.row-meta').allTextContents();
+	const pcts = await rows(page).locator('.pct').allTextContents();
 	expect(pcts.length).toBeGreaterThan(0);
 	expect(pcts.reduce((a, p) => a + amountOf(p), 0)).toBe(100);
-	const amts = await rows(page).locator('.row-amount').allTextContents();
+	const amts = await rows(page).locator('.row-amount > .money').allTextContents();
 	const gastos = await total(page, 'Gastos').textContent();
 	expect(amts.reduce((a, t) => a + amountOf(t), 0)).toBe(amountOf(gastos));
 });

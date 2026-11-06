@@ -13,7 +13,6 @@
 	import ListCard from '$lib/components/ListCard.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SwitchRow from '$lib/components/SwitchRow.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import { openShallow } from '$lib/open-shallow';
@@ -45,8 +44,6 @@
 	<title>Crear plan · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Crear plan" close={{ href: resolve('/plan'), label: 'Cerrar' }} />
-
 {#snippet bar(submitLabel: string, nextHref?: string)}
 	<FormActions
 		cancelHref={data.step === 1 ? '/plan' : stepHref(data.step - 1)}
@@ -57,7 +54,7 @@
 {/snippet}
 
 {#snippet question()}
-	<h2 class="question">{titles[data.step - 1]}</h2>
+	<h1 class="question">{titles[data.step - 1]}</h1>
 {/snippet}
 
 {#snippet add(href: string, key: 'newRule' | 'newLimit')}
@@ -72,7 +69,7 @@
 	{@render add('/plan/limits/new?wizard=4', 'newLimit')}
 {/snippet}
 
-<div class="wizard">
+<div class="wizard root">
 	<ol class="steps" aria-label="Pasos">
 		{#each titles as label, i (label)}
 			<li
@@ -91,7 +88,6 @@
 	{#if data.step <= 2}
 		{@const income = data.step === 1}
 		{@render question()}
-		{#if !income}<p class="muted small">Alquiler, servicios, suscripciones.</p>{/if}
 		<section class="group">
 			<SectionHeader level={3} title={income ? 'Ingresos fijos' : 'Pagos fijos'} aside={addRule} />
 			<ListCard>
@@ -150,7 +146,6 @@
 		{@render bar('Siguiente', stepHref(data.step + 1))}
 	{:else if data.step === 3}
 		{@render question()}
-		<p class="muted small">Lo apartamos antes de calcular cuánto podés gastar.</p>
 		<form
 			method="POST"
 			action="?/savings"
@@ -178,7 +173,6 @@
 		</form>
 	{:else if data.step === 4}
 		{@render question()}
-		<p class="muted small">Opcional: topes de gasto por categoría.</p>
 		{#if data.canSuggest}
 			<form method="POST" action="?/suggested" use:enhance class="suggest">
 				<Button type="submit" variant="outline" class="w-full">Usar sugeridos</Button>
@@ -191,7 +185,7 @@
 		{@render bar('Siguiente', stepHref(5))}
 	{:else}
 		{@const s = data.summary!}
-		<h2 class="question">{titles[4]} para {data.monthName}</h2>
+		<h1 class="question">{titles[4]} para {data.monthName}</h1>
 		<Card.Root class="gap-0 overflow-hidden py-0">
 			<dl class="figures">
 				<div class="kv">
@@ -269,6 +263,34 @@
 		gap: var(--space-4);
 	}
 
+	/* No header on this screen: the progress bar starts the page. */
+	.root {
+		padding-top: calc(var(--space-4) + env(safe-area-inset-top));
+	}
+
+	/* The footer sits at the bottom of the screen, 30px up, like the canvas (no tab bar here, so the
+	   root takes back .content's bottom padding, see (app)/+layout.svelte). Step forms grow so
+	   their footer can drop too. */
+	.root {
+		box-sizing: border-box;
+		min-height: 100dvh;
+		margin-bottom: calc(-1 * (var(--space-8) + 4.5rem + env(safe-area-inset-bottom)));
+		padding-bottom: calc(18px + env(safe-area-inset-bottom));
+	}
+
+	.root > form {
+		flex: 1;
+	}
+
+	.wizard :global(.bar) {
+		margin-top: auto;
+	}
+
+	/* Cancelar/Atrás 1 : Siguiente 2. */
+	.wizard :global(.bar > :last-child) {
+		flex-grow: 2;
+	}
+
 	.question {
 		font-family: var(--font-display);
 		font-size: var(--font-size-xl);
@@ -277,14 +299,14 @@
 		line-height: 1.2;
 	}
 
-	/* Five-bar progress in the text colour (selection is primary, progress is not). */
+	/* Five-bar progress, filled in the primary green. */
 	.steps {
 		list-style: none;
 		margin: 0;
 		padding: 0;
 		display: grid;
 		grid-template-columns: repeat(5, 1fr);
-		gap: 6px;
+		gap: 4px;
 	}
 
 	.steps li {
@@ -295,7 +317,7 @@
 
 	.steps .done,
 	.steps .current {
-		background: var(--text);
+		background: var(--primary);
 	}
 
 	/* A warning, not an error: muted box, alert icon in the text colour. */

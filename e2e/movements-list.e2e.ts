@@ -68,7 +68,8 @@ test('a sticky month header holds short day headings', async ({ page, baseURL })
 		['Banco Galicia', yesterday],
 		['Banco Galicia', '2023-03-27']
 	]);
-	await page.goto(`/movements?q=${encodeURIComponent(prefix)}`);
+	// No date params list this month only: ask for every date to reach the 2023 row.
+	await page.goto(`/movements?q=${encodeURIComponent(prefix)}&all=1`);
 
 	const month = (ymd: string) => {
 		const [y, m] = ymd.split('-').map(Number);

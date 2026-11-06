@@ -4,6 +4,7 @@
 	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
+	import StatusPill from '$lib/components/StatusPill.svelte';
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 
@@ -39,6 +40,12 @@
 						{#snippet amount()}
 							<Money cents={n.amount ?? 0} currency={g.currency} tone="flow" direction="outcome" />
 						{/snippet}
+						{#snippet statusPill()}
+							{#if n.kind !== 'payment'}<StatusPill
+									tone={n.status.tone}
+									label={n.status.label}
+								/>{/if}
+						{/snippet}
 						{#snippet row(submit: boolean)}
 							<ListRow
 								href={submit ? undefined : n.href}
@@ -49,10 +56,8 @@
 										? { icon: n.icon, color: n.color }
 										: { letter: n.name.charAt(0).toUpperCase(), color: n.color }}
 								title={n.name}
-								status={n.kind === 'payment' ? undefined : n.status}
-								value={n.kind === 'payment' ? amount : undefined}
+								value={n.kind === 'payment' ? amount : statusPill}
 								meta={n.kind === 'payment' ? dueMeta : message}
-								metaLines={2}
 							/>
 						{/snippet}
 						{#if !n.switchCurrency}
@@ -76,7 +81,11 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-5);
+		gap: 0.875rem;
+	}
+
+	.page :global([data-slot='item']) {
+		min-height: 3.75rem;
 	}
 
 	.empty {

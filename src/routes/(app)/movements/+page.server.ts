@@ -5,7 +5,7 @@ import { listCategories } from '$lib/server/categories-queries';
 import type { Currency } from '$lib/money';
 import { toRecentItem } from '$lib/server/dashboard';
 import { dayHeading, localDay, monthHeading } from '$lib/server/month';
-import { parseMovementFilters } from '$lib/server/movements';
+import { applyDefaultRange, parseMovementFilters } from '$lib/server/movements';
 import { listMovements, PAGE_SIZE, summarizeMovements } from '$lib/server/movements-queries';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -14,10 +14,18 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		values,
 		accounts: accountIds,
 		categories: categoryIds,
-		query: parsed,
+		query: base,
 		page,
-		activeCount
+		activeCount: parsedCount
 	} = parseMovementFilters(url.searchParams);
+	const today = localDay(new Date());
+	const {
+		query: parsed,
+		allDates,
+		explicitDefault
+	} = applyDefaultRange(base, url.searchParams, today);
+	// The default range, implicit or explicit, is not an active filter.
+	const activeCount = parsedCount - (explicitDefault ? 1 : 0);
 	// An explicit account filter wins over ?currency=.
 	const query = { ...parsed, currency: accountIds.length ? ('' as const) : parsed.currency };
 
@@ -31,7 +39,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Filter/search active: total matches.
 	const summary = activeCount > 0 ? { count: summaryRows.reduce((a, r) => a + r.count, 0) } : null;
 
-	const today = localDay(new Date());
 	// Common currency of the selected accounts (null when none or mixed).
 	const selectedCurrencies = new Set(
 		accountRows.filter((a) => accountIds.includes(a.id)).map((a) => a.currency)
@@ -77,7 +84,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	}
 
 	return {
-		filters: values,
+		filters: { ...values, from: parsed.from, to: parsed.to } as Record<string, string>,
+		allDates,
 		accountIds,
 		categoryIds,
 		lockedCurrency,

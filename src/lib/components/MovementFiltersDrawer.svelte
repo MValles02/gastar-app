@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ComponentProps } from 'svelte';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import { startOfMonth, today } from '@internationalized/date';
 	import { resolve } from '$app/paths';
 	import { replaceGoto } from '$lib/nav-stack.svelte';
 	import BottomDrawer from './BottomDrawer.svelte';
@@ -45,6 +46,12 @@
 		{ value: 'transfer', label: 'Transf.' }
 	];
 
+	/** "Este mes", the default date range (same as the picker's preset). */
+	const thisMonth = () => {
+		const t = today('America/Argentina/Buenos_Aires');
+		return [startOfMonth(t).toString(), t.toString()];
+	};
+
 	let currency = $state('');
 	let type = $state('');
 	let from = $state('');
@@ -83,6 +90,8 @@
 		if (type) sp.set('type', type);
 		if (from) sp.set('from', from);
 		if (to) sp.set('to', to);
+		// No dates means every date, asked for explicitly (the list defaults to this month).
+		if (!from && !to) sp.set('all', '1');
 		for (const id of stagedAccounts) sp.append('account', id);
 		for (const id of stagedCategories) sp.append('category', id);
 		return sp.toString();
@@ -109,7 +118,8 @@
 	});
 
 	const clear = () => {
-		currency = type = from = to = '';
+		currency = type = '';
+		[from, to] = thisMonth();
 		stagedAccounts = [];
 		stagedCategories = [];
 	};
@@ -165,12 +175,12 @@
 		<Button
 			type="button"
 			variant="outline"
-			class="h-auto min-h-11 min-w-0 flex-1 basis-0 rounded-full"
+			class="h-[50px] min-w-0 flex-1 basis-0 rounded-full text-[15px] font-semibold"
 			onclick={clear}>Limpiar</Button
 		>
 		<Button
 			type="button"
-			class="h-auto min-h-11 min-w-0 flex-[2] basis-0 rounded-full"
+			class="h-[50px] min-w-0 flex-[2] basis-0 rounded-full text-[15px] font-semibold whitespace-nowrap"
 			onclick={apply}>{viewLabel}</Button
 		>
 	</div>
