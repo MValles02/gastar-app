@@ -9,7 +9,7 @@ import {
 	listAccounts
 } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
-import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
+import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/validation';
 import { dateLabel, localDay } from '$lib/server/month';
 import { notFoundHelpers } from '$lib/server/not-found';
 import { type MovementData, resolveMovement, UNAVAILABLE_MESSAGE } from '$lib/server/movements';

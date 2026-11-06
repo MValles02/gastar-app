@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { PREFERENCE_COOKIE_OPTIONS } from '$lib/server/cookies';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import type { Actions, PageServerLoad } from './$types';
-import { isUuid } from '$lib/server/db/util';
+import { isUuid } from '$lib/server/validation';
 import { formatAmountInput } from '$lib/money';
 import { localDay } from '$lib/server/month';
 import { parseMovementForm } from '$lib/server/movements';
