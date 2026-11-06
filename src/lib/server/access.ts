@@ -46,6 +46,14 @@ export function canAccessMovement(
 	return and(eq(movements.userId, userId), canAccessAccount(userId, origin))!;
 }
 
+/**
+ * The single path for bulk operations over every movement a user owns (account deletion).
+ * Per-movement reads and writes use canAccessMovement.
+ */
+export function allMovementsOf(userId: string): SQL {
+	return eq(movements.userId, userId);
+}
+
 /** The single ownership check for recurring rules. Accepts an alias. */
 export function canAccessRecurring(
 	userId: string,
