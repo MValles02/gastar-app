@@ -54,14 +54,11 @@
 	{/if}
 {/snippet}
 
-{#snippet dateMeta()}{date}{/snippet}
-
-{#snippet accountMeta()}
-	{m.type === 'transfer' ? `${m.accountName} → ${m.destinationAccountName}` : m.accountName}
-{/snippet}
-
-{#snippet where()}
-	<span class="end">{@render accountMeta()}</span>
+<!-- Canvas: "Cuenta · día" on the left, the amount alone on the right. -->
+{#snippet meta()}
+	{m.type === 'transfer' ? `${m.accountName} → ${m.destinationAccountName}` : m.accountName}{date
+		? ` · ${date}`
+		: ''}
 {/snippet}
 
 <!-- The wrapper only carries the e2e/test hook; it adds no box. -->
@@ -81,8 +78,7 @@
 				: { letter: m.description.charAt(0).toUpperCase(), color: null }}
 		title={m.description}
 		{value}
-		meta={date ? dateMeta : accountMeta}
-		metaEnd={date ? where : undefined}
+		{meta}
 	/>
 </div>
 
@@ -116,15 +112,5 @@
 		font-size: var(--font-size-xs);
 		font-weight: 400;
 		color: var(--text-muted);
-	}
-
-	/* Line 2 never wraps: the account truncates first, then the date. */
-	.end {
-		flex: 1 1 0;
-		min-width: 0;
-		overflow: hidden;
-		white-space: nowrap;
-		text-overflow: ellipsis;
-		text-align: end;
 	}
 </style>

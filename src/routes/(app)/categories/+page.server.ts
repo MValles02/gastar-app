@@ -25,11 +25,25 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const currency: Currency | 'both' =
 		param === 'both' ? 'both' : (CURRENCIES.find((c) => c === param) ?? 'ARS');
 
-	const [anyCategory, categories, totals] = await Promise.all([
+	const [anyCategory, all, totals] = await Promise.all([
 		hasAnyCategory(userId),
-		listCategories(userId, { q, archived, kind: kind || undefined }),
+		listCategories(userId, { archived: true }),
 		categoryMonthTotals(userId, monthRange(currentMonth(new Date())))
 	]);
+
+	// The drawer counts the staged choice client-side from these (every category, archived included).
+	const matches = (name: string) => name.toLowerCase().includes(q.toLowerCase());
+	const facets = all.map((c) => ({
+		kind: c.kind,
+		archived: c.archivedAt !== null,
+		match: matches(c.name)
+	}));
+	const categories = all.filter(
+		(c) =>
+			(archived || c.archivedAt === null) &&
+			(!kind || c.kind === kind || c.kind === null) &&
+			matches(c.name)
+	);
 
 	// Month net (income - outcome) per category and currency, computed at read time.
 	const nets = new Map<string, { ARS?: number; USD?: number }>();
@@ -55,6 +69,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	return {
 		filters: { q, archived, kind, currency },
+		facets,
 		hasAnyCategory: anyCategory.length > 0,
 		groups
 	};

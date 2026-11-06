@@ -175,7 +175,7 @@ test('an account without movements can be archived or deleted, and links to its 
 	await expect(page.getByRole('button', { name: 'Archivar' })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Ver movimientos' })).toHaveAttribute(
 		'href',
-		`/movements?account=${id}`
+		`/movements?account=${id}&all=1`
 	);
 	await page.goto(url);
 	await page.waitForLoadState('networkidle'); // hydration guard: the confirm dialog needs JS

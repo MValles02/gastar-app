@@ -165,7 +165,7 @@
 	{/if}
 
 	<div class="actions">
-		<Button href={resolve(`/movements?category=${c.id}`)} variant="outline" class="w-full">
+		<Button href={resolve(`/movements?category=${c.id}&all=1`)} variant="outline" class="w-full">
 			Ver movimientos
 		</Button>
 		{#if data.actions.canArchive}

@@ -21,7 +21,7 @@
 	};
 
 	/**
-	 * Category limits as Inicio's category rows: glyph, name, % of the limit and what was spent, the meter
+	 * Category limits as Inicio's category rows: glyph, name, then % of the limit (muted) and what was spent inline, the meter
 	 * below; over the limit the % and the meter turn red. Outside the wizard a click opens the limit's
 	 * drawer over the screen; in the wizard (`wizard` step) the row links to the page.
 	 */
@@ -44,10 +44,12 @@
 		{#each limits as l (l.categoryId)}
 			{@const pct = l.amount > 0 ? Math.floor((l.spent * 100) / l.amount) : 0}
 			{#snippet value()}
-				<Money cents={l.spent} {currency} />
-			{/snippet}
-			{#snippet meta()}
-				<span class:over={l.over}>{pct}%</span>
+				<span class="inline"
+					><span class="pct" class:over={l.over}>{pct}%</span><Money
+						cents={l.spent}
+						{currency}
+					/></span
+				>
 			{/snippet}
 			{#snippet footer()}
 				<Meter
@@ -71,7 +73,6 @@
 					}}
 					title={l.name}
 					{value}
-					{meta}
 					{footer}
 				/>
 			</div>
@@ -82,7 +83,19 @@
 {/if}
 
 <style>
-	.over {
+	.inline {
+		display: inline-flex;
+		align-items: baseline;
+		gap: var(--space-2);
+	}
+
+	.pct {
+		font-size: var(--font-size-sm);
+		font-weight: 400;
+		color: var(--text-muted);
+	}
+
+	.pct.over {
 		color: var(--negative);
 		font-weight: 600;
 	}

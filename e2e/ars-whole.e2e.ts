@@ -34,7 +34,7 @@ const norm = (s: string | null) => (s ?? '').replace(/[\u00A0\u200B]/g, ' ').tri
 const save = (page: Page) => page.getByRole('button', { name: 'Guardar', exact: true }).click();
 // A row opens the movement drawer over the list (the URL does not change).
 const openDetail = async (page: Page, desc: string, currency: 'ARS' | 'USD' = 'ARS') => {
-	await page.goto(`/movements?q=${encodeURIComponent(desc)}&currency=${currency}`);
+	await page.goto(`/movements?q=${encodeURIComponent(desc)}&currency=${currency}&all=1`);
 	await page.getByText(desc).click();
 	const drawer = page.getByRole('dialog');
 	await expect(drawer).toBeVisible();
@@ -84,7 +84,7 @@ test('an ARS whole amount shows without decimals everywhere', async ({ page }) =
 	await save(page);
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 
-	await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
+	await page.goto(`/movements?q=${encodeURIComponent(desc)}&all=1`);
 	const row = page.locator('a', { hasText: desc }).locator('.row-amount');
 	expect(norm(await row.textContent())).toMatch(/^-\$1\.500$/);
 

@@ -51,9 +51,8 @@
 	}}
 >
 	<input type="hidden" name="redirectTo" value={page.url.pathname + page.url.search} />
-	<span id="currency-tabs-label" class="visually-hidden">Moneda</span>
 	{#if variant === 'pills'}
-		<div role="group" aria-labelledby="currency-tabs-label" class="pill-group">
+		<div role="group" aria-label="Moneda" class="pill-group">
 			{#each pills as p (p.value)}
 				<button type="submit" name="currency" value={p.value} aria-pressed={value === p.value}>
 					<span class="pill">{p.label}</span>
@@ -61,6 +60,7 @@
 			{/each}
 		</div>
 	{:else}
+		<span id="currency-tabs-label" class="visually-hidden">Moneda</span>
 		<SegmentedControl
 			name="currency"
 			{options}

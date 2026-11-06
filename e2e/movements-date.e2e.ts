@@ -42,7 +42,8 @@ test.describe('without JavaScript', () => {
 	test('create stores the date and shows no time', async ({ page }) => {
 		const desc = unique('Fecha crear');
 		await create(page, desc, '2024-02-29');
-		await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
+		// Without date params the list shows this month only; `all=1` asks for every date.
+		await page.goto(`/movements?q=${encodeURIComponent(desc)}&all=1`);
 		await expect(
 			page.getByRole('heading', { level: 2, name: /^Febrero( de)? 2024$/ })
 		).toBeVisible();
@@ -100,7 +101,7 @@ test.describe('without JavaScript', () => {
 	});
 });
 test('a legacy non-midnight row uses its Buenos Aires date everywhere', async ({ page }) => {
-	const list = '/movements?q=Legado';
+	const list = '/movements?q=Legado&all=1';
 	await page.goto(list);
 	await expect(page.getByRole('heading', { level: 2, name: /^Marzo( de)? 2025$/ })).toBeVisible();
 	await expect(

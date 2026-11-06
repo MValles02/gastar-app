@@ -128,15 +128,15 @@
 				<SectionHeader id="cat-heading" title="Gastos por categoría" />
 				{#if data.slices.length === 0}
 					<Card.Root class="gap-0 overflow-hidden py-0">
-						<p class="empty-card">No hay gastos con categoría en {data.nav.label.toLowerCase()}.</p>
+						<p class="empty-card">No hay gastos.</p>
 					</Card.Root>
 				{:else}
 					<ListCard>
 						{#each data.slices as s (s.id)}
 							{#snippet sliceValue()}
+								<span class="pct">{s.percent}%</span>
 								<Money cents={s.amount} currency={data.currency} tone="flow" direction="outcome" />
 							{/snippet}
-							{#snippet sliceMeta()}{s.percent}%{/snippet}
 							{#snippet sliceFooter()}
 								<Meter percent={s.percent} color={sliceColor(s)} />
 							{/snippet}
@@ -153,7 +153,6 @@
 										}}
 								title={s.name}
 								value={sliceValue}
-								meta={sliceMeta}
 								footer={sliceFooter}
 							/>
 						{/each}
@@ -353,6 +352,14 @@
 		width: 8px;
 		height: 8px;
 		border-radius: 2px;
+	}
+
+	/* Canvas: the share sits beside the amount, muted. */
+	.pct {
+		margin-right: var(--space-2);
+		font-size: var(--font-size-sm);
+		font-weight: 400;
+		color: var(--text-muted);
 	}
 
 	.empty-card {

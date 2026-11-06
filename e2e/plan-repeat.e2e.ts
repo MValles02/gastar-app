@@ -210,7 +210,7 @@ test('Inicio with a plan shows the same Disponible as /plan and links to it', as
 		.getByRole('link', { name: 'Plan', exact: true })
 		.click();
 	await expect(page).toHaveURL(/\/plan$/);
-	const summary = page.getByRole('region', { name: /^Disponible · / });
+	const summary = page.getByRole('region', { name: /^Disponible$/ });
 	// Inicio renders a negative amount as "-" + newline + amount: compare without whitespace.
 	expect((await summary.locator('.hero').innerText()).replace(/\s/g, '')).toBe(
 		onHome.replace(/\s/g, '')

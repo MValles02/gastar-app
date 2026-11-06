@@ -10,7 +10,7 @@ import {
 } from '$lib/money';
 import { isUuid } from './db/util';
 import type { MovementType } from './dashboard';
-import { dayStart } from './month';
+import { dayStart, localDay } from './month';
 
 export type MovementData = {
 	type: MovementType;
@@ -247,4 +247,24 @@ export function parseMovementFilters(sp: URLSearchParams) {
 		(account.length ? 1 : 0) +
 		(category.length ? 1 : 0);
 	return { values: shown, accounts: account, categories: category, query, page, activeCount };
+}
+
+/**
+ * Movimientos defaults to "Este mes" (month start up to today) when the URL has no dates; `all=1` is
+ * the explicit way to see every date. Shared by the list and the drawer's count so both agree.
+ * `explicitDefault`: the URL spells out the default range, which is not an active filter.
+ */
+export function applyDefaultRange(
+	query: MovementFilterQuery,
+	sp: URLSearchParams,
+	today = localDay(new Date())
+) {
+	const monthStart = `${today.slice(0, 7)}-01`;
+	const noDates = !query.from && !query.to;
+	const allDates = noDates && sp.get('all') === '1';
+	return {
+		query: noDates && !allDates ? { ...query, from: monthStart, to: today } : query,
+		allDates,
+		explicitDefault: query.from === monthStart && query.to === today
+	};
 }

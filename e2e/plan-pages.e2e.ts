@@ -91,7 +91,7 @@ test.beforeEach(async ({ page }) => {
 /** A row of the Disponible card by its label. */
 const kv = (page: Page, label: string) => page.locator('.kv', { hasText: label });
 const available = (page: Page) =>
-	page.getByRole('region', { name: /^Disponible · / }).locator('.hero-amount');
+	page.getByRole('region', { name: /^Disponible$/ }).locator('.hero-amount');
 const limits = (page: Page) => page.getByRole('region', { name: 'Límites por categoría' });
 const savePlan = (page: Page) => page.getByRole('button', { name: 'Guardar', exact: true });
 
@@ -171,7 +171,7 @@ test('the wizard creates a plan in five steps, returning from the add screens', 
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/plan$/);
 	await expect(page.getByText('Plan guardado.')).toBeVisible();
-	await expect(page.getByRole('region', { name: /^Disponible · / })).toBeVisible();
+	await expect(page.getByRole('region', { name: /^Disponible$/ })).toBeVisible();
 });
 
 test('10 % savings follows an income change, Otro validates and saves both', async ({

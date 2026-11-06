@@ -202,7 +202,8 @@ export const postDelete = (page: Page, baseURL: string, href: string) =>
 /** Detail URLs of the movements a /movements search for `query` lists. */
 export async function findMovements(page: Page, query: string, currency?: 'ARS' | 'USD') {
 	const filter = currency ? `&currency=${currency}` : '';
-	await page.goto(`/movements?q=${encodeURIComponent(query)}${filter}`);
+	// all=1: the list defaults to this month, and the movements may be dated anywhere.
+	await page.goto(`/movements?q=${encodeURIComponent(query)}${filter}&all=1`);
 	const hrefs = await page
 		.locator('a[href*="movements/"]')
 		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));

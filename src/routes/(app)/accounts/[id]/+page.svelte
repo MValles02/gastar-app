@@ -135,7 +135,7 @@
 	{#if a.archived}<p class="note">No aparece al registrar movimientos.</p>{/if}
 
 	<div class="actions">
-		<Button href={resolve(`/movements?account=${a.id}`)} variant="outline" class="w-full">
+		<Button href={resolve(`/movements?account=${a.id}&all=1`)} variant="outline" class="w-full">
 			Ver movimientos
 		</Button>
 		{#if data.actions.canArchive}
