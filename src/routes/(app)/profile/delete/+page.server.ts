@@ -6,16 +6,17 @@ import { ignoreApiError } from '$lib/server/auth-forms';
 import { deleteUserAndData } from '$lib/server/delete-user';
 import { deletionSummary } from '$lib/server/profile-queries';
 import { isBlocked, record } from '$lib/server/rate-limit';
+import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
 
 /** What the confirmation lists: the user's real counts, so it says what is about to go. */
 export const load: PageServerLoad = async ({ locals }) => ({
-	summary: await deletionSummary(locals.user!.id)
+	summary: await deletionSummary(requireUser(locals).id)
 });
 
 export const actions: Actions = {
 	delete: async ({ request, locals }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		if (isBlocked('deleteAccount', userId)) {
 			return formFail(429, { formError: 'Demasiados intentos. Probá de nuevo en un rato.' });
 		}

@@ -10,6 +10,7 @@ import { parseMovementForm } from '$lib/server/movements';
 import { createMovement } from '$lib/server/movements-queries';
 import { isRecurringActive } from '$lib/server/plan';
 import { createMovementWithRule, listRecurring } from '$lib/server/plan-queries';
+import { requireUser } from '$lib/server/require-user';
 import { drawerPickers, failIfUnavailable, resolvePostedMovement } from '../form.server';
 
 /** Remembers the account of the last saved movement as the next form's default. */
@@ -62,7 +63,7 @@ async function findRule(userId: string, id: FormDataEntryValue | null) {
 }
 
 export const load: PageServerLoad = async ({ locals, cookies, url, request }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const { accounts, categories } = await drawerPickers(userId);
 	const rule = await findRule(userId, url.searchParams.get('recurring'));
 	const last = cookies.get(LAST_ACCOUNT_COOKIE);
@@ -103,7 +104,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url, request }) =>
 
 export const actions: Actions = {
 	default: async ({ request, locals, cookies, url }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const fd = await request.formData();
 		const rule = await findRule(userId, fd.get('recurringId'));
 		// A payment always takes the rule's category, whatever was posted.

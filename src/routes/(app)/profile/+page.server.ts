@@ -4,6 +4,7 @@ import { userNameError } from '$lib/server/auth-forms';
 import { PREFERENCE_COOKIE_OPTIONS, THEME_COOKIE } from '$lib/server/cookies';
 import { profileCounts } from '$lib/server/profile-queries';
 import { getConnectionInfo, mpOauthEnabled } from '$lib/server/mp-oauth';
+import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
 
 const THEMES = ['light', 'dark', 'system'] as const;
@@ -24,7 +25,7 @@ async function importsRow(userId: string) {
 }
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
-	const user = locals.user!;
+	const user = requireUser(locals);
 	return {
 		user: { name: user.name, email: user.email },
 		theme: parseTheme(cookies.get(THEME_COOKIE)),

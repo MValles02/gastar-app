@@ -5,9 +5,10 @@ import { preferredCurrency } from '$lib/server/currency-pref';
 import { parseSavingsForm } from '$lib/server/plan';
 import { currentPlan, planIncome, updatePlan } from '$lib/server/plan-queries';
 import { planView } from '$lib/server/plan-view';
+import { requireUser } from '$lib/server/require-user';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const currency = preferredCurrency(cookies);
 	const plan = await currentPlan(userId, currency);
 	if (!plan) redirect(303, '/plan');
@@ -26,7 +27,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 
 export const actions: Actions = {
 	update: async ({ locals, cookies, request }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const currency = preferredCurrency(cookies);
 		if (!(await currentPlan(userId, currency))) redirect(303, '/plan');
 		const r = parseSavingsForm(

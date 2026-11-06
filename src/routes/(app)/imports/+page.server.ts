@@ -13,6 +13,7 @@ import { startMpSync } from '$lib/server/mp-sync';
 import { dayHeading, localDay } from '$lib/server/month';
 import { isUuid } from '$lib/server/db/util';
 import { pgErrorCode } from '$lib/server/db/errors';
+import { requireUser } from '$lib/server/require-user';
 import { approveSuggestedImports, approveSuggestion, suggestionContext } from './approve.server';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -44,7 +45,7 @@ const APPROVE_FAILED = 'No se pudo aprobar.';
 const countParam = (v: string | null) => (v !== null && /^\d{1,9}$/.test(v) ? Number(v) : null);
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const account = await requireAccount(userId);
 	const needsReconnect = (await getConnectionInfo(userId))?.needsReconnect ?? false;
 	const [sync, items, ctx] = await Promise.all([
@@ -106,14 +107,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
 	sync: async ({ locals }) => {
-		await requireAccount(locals.user!.id);
-		await startMpSync(locals.user!.id);
+		await requireAccount(requireUser(locals).id);
+		await startMpSync(requireUser(locals).id);
 		redirect(303, '/imports');
 	},
 
 	/** Quick "Aprobar" of one suggested row; answers with the id so the page can offer Deshacer. */
 	approveOne: async ({ locals, request }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const account = await requireAccount(userId);
 		const id = String((await request.formData()).get('id') ?? '');
 		if (!isUuid(id)) return fail(400, { message: APPROVE_FAILED });
@@ -133,7 +134,7 @@ export const actions: Actions = {
 
 	/** Deshacer of a quick approval: removes its movement and puts the item back to pending. */
 	undoApprove: async ({ locals, request }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		await requireAccount(userId);
 		const id = String((await request.formData()).get('id') ?? '');
 		if (!isUuid(id)) return fail(400, { message: 'No se pudo deshacer.' });
@@ -146,7 +147,7 @@ export const actions: Actions = {
 	},
 
 	approveSuggested: async ({ locals }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const account = await requireAccount(userId);
 		const { approved, skipped } = await approveSuggestedImports(userId, account.id);
 		redirect(303, `/imports?approved=${approved}&skipped=${skipped}`);

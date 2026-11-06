@@ -17,6 +17,7 @@ import {
 	shortMonth
 } from '$lib/server/month';
 import { biggestOutcome, monthlyFlows } from '$lib/server/reports-queries';
+import { requireUser } from '$lib/server/require-user';
 
 /** Months in the flow chart, ending at the selected one. */
 const FLOW_MONTHS = 6;
@@ -24,7 +25,7 @@ const FLOW_MONTHS = 6;
 const TOP_CATEGORIES = 4;
 
 export const load: PageServerLoad = async ({ locals, cookies, url }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const currency = preferredCurrency(cookies);
 	const now = new Date();
 	const current = currentMonth(now);

@@ -24,6 +24,7 @@ import {
 	recurringLists,
 	recurringSuggestions
 } from '$lib/server/plan-view';
+import { requireUser } from '$lib/server/require-user';
 
 /** Suggested limits the wizard can apply: active non-income categories with no limit yet and a suggestion above zero. */
 async function applicableSuggestions(userId: string, cur: Currency, planId: string | null) {
@@ -74,7 +75,7 @@ async function savingsBaseline(userId: string, cur: Currency) {
 type Summary = NonNullable<Awaited<ReturnType<typeof planView>>['summary']>;
 
 export const load: PageServerLoad = async ({ locals, cookies, url }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const currency = preferredCurrency(cookies);
 	const param = parseStep(url.searchParams.get('step'));
 	const step = param ?? 1;
@@ -138,7 +139,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 
 export const actions: Actions = {
 	savings: async ({ locals, cookies, request }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const currency = preferredCurrency(cookies);
 		const r = parseSavingsForm(
 			await request.formData(),
@@ -155,7 +156,7 @@ export const actions: Actions = {
 		redirect(303, '/plan/setup?step=4');
 	},
 	suggested: async ({ locals, cookies }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const currency = preferredCurrency(cookies);
 		const plan = await currentPlan(userId, currency);
 		if (!plan) redirect(303, '/plan/setup?step=3');
@@ -164,7 +165,7 @@ export const actions: Actions = {
 		redirect(303, '/plan/setup?step=4');
 	},
 	finish: async ({ locals, cookies, request }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const currency = preferredCurrency(cookies);
 		if (!(await currentPlan(userId, currency))) redirect(303, '/plan/setup?step=3');
 		const repeat = (await request.formData()).get('repeat') === 'on';
