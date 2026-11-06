@@ -18,6 +18,7 @@ import {
 	setArchived,
 	updateAccount
 } from '$lib/server/accounts-queries';
+import { requireUser } from '$lib/server/require-user';
 import { toIconKey, toSwatchKey } from '$lib/appearance';
 import { formatAmountInput } from '$lib/money';
 
@@ -40,7 +41,7 @@ async function detailOf(userId: string, id: string) {
 }
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	requireId(params.id);
 	const detail = await detailOf(userId, params.id);
 	const referenced = await isAccountReferenced(userId, params.id);
@@ -51,7 +52,7 @@ const archiveAction =
 	(archive: boolean): Actions[string] =>
 	async ({ locals, params }) => {
 		requireId(params.id);
-		const rows = await setArchived(locals.user!.id, params.id, archive ? new Date() : null);
+		const rows = await setArchived(requireUser(locals).id, params.id, archive ? new Date() : null);
 		if (rows.length === 0) notFound();
 		return { done: true };
 	};
@@ -59,7 +60,7 @@ const archiveAction =
 export const actions: Actions = {
 	/** Saves the posted subset of fields over the stored values, with the create form's validation. */
 	update: async ({ locals, params, request }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		requireId(params.id);
 		const { account } = await detailOf(userId, params.id);
 		const posted = await request.formData();
@@ -82,7 +83,7 @@ export const actions: Actions = {
 	archive: archiveAction(true),
 	unarchive: archiveAction(false),
 	delete: async ({ locals, params }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		requireId(params.id);
 		if (await isAccountReferenced(userId, params.id))
 			return formFail(409, { formError: DELETE_REFERENCED_MESSAGE });

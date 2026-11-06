@@ -15,6 +15,7 @@ import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { accountSummaryOnce, planViewOnce } from '$lib/server/plan-view';
 import { getImportAccount, pendingImportCount } from '$lib/server/mp-import-queries';
 import { mpOauthEnabled } from '$lib/server/mp-oauth';
+import { requireUser } from '$lib/server/require-user';
 
 type TopCategory = ReturnType<typeof topCategories>[number] & {
 	color: SwatchKey | null;
@@ -22,7 +23,7 @@ type TopCategory = ReturnType<typeof topCategories>[number] & {
 };
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const currency = preferredCurrency(cookies);
 	const now = new Date();
 	const value = currentMonth(now);

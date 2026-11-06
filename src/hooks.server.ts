@@ -87,7 +87,12 @@ const handleRequest: Handle = async ({ event, resolve }) => {
 		return svelteKitHandler({ event, resolve, auth, building });
 	}
 
-	const session = await auth.api.getSession({ headers: event.request.headers });
+	// /health never reads the session, so the container healthcheck skips the lookup. Other public routes
+	// keep it: browsers send the session cookie there and getSession may refresh or clear it.
+	const session =
+		event.url.pathname === '/health'
+			? null
+			: await auth.api.getSession({ headers: event.request.headers });
 	event.locals.user = session?.user ?? null;
 	event.locals.session = session?.session ?? null;
 

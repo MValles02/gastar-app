@@ -4,11 +4,12 @@ import { APIError } from 'better-auth/api';
 import { auth } from '$lib/server/auth';
 import { isValidPasswordLength } from '$lib/server/auth-forms';
 import { isBlocked, record } from '$lib/server/rate-limit';
+import { requireUser } from '$lib/server/require-user';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
 	default: async ({ request, locals }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		if (isBlocked('changePassword', userId)) {
 			return formFail(429, { formError: 'Demasiados intentos. Probá de nuevo en un rato.' });
 		}

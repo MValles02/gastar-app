@@ -1,6 +1,7 @@
 import { alerts } from '$lib/server/alerts';
 import { LOCALE } from '$lib/locale';
 import { TZ } from '$lib/server/month';
+import { requireUser } from '$lib/server/require-user';
 import type { LayoutServerLoad } from './$types';
 
 const dayFmt = new Intl.DateTimeFormat(LOCALE, {
@@ -12,7 +13,7 @@ const dayFmt = new Intl.DateTimeFormat(LOCALE, {
 
 // Top bar data shared by every screen (see PageHeader).
 export const load: LayoutServerLoad = async ({ locals }) => {
-	const user = locals.user!;
+	const user = requireUser(locals);
 	const name = user.name?.trim() || user.email;
 	const now = new Date();
 	const date = dayFmt.format(now);

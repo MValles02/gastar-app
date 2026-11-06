@@ -19,6 +19,7 @@ import {
 	setRecurringArchived,
 	updateRecurring
 } from '$lib/server/plan-queries';
+import { requireUser } from '$lib/server/require-user';
 import { readRecurringForm, recurringPickers } from '../form.server';
 
 const { notFound, requireId } = notFoundHelpers('Movimiento fijo no encontrado.');
@@ -104,14 +105,14 @@ async function detailOf(userId: string, id: string) {
 }
 
 export const load: PageServerLoad = async ({ locals, params, url }) => ({
-	...(await detailOf(locals.user!.id, params.id)),
+	...(await detailOf(requireUser(locals).id, params.id)),
 	wizard: parseStep(url.searchParams.get('wizard'))
 });
 
 export const actions: Actions = {
 	/** Saves the posted subset of fields over the stored values, with the form's validation. */
 	update: async ({ locals, params, request }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const rule = await findRule(userId, params.id);
 		const posted = await request.formData();
 		const fd = new FormData();
@@ -138,13 +139,13 @@ export const actions: Actions = {
 		return { rule: await detailOf(userId, params.id) };
 	},
 	archive: async ({ locals, params }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const rule = await findRule(userId, params.id);
 		await setRecurringArchived(userId, rule.id, rule.archivedAt === null);
 		return { archived: rule.archivedAt === null };
 	},
 	delete: async ({ locals, params, url }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		await findRule(userId, params.id);
 		await deleteRecurring(userId, params.id);
 		redirect(303, planReturn(url.searchParams.get('wizard')));

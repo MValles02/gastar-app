@@ -3,12 +3,13 @@ import { formFail } from '$lib/form';
 import type { Actions } from './$types';
 import { parseAccountForm } from '$lib/server/accounts';
 import { createAccount } from '$lib/server/accounts-queries';
+import { requireUser } from '$lib/server/require-user';
 
 export const actions: Actions = {
 	default: async ({ request, locals }) => {
 		const parsed = parseAccountForm(await request.formData(), 'create');
 		if (!parsed.ok) return formFail(400, { values: parsed.values, errors: parsed.errors });
-		const [row] = await createAccount(locals.user!.id, {
+		const [row] = await createAccount(requireUser(locals).id, {
 			...parsed.data,
 			currency: parsed.data.currency!
 		});

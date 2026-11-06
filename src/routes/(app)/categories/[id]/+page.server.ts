@@ -25,6 +25,7 @@ import {
 	writeIfNameFree
 } from '$lib/server/categories-queries';
 import { currentMonth, monthLabel, monthRange, parseMonth } from '$lib/server/month';
+import { requireUser } from '$lib/server/require-user';
 
 const { notFound, requireId } = notFoundHelpers(NOT_FOUND_MESSAGE);
 
@@ -45,7 +46,7 @@ async function categoryOf(userId: string, id: string) {
 }
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	requireId(params.id);
 	const detail = await categoryOf(userId, params.id);
 
@@ -70,7 +71,11 @@ const archiveAction =
 	(archive: boolean): Actions[string] =>
 	async ({ locals, params }) => {
 		requireId(params.id);
-		const rows = await setCategoryArchived(locals.user!.id, params.id, archive ? new Date() : null);
+		const rows = await setCategoryArchived(
+			requireUser(locals).id,
+			params.id,
+			archive ? new Date() : null
+		);
 		if (rows.length === 0) notFound();
 		return { done: true };
 	};
@@ -78,7 +83,7 @@ const archiveAction =
 export const actions: Actions = {
 	/** Saves the posted subset of fields over the stored values, with the create form's validation. */
 	update: async ({ locals, params, request }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		requireId(params.id);
 		const { category: current } = await categoryOf(userId, params.id);
 		const posted = await request.formData();
@@ -115,7 +120,7 @@ export const actions: Actions = {
 	archive: archiveAction(true),
 	unarchive: archiveAction(false),
 	delete: async ({ locals, params }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		requireId(params.id);
 		const referenced = () => formFail(409, { formError: DELETE_REFERENCED_MESSAGE });
 
