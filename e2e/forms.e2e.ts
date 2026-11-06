@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
 	deleteMovements,
 	deleteRules,
@@ -199,14 +199,6 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 	const url = page.url();
 	createdAccounts.push(url);
 
-	/** The Pesos group total on the list with archived shown, in whole pesos. */
-	const pesosTotal = async () => {
-		await page.goto('/accounts?archived=1');
-		const total = page.locator('section[aria-labelledby="group-ARS"] .group-total');
-		return Number((await total.innerText()).replace(/\D/g, ''));
-	};
-	const totalBefore = await pesosTotal();
-
 	/** How many times the new-movement account picker offers the account. */
 	const offered = async () => {
 		await page.goto('/movements/new', { waitUntil: 'networkidle' }); // hydration guard: the picker needs JS
@@ -222,8 +214,28 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 	await expect(page.getByText('No aparece al registrar movimientos.')).toBeVisible();
 	await expect(page).toHaveURL(url);
 	expect(await offered()).toBe(0);
-	// Archived accounts stay listed but leave the group total, by exactly their balance.
-	expect(totalBefore - (await pesosTotal())).toBe(1234);
+	// Archived accounts stay listed but leave the group total, by exactly their balance. One page snapshot,
+	// so other workers moving this user's balances cannot skew the comparison.
+	await page.goto('/accounts?archived=1');
+	const group = page.locator('section[aria-labelledby="group-ARS"]');
+	const rows = group.locator('a:has(.row-amount)');
+	const cents = async (l: Locator) =>
+		Math.round(
+			Number(
+				(await l.innerText())
+					.replace('\u2212', '-')
+					.replace(/\./g, '')
+					.replace(',', '.')
+					.replace(/[^\d.-]/g, '')
+			) * 100
+		);
+	const mine = rows.filter({ hasText: name });
+	await expect(mine).toHaveCount(1);
+	expect(await cents(mine.locator('.row-amount'))).toBe(123400);
+	const active = rows.filter({ hasNotText: 'Archivada' }).locator('.row-amount');
+	let sum = 0;
+	for (const amount of await active.all()) sum += await cents(amount);
+	expect(await cents(group.locator('.group-total'))).toBe(sum);
 	await page.goto(url, { waitUntil: 'networkidle' }); // hydration guard: the unarchive form is enhanced
 	await page.getByRole('button', { name: 'Desarchivar' }).click();
 	await expect(page.getByRole('button', { name: 'Archivar', exact: true })).toBeVisible();
