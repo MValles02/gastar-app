@@ -22,17 +22,18 @@ import {
 	listRecurring,
 	monthOutcomes,
 	paidRecurring,
-	planLimits,
+	planLimitsByCurrency,
 	recurringCandidates
 } from './plan-queries';
 
 /** The plan summary for one currency as of `now`; `summary` is null when there is no plan for the current month. */
 export async function planView(userId: string, cur: Currency, now = new Date()) {
 	const ym = currentMonth(now);
-	const [rules, [plan], rows] = await Promise.all([
+	const [rules, [plan], rows, limitRows] = await Promise.all([
 		listRecurring(userId, cur),
 		getPlan(userId, cur),
-		monthOutcomes(userId, cur, monthRange(ym))
+		monthOutcomes(userId, cur, monthRange(ym)),
+		planLimitsByCurrency(userId, cur)
 	]);
 
 	const active = rules.filter(isRecurringActive);
@@ -42,7 +43,7 @@ export async function planView(userId: string, cur: Currency, now = new Date()) 
 
 	// A plan for another month (not repeating) counts as no plan.
 	const current = plan && (plan.month === null || plan.month === ym) ? plan : null;
-	const limits = current ? await planLimits(userId, current.id) : [];
+	const limits = current ? limitRows : [];
 	const recurringIncome = sumRules('income');
 	const summary = current
 		? planSummary({
