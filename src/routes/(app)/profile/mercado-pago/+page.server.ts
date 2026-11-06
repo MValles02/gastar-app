@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { dev } from '$app/environment';
-import { toIconKey, toSwatchKey } from '$lib/appearance';
+import { accountOption } from '$lib/server/account-options';
 import { dayStart, localDay } from '$lib/server/month';
 import { getImportAccount, getSyncState } from '$lib/server/mp-import-queries';
 import {
@@ -39,12 +39,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const account = connection?.accountId ? await getImportAccount(userId) : null;
 	return {
 		connection,
-		accounts: (await listReceivingAccounts(userId)).map((a) => ({
-			id: a.id,
-			name: a.name,
-			icon: toIconKey(a.icon),
-			color: toSwatchKey(a.color)
-		})),
+		accounts: (await listReceivingAccounts(userId)).map(accountOption),
 		// The minimum date of every sync; only once an account receives the movements.
 		importFrom: account ? await getImportFromDay(userId, account.id) : null,
 		today: localDay(new Date()),

@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { type Currency, formatAmountInput } from '$lib/money';
-import { toCategoryIconKey, toIconKey, toSwatchKey } from '$lib/appearance';
+import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
+import { accountOption } from '$lib/server/account-options';
 import { withBalances } from '$lib/server/accounts';
 import {
 	accountOriginSums,
@@ -109,10 +110,7 @@ export async function movementPickers(userId: string, keep?: KeptRefs) {
 		accounts: accountRows
 			.filter((a) => !a.archivedAt || keep?.accountIds.includes(a.id))
 			.map((a) => ({
-				id: a.id,
-				name: a.name,
-				icon: toIconKey(a.icon),
-				color: toSwatchKey(a.color),
+				...accountOption(a),
 				meta: a.currency,
 				currency: a.currency,
 				archived: a.archivedAt !== null

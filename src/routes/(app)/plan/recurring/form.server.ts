@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
-import { toCategoryIconKey, toIconKey, toSwatchKey } from '$lib/appearance';
+import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
+import { accountOption } from '$lib/server/account-options';
 import { getAccount, listAccounts } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
 import { ARS_WHOLE_MESSAGE, isWholeFor } from '$lib/money';
@@ -14,10 +15,7 @@ export async function recurringPickers(userId: string) {
 	]);
 	return {
 		accounts: accountRows.map((a) => ({
-			id: a.id,
-			name: a.name,
-			icon: toIconKey(a.icon),
-			color: toSwatchKey(a.color),
+			...accountOption(a),
 			meta: a.currency
 		})),
 		categories: categoryRows.map((c) => ({
