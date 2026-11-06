@@ -1,4 +1,5 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import { parseSavingsForm } from '$lib/server/plan';
@@ -33,7 +34,7 @@ export const actions: Actions = {
 			await planIncome(userId, currency),
 			currency
 		);
-		if (!r.ok) return fail(400, { errors: { savings: r.message } });
+		if (!r.ok) return formFail(400, { errors: { savings: r.message } });
 		await updatePlan(userId, currency, { savings: r.savings, savingsPercent: r.savingsPercent });
 		return { savings: r.savings, savingsPercent: r.savingsPercent };
 	}

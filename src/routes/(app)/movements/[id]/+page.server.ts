@@ -1,4 +1,5 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { parseMovementForm } from '$lib/server/movements';
 import { deleteMovement, updateMovement } from '$lib/server/movements-queries';
@@ -42,7 +43,7 @@ export const actions: Actions = {
 
 		const parsed = parseMovementForm(fd);
 		const { values } = parsed;
-		if (!parsed.ok) return fail(400, { values, errors: parsed.errors });
+		if (!parsed.ok) return formFail(400, { values, errors: parsed.errors });
 
 		// An undo may restore the archived refs the movement had; rows still come from the owner-scoped getAccount/getCategory.
 		const kept = keptRefs(m);
@@ -56,7 +57,7 @@ export const actions: Actions = {
 					}
 				: kept;
 		const { resolved } = await resolvePostedMovement(userId, parsed.data, keep);
-		if (!resolved.ok) return fail(400, { values, errors: resolved.errors });
+		if (!resolved.ok) return formFail(400, { values, errors: resolved.errors });
 
 		let rows;
 		try {

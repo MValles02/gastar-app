@@ -160,8 +160,8 @@
 				</div>
 			</div>
 
-			{#if form?.error}
-				<p class="error" role="alert">{form.error}</p>
+			{#if form?.formError}
+				<p class="error" role="alert">{form.formError}</p>
 			{/if}
 
 			<noscript><Button type="submit" variant="outline">Guardar</Button></noscript>

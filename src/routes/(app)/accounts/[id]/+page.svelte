@@ -128,8 +128,8 @@
 		</li>
 	</ul>
 
-	{#if form?.error}
-		<p class="error" role="alert"><Icon name="alert" size="1rem" />{form.error}</p>
+	{#if form?.formError}
+		<p class="error" role="alert"><Icon name="alert" size="1rem" />{form.formError}</p>
 	{/if}
 
 	{#if a.archived}<p class="note">No aparece al registrar movimientos.</p>{/if}

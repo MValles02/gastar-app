@@ -1,4 +1,5 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import { PREFERENCE_COOKIE_OPTIONS } from '$lib/server/cookies';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import type { Actions, PageServerLoad } from './$types';
@@ -116,7 +117,7 @@ export const actions: Actions = {
 		// Keeps the origin when the form is shown again with errors (the Referer is now this form).
 		const returnTo = fd.get('returnTo');
 		if (typeof returnTo === 'string') values.returnTo = returnTo;
-		if (!parsed.ok) return fail(400, { values, errors: parsed.errors });
+		if (!parsed.ok) return formFail(400, { values, errors: parsed.errors });
 		const { data } = parsed;
 
 		// The rule's category is forced on its payment, so it stays valid whatever its kind.
@@ -125,18 +126,18 @@ export const actions: Actions = {
 			data,
 			rule ? { accountIds: [], categoryId: rule.categoryId } : undefined
 		);
-		if (!resolved.ok) return fail(400, { values, errors: resolved.errors });
+		if (!resolved.ok) return formFail(400, { values, errors: resolved.errors });
 
 		if (rule) {
 			if (data.type !== rule.type)
-				return fail(400, {
+				return formFail(400, {
 					values,
 					errors: {
 						type: `Este pago es un ${rule.type === 'income' ? 'ingreso' : 'gasto'}.`
 					}
 				});
 			if (origin!.currency !== rule.currency)
-				return fail(400, {
+				return formFail(400, {
 					values,
 					errors: {
 						accountId: `Elegí una cuenta en ${rule.currency} para registrar este pago.`

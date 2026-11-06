@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import { type Currency, formatAmountInput } from '$lib/money';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { accountOption } from '$lib/server/account-options';
@@ -167,6 +167,6 @@ export async function resolvePostedMovement(userId: string, data: MovementData, 
 /** A write that hit an account/category deleted meanwhile fails on the form; anything else rethrows. */
 export function failIfUnavailable(e: unknown, values: Record<string, string>) {
 	if (pgErrorCode(e) === PG_FOREIGN_KEY_VIOLATION)
-		return fail(400, { values, errors: { accountId: UNAVAILABLE_MESSAGE } });
+		return formFail(400, { values, errors: { accountId: UNAVAILABLE_MESSAGE } });
 	throw e;
 }

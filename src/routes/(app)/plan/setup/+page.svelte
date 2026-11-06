@@ -160,7 +160,7 @@
 					initial={data.savings}
 					base={data.savingsBase.base}
 					daysLeft={data.savingsBase.daysLeft}
-					error={form?.message}
+					error={form?.formError}
 				/>
 			</Card.Root>
 			{#if data.income === 0}

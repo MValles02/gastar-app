@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { accountOption } from '$lib/server/account-options';
 import { getAccount, listAccounts } from '$lib/server/accounts-queries';
@@ -37,7 +37,8 @@ export async function readRecurringForm(
 	// An edit never changes the type: the stored one wins over whatever was submitted.
 	if (current) fd.set('type', current.type);
 	const parsed = parseRecurringForm(fd);
-	if (!parsed.ok) return { failure: fail(400, { values: parsed.values, errors: parsed.errors }) };
+	if (!parsed.ok)
+		return { failure: formFail(400, { values: parsed.values, errors: parsed.errors }) };
 	const [[account], [category]] = await Promise.all([
 		getAccount(userId, parsed.data.accountId),
 		getCategory(userId, parsed.data.categoryId)
@@ -57,6 +58,6 @@ export async function readRecurringForm(
 	)
 		errors.categoryId = kindMismatchMessage(category.kind);
 	if (Object.keys(errors).length > 0)
-		return { failure: fail(400, { values: parsed.values, errors }) };
+		return { failure: formFail(400, { values: parsed.values, errors }) };
 	return { data: parsed.data };
 }

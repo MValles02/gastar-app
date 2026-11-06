@@ -1,4 +1,5 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { parseLimitAmount, planReturn } from '$lib/plan-wizard';
@@ -46,7 +47,7 @@ export const actions: Actions = {
 		const categoryId = String(fd.get('categoryId') ?? '');
 		const amount = String(fd.get('amount') ?? '');
 		const reject = (errors: { categoryId?: string; amount?: string }) =>
-			fail(400, { values: { categoryId, amount }, errors });
+			formFail(400, { values: { categoryId, amount }, errors });
 
 		if (!(await offered(userId, plan.id)).some((c) => c.id === categoryId))
 			return reject({ categoryId: 'Elegí una categoría.' });

@@ -1,4 +1,5 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import { APIError } from 'better-auth/api';
 import { auth } from '$lib/server/auth';
 import { ignoreApiError } from '$lib/server/auth-forms';
@@ -16,18 +17,18 @@ export const actions: Actions = {
 	delete: async ({ request, locals }) => {
 		const userId = locals.user!.id;
 		if (isBlocked('deleteAccount', userId)) {
-			return fail(429, { error: 'Demasiados intentos. Probá de nuevo en un rato.' });
+			return formFail(429, { formError: 'Demasiados intentos. Probá de nuevo en un rato.' });
 		}
 
 		const password = String((await request.formData()).get('password') ?? '');
-		if (!password) return fail(400, { error: 'Ingresá tu contraseña.' });
+		if (!password) return formFail(400, { formError: 'Ingresá tu contraseña.' });
 
 		try {
 			await auth.api.verifyPassword({ body: { password }, headers: request.headers });
 		} catch (err) {
 			if (!(err instanceof APIError)) throw err;
 			record('deleteAccount', userId);
-			return fail(400, { error: 'La contraseña no es correcta.' });
+			return formFail(400, { formError: 'La contraseña no es correcta.' });
 		}
 
 		await deleteUserAndData(userId);

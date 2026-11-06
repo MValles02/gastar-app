@@ -1,4 +1,5 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/validation';
 import type { Actions, PageServerLoad } from './$types';
 import { notFoundHelpers } from '$lib/server/not-found';
@@ -91,14 +92,14 @@ export const actions: Actions = {
 			if (typeof v === 'string') fd.set(k, v);
 		}
 		const parsed = parseCategoryForm(fd);
-		if (!parsed.ok) return fail(400, { values: parsed.values, errors: parsed.errors });
+		if (!parsed.ok) return formFail(400, { values: parsed.values, errors: parsed.errors });
 
 		// Only a kind change is checked: a legacy category can still be renamed or recoloured.
 		// ponytail: the check and the update are not atomic (unlikely race); wrap both in a transaction if it matters.
 		if (parsed.data.kind !== current.kind) {
 			const types = (await categoryMovementTypes(userId, params.id)).map((r) => r.type);
 			if (!kindAllowed(parsed.data.kind, types))
-				return fail(400, { values: parsed.data, errors: { kind: KIND_LOCKED_MESSAGE } });
+				return formFail(400, { values: parsed.data, errors: { kind: KIND_LOCKED_MESSAGE } });
 		}
 		const rows = await writeIfNameFree(
 			userId,
@@ -106,7 +107,8 @@ export const actions: Actions = {
 			() => updateCategory(userId, params.id, parsed.data),
 			params.id
 		);
-		if (!rows) return fail(400, { values: parsed.data, errors: { name: DUPLICATE_NAME_MESSAGE } });
+		if (!rows)
+			return formFail(400, { values: parsed.data, errors: { name: DUPLICATE_NAME_MESSAGE } });
 		if (rows.length === 0) notFound();
 		return await categoryOf(userId, params.id);
 	},
@@ -115,7 +117,7 @@ export const actions: Actions = {
 	delete: async ({ locals, params }) => {
 		const userId = locals.user!.id;
 		requireId(params.id);
-		const referenced = () => fail(409, { error: DELETE_REFERENCED_MESSAGE });
+		const referenced = () => formFail(409, { formError: DELETE_REFERENCED_MESSAGE });
 
 		// Pre-check for the friendly error; ON DELETE RESTRICT still catches a movement added meanwhile.
 		if ((await categoryReferenced(userId, params.id)).length > 0) return referenced();
