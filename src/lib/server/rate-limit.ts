@@ -11,7 +11,9 @@ const LIMITS = {
 	resetRequestEmail: { max: 3, windowMs: 15 * MINUTE_MS },
 	resend: { max: 5, windowMs: 15 * MINUTE_MS },
 	changePassword: { max: 5, windowMs: 15 * MINUTE_MS },
-	deleteAccount: { max: 5, windowMs: 15 * MINUTE_MS }
+	deleteAccount: { max: 5, windowMs: 15 * MINUTE_MS },
+	// PDF parsing is the heaviest request a user can send.
+	statementUpload: { max: 10, windowMs: 15 * MINUTE_MS }
 } as const;
 
 /** A key idle for the longest window holds no hits that count in any bucket. */

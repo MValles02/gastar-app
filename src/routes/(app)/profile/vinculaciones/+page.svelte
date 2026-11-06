@@ -26,12 +26,25 @@
 					: 'Vincular'}</span
 		>{/snippet}
 
+	{#snippet galiciaState()}<span class="val"
+			>{data.galiciaReady ? 'Configurado' : 'Configurar'}</span
+		>{/snippet}
+
 	<ListCard aria-label="Vinculaciones">
+		{#if data.mp}
+			<ListRow
+				href={resolve('/profile/mercado-pago')}
+				lead={{ icon: 'phone', color: null }}
+				title="Mercado Pago"
+				value={mpState}
+				chevron
+			/>
+		{/if}
 		<ListRow
-			href={resolve('/profile/mercado-pago')}
-			lead={{ icon: 'phone', color: null }}
-			title="Mercado Pago"
-			value={mpState}
+			href={resolve('/profile/galicia')}
+			lead={{ icon: 'card', color: null }}
+			title="Banco Galicia"
+			value={galiciaState}
 			chevron
 		/>
 	</ListCard>

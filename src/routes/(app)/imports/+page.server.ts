@@ -1,14 +1,15 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import {
 	getImport,
 	importPrefill,
-	importSourcesEnabled,
 	importTitle,
 	listAutoApproved,
 	listPendingImports,
+	SOURCE_LABEL,
 	undoApproval
 } from '$lib/server/import-queries';
-import { getConnectionInfo, getMpImportAccount } from '$lib/server/mp-oauth';
+import { getGaliciaConnection } from '$lib/server/galicia';
+import { getConnectionInfo, getMpImportAccount, mpOauthEnabled } from '$lib/server/mp-oauth';
 import { getSyncState, startMpSync } from '$lib/server/mp-sync';
 import { dayHeading, localDay } from '$lib/server/month';
 import { isUuid } from '$lib/server/db/util';
@@ -35,11 +36,6 @@ function agoLabel(at: Date, now: Date): string {
 
 const DONE = ['approved', 'rejected', 'stale'] as const;
 
-/** 404 when no import source is available. */
-function requireSources() {
-	if (!importSourcesEnabled()) error(404, 'No encontrado');
-}
-
 const ALREADY_REVIEWED = 'Ese movimiento ya fue revisado.';
 const APPROVE_FAILED = 'No se pudo aprobar.';
 
@@ -48,15 +44,19 @@ const countParam = (v: string | null) => (v !== null && /^\d{1,9}$/.test(v) ? Nu
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
-	requireSources();
-	const mp = await getMpImportAccount(userId);
-	const [items, ctx, autoRows] = await Promise.all([
+	const [mp, galicia, items, ctx, autoRows] = await Promise.all([
+		getMpImportAccount(userId),
+		getGaliciaConnection(userId),
 		listPendingImports(userId),
 		suggestionContext(userId),
 		listAutoApproved(userId)
 	]);
 	// Nothing to review and no source linked: send the user to the connections.
-	if (!mp && items.length === 0 && autoRows.length === 0) redirect(303, '/profile/vinculaciones');
+	if (!mp && !galicia?.arsAccountId && items.length === 0 && autoRows.length === 0) {
+		redirect(303, '/profile/vinculaciones');
+	}
+	// The source only disambiguates when the pending items come from more than one.
+	const mixed = new Set(items.map((i) => i.source)).size > 1;
 	const sync = mp ? await getSyncState(userId, mp.id) : null;
 	const needsReconnect = (await getConnectionInfo(userId))?.needsReconnect ?? false;
 
@@ -70,8 +70,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			id: string;
 			title: string;
 			amount: number;
+			currency: 'ARS' | 'USD';
 			isCredit: boolean;
 			suggestion: string | null;
+			source: string | null;
 		}[];
 	}[] = [];
 	for (const i of items) {
@@ -85,15 +87,17 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			i,
 			ctx.rules,
 			ctx.categories,
-			counterAccountsOf(ctx.accounts, i.accountId)
+			counterAccountsOf(ctx.accounts, i)
 		).suggestion;
 		if (suggestion !== null) suggested++;
 		group.items.push({
 			id: i.id,
 			title: importTitle(i),
 			amount: i.amount,
+			currency: i.currency,
 			isCredit: i.isCredit,
-			suggestion
+			suggestion,
+			source: mixed ? (SOURCE_LABEL[i.source] ?? null) : null
 		});
 	}
 
@@ -101,10 +105,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const done = url.searchParams.get('done');
 	const approved = countParam(url.searchParams.get('approved'));
 	const skipped = countParam(url.searchParams.get('skipped'));
+	const imported = countParam(url.searchParams.get('imported'));
+	const autoImported = countParam(url.searchParams.get('auto'));
 	return {
 		mpLinked: !!mp,
 		suggested,
 		bulk: approved === null ? null : { approved, skipped: skipped ?? 0 },
+		// A statement upload just landed (Banco Galicia): new items and how many were auto-approved.
+		upload: imported === null ? null : { created: imported, auto: autoImported ?? 0 },
 		needsReconnect,
 		running,
 		// 'payments' (also before the first step is recorded) or 'report'; null when idle.
@@ -122,9 +130,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
 	sync: async ({ locals }) => {
-		requireSources();
 		const userId = requireUser(locals).id;
-		if (!(await getMpImportAccount(userId))) redirect(303, '/profile/vinculaciones');
+		if (!mpOauthEnabled() || !(await getMpImportAccount(userId)))
+			redirect(303, '/profile/vinculaciones');
 		await startMpSync(userId);
 		redirect(303, '/imports');
 	},
@@ -132,7 +140,6 @@ export const actions: Actions = {
 	/** Quick "Aprobar" of one suggested row; answers with the id so the page can offer Deshacer. */
 	approveOne: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
-		requireSources();
 		const id = String((await request.formData()).get('id') ?? '');
 		if (!isUuid(id)) return fail(400, { message: APPROVE_FAILED });
 		const item = await getImport(userId, id);
@@ -152,7 +159,6 @@ export const actions: Actions = {
 	/** Deshacer of a quick or automatic approval: removes its movement and puts the item back to pending. */
 	undoApprove: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
-		requireSources();
 		const id = String((await request.formData()).get('id') ?? '');
 		if (!isUuid(id)) return fail(400, { message: 'No se pudo deshacer.' });
 		const result = await undoApproval(userId, id);
@@ -165,7 +171,6 @@ export const actions: Actions = {
 
 	approveSuggested: async ({ locals }) => {
 		const userId = requireUser(locals).id;
-		requireSources();
 		const { approved, skipped } = await approveSuggestedImports(userId);
 		redirect(303, `/imports?approved=${approved}&skipped=${skipped}`);
 	}

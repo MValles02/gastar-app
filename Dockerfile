@@ -20,6 +20,8 @@ RUN pnpm install --frozen-lockfile --prod
 FROM base AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+# adapter-node caps request bodies at 512K; card statement PDFs (5 MB cap in the upload action) need more.
+ENV BODY_SIZE_LIMIT=6M
 COPY --from=build /app/build ./build
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY package.json ./

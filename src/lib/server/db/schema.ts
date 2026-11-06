@@ -326,6 +326,8 @@ export const mpImportItems = pgTable(
 			.notNull()
 			.references(() => financialAccounts.id, { onDelete: 'restrict' }),
 		externalKey: text('external_key').notNull(),
+		// Where the item came from: Mercado Pago, or a Banco Galicia card statement of one network.
+		source: text('source').default('mercado_pago').notNull(),
 		kind: text('kind').notNull(),
 		status: importStatusEnum('status').default('pending').notNull(),
 		occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
@@ -339,6 +341,8 @@ export const mpImportItems = pgTable(
 		merchant: text('merchant'),
 		operationType: text('operation_type'),
 		poiType: text('poi_type'),
+		// Card statements: the cuota as printed (`05/12`) of an installment line; null otherwise.
+		installment: text('installment'),
 		movementId: uuid('movement_id').references(() => movements.id, { onDelete: 'set null' }),
 		// Set when the approval was automatic (a learned rule after an import); cleared by an undo.
 		autoApprovedAt: timestamp('auto_approved_at', { withTimezone: true }),
@@ -360,7 +364,11 @@ export const mpImportItems = pgTable(
 		check('mp_import_items_amount_positive_check', sql`${table.amount} > 0`),
 		check(
 			'mp_import_items_kind_check',
-			sql`${table.kind} IN ('payment', 'account_fund', 'yield', 'payout', 'merchant_payout', 'refund', 'other')`
+			sql`${table.kind} IN ('payment', 'account_fund', 'yield', 'payout', 'merchant_payout', 'refund', 'other', 'card_purchase', 'card_installment', 'card_taxes')`
+		),
+		check(
+			'mp_import_items_source_check',
+			sql`${table.source} IN ('mercado_pago', 'galicia_visa', 'galicia_mastercard')`
 		)
 	]
 );
@@ -430,6 +438,26 @@ export const mpConnections = pgTable('mp_connections', {
 	needsReconnect: boolean('needs_reconnect').default(false).notNull(),
 	// Local day start of "Importar desde": no sync fetches anything before it. Null: not chosen yet.
 	importFrom: timestamp('import_from', { withTimezone: true }),
+	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true })
+		.defaultNow()
+		.$onUpdate(() => new Date())
+		.notNull()
+});
+
+// Banco Galicia card statements land on the user's own bank accounts (no card accounts).
+export const galiciaConnections = pgTable('galicia_connections', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	// Null: not chosen yet (or the account was deleted). Pesos lines need it.
+	arsAccountId: uuid('ars_account_id').references(() => financialAccounts.id, {
+		onDelete: 'set null'
+	}),
+	// Optional: only statements with dollar lines need it.
+	usdAccountId: uuid('usd_account_id').references(() => financialAccounts.id, {
+		onDelete: 'set null'
+	}),
 	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp('updated_at', { withTimezone: true })
 		.defaultNow()

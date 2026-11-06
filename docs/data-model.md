@@ -153,22 +153,24 @@ Constraints: PK `(plan_id, category_id)`.
 
 ### `mp_import_items`
 
-Approval inbox for Mercado Pago activity. Imports land here, never on `movements`; approving an item creates the movement and links it.
+Approval inbox for imported activity (Mercado Pago, Banco Galicia card statements). Imports land here, never on `movements`; approving an item creates the movement and links it.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | pk | |
 | `user_id` | fk → `user.id` | |
 | `account_id` | fk → `financial_accounts.id` | ON DELETE RESTRICT |
-| `external_key` | text | idempotency key from the source |
-| `kind` | text | CHECK in ('payment','account_fund','yield','payout','merchant_payout','refund','other'); `merchant_payout` is a payout with an `EXTERNAL_REFERENCE` (payment at a merchant), `payout` one without (transfer or withdrawal) |
+| `external_key` | text | idempotency key from the source; Galicia: `galicia:<network>:<comprobante>:<cuota>:<date>:<currency>:<signed cents>` (`#n` for the nth identical line of one statement), taxes `galicia:<network>:taxes:<sha256(statement number), 16 hex>:<currency>` |
+| `source` | text, default 'mercado_pago' | CHECK in ('mercado_pago','galicia_visa','galicia_mastercard') |
+| `kind` | text | CHECK in ('payment','account_fund','yield','payout','merchant_payout','refund','other','card_purchase','card_installment','card_taxes'); `merchant_payout` is a payout with an `EXTERNAL_REFERENCE` (payment at a merchant), `payout` one without (transfer or withdrawal); the `card_*` kinds come from Galicia statements |
 | `status` | enum('pending','approved','rejected') | default 'pending' |
 | `occurred_at` | timestamptz | |
 | `amount` | bigint, > 0 | exact net, minor units |
 | `is_credit` | boolean | direction of the money |
 | `source_id` | text | |
 | `raw_description` | text | |
-| `counterparty_id`, `counterparty_nickname`, `merchant`, `operation_type`, `poi_type` | text, nullable | |
+| `counterparty_id`, `counterparty_nickname`, `merchant`, `operation_type`, `poi_type` | text, nullable | Galicia: `merchant` is the raw reference and `source_id` the comprobante (or '') |
+| `installment` | text, nullable | Galicia installment lines: the cuota as printed (`05/12`) |
 | `movement_id` | fk → `movements.id`, nullable | ON DELETE SET NULL |
 | `auto_approved_at` | timestamptz, nullable | set when the approval was automatic; cleared by an undo |
 | `auto_approve_blocked` | boolean, default false | the user undid an automatic approval: never auto-approved again |
@@ -179,7 +181,7 @@ Constraints: `UNIQUE (user_id, external_key)`. Index: `(user_id, status, occurre
 
 Approving is one transaction: a conditional `pending` → `approved` update (zero rows = already handled, nothing written), the movement insert, `movement_id`, and the rule upsert. Rejecting is a conditional `pending` → `rejected` update; the row stays so its external key is never re-imported.
 
-Auto-approval (`autoApprovePending(userId)`, source-agnostic, run after every sync run before the lease is released) approves, through the same transaction, every pending item whose read-time prefill is a usable rule, skipping `auto_approve_blocked` items; it never writes a rule and an item whose movement fails validation stays pending. It stamps `auto_approved_at`. Undoing an approval (one transaction: delete the unedited movement, item back to `pending`) clears `auto_approved_at` and, when it was set, sets `auto_approve_blocked`.
+Auto-approval (`autoApprovePending(userId)`, source-agnostic, run after every sync run before the lease is released, and after every statement upload) approves, through the same transaction, every pending item whose read-time prefill is a usable rule, skipping `auto_approve_blocked` items; it never writes a rule and an item whose movement fails validation stays pending. It stamps `auto_approved_at`. Undoing an approval (one transaction: delete the unedited movement, item back to `pending`) clears `auto_approved_at` and, when it was set, sets `auto_approve_blocked`.
 
 ### `mp_import_rules`
 
@@ -200,7 +202,7 @@ Rules learned from approved items, used to pre-fill later ones.
 
 Constraints: `UNIQUE (user_id, match_kind, match_value)`; CHECK `mp_import_rules_shape_check`: `transfer` ⇒ `counter_account_id` set and `category_id` null; otherwise `category_id` set.
 
-Approval upserts one rule on the item's strongest key: `counterparty` (`operation_type = money_transfer` with a counterparty id) > `merchant` (trimmed, lowercased) > `kind` (only yield, payout, merchant_payout, account_fund); a `refund` item has no key; no key, no rule. Pre-fill is computed at read time from the first matching key in that order and ignored when its target is archived or its type does not fit the item's direction.
+Approval upserts one rule on the item's strongest key: `counterparty` (`operation_type = money_transfer` with a counterparty id) > `merchant` (trimmed, lowercased) > `kind` (only yield, payout, merchant_payout, account_fund, card_taxes); a `refund` item and a card credit (other than `card_taxes`) have no key; no key, no rule. Pre-fill is computed at read time from the first matching key in that order and ignored when its target is archived or its type does not fit the item's direction.
 
 ### `mp_sync_state`
 
@@ -216,6 +218,19 @@ One row per synced account.
 | `phase` | text, nullable | step of the running sync |
 | `new_items` | integer, nullable | items the current/last run stored |
 | `auto_approved` | integer, nullable | items the last run approved automatically |
+
+### `galicia_connections`
+
+One row per user who chose an account for Banco Galicia statements (created on the first pick). The statement PDF itself is never stored.
+
+| Column | Type | Notes |
+|---|---|---|
+| `user_id` | pk, fk → `user.id` | ON DELETE CASCADE |
+| `ars_account_id` | uuid, nullable, fk → `financial_accounts.id` | ON DELETE SET NULL; pesos lines land here (required to upload) |
+| `usd_account_id` | uuid, nullable, fk → `financial_accounts.id` | ON DELETE SET NULL; dollar lines land here (required only for statements with dollar lines) |
+| `created_at`, `updated_at` | timestamptz | |
+
+An upload writes all its items in one insert (`ON CONFLICT (user_id, external_key) DO NOTHING`), then runs `autoApprovePending`.
 
 ### `mp_connections`
 
@@ -288,6 +303,7 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 - `canAccessPlan(userId, p = spendingPlans)` and `planOwnedBy(userId)`: the same pair for `spending_plans.user_id`. Category limits have no owner column; they are reached only by joining their plan.
 - `canAccessImport(userId, i = mpImportItems)` and `importOwnedBy(userId)`: the same pair for `mp_import_items.user_id`.
 - `canAccessMpConnection(userId, c = mpConnections)` and `mpConnectionOwnedBy(userId)`: the same pair for `mp_connections.user_id`.
+- `canAccessGaliciaConnection(userId, c = galiciaConnections)` and `galiciaConnectionOwnedBy(userId)`: the same pair for `galicia_connections.user_id`.
 - `canAccessImportRule(userId, r = mpImportRules)` and `importRuleOwnedBy(userId)`: the same pair for `mp_import_rules.user_id`. `mp_sync_state` has no owner column; it is reached only by joining its account.
 
 `movements.user_id` is the movement's own owner column; reads, updates and deletes go through `canAccessMovement`, inserts through `movementOwnedBy`.

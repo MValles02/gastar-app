@@ -2,6 +2,7 @@ import { and, eq, type AnyColumn, type SQL } from 'drizzle-orm';
 import {
 	categories,
 	financialAccounts,
+	galiciaConnections,
 	movements,
 	mpConnections,
 	mpImportItems,
@@ -97,6 +98,19 @@ export function canAccessMpConnection(
 
 /** Insert-side counterpart of canAccessMpConnection. */
 export function mpConnectionOwnedBy(userId: string) {
+	return { userId };
+}
+
+/** The single ownership check for Banco Galicia connections. Accepts an alias. */
+export function canAccessGaliciaConnection(
+	userId: string,
+	c: { userId: AnyColumn } = galiciaConnections
+): SQL {
+	return eq(c.userId, userId);
+}
+
+/** Insert-side counterpart of canAccessGaliciaConnection. */
+export function galiciaConnectionOwnedBy(userId: string) {
 	return { userId };
 }
 
