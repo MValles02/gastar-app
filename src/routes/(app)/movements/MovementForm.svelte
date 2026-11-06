@@ -3,9 +3,6 @@
 	import { MOVEMENT_MESSAGES } from '$lib/movement-messages';
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import Lock from '@lucide/svelte/icons/lock';
-	import Plus from '@lucide/svelte/icons/plus';
 	import { enhance } from '$app/forms';
 	import { followRedirect } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
@@ -15,20 +12,14 @@
 	} from '$lib/components/CategoryCreateDrawer.svelte';
 	import EntryFields from '$lib/components/EntryFields.svelte';
 	import FormActions from '$lib/components/FormActions.svelte';
-	import InlineText from '$lib/components/InlineText.svelte';
 	import MovementDatePicker from '$lib/components/MovementDatePicker.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SwitchRow from '$lib/components/SwitchRow.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import TextRow from '$lib/components/TextRow.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import {
-		convertAmount,
-		formatMoney,
-		isWholeFor,
-		isPositiveAmount,
-		parseAmount
-	} from '$lib/money';
+	import { convertInput, isPositiveAmount, isValidRate, parseAmount } from '$lib/money';
+	import CategoryRow from './CategoryRow.svelte';
+	import TransferRows from './TransferRows.svelte';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 	type Fields =
@@ -205,13 +196,11 @@
 	);
 	const showRate = $derived(isTransfer && crossCurrency);
 
-	const converted = $derived.by(() => {
-		const a = parseAmount(amount);
-		const r = parseAmount(rate);
-		if (!showRate || !originCurrency || !destCurrency) return null;
-		if (a === null || a <= 0 || r === null || r <= 0) return null;
-		return convertAmount(a, r, originCurrency, destCurrency);
-	});
+	const converted = $derived(
+		showRate && originCurrency && destCurrency
+			? convertInput(amount, rate, originCurrency, destCurrency)
+			: null
+	);
 
 	// Drawer: Guardar waits for the two fields every movement needs; the rest is checked on press.
 	const canSave = $derived(isPositiveAmount(amount) && description.trim() !== '');
@@ -222,24 +211,11 @@
 		if (!accountId) e.accountId = MOVEMENT_MESSAGES.account;
 		if (isTransfer) {
 			if (!destinationId) e.destinationAccountId = MOVEMENT_MESSAGES.destination;
-			const r = parseAmount(rate);
-			if (showRate && (r === null || r <= 0 || !isWholeFor(r, 'ARS')))
-				e.exchangeRate = MOVEMENT_MESSAGES.rate;
+			if (showRate && !isValidRate(parseAmount(rate))) e.exchangeRate = MOVEMENT_MESSAGES.rate;
 		} else if (!categoryId) e.categoryId = MOVEMENT_MESSAGES.category;
 		return e;
 	}
 </script>
-
-{#snippet newCategoryRow(close: () => void)}
-	<button
-		type="button"
-		class="new-category"
-		onclick={() => {
-			close();
-			createOpen = true;
-		}}><Plus size={18} strokeWidth={2} aria-hidden="true" />Nueva categoría</button
-	>
-{/snippet}
 
 {#snippet fields()}
 	{#if returnTo}<input type="hidden" name="returnTo" value={returnTo} />{/if}
@@ -302,140 +278,34 @@
 				</OptionPicker>
 			</li>
 
-			{#if showTransfer}
-				<li class:bad={shown.destinationAccountId}>
-					{#if !mounted}<p class="hint pad">Solo para transferencias</p>{/if}
-					<OptionPicker
-						variant="row"
-						name="destinationAccountId"
-						legend="Hacia"
-						title="Hacia"
-						items={accountItems}
-						bind:value={destinationId}
-						excludeId={mounted ? accountId : undefined}
-						nested={drawer}
-						placeholder="Elegir"
-						error={shown.destinationAccountId}
-						errorId="destination-error"
-					>
-						{#snippet empty()}<p class="hint pad">
-								Necesitás otra cuenta para transferir.
-							</p>{/snippet}
-					</OptionPicker>
-				</li>
-			{/if}
-
-			{#if (!mounted && !typeFixed) || showRate}
-				<li class:bad={shown.exchangeRate}>
-					{#if !mounted}<p class="hint pad">
-							Solo para transferencias entre monedas distintas
-						</p>{/if}
-					{#if mounted}
-						<!-- A value row like the pickers: tapping it edits the rate in place. -->
-						<div class="row spread rate">
-							<span class="k">Cotización</span>
-							<span class="v">
-								<InlineText
-									label="Cotización"
-									inputmode="numeric"
-									prefix="1 USD = $"
-									value={rate}
-									required
-									invalid={shown.exchangeRate ? 'rate-error' : undefined}
-									onsave={async (next) => {
-										rate = next;
-										return null;
-									}}
-								>
-									{#snippet display()}
-										{@const r = parseAmount(rate)}
-										<span class:placeholder={r === null}
-											>{r !== null ? `1 USD = ${formatMoney(r, 'ARS')}` : 'Ingresar'}</span
-										>
-										<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="chev" />
-									{/snippet}
-								</InlineText>
-							</span>
-						</div>
-						<input type="hidden" name="exchangeRate" value={rate} />
-						{#if shown.exchangeRate}
-							<p class="error pad" id="rate-error" role="alert">{shown.exchangeRate}</p>
-						{/if}
-					{:else}
-						<TextRow
-							id="exchangeRate"
-							name="exchangeRate"
-							label="Cotización"
-							bind:value={rate}
-							placeholder="0"
-							inputmode="numeric"
-							prefix="1 USD = $"
-							amount
-							error={shown.exchangeRate}
-							errorId="rate-error"
-						/>
-					{/if}
-				</li>
-				{#if mounted}
-					<li>
-						<p class="row spread" aria-live="polite">
-							<span class="k">En destino</span>
-							{#if converted !== null && destCurrency}
-								<span class="v converted">{formatMoney(converted, destCurrency)}</span>
-							{:else}
-								<span class="v placeholder">—</span>
-							{/if}
-						</p>
-					</li>
-				{/if}
-			{/if}
+			<TransferRows
+				{showTransfer}
+				{showRate}
+				{mounted}
+				{typeFixed}
+				{drawer}
+				{accountItems}
+				{accountId}
+				{destCurrency}
+				{converted}
+				{shown}
+				bind:destinationId
+				bind:rate
+			/>
 		{/snippet}
 
 		{#snippet category()}
-			{#if showCategory}
-				<li class:bad={shown.categoryId && !recurring}>
-					{#if !mounted}<p class="hint pad">Solo para ingresos y gastos</p>{/if}
-					{#if recurring}
-						<!-- The payment always takes the rule's category (the server ignores any other). -->
-						<input type="hidden" name="categoryId" value={categoryId} />
-						<p class="row locked">
-							<span class="k">Categoría</span>
-							<span class="v">
-								{categories.find((c) => c.id === categoryId)?.name ?? ''}
-								{#if !drawer}<Lock size={16} strokeWidth={1.75} aria-hidden="true" />{/if}
-							</span>
-						</p>
-						{#if !drawer}<p class="hint pad">Se registra en la categoría del pago.</p>{/if}
-					{:else}
-						<OptionPicker
-							variant="row"
-							name="categoryId"
-							legend="Categoría"
-							title="Categoría"
-							items={pickableCategories}
-							bind:value={categoryId}
-							nested={drawer}
-							extra={drawer ? newCategoryRow : undefined}
-							placeholder="Elegir"
-							error={shown.categoryId}
-							errorId="category-error"
-						>
-							{#snippet empty()}
-								{#if drawer}
-									<button type="button" class="new-category" onclick={() => (createOpen = true)}
-										><Plus size={18} strokeWidth={2} aria-hidden="true" />Nueva categoría</button
-									>
-								{:else}
-									<p class="hint pad">
-										Todavía no tenés categorías.
-										<a href={resolve('/categories/new')}>Crear categoría</a>
-									</p>
-								{/if}
-							{/snippet}
-						</OptionPicker>
-					{/if}
-				</li>
-			{/if}
+			<CategoryRow
+				{showCategory}
+				{mounted}
+				{drawer}
+				{recurring}
+				{categories}
+				{pickableCategories}
+				{shown}
+				bind:categoryId
+				oncreate={() => (createOpen = true)}
+			/>
 		{/snippet}
 
 		{#snippet when()}
@@ -584,102 +454,6 @@
 		text-align: center;
 	}
 
-	.row {
-		display: flex;
-		flex-direction: row;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--space-1) var(--space-3);
-		min-height: 3.5rem;
-		padding: 0 var(--space-4);
-		font-size: var(--font-size-base);
-		color: var(--text);
-	}
-
-	.locked,
-	.spread {
-		justify-content: space-between;
-	}
-
-	.locked {
-		color: var(--text-muted);
-	}
-
-	/* The drawer shows the rule's category like any other row (no lock, normal label). */
-	.drawer .locked {
-		color: var(--text);
-	}
-
-	.spread .v {
-		font-variant-numeric: tabular-nums;
-		font-weight: 500;
-	}
-
-	.spread .converted {
-		color: var(--transfer);
-		font-weight: 600;
-	}
-
-	.placeholder {
-		color: var(--text-muted);
-		font-weight: 400;
-	}
-
-	/* The rate trigger fills the row so the whole value side is tappable, chevron at the end. */
-	/* Same label weight as the picker rows (ghost buttons). */
-	.spread .k {
-		font-weight: 500;
-	}
-
-	.rate :global(.edit) {
-		white-space: nowrap;
-	}
-
-	.rate .v {
-		flex: 1;
-		min-width: 0;
-		text-align: right;
-	}
-
-	.rate :global(.trigger) {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		gap: var(--space-3);
-		width: 100%;
-		cursor: pointer;
-	}
-
-	.rate :global(.chev) {
-		flex: none;
-		color: var(--text-muted);
-	}
-
-	.locked .v {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		color: var(--text);
-	}
-
-	/* Below the category card: a left-aligned, bold link-coloured row with a plus. */
-	.new-category {
-		display: flex;
-		align-items: center;
-		justify-content: flex-start;
-		gap: 10px;
-		width: 100%;
-		min-height: 52px;
-		margin-top: var(--space-1);
-		padding: 0 var(--space-4);
-		border: 0;
-		background: transparent;
-		text-align: left;
-		font-size: var(--font-size-base);
-		font-weight: 600;
-		color: var(--link);
-	}
-
 	.hint {
 		color: var(--text-muted);
 		font-size: var(--font-size-sm);
@@ -692,9 +466,5 @@
 	.error {
 		color: var(--negative);
 		font-size: var(--font-size-sm);
-	}
-
-	.error.pad {
-		padding: 0 var(--space-4) var(--space-3);
 	}
 </style>

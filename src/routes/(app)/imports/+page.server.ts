@@ -5,7 +5,6 @@ import {
 	getSyncState,
 	importPrefill,
 	importTitle,
-	listImportRules,
 	listPendingImports,
 	undoApproval
 } from '$lib/server/mp-import-queries';
@@ -14,8 +13,7 @@ import { startMpSync } from '$lib/server/mp-sync';
 import { dayHeading, localDay } from '$lib/server/month';
 import { isUuid } from '$lib/server/db/util';
 import { pgErrorCode } from '$lib/server/db/errors';
-import { movementPickers } from '../movements/form.server';
-import { approveWithValues } from './approve.server';
+import { approveSuggestedImports, approveSuggestion, suggestionContext } from './approve.server';
 import type { Actions, PageServerLoad } from './$types';
 
 const LEASE_MS = 15 * 60_000;
@@ -39,11 +37,8 @@ async function requireAccount(userId: string) {
 	return account;
 }
 
-/** Active ARS accounts other than the import account: the only valid counter accounts. */
-const counterAccountsOf = <A extends { currency: string; id: string }>(
-	accounts: A[],
-	importAccountId: string
-) => accounts.filter((a) => a.currency === 'ARS' && a.id !== importAccountId);
+const ALREADY_REVIEWED = 'Ese movimiento ya fue revisado.';
+const APPROVE_FAILED = 'No se pudo aprobar.';
 
 /** A non-negative integer query param, else null. */
 const countParam = (v: string | null) => (v !== null && /^\d{1,9}$/.test(v) ? Number(v) : null);
@@ -52,13 +47,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = locals.user!.id;
 	const account = await requireAccount(userId);
 	const needsReconnect = (await getConnectionInfo(userId))?.needsReconnect ?? false;
-	const [sync, items, rules, pickers] = await Promise.all([
+	const [sync, items, ctx] = await Promise.all([
 		getSyncState(userId, account.id),
 		listPendingImports(userId),
-		listImportRules(userId),
-		movementPickers(userId)
+		suggestionContext(userId, account.id)
 	]);
-	const counterAccounts = counterAccountsOf(pickers.accounts, account.id);
 
 	const now = new Date();
 	const today = localDay(now);
@@ -81,7 +74,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			group = { day, heading: dayHeading(day, today), items: [] };
 			groups.push(group);
 		}
-		const suggestion = importPrefill(i, rules, pickers.categories, counterAccounts).suggestion;
+		const suggestion = importPrefill(i, ctx.rules, ctx.categories, ctx.counterAccounts).suggestion;
 		if (suggestion !== null) suggested++;
 		group.items.push({
 			id: i.id,
@@ -123,28 +116,18 @@ export const actions: Actions = {
 		const userId = locals.user!.id;
 		const account = await requireAccount(userId);
 		const id = String((await request.formData()).get('id') ?? '');
-		if (!isUuid(id)) return fail(400, { message: 'No se pudo aprobar.' });
+		if (!isUuid(id)) return fail(400, { message: APPROVE_FAILED });
 		const item = await getImport(userId, id);
-		if (!item || item.status !== 'pending') {
-			return fail(409, { message: 'Ese movimiento ya fue revisado.' });
-		}
-		const [rules, pickers] = await Promise.all([listImportRules(userId), movementPickers(userId)]);
-		const prefill = importPrefill(
-			item,
-			rules,
-			pickers.categories,
-			counterAccountsOf(pickers.accounts, account.id)
-		);
-		// Only rows that show "Aprobar" have a suggestion; the rest go through the review form.
-		if (prefill.suggestion === null) return fail(400, { message: 'Revisá este movimiento.' });
+		if (!item || item.status !== 'pending') return fail(409, { message: ALREADY_REVIEWED });
+		const ctx = await suggestionContext(userId, account.id);
 		try {
-			// The values come from the rule itself: nothing new to remember.
-			const out = await approveWithValues(userId, item, prefill, false);
-			if (out.result === 'approved') return { approvedId: id };
-			return fail(409, { message: 'Ese movimiento ya fue revisado.' });
+			const out = await approveSuggestion(userId, item, ctx);
+			if (out === 'none') return fail(400, { message: 'Revisá este movimiento.' });
+			if (out === 'approved') return { approvedId: id };
+			return fail(409, { message: ALREADY_REVIEWED });
 		} catch (e) {
 			console.error('[imports] quick approve failed', pgErrorCode(e) ?? 'unknown');
-			return fail(400, { message: 'No se pudo aprobar.' });
+			return fail(400, { message: APPROVE_FAILED });
 		}
 	},
 
@@ -165,28 +148,7 @@ export const actions: Actions = {
 	approveSuggested: async ({ locals }) => {
 		const userId = locals.user!.id;
 		const account = await requireAccount(userId);
-		const [items, rules, pickers] = await Promise.all([
-			listPendingImports(userId),
-			listImportRules(userId),
-			movementPickers(userId)
-		]);
-		const counterAccounts = counterAccountsOf(pickers.accounts, account.id);
-
-		let approved = 0;
-		let skipped = 0;
-		for (const item of items) {
-			const prefill = importPrefill(item, rules, pickers.categories, counterAccounts);
-			if (prefill.suggestion === null) continue;
-			try {
-				// The values come from the rule itself: nothing new to remember.
-				const out = await approveWithValues(userId, item, prefill, false);
-				if (out.result === 'approved') approved++;
-				else skipped++;
-			} catch (e) {
-				console.error('[imports] bulk approve failed', pgErrorCode(e) ?? 'unknown');
-				skipped++;
-			}
-		}
+		const { approved, skipped } = await approveSuggestedImports(userId, account.id);
 		redirect(303, `/imports?approved=${approved}&skipped=${skipped}`);
 	}
 };
