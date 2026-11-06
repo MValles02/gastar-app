@@ -18,6 +18,7 @@ import {
 	counterAccountsOf,
 	suggestionContext
 } from './approve.server';
+import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
 
 const LEASE_MS = 15 * 60_000;
@@ -45,7 +46,7 @@ const APPROVE_FAILED = 'No se pudo aprobar.';
 const countParam = (v: string | null) => (v !== null && /^\d{1,9}$/.test(v) ? Number(v) : null);
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	requireSources();
 	const mp = await getMpImportAccount(userId);
 	const [items, ctx] = await Promise.all([listPendingImports(userId), suggestionContext(userId)]);
@@ -114,7 +115,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 export const actions: Actions = {
 	sync: async ({ locals }) => {
 		requireSources();
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		if (!(await getMpImportAccount(userId))) redirect(303, '/profile/vinculaciones');
 		await startMpSync(userId);
 		redirect(303, '/imports');
@@ -122,7 +123,7 @@ export const actions: Actions = {
 
 	/** Quick "Aprobar" of one suggested row; answers with the id so the page can offer Deshacer. */
 	approveOne: async ({ locals, request }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		requireSources();
 		const id = String((await request.formData()).get('id') ?? '');
 		if (!isUuid(id)) return fail(400, { message: APPROVE_FAILED });
@@ -142,7 +143,7 @@ export const actions: Actions = {
 
 	/** Deshacer of a quick approval: removes its movement and puts the item back to pending. */
 	undoApprove: async ({ locals, request }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		requireSources();
 		const id = String((await request.formData()).get('id') ?? '');
 		if (!isUuid(id)) return fail(400, { message: 'No se pudo deshacer.' });
@@ -155,7 +156,7 @@ export const actions: Actions = {
 	},
 
 	approveSuggested: async ({ locals }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		requireSources();
 		const { approved, skipped } = await approveSuggestedImports(userId);
 		redirect(303, `/imports?approved=${approved}&skipped=${skipped}`);

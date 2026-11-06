@@ -1,4 +1,5 @@
 import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
+import { requireUser } from '$lib/server/require-user';
 import type { PageServerLoad } from './$types';
 import {
 	categorySums,
@@ -22,7 +23,7 @@ type TopCategory = ReturnType<typeof topCategories>[number] & {
 };
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const currency = preferredCurrency(cookies);
 	const now = new Date();
 	const value = currentMonth(now);

@@ -17,6 +17,7 @@ import {
 	startAuthorization
 } from '$lib/server/mp-oauth';
 import { getSyncState, startMpBackfill } from '$lib/server/mp-sync';
+import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
 
 const FLASHES = {
@@ -34,7 +35,7 @@ const isRunning = (since: Date | null | undefined) =>
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!mpOauthEnabled()) error(404);
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const code = url.searchParams.get('error');
 	const connection = await getConnectionInfo(userId);
 	const account = connection?.accountId ? await getMpImportAccount(userId) : null;
@@ -55,7 +56,7 @@ export const actions: Actions = {
 	connect: async ({ locals, cookies, url }) => {
 		if (!mpOauthEnabled()) error(404);
 		const { state, verifier, url: authorizeUrl } = startAuthorization(url.origin);
-		cookies.set(OAUTH_COOKIE, JSON.stringify({ userId: locals.user!.id, state, verifier }), {
+		cookies.set(OAUTH_COOKIE, JSON.stringify({ userId: requireUser(locals).id, state, verifier }), {
 			path: OAUTH_PATH,
 			httpOnly: true,
 			sameSite: 'lax',
@@ -69,7 +70,7 @@ export const actions: Actions = {
 	account: async ({ locals, request }) => {
 		if (!mpOauthEnabled()) error(404);
 		const accountId = String((await request.formData()).get('accountId') ?? '');
-		if (!(await setReceivingAccount(locals.user!.id, accountId))) {
+		if (!(await setReceivingAccount(requireUser(locals).id, accountId))) {
 			return formFail(400, { errors: { accountId: 'Elegí una cuenta en pesos.' } });
 		}
 		return { accountId };
@@ -78,7 +79,7 @@ export const actions: Actions = {
 	/** Autosaved "Importar desde": the minimum date of every sync. */
 	importFrom: async ({ locals, request }) => {
 		if (!mpOauthEnabled()) error(404);
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const account = await getMpImportAccount(userId);
 		if (!account) return formFail(400, { errors: { from: 'Elegí primero la cuenta.' } });
 		const ymd = String((await request.formData()).get('from') ?? '');
@@ -109,7 +110,7 @@ export const actions: Actions = {
 
 	disconnect: async ({ locals }) => {
 		if (!mpOauthEnabled()) error(404);
-		await deleteConnection(locals.user!.id);
+		await deleteConnection(requireUser(locals).id);
 		redirect(303, OAUTH_PATH);
 	}
 };

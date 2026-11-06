@@ -13,6 +13,7 @@ import {
 } from '$lib/server/import-queries';
 import { failIfUnavailable, movementPickers } from '../../movements/form.server';
 import { approveWithValues } from '../approve.server';
+import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
 
 const { notFound, requireId } = notFoundHelpers('Movimiento no encontrado.');
@@ -35,7 +36,7 @@ async function pickers(userId: string, importAccountId: string) {
 }
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const item = await findItem(userId, params.id);
 	if (item.status !== 'pending') notFound();
 	const [{ categories, accounts }, rules] = await Promise.all([
@@ -69,7 +70,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 export const actions: Actions = {
 	approve: async ({ locals, params, request }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const item = await findItem(userId, params.id);
 		if (item.status !== 'pending') redirect(303, '/imports?done=stale');
 
@@ -123,7 +124,7 @@ export const actions: Actions = {
 	},
 
 	reject: async ({ locals, params }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		await findItem(userId, params.id);
 		redirect(303, `/imports?done=${await rejectImport(userId, params.id)}`);
 	}
