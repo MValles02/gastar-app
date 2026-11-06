@@ -1,4 +1,3 @@
-import { and, inArray } from 'drizzle-orm';
 import type { StatusTone } from '../status';
 import {
 	toCategoryIconKey,
@@ -7,15 +6,11 @@ import {
 	type SwatchKey
 } from '../appearance';
 import { CURRENCIES, formatMoney, type Currency } from '../money';
-import { canAccessCategory } from './access';
 import { hasAccountsIn } from './dashboard';
-import { accountSummary } from './dashboard-queries';
-import { db } from './db';
-import { categories } from './db/schema';
 import { currentMonth, localDay, monthRange } from './month';
 import { dueLabel, recurringStatus, type RecurringStatus } from './plan';
 import { paidRecurring } from './plan-queries';
-import { planView } from './plan-view';
+import { accountSummaryOnce, planViewOnce, type planView } from './plan-view';
 
 /** An unpaid fixed payment is an alert once it is overdue or due within this many days. */
 const DUE_WINDOW_DAYS = 3;
@@ -42,16 +37,6 @@ export type AlertItem = {
 	accountName: string | null;
 };
 
-/** Swatch key per category id, for the categories the user can access. */
-export async function categorySwatches(userId: string, ids: string[]) {
-	if (ids.length === 0) return new Map<string, SwatchKey | null>();
-	const rows = await db
-		.select({ id: categories.id, color: categories.color })
-		.from(categories)
-		.where(and(canAccessCategory(userId), inArray(categories.id, ids)));
-	return new Map(rows.map((r) => [r.id, toSwatchKey(r.color)]));
-}
-
 type PlanView = Awaited<ReturnType<typeof planView>>;
 type ActiveRule = PlanView['active'][number];
 type PlanSummary = NonNullable<PlanView['summary']>;
@@ -74,7 +59,7 @@ export async function alerts(userId: string, now = new Date()) {
 	const ym = currentMonth(now);
 	const today = localDay(now);
 	const [summary, paid] = await Promise.all([
-		accountSummary(userId),
+		accountSummaryOnce(userId),
 		paidRecurring(userId, monthRange(ym))
 	]);
 	const paidIds = new Set(paid.map((p) => p.recurringId));
@@ -82,7 +67,7 @@ export async function alerts(userId: string, now = new Date()) {
 
 	return Promise.all(
 		currencies.map(async (currency: Currency) => {
-			const { active, summary: plan } = await planView(userId, currency, now);
+			const { active, summary: plan } = await planViewOnce(userId, currency, now);
 			const payments = active
 				.filter((r) => r.type !== 'income')
 				.map((r) => ({ r, s: recurringStatus(r.dayOfMonth, paidIds.has(r.id), ym, today) }))

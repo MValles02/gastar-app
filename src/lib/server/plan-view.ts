@@ -1,3 +1,4 @@
+import { getRequestEvent } from '$app/server';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import type { Currency } from '$lib/money';
 import { currentMonth, localDay, monthLabel, monthRange } from './month';
@@ -16,23 +17,25 @@ import {
 import { effectiveSavings } from '$lib/savings';
 import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 import { listAccounts } from './accounts-queries';
+import { accountSummary } from './dashboard-queries';
 import { listCategories } from './categories-queries';
 import {
 	getPlan,
 	listRecurring,
 	monthOutcomes,
 	paidRecurring,
-	planLimits,
+	planLimitsByCurrency,
 	recurringCandidates
 } from './plan-queries';
 
 /** The plan summary for one currency as of `now`; `summary` is null when there is no plan for the current month. */
 export async function planView(userId: string, cur: Currency, now = new Date()) {
 	const ym = currentMonth(now);
-	const [rules, [plan], rows] = await Promise.all([
+	const [rules, [plan], rows, limitRows] = await Promise.all([
 		listRecurring(userId, cur),
 		getPlan(userId, cur),
-		monthOutcomes(userId, cur, monthRange(ym))
+		monthOutcomes(userId, cur, monthRange(ym)),
+		planLimitsByCurrency(userId, cur)
 	]);
 
 	const active = rules.filter(isRecurringActive);
@@ -42,7 +45,7 @@ export async function planView(userId: string, cur: Currency, now = new Date()) 
 
 	// A plan for another month (not repeating) counts as no plan.
 	const current = plan && (plan.month === null || plan.month === ym) ? plan : null;
-	const limits = current ? await planLimits(userId, current.id) : [];
+	const limits = current ? limitRows : [];
 	const recurringIncome = sumRules('income');
 	const summary = current
 		? planSummary({
@@ -80,6 +83,34 @@ export async function planView(userId: string, cur: Currency, now = new Date()) 
 			plan && !current && plan.month ? monthLabel(plan.month, false).toLowerCase() : null
 	};
 }
+
+const requestMemo = new WeakMap<object, Map<string, Promise<unknown>>>();
+
+/** Caches the promise of `run` per request (keyed on `locals`); outside a request it just calls through. */
+function memoPerRequest<T>(key: string, run: () => Promise<T>): Promise<T> {
+	let locals: object;
+	try {
+		locals = getRequestEvent().locals;
+	} catch {
+		return run();
+	}
+	let memo = requestMemo.get(locals);
+	if (!memo) requestMemo.set(locals, (memo = new Map()));
+	let hit = memo.get(key);
+	if (!hit) memo.set(key, (hit = run()));
+	return hit as Promise<T>;
+}
+
+/**
+ * `planView` shared by the loads of one request (layout alerts, home, reports). Loads only, never form
+ * actions: an action must not cache pre-mutation data. `now` differs by milliseconds between callers and is not part of the key.
+ */
+export const planViewOnce = (userId: string, cur: Currency, now = new Date()) =>
+	memoPerRequest(`plan:${userId}:${cur}`, () => planView(userId, cur, now));
+
+/** `accountSummary` shared by the loads of one request; same rules as `planViewOnce`. */
+export const accountSummaryOnce = (userId: string) =>
+	memoPerRequest(`accounts:${userId}`, async () => accountSummary(userId));
 
 /** The fields every rule row on /plan shows. */
 const ruleRow = (r: Awaited<ReturnType<typeof listRecurring>>[number]) => ({
