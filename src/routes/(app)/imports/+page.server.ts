@@ -9,7 +9,7 @@ import {
 	undoApproval
 } from '$lib/server/import-queries';
 import { getGaliciaConnection } from '$lib/server/galicia';
-import { getConnectionInfo, getMpImportAccount } from '$lib/server/mp-oauth';
+import { getConnectionInfo, getMpImportAccount, mpOauthEnabled } from '$lib/server/mp-oauth';
 import { getSyncState, startMpSync } from '$lib/server/mp-sync';
 import { dayHeading, localDay } from '$lib/server/month';
 import { isUuid } from '$lib/server/db/util';
@@ -131,7 +131,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 export const actions: Actions = {
 	sync: async ({ locals }) => {
 		const userId = requireUser(locals).id;
-		if (!(await getMpImportAccount(userId))) redirect(303, '/profile/vinculaciones');
+		if (!mpOauthEnabled() || !(await getMpImportAccount(userId)))
+			redirect(303, '/profile/vinculaciones');
 		await startMpSync(userId);
 		redirect(303, '/imports');
 	},
