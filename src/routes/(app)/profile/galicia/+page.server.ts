@@ -12,7 +12,6 @@ import {
 	StatementError,
 	type StatementErrorCode
 } from '$lib/server/galicia-statement';
-import { autoApprovePending } from '$lib/server/import-approve';
 import { pgErrorCode } from '$lib/server/db/errors';
 import { isBlocked, record } from '$lib/server/rate-limit';
 import { requireUser } from '$lib/server/require-user';
@@ -60,7 +59,7 @@ export const actions: Actions = {
 		return { currency, accountId };
 	},
 
-	/** Parses the statement in memory (never stored), writes its items in one insert, then auto-approves. */
+	/** Parses the statement in memory (never stored), stores its items, then auto-approves. */
 	upload: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
 		if (isBlocked('statementUpload', userId)) {
@@ -94,7 +93,6 @@ export const actions: Actions = {
 						: 'Elegí la cuenta en pesos antes de subir el resumen.'
 			});
 		}
-		const auto = result.created > 0 ? await autoApprovePending(userId) : 0;
-		redirect(303, `/imports?imported=${result.created}&auto=${auto}`);
+		redirect(303, `/imports?imported=${result.created}&auto=${result.autoApproved}`);
 	}
 };

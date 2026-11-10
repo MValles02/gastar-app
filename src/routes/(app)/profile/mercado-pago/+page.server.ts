@@ -16,7 +16,7 @@ import {
 	setReceivingAccount,
 	startAuthorization
 } from '$lib/server/mp-oauth';
-import { getSyncState, startMpBackfill } from '$lib/server/mp-sync';
+import { getSyncState, leaseActive, startMpBackfill } from '$lib/server/mp-sync';
 import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -26,12 +26,9 @@ const FLASHES = {
 	exchange: 'Mercado Pago no respondió. Probá de nuevo.'
 } as const;
 
-const LEASE_MS = 15 * 60_000;
 const DAY_MS = 86_400_000;
 const BACKFILL_DAYS = 365;
 const earliestDay = () => localDay(new Date(Date.now() - BACKFILL_DAYS * DAY_MS));
-const isRunning = (since: Date | null | undefined) =>
-	!!since && Date.now() - since.getTime() < LEASE_MS;
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!mpOauthEnabled()) error(404);
@@ -46,7 +43,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		importFrom: account ? await getImportFromDay(userId, account.id) : null,
 		today: localDay(new Date()),
 		earliest: earliestDay(),
-		running: account ? isRunning((await getSyncState(userId, account.id))?.runningSince) : false,
+		running: account ? leaseActive((await getSyncState(userId, account.id))?.runningSince) : false,
 		linked: url.searchParams.get('linked') === '1',
 		flash: code && code in FLASHES ? FLASHES[code as keyof typeof FLASHES] : null
 	};
@@ -98,7 +95,7 @@ export const actions: Actions = {
 		// Trimming while a run holds the lease would let it re-insert what was just deleted.
 		const busy = earlier
 			? !(await startMpBackfill(userId, from))
-			: isRunning((await getSyncState(userId, account.id))?.runningSince);
+			: leaseActive((await getSyncState(userId, account.id))?.runningSince);
 		if (busy) {
 			return formFail(409, {
 				errors: { from: 'Ya hay una sincronización en curso. Probá en unos minutos.' }

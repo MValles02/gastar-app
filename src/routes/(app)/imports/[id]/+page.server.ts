@@ -1,12 +1,10 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
-import { formatDay } from '$lib/locale';
-import { localDay } from '$lib/server/month';
 import { isUuid } from '$lib/server/db/util';
 import { notFoundHelpers } from '$lib/server/not-found';
 import {
 	getImport,
-	importDateTime,
+	importDateLabel,
 	importPrefill,
 	importTypes,
 	listImportRules,
@@ -49,11 +47,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			isCredit: item.isCredit,
 			amount: item.amount,
 			currency: item.currency,
-			// Card statement lines carry a day, not a time.
-			dateLabel:
-				item.source === 'mercado_pago'
-					? importDateTime(item.occurredAt)
-					: formatDay(localDay(item.occurredAt)),
+			dateLabel: importDateLabel(item.source, item.occurredAt),
 			rawDescription: item.rawDescription
 		},
 		initial: {
