@@ -9,10 +9,12 @@ import {
 } from './access';
 import { db } from './db';
 import { financialAccounts, mpConnections, mpImportItems, mpSyncState } from './db/schema';
+import { mpApiBaseUrl } from './mp-env';
 import { localDay } from './month';
 
-const DEFAULT_API_BASE_URL = 'https://api.mercadopago.com';
 const DEFAULT_AUTH_BASE_URL = 'https://auth.mercadopago.com';
+/** How far back a first sync reaches when the user has not chosen an "importar desde" day. */
+export const DEFAULT_BACKFILL_DAYS = 30;
 const TOKEN_TIMEOUT_MS = 15_000;
 const FORMAT = 'v1:';
 
@@ -87,7 +89,7 @@ type TokenResult =
 async function requestToken(body: Record<string, string>): Promise<TokenResult> {
 	let res: Response;
 	try {
-		res = await fetch((env.MP_API_BASE_URL || DEFAULT_API_BASE_URL) + '/oauth/token', {
+		res = await fetch(mpApiBaseUrl() + '/oauth/token', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json', accept: 'application/json' },
 			body: JSON.stringify({
@@ -326,7 +328,7 @@ export async function getImportFromDay(userId: string, accountId: string): Promi
 		.select({ at: min(mpImportItems.occurredAt) })
 		.from(mpImportItems)
 		.where(and(canAccessImport(userId), eq(mpImportItems.accountId, accountId)));
-	return localDay(first?.at ?? new Date(Date.now() - 30 * 86_400_000));
+	return localDay(first?.at ?? new Date(Date.now() - DEFAULT_BACKFILL_DAYS * 86_400_000));
 }
 
 /** Saves "importar desde" and drops the pending items of the account before it (approved and rejected ones stay). */

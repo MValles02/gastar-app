@@ -1,56 +1,53 @@
-import { env } from '$env/dynamic/private';
 import { and, eq, inArray, isNull, lt, max, or, sql } from 'drizzle-orm';
 import { db } from './db';
 import { financialAccounts, mpConnections, mpImportItems, mpSyncState } from './db/schema';
-import { canAccessAccount, canAccessImport, canAccessMpConnection, importOwnedBy } from './access';
-import { autoApprovePending } from './import-approve';
-import { getAccessToken, listUsableConnections, refreshConnection } from './mp-oauth';
-import { dayStart, localDay, TZ } from './month';
+import { canAccessAccount, canAccessImport, canAccessMpConnection } from './access';
+import { batches, type ImportRow, ingestImportItems } from './import-ingest';
+import { KIND, SOURCE } from './import-sources';
+import { mpApiBaseUrl, reportPollMs } from './mp-env';
+import { DEFAULT_BACKFILL_DAYS, getAccessToken, refreshConnection } from './mp-oauth';
+import { dayStart, localDay } from './month';
 
 /** Stored in mp_sync_state.last_error: a code only, never a message or payload. */
 export type MpSyncError =
 	'auth' | 'report_timeout' | 'network' | 'parse' | 'config' | 'reconnect' | `mp_${number}`;
 
-const DEFAULT_BASE_URL = 'https://api.mercadopago.com';
 const HTTP_TIMEOUT_MS = 30_000;
 const DAY_MS = 86_400_000;
 const CHUNK_DAYS = 31; // MP report range limit is unverified: single constant
 const OVERLAP_DAYS = 3;
 // Days, not hours: items from the old release-report sync carry day-start times, and dedupe makes overlap cheap.
 const PAYMENTS_OVERLAP_MS = OVERLAP_DAYS * DAY_MS;
-const DEFAULT_BACKFILL_DAYS = 30;
 const END_LAG_MS = 5 * 60_000;
 const POLL_TIMEOUT_MS = 5 * 60_000;
-const DEFAULT_POLL_MS = 15_000;
 const PAGE = 1000; // payments/search max limit
-const BATCH = 500;
 const AMOUNT_RE = /^-?\d+(?:[.,]\d{1,2})?$/;
 /** Kinds whose items come from payments/search; their latest date is where the next search starts. */
-const PAYMENT_KINDS = ['payment', 'account_fund', 'refund'];
+const PAYMENT_KINDS = [KIND.payment, KIND.accountFund, KIND.refund];
 /** Refresh the token when it expires within this window (MP tokens last 180 days). */
 const REFRESH_WINDOW_MS = 30 * DAY_MS;
+/** A sync holds its lease this long without renewing it; a later one may take over. */
+const LEASE_MINUTES = 15;
+const LEASE_MS = LEASE_MINUTES * 60_000;
+
+/** Whether a sync that took its lease at `since` is still running. */
+export const leaseActive = (since: Date | null | undefined) =>
+	!!since && Date.now() - since.getTime() < LEASE_MS;
 
 type Auth = { token: string };
 
 type Row = Record<string, string>;
-/** In an upsert's RETURNING: true when the row was inserted, false when an existing one was updated. */
-const INSERTED = sql<boolean>`xmax = 0`;
-type Item = typeof mpImportItems.$inferInsert;
 
 const fail = (code: MpSyncError) => Object.assign(new Error(code), { mp: true });
 const obj = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
 const str = (v: unknown) => (typeof v === 'string' || typeof v === 'number' ? String(v) : null);
 const text = (v: unknown) => (typeof v === 'string' ? v.trim() || null : null);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const batches = <T>(xs: T[]) =>
-	Array.from({ length: Math.ceil(xs.length / BATCH) }, (_, i) =>
-		xs.slice(i * BATCH, (i + 1) * BATCH)
-	);
 
 async function api(path: string, { token }: Auth, init: RequestInit = {}): Promise<Response> {
 	let res: Response;
 	try {
-		res = await fetch((env.MP_API_BASE_URL || DEFAULT_BASE_URL) + path, {
+		res = await fetch(mpApiBaseUrl() + path, {
 			...init,
 			headers: {
 				...init.headers,
@@ -147,7 +144,6 @@ function backfillStart(now: number, floor: Date | null): Date {
 	return begin;
 }
 
-/** The later of two dates, treating the floor as optional. */
 const atLeast = (d: Date, floor: Date | null) => (floor && floor > d ? floor : d);
 
 // ---------- Payments: /v1/payments/search, both sides, in seconds ----------
@@ -193,10 +189,11 @@ function merchantOf(p: Record<string, unknown>): string | null {
 }
 
 /**
- * Imports approved payments as pending items, skipping credit-card ones (they never touch the balance).
+ * The items for approved payments, skipping credit-card ones (they never touch the balance).
  * Refunds and chargebacks (seen through date_last_updated) become a separate `refund` item in the
  * opposite direction, but only when the payment is still approved (partial refund) or was already imported
- * and not rejected; a payment refunded before it was ever imported nets to zero and is skipped.
+ * and not rejected; a payment refunded before it was ever imported nets to zero and is skipped. A later
+ * partial refund grows the amount of the refund item while it is still pending.
  */
 async function syncPayments(
 	accountId: string,
@@ -205,7 +202,7 @@ async function syncPayments(
 	auth: Auth,
 	floor: Date | null,
 	from?: Date
-): Promise<number> {
+): Promise<ImportRow[]> {
 	const now = Date.now();
 	const [last] = await db
 		.select({ at: max(mpImportItems.occurredAt) })
@@ -251,8 +248,7 @@ async function syncPayments(
 		return nicknames.get(id) ?? null;
 	};
 
-	const inserts: Item[] = [];
-	const refunds: Item[] = [];
+	const items: ImportRow[] = [];
 	for (const p of payments) {
 		const id = str(p.id);
 		if (!id) throw fail('parse');
@@ -287,7 +283,6 @@ async function syncPayments(
 				: await nickname(counterpartyId);
 		const operationType = str(p.operation_type);
 		const base = {
-			...importOwnedBy(ownerId),
 			accountId,
 			sourceId: id,
 			counterpartyId,
@@ -297,49 +292,27 @@ async function syncPayments(
 			poiType: str(obj(p.point_of_interaction).type)
 		};
 		if (wantMain)
-			inserts.push({
+			items.push({
 				...base,
 				externalKey: key,
-				kind: operationType === 'account_fund' ? 'account_fund' : 'payment',
+				kind: operationType === 'account_fund' ? KIND.accountFund : KIND.payment,
 				occurredAt: date(p.date_approved ?? p.date_created),
 				amount,
 				isCredit,
 				rawDescription: text(p.description) ?? operationType ?? 'payment'
 			});
 		if (wantRefund)
-			refunds.push({
+			items.push({
 				...base,
 				externalKey: refundKey,
-				kind: 'refund',
+				kind: KIND.refund,
 				occurredAt: date(p.date_last_updated),
 				amount: refunded,
 				isCredit: !isCredit,
 				rawDescription: status ?? 'refund'
 			});
 	}
-	let added = 0;
-	for (const batch of batches(inserts)) {
-		const rows = await db
-			.insert(mpImportItems)
-			.values(batch)
-			.onConflictDoNothing({ target: [mpImportItems.userId, mpImportItems.externalKey] })
-			.returning({ id: mpImportItems.id });
-		added += rows.length;
-	}
-	// A later partial refund grows the amount while the item is still pending.
-	for (const r of refunds) {
-		const rows = await db
-			.insert(mpImportItems)
-			.values(r)
-			.onConflictDoUpdate({
-				target: [mpImportItems.userId, mpImportItems.externalKey],
-				set: { amount: r.amount, occurredAt: r.occurredAt, updatedAt: sql`now()` },
-				setWhere: eq(mpImportItems.status, 'pending')
-			})
-			.returning({ inserted: INSERTED });
-		if (rows[0]?.inserted) added++;
-	}
-	return added;
+	return items;
 }
 
 // ---------- Release report ("Liquidaciones"): yields and payouts, minutes in MP's queue ----------
@@ -364,7 +337,7 @@ const REPORT_COLUMNS = [
  * Config created in an MP account that has none (the report create answers 404 without one). No
  * `scheduled`: MP ignores `frequency` unless scheduling is on. An empty `notification_email_list` keeps
  * extra recipients off MP's "report ready" email; MP mails the account owner on every report anyway, which
- * is why the scheduler requests it once a day (see runMpSyncAll). `GMT-03` is Buenos Aires.
+ * is why the scheduler requests it once a day (see mp-scheduler). `GMT-03` is Buenos Aires.
  * `include_withdrawal_at_end` is on so a payout stamped at the very end of a range is never left out
  * (a repeat is harmless: the item key dedupes it).
  */
@@ -485,7 +458,7 @@ async function downloadReport(begin: Date, end: Date, auth: Auth): Promise<strin
 	}
 	const id = str(obj(created).id);
 	if (!id) throw fail('parse');
-	const pollMs = Number(env.MP_REPORT_POLL_MS) || DEFAULT_POLL_MS;
+	const pollMs = reportPollMs();
 	const deadline = Date.now() + POLL_TIMEOUT_MS;
 	let doneWithoutFile = false;
 	while (Date.now() < deadline) {
@@ -536,7 +509,7 @@ function netCents(r: Row): number {
  * (interoperable QR); without one it is a transfer or withdrawal. A yield row is signed (a loss is a debit);
  * syncReport nets them per local day. Keys are the ones the old settlement report used.
  */
-function reportItem(r: Row): Omit<Item, 'userId' | 'accountId'> | null {
+function reportItem(r: Row): Omit<ImportRow, 'accountId'> | null {
 	if (r.RECORD_TYPE !== 'release') return null;
 	const isYield =
 		r.DESCRIPTION === 'asset_management_gain' || r.DESCRIPTION === 'asset_management_loss';
@@ -552,7 +525,7 @@ function reportItem(r: Row): Omit<Item, 'userId' | 'accountId'> | null {
 		return {
 			...base,
 			externalKey: `yield:${day}`,
-			kind: 'yield',
+			kind: KIND.yield,
 			sourceId: day,
 			rawDescription: 'asset_management'
 		};
@@ -563,7 +536,7 @@ function reportItem(r: Row): Omit<Item, 'userId' | 'accountId'> | null {
 	if (signed > 0) return null;
 	return {
 		externalKey: `payout:${id}:out`,
-		kind: r.EXTERNAL_REFERENCE ? 'merchant_payout' : 'payout',
+		kind: r.EXTERNAL_REFERENCE ? KIND.merchantPayout : KIND.payout,
 		sourceId: id,
 		occurredAt,
 		amount: -signed,
@@ -573,12 +546,11 @@ function reportItem(r: Row): Omit<Item, 'userId' | 'accountId'> | null {
 }
 
 /**
- * Pulls the release report from the last report sync (minus overlap) to now. Returns the new end and the items it added.
+ * Pulls the release report from the last report sync (minus overlap) to now. Returns the new end and the items.
  * The cursor is the one the settlement report left (mp_sync_state.synced_until): the next run continues from it.
  */
 async function syncReport(
 	accountId: string,
-	ownerId: string,
 	syncedUntil: Date | null,
 	auth: Auth,
 	floor: Date | null,
@@ -620,7 +592,7 @@ async function syncReport(
 			const item = reportItem(r);
 			if (!item) continue;
 			const prev = items.get(item.externalKey);
-			if (!prev || item.kind !== 'yield') {
+			if (!prev || item.kind !== KIND.yield) {
 				items.set(item.externalKey, item);
 				continue;
 			}
@@ -630,30 +602,11 @@ async function syncReport(
 		}
 	}
 
-	let added = 0;
-	for (const item of items.values()) {
-		// A day whose gains and losses cancel out has nothing to import.
-		if (item.amount === 0) continue;
-		const values = { ...importOwnedBy(ownerId), accountId, ...item };
-		const rows = await db
-			.insert(mpImportItems)
-			.values(values)
-			.onConflictDoUpdate({
-				target: [mpImportItems.userId, mpImportItems.externalKey],
-				// Also relabels, re-times and re-signs pending items imported by the old syncs. Approved and rejected stay.
-				set: {
-					kind: values.kind,
-					amount: values.amount,
-					isCredit: values.isCredit,
-					occurredAt: values.occurredAt,
-					updatedAt: sql`now()`
-				},
-				setWhere: eq(mpImportItems.status, 'pending')
-			})
-			.returning({ inserted: INSERTED });
-		if (rows[0]?.inserted) added++;
-	}
-	return { end, added };
+	// A day whose gains and losses cancel out has nothing to import.
+	const rows = [...items.values()]
+		.filter((item) => item.amount !== 0)
+		.map((item) => ({ ...item, accountId }));
+	return { end, rows };
 }
 
 type Lease = {
@@ -694,7 +647,10 @@ async function acquire(userId: string): Promise<Lease | null> {
 					eq(mpSyncState.accountId, accountId),
 					or(
 						isNull(mpSyncState.runningSince),
-						lt(mpSyncState.runningSince, sql`now() - interval '15 minutes'`)
+						lt(
+							mpSyncState.runningSince,
+							sql`now() - interval '${sql.raw(String(LEASE_MINUTES))} minutes'`
+						)
 					)
 				)
 			)
@@ -714,7 +670,6 @@ async function acquire(userId: string): Promise<Lease | null> {
 	}
 }
 
-/** Refreshes the user's tokens (lease held) and returns the new auth, or the error code to record. */
 async function refreshed(userId: string): Promise<Auth> {
 	const outcome = await refreshConnection(userId);
 	if (outcome === 'reconnect') throw fail('reconnect');
@@ -724,36 +679,11 @@ async function refreshed(userId: string): Promise<Auth> {
 	return { token: fresh.token };
 }
 
-/** Buenos Aires hour of the daily release report: MP mails the account owner every time one is ready. */
-const REPORT_HOUR = 8;
-const HOUR_MS = 3_600_000;
-
-/** True during the Buenos Aires hour the scheduler requests the daily release report. */
-export function isReportHour(now: Date): boolean {
-	const hour = new Intl.DateTimeFormat('en-US', { timeZone: TZ, hour: 'numeric', hourCycle: 'h23' })
-		.formatToParts(now)
-		.find((p) => p.type === 'hour')?.value;
-	return Number(hour) === REPORT_HOUR;
-}
-
-/**
- * Whether the scheduler still owes this account today's report: none since the last REPORT_HOUR, with an
- * hour of slack because synced_until trails the run (END_LAG_MS) and a manual sync shortly before counts.
- */
-function reportDue(syncedUntil: Date | null, now: Date): boolean {
-	if (!syncedUntil) return true;
-	const today = dayStart(localDay(now));
-	if (!today) return false;
-	let last = today.getTime() + REPORT_HOUR * HOUR_MS;
-	if (last > now.getTime()) last -= DAY_MS;
-	return syncedUntil.getTime() < last - HOUR_MS;
-}
-
 /**
  * Runs payments, then (with `report`) the release report, under a held lease and releases it. Never throws.
  * synced_until is the report cursor: only a report run moves it, and a backfill (`from`, both windows start
- * there) leaves it alone. Before releasing the lease, recognized pending items are approved automatically
- * (also after a failed run: items stored earlier still count), so the inbox reads the count with 'Listo'.
+ * there) leaves it alone. Each stored batch auto-approves what a rule recognizes (also after a failed run:
+ * items stored earlier still count), so the inbox reads the count with 'Listo'.
  */
 async function execute(
 	l: Lease,
@@ -762,6 +692,13 @@ async function execute(
 	let ok = false;
 	let end: Date | null = null;
 	let code: MpSyncError | null = null;
+	let autoApproved = 0;
+	/** Stores the rows and returns how many are new. */
+	const ingest = async (rows: ImportRow[]) => {
+		const r = await ingestImportItems(l.userId, SOURCE.mercadoPago, rows);
+		autoApproved += r.autoApproved;
+		return r.created;
+	};
 	try {
 		if (l.currency !== 'ARS') throw fail('config');
 		const stored = await getAccessToken(l.userId);
@@ -787,17 +724,18 @@ async function execute(
 		}
 		const me = str(obj(meJson).id);
 		if (!me) throw fail('parse');
-		const paid = await syncPayments(l.accountId, l.userId, me, auth, l.floor, from);
+		const paid = await ingest(await syncPayments(l.accountId, l.userId, me, auth, l.floor, from));
 		// Progress for the inbox: payments are stored, the report is next (if any).
 		await db
 			.update(mpSyncState)
 			.set({ phase: report ? 'report' : 'payments', newItems: paid })
 			.where(eq(mpSyncState.accountId, l.accountId));
 		if (report) {
-			const r = await syncReport(l.accountId, l.userId, l.syncedUntil, auth, l.floor, from);
+			const r = await syncReport(l.accountId, l.syncedUntil, auth, l.floor, from);
+			const added = await ingest(r.rows);
 			await db
 				.update(mpSyncState)
-				.set({ newItems: sql`coalesce(${mpSyncState.newItems}, 0) + ${r.added}` })
+				.set({ newItems: sql`coalesce(${mpSyncState.newItems}, 0) + ${added}` })
 				.where(eq(mpSyncState.accountId, l.accountId));
 			end = r.end;
 		}
@@ -806,12 +744,7 @@ async function execute(
 		code = (e as { mp?: boolean }).mp ? ((e as Error).message as MpSyncError) : 'network';
 		console.error(`mp sync failed: ${code}`);
 	}
-	let autoApproved: number | null = null;
-	try {
-		autoApproved = await autoApprovePending(l.userId);
-	} catch {
-		console.error('[imports] auto-approve failed');
-	}
+	if (!ok) await ingest([]);
 	try {
 		await db
 			.update(mpSyncState)
@@ -834,27 +767,15 @@ async function execute(
 }
 
 /**
- * Scheduler entry: syncs every usable connection one after another. Never throws; one user failing does not
- * stop the rest. Payments always; the release report only with `report` and when the account has not had
- * one since the last REPORT_HOUR (so a restart or a second container never requests it twice a day).
+ * Scheduler entry for one user: payments, plus the release report when `wantsReport` says so for the
+ * account's report cursor. Waits for the run; skipped when the lease is held elsewhere.
  */
-export async function runMpSyncAll(report: boolean): Promise<void> {
-	let users: string[];
-	try {
-		users = await listUsableConnections();
-	} catch {
-		console.error('mp sync failed: network');
-		return;
-	}
-	for (const userId of users) {
-		try {
-			const lease = await acquire(userId);
-			if (lease)
-				await execute(lease, { report: report && reportDue(lease.syncedUntil, new Date()) });
-		} catch {
-			console.error('mp sync failed: network');
-		}
-	}
+export async function syncScheduled(
+	userId: string,
+	wantsReport: (syncedUntil: Date | null) => boolean
+): Promise<void> {
+	const lease = await acquire(userId);
+	if (lease) await execute(lease, { report: wantsReport(lease.syncedUntil) });
 }
 
 /** "Sincronizar ahora": awaits the lease only; payments and the report run in the background while the inbox polls the progress. */

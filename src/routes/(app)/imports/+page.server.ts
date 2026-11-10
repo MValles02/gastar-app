@@ -5,12 +5,12 @@ import {
 	importTitle,
 	listAutoApproved,
 	listPendingImports,
-	SOURCE_LABEL,
 	undoApproval
 } from '$lib/server/import-queries';
+import { importSource } from '$lib/server/import-sources';
 import { getGaliciaConnection } from '$lib/server/galicia';
 import { getConnectionInfo, getMpImportAccount, mpOauthEnabled } from '$lib/server/mp-oauth';
-import { getSyncState, startMpSync } from '$lib/server/mp-sync';
+import { getSyncState, leaseActive, startMpSync } from '$lib/server/mp-sync';
 import { dayHeading, localDay } from '$lib/server/month';
 import { isUuid } from '$lib/server/db/util';
 import { pgErrorCode } from '$lib/server/db/errors';
@@ -22,8 +22,6 @@ import {
 } from '$lib/server/import-approve';
 import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
-
-const LEASE_MS = 15 * 60_000;
 
 /** "Recién", "Hace 5 min", "Hace 2 h", "Hace 3 d". */
 function agoLabel(at: Date, now: Date): string {
@@ -97,11 +95,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			currency: i.currency,
 			isCredit: i.isCredit,
 			suggestion,
-			source: mixed ? (SOURCE_LABEL[i.source] ?? null) : null
+			source: mixed ? importSource(i.source).label : null
 		});
 	}
 
-	const running = !!sync?.runningSince && now.getTime() - sync.runningSince.getTime() < LEASE_MS;
+	const running = leaseActive(sync?.runningSince);
 	const done = url.searchParams.get('done');
 	const approved = countParam(url.searchParams.get('approved'));
 	const skipped = countParam(url.searchParams.get('skipped'));
