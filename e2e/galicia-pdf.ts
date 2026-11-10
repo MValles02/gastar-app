@@ -66,9 +66,12 @@ const detailHeader = (y: number): Text[] => [
  * Closing 29-Sep-26. Pesos: 100.000,00 previous balance paid in full, a 100,00 tax credit, consumos
  * 10.000,00 (cuota 03/06) + 2.500,50 - 500,00 (a credit), charges 120,00 + 30,00 + 15,00, so the
  * taxes item nets 65,00 and TOTAL A PAGAR is 12.065,50. Dollars: 10,00 paid, one 15,00 consumo.
- * `total` overrides the pesos TOTAL A PAGAR (a statement that does not reconcile).
+ * `total` overrides the pesos TOTAL A PAGAR (a statement that does not reconcile); `cafe` the
+ * reference and voucher of the 2.500,50 line.
  */
-export function visaStatement(o: { number?: string; total?: string } = {}): Buffer {
+export function visaStatement(
+	o: { number?: string; total?: string; cafe?: { reference: string; voucher: string } } = {}
+): Buffer {
 	const number = o.number ?? 'VI00000000001234567';
 	const total = o.total ?? '12.065,50';
 	return pdf([
@@ -105,8 +108,8 @@ export function visaStatement(o: { number?: string; total?: string } = {}): Buff
 			[452, 263, '10.000,00'],
 			[23, 247, '10-09-26'],
 			[74, 247, 'K'],
-			[86, 247, 'CAFE INVENTADO'],
-			[365, 247, '000456'],
+			[86, 247, o.cafe?.reference ?? 'CAFE INVENTADO'],
+			[365, 247, o.cafe?.voucher ?? '000456'],
 			[457, 247, '2.500,50'],
 			[23, 231, '12-09-26'],
 			[74, 231, 'K'],

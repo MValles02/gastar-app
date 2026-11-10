@@ -141,6 +141,51 @@ test('a statement that does not add up to its total is rejected with nothing wri
 	expect(await items()).toHaveLength(5);
 });
 
+test('a remembered merchant matches the same merchant with another reference code next month', async () => {
+	await page.goto('/categories/new');
+	await page.locator('input[name="name"]').fill('Servicios Galicia');
+	await page.getByRole('radio', { name: 'Gastos' }).check({ force: true });
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
+
+	await upload(
+		visaStatement({
+			number: 'VI00000000002222222',
+			cafe: { reference: 'MOVISTAR DA 000000583683789', voucher: '000901' }
+		})
+	);
+	await expect(page).toHaveURL(/\/imports/);
+	await page.waitForLoadState('networkidle'); // hydration guard: the drawer is a shallow route opened by JS
+	await page
+		.locator('[data-slot="item-group"] [role="listitem"]')
+		.filter({ hasText: 'MOVISTAR DA' })
+		.getByRole('link')
+		.click();
+	const drawer = page.getByRole('dialog', { name: 'Revisar movimiento' });
+	await expect(drawer).toBeVisible();
+	await pick(page, 'Categoría', 'Servicios Galicia');
+	await page.getByRole('checkbox', { name: 'Recordar para la próxima' }).check();
+	await drawer.getByRole('button', { name: 'Aprobar', exact: true }).click();
+	await expect(drawer).toHaveCount(0);
+
+	// Next month: same merchant, another code; the upload approves it with the learned category.
+	await upload(
+		visaStatement({
+			number: 'VI00000000003333333',
+			cafe: { reference: 'MOVISTAR DA 000000600111222', voucher: '000902' }
+		})
+	);
+	// The upload auto-approves before it redirects to the inbox.
+	await expect(page).toHaveURL(/\/imports/);
+	const rows = await withDb(
+		(sql) => sql`select i.status, c.name as category from mp_import_items i
+			join movements m on m.id = i.movement_id join categories c on c.id = m.category_id
+			where i.merchant = 'MOVISTAR DA 000000600111222'
+				and i.user_id = (select id from "user" where email = ${GALICIA_EMAIL})`
+	);
+	expect(rows).toEqual([{ status: 'approved', category: 'Servicios Galicia' }]);
+});
+
 test('another user cannot open the imported items', async ({ browser }) => {
 	const [item] = await items();
 	const ctx = await browser.newContext();

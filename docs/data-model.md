@@ -169,7 +169,7 @@ Approval inbox for imported activity (Mercado Pago, Banco Galicia card statement
 | `is_credit` | boolean | direction of the money |
 | `source_id` | text | |
 | `raw_description` | text | |
-| `counterparty_id`, `counterparty_nickname`, `merchant`, `operation_type`, `poi_type` | text, nullable | Galicia: `merchant` is the raw reference and `source_id` the comprobante (or '') |
+| `counterparty_id`, `counterparty_nickname`, `merchant`, `operation_type`, `poi_type` | text, nullable | Galicia: `merchant` is the raw reference (its rule key is the cleaned name, see Rules) and `source_id` the comprobante (or '') |
 | `installment` | text, nullable | Galicia installment lines: the cuota as printed (`05/12`) |
 | `movement_id` | fk → `movements.id`, nullable | ON DELETE SET NULL |
 | `auto_approved_at` | timestamptz, nullable | set when the approval was automatic; cleared by an undo |
@@ -202,7 +202,7 @@ Rules learned from approved items, used to pre-fill later ones.
 
 Constraints: `UNIQUE (user_id, match_kind, match_value)`; CHECK `mp_import_rules_shape_check`: `transfer` ⇒ `counter_account_id` set and `category_id` null; otherwise `category_id` set.
 
-Approval upserts one rule on the item's strongest key: `counterparty` (`operation_type = money_transfer` with a counterparty id) > `merchant` (trimmed, lowercased) > `kind` (only yield, payout, merchant_payout, account_fund, card_taxes); a `refund` item and a card credit (other than `card_taxes`) have no key; no key, no rule. Pre-fill is computed at read time from the first matching key in that order and ignored when its target is archived or its type does not fit the item's direction.
+Approval upserts one rule on the item's strongest key: `counterparty` (`operation_type = money_transfer` with a counterparty id) > `merchant` (trimmed, lowercased; for card lines the reference cleaned of per-transaction codes, keeping `*` and inner punctuation, with the raw trimmed-lowercased reference as a lookup-only fallback for rules learned before; Mercado Pago keys unchanged) > `kind` (only yield, payout, merchant_payout, account_fund, card_taxes); a `refund` item and a card credit (other than `card_taxes`) have no key; no key, no rule. Pre-fill is computed at read time from the first matching key in that order and ignored when its target is archived or its type does not fit the item's direction.
 
 ### `mp_sync_state`
 

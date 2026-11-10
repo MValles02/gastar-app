@@ -95,6 +95,36 @@ const FALLBACK_TITLE: Record<string, string> = {
 
 const CARD_KINDS = ['card_purchase', 'card_installment', 'card_taxes'];
 
+const isCardLine = (kind: string) => kind === 'card_purchase' || kind === 'card_installment';
+
+/**
+ * The stable name of a card statement reference, in its original casing ('' when nothing is left).
+ * Drops: leading Visa markers (*, K, E); an embedded "USD 1.234,56" amount; NN/NN installment tokens;
+ * a leading "MERPAGO*"; trailing per-transaction codes (5+ digits, or letters+digits of 6+ chars; a
+ * code glued to 3+ letters keeps the letters). The last remaining token is always kept. Trailing
+ * whitespace and , ; : * - / go; a trailing period and inner punctuation stay.
+ */
+export function cardMerchantName(reference: string): string {
+	const text = reference
+		.trim()
+		.replace(/^(?:[*KE]\s+)+/, '')
+		.replace(/\s*USD\s*\d[\d.]*,\d{2}/gi, '')
+		.replace(/(^|\s)\d{2}\/\d{2}(?=\s|$)/g, '$1')
+		.replace(/^\s*MERPAGO\s*\*\s*/i, '');
+	const tokens = text.split(/\s+/).filter(Boolean);
+	while (tokens.length > 1) {
+		const last = tokens[tokens.length - 1];
+		const glued = /^([A-Za-z]{3,})\d{5,}$/.exec(last);
+		if (glued) {
+			tokens[tokens.length - 1] = glued[1];
+			break;
+		}
+		if (/^\d{5,}$/.test(last) || /^(?=.*\d)(?=.*[A-Za-z])[A-Za-z0-9]{6,}$/.test(last)) tokens.pop();
+		else break;
+	}
+	return tokens.join(' ').replace(/[\s,;:*\-/]+$/, '');
+}
+
 type TitleFields = {
 	counterpartyNickname: string | null;
 	merchant: string | null;
@@ -109,6 +139,10 @@ type TitleFields = {
 export function importTitle(i: TitleFields): string {
 	// MP text comes padded sometimes; a blank value counts as absent.
 	const clean = (s: string | null | undefined) => s?.trim() || null;
+	if (isCardLine(i.kind)) {
+		const name = cardMerchantName(i.merchant ?? '') || i.rawDescription.trim();
+		return i.installment ? `${name} ${i.installment}` : name;
+	}
 	if (i.installment) return `${clean(i.merchant) ?? i.rawDescription.trim()} ${i.installment}`;
 	if (i.kind === 'refund') {
 		const of = clean(i.counterpartyNickname) ?? clean(i.merchant);
@@ -158,8 +192,13 @@ export function importRuleKeys(i: ImportKeyFields): ImportRuleKey[] {
 	if (i.isCredit && CARD_KINDS.includes(i.kind) && i.kind !== 'card_taxes') return keys;
 	if (i.operationType === 'money_transfer' && i.counterpartyId)
 		keys.push({ matchKind: 'counterparty', matchValue: i.counterpartyId });
-	const merchant = i.merchant?.trim().toLowerCase();
-	if (merchant) keys.push({ matchKind: 'merchant', matchValue: merchant });
+	const raw = i.merchant?.trim().toLowerCase();
+	if (isCardLine(i.kind)) {
+		// Card keys drop per-transaction codes; the raw key stays as a lookup fallback for older rules.
+		const name = cardMerchantName(i.merchant ?? '').toLowerCase();
+		if (name) keys.push({ matchKind: 'merchant', matchValue: name });
+		if (name && raw && raw !== name) keys.push({ matchKind: 'merchant', matchValue: raw });
+	} else if (raw) keys.push({ matchKind: 'merchant', matchValue: raw });
 	// A net-negative yield day must not share (and overwrite) the rule learned from the usual positive ones.
 	const stable =
 		i.kind === 'yield'
@@ -185,7 +224,9 @@ export function rememberKey(
 		key.matchKind === 'counterparty'
 			? i.counterpartyNickname?.trim() || null
 			: key.matchKind === 'merchant'
-				? i.merchant!.trim()
+				? isCardLine(i.kind)
+					? cardMerchantName(i.merchant!)
+					: i.merchant!.trim()
 				: FALLBACK_TITLE[key.matchValue];
 	return { key, label: label || importTitle(i) };
 }
