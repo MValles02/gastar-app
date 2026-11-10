@@ -15,12 +15,9 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	if (!summary.some((s) => s.currency === currency && s.count > 0))
 		return { currency, saved, planSaved, hasCurrency: false as const };
 
-	const now = new Date();
-	// `rules` and `active` are server-only (see planView); the rest of the view goes to the client.
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const [{ rules, active, ...plan }, lists] = await Promise.all([
-		planView(userId, currency, now),
-		recurringLists(userId, currency, now)
+	const [plan, lists] = await Promise.all([
+		planView(userId, currency),
+		recurringLists(userId, currency)
 	]);
 
 	return { currency, saved, planSaved, hasCurrency: true as const, plan, ...lists };

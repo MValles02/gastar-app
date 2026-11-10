@@ -9,7 +9,7 @@ import { TOAST_FLAGS } from '$lib/url-flags';
 import { localDay } from '$lib/server/month';
 import { parseMovementForm } from '$lib/server/movements';
 import { createMovement } from '$lib/server/movements-queries';
-import { isRecurringActive } from '$lib/server/plan';
+import { isRecurringActive } from '$lib/plan';
 import { createMovementWithRule, listRecurring } from '$lib/server/plan-queries';
 import { requireUser } from '$lib/server/require-user';
 import { drawerPickers, failIfUnavailable, resolvePostedMovement } from '../form.server';

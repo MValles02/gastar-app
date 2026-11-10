@@ -1,4 +1,4 @@
-import type { StatusTone } from '../status';
+import { dueLabel, PLAN_STATUS_LABEL, PLAN_TONE, type StatusTone } from '$lib/plan';
 import {
 	toCategoryIconKey,
 	toSwatchKey,
@@ -7,10 +7,9 @@ import {
 } from '../appearance';
 import { CURRENCIES, formatMoney, type Currency } from '../money';
 import { hasAccountsIn } from './dashboard';
-import { currentMonth, localDay, monthRange } from './month';
-import { dueLabel, recurringStatus, type RecurringStatus } from './plan';
-import { paidRecurring } from './plan-queries';
-import { accountSummaryOnce, planViewOnce, type planView } from './plan-view';
+import { accountSummary } from './dashboard-queries';
+import { recurringStatus } from './plan';
+import { monthPlan, type MonthPlan } from './plan-view';
 
 /** An unpaid fixed payment is an alert once it is overdue or due within this many days. */
 const DUE_WINDOW_DAYS = 3;
@@ -37,40 +36,26 @@ export type AlertItem = {
 	accountName: string | null;
 };
 
-type PlanView = Awaited<ReturnType<typeof planView>>;
-type ActiveRule = PlanView['active'][number];
-type PlanSummary = NonNullable<PlanView['summary']>;
+type ActiveRule = MonthPlan['active'][number];
+type PlanSummary = MonthPlan['summary'];
 type DueStatus = ReturnType<typeof recurringStatus>;
-
-/** Only unpaid rules inside the alert window reach here: overdue is bad, due today or soon is warning. */
-const PAYMENT_TONE = {
-	overdue: 'bad',
-	today: 'warning',
-	upcoming: 'warning',
-	paid: 'neutral'
-} as const satisfies Record<RecurringStatus, StatusTone>;
 
 /**
  * Alerts per currency that has accounts, worked out from existing data (nothing is stored).
  * Fixed payments first (overdue, then by due day), then the plan, then category limits. Never sums across currencies.
  * Fixed incomes never alert: an unregistered one shows neutrally on /plan ("Esperado el día N").
  */
-export async function alerts(userId: string, now = new Date()) {
-	const ym = currentMonth(now);
-	const today = localDay(now);
-	const [summary, paid] = await Promise.all([
-		accountSummaryOnce(userId),
-		paidRecurring(userId, monthRange(ym))
-	]);
-	const paidIds = new Set(paid.map((p) => p.recurringId));
-	const currencies = CURRENCIES.filter((c) => hasAccountsIn(summary, c));
+export async function alerts(userId: string) {
+	const accounts = await accountSummary(userId);
+	const currencies = CURRENCIES.filter((c) => hasAccountsIn(accounts, c));
 
 	return Promise.all(
 		currencies.map(async (currency: Currency) => {
-			const { active, summary: plan } = await planViewOnce(userId, currency, now);
-			const payments = active
+			const m = await monthPlan(userId, currency);
+			const plan = m.hasPlan ? m.summary : null;
+			const payments = m.active
 				.filter((r) => r.type !== 'income')
-				.map((r) => ({ r, s: recurringStatus(r.dayOfMonth, paidIds.has(r.id), ym, today) }))
+				.map((r) => ({ r, s: recurringStatus(r.dayOfMonth, m.paidIds.has(r.id), m.ym, m.today) }))
 				.filter(({ s }) => s.status !== 'paid' && s.daysLeft <= DUE_WINDOW_DAYS)
 				.sort((a, b) => a.s.daysLeft - b.s.daysLeft)
 				.map(({ r, s }) => paymentAlert(r, s));
@@ -90,7 +75,7 @@ function paymentAlert(rule: ActiveRule, due: DueStatus): AlertItem {
 		id: `rule-${rule.id}`,
 		kind: 'payment',
 		name: rule.description,
-		status: { label, tone: PAYMENT_TONE[due.status] },
+		status: { label, tone: due.status === 'overdue' ? 'bad' : 'warning' },
 		message: `${label} · ${rule.accountName}`,
 		href: `/plan/recurring/${rule.id}`,
 		switchCurrency: false,
@@ -101,7 +86,6 @@ function paymentAlert(rule: ActiveRule, due: DueStatus): AlertItem {
 	};
 }
 
-/** Over or spending too fast; null while the plan is on track. */
 function planAlert(plan: PlanSummary, currency: Currency): AlertItem | null {
 	const base = {
 		id: `plan-${currency}`,
@@ -117,7 +101,7 @@ function planAlert(plan: PlanSummary, currency: Currency): AlertItem | null {
 	if (plan.status === 'over')
 		return {
 			...base,
-			status: { label: 'Te pasaste', tone: 'bad' },
+			status: { label: PLAN_STATUS_LABEL.over, tone: PLAN_TONE.over },
 			message:
 				plan.forSpending <= 0
 					? `Tu ahorro y tus pagos fijos superan tus ingresos por ${formatMoney(-plan.forSpending, currency)}`
@@ -126,13 +110,12 @@ function planAlert(plan: PlanSummary, currency: Currency): AlertItem | null {
 	if (plan.status === 'warn')
 		return {
 			...base,
-			status: { label: 'Vas rápido', tone: 'warning' },
+			status: { label: PLAN_STATUS_LABEL.warn, tone: PLAN_TONE.warn },
 			message: `Gastaste ${percent(plan.spentShare)} de lo que tenés para gastar y quedan ${days(plan.daysLeft)}`
 		};
 	return null;
 }
 
-/** Over the limit, or "Vas rápido" on /plan (`fast`). */
 function limitAlerts(plan: PlanSummary, currency: Currency): AlertItem[] {
 	return plan.limits
 		.filter((l) => l.over || l.fast)
@@ -141,8 +124,8 @@ function limitAlerts(plan: PlanSummary, currency: Currency): AlertItem[] {
 			kind: 'limit',
 			name: l.name,
 			status: l.over
-				? { label: 'Te pasaste', tone: 'bad' }
-				: { label: 'Vas rápido', tone: 'warning' },
+				? { label: PLAN_STATUS_LABEL.over, tone: PLAN_TONE.over }
+				: { label: PLAN_STATUS_LABEL.warn, tone: PLAN_TONE.warn },
 			message: l.over
 				? `${formatMoney(l.spent - l.amount, currency)} sobre el límite de ${formatMoney(l.amount, currency)}`
 				: `Gastaste ${percent(l.share)} del límite y quedan ${days(plan.daysLeft)}`,

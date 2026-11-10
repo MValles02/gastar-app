@@ -11,10 +11,13 @@ export const CURRENCY_NAME = { ARS: 'pesos', USD: 'dólares' } as const satisfie
 
 const intFmt = new Intl.NumberFormat(LOCALE);
 
+/** Smallest unit shown and entered, in cents: whole pesos in ARS, the cent in USD. */
+export const currencyStep = (currency: Currency) => (currency === 'ARS' ? 100 : 1);
+
 /** Unsigned display ("$1.234", "US$1.234,56"; no space after the symbol): direction is shown by colour, never by a sign. */
 export function formatMoney(cents: number, currency: Currency): string {
-	// ARS is shown in whole pesos (rounded half up on the magnitude); only USD shows cents.
-	const abs = currency === 'ARS' ? Math.round(Math.abs(cents) / 100) * 100 : Math.abs(cents);
+	const step = currencyStep(currency);
+	const abs = Math.round(Math.abs(cents) / step) * step;
 	const int = intFmt.format(Math.trunc(abs / 100));
 	const dec = currency === 'USD' ? `,${String(abs % 100).padStart(2, '0')}` : '';
 	const symbol = currency === 'USD' ? 'US$' : '$';
@@ -26,7 +29,7 @@ export const AMOUNT_EXAMPLE = '(ej.: 1.234 en pesos o 1.234,56 en dólares)';
 
 /** ARS amounts (and exchange rates, which are in ARS) are whole pesos; USD may have cents. */
 export const isWholeFor = (cents: number, currency: Currency) =>
-	currency === 'USD' || cents % 100 === 0;
+	cents % currencyStep(currency) === 0;
 
 /** True for a usable exchange rate: positive and whole pesos (integer hundredths of "1 USD = X ARS"). */
 export const isValidRate = (rate: number | null): rate is number =>

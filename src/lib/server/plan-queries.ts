@@ -21,15 +21,14 @@ import {
 } from './access';
 import type { Currency } from '$lib/money';
 import type { MovementRow } from './movements';
-import { currentMonth, TZ } from './month';
-import { HISTORY_MONTHS, isRecurringActive } from './plan';
+import { currentMonth, HISTORY_MONTHS, TZ } from './month';
+import { activeTotal, isCurrentPlan } from './plan';
 
 type Range = { start: Date; end: Date };
 
 const occurredIn = (range: Range) =>
 	and(gte(movements.occurredAt, range.start), lt(movements.occurredAt, range.end));
 
-/** The rule `id`, only if the user may access it. */
 const ownRule = (userId: string, id: string) =>
 	and(eq(recurringMovements.id, id), canAccessRecurring(userId));
 
@@ -37,7 +36,7 @@ const ownRule = (userId: string, id: string) =>
 const tzLiteral = sql.raw(`'${TZ}'`);
 const localMonth = sql<string>`to_char(${movements.occurredAt} at time zone ${tzLiteral}, 'YYYY-MM')`;
 
-export type RecurringRow = {
+export type RecurringInput = {
 	type: 'income' | 'outcome';
 	description: string;
 	amount: number;
@@ -85,6 +84,8 @@ export function listRecurring(userId: string, cur?: Currency, id?: string) {
 		.orderBy(recurringMovements.dayOfMonth, recurringMovements.description);
 }
 
+export type RecurringRule = Awaited<ReturnType<typeof listRecurring>>[number];
+
 const ruleAccount = alias(financialAccounts, 'rule_account');
 
 /**
@@ -108,7 +109,7 @@ export function paidRecurring(userId: string, range: Range) {
 		);
 }
 
-export function createRecurring(userId: string, row: RecurringRow) {
+export function createRecurring(userId: string, row: RecurringInput) {
 	return db
 		.insert(recurringMovements)
 		.values({ ...row, ...recurringOwnedBy(userId) })
@@ -119,7 +120,7 @@ export function createRecurring(userId: string, row: RecurringRow) {
  * "Repetir cada mes": the rule and the movement linked to it, in ONE transaction. The caller has
  * already checked the account and category against the user; any failure writes nothing.
  */
-export function createMovementWithRule(userId: string, row: MovementRow, ruleRow: RecurringRow) {
+export function createMovementWithRule(userId: string, row: MovementRow, ruleRow: RecurringInput) {
 	return db.transaction(async (tx) => {
 		const [rule] = await tx
 			.insert(recurringMovements)
@@ -133,7 +134,7 @@ export function createMovementWithRule(userId: string, row: MovementRow, ruleRow
 	});
 }
 
-export function updateRecurring(userId: string, id: string, row: RecurringRow) {
+export function updateRecurring(userId: string, id: string, row: RecurringInput) {
 	return db
 		.update(recurringMovements)
 		.set({ ...row, updatedAt: new Date() })
@@ -197,7 +198,7 @@ export function recurringCandidates(userId: string, cur: Currency, range: Range)
 /** The user's plan for `cur` when it is the current one (a plan for another month counts as none). */
 export async function currentPlan(userId: string, cur: Currency) {
 	const [plan] = await getPlan(userId, cur);
-	return plan && (plan.month === null || plan.month === currentMonth(new Date())) ? plan : null;
+	return plan && isCurrentPlan(plan, currentMonth(new Date())) ? plan : null;
 }
 
 export function getPlan(userId: string, cur: Currency) {
@@ -279,17 +280,12 @@ export function deletePlan(userId: string, cur: Currency) {
 		.returning({ id: spendingPlans.id });
 }
 
-/** Sum of the user's active recurring incomes in `cur` (the same definition `planView` uses). */
 export async function planIncome(userId: string, cur: Currency) {
-	const rules = await listRecurring(userId, cur);
-	return rules
-		.filter((r) => r.type === 'income' && isRecurringActive(r))
-		.reduce((a, r) => a + r.amount, 0);
+	return activeTotal(await listRecurring(userId, cur), 'income');
 }
 
 export type PlanSavings = { savings: number; savingsPercent: number | null; month: string | null };
 
-/** Creates the user's plan for `cur`, or overwrites its savings and month when one exists. */
 export function upsertPlan(userId: string, cur: Currency, v: PlanSavings) {
 	return db
 		.insert(spendingPlans)
@@ -301,7 +297,6 @@ export function upsertPlan(userId: string, cur: Currency, v: PlanSavings) {
 		.returning({ id: spendingPlans.id });
 }
 
-/** Patches the user's existing plan for `cur`. */
 export function updatePlan(userId: string, cur: Currency, patch: Partial<PlanSavings>) {
 	return db
 		.update(spendingPlans)
@@ -339,7 +334,6 @@ export function upsertLimits(
 	});
 }
 
-/** Removes one category limit from the user's plan `planId`. */
 export async function deleteLimit(userId: string, planId: string, categoryId: string) {
 	const plans = db
 		.select({ id: spendingPlans.id })

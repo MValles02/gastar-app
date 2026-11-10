@@ -2,23 +2,19 @@ import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { preferredCurrency } from '$lib/server/currency-pref';
-import { parseSavingsForm } from '$lib/server/plan';
 import { currentPlan, planIncome, updatePlan } from '$lib/server/plan-queries';
-import { planView } from '$lib/server/plan-view';
+import { savingsBaseline } from '$lib/server/plan-view';
 import { requireUser } from '$lib/server/require-user';
+import { parseSavingsForm } from './form.server';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const userId = requireUser(locals).id;
 	const currency = preferredCurrency(cookies);
 	const plan = await currentPlan(userId, currency);
 	if (!plan) redirect(303, '/plan');
-	// What the month has left before any savings, and the days left: from planView, so the drawer's
-	// per-day previews round exactly like the plan's own figure.
-	const { summary } = await planView(userId, currency);
 	return {
 		currency,
-		base: summary ? summary.available + summary.savings : 0,
-		daysLeft: summary?.daysLeft ?? 1,
+		...(await savingsBaseline(userId, currency)),
 		income: await planIncome(userId, currency),
 		savings: plan.savings,
 		savingsPercent: plan.savingsPercent

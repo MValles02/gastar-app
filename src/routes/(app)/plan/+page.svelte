@@ -20,7 +20,7 @@
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import { stripFlags } from '$lib/nav-stack.svelte';
 	import { openShallow } from '$lib/open-shallow';
-	import { PLAN_TONE } from '$lib/status';
+	import { PLAN_TONE } from '$lib/plan';
 	import LimitList from './LimitList.svelte';
 	import RecurringRow from './RecurringRow.svelte';
 	import type { PageData } from './$types';

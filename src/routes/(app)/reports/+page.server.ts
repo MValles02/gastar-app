@@ -2,8 +2,8 @@ import type { PageServerLoad } from './$types';
 import { toCategoryIconKey, toSwatchKey, type CategoryIconKey } from '$lib/appearance';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import { hasAccountsIn } from '$lib/server/dashboard';
-import { categorySums } from '$lib/server/dashboard-queries';
-import { accountSummaryOnce } from '$lib/server/plan-view';
+import { accountSummary, categorySums } from '$lib/server/dashboard-queries';
+
 import {
 	currentMonth,
 	dateLabel,
@@ -19,7 +19,6 @@ import {
 import { biggestOutcome, monthlyFlows } from '$lib/server/reports-queries';
 import { requireUser } from '$lib/server/require-user';
 
-/** Months in the flow chart, ending at the selected one. */
 const FLOW_MONTHS = 6;
 /** Categories listed as their own row; the rest are summed into "Otros". */
 const TOP_CATEGORIES = 4;
@@ -42,7 +41,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const months = lastMonths(ym, FLOW_MONTHS);
 	const range = monthRange(ym);
 	const [summary, flows, cats, [biggest]] = await Promise.all([
-		accountSummaryOnce(userId),
+		accountSummary(userId),
 		monthlyFlows(userId, currency, { start: monthRange(months[0]).start, end: range.end }),
 		categorySums(userId, currency, range),
 		biggestOutcome(userId, currency, range)
@@ -61,7 +60,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	});
 	const month = bars[bars.length - 1];
 
-	const days = Math.max(elapsedDays(ym, localDay(now)), 1);
+	const days = elapsedDays(ym, localDay(now));
 	return {
 		currency,
 		nav,

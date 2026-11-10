@@ -5,7 +5,7 @@
 	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
 	import { openShallow } from '$lib/open-shallow';
 	import { formatAmountInput } from '$lib/money';
-	import { dueTone } from '$lib/status';
+	import { dueTone } from '$lib/plan';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import DayOfMonthPicker from '$lib/components/DayOfMonthPicker.svelte';
 	import InlineText from '$lib/components/InlineText.svelte';
