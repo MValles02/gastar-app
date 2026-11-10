@@ -12,7 +12,7 @@ Public sign-up (email + password, email verification required, password reset by
 | Branching, PRs, CI gate, script contract, deploy flow | `docs/WORKFLOW.md` (shared)      |
 | Environments, secrets, Dokploy, rollback, promotion   | `docs/deployment.md`             |
 | Production env vars, creating users                   | `README.md`                      |
-| Product audience/tone (impeccable); visual system     | `PRODUCT.md`, `DESIGN.md` (root) |
+| Product audience/tone; visual system                  | `PRODUCT.md`, `DESIGN.md` (root) |
 
 ## Stack
 
@@ -28,7 +28,7 @@ SvelteKit 2 + TypeScript, Drizzle ORM + Postgres (`src/lib/server/db/schema.ts`)
 - Migrations and rollouts: deploys are start-first (the new container starts while the old one still serves, both on the same DB) and migrations run at container start, so every migration must be backward-compatible with the previous release. Expand/contract: add nullable/defaulted columns first; drop or rename only in a later release, once no running code uses them (`docs/WORKFLOW.md`).
 - Branches: `feat/`, `fix/`, `chore/` or `docs/` prefix; feature branches squash-merge into `develop` via PR; `develop` is promoted to `main` by a merge-commit PR (never squash); PR titles follow Conventional Commits (`docs/WORKFLOW.md`).
 - `develop` auto-deploys dev.gastar.app on merge; `main` auto-deploys production (web.gastar.app) on merge (`docs/WORKFLOW.md`).
-- Design: UI work starts from root `PRODUCT.md` and `DESIGN.md`. Use `/impeccable`: `craft`/`shape` for new screens, `audit`/`polish` before the PR. Update `DESIGN.md` when the visual system changes. UI text stays Spanish (es-AR) per `docs/scope.md`. The skill binary is not committed: after cloning run `npx impeccable install` (project scope). The design hook is local (`.claude/settings.local.json`, gitignored).
+- Design: UI work starts from root `PRODUCT.md` and `DESIGN.md`; update `DESIGN.md` when the visual system changes. UI text stays Spanish (es-AR) per `docs/scope.md`. Design skills live in `.claude/skills/`, vendored unchanged from [emilkowalski/skills](https://github.com/emilkowalski/skills) (MIT, commit `715c180`): `emil-design-eng` for UI polish and component decisions, `mobile-native` for touch, viewport, input and PWA behavior, `gestures` for drag, swipe and drawer interactions, `review-animations` to review motion, `break-ui` to stress a screen with worst-case data (its toggle and fixture stay dev-only and are not tests). Phone-only behavior (input zoom, safe areas, keyboard, overscroll, tap feedback) is confirmed on a real phone, not only in device emulation. To update a skill, re-copy it from upstream and bump the commit here.
 - Testing: unit tests are not required and are not kept in the repo; cover behavior with integration tests or Playwright E2E (`e2e/`). E2E covers money, data, auth and cross-user isolation flows only. No layout/pixel/viewport, animation, touch-target, colour or copy tests; one representative test per error class; no duplicated assertions across specs; no `waitForTimeout`, and `networkidle` only as a commented hydration guard before a JS-only control (the app exposes no hydration marker). Keep the suite around 125 tests and CI e2e under ~5 min; before adding a test, check it is not already covered.
 
 ## Commands
@@ -59,6 +59,6 @@ pnpm typecheck
 pnpm build
 ```
 
-UI-affecting PRs: run `/impeccable audit` (and `polish`) before opening the PR and reference the design pass (`/impeccable shape` or `craft` for new screens).
+UI-affecting PRs: run `mobile-native` when touch, viewport or input behavior changed and `review-animations` when motion changed; the PR description names the skills run and what still needs a real-phone check.
 
 Playwright E2E (`pnpm test:e2e`, needs a migrated + seeded DB; CI and any run without a dev server build with VITE_E2E=1 and serve `node build`) runs in CI on pull requests; run it locally when a change touches a flow covered by `e2e/`.

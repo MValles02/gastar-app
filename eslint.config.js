@@ -10,7 +10,7 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
-	// Vendored third-party skill (impeccable)
+	// Vendored third-party skills (emilkowalski/skills)
 	{ ignores: ['.claude/skills/**'] },
 	js.configs.recommended,
 	ts.configs.recommended,

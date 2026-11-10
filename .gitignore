@@ -30,7 +30,3 @@ vite.config.ts.timestamp-*
 .claude/settings.local.json
 # Agent worktrees; prettier and eslint read this file, so they skip them too
 .claude/worktrees/
-
-# Impeccable
-.claude/skills/impeccable/scripts/bin/
-.impeccable/config.local.json
