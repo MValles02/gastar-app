@@ -16,7 +16,7 @@
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import { openNewMovement } from '$lib/new-movement';
+	import { openShallow } from '$lib/open-shallow';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -152,7 +152,11 @@
 				</Empty.Header>
 			</Empty.Root>
 			<div class="empty-action">
-				<Button href={resolve('/movements/new')} onclick={openNewMovement}>Nuevo movimiento</Button>
+				<Button
+					href={resolve('/movements/new')}
+					onclick={(e) => openShallow(e, resolve('/movements/new'), 'newMovement')}
+					>Nuevo movimiento</Button
+				>
 			</div>
 		{:else}
 			<Empty.Root>

@@ -6,8 +6,8 @@
 	import { toast } from 'svelte-sonner';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
-	import { afterNavigate, refreshAll, replaceState } from '$app/navigation';
-	import { page } from '$app/state';
+	import { afterNavigate, refreshAll } from '$app/navigation';
+	import { stripFlags } from '$lib/nav-stack.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
@@ -49,18 +49,8 @@
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
 	let hydrated = $state(false);
 	onMount(() => (hydrated = true));
-	// Toast once per redirect, then strip ?done from the URL so a reload does not toast again. Runs in
-	// afterNavigate because replaceState throws before the router is initialized (hard load), hence the retry.
-	const stripDone = () => {
-		try {
-			const url = new URL(page.url);
-			for (const k of ['done', 'approved', 'skipped', 'imported', 'auto'])
-				url.searchParams.delete(k);
-			replaceState(resolve((url.pathname + url.search + url.hash) as '/'), {});
-		} catch {
-			setTimeout(stripDone, 50);
-		}
-	};
+	// Toast once per redirect, then strip its flags from the URL so a reload does not toast again.
+	const stripDone = () => stripFlags(['done', 'approved', 'skipped', 'imported', 'auto']);
 	afterNavigate(() => {
 		if (data.done) {
 			(data.done === 'stale' ? toast.info : toast.success)(DONE_MESSAGES[data.done]);

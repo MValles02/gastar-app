@@ -1,5 +1,7 @@
+import type { RouteId } from '$app/types';
+
 /** Form routes (sticky action bar at the bottom): toasts show at the top instead. */
-export const FORM_ROUTES = new Set([
+export const FORM_ROUTES: ReadonlySet<string> = new Set<RouteId>([
 	'/(app)/movements/new',
 	'/(app)/accounts/new',
 	'/(app)/categories/new',
@@ -13,4 +15,9 @@ export const FORM_ROUTES = new Set([
 ]);
 
 /** Routes that show the tab bar and the add-movement FAB. */
-export const TAB_ROUTES = new Set(['/(app)', '/(app)/movements', '/(app)/plan', '/(app)/reports']);
+export const TAB_ROUTES: ReadonlySet<string> = new Set<RouteId>([
+	'/(app)',
+	'/(app)/movements',
+	'/(app)/plan',
+	'/(app)/reports'
+]);

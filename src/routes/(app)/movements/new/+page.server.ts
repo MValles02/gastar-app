@@ -5,6 +5,7 @@ import { preferredCurrency } from '$lib/server/currency-pref';
 import type { Actions, PageServerLoad } from './$types';
 import { isUuid } from '$lib/server/validation';
 import { formatAmountInput } from '$lib/money';
+import { TOAST_FLAGS } from '$lib/url-flags';
 import { localDay } from '$lib/server/month';
 import { parseMovementForm } from '$lib/server/movements';
 import { createMovement } from '$lib/server/movements-queries';
@@ -17,8 +18,6 @@ import { drawerPickers, failIfUnavailable, resolvePostedMovement } from '../form
 const LAST_ACCOUNT_COOKIE = 'last_account';
 
 const FORM_PATH = '/movements/new';
-/** One-shot toast flags that must not ride along on the screen we return to. */
-const FLAGS = ['saved', 'planSaved', 'movementSaved', 'rule'];
 
 /**
  * The screen to return to after saving: a same-origin app path other than this form, with its toast
@@ -39,7 +38,7 @@ function originPath(value: unknown, base: URL): string | null {
 	// Dot segments can normalize to a protocol-relative path (`/.//evil.com` → `//evil.com`).
 	if (url.origin !== base.origin || url.pathname.startsWith('//') || path === FORM_PATH)
 		return null;
-	for (const flag of FLAGS) url.searchParams.delete(flag);
+	for (const flag of TOAST_FLAGS) url.searchParams.delete(flag);
 	return url.pathname + url.search;
 }
 

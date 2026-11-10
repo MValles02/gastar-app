@@ -15,7 +15,7 @@
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
-	import type { PageData } from '../../routes/(app)/movements/[id]/$types';
+	import type { PageData } from './$types';
 
 	/**
 	 * A movement's detail and edit in one: tapping a field changes it, and every change saves on its own

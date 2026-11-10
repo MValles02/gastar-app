@@ -15,7 +15,7 @@
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import type { PageData } from '../../routes/(app)/plan/limits/[categoryId]/$types';
+	import type { PageData } from './$types';
 
 	/**
 	 * A category limit's detail and edit in one: the meter on top, the amount changes on tap and saves on
@@ -24,13 +24,14 @@
 	 */
 	let {
 		data,
-		variant,
+		variant = 'drawer',
 		onclose,
 		back = '/plan',
 		wizard
 	}: {
 		data: PageData;
-		variant: 'page' | 'drawer';
+		/** Rendered as a drawer unless the page says otherwise (the (app) layout passes only `data` and `onclose`). */
+		variant?: 'page' | 'drawer';
 		onclose?: () => void;
 		/** Page variant: where Listo and a delete go (unresolved path). */
 		back?: string;
@@ -196,11 +197,6 @@
 {/if}
 
 <style>
-	/* The modal drawer turns the page behind it pointer-events: none, toasts included: keep Deshacer clickable. */
-	:global([data-sonner-toast]) {
-		pointer-events: auto;
-	}
-
 	.detail {
 		display: flex;
 		flex-direction: column;

@@ -2,7 +2,7 @@
 	import { CURRENCY_NAME } from '$lib/money';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { afterNavigate, preloadData, pushState, replaceState } from '$app/navigation';
+	import { afterNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -18,6 +18,7 @@
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
+	import { stripFlags } from '$lib/nav-stack.svelte';
 	import { openShallow } from '$lib/open-shallow';
 	import { PLAN_TONE } from '$lib/status';
 	import LimitList from './LimitList.svelte';
@@ -29,35 +30,17 @@
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
 	let hydrated = $state(false);
 	onMount(() => (hydrated = true));
-	// Strips one-shot flags from the URL so a reload does not repeat them. Runs in afterNavigate because
-	// replaceState throws before the router is initialized (hard load of ?saved=1), hence the retry.
-	const stripFlags = (names: string[]) =>
-		new Promise<void>((done) => {
-			const run = () => {
-				try {
-					const url = new URL(page.url);
-					for (const n of names) url.searchParams.delete(n);
-					replaceState(resolve((url.pathname + url.search + url.hash) as '/'), {});
-					done();
-				} catch {
-					setTimeout(run, 50);
-				}
-			};
-			run();
-		});
-
-	// An alert's `?limit=<categoryId>` opens that limit's drawer over the plan, then drops the flag.
+	// An alert's `?limit=<categoryId>` opens that limit's drawer over the plan, then drops the flag
+	// (before the push: stripping replaces the entry's state).
 	async function openLimit(id: string) {
-		const result = await preloadData(resolve(`/plan/limits/${id}`));
 		await stripFlags(['limit']);
-		if (result.type === 'loaded' && result.status === 200)
-			pushState('', { limit: result.data as App.PageState['limit'] });
+		await openShallow(null, resolve(`/plan/limits/${id}`), 'limit');
 	}
 
 	afterNavigate(() => {
 		if (data.saved || data.planSaved) {
 			toast.success(data.saved ? 'Pago registrado.' : 'Plan guardado.');
-			void stripFlags(['saved', 'planSaved']);
+			void stripFlags();
 		}
 		const limit = page.url.searchParams.get('limit');
 		if (limit && /^[0-9a-f-]{36}$/.test(limit)) void openLimit(limit);

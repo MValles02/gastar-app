@@ -13,7 +13,7 @@
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import type { PageData } from '../../routes/(app)/plan/recurring/[id]/$types';
+	import type { PageData } from './$types';
 
 	/**
 	 * A recurring rule's detail and edit in one: tapping a row or the amount changes it, and every change
