@@ -122,9 +122,3 @@ export const importSource = (source: string): SourceSpec => SOURCES[source as So
 
 export const kindSpec = (source: string, kind: string): KindSpec =>
 	importSource(source).kinds[kind as Kind] ?? {};
-
-/** Fixed title of a kind without a counterparty, for the items that need it (taxes line). */
-export const kindTitle = (source: SourceId, kind: Kind) => {
-	const t = SOURCES[source].kinds[kind]?.title;
-	return typeof t === 'string' ? t : '';
-};

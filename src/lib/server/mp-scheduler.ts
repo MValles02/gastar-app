@@ -32,6 +32,9 @@ function reportDue(syncedUntil: Date | null, now: Date): boolean {
 	return syncedUntil.getTime() < last - HOUR_MS;
 }
 
+/** Error name or DB code: enough to diagnose, never a message that could carry data. */
+const errorDetail = (e: unknown) => pgErrorCode(e) ?? (e as Error)?.name ?? 'unknown';
+
 /**
  * Syncs every usable connection one after another. Never throws; one user failing does not stop the rest.
  * Payments always; the release report only with `report` and when the account has not had one since the
@@ -41,15 +44,15 @@ async function runAll(report: boolean): Promise<void> {
 	let users: string[];
 	try {
 		users = await listUsableConnections();
-	} catch {
-		console.error('mp sync failed: network');
+	} catch (e) {
+		console.error('mp sync failed: network', errorDetail(e));
 		return;
 	}
 	for (const userId of users) {
 		try {
 			await syncScheduled(userId, (syncedUntil) => report && reportDue(syncedUntil, new Date()));
-		} catch {
-			console.error('mp sync failed: network');
+		} catch (e) {
+			console.error('mp sync failed: network', errorDetail(e));
 		}
 	}
 }
@@ -67,13 +70,7 @@ export function startMpScheduler(): void {
 		return;
 	}
 	if (hours === 0) return;
-	const run = (report: boolean) =>
-		void runAll(report).catch((e) =>
-			console.error(
-				'mp sync scheduler: run failed',
-				pgErrorCode(e) ?? (e as Error)?.name ?? 'unknown'
-			)
-		);
+	const run = (report: boolean) => void runAll(report);
 	setTimeout(() => run(true), START_DELAY_MS).unref();
 	// Buenos Aires is a whole-hour offset, so every full hour is a full local hour: payments every `hours`
 	// hours, the release report only at REPORT_HOUR.

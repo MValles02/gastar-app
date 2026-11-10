@@ -181,7 +181,7 @@ Constraints: `UNIQUE (user_id, external_key)`. Index: `(user_id, status, occurre
 
 Approving is one transaction: a conditional `pending` → `approved` update (zero rows = already handled, nothing written), the movement insert, `movement_id`, and the rule upsert. Rejecting is a conditional `pending` → `rejected` update; the row stays so its external key is never re-imported.
 
-Auto-approval (`autoApprovePending(userId)`, source-agnostic, run after every sync run before the lease is released, and after every statement upload) approves, through the same transaction, every pending item whose read-time prefill is a usable rule, skipping `auto_approve_blocked` items; it never writes a rule and an item whose movement fails validation stays pending. It stamps `auto_approved_at`. Undoing an approval (one transaction: delete the unedited movement, item back to `pending`) clears `auto_approved_at` and, when it was set, sets `auto_approve_blocked`.
+Auto-approval (`autoApprovePending(userId)`, source-agnostic, run after each ingest: after the payments and again after the report of a sync run, and on every statement upload) approves, through the same transaction, every pending item whose read-time prefill is a usable rule, skipping `auto_approve_blocked` items; it never writes a rule and an item whose movement fails validation stays pending. It stamps `auto_approved_at`. Undoing an approval (one transaction: delete the unedited movement, item back to `pending`) clears `auto_approved_at` and, when it was set, sets `auto_approve_blocked`.
 
 ### `mp_import_rules`
 

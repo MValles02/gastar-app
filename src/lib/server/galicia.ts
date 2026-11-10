@@ -3,7 +3,7 @@ import { db } from './db';
 import { financialAccounts, galiciaConnections } from './db/schema';
 import { canAccessAccount, canAccessGaliciaConnection, galiciaConnectionOwnedBy } from './access';
 import { type ImportRow, ingestImportItems } from './import-ingest';
-import { KIND, kindTitle, SOURCE } from './import-sources';
+import { KIND, kindSpec, SOURCE } from './import-sources';
 import { dayStart } from './month';
 import { StatementError, type Currency, type Statement } from './galicia-statement';
 
@@ -73,26 +73,25 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 	const source = s.network === 'visa' ? SOURCE.galiciaVisa : SOURCE.galiciaMastercard;
 	const conn = await getGaliciaConnection(userId);
 	const accounts = {} as Record<Currency, string>;
-	const taxes: ImportRow[] = [];
 	for (const c of ['ARS', 'USD'] as const) {
-		const net = s.charges[c];
-		if (net === 0 && !s.consumos.some((l) => l.currency === c)) continue;
+		if (s.charges[c] === 0 && !s.consumos.some((l) => l.currency === c)) continue;
 		const id = c === 'ARS' ? conn?.arsAccountId : conn?.usdAccountId;
 		if (!id || !(await listStatementAccounts(userId, c)).some((a) => a.id === id))
 			return { ok: false, missing: c };
 		accounts[c] = id;
-		if (net === 0) continue;
-		taxes.push({
-			accountId: id,
+	}
+	const taxes: ImportRow[] = (['ARS', 'USD'] as const)
+		.filter((c) => s.charges[c] !== 0)
+		.map((c) => ({
+			accountId: accounts[c],
 			externalKey: ['galicia', s.network, 'taxes', s.numberHash, c].join(':'),
 			kind: KIND.cardTaxes,
 			occurredAt: day(s.closing),
-			amount: Math.abs(net),
-			isCredit: net < 0,
+			amount: Math.abs(s.charges[c]),
+			isCredit: s.charges[c] < 0,
 			sourceId: '',
-			rawDescription: kindTitle(source, KIND.cardTaxes)
-		});
-	}
+			rawDescription: kindSpec(source, KIND.cardTaxes).title as string
+		}));
 
 	const seen = new Map<string, number>();
 	const rows: ImportRow[] = [];
