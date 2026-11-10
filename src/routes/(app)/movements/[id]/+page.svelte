@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import MovementDetail from '$lib/components/MovementDetail.svelte';
+	import MovementDetail from './MovementDetail.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import type { PageData } from './$types';
 

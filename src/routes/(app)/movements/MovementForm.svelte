@@ -7,9 +7,8 @@
 	import { followRedirect } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
 	import AmountHero from '$lib/components/AmountHero.svelte';
-	import CategoryCreateDrawer, {
-		type CreatedCategory
-	} from '$lib/components/CategoryCreateDrawer.svelte';
+	import CategoryCreateDrawer from '../categories/CategoryCreateDrawer.svelte';
+	import type { CreatedCategory } from '../categories/CategoryForm.svelte';
 	import EntryFields from '$lib/components/EntryFields.svelte';
 	import FormActions from '$lib/components/FormActions.svelte';
 	import MovementDatePicker from '$lib/components/MovementDatePicker.svelte';

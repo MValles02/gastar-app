@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { parseStep, planReturn } from '$lib/plan-wizard';
-	import LimitDetail from '$lib/components/LimitDetail.svelte';
+	import LimitDetail from './LimitDetail.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import type { PageData } from './$types';
 

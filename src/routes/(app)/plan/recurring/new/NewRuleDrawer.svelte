@@ -1,26 +1,17 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { refreshAll } from '$app/navigation';
-	import { page } from '$app/state';
-	import RecurringForm from '../../routes/(app)/plan/recurring/RecurringForm.svelte';
-	import type { PageData } from '../../routes/(app)/plan/recurring/new/$types';
-	import BottomDrawer from './BottomDrawer.svelte';
+	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
+	import RecurringForm from '../RecurringForm.svelte';
+	import type { PageData } from './$types';
 
-	/**
-	 * "Nuevo pago o ingreso fijo" opened over the current screen (shallow route: the URL does not change
-	 * and the back gesture closes it). `data` is the preloaded /plan/recurring/new load.
-	 */
-	let { data }: { data: PageData } = $props();
-
-	// The drawer's history entry goes away with the back gesture, Cancelar, the scrim or Escape.
-	function close() {
-		if (page.state.newRule) history.back();
-	}
+	// "Nuevo pago o ingreso fijo" opened over the plan or the wizard.
+	let { data, onclose }: { data: PageData; onclose: () => void } = $props();
 
 	async function saved() {
 		// Refresh before the pop: a popstate landing first reuses the stale loads.
 		await refreshAll();
-		close();
+		onclose();
 		toast.success('Guardado.');
 	}
 </script>
@@ -30,7 +21,7 @@
 	hideTitle
 	bare
 	open
-	onclose={close}
+	{onclose}
 >
 	<RecurringForm
 		variant="drawer"
@@ -47,6 +38,6 @@
 		submitLabel="Guardar"
 		type={data.type}
 		onsaved={saved}
-		onclose={close}
+		{onclose}
 	/>
 </BottomDrawer>

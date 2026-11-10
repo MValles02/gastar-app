@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { Currency } from '$lib/money';
-	import { goto, preloadData, pushState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
 	import { highlight } from '$lib/highlight.svelte';
+	import { openShallow } from '$lib/open-shallow';
 	import ListRow from './ListRow.svelte';
 	import Money from './Money.svelte';
 
@@ -30,19 +30,9 @@
 
 	const highlighted = $derived(highlight.id === m.id);
 
-	// An unmodified click opens the detail drawer over the list (shallow route, URL unchanged);
-	// anything else follows the link.
-	async function open(e: MouseEvent) {
-		if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
-			return;
-		if (!(e.target as Element).closest('a')) return;
-		e.preventDefault();
-		const href = resolve(`/movements/${m.id}`);
-		const result = await preloadData(href);
-		if (result.type === 'loaded' && result.status === 200)
-			pushState('', { movement: result.data as App.PageState['movement'] });
-		else await goto(href);
-	}
+	// Only a click on the link opens the detail drawer over the list.
+	const open = (e: MouseEvent) =>
+		(e.target as Element).closest('a') && openShallow(e, resolve(`/movements/${m.id}`), 'movement');
 </script>
 
 {#snippet value()}

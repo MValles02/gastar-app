@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { afterNavigate, replaceState } from '$app/navigation';
+	import { afterNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
+	import { stripFlags } from '$lib/nav-stack.svelte';
 	import { undoMovementSaved } from '$lib/undo-toast';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
@@ -29,19 +29,7 @@
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
 	let hydrated = $state(false);
 	onMount(() => (hydrated = true));
-	// Toast once per saved redirect, then strip ?saved from the URL so a reload does not toast
-	// again. Runs in afterNavigate because replaceState throws before the router is initialized
-	// (hard load of ?saved=1), hence the retry.
-	const stripSaved = () => {
-		try {
-			const url = new URL(page.url);
-			url.searchParams.delete('saved');
-			url.searchParams.delete('rule');
-			replaceState(resolve((url.pathname + url.search + url.hash) as '/'), {});
-		} catch {
-			setTimeout(stripSaved, 50);
-		}
-	};
+	// Toast once per saved redirect, then strip ?saved so a reload does not toast again.
 	let toasted: string | null = null;
 	afterNavigate(() => {
 		if (data.saved && !form) {
@@ -50,7 +38,7 @@
 				toasted = data.saved;
 				undoMovementSaved(data.saved, data.savedRule);
 			}
-			stripSaved();
+			void stripFlags();
 		}
 	});
 	// Where saving returns to (validated by the action): the screen we came from, else the server's
