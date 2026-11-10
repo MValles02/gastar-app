@@ -97,9 +97,9 @@
 		{#snippet child({ props })}
 			{#if href}
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass a resolved href -->
-				<a {href} {onclick} {...props}>{@render body()}</a>
+				<a {href} {onclick} {...props} class={[props.class, 'tap']}>{@render body()}</a>
 			{:else if submit}
-				<button type="submit" {...props} class={[props.class, 'w-full text-left']}
+				<button type="submit" {...props} class={[props.class, 'tap w-full text-left']}
 					>{@render body()}</button
 				>
 			{:else}
@@ -110,6 +110,13 @@
 </div>
 
 <style>
+	/* Interactive rows: long-press neither selects text nor opens the link callout. */
+	.tap {
+		-webkit-user-select: none;
+		user-select: none;
+		-webkit-touch-callout: none;
+	}
+
 	.line {
 		display: flex;
 		align-items: flex-start;
