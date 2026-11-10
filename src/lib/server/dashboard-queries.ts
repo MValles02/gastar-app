@@ -1,3 +1,4 @@
+import { getRequestEvent } from '$app/server';
 import type { Currency } from '$lib/money';
 import { and, desc, eq, gte, lt, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
@@ -27,8 +28,28 @@ export const sumOfType = (type: 'income' | 'outcome') =>
 		Number
 	);
 
+const requestMemo = new WeakMap<object, Map<string, Promise<unknown>>>();
+
+/**
+ * Shares the promise of `run` between the loads of one request (keyed on `locals`). For loads only:
+ * a form action must not cache data it is about to mutate. Needs a request: `getRequestEvent` throws outside one.
+ */
+export function memoPerRequest<T>(key: string, run: () => Promise<T>): Promise<T> {
+	const { locals } = getRequestEvent();
+	let memo = requestMemo.get(locals);
+	if (!memo) requestMemo.set(locals, (memo = new Map()));
+	let hit = memo.get(key);
+	if (!hit) memo.set(key, (hit = run()));
+	return hit as Promise<T>;
+}
+
 // No archived filter: archived accounts still count toward the total balance.
+/** Per currency: account count and initial balances. Loads only (shared per request, see `memoPerRequest`). */
 export function accountSummary(userId: string) {
+	return memoPerRequest(`accounts:${userId}`, () => accountSummaryQuery(userId));
+}
+
+function accountSummaryQuery(userId: string) {
 	return db
 		.select({
 			currency: financialAccounts.currency,

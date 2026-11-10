@@ -11,7 +11,6 @@ const dayFmt = new Intl.DateTimeFormat(LOCALE, {
 	timeZone: TZ
 });
 
-// Top bar data shared by every screen (see PageHeader).
 export const load: LayoutServerLoad = async ({ locals }) => {
 	const user = requireUser(locals);
 	const name = user.name?.trim() || user.email;
@@ -21,7 +20,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	// A failure here must not take down every screen: log it and show no badge.
 	let alertCount = 0;
 	try {
-		alertCount = (await alerts(user.id, now)).reduce((n, g) => n + g.items.length, 0);
+		alertCount = (await alerts(user.id)).reduce((n, g) => n + g.items.length, 0);
 	} catch (err) {
 		console.error('alerts failed', err);
 	}

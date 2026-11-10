@@ -18,7 +18,7 @@
 	import MpPill from '$lib/components/MpPill.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
-	import { PLAN_TONE } from '$lib/status';
+	import { PLAN_TONE } from '$lib/plan';
 	import { swatchVar, toSwatchKey } from '$lib/appearance';
 	import type { PageData } from './$types';
 

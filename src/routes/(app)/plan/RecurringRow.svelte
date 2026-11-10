@@ -2,8 +2,7 @@
 	import { resolve } from '$app/paths';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
-	import { dueTone } from '$lib/status';
-	import type { RecurringStatus } from '$lib/server/plan';
+	import { dueTone, type RecurringStatus } from '$lib/plan';
 	import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
 	import type { Currency } from '$lib/money';
 
