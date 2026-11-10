@@ -144,6 +144,8 @@
 	input {
 		min-width: 2ch;
 		field-sizing: content;
+		/* Inherited size, but never under 16px: iOS zooms the page on smaller inputs. */
+		font-size: max(1em, var(--font-size-input));
 		outline: none;
 		caret-color: var(--primary);
 	}
