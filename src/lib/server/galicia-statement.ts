@@ -27,7 +27,10 @@ export type Statement = {
 	/** Closing date (CIERRE ACTUAL), YYYY-MM-DD. */
 	closing: string;
 	consumos: StatementLine[];
-	/** Net of taxes, perceptions and other charges/credits per currency, in signed cents. */
+	/**
+	 * Net of taxes, perceptions and other charges/credits per currency, in signed cents. Excludes the
+	 * RG 5617 dollar perception and its refunds: the card is always paid in dollars, so it never applies.
+	 */
 	charges: Record<Currency, number>;
 };
 
@@ -125,6 +128,8 @@ async function readLines(bytes: Uint8Array): Promise<Line[]> {
 const SUMMARY_RE = /SALDO PENDIENTE|TOTAL CONSUMOS|SUBTOTAL/i;
 const CHARGE_RE =
 	/IMPUESTO|SELLOS|IIBB|PERCEP|\bIVA\b|\bRG\s?\d|DB\.RG|DEV\.IMP|INTERES|COMISI|CARGO|BONIF/i;
+/** RG 5617 30% perception on dollar spending (DB.RG 5617) and its refunds (DEV.IMP. RG 5617). */
+const DOLLAR_PERCEPTION_RE = /RG\s?5617/i;
 const CUOTA_RE = /^(?:C\.?)?(\d{2}\/\d{2})$/;
 
 /**
@@ -216,7 +221,8 @@ export async function parseGaliciaStatement(bytes: Uint8Array): Promise<Statemen
 			continue;
 		}
 		if (SUMMARY_RE.test(label) || /Total Consumos de/i.test(label)) continue;
-		if (/SALDO ANTERIOR|SU PAGO/i.test(label)) {
+		// Reconciled but never imported: payments, the previous balance and the dollar perception.
+		if (/SALDO ANTERIOR|SU PAGO/i.test(label) || DOLLAR_PERCEPTION_RE.test(label)) {
 			known.ARS += amounts.ARS;
 			known.USD += amounts.USD;
 			continue;
@@ -255,6 +261,11 @@ export async function parseGaliciaStatement(bytes: Uint8Array): Promise<Statemen
 			.replace(/\s+/g, ' ')
 			.trim();
 
+		if (!voucher && DOLLAR_PERCEPTION_RE.test(reference)) {
+			known.ARS += amounts.ARS;
+			known.USD += amounts.USD;
+			continue;
+		}
 		if (!voucher && CHARGE_RE.test(reference)) {
 			charges.ARS += amounts.ARS;
 			charges.USD += amounts.USD;
