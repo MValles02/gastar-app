@@ -17,6 +17,7 @@ import { readRecurringForm, recurringPickers } from '../form.server';
 
 const { notFound, requireId } = notFoundHelpers('Movimiento fijo no encontrado.');
 
+// The type is never posted: a rule keeps its stored type.
 const EDITABLE = ['description', 'amount', 'accountId', 'categoryId', 'dayOfMonth'] as const;
 
 async function findRule(userId: string, id: string) {
