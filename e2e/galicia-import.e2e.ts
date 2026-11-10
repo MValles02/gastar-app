@@ -119,7 +119,7 @@ test('a statement lands its lines on the chosen pesos and dollar accounts', asyn
 				installment: null,
 				source: 'galicia_visa',
 				day: '2026-09-29',
-				cents: 65_00
+				cents: 150_00
 			}
 		])
 	);

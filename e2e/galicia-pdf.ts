@@ -63,9 +63,9 @@ const detailHeader = (y: number): Text[] => [
 ];
 
 /**
- * Closing 29-Sep-26. Pesos: 100.000,00 previous balance paid in full, a 100,00 tax credit, consumos
- * 10.000,00 (cuota 03/06) + 2.500,50 - 500,00 (a credit), charges 120,00 + 30,00 + 15,00, so the
- * taxes item nets 65,00 and TOTAL A PAGAR is 12.065,50. Dollars: 10,00 paid, one 15,00 consumo.
+ * Closing 29-Sep-26. Pesos: 100.000,00 previous balance paid in full, a 100,00 RG 5617 refund, consumos
+ * 10.000,00 (cuota 03/06) + 2.500,50 - 500,00 (a credit), charges 120,00 + 30,00 + 15,00 (RG 5617), so
+ * TOTAL A PAGAR is 12.065,50 and the taxes item, without the RG 5617 lines, is 150,00. Dollars: 10,00 paid, one 15,00 consumo.
  * `total` overrides the pesos TOTAL A PAGAR (a statement that does not reconcile); `cafe` the
  * reference and voucher of the 2.500,50 line.
  */
