@@ -3,6 +3,7 @@
 	import Check from '@lucide/svelte/icons/check';
 	import { autosave } from '$lib/autosave';
 	import { formatAmountInput, formatMoney, parseAmount, type Currency } from '$lib/money';
+	import { formatPercentInput } from '$lib/locale';
 	import { savingsFromPercent } from '$lib/savings';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
@@ -35,15 +36,12 @@
 		path?: string;
 	} = $props();
 
-	/** Percent x 100 as es-AR text: 1250 -> "12,5", 1000 -> "10". */
-	const percentText = (p: number) =>
-		(p / 100).toLocaleString('es-AR', { maximumFractionDigits: 2, useGrouping: false });
-
 	/** The option, unit and value text a stored plan maps to. */
 	function fromStored(savings: number, p: number | null) {
 		if (p === 1000) return { option: '10', unit: 'percent', value: '' };
 		if (p === 2000) return { option: '20', unit: 'percent', value: '' };
-		if (p != null && p > 0) return { option: 'other', unit: 'percent', value: percentText(p) };
+		if (p != null && p > 0)
+			return { option: 'other', unit: 'percent', value: formatPercentInput(p) };
 		if (p == null && savings > 0)
 			return { option: 'other', unit: 'amount', value: formatAmountInput(savings, currency) };
 		return { option: 'none', unit: 'percent', value: '' };

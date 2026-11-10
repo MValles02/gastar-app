@@ -108,7 +108,7 @@
 			<span class="amount">
 				<Money
 					cents={item.amount}
-					currency="ARS"
+					currency={item.currency}
 					tone="flow"
 					direction={item.isCredit ? 'income' : 'outcome'}
 				/>

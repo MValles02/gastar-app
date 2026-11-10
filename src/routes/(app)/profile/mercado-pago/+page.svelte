@@ -58,7 +58,11 @@
 
 <PageHeader
 	title="Mercado Pago"
-	back={{ href: resolve('/profile'), label: 'Volver a Perfil', text: 'Perfil' }}
+	back={{
+		href: resolve('/profile/vinculaciones'),
+		label: 'Volver a Vinculaciones',
+		text: 'Vinculaciones'
+	}}
 />
 
 <div class="page">
@@ -68,7 +72,10 @@
 	{#if !data.connection}
 		<section class="card" aria-labelledby="intro">
 			<h2 id="intro">Traé tus pagos sin tipearlos</h2>
-			<p>Importamos pagos, cobros y rendimientos. Vos aprobás cada uno antes de que cuente.</p>
+			<p>
+				Importamos pagos, cobros y rendimientos. Lo que reconocemos se aprueba solo; el resto lo
+				revisás vos.
+			</p>
 			<form method="POST" action="?/connect">
 				<Button type="submit" class="w-full">Vincular Mercado Pago</Button>
 			</form>

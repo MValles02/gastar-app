@@ -302,6 +302,7 @@ async function deleteAppData(tx, id) {
 	await tx`delete from spending_plans where user_id = ${id}`;
 	await tx`delete from recurring_movements where user_id = ${id}`;
 	await tx`delete from categories where user_id = ${id}`;
+	await tx`delete from galicia_connections where user_id = ${id}`;
 	await tx`delete from mp_import_items where user_id = ${id}`;
 	await tx`delete from mp_import_rules where user_id = ${id}`;
 	await tx`delete from mp_sync_state where account_id in (select id from financial_accounts where owner_id = ${id})`;
@@ -485,6 +486,25 @@ try {
 		await tx`
 			insert into financial_accounts (id, owner_id, name, currency, initial_balance, icon, color)
 			values ('00000000-0000-4000-8000-00000000a001', ${importerId}, 'Mercado Pago', 'ARS', ${50_000_00}, 'phone', 'blue')
+		`;
+
+		// Fourth user for the Banco Galicia statement E2E: one pesos and one dollar account, no connection yet.
+		const galiciaEmail = 'galicia@gastar.local';
+		const [cardholder] = await tx`select id from "user" where email = ${galiciaEmail}`;
+		if (cardholder) await deleteUserData(tx, cardholder.id);
+		const cardholderId = randomUUID();
+		await tx`
+			insert into "user" (id, name, email, email_verified, created_at, updated_at)
+			values (${cardholderId}, 'Galicia', ${galiciaEmail}, true, now(), now())
+		`;
+		await tx`
+			insert into "account" (id, account_id, provider_id, user_id, password, created_at, updated_at)
+			values (${randomUUID()}, ${cardholderId}, 'credential', ${cardholderId}, ${passwordHash}, now(), now())
+		`;
+		await tx`
+			insert into financial_accounts (id, owner_id, name, currency, initial_balance, icon, color)
+			values (${randomUUID()}, ${cardholderId}, 'Caja pesos', 'ARS', ${1_000_000_00}, 'bank', 'blue'),
+				(${randomUUID()}, ${cardholderId}, 'Caja dólares', 'USD', ${5_000_00}, 'dollar', 'green')
 		`;
 	});
 

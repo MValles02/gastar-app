@@ -1,12 +1,13 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import { dev } from '$app/environment';
-import { toIconKey, toSwatchKey } from '$lib/appearance';
+import { accountOption } from '$lib/server/account-options';
 import { dayStart, localDay } from '$lib/server/month';
-import { getImportAccount, getSyncState } from '$lib/server/mp-import-queries';
 import {
 	deleteConnection,
 	getConnectionInfo,
 	getImportFromDay,
+	getMpImportAccount,
 	listReceivingAccounts,
 	mpOauthEnabled,
 	OAUTH_COOKIE,
@@ -15,7 +16,8 @@ import {
 	setReceivingAccount,
 	startAuthorization
 } from '$lib/server/mp-oauth';
-import { startMpBackfill } from '$lib/server/mp-sync';
+import { getSyncState, startMpBackfill } from '$lib/server/mp-sync';
+import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
 
 const FLASHES = {
@@ -33,18 +35,13 @@ const isRunning = (since: Date | null | undefined) =>
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!mpOauthEnabled()) error(404);
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const code = url.searchParams.get('error');
 	const connection = await getConnectionInfo(userId);
-	const account = connection?.accountId ? await getImportAccount(userId) : null;
+	const account = connection?.accountId ? await getMpImportAccount(userId) : null;
 	return {
 		connection,
-		accounts: (await listReceivingAccounts(userId)).map((a) => ({
-			id: a.id,
-			name: a.name,
-			icon: toIconKey(a.icon),
-			color: toSwatchKey(a.color)
-		})),
+		accounts: (await listReceivingAccounts(userId)).map(accountOption),
 		// The minimum date of every sync; only once an account receives the movements.
 		importFrom: account ? await getImportFromDay(userId, account.id) : null,
 		today: localDay(new Date()),
@@ -59,7 +56,7 @@ export const actions: Actions = {
 	connect: async ({ locals, cookies, url }) => {
 		if (!mpOauthEnabled()) error(404);
 		const { state, verifier, url: authorizeUrl } = startAuthorization(url.origin);
-		cookies.set(OAUTH_COOKIE, JSON.stringify({ userId: locals.user!.id, state, verifier }), {
+		cookies.set(OAUTH_COOKIE, JSON.stringify({ userId: requireUser(locals).id, state, verifier }), {
 			path: OAUTH_PATH,
 			httpOnly: true,
 			sameSite: 'lax',
@@ -73,8 +70,8 @@ export const actions: Actions = {
 	account: async ({ locals, request }) => {
 		if (!mpOauthEnabled()) error(404);
 		const accountId = String((await request.formData()).get('accountId') ?? '');
-		if (!(await setReceivingAccount(locals.user!.id, accountId))) {
-			return fail(400, { errors: { accountId: 'Elegí una cuenta en pesos.' } });
+		if (!(await setReceivingAccount(requireUser(locals).id, accountId))) {
+			return formFail(400, { errors: { accountId: 'Elegí una cuenta en pesos.' } });
 		}
 		return { accountId };
 	},
@@ -82,19 +79,19 @@ export const actions: Actions = {
 	/** Autosaved "Importar desde": the minimum date of every sync. */
 	importFrom: async ({ locals, request }) => {
 		if (!mpOauthEnabled()) error(404);
-		const userId = locals.user!.id;
-		const account = await getImportAccount(userId);
-		if (!account) return fail(400, { errors: { from: 'Elegí primero la cuenta.' } });
+		const userId = requireUser(locals).id;
+		const account = await getMpImportAccount(userId);
+		if (!account) return formFail(400, { errors: { from: 'Elegí primero la cuenta.' } });
 		const ymd = String((await request.formData()).get('from') ?? '');
 		const from = dayStart(ymd);
 		if (!from || ymd > localDay(new Date())) {
-			return fail(400, { errors: { from: 'Elegí una fecha válida.' } });
+			return formFail(400, { errors: { from: 'Elegí una fecha válida.' } });
 		}
 		if (ymd < earliestDay()) {
-			return fail(400, { errors: { from: 'Podés traer hasta 12 meses para atrás.' } });
+			return formFail(400, { errors: { from: 'Podés traer hasta 12 meses para atrás.' } });
 		}
 		if ((await getConnectionInfo(userId))?.needsReconnect) {
-			return fail(400, { errors: { from: 'Reconectá Mercado Pago primero.' } });
+			return formFail(400, { errors: { from: 'Reconectá Mercado Pago primero.' } });
 		}
 		// Moving earlier fetches the gap; same or later only trims what is already here.
 		const earlier = ymd < (await getImportFromDay(userId, account.id));
@@ -103,7 +100,7 @@ export const actions: Actions = {
 			? !(await startMpBackfill(userId, from))
 			: isRunning((await getSyncState(userId, account.id))?.runningSince);
 		if (busy) {
-			return fail(409, {
+			return formFail(409, {
 				errors: { from: 'Ya hay una sincronización en curso. Probá en unos minutos.' }
 			});
 		}
@@ -113,7 +110,7 @@ export const actions: Actions = {
 
 	disconnect: async ({ locals }) => {
 		if (!mpOauthEnabled()) error(404);
-		await deleteConnection(locals.user!.id);
+		await deleteConnection(requireUser(locals).id);
 		redirect(303, OAUTH_PATH);
 	}
 };

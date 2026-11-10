@@ -4,9 +4,10 @@ import { preferredCurrency } from '$lib/server/currency-pref';
 import { accountSummary } from '$lib/server/dashboard-queries';
 import { deletePlan } from '$lib/server/plan-queries';
 import { planView, recurringLists } from '$lib/server/plan-view';
+import { requireUser } from '$lib/server/require-user';
 
 export const load: PageServerLoad = async ({ locals, cookies, url }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const currency = preferredCurrency(cookies);
 	const saved = url.searchParams.get('saved') === '1';
 	const planSaved = url.searchParams.get('planSaved') === '1';
@@ -27,7 +28,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 
 export const actions: Actions = {
 	delete: async ({ locals, cookies }) => {
-		await deletePlan(locals.user!.id, preferredCurrency(cookies));
+		await deletePlan(requireUser(locals).id, preferredCurrency(cookies));
 		redirect(303, '/plan');
 	}
 };

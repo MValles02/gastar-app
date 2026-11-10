@@ -1,14 +1,16 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import { PREFERENCE_COOKIE_OPTIONS } from '$lib/server/cookies';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import type { Actions, PageServerLoad } from './$types';
-import { isUuid } from '$lib/server/db/util';
+import { isUuid } from '$lib/server/validation';
 import { formatAmountInput } from '$lib/money';
 import { localDay } from '$lib/server/month';
 import { parseMovementForm } from '$lib/server/movements';
 import { createMovement } from '$lib/server/movements-queries';
 import { isRecurringActive } from '$lib/server/plan';
 import { createMovementWithRule, listRecurring } from '$lib/server/plan-queries';
+import { requireUser } from '$lib/server/require-user';
 import { drawerPickers, failIfUnavailable, resolvePostedMovement } from '../form.server';
 
 /** Remembers the account of the last saved movement as the next form's default. */
@@ -61,7 +63,7 @@ async function findRule(userId: string, id: FormDataEntryValue | null) {
 }
 
 export const load: PageServerLoad = async ({ locals, cookies, url, request }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const { accounts, categories } = await drawerPickers(userId);
 	const rule = await findRule(userId, url.searchParams.get('recurring'));
 	const last = cookies.get(LAST_ACCOUNT_COOKIE);
@@ -102,7 +104,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url, request }) =>
 
 export const actions: Actions = {
 	default: async ({ request, locals, cookies, url }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const fd = await request.formData();
 		const rule = await findRule(userId, fd.get('recurringId'));
 		// A payment always takes the rule's category, whatever was posted.
@@ -116,7 +118,7 @@ export const actions: Actions = {
 		// Keeps the origin when the form is shown again with errors (the Referer is now this form).
 		const returnTo = fd.get('returnTo');
 		if (typeof returnTo === 'string') values.returnTo = returnTo;
-		if (!parsed.ok) return fail(400, { values, errors: parsed.errors });
+		if (!parsed.ok) return formFail(400, { values, errors: parsed.errors });
 		const { data } = parsed;
 
 		// The rule's category is forced on its payment, so it stays valid whatever its kind.
@@ -125,18 +127,18 @@ export const actions: Actions = {
 			data,
 			rule ? { accountIds: [], categoryId: rule.categoryId } : undefined
 		);
-		if (!resolved.ok) return fail(400, { values, errors: resolved.errors });
+		if (!resolved.ok) return formFail(400, { values, errors: resolved.errors });
 
 		if (rule) {
 			if (data.type !== rule.type)
-				return fail(400, {
+				return formFail(400, {
 					values,
 					errors: {
 						type: `Este pago es un ${rule.type === 'income' ? 'ingreso' : 'gasto'}.`
 					}
 				});
 			if (origin!.currency !== rule.currency)
-				return fail(400, {
+				return formFail(400, {
 					values,
 					errors: {
 						accountId: `Elegí una cuenta en ${rule.currency} para registrar este pago.`

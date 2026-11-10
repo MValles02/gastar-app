@@ -64,7 +64,7 @@
 		return async (input) => {
 			const { result } = input;
 			if (result.type === 'failure') {
-				posted = (result.data as { error?: string } | undefined)?.error;
+				posted = (result.data as { formError?: string } | undefined)?.formError;
 				await tick();
 				document.querySelector<HTMLElement>('form [aria-invalid="true"]')?.focus();
 			} else if (result.type === 'error') {

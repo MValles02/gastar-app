@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { currentMonthName } from '$lib/locale';
 	import SavingsOptions from '../../routes/(app)/plan/SavingsOptions.svelte';
 	import type { PageData } from '../../routes/(app)/plan/savings/$types';
 	import BottomDrawer from './BottomDrawer.svelte';
@@ -10,10 +11,7 @@
 	 */
 	let { data }: { data: PageData } = $props();
 
-	const month = new Date().toLocaleString('es-AR', {
-		month: 'long',
-		timeZone: 'America/Argentina/Buenos_Aires'
-	});
+	const month = currentMonthName();
 
 	// The drawer's history entry goes away with the back gesture, the scrim or Escape.
 	function close() {

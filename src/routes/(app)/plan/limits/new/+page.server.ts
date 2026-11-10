@@ -1,4 +1,5 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { parseLimitAmount, planReturn } from '$lib/plan-wizard';
@@ -6,6 +7,7 @@ import { listCategories } from '$lib/server/categories-queries';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import { currentPlan, planLimits, PlanRejected, upsertLimits } from '$lib/server/plan-queries';
 import { limitSuggestions } from '$lib/server/plan-view';
+import { requireUser } from '$lib/server/require-user';
 
 /** Active expense (or both) categories that have no limit yet. */
 async function offered(userId: string, planId: string) {
@@ -18,7 +20,7 @@ async function offered(userId: string, planId: string) {
 }
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const currency = preferredCurrency(cookies);
 	const plan = (await currentPlan(userId, currency)) ?? redirect(303, '/plan');
 	const [categories, suggestions] = await Promise.all([
@@ -39,14 +41,14 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 
 export const actions: Actions = {
 	default: async ({ locals, cookies, request, url }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const currency = preferredCurrency(cookies);
 		const plan = (await currentPlan(userId, currency)) ?? redirect(303, '/plan');
 		const fd = await request.formData();
 		const categoryId = String(fd.get('categoryId') ?? '');
 		const amount = String(fd.get('amount') ?? '');
 		const reject = (errors: { categoryId?: string; amount?: string }) =>
-			fail(400, { values: { categoryId, amount }, errors });
+			formFail(400, { values: { categoryId, amount }, errors });
 
 		if (!(await offered(userId, plan.id)).some((c) => c.id === categoryId))
 			return reject({ categoryId: 'Elegí una categoría.' });

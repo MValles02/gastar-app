@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
-import { toCategoryIconKey, toIconKey, toSwatchKey } from '$lib/appearance';
+import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
+import { accountOption } from '$lib/server/account-options';
 import { listAccounts } from '$lib/server/accounts-queries';
 import { listCategories } from '$lib/server/categories-queries';
 import type { Currency } from '$lib/money';
@@ -7,9 +8,10 @@ import { toRecentItem } from '$lib/server/dashboard';
 import { dayHeading, localDay, monthHeading } from '$lib/server/month';
 import { applyDefaultRange, parseMovementFilters } from '$lib/server/movements';
 import { listMovements, PAGE_SIZE, summarizeMovements } from '$lib/server/movements-queries';
+import { requireUser } from '$lib/server/require-user';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const {
 		values,
 		accounts: accountIds,
@@ -94,10 +96,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		accounts: [
 			{ id: '', name: 'Todas', icon: 'accounts' as const, color: null },
 			...accountRows.map((a) => ({
-				id: a.id,
-				name: a.name,
-				icon: toIconKey(a.icon),
-				color: toSwatchKey(a.color),
+				...accountOption(a),
 				meta: a.currency,
 				archived: a.archivedAt !== null
 			}))

@@ -1,5 +1,6 @@
-import { fail, redirect } from '@sveltejs/kit';
-import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
+import { redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
+import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/validation';
 import type { Actions, PageServerLoad } from './$types';
 import { notFoundHelpers } from '$lib/server/not-found';
 import { accountActions } from '$lib/server/accounts';
@@ -24,6 +25,7 @@ import {
 	writeIfNameFree
 } from '$lib/server/categories-queries';
 import { currentMonth, monthLabel, monthRange, parseMonth } from '$lib/server/month';
+import { requireUser } from '$lib/server/require-user';
 
 const { notFound, requireId } = notFoundHelpers(NOT_FOUND_MESSAGE);
 
@@ -44,7 +46,7 @@ async function categoryOf(userId: string, id: string) {
 }
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	requireId(params.id);
 	const detail = await categoryOf(userId, params.id);
 
@@ -69,7 +71,11 @@ const archiveAction =
 	(archive: boolean): Actions[string] =>
 	async ({ locals, params }) => {
 		requireId(params.id);
-		const rows = await setCategoryArchived(locals.user!.id, params.id, archive ? new Date() : null);
+		const rows = await setCategoryArchived(
+			requireUser(locals).id,
+			params.id,
+			archive ? new Date() : null
+		);
 		if (rows.length === 0) notFound();
 		return { done: true };
 	};
@@ -77,7 +83,7 @@ const archiveAction =
 export const actions: Actions = {
 	/** Saves the posted subset of fields over the stored values, with the create form's validation. */
 	update: async ({ locals, params, request }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		requireId(params.id);
 		const { category: current } = await categoryOf(userId, params.id);
 		const posted = await request.formData();
@@ -91,14 +97,14 @@ export const actions: Actions = {
 			if (typeof v === 'string') fd.set(k, v);
 		}
 		const parsed = parseCategoryForm(fd);
-		if (!parsed.ok) return fail(400, { values: parsed.values, errors: parsed.errors });
+		if (!parsed.ok) return formFail(400, { values: parsed.values, errors: parsed.errors });
 
 		// Only a kind change is checked: a legacy category can still be renamed or recoloured.
 		// ponytail: the check and the update are not atomic (unlikely race); wrap both in a transaction if it matters.
 		if (parsed.data.kind !== current.kind) {
 			const types = (await categoryMovementTypes(userId, params.id)).map((r) => r.type);
 			if (!kindAllowed(parsed.data.kind, types))
-				return fail(400, { values: parsed.data, errors: { kind: KIND_LOCKED_MESSAGE } });
+				return formFail(400, { values: parsed.data, errors: { kind: KIND_LOCKED_MESSAGE } });
 		}
 		const rows = await writeIfNameFree(
 			userId,
@@ -106,16 +112,17 @@ export const actions: Actions = {
 			() => updateCategory(userId, params.id, parsed.data),
 			params.id
 		);
-		if (!rows) return fail(400, { values: parsed.data, errors: { name: DUPLICATE_NAME_MESSAGE } });
+		if (!rows)
+			return formFail(400, { values: parsed.data, errors: { name: DUPLICATE_NAME_MESSAGE } });
 		if (rows.length === 0) notFound();
 		return await categoryOf(userId, params.id);
 	},
 	archive: archiveAction(true),
 	unarchive: archiveAction(false),
 	delete: async ({ locals, params }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		requireId(params.id);
-		const referenced = () => fail(409, { error: DELETE_REFERENCED_MESSAGE });
+		const referenced = () => formFail(409, { formError: DELETE_REFERENCED_MESSAGE });
 
 		// Pre-check for the friendly error; ON DELETE RESTRICT still catches a movement added meanwhile.
 		if ((await categoryReferenced(userId, params.id)).length > 0) return referenced();

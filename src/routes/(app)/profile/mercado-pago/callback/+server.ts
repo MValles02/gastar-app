@@ -1,6 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { exchangeCode, mpOauthEnabled, OAUTH_COOKIE, OAUTH_PATH } from '$lib/server/mp-oauth';
+import { requireUser } from '$lib/server/require-user';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, cookies, locals }) => {
@@ -23,7 +24,7 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 		typeof saved.verifier !== 'string' ||
 		!state ||
 		state !== saved.state ||
-		saved.userId !== locals.user!.id
+		saved.userId !== requireUser(locals).id
 	) {
 		back('error=state');
 	}
@@ -32,7 +33,8 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 	let linked = false;
 	try {
 		linked =
-			!!code && (await exchangeCode(locals.user!.id, code, saved.verifier as string, url.origin));
+			!!code &&
+			(await exchangeCode(requireUser(locals).id, code, saved.verifier as string, url.origin));
 	} catch {
 		// Nothing from the error is logged or put in the URL: it may carry token material.
 	}

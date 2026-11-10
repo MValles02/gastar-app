@@ -1,4 +1,5 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { formatAmountInput } from '$lib/money';
@@ -13,6 +14,7 @@ import {
 	upsertLimits
 } from '$lib/server/plan-queries';
 import { limitSuggestions, planView } from '$lib/server/plan-view';
+import { requireUser } from '$lib/server/require-user';
 
 const { notFound, requireId } = notFoundHelpers('Límite no encontrado.');
 
@@ -25,7 +27,7 @@ async function findLimit(userId: string, planId: string, id: string) {
 }
 
 export const load: PageServerLoad = async ({ locals, cookies, params }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const currency = preferredCurrency(cookies);
 	const plan = (await currentPlan(userId, currency)) ?? redirect(303, '/plan');
 	const limit = await findLimit(userId, plan.id, params.categoryId);
@@ -51,7 +53,7 @@ export const load: PageServerLoad = async ({ locals, cookies, params }) => {
 export const actions: Actions = {
 	/** Changes the limit's amount; returns it in cents (what the autosave's Deshacer restores). */
 	update: async ({ locals, cookies, request, params }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const currency = preferredCurrency(cookies);
 		const plan = (await currentPlan(userId, currency)) ?? redirect(303, '/plan');
 		await findLimit(userId, plan.id, params.categoryId);
@@ -59,19 +61,20 @@ export const actions: Actions = {
 
 		const parsed = parseLimitAmount(amount, currency);
 		const values = { amount };
-		if ('message' in parsed) return fail(400, { values, errors: { amount: parsed.message } });
+		if ('message' in parsed) return formFail(400, { values, errors: { amount: parsed.message } });
 		try {
 			await upsertLimits(userId, plan.id, [
 				{ categoryId: params.categoryId, amount: parsed.cents }
 			]);
 		} catch (e) {
-			if (e instanceof PlanRejected) return fail(400, { values, errors: { amount: e.message } });
+			if (e instanceof PlanRejected)
+				return formFail(400, { values, errors: { amount: e.message } });
 			throw e;
 		}
 		return { amount: parsed.cents };
 	},
 	delete: async ({ locals, cookies, url, params }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const plan = (await currentPlan(userId, preferredCurrency(cookies))) ?? redirect(303, '/plan');
 		await findLimit(userId, plan.id, params.categoryId);
 		await deleteLimit(userId, plan.id, params.categoryId);

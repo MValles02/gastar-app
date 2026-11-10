@@ -1,4 +1,5 @@
 import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
+import { requireUser } from '$lib/server/require-user';
 import type { PageServerLoad } from './$types';
 import {
 	categorySums,
@@ -13,8 +14,9 @@ import { preferredCurrency } from '$lib/server/currency-pref';
 import { currentMonth, dayHeading, localDay, monthLabel, monthRange } from '$lib/server/month';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { accountSummaryOnce, planViewOnce } from '$lib/server/plan-view';
-import { getImportAccount, pendingImportCount } from '$lib/server/mp-import-queries';
-import { mpOauthEnabled } from '$lib/server/mp-oauth';
+import { pendingImportCount } from '$lib/server/import-queries';
+import { getMpImportAccount, mpOauthEnabled } from '$lib/server/mp-oauth';
+import { getGaliciaConnection } from '$lib/server/galicia';
 
 type TopCategory = ReturnType<typeof topCategories>[number] & {
 	color: SwatchKey | null;
@@ -22,15 +24,19 @@ type TopCategory = ReturnType<typeof topCategories>[number] & {
 };
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const currency = preferredCurrency(cookies);
 	const now = new Date();
 	const value = currentMonth(now);
 	const range = monthRange(value);
 
-	// Mercado Pago pill: only for a linked user (also while a reconnect is pending); counts both currencies.
+	// Imports pill: only for a user with a source set up (Mercado Pago linked, also while a reconnect is
+	// pending, or a Banco Galicia account chosen); counts both currencies.
 	const mpPending = async () =>
-		mpOauthEnabled() && (await getImportAccount(userId)) ? await pendingImportCount(userId) : null;
+		(mpOauthEnabled() && (await getMpImportAccount(userId))) ||
+		(await getGaliciaConnection(userId))?.arsAccountId
+			? await pendingImportCount(userId)
+			: null;
 	const [summary, anyMovement, anyPlan, mpPendingCount] = await Promise.all([
 		accountSummaryOnce(userId),
 		hasAnyMovement(userId),

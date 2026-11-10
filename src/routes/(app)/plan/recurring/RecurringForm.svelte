@@ -12,7 +12,7 @@
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
-	import { parseAmount } from '$lib/money';
+	import { isPositiveAmount } from '$lib/money';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 	type Fields = 'type' | 'description' | 'amount' | 'accountId' | 'categoryId' | 'dayOfMonth';
@@ -70,7 +70,7 @@
 	// Errors from the drawer's post; the page shows the server-rendered `errors` instead.
 	let fieldErrors = $state<Partial<Record<Fields, string>>>({});
 	const shown = $derived({ ...errors, ...fieldErrors });
-	const canSave = $derived((parseAmount(amount) ?? 0) > 0 && description.trim() !== '');
+	const canSave = $derived(isPositiveAmount(amount) && description.trim() !== '');
 
 	// The rule's own saved category stays pickable.
 	const pickableCategories = $derived(

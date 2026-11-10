@@ -1,7 +1,9 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { parseMovementForm } from '$lib/server/movements';
 import { deleteMovement, updateMovement } from '$lib/server/movements-queries';
+import { requireUser } from '$lib/server/require-user';
 import {
 	detailOf,
 	failIfUnavailable,
@@ -24,12 +26,13 @@ const EDITABLE = [
 	'exchangeRate'
 ] as const;
 
-export const load: PageServerLoad = ({ locals, params }) => detailOf(locals.user!.id, params.id);
+export const load: PageServerLoad = ({ locals, params }) =>
+	detailOf(requireUser(locals).id, params.id);
 
 export const actions: Actions = {
 	/** Saves the posted subset of fields over the stored values, with today's validation. */
 	update: async ({ request, locals, params }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const m = await findMovement(userId, params.id);
 
 		const posted = await request.formData();
@@ -42,7 +45,7 @@ export const actions: Actions = {
 
 		const parsed = parseMovementForm(fd);
 		const { values } = parsed;
-		if (!parsed.ok) return fail(400, { values, errors: parsed.errors });
+		if (!parsed.ok) return formFail(400, { values, errors: parsed.errors });
 
 		// An undo may restore the archived refs the movement had; rows still come from the owner-scoped getAccount/getCategory.
 		const kept = keptRefs(m);
@@ -56,7 +59,7 @@ export const actions: Actions = {
 					}
 				: kept;
 		const { resolved } = await resolvePostedMovement(userId, parsed.data, keep);
-		if (!resolved.ok) return fail(400, { values, errors: resolved.errors });
+		if (!resolved.ok) return formFail(400, { values, errors: resolved.errors });
 
 		let rows;
 		try {
@@ -68,7 +71,7 @@ export const actions: Actions = {
 		return { movement: (await detailOf(userId, params.id)).movement };
 	},
 	delete: async ({ locals, params }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		await findMovement(userId, params.id);
 		if ((await deleteMovement(userId, params.id)).length === 0) notFound();
 		redirect(303, '/movements');

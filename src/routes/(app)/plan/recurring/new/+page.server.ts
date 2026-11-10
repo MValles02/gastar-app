@@ -5,10 +5,11 @@ import { formatAmountInput } from '$lib/money';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import { recurringSuggestions } from '$lib/server/plan-view';
 import { createRecurring } from '$lib/server/plan-queries';
+import { requireUser } from '$lib/server/require-user';
 import { readRecurringForm, recurringPickers } from '../form.server';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const currency = preferredCurrency(cookies);
 	const type =
 		url.searchParams.get('type') === 'income' ? ('income' as const) : ('outcome' as const);
@@ -35,7 +36,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 export const actions: Actions = {
 	default: async ({ locals, request, url }) => {
-		const userId = locals.user!.id;
+		const userId = requireUser(locals).id;
 		const r = await readRecurringForm(userId, await request.formData());
 		if (r.failure) return r.failure;
 		await createRecurring(userId, r.data);

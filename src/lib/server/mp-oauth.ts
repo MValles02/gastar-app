@@ -237,6 +237,20 @@ export async function getConnectionInfo(userId: string): Promise<MpConnectionInf
 	return row ?? null;
 }
 
+/** The account the user's Mercado Pago connection feeds (also while a reconnect is pending), else null. */
+export async function getMpImportAccount(userId: string) {
+	const conn = await getConnectionInfo(userId);
+	return conn?.accountId ? { id: conn.accountId, name: conn.accountName ?? '' } : null;
+}
+
+/** How the user's Mercado Pago connection stands: linked, needing a reconnect, or not linked. */
+export async function mpLinkState(userId: string): Promise<'linked' | 'reconnect' | 'unlinked'> {
+	const conn = await getConnectionInfo(userId);
+	if (conn?.needsReconnect) return 'reconnect';
+	if (conn?.accountId) return 'linked';
+	return 'unlinked';
+}
+
 /**
  * Decrypted access token and expiry for the sync, or null when not linked or the token cannot be decrypted
  * (wrong or rotated MP_TOKEN_KEY, corrupt data): then the connection is flagged needs_reconnect.

@@ -2,6 +2,7 @@ import { and, eq, type AnyColumn, type SQL } from 'drizzle-orm';
 import {
 	categories,
 	financialAccounts,
+	galiciaConnections,
 	movements,
 	mpConnections,
 	mpImportItems,
@@ -44,6 +45,14 @@ export function canAccessMovement(
 	origin: { ownerId: AnyColumn } = financialAccounts
 ): SQL {
 	return and(eq(movements.userId, userId), canAccessAccount(userId, origin))!;
+}
+
+/**
+ * The single path for bulk operations over every movement a user owns (account deletion).
+ * Per-movement reads and writes use canAccessMovement.
+ */
+export function allMovementsOf(userId: string): SQL {
+	return eq(movements.userId, userId);
 }
 
 /** The single ownership check for recurring rules. Accepts an alias. */
@@ -89,6 +98,19 @@ export function canAccessMpConnection(
 
 /** Insert-side counterpart of canAccessMpConnection. */
 export function mpConnectionOwnedBy(userId: string) {
+	return { userId };
+}
+
+/** The single ownership check for Banco Galicia connections. Accepts an alias. */
+export function canAccessGaliciaConnection(
+	userId: string,
+	c: { userId: AnyColumn } = galiciaConnections
+): SQL {
+	return eq(c.userId, userId);
+}
+
+/** Insert-side counterpart of canAccessGaliciaConnection. */
+export function galiciaConnectionOwnedBy(userId: string) {
 	return { userId };
 }
 

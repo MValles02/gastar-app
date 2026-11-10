@@ -7,6 +7,7 @@ import {
 	listCategories
 } from '$lib/server/categories-queries';
 import { currentMonth, monthRange } from '$lib/server/month';
+import { requireUser } from '$lib/server/require-user';
 
 const KIND_GROUPS = [
 	['outcome', 'Gastos'],
@@ -15,7 +16,7 @@ const KIND_GROUPS = [
 ] as const;
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	const userId = locals.user!.id;
+	const userId = requireUser(locals).id;
 	const q = (url.searchParams.get('q') ?? '').trim().slice(0, NAME_MAX_LENGTH);
 	const archived = url.searchParams.get('archived') === '1';
 	const kind =

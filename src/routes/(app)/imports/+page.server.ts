@@ -1,21 +1,26 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import {
 	getImport,
-	getImportAccount,
-	getSyncState,
 	importPrefill,
 	importTitle,
-	listImportRules,
+	listAutoApproved,
 	listPendingImports,
+	SOURCE_LABEL,
 	undoApproval
-} from '$lib/server/mp-import-queries';
-import { getConnectionInfo, mpOauthEnabled } from '$lib/server/mp-oauth';
-import { startMpSync } from '$lib/server/mp-sync';
+} from '$lib/server/import-queries';
+import { getGaliciaConnection } from '$lib/server/galicia';
+import { getConnectionInfo, getMpImportAccount, mpOauthEnabled } from '$lib/server/mp-oauth';
+import { getSyncState, startMpSync } from '$lib/server/mp-sync';
 import { dayHeading, localDay } from '$lib/server/month';
 import { isUuid } from '$lib/server/db/util';
 import { pgErrorCode } from '$lib/server/db/errors';
-import { movementPickers } from '../movements/form.server';
-import { approveWithValues } from './approve.server';
+import {
+	approveSuggestedImports,
+	approveSuggestion,
+	counterAccountsOf,
+	suggestionContext
+} from '$lib/server/import-approve';
+import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
 
 const LEASE_MS = 15 * 60_000;
@@ -31,34 +36,29 @@ function agoLabel(at: Date, now: Date): string {
 
 const DONE = ['approved', 'rejected', 'stale'] as const;
 
-/** 404 when the feature is off; sends the user to link (or pick an account) when there is no usable connection. */
-async function requireAccount(userId: string) {
-	if (!mpOauthEnabled()) error(404, 'No encontrado');
-	const account = await getImportAccount(userId);
-	if (!account) redirect(303, '/profile/mercado-pago');
-	return account;
-}
-
-/** Active ARS accounts other than the import account: the only valid counter accounts. */
-const counterAccountsOf = <A extends { currency: string; id: string }>(
-	accounts: A[],
-	importAccountId: string
-) => accounts.filter((a) => a.currency === 'ARS' && a.id !== importAccountId);
+const ALREADY_REVIEWED = 'Ese movimiento ya fue revisado.';
+const APPROVE_FAILED = 'No se pudo aprobar.';
 
 /** A non-negative integer query param, else null. */
 const countParam = (v: string | null) => (v !== null && /^\d{1,9}$/.test(v) ? Number(v) : null);
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	const userId = locals.user!.id;
-	const account = await requireAccount(userId);
-	const needsReconnect = (await getConnectionInfo(userId))?.needsReconnect ?? false;
-	const [sync, items, rules, pickers] = await Promise.all([
-		getSyncState(userId, account.id),
+	const userId = requireUser(locals).id;
+	const [mp, galicia, items, ctx, autoRows] = await Promise.all([
+		getMpImportAccount(userId),
+		getGaliciaConnection(userId),
 		listPendingImports(userId),
-		listImportRules(userId),
-		movementPickers(userId)
+		suggestionContext(userId),
+		listAutoApproved(userId)
 	]);
-	const counterAccounts = counterAccountsOf(pickers.accounts, account.id);
+	// Nothing to review and no source linked: send the user to the connections.
+	if (!mp && !galicia?.arsAccountId && items.length === 0 && autoRows.length === 0) {
+		redirect(303, '/profile/vinculaciones');
+	}
+	// The source only disambiguates when the pending items come from more than one.
+	const mixed = new Set(items.map((i) => i.source)).size > 1;
+	const sync = mp ? await getSyncState(userId, mp.id) : null;
+	const needsReconnect = (await getConnectionInfo(userId))?.needsReconnect ?? false;
 
 	const now = new Date();
 	const today = localDay(now);
@@ -70,8 +70,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			id: string;
 			title: string;
 			amount: number;
+			currency: 'ARS' | 'USD';
 			isCredit: boolean;
 			suggestion: string | null;
+			source: string | null;
 		}[];
 	}[] = [];
 	for (const i of items) {
@@ -81,14 +83,21 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			group = { day, heading: dayHeading(day, today), items: [] };
 			groups.push(group);
 		}
-		const suggestion = importPrefill(i, rules, pickers.categories, counterAccounts).suggestion;
+		const suggestion = importPrefill(
+			i,
+			ctx.rules,
+			ctx.categories,
+			counterAccountsOf(ctx.accounts, i)
+		).suggestion;
 		if (suggestion !== null) suggested++;
 		group.items.push({
 			id: i.id,
 			title: importTitle(i),
 			amount: i.amount,
+			currency: i.currency,
 			isCredit: i.isCredit,
-			suggestion
+			suggestion,
+			source: mixed ? (SOURCE_LABEL[i.source] ?? null) : null
 		});
 	}
 
@@ -96,62 +105,60 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const done = url.searchParams.get('done');
 	const approved = countParam(url.searchParams.get('approved'));
 	const skipped = countParam(url.searchParams.get('skipped'));
+	const imported = countParam(url.searchParams.get('imported'));
+	const autoImported = countParam(url.searchParams.get('auto'));
 	return {
+		mpLinked: !!mp,
 		suggested,
 		bulk: approved === null ? null : { approved, skipped: skipped ?? 0 },
+		// A statement upload just landed (Banco Galicia): new items and how many were auto-approved.
+		upload: imported === null ? null : { created: imported, auto: autoImported ?? 0 },
 		needsReconnect,
 		running,
 		// 'payments' (also before the first step is recorded) or 'report'; null when idle.
 		phase: running ? (sync?.phase === 'report' ? 'report' : 'payments') : null,
 		newItems: sync?.newItems ?? null,
+		autoApproved: sync?.autoApproved ?? null,
 		lastError: sync?.lastError ?? null,
 		lastRun: sync?.lastRunAt ? agoLabel(sync.lastRunAt, now) : null,
 		done: DONE.find((d) => d === done) ?? null,
-		groups
+		groups,
+		// Approved automatically in the last 30 days; the line opens their list (/imports/auto).
+		autoCount: autoRows.length
 	};
 };
 
 export const actions: Actions = {
 	sync: async ({ locals }) => {
-		await requireAccount(locals.user!.id);
-		await startMpSync(locals.user!.id);
+		const userId = requireUser(locals).id;
+		if (!mpOauthEnabled() || !(await getMpImportAccount(userId)))
+			redirect(303, '/profile/vinculaciones');
+		await startMpSync(userId);
 		redirect(303, '/imports');
 	},
 
 	/** Quick "Aprobar" of one suggested row; answers with the id so the page can offer Deshacer. */
 	approveOne: async ({ locals, request }) => {
-		const userId = locals.user!.id;
-		const account = await requireAccount(userId);
+		const userId = requireUser(locals).id;
 		const id = String((await request.formData()).get('id') ?? '');
-		if (!isUuid(id)) return fail(400, { message: 'No se pudo aprobar.' });
+		if (!isUuid(id)) return fail(400, { message: APPROVE_FAILED });
 		const item = await getImport(userId, id);
-		if (!item || item.status !== 'pending') {
-			return fail(409, { message: 'Ese movimiento ya fue revisado.' });
-		}
-		const [rules, pickers] = await Promise.all([listImportRules(userId), movementPickers(userId)]);
-		const prefill = importPrefill(
-			item,
-			rules,
-			pickers.categories,
-			counterAccountsOf(pickers.accounts, account.id)
-		);
-		// Only rows that show "Aprobar" have a suggestion; the rest go through the review form.
-		if (prefill.suggestion === null) return fail(400, { message: 'Revisá este movimiento.' });
+		if (!item || item.status !== 'pending') return fail(409, { message: ALREADY_REVIEWED });
+		const ctx = await suggestionContext(userId);
 		try {
-			// The values come from the rule itself: nothing new to remember.
-			const out = await approveWithValues(userId, item, prefill, false);
-			if (out.result === 'approved') return { approvedId: id };
-			return fail(409, { message: 'Ese movimiento ya fue revisado.' });
+			const out = await approveSuggestion(userId, item, ctx);
+			if (out === 'none') return fail(400, { message: 'Revisá este movimiento.' });
+			if (out === 'approved') return { approvedId: id };
+			return fail(409, { message: ALREADY_REVIEWED });
 		} catch (e) {
 			console.error('[imports] quick approve failed', pgErrorCode(e) ?? 'unknown');
-			return fail(400, { message: 'No se pudo aprobar.' });
+			return fail(400, { message: APPROVE_FAILED });
 		}
 	},
 
-	/** Deshacer of a quick approval: removes its movement and puts the item back to pending. */
+	/** Deshacer of a quick or automatic approval: removes its movement and puts the item back to pending. */
 	undoApprove: async ({ locals, request }) => {
-		const userId = locals.user!.id;
-		await requireAccount(userId);
+		const userId = requireUser(locals).id;
 		const id = String((await request.formData()).get('id') ?? '');
 		if (!isUuid(id)) return fail(400, { message: 'No se pudo deshacer.' });
 		const result = await undoApproval(userId, id);
@@ -163,30 +170,8 @@ export const actions: Actions = {
 	},
 
 	approveSuggested: async ({ locals }) => {
-		const userId = locals.user!.id;
-		const account = await requireAccount(userId);
-		const [items, rules, pickers] = await Promise.all([
-			listPendingImports(userId),
-			listImportRules(userId),
-			movementPickers(userId)
-		]);
-		const counterAccounts = counterAccountsOf(pickers.accounts, account.id);
-
-		let approved = 0;
-		let skipped = 0;
-		for (const item of items) {
-			const prefill = importPrefill(item, rules, pickers.categories, counterAccounts);
-			if (prefill.suggestion === null) continue;
-			try {
-				// The values come from the rule itself: nothing new to remember.
-				const out = await approveWithValues(userId, item, prefill, false);
-				if (out.result === 'approved') approved++;
-				else skipped++;
-			} catch (e) {
-				console.error('[imports] bulk approve failed', pgErrorCode(e) ?? 'unknown');
-				skipped++;
-			}
-		}
+		const userId = requireUser(locals).id;
+		const { approved, skipped } = await approveSuggestedImports(userId);
 		redirect(303, `/imports?approved=${approved}&skipped=${skipped}`);
 	}
 };

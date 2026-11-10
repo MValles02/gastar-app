@@ -235,7 +235,7 @@ test('sync shows live progress, fills the inbox without a reload and leaves bala
 
 	expect(await accountRow()).toBe(balance);
 
-	await page.goto('/profile');
+	await page.goto('/profile/vinculaciones');
 	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('Vinculado');
 });
 
@@ -258,7 +258,7 @@ test('every MP call carries a token the fake issued, and no page shows it', asyn
 	expect(all.length).toBeGreaterThan(0);
 	// The fake answers 401 to any bearer it did not issue, so the syncs above prove the stored token works.
 	for (const c of all) expect(c.authorization).toMatch(BEARER_RE);
-	for (const path of [MP_PATH, '/imports', '/profile']) {
+	for (const path of [MP_PATH, '/imports', '/profile', '/profile/vinculaciones']) {
 		await page.goto(path);
 		expect(await page.content()).not.toContain('APP_USR');
 	}
@@ -326,6 +326,54 @@ test('a remembered rule suggests the category for the next item', async () => {
 	await expect(page.getByRole('button', { name: /Categoría/ })).toContainText(CATEGORY);
 	// Prefilled by a rule, the box still starts unchecked.
 	await expect(rememberBox()).not.toBeChecked();
+});
+
+test('a sync auto-approves recognized items, and one undone stays for review on the next sync', async () => {
+	test.setTimeout(90_000);
+	const before = await balanceOf('Mercado Pago');
+	const status = page.getByRole('status');
+	// A short report wait keeps the run visible, so the page itself shows how it ended.
+	await fake('/__fake/report-delay', { ms: 3_000 });
+	try {
+		await page.goto('/imports');
+		await page.waitForLoadState('networkidle'); // hydration guard: live progress needs JS
+		await page.getByRole('button', { name: 'Sincronizar' }).click();
+		await expect(status).toContainText('Sincronizando');
+		await expect(status).toHaveText(/^Listo\. .*, 1 aprobado automáticamente\.$/, {
+			timeout: 40_000
+		});
+	} finally {
+		await fake('/__fake/report-delay', { ms: 0 });
+	}
+	// The remembered counterparty is approved; an unknown item stays for review.
+	await expect(rows().filter({ hasText: 'FAKE AMIGA' })).toHaveCount(0);
+	await expect(rows().filter({ hasText: 'CAFE DE PRUEBA' })).toContainText('No sabemos qué es');
+	const approved = await amigaItem();
+	expect(approved.status).toBe('approved');
+	expect(approved.movementId).not.toBeNull();
+	expect(Math.abs((await balanceOf('Mercado Pago')) - before - 800.5)).toBeLessThanOrEqual(1);
+
+	await page.goto('/imports');
+	await page.getByRole('link', { name: /1 aprobado automáticamente/ }).click();
+	await expect(page).toHaveURL(/\/imports\/auto$/);
+	await page.waitForLoadState('networkidle'); // hydration guard: Deshacer answers with a toast
+	const auto = page.getByRole('listitem').filter({ hasText: 'FAKE AMIGA' });
+	await expect(auto).toContainText(CATEGORY);
+	await auto.getByRole('button', { name: /Deshacer/ }).click();
+	await flash('Aprobación deshecha. Quedó para revisar.');
+	await expect(auto).toHaveCount(0);
+	expect(await amigaItem()).toMatchObject({
+		status: 'pending',
+		movementId: null,
+		n: approved.n - 1
+	});
+	expect(await balanceOf('Mercado Pago')).toBe(before);
+
+	// Undone once, never auto-approved again: still suggested for a manual approval.
+	await syncNow();
+	expect(await amigaItem()).toMatchObject({ status: 'pending', movementId: null });
+	await expect(rows().filter({ hasText: 'FAKE AMIGA' })).toContainText(`${CATEGORY} · sugerido`);
+	await expect(page.getByRole('link', { name: /aprobados? automáticamente/ })).toHaveCount(0);
 });
 
 test('discarding an item removes it for good', async () => {
@@ -707,7 +755,7 @@ test('a revoked connection asks to reconnect in Perfil and in the inbox', async 
 	// The items already imported stay listed.
 	await expect(rows().first()).toBeVisible();
 
-	await page.goto('/profile');
+	await page.goto('/profile/vinculaciones');
 	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('Reconectar');
 	await page.goto(MP_PATH);
 	await expect(page.getByRole('button', { name: 'Reconectar' })).toBeVisible();
@@ -792,7 +840,7 @@ test('an account without a release report configuration gets one created and syn
 	expect((await configRequests()).slice(-2).map((c) => c.method)).toEqual(['GET', 'POST']);
 });
 
-test('disconnecting removes the link and the inbox asks to link again', async () => {
+test('disconnecting removes the link and the inbox keeps only the pending items', async () => {
 	await page.goto(MP_PATH);
 	await page.waitForLoadState('networkidle'); // hydration guard: the disconnect confirm dialog needs JS
 	await page.getByRole('button', { name: 'Desvincular' }).click();
@@ -800,9 +848,12 @@ test('disconnecting removes the link and the inbox asks to link again', async ()
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Desvincular' }).click();
 	await expect(page.getByRole('button', { name: 'Vincular Mercado Pago' })).toBeVisible();
 
+	// Disconnecting keeps the imported items: the inbox still lists them, without a sync line.
 	await page.goto('/imports');
-	await expect(page).toHaveURL(new RegExp(`${MP_PATH}$`));
-	await page.goto('/profile');
+	await expect(page).toHaveURL(/\/imports$/);
+	await expect(rows().first()).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Sincronizar' })).toHaveCount(0);
+	await page.goto('/profile/vinculaciones');
 	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('Vincular');
 });
 
@@ -813,8 +864,8 @@ test('users without a connection are sent to link and cannot open others items',
 		const { ctx, p } = await asUser(browser, email);
 		expect((await p.goto(`/imports/${pendingId}`))!.status()).toBe(404);
 		await p.goto('/imports');
-		await expect(p).toHaveURL(new RegExp(`${MP_PATH}$`));
-		await expect(p.getByRole('button', { name: 'Vincular Mercado Pago' })).toBeVisible();
+		await expect(p).toHaveURL(/\/profile\/vinculaciones$/);
+		await expect(p.getByRole('link', { name: /Mercado Pago/ })).toContainText('Vincular');
 		await ctx.close();
 	}
 });

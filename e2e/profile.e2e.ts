@@ -1,5 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
-import { fillMovement, fillRule, signUpVerified, submitLogin } from './helpers';
+import {
+	fillMovement,
+	fillRule,
+	login,
+	OTHER_EMAIL,
+	pathOf,
+	signUpVerified,
+	submitLogin
+} from './helpers';
 
 // Sign-up is rate-limited to 10/h/IP (in-memory): this spec uses 1 sign-up, shared by the
 // account tests. Restart the dev server to reset the counters.
@@ -158,5 +166,15 @@ test.describe('account changes', () => {
 		await expect(page).toHaveURL(/\/login/);
 		await submitLogin(page, email, current);
 		await expect(page.getByText('Email o contraseña incorrectos.')).toBeVisible();
+
+		// Deleting one user leaves the other users' data intact.
+		await login(page, OTHER_EMAIL);
+		await page.goto('/accounts');
+		const otherAccount = page.getByRole('link', { name: /Otra cuenta pesos/ });
+		await expect(otherAccount).toBeVisible();
+		await page.goto(await pathOf(otherAccount));
+		await expect(page.locator('main')).toContainText('Otra cuenta pesos');
+		await page.goto('/categories');
+		await expect(page.getByRole('link', { name: /Ajena/ })).toBeVisible();
 	});
 });

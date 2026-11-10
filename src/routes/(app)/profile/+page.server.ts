@@ -1,9 +1,9 @@
-import { fail } from '@sveltejs/kit';
+import { formFail } from '$lib/form';
 import { auth } from '$lib/server/auth';
 import { userNameError } from '$lib/server/auth-forms';
 import { PREFERENCE_COOKIE_OPTIONS, THEME_COOKIE } from '$lib/server/cookies';
 import { profileCounts } from '$lib/server/profile-queries';
-import { getConnectionInfo, mpOauthEnabled } from '$lib/server/mp-oauth';
+import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
 
 const THEMES = ['light', 'dark', 'system'] as const;
@@ -14,22 +14,12 @@ const isTheme = (value: unknown): value is Theme =>
 
 const parseTheme = (value: string | undefined): Theme => (isTheme(value) ? value : 'system');
 
-/** The Mercado Pago row: null when the feature is off, else the link state it shows as its value. */
-async function importsRow(userId: string) {
-	if (!mpOauthEnabled()) return null;
-	const conn = await getConnectionInfo(userId);
-	if (conn?.needsReconnect) return { state: 'reconnect' as const };
-	if (conn?.accountId) return { state: 'linked' as const };
-	return { state: 'unlinked' as const };
-}
-
 export const load: PageServerLoad = async ({ locals, cookies }) => {
-	const user = locals.user!;
+	const user = requireUser(locals);
 	return {
 		user: { name: user.name, email: user.email },
 		theme: parseTheme(cookies.get(THEME_COOKIE)),
-		counts: await profileCounts(user.id),
-		imports: await importsRow(user.id)
+		counts: await profileCounts(user.id)
 	};
 };
 
@@ -38,7 +28,7 @@ export const actions: Actions = {
 	name: async ({ request }) => {
 		const name = String((await request.formData()).get('name') ?? '').trim();
 		const error = userNameError(name);
-		if (error) return fail(400, { errors: { name: error } });
+		if (error) return formFail(400, { errors: { name: error } });
 
 		await auth.api.updateUser({ body: { name }, headers: request.headers });
 		return { name };
@@ -49,7 +39,7 @@ export const actions: Actions = {
 		const value = data.get('theme');
 
 		if (!isTheme(value)) {
-			return fail(400, { error: 'Tema inválido.' });
+			return formFail(400, { formError: 'Tema inválido.' });
 		}
 
 		cookies.set(THEME_COOKIE, value, PREFERENCE_COOKIE_OPTIONS);

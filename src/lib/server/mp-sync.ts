@@ -3,6 +3,7 @@ import { and, eq, inArray, isNull, lt, max, or, sql } from 'drizzle-orm';
 import { db } from './db';
 import { financialAccounts, mpConnections, mpImportItems, mpSyncState } from './db/schema';
 import { canAccessAccount, canAccessImport, canAccessMpConnection, importOwnedBy } from './access';
+import { autoApprovePending } from './import-approve';
 import { getAccessToken, listUsableConnections, refreshConnection } from './mp-oauth';
 import { dayStart, localDay, TZ } from './month';
 
@@ -687,7 +688,7 @@ async function acquire(userId: string): Promise<Lease | null> {
 		await db.insert(mpSyncState).values({ accountId }).onConflictDoNothing();
 		const [lease] = await db
 			.update(mpSyncState)
-			.set({ runningSince: sql`now()`, phase: 'payments', newItems: null })
+			.set({ runningSince: sql`now()`, phase: 'payments', newItems: null, autoApproved: null })
 			.where(
 				and(
 					eq(mpSyncState.accountId, accountId),
@@ -751,7 +752,8 @@ function reportDue(syncedUntil: Date | null, now: Date): boolean {
 /**
  * Runs payments, then (with `report`) the release report, under a held lease and releases it. Never throws.
  * synced_until is the report cursor: only a report run moves it, and a backfill (`from`, both windows start
- * there) leaves it alone.
+ * there) leaves it alone. Before releasing the lease, recognized pending items are approved automatically
+ * (also after a failed run: items stored earlier still count), so the inbox reads the count with 'Listo'.
  */
 async function execute(
 	l: Lease,
@@ -804,6 +806,12 @@ async function execute(
 		code = (e as { mp?: boolean }).mp ? ((e as Error).message as MpSyncError) : 'network';
 		console.error(`mp sync failed: ${code}`);
 	}
+	let autoApproved: number | null = null;
+	try {
+		autoApproved = await autoApprovePending(l.userId);
+	} catch {
+		console.error('[imports] auto-approve failed');
+	}
 	try {
 		await db
 			.update(mpSyncState)
@@ -814,9 +822,10 @@ async function execute(
 							phase: null,
 							lastError: null,
 							...(end && !from ? { syncedUntil: end } : {}),
-							lastRunAt: sql`now()`
+							lastRunAt: sql`now()`,
+							autoApproved
 						}
-					: { runningSince: null, phase: null, lastError: code }
+					: { runningSince: null, phase: null, lastError: code, autoApproved }
 			)
 			.where(eq(mpSyncState.accountId, l.accountId));
 	} catch {
@@ -862,4 +871,22 @@ export async function startMpBackfill(userId: string, from: Date): Promise<boole
 	if (!lease) return false;
 	void execute(lease, { from, report: true });
 	return true;
+}
+
+export async function getSyncState(userId: string, accountId: string) {
+	const [row] = await db
+		.select({
+			syncedUntil: mpSyncState.syncedUntil,
+			runningSince: mpSyncState.runningSince,
+			lastRunAt: mpSyncState.lastRunAt,
+			lastError: mpSyncState.lastError,
+			phase: mpSyncState.phase,
+			newItems: mpSyncState.newItems,
+			autoApproved: mpSyncState.autoApproved
+		})
+		.from(mpSyncState)
+		.innerJoin(financialAccounts, eq(mpSyncState.accountId, financialAccounts.id))
+		.where(and(eq(mpSyncState.accountId, accountId), canAccessAccount(userId)))
+		.limit(1);
+	return row ?? null;
 }

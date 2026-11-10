@@ -83,13 +83,6 @@
 
 	{#snippet accountsCount()}<span class="val">{data.counts.accounts}</span>{/snippet}
 	{#snippet categoriesCount()}<span class="val">{data.counts.categories}</span>{/snippet}
-	{#snippet mpState()}<span class="val"
-			>{data.imports?.state === 'linked'
-				? 'Vinculado'
-				: data.imports?.state === 'reconnect'
-					? 'Reconectar'
-					: 'Vincular'}</span
-		>{/snippet}
 	{#snippet nameValue()}
 		<span class="name-edit">
 			<InlineText label="Nombre" value={name} maxlength={NAME_MAX} onsave={saveName}>
@@ -113,15 +106,12 @@
 			value={categoriesCount}
 			chevron
 		/>
-		{#if data.imports}
-			<ListRow
-				href={resolve('/profile/mercado-pago')}
-				lead={{ icon: 'phone', color: null }}
-				title="Mercado Pago"
-				value={mpState}
-				chevron
-			/>
-		{/if}
+		<ListRow
+			href={resolve('/profile/vinculaciones')}
+			lead={{ icon: 'phone', color: null }}
+			title="Vinculaciones"
+			chevron
+		/>
 	</ListCard>
 
 	<ListCard aria-label="Tu identidad">
@@ -160,8 +150,8 @@
 				</div>
 			</div>
 
-			{#if form?.error}
-				<p class="error" role="alert">{form.error}</p>
+			{#if form?.formError}
+				<p class="error" role="alert">{form.formError}</p>
 			{/if}
 
 			<noscript><Button type="submit" variant="outline">Guardar</Button></noscript>
