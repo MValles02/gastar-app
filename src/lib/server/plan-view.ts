@@ -77,7 +77,6 @@ async function computeMonthPlan(userId: string, cur: Currency) {
 	});
 	return {
 		ym,
-		today,
 		rules,
 		active,
 		paidIds,
