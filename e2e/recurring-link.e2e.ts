@@ -109,13 +109,14 @@ test('an imported charge matching a rule by description is linked on approval', 
 	await openItem('CAFE INVENTADO');
 	await pick(page, 'Categoría', 'Fijos');
 	await page.getByRole('button', { name: 'Aprobar', exact: true }).click();
-	await expect(page).toHaveURL(/\/imports\?done=approved/);
+	await expect(page.getByText('Movimiento aprobado.')).toBeVisible();
 
 	await page.goto('/plan');
 	await expect(rule('Café Inventado')).toContainText('Pagado');
 	expect(await findMovements(page, 'CAFE INVENTADO')).toHaveLength(1);
 
 	// The rule follows the charge (2.500,50 rounds to whole pesos) and remembers what it was.
+	await page.goto('/plan');
 	await rule('Café Inventado').locator('a[data-slot="item"]').click();
 	await expect(page.getByRole('button', { name: /^Monto:/ })).toContainText('2.501');
 	await expect(page.getByText('Antes $2.000')).toBeVisible();
@@ -145,7 +146,7 @@ test("a remembered explicit link links next month's item with another descriptio
 	await pick(page, 'Es el pago fijo', 'Teléfono');
 	await page.getByRole('checkbox', { name: 'Recordar para la próxima' }).check();
 	await page.getByRole('button', { name: 'Aprobar', exact: true }).click();
-	await expect(page).toHaveURL(/\/imports\?done=approved/);
+	await expect(page.getByText('Movimiento aprobado.')).toBeVisible();
 
 	// Last month's charge does not pay this month.
 	await page.goto('/plan');
