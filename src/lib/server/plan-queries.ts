@@ -1,4 +1,17 @@
-import { and, desc, eq, gte, inArray, isNull, lt, ne, sql, type SQL } from 'drizzle-orm';
+import {
+	and,
+	desc,
+	eq,
+	gte,
+	inArray,
+	isNotNull,
+	isNull,
+	lt,
+	lte,
+	ne,
+	sql,
+	type SQL
+} from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import {
@@ -19,12 +32,12 @@ import {
 	planOwnedBy,
 	recurringOwnedBy
 } from './access';
-import type { Currency } from '$lib/money';
+import { CURRENCIES, type Currency } from '$lib/money';
 import type { MovementRow } from './movements';
 import type { DbExecutor } from './movements-queries';
 import type { MovementType } from './dashboard';
 import { currentMonth, daysInMonth, HISTORY_MONTHS, localDay, monthRange, TZ } from './month';
-import { activeTotal, isCurrentPlan, normalizeDescription } from './plan';
+import { activeTotal, isCurrentPlan, normalizeDescription, PLAN_CURRENCY, toPlan } from './plan';
 
 type Range = { start: Date; end: Date };
 
@@ -322,9 +335,10 @@ export function deleteRecurring(userId: string, id: string) {
  * Unlinked outcomes that happened in each of the `HISTORY_MONTHS` months of `range` with the same
  * description, account and category: likely recurring. `id` is the group's most recent movement.
  */
-export function recurringCandidates(userId: string, cur: Currency, range: Range) {
+export function recurringCandidates(userId: string, range: Range) {
 	return db
 		.select({
+			currency: financialAccounts.currency,
 			id: sql<string>`(array_agg(${movements.id} order by ${movements.occurredAt} desc))[1]`,
 			description: sql<string>`min(trim(${movements.description}))`,
 			amount:
@@ -343,42 +357,78 @@ export function recurringCandidates(userId: string, cur: Currency, range: Range)
 		.where(
 			and(
 				canAccessMovement(userId),
-				eq(financialAccounts.currency, cur),
 				isNull(financialAccounts.archivedAt),
 				isNull(movements.recurringId),
 				eq(movements.type, 'outcome'),
 				occurredIn(range)
 			)
 		)
-		.groupBy(sql`lower(trim(${movements.description}))`, movements.accountId, movements.categoryId)
+		.groupBy(
+			sql`lower(trim(${movements.description}))`,
+			movements.accountId,
+			movements.categoryId,
+			financialAccounts.currency
+		)
 		.having(sql`count(distinct ${localMonth}) >= ${HISTORY_MONTHS}`);
 }
 
 // --- Spending plans ---
 
-/** The user's plan for `cur` when it is the current one (a plan for another month counts as none). */
-export async function currentPlan(userId: string, cur: Currency) {
-	const [plan] = await getPlan(userId, cur);
+/** The user's plan when it is the current one (a plan for another month counts as none). */
+export async function currentPlan(userId: string) {
+	const [plan] = await getPlan(userId);
 	return plan && isCurrentPlan(plan, currentMonth(new Date())) ? plan : null;
 }
 
-export function getPlan(userId: string, cur: Currency) {
+/** The plan is the user's `PLAN_CURRENCY` row; legacy USD rows are never read. */
+export function getPlan(userId: string) {
 	return db
 		.select({
 			id: spendingPlans.id,
 			currency: spendingPlans.currency,
 			savings: spendingPlans.savings,
 			savingsPercent: spendingPlans.savingsPercent,
-			month: spendingPlans.month
+			month: spendingPlans.month,
+			exchangeRate: spendingPlans.exchangeRate
 		})
 		.from(spendingPlans)
-		.where(and(canAccessPlan(userId), eq(spendingPlans.currency, cur)))
+		.where(and(canAccessPlan(userId), eq(spendingPlans.currency, PLAN_CURRENCY)))
 		.limit(1);
 }
 
-/** `planLimits` of the user's plan for `cur` (one per currency), so it can run alongside `getPlan`. */
-export function planLimitsByCurrency(userId: string, cur: Currency) {
-	return limitRows(userId, eq(spendingPlans.currency, cur));
+/** `planLimits` of the user's plan, so it can run alongside \`getPlan\`. */
+export function currentPlanLimits(userId: string) {
+	return limitRows(userId, eq(spendingPlans.currency, PLAN_CURRENCY));
+}
+
+/** The most recent ARS<->USD transfer's rate (not in the future); null when there is none. */
+export async function latestTransferRate(userId: string) {
+	const [row] = await db
+		.select({ rate: movements.exchangeRate, occurredAt: movements.occurredAt })
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.where(
+			and(
+				canAccessMovement(userId),
+				eq(movements.type, 'transfer'),
+				isNotNull(movements.exchangeRate),
+				lte(movements.occurredAt, sql`now()`)
+			)
+		)
+		.orderBy(desc(movements.occurredAt), desc(movements.createdAt))
+		.limit(1);
+	return row ? { rate: row.rate!, occurredAt: row.occurredAt } : null;
+}
+
+/** The plan's rate: the manual one when set, else the latest transfer's. `day` is that transfer's "YYYY-MM-DD". */
+export async function planRate(userId: string) {
+	const [[plan], transfer] = await Promise.all([getPlan(userId), latestTransferRate(userId)]);
+	if (plan?.exchangeRate) return { value: plan.exchangeRate, manual: true, day: null };
+	return {
+		value: transfer?.rate ?? null,
+		manual: false,
+		day: transfer ? localDay(transfer.occurredAt) : null
+	};
 }
 
 export function planLimits(userId: string, planId: string) {
@@ -392,7 +442,8 @@ function limitRows(userId: string, where: SQL | undefined) {
 			name: categories.name,
 			color: categories.color,
 			icon: categories.icon,
-			amount: planCategoryLimits.amount
+			amount: planCategoryLimits.amount,
+			currency: planCategoryLimits.currency
 		})
 		.from(planCategoryLimits)
 		.innerJoin(
@@ -408,49 +459,57 @@ function limitRows(userId: string, where: SQL | undefined) {
 }
 
 /**
- * Outcomes (never transfers) on accounts of `cur` in the range, archived accounts included, summed per
+ * Outcomes (never transfers) in the range, archived accounts included, summed per account currency,
  * category and linked rule; `planSpent` decides which count.
  */
-export function monthOutcomes(userId: string, cur: Currency, range: Range) {
+export function monthOutcomes(userId: string, range: Range) {
 	return db
 		.select({
+			currency: financialAccounts.currency,
 			categoryId: movements.categoryId,
 			recurringId: movements.recurringId,
 			amount: sql<number>`coalesce(sum(${movements.amount}), 0)`.mapWith(Number)
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.where(
-			and(
-				canAccessMovement(userId),
-				eq(financialAccounts.currency, cur),
-				eq(movements.type, 'outcome'),
-				occurredIn(range)
-			)
-		)
-		.groupBy(movements.categoryId, movements.recurringId);
+		.where(and(canAccessMovement(userId), eq(movements.type, 'outcome'), occurredIn(range)))
+		.groupBy(financialAccounts.currency, movements.categoryId, movements.recurringId);
 }
 
 /** Thrown inside `upsertLimits` to roll it back; the message is shown to the user. */
 export class PlanRejected extends Error {}
 
-export function deletePlan(userId: string, cur: Currency) {
+export function deletePlan(userId: string) {
 	return db
 		.delete(spendingPlans)
-		.where(and(canAccessPlan(userId), eq(spendingPlans.currency, cur)))
+		.where(and(canAccessPlan(userId), eq(spendingPlans.currency, PLAN_CURRENCY)))
 		.returning({ id: spendingPlans.id });
 }
 
-export async function planIncome(userId: string, cur: Currency) {
-	return activeTotal(await listRecurring(userId, cur), 'income');
+/** Active recurring income in plan pesos: ARS rules plus USD rules at the plan rate (left out without one). */
+export async function planIncome(userId: string) {
+	const [rules, rate] = await Promise.all([listRecurring(userId), planRate(userId)]);
+	return CURRENCIES.reduce(
+		(sum, cur) =>
+			sum +
+			(toPlan(
+				activeTotal(
+					rules.filter((r) => r.currency === cur),
+					'income'
+				),
+				cur,
+				rate.value
+			) ?? 0),
+		0
+	);
 }
 
 export type PlanSavings = { savings: number; savingsPercent: number | null; month: string | null };
 
-export function upsertPlan(userId: string, cur: Currency, v: PlanSavings) {
+export function upsertPlan(userId: string, v: PlanSavings) {
 	return db
 		.insert(spendingPlans)
-		.values({ ...v, currency: cur, ...planOwnedBy(userId) })
+		.values({ ...v, currency: PLAN_CURRENCY, ...planOwnedBy(userId) })
 		.onConflictDoUpdate({
 			target: [spendingPlans.userId, spendingPlans.currency],
 			set: { ...v, updatedAt: new Date() }
@@ -458,11 +517,14 @@ export function upsertPlan(userId: string, cur: Currency, v: PlanSavings) {
 		.returning({ id: spendingPlans.id });
 }
 
-export function updatePlan(userId: string, cur: Currency, patch: Partial<PlanSavings>) {
+export function updatePlan(
+	userId: string,
+	patch: Partial<PlanSavings & { exchangeRate: number | null }>
+) {
 	return db
 		.update(spendingPlans)
 		.set({ ...patch, updatedAt: new Date() })
-		.where(and(canAccessPlan(userId), eq(spendingPlans.currency, cur)))
+		.where(and(canAccessPlan(userId), eq(spendingPlans.currency, PLAN_CURRENCY)))
 		.returning({ id: spendingPlans.id });
 }
 
@@ -470,7 +532,7 @@ export function updatePlan(userId: string, cur: Currency, patch: Partial<PlanSav
 export function upsertLimits(
 	userId: string,
 	planId: string,
-	limits: { categoryId: string; amount: number }[]
+	limits: { categoryId: string; amount: number; currency: Currency }[]
 ) {
 	return db.transaction(async (tx) => {
 		const [plan] = await tx
@@ -490,7 +552,7 @@ export function upsertLimits(
 				.values({ ...l, planId })
 				.onConflictDoUpdate({
 					target: [planCategoryLimits.planId, planCategoryLimits.categoryId],
-					set: { amount: l.amount }
+					set: { amount: l.amount, currency: l.currency }
 				});
 	});
 }

@@ -9,6 +9,7 @@ export const drawers = {
 	newRule: () => import('./plan/recurring/new/NewRuleDrawer.svelte'),
 	limit: () => import('./plan/limits/[categoryId]/LimitDetail.svelte'),
 	newLimit: () => import('./plan/limits/new/NewLimitDrawer.svelte'),
+	rate: () => import('./plan/rate/RateDrawer.svelte'),
 	savings: () => import('./plan/savings/SavingsDrawer.svelte'),
 	newAccount: () => import('./accounts/new/NewAccountDrawer.svelte'),
 	newCategory: () => import('./categories/CategoryCreateDrawer.svelte'),

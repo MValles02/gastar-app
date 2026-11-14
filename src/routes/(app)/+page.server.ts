@@ -77,7 +77,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		originTypeSums(userId, currency, range),
 		categorySums(userId, currency, range),
 		recentMovements(userId, currency),
-		planView(userId, currency)
+		planView(userId)
 	]);
 
 	const top = topCategories(cats);

@@ -1,5 +1,5 @@
 import { expect, test, type Cookie, type Page } from '@playwright/test';
-import { linkId, setCurrencyCookie, signUpVerified, todayInAppTz } from './helpers';
+import { linkId, signUpVerified, todayInAppTz } from './helpers';
 
 // Rules of the "Detectamos que se repiten" list (recurringCandidates + recurringSuggestions). Each
 // test arranges its own data under a unique description, so the tests are independent of each other
@@ -124,7 +124,7 @@ test.beforeEach(async ({ page }) => {
 	await page.context().addCookies(cookies);
 });
 
-test('outcomes that do not repeat 3 months, are linked, archived or in another currency are not suggested', async ({
+test('outcomes that do not repeat 3 months, or are linked or archived are not suggested', async ({
 	page,
 	baseURL
 }) => {
@@ -164,7 +164,7 @@ test('outcomes that do not repeat 3 months, are linked, archived or in another c
 	await expect(row(page, 'Archivada sug e2e')).toHaveCount(1);
 	await expect(row(page, 'Dos meses sug e2e')).toHaveCount(0);
 	await expect(row(page, 'Vinculado sug e2e')).toHaveCount(0);
-	await expect(row(page, 'Dolar sug e2e')).toHaveCount(0);
+	await expect(row(page, 'Dolar sug e2e')).toHaveCount(1);
 
 	const res = await page.request.post(`/accounts/${ids.archived}?/archive`, {
 		form: {},
@@ -173,9 +173,6 @@ test('outcomes that do not repeat 3 months, are linked, archived or in another c
 	expect(res.ok()).toBe(true);
 	await suggestions(page);
 	await expect(row(page, 'Archivada sug e2e')).toHaveCount(0);
-	await setCurrencyCookie(page, baseURL!, 'USD');
-	await suggestions(page);
-	await expect(row(page, 'Dolar sug e2e')).toHaveCount(1);
 });
 
 test('grouping is case-insensitive, any category kind is suggested, the amount averages per-month sums', async ({

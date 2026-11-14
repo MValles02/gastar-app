@@ -2,9 +2,9 @@ import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
+import { CURRENCIES } from '$lib/money';
 import { parseLimitAmount, planReturn } from '$lib/plan-wizard';
 import { listCategories } from '$lib/server/categories-queries';
-import { preferredCurrency } from '$lib/server/currency-pref';
 import { currentPlan, planLimits, PlanRejected, upsertLimits } from '$lib/server/plan-queries';
 import { limitSuggestions } from '$lib/server/plan-view';
 import { requireUser } from '$lib/server/require-user';
@@ -19,44 +19,43 @@ async function offered(userId: string, planId: string) {
 	return categories.filter((c) => c.kind !== 'income' && !limited.has(c.id));
 }
 
-export const load: PageServerLoad = async ({ locals, cookies }) => {
+export const load: PageServerLoad = async ({ locals }) => {
 	const userId = requireUser(locals).id;
-	const currency = preferredCurrency(cookies);
-	const plan = (await currentPlan(userId, currency)) ?? redirect(303, '/plan');
+	const plan = (await currentPlan(userId)) ?? redirect(303, '/plan');
 	const [categories, suggestions] = await Promise.all([
 		offered(userId, plan.id),
-		limitSuggestions(userId, currency)
+		limitSuggestions(userId)
 	]);
 	return {
-		currency,
 		categories: categories.map((c) => ({
 			id: c.id,
 			name: c.name,
 			icon: toCategoryIconKey(c.icon) ?? ('categories' as const),
 			color: toSwatchKey(c.color),
-			suggested: suggestions.get(c.id) ?? 0
+			suggested: suggestions.get(c.id) ?? { ARS: 0, USD: 0 }
 		}))
 	};
 };
 
 export const actions: Actions = {
-	default: async ({ locals, cookies, request, url }) => {
+	default: async ({ locals, request, url }) => {
 		const userId = requireUser(locals).id;
-		const currency = preferredCurrency(cookies);
-		const plan = (await currentPlan(userId, currency)) ?? redirect(303, '/plan');
+		const plan = (await currentPlan(userId)) ?? redirect(303, '/plan');
 		const fd = await request.formData();
 		const categoryId = String(fd.get('categoryId') ?? '');
 		const amount = String(fd.get('amount') ?? '');
-		const reject = (errors: { categoryId?: string; amount?: string }) =>
-			formFail(400, { values: { categoryId, amount }, errors });
+		const currency = CURRENCIES.find((c) => c === fd.get('currency'));
+		const reject = (errors: { categoryId?: string; amount?: string; currency?: string }) =>
+			formFail(400, { values: { categoryId, amount, currency: currency ?? 'ARS' }, errors });
 
+		if (!currency) return reject({ currency: 'Elegí una moneda.' });
 		if (!(await offered(userId, plan.id)).some((c) => c.id === categoryId))
 			return reject({ categoryId: 'Elegí una categoría.' });
 		const parsed = parseLimitAmount(amount, currency);
 		if ('message' in parsed) return reject({ amount: parsed.message });
 
 		try {
-			await upsertLimits(userId, plan.id, [{ categoryId, amount: parsed.cents }]);
+			await upsertLimits(userId, plan.id, [{ categoryId, amount: parsed.cents, currency }]);
 		} catch (e) {
 			if (e instanceof PlanRejected) return reject({ categoryId: e.message });
 			throw e;

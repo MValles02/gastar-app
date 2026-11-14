@@ -2,11 +2,10 @@ import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { parseStep } from '$lib/plan-wizard';
-import type { Currency } from '$lib/money';
 import { listAccounts } from '$lib/server/accounts-queries';
 import { listCategories } from '$lib/server/categories-queries';
-import { preferredCurrency } from '$lib/server/currency-pref';
 import { currentMonth } from '$lib/server/month';
+import { PLAN_CURRENCY } from '$lib/server/plan';
 import {
 	currentPlan,
 	planIncome,
@@ -26,31 +25,32 @@ import { requireUser } from '$lib/server/require-user';
 import { parseSavingsForm } from '../savings/form.server';
 
 /** Suggested limits the wizard can apply: active non-income categories with no limit yet and a suggestion above zero. */
-async function applicableSuggestions(userId: string, cur: Currency, planId: string | null) {
+async function applicableSuggestions(userId: string, planId: string | null) {
 	const [categories, suggestions, limits] = await Promise.all([
 		listCategories(userId),
-		limitSuggestions(userId, cur),
+		limitSuggestions(userId),
 		planId ? planLimits(userId, planId) : []
 	]);
 	const limited = new Set(limits.map((l) => l.categoryId));
 	return categories
 		.filter((c) => c.kind !== 'income' && !limited.has(c.id))
-		.map((c) => ({ categoryId: c.id, amount: suggestions.get(c.id) ?? 0 }))
+		.map((c) => {
+			const avg = suggestions.get(c.id);
+			// The pesos average wins; with no pesos spending the limit is in dollars.
+			const currency = avg && avg.ARS > 0 ? ('ARS' as const) : ('USD' as const);
+			return { categoryId: c.id, amount: avg?.[currency] ?? 0, currency };
+		})
 		.filter((l) => l.amount > 0);
 }
 
 type Summary = NonNullable<Awaited<ReturnType<typeof planView>>['summary']>;
 
-export const load: PageServerLoad = async ({ locals, cookies, url }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
-	const currency = preferredCurrency(cookies);
 	const param = parseStep(url.searchParams.get('step'));
 	const step = param ?? 1;
 
-	const [accounts, plan] = await Promise.all([
-		listAccounts(userId, { currency }),
-		currentPlan(userId, currency)
-	]);
+	const [accounts, plan] = await Promise.all([listAccounts(userId), currentPlan(userId)]);
 	if (accounts.length === 0) redirect(303, '/plan');
 	if (!param && plan) redirect(303, '/plan');
 	if (step >= 4 && !plan) redirect(303, '/plan/setup?step=3');
@@ -69,11 +69,11 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		monthName: '',
 		repeats: true
 	};
-	const base = { ...none, currency, step };
+	const base = { ...none, currency: PLAN_CURRENCY, step };
 	if (step <= 2) {
 		const [lists, suggestions] = await Promise.all([
-			recurringLists(userId, currency),
-			step === 2 ? recurringSuggestions(userId, currency) : []
+			recurringLists(userId),
+			step === 2 ? recurringSuggestions(userId) : []
 		]);
 		const type = step === 1 ? 'income' : 'outcome';
 		return {
@@ -84,57 +84,47 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		};
 	}
 	if (step === 3) {
-		const [income, savingsBase] = await Promise.all([
-			planIncome(userId, currency),
-			savingsBaseline(userId, currency)
-		]);
+		const [income, savingsBase] = await Promise.all([planIncome(userId), savingsBaseline(userId)]);
 		return { ...base, income, savingsBase };
 	}
 
-	const view = await planView(userId, currency);
+	const view = await planView(userId);
 	const summary = view.summary!;
 	if (step === 4)
 		return {
 			...base,
 			limits: summary.limits,
-			canSuggest: (await applicableSuggestions(userId, currency, plan!.id)).length > 0
+			canSuggest: (await applicableSuggestions(userId, plan!.id)).length > 0
 		};
 	return { ...base, summary, monthName: view.monthName, repeats: plan!.month === null };
 };
 
 export const actions: Actions = {
-	savings: async ({ locals, cookies, request }) => {
+	savings: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
-		const currency = preferredCurrency(cookies);
-		const r = parseSavingsForm(
-			await request.formData(),
-			await planIncome(userId, currency),
-			currency
-		);
+		const r = parseSavingsForm(await request.formData(), await planIncome(userId), PLAN_CURRENCY);
 		if (!r.ok) return formFail(400, { formError: r.message });
-		const plan = await currentPlan(userId, currency);
-		await upsertPlan(userId, currency, {
+		const plan = await currentPlan(userId);
+		await upsertPlan(userId, {
 			savings: r.savings,
 			savingsPercent: r.savingsPercent,
 			month: plan ? plan.month : null
 		});
 		redirect(303, '/plan/setup?step=4');
 	},
-	suggested: async ({ locals, cookies }) => {
+	suggested: async ({ locals }) => {
 		const userId = requireUser(locals).id;
-		const currency = preferredCurrency(cookies);
-		const plan = await currentPlan(userId, currency);
+		const plan = await currentPlan(userId);
 		if (!plan) redirect(303, '/plan/setup?step=3');
-		const limits = await applicableSuggestions(userId, currency, plan.id);
+		const limits = await applicableSuggestions(userId, plan.id);
 		if (limits.length > 0) await upsertLimits(userId, plan.id, limits);
 		redirect(303, '/plan/setup?step=4');
 	},
-	finish: async ({ locals, cookies, request }) => {
+	finish: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
-		const currency = preferredCurrency(cookies);
-		if (!(await currentPlan(userId, currency))) redirect(303, '/plan/setup?step=3');
+		if (!(await currentPlan(userId))) redirect(303, '/plan/setup?step=3');
 		const repeat = (await request.formData()).get('repeat') === 'on';
-		await updatePlan(userId, currency, { month: repeat ? null : currentMonth(new Date()) });
+		await updatePlan(userId, { month: repeat ? null : currentMonth(new Date()) });
 		redirect(303, '/plan?planSaved=1');
 	}
 };

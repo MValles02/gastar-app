@@ -1,4 +1,4 @@
-import { currencyStep, type Currency } from '$lib/money';
+import { convertAmount, currencyStep, type Currency } from '$lib/money';
 import {
 	isRecurringActive,
 	limitPace,
@@ -7,6 +7,15 @@ import {
 	type RuleState
 } from '$lib/plan';
 import { daysInMonth, daysLeftIn, elapsedDays } from './month';
+
+/** The plan is always in pesos; USD items convert at the plan rate. */
+export const PLAN_CURRENCY = 'ARS' as const;
+
+/** `amount` in plan pesos; null for a USD amount when there is no rate. */
+export function toPlan(amount: number, cur: Currency, rate: number | null): number | null {
+	if (cur === PLAN_CURRENCY) return amount;
+	return rate === null ? null : convertAmount(amount, rate, cur, PLAN_CURRENCY);
+}
 
 /** Descriptions match ignoring case, accents and surrounding spaces (rule vs movement). */
 export const normalizeDescription = (s: string) =>
@@ -50,7 +59,7 @@ export function planSpent(
 	return { total, variable, byCategory };
 }
 
-export type PlanInput<L extends { amount: number; spent: number }> = {
+export type PlanInput<L extends { amount: number; spent: number; currency: Currency }> = {
 	/** Sum of active recurring incomes. */
 	recurringIncome: number;
 	/** Sum of active recurring outcomes. */
@@ -63,13 +72,15 @@ export type PlanInput<L extends { amount: number; spent: number }> = {
 	/** Month outcomes not linked to an active recurring rule. */
 	variableSpent: number;
 	limits: L[];
+	/** Sum of the limits in plan pesos. */
+	limitsTotal: number;
 	ym: string;
 	todayYmd: string;
 };
 
-/** All inputs must be in `currency`; nothing here converts or sums across currencies. */
-export function planSummary<L extends { amount: number; spent: number }>(
-	p: PlanInput<L> & { currency: Currency }
+/** Totals are in plan pesos; each limit stays in its own currency (`amount` and `spent`). */
+export function planSummary<L extends { amount: number; spent: number; currency: Currency }>(
+	p: PlanInput<L>
 ) {
 	const income = p.recurringIncome;
 	const forSpending = income - p.bills - p.savings;
@@ -78,7 +89,7 @@ export function planSummary<L extends { amount: number; spent: number }>(
 	const elapsed = elapsedDays(p.ym, p.todayYmd);
 	// Today still counts as a day to spend in.
 	const daysLeft = daysLeftIn(p.ym, p.todayYmd);
-	const step = currencyStep(p.currency);
+	const step = currencyStep(PLAN_CURRENCY);
 	const elapsedShare = elapsed / days;
 	// Pace is variable spending against what variable spending could reach (paid bills are already settled).
 	const variableBudget = available + p.variableSpent;
@@ -102,6 +113,6 @@ export function planSummary<L extends { amount: number; spent: number }>(
 		elapsedShare,
 		status,
 		limits,
-		unassigned: forSpending - p.limits.reduce((a, l) => a + l.amount, 0)
+		unassigned: forSpending - p.limitsTotal
 	};
 }

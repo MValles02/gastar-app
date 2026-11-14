@@ -20,10 +20,13 @@
 <PageHeader title="Nuevo límite" close={{ href: resolve(back as '/'), label: 'Cerrar' }} />
 
 <LimitForm
-	currency={data.currency}
 	{action}
 	cancelHref={back}
 	categories={data.categories}
-	initial={{ categoryId: form?.values?.categoryId ?? '', amount: form?.values?.amount ?? '' }}
+	initial={{
+		categoryId: form?.values?.categoryId ?? '',
+		amount: form?.values?.amount ?? '',
+		currency: form?.values?.currency ?? 'ARS'
+	}}
 	errors={form?.errors}
 />

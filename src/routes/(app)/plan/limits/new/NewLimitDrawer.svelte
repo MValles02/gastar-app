@@ -19,9 +19,8 @@
 <BottomDrawer title="Nuevo límite" bare open {onclose}>
 	<LimitForm
 		variant="drawer"
-		currency={data.currency}
 		categories={data.categories}
-		initial={{ categoryId: '', amount: '' }}
+		initial={{ categoryId: '', amount: '', currency: 'ARS' }}
 		onsaved={saved}
 		{onclose}
 	/>

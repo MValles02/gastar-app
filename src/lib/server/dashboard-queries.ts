@@ -5,6 +5,7 @@ import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import { categories, financialAccounts, movements, spendingPlans } from './db/schema';
 import { canAccessAccount, canAccessCategory, canAccessMovement, canAccessPlan } from './access';
+import { PLAN_CURRENCY } from './plan';
 
 export type Range = { start: Date; end: Date };
 
@@ -114,12 +115,12 @@ export async function hasAnyMovement(userId: string) {
 	return rows.length > 0;
 }
 
-/** Whether the user has a spending plan row, in any currency (first-run checklist). */
+/** Whether the user has a spending plan (first-run checklist); legacy USD rows do not count. */
 export async function hasAnyPlan(userId: string) {
 	const rows = await db
 		.select({ id: spendingPlans.id })
 		.from(spendingPlans)
-		.where(canAccessPlan(userId))
+		.where(and(canAccessPlan(userId), eq(spendingPlans.currency, PLAN_CURRENCY)))
 		.limit(1);
 	return rows.length > 0;
 }
