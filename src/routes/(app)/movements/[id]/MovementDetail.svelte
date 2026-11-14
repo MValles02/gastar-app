@@ -33,6 +33,9 @@
 	const drawer = $derived(variant === 'drawer');
 
 	let m = $state<Movement>(untrack(() => data.movement));
+	// Fixed payments the movement can link to; they depend on its type and account currency, so every save refreshes them.
+	let rules = $state(untrack(() => data.rules));
+	type Saved = { movement: Movement; rules: typeof data.rules };
 
 	// What the update action stores, as the strings it takes (same as `formValues` on the server).
 	const values = $derived<Record<string, string>>({
@@ -87,6 +90,25 @@
 
 	const path = $derived(resolve(`/movements/${m.id}`));
 
+	const ruleItems = $derived([
+		{ id: '', name: 'Ninguno', icon: 'categories', color: null },
+		...rules
+	] as ComponentProps<typeof OptionPicker>['items']);
+	async function linkRule(v: string) {
+		if (v === (m.recurringId ?? '')) return;
+		errors.recurringId =
+			(await autosave<Saved>({
+				path: `${path}?/link`,
+				fields: { recurringId: v },
+				previous: { recurringId: m.recurringId ?? '' },
+				apply: (r) => {
+					m = r.movement;
+					rules = r.rules;
+					errors = {};
+				}
+			})) ?? '';
+	}
+
 	function save(fields: Record<string, string>) {
 		// A type or transfer account change can drop or add fields: undo restores the whole prior state.
 		const touchesAccount = 'accountId' in fields || 'destinationAccountId' in fields;
@@ -99,12 +121,13 @@
 					: [])
 		];
 		const previous = Object.fromEntries(keys.map((k) => [k, values[k]]));
-		return autosave<{ movement: Movement }>({
+		return autosave<Saved>({
 			path: `${path}?/update`,
 			fields,
 			previous,
 			apply: (r) => {
 				m = r.movement;
+				rules = r.rules;
 				pending = {};
 				errors = {};
 			}
@@ -344,6 +367,23 @@
 					{empty}
 				/>
 			</li>
+			{#if !typeStaged && (rules.length || m.recurringId)}
+				<li data-row="rule">
+					<OptionPicker
+						variant="row"
+						name="recurringId"
+						legend={effType === 'income' ? 'Ingreso fijo' : 'Pago fijo'}
+						title={effType === 'income' ? 'Ingreso fijo' : 'Pago fijo'}
+						items={ruleItems}
+						bind:value={() => m.recurringId ?? '', (v) => void linkRule(v)}
+						nested={drawer}
+						placeholder="Ninguno"
+						error={errors.recurringId}
+						errorId="rule-error"
+						{empty}
+					/>
+				</li>
+			{/if}
 		{/if}
 	</ul>
 

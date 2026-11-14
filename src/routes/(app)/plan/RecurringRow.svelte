@@ -39,7 +39,7 @@
 
 {#snippet meta()}Día {r.day} · {r.reason ?? r.accountName}{/snippet}
 
-<!-- Each row opens the detail, where "Registrar pago" lives. -->
+<!-- Each row opens the rule detail. -->
 <ListRow
 	class="rule"
 	href={resolve(`/plan/recurring/${r.id}${wizard ? `?wizard=${wizard}` : ''}`)}
@@ -50,7 +50,7 @@
 	}}
 	title={r.description}
 	{value}
-	status={r.reason ? undefined : { tone: dueTone(r.status!, r.type), label: r.label! }}
+	status={r.reason ? undefined : { tone: dueTone(r.status!), label: r.label! }}
 	{meta}
 	dimmed={!!r.reason}
 />

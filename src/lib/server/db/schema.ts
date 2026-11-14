@@ -175,6 +175,8 @@ export const recurringMovements = pgTable(
 			.notNull()
 			.references(() => categories.id, { onDelete: 'cascade' }),
 		dayOfMonth: smallint('day_of_month').notNull(),
+		// Amount before the last change that came from a linked charge; NULL otherwise.
+		previousAmount: bigint('previous_amount', { mode: 'number' }),
 		archivedAt: timestamp('archived_at', { withTimezone: true }),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp('updated_at', { withTimezone: true })
@@ -185,6 +187,10 @@ export const recurringMovements = pgTable(
 	(table) => [
 		index('recurring_movements_user_id_idx').on(table.userId),
 		check('recurring_movements_amount_positive_check', sql`${table.amount} > 0`),
+		check(
+			'recurring_movements_previous_amount_positive_check',
+			sql`${table.previousAmount} IS NULL OR ${table.previousAmount} > 0`
+		),
 		check('recurring_movements_type_check', sql`${table.type} <> 'transfer'`),
 		check('recurring_movements_day_of_month_check', sql`${table.dayOfMonth} BETWEEN 1 AND 31`)
 	]
@@ -388,6 +394,10 @@ export const mpImportRules = pgTable(
 			onDelete: 'cascade'
 		}),
 		description: varchar('description', { length: 60 }),
+		// Fixed payment the matching items link to; NULL = match by description only.
+		recurringId: uuid('recurring_id').references(() => recurringMovements.id, {
+			onDelete: 'set null'
+		}),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp('updated_at', { withTimezone: true })
 			.defaultNow()

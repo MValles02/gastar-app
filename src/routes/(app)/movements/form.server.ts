@@ -8,6 +8,9 @@ import { notFoundHelpers } from '$lib/server/not-found';
 import { UNAVAILABLE_MESSAGE } from '$lib/server/movements';
 import { type KeptRefs, movementPickers } from '$lib/server/movement-pickers';
 import { categoryUsage, getMovement } from '$lib/server/movements-queries';
+import { activeRuleItems } from '$lib/server/plan-view';
+import { listRecurring } from '$lib/server/plan-queries';
+import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 
 export { movementPickers, resolvePostedMovement } from '$lib/server/movement-pickers';
 
@@ -52,6 +55,19 @@ export const formValues = (m: FoundMovement) => ({
 export async function detailOf(userId: string, id: string) {
 	const m = await findMovement(userId, id);
 	const { accounts, categories } = await movementPickers(userId, keptRefs(m));
+	// Active fixed payments of the movement's type and currency; its current one stays listed even if inactive.
+	const rules =
+		m.type === 'transfer' ? [] : await activeRuleItems(userId, m.accountCurrency, m.type);
+	if (m.recurringId && !rules.some((r) => r.id === m.recurringId)) {
+		const [r] = await listRecurring(userId, undefined, m.recurringId);
+		if (r)
+			rules.push({
+				id: r.id,
+				name: r.description,
+				icon: toCategoryIconKey(r.categoryIcon) ?? ('categories' as const),
+				color: toSwatchKey(r.categoryColor)
+			});
+	}
 	return {
 		movement: {
 			id: m.id,
@@ -65,6 +81,7 @@ export async function detailOf(userId: string, id: string) {
 			accountId: m.accountId,
 			destinationAccountId: m.destinationAccountId,
 			categoryId: m.categoryId,
+			recurringId: m.recurringId,
 			accountName: m.accountName,
 			accountIcon: m.accountIcon,
 			accountColor: m.accountColor,
@@ -82,6 +99,7 @@ export async function detailOf(userId: string, id: string) {
 		},
 		accounts,
 		categories,
+		rules,
 		values: formValues(m)
 	};
 }

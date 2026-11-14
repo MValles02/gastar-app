@@ -2,7 +2,8 @@ import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { parseMovementForm } from '$lib/server/movements';
-import { deleteMovement, updateMovement } from '$lib/server/movements-queries';
+import { isUuid } from '$lib/server/validation';
+import { deleteMovement, setMovementRule, updateMovement } from '$lib/server/movements-queries';
 import { requireUser } from '$lib/server/require-user';
 import {
 	detailOf,
@@ -68,7 +69,29 @@ export const actions: Actions = {
 			return failIfUnavailable(e, values);
 		}
 		if (rows.length === 0) notFound();
-		return { movement: (await detailOf(userId, params.id)).movement };
+		const { movement, rules } = await detailOf(userId, params.id);
+		return { movement, rules };
+	},
+	/** Links the movement to a fixed payment (recurringId) or unlinks it (empty). */
+	link: async ({ request, locals, params }) => {
+		const userId = requireUser(locals).id;
+		const fd = await request.formData();
+		const raw = fd.get('recurringId');
+		const recurringId = typeof raw === 'string' ? raw : '';
+		const values = { recurringId };
+		if (recurringId && !isUuid(recurringId))
+			return formFail(400, { values, errors: { recurringId: 'Elegí un pago fijo válido.' } });
+		const result = await setMovementRule(userId, params.id, recurringId || null);
+		if (result === 'missing') notFound();
+		if (result === 'taken')
+			return formFail(400, {
+				values,
+				errors: {
+					recurringId: 'Ese pago fijo no está disponible o ya tiene un movimiento ese mes.'
+				}
+			});
+		const { movement, rules } = await detailOf(userId, params.id);
+		return { movement, rules };
 	},
 	delete: async ({ locals, params }) => {
 		const userId = requireUser(locals).id;

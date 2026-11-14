@@ -2,7 +2,6 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
-	import Money from '$lib/components/Money.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
@@ -25,7 +24,7 @@
 	{#if data.groups.length === 0}
 		<EmptyState
 			icon="bell"
-			description="Estás al día. Acá vas a ver los pagos fijos por vencer y los límites o el plan cuando vayan rápido o se pasen."
+			description="Estás al día. Acá vas a ver los límites o el plan cuando vayan rápido o se pasen."
 		/>
 	{:else}
 		{#each data.groups as g (g.currency)}
@@ -38,17 +37,8 @@
 				<ListCard>
 					{#each g.items as n (n.id)}
 						{#snippet message()}{n.message}{/snippet}
-						{#snippet dueMeta()}
-							<span class:overdue={n.status.tone === 'bad'}>{n.status.label}</span> · {n.accountName}
-						{/snippet}
-						{#snippet amount()}
-							<Money cents={n.amount ?? 0} currency={g.currency} tone="flow" direction="outcome" />
-						{/snippet}
 						{#snippet statusPill()}
-							{#if n.kind !== 'payment'}<StatusPill
-									tone={n.status.tone}
-									label={n.status.label}
-								/>{/if}
+							<StatusPill tone={n.status.tone} label={n.status.label} />
 						{/snippet}
 						{#snippet row(submit: boolean)}
 							<ListRow
@@ -60,8 +50,8 @@
 										? { icon: n.icon, color: n.color }
 										: { letter: n.name.charAt(0).toUpperCase(), color: n.color }}
 								title={n.name}
-								value={n.kind === 'payment' ? amount : statusPill}
-								meta={n.kind === 'payment' ? dueMeta : message}
+								value={statusPill}
+								meta={message}
 							/>
 						{/snippet}
 						{#if !n.switchCurrency}
@@ -90,9 +80,5 @@
 
 	.page :global([data-slot='item']) {
 		min-height: 3.75rem;
-	}
-
-	.overdue {
-		color: var(--negative);
 	}
 </style>

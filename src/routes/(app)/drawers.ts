@@ -5,7 +5,6 @@ import type { Component } from 'svelte';
 // `onclose`. Adding one is a route folder plus a line here. `App.PageState` derives from this.
 export const drawers = {
 	newMovement: () => import('./movements/new/NewMovementDrawer.svelte'),
-	registerRule: () => import('./movements/new/RegisterRuleDrawer.svelte'),
 	movement: () => import('./movements/[id]/MovementDetailDrawer.svelte'),
 	newRule: () => import('./plan/recurring/new/NewRuleDrawer.svelte'),
 	limit: () => import('./plan/limits/[categoryId]/LimitDetail.svelte'),

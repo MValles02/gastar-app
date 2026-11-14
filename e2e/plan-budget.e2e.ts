@@ -470,11 +470,12 @@ test.describe('as another user', () => {
 		page,
 		baseURL
 	}) => {
-		const description = `Pago regla e2e ${Date.now()}`;
+		// The payment links itself to the rule by description (rule amount 50,00 follows a higher charge).
+		const description = 'Regla ajena';
 		const headers = { origin: baseURL!, accept: 'text/html' };
 		await page.goto('/plan');
 		const id = await linkId(page.getByRole('link', { name: /Regla ajena/ }).first());
-		await page.goto(`/movements/new?recurring=${id}`);
+		await page.goto(`/plan/recurring/${id}`);
 		const accountId = (await page
 			.locator('input[name="accountId"]:is(:checked, [type="hidden"])')
 			.getAttribute('value'))!;
@@ -484,7 +485,6 @@ test.describe('as another user', () => {
 		const pay = async (amount: string) => {
 			const res = await page.request.post('/movements/new', {
 				form: {
-					recurringId: id,
 					type: 'outcome',
 					amount,
 					description,
@@ -494,7 +494,7 @@ test.describe('as another user', () => {
 				},
 				headers
 			});
-			expect(res.url()).toMatch(/\/plan\?saved=1$/);
+			expect(res.ok()).toBe(true);
 		};
 		const remove = async () => {
 			for (const href of await findMovements(page, description, 'USD'))
@@ -518,6 +518,8 @@ test.describe('as another user', () => {
 			expect(over['Pagos fijos']).toBe(open['Pagos fijos'] - 5000);
 		} finally {
 			await remove();
+			// A higher charge moved the rule's amount: put it back.
+			await page.request.post(`/plan/recurring/${id}?/update`, { form: { amount: '50' }, headers });
 		}
 	});
 

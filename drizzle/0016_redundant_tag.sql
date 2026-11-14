@@ -1,0 +1,4 @@
+ALTER TABLE "mp_import_rules" ADD COLUMN "recurring_id" uuid;--> statement-breakpoint
+ALTER TABLE "recurring_movements" ADD COLUMN "previous_amount" bigint;--> statement-breakpoint
+ALTER TABLE "mp_import_rules" ADD CONSTRAINT "mp_import_rules_recurring_id_recurring_movements_id_fk" FOREIGN KEY ("recurring_id") REFERENCES "public"."recurring_movements"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "recurring_movements" ADD CONSTRAINT "recurring_movements_previous_amount_positive_check" CHECK ("recurring_movements"."previous_amount" IS NULL OR "recurring_movements"."previous_amount" > 0);

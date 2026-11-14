@@ -1,4 +1,4 @@
-import { dueLabel, PLAN_STATUS_LABEL, PLAN_TONE, type StatusTone } from '$lib/plan';
+import { PLAN_STATUS_LABEL, PLAN_TONE, type StatusTone } from '$lib/plan';
 import {
 	toCategoryIconKey,
 	toSwatchKey,
@@ -8,16 +8,12 @@ import {
 import { CURRENCIES, formatMoney, type Currency } from '../money';
 import { hasAccountsIn } from './dashboard';
 import { accountSummary } from './dashboard-queries';
-import { recurringStatus } from './plan';
 import { monthPlan, type MonthPlan } from './plan-view';
-
-/** An unpaid fixed payment is an alert once it is overdue or due within this many days. */
-const DUE_WINDOW_DAYS = 3;
 
 export type AlertItem = {
 	id: string;
-	kind: 'payment' | 'plan' | 'limit';
-	/** Short display name: the rule description, "Plan" or the category name. */
+	kind: 'plan' | 'limit';
+	/** Short display name: "Plan" or the category name. */
 	name: string;
 	status: { label: string; tone: StatusTone };
 	/** One self-explanatory sentence (amounts inside). */
@@ -26,24 +22,18 @@ export type AlertItem = {
 	href: string;
 	/** Plan and limit pages read the currency from the cookie: open them through a POST to /currency. */
 	switchCurrency: boolean;
-	/** The category's icon (payments and limits); null when it has none. */
+	/** The category's icon (limits); null when it has none. */
 	icon: CategoryIconKey | null;
-	/** The category's swatch (payments and limits); null renders neutral. */
+	/** The category's swatch (limits); null renders neutral. */
 	color: SwatchKey | null;
-	/** Payments only: the amount due in minor units (shown on the right); null otherwise. */
-	amount: number | null;
-	/** Payments only: the account it is paid from; null otherwise. */
-	accountName: string | null;
 };
 
-type ActiveRule = MonthPlan['active'][number];
 type PlanSummary = MonthPlan['summary'];
-type DueStatus = ReturnType<typeof recurringStatus>;
 
 /**
  * Alerts per currency that has accounts, worked out from existing data (nothing is stored).
- * Fixed payments first (overdue, then by due day), then the plan, then category limits. Never sums across currencies.
- * Fixed incomes never alert: an unregistered one shows neutrally on /plan ("Esperado el día N").
+ * The plan first, then category limits. Never sums across currencies. Fixed payments never alert:
+ * a pending one shows neutrally on /plan ("Pendiente · día N").
  */
 export async function alerts(userId: string) {
 	const accounts = await accountSummary(userId);
@@ -53,14 +43,8 @@ export async function alerts(userId: string) {
 		currencies.map(async (currency: Currency) => {
 			const m = await monthPlan(userId, currency);
 			const plan = m.hasPlan ? m.summary : null;
-			const payments = m.active
-				.filter((r) => r.type !== 'income')
-				.map((r) => ({ r, s: recurringStatus(r.dayOfMonth, m.paidIds.has(r.id), m.ym, m.today) }))
-				.filter(({ s }) => s.status !== 'paid' && s.daysLeft <= DUE_WINDOW_DAYS)
-				.sort((a, b) => a.s.daysLeft - b.s.daysLeft)
-				.map(({ r, s }) => paymentAlert(r, s));
 			const planAlerts = plan ? [planAlert(plan, currency), ...limitAlerts(plan, currency)] : [];
-			const items: AlertItem[] = [...payments, ...planAlerts.filter((a) => a !== null)];
+			const items: AlertItem[] = planAlerts.filter((a) => a !== null);
 			return { currency, items };
 		})
 	);
@@ -68,23 +52,6 @@ export async function alerts(userId: string) {
 
 const days = (n: number) => `${n} ${n === 1 ? 'día' : 'días'}`;
 const percent = (share: number) => `${Math.round(share * 100)}%`;
-
-function paymentAlert(rule: ActiveRule, due: DueStatus): AlertItem {
-	const label = dueLabel(due, rule.type);
-	return {
-		id: `rule-${rule.id}`,
-		kind: 'payment',
-		name: rule.description,
-		status: { label, tone: due.status === 'overdue' ? 'bad' : 'warning' },
-		message: `${label} · ${rule.accountName}`,
-		href: `/plan/recurring/${rule.id}`,
-		switchCurrency: false,
-		icon: toCategoryIconKey(rule.categoryIcon),
-		color: toSwatchKey(rule.categoryColor),
-		amount: rule.amount,
-		accountName: rule.accountName
-	};
-}
 
 function planAlert(plan: PlanSummary, currency: Currency): AlertItem | null {
 	const base = {
@@ -94,9 +61,7 @@ function planAlert(plan: PlanSummary, currency: Currency): AlertItem | null {
 		href: '/plan',
 		switchCurrency: true,
 		icon: null,
-		color: null,
-		amount: null,
-		accountName: null
+		color: null
 	} as const;
 	if (plan.status === 'over')
 		return {
@@ -132,8 +97,6 @@ function limitAlerts(plan: PlanSummary, currency: Currency): AlertItem[] {
 			href: `/plan?limit=${l.categoryId}`,
 			switchCurrency: true,
 			icon: toCategoryIconKey(l.icon),
-			color: toSwatchKey(l.color),
-			amount: null,
-			accountName: null
+			color: toSwatchKey(l.color)
 		}));
 }

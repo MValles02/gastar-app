@@ -27,15 +27,15 @@ async function findRule(userId: string, id: string) {
 	return rule;
 }
 
-/** Why the rule can't be registered as a movement now; null when it can (or when it is deactivated). */
+/** Why the rule does not count in the plan now; null when it does (or when it is deactivated). */
 function cannotRegister(r: {
 	archivedAt: Date | null;
 	accountArchivedAt: Date | null;
 	categoryArchivedAt: Date | null;
 }) {
 	if (r.archivedAt) return null;
-	if (r.accountArchivedAt) return 'No se puede registrar mientras la cuenta esté archivada.';
-	if (r.categoryArchivedAt) return 'No se puede registrar mientras la categoría esté archivada.';
+	if (r.accountArchivedAt) return 'No cuenta en el plan mientras la cuenta esté archivada.';
+	if (r.categoryArchivedAt) return 'No cuenta en el plan mientras la categoría esté archivada.';
 	return null;
 }
 
@@ -64,6 +64,7 @@ async function detailOf(userId: string, id: string) {
 		type: rule.type,
 		description: rule.description,
 		amount: rule.amount,
+		previousAmount: rule.previousAmount,
 		currency: rule.currency,
 		dayOfMonth: rule.dayOfMonth,
 		account,

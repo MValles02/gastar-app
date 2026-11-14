@@ -4,6 +4,7 @@ import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
 import { canAccessAccount, canAccessCategory, canAccessMovement, movementOwnedBy } from './access';
 import { sumOfType } from './dashboard-queries';
+import { linkRuleFor, lockRules, unlinkRevert } from './plan-queries';
 import { escapeLike } from './db/util';
 import { dayStart } from './month';
 import type { MovementFilterQuery, MovementRow } from './movements';
@@ -19,17 +20,67 @@ const nextDay = (ymd: string) => {
 };
 
 /** The db or a transaction callback's handle. */
-export type DbExecutor = Parameters<Parameters<typeof db.transaction>[0]>[0] | typeof db;
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type DbExecutor = Tx | typeof db;
 
+/**
+ * Inserts an income/outcome/transfer. The link to a fixed-payment rule is decided first (explicit
+ * `ruleId` or description match, `linkRuleFor`) and written in the same INSERT, inside one transaction
+ * (the caller's `tx` or its own); a later UPDATE would bump updated_at and break undoApproval's check.
+ */
 export function createMovement(
 	userId: string,
-	row: MovementRow & { recurringId?: string | null },
-	executor: DbExecutor = db
+	row: MovementRow,
+	opts: { tx?: Tx; ruleId?: string | null } = {}
 ) {
-	return executor
-		.insert(movements)
-		.values({ ...row, ...movementOwnedBy(userId) })
-		.returning({ id: movements.id });
+	const run = async (tx: Tx) => {
+		const recurringId = await linkRuleFor(tx, userId, row, opts.ruleId ?? null);
+		return tx
+			.insert(movements)
+			.values({ ...row, ...movementOwnedBy(userId), recurringId })
+			.returning({ id: movements.id });
+	};
+	return opts.tx ? run(opts.tx) : db.transaction(run);
+}
+
+/**
+ * Links an existing movement to a rule (`ruleId`) or unlinks it (null); same constraints as a new one
+ * (type, currency, one linked movement per rule per month). 'taken' = the rule cannot take it.
+ */
+export function setMovementRule(
+	userId: string,
+	id: string,
+	ruleId: string | null
+): Promise<'linked' | 'unlinked' | 'taken' | 'missing'> {
+	return db.transaction(async (tx) => {
+		const [m] = await tx
+			.select({
+				type: movements.type,
+				accountId: movements.accountId,
+				occurredAt: movements.occurredAt,
+				description: movements.description,
+				amount: movements.amount,
+				recurringId: movements.recurringId
+			})
+			.from(movements)
+			.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+			.where(and(eq(movements.id, id), canAccessMovement(userId)))
+			.for('update', { of: movements });
+		if (!m || (m.type === 'transfer' && ruleId)) return 'missing';
+		const owned = and(eq(movements.id, id), inArray(movements.id, ownedIds(userId)));
+		if (!ruleId) {
+			await unlinkRevert(tx, userId, id);
+			await tx.update(movements).set({ recurringId: null }).where(owned);
+			return 'unlinked';
+		}
+		if (ruleId === m.recurringId) return 'linked';
+		// Relinking A to B touches both rules: lock them in one order first.
+		if (m.recurringId) await lockRules(tx, userId, [m.recurringId, ruleId]);
+		if (!(await linkRuleFor(tx, userId, m, ruleId))) return 'taken';
+		await unlinkRevert(tx, userId, id);
+		await tx.update(movements).set({ recurringId: ruleId }).where(owned);
+		return 'linked';
+	});
 }
 
 /** Movements per category (all time), for ranking the category picker by use. */
@@ -110,6 +161,7 @@ export function getMovement(userId: string, id: string) {
 			accountId: movements.accountId,
 			destinationAccountId: movements.destinationAccountId,
 			categoryId: movements.categoryId,
+			recurringId: movements.recurringId,
 			createdAt: movements.createdAt,
 			updatedAt: movements.updatedAt,
 			accountName: financialAccounts.name,
@@ -154,11 +206,16 @@ export function updateMovement(userId: string, id: string, row: MovementRow) {
 		.returning({ id: movements.id });
 }
 
-export function deleteMovement(userId: string, id: string, executor: DbExecutor = db) {
-	return executor
-		.delete(movements)
-		.where(and(eq(movements.id, id), inArray(movements.id, ownedIds(userId))))
-		.returning({ id: movements.id });
+/** Deletes the movement; a rule amount its link changed goes back (`unlinkRevert`) in the same transaction. */
+export function deleteMovement(userId: string, id: string, tx?: Tx) {
+	const run = async (t: Tx) => {
+		await unlinkRevert(t, userId, id);
+		return t
+			.delete(movements)
+			.where(and(eq(movements.id, id), inArray(movements.id, ownedIds(userId))))
+			.returning({ id: movements.id });
+	};
+	return tx ? run(tx) : db.transaction(run);
 }
 
 /** Per-currency totals over every row the filters match (not just the page). Transfers only count in `count`. */

@@ -192,7 +192,8 @@ export function listImportRules(userId: string) {
 			type: mpImportRules.type,
 			categoryId: mpImportRules.categoryId,
 			counterAccountId: mpImportRules.counterAccountId,
-			description: mpImportRules.description
+			description: mpImportRules.description,
+			recurringId: mpImportRules.recurringId
 		})
 		.from(mpImportRules)
 		.where(canAccessImportRule(userId));
@@ -205,6 +206,8 @@ export type ImportPrefill = {
 	categoryId: string;
 	counterAccountId: string;
 	description: string;
+	/** Fixed payment remembered on the rule; '' for none or a transfer. */
+	recurringId: string;
 	/** Name of the rule's category or counter account; null without a usable rule. */
 	suggestion: string | null;
 	/** The type is a guess (kind "other"): the page asks for a review. */
@@ -239,6 +242,7 @@ export function importPrefill(
 				categoryId: rule.type === 'transfer' ? '' : target.id,
 				counterAccountId: rule.type === 'transfer' ? target.id : '',
 				description: rule.description ?? title,
+				recurringId: rule.type === 'transfer' ? '' : (rule.recurringId ?? ''),
 				suggestion: target.name,
 				review: false
 			};
@@ -250,6 +254,7 @@ export function importPrefill(
 		categoryId: '',
 		counterAccountId: '',
 		description: title,
+		recurringId: '',
 		suggestion: null,
 		review: !!review
 	};
@@ -260,6 +265,8 @@ export type ApproveRule = {
 	categoryId: string | null;
 	counterAccountId: string | null;
 	description: string;
+	/** Fixed payment to link the movement to (and to remember); null for none. */
+	recurringId: string | null;
 };
 
 /**
@@ -283,7 +290,7 @@ export function approveImport(
 			.returning({ id: mpImportItems.id });
 		if (!claimed) return 'stale';
 
-		const [movement] = await createMovement(userId, row, tx);
+		const [movement] = await createMovement(userId, row, { tx, ruleId: rule.recurringId });
 		await tx
 			.update(mpImportItems)
 			.set({ movementId: movement.id })
@@ -291,7 +298,7 @@ export function approveImport(
 
 		const key = remember ? rememberKey(item)?.key : undefined;
 		if (key) {
-			const { type, categoryId, counterAccountId, description } = rule;
+			const { type, categoryId, counterAccountId, description, recurringId } = rule;
 			await tx
 				.insert(mpImportRules)
 				.values({
@@ -300,11 +307,19 @@ export function approveImport(
 					type,
 					categoryId,
 					counterAccountId,
-					description
+					description,
+					recurringId
 				})
 				.onConflictDoUpdate({
 					target: [mpImportRules.userId, mpImportRules.matchKind, mpImportRules.matchValue],
-					set: { type, categoryId, counterAccountId, description, updatedAt: new Date() }
+					set: {
+						type,
+						categoryId,
+						counterAccountId,
+						description,
+						recurringId,
+						updatedAt: new Date()
+					}
 				});
 		}
 		return 'approved';

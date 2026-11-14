@@ -71,7 +71,7 @@ Constraints: `UNIQUE (user_id, name)`.
 | `destination_account_id` | fk → `financial_accounts.id`, nullable | transfer only |
 | `destination_amount` | bigint, nullable, > 0 | transfer only, minor units |
 | `exchange_rate` | bigint, nullable, > 0 | transfer only, hundredths, only when currencies differ |
-| `recurring_id` | fk → `recurring_movements.id`, nullable | set when the movement logs a recurring rule; ON DELETE SET NULL |
+| `recurring_id` | fk → `recurring_movements.id`, nullable | set when the movement is linked to a recurring rule: at creation (decided before the INSERT, same transaction: explicit choice or description match) or later from the movement edit page; ON DELETE SET NULL |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
 
@@ -103,7 +103,7 @@ Constraints: `UNIQUE (user_id, name)`.
 
 ### `recurring_movements`
 
-Monthly recurring incomes or bills. Logging one creates a normal movement linked by `movements.recurring_id`; a rule is paid in a month when a linked movement exists in that month. Its currency is its account's currency.
+Monthly recurring incomes or bills. A movement links to a rule through `movements.recurring_id`; a rule is paid in a month when a linked movement exists in that month. Its currency is its account's currency. Invariant: at most one linked movement per rule per local (Buenos Aires) month, enforced in `linkRuleFor` with the rule rows locked (`FOR UPDATE`), not by a constraint. Amount rule: linking a payment (outcome) sets the rule's `amount` to the movement's amount (ARS rounded half-up to whole pesos) when it differs and the movement's month is not earlier than the rule's latest linked month, storing the old value in `previous_amount`; deleting or unlinking the movement that made the change restores it (`unlinkRevert`, same transaction) when no other linked movement is as recent; income rules never change from a link; a manual amount edit clears `previous_amount`. A one-time backfill in `scripts/migrate.js` links the previous and current month's unlinked movements by the same matching (no amount changes); it runs only in the migration that adds `mp_import_rules.recurring_id`.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -115,6 +115,7 @@ Monthly recurring incomes or bills. Logging one creates a normal movement linked
 | `account_id` | fk → `financial_accounts.id` | ON DELETE CASCADE |
 | `category_id` | fk → `categories.id` | ON DELETE CASCADE |
 | `day_of_month` | smallint | 1–31 (CHECK); clamped to the month's last day when reading |
+| `previous_amount` | bigint, nullable | amount before the last change that came from a linked charge; CHECK `recurring_movements_previous_amount_positive_check`: null or > 0 |
 | `archived_at` | timestamptz, nullable | null = active |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
@@ -197,6 +198,7 @@ Rules learned from approved items, used to pre-fill later ones.
 | `category_id` | fk → `categories.id`, nullable | ON DELETE CASCADE |
 | `counter_account_id` | fk → `financial_accounts.id`, nullable | ON DELETE CASCADE |
 | `description` | varchar(60), nullable | |
+| `recurring_id` | fk → `recurring_movements.id`, nullable | fixed payment items matching this rule link to; ON DELETE SET NULL |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
 
@@ -338,4 +340,4 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 19. Amounts imported from Mercado Pago keep their cents. Editing a movement may keep its existing amount (even non-whole); new or changed manual ARS amounts, initial balances and all exchange rates are multiples of 100 (whole pesos). Non-whole values are displayed rounded half-up.
 20. Recurring-rule and plan amounts are in the account's or plan's currency and are never summed across currencies. ARS values are whole pesos, validated in the actions.
 21. Plan figures (income, for spending, available, per day, status, limit progress) are computed at read time, never persisted. The plan setup wizard writes step by step (savings creates the plan, each limit and rule is saved on its own screen, the last step sets the plan month); nothing is staged across steps. Creating a movement with "Repetir cada mes" writes the rule and the movement (linked by `recurring_id`) in one transaction.
-22. Deletion: hard-deleting an unreferenced account or category cascades to its recurring rules and plan limits. Deleting a recurring rule sets the linked movements' `recurring_id` to NULL, so history is kept. Archiving does not touch plan rows; rules on an archived account or category are inactive (excluded from plan sums, cannot be logged).
+22. Deletion: hard-deleting an unreferenced account or category cascades to its recurring rules and plan limits. Deleting a recurring rule sets the linked movements' `recurring_id` to NULL, so history is kept. Archiving does not touch plan rows; rules on an archived account or category are inactive (excluded from plan sums, never linked to new movements).

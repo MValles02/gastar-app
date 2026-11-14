@@ -122,7 +122,7 @@ const ruleRow = (r: RecurringRule) => ({
 export async function recurringLists(userId: string, cur: Currency) {
 	const m = await monthPlan(userId, cur);
 	const active = m.active.map((r) => {
-		const s = recurringStatus(r.dayOfMonth, m.paidIds.has(r.id), m.ym, m.today);
+		const s = recurringStatus(r.dayOfMonth, m.paidIds.has(r.id), m.ym);
 		return { ...ruleRow(r), status: s.status, label: dueLabel(s, r.type) };
 	});
 	return {
@@ -139,8 +139,21 @@ export async function ruleDueThisMonth(userId: string, rule: RecurringRule) {
 	const now = new Date();
 	const ym = currentMonth(now);
 	const paid = (await paidRecurring(userId, monthRange(ym))).some((p) => p.recurringId === rule.id);
-	const s = recurringStatus(rule.dayOfMonth, paid, ym, localDay(now));
+	const s = recurringStatus(rule.dayOfMonth, paid, ym);
 	return { status: s.status, label: dueLabel(s, rule.type) };
+}
+
+/** Active rules of one type and currency, as picker items (linking a movement to a fixed payment). */
+export async function activeRuleItems(userId: string, cur: Currency, type: 'income' | 'outcome') {
+	const rules = await listRecurring(userId, cur);
+	return rules
+		.filter((r) => isRecurringActive(r) && r.type === type)
+		.map((r) => ({
+			id: r.id,
+			name: r.description,
+			icon: toCategoryIconKey(r.categoryIcon) ?? ('categories' as const),
+			color: toSwatchKey(r.categoryColor)
+		}));
 }
 
 /**

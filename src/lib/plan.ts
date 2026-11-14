@@ -4,7 +4,7 @@
 export type StatusTone = 'ok' | 'warning' | 'bad' | 'neutral';
 
 export type PlanStatus = 'ok' | 'warn' | 'over';
-export type RecurringStatus = 'paid' | 'overdue' | 'today' | 'upcoming';
+export type RecurringStatus = 'paid' | 'pending';
 
 export const PLAN_STATUS_LABEL: Record<PlanStatus, string> = {
 	ok: 'Vas bien',
@@ -20,29 +20,16 @@ export const PLAN_TONE = {
 
 const DUE_TONE = {
 	paid: 'ok',
-	today: 'warning',
-	overdue: 'bad',
-	upcoming: 'neutral'
+	pending: 'neutral'
 } as const satisfies Record<RecurringStatus, StatusTone>;
 
-/** An unregistered income past its day is not late, just expected ("Esperado el día N"). */
-const isExpectedIncome = (status: RecurringStatus, type: string) =>
-	status === 'overdue' && type === 'income';
+/** A recurring rule's pill tone: paid this month, or pending (neutral). */
+export const dueTone = (status: RecurringStatus): StatusTone => DUE_TONE[status];
 
-export const dueTone = (status: RecurringStatus, type: string): StatusTone =>
-	isExpectedIncome(status, type) ? 'neutral' : DUE_TONE[status];
-
-/** `day` is the due day clamped to the month; `daysLeft` is negative when overdue. */
-export function dueLabel(
-	{ status, daysLeft, day }: { status: RecurringStatus; daysLeft: number; day: number },
-	type: string
-): string {
+/** `day` is the due day clamped to the month. */
+export function dueLabel({ status, day }: { status: RecurringStatus; day: number }, type: string) {
 	if (status === 'paid') return type === 'income' ? 'Cobrado' : 'Pagado';
-	if (status === 'today') return 'Vence hoy';
-	if (isExpectedIncome(status, type)) return `Esperado el día ${day}`;
-	if (status === 'overdue')
-		return daysLeft === -1 ? 'Venció ayer' : `Venció hace ${-daysLeft} días`;
-	return daysLeft === 1 ? 'Mañana' : `En ${daysLeft} días`;
+	return `Pendiente · día ${day}`;
 }
 
 export const MAX_DAY_OF_MONTH = 31;

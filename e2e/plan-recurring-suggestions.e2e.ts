@@ -24,11 +24,11 @@ type Mv = {
 	amount?: string;
 	account?: string;
 	category?: string;
-	recurringId?: string;
 };
 
-/** Posts one outcome per entry of `backs` (months ago), the way a no-JS form would. */
+/** Posts one outcome per entry of `backs` (months ago), the way a no-JS form would; returns the saved ids. */
 async function addOutcomes(page: Page, baseURL: string, mv: Mv, backs = [2, 3, 4]) {
+	const saved: string[] = [];
 	for (const back of backs) {
 		const res = await page.request.post('/movements/new', {
 			form: {
@@ -37,13 +37,14 @@ async function addOutcomes(page: Page, baseURL: string, mv: Mv, backs = [2, 3, 4
 				description: mv.description,
 				accountId: mv.account ?? ids.account,
 				categoryId: mv.category ?? ids.food,
-				...(mv.recurringId ? { recurringId: mv.recurringId } : {}),
 				occurredAt: dayOf(back)
 			},
 			headers: { origin: baseURL, accept: 'text/html' }
 		});
 		expect(res.ok()).toBe(true);
+		saved.push(new URL(res.url()).searchParams.get('saved')!);
 	}
+	return saved;
 }
 
 const suggestions = (page: Page) => page.goto('/plan/setup?step=2');
@@ -147,7 +148,14 @@ test('outcomes that do not repeat 3 months, are linked, archived or in another c
 	const ruleId = await linkId(
 		page.locator('.rule', { hasText: 'Regla vinc sug e2e' }).locator('a[data-slot="item"]')
 	);
-	await addOutcomes(page, baseURL!, { description: 'Vinculado sug e2e', recurringId: ruleId });
+	const linked = await addOutcomes(page, baseURL!, { description: 'Vinculado sug e2e' });
+	for (const id of linked) {
+		const res = await page.request.post(`/movements/${id}?/link`, {
+			form: { recurringId: ruleId },
+			headers: { origin: baseURL!, accept: 'text/html' }
+		});
+		expect(res.ok()).toBe(true);
+	}
 	await addOutcomes(page, baseURL!, { description: 'Archivada sug e2e', account: ids.archived });
 	await addOutcomes(page, baseURL!, { description: 'Dolar sug e2e', account: ids.usd });
 

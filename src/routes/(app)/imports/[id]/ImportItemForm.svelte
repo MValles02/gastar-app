@@ -55,6 +55,7 @@
 	let description = $state(initial.description);
 	let categoryId = $state(initial.categoryId);
 	let counterId = $state(initial.counterAccountId);
+	let recurringId = $state(initial.recurringId ?? '');
 	let remember = $state(initial.remember === 'on');
 
 	let mounted = $state(false);
@@ -229,6 +230,24 @@
 						{/snippet}
 					</OptionPicker>
 				</li>
+				{#if data.rules.length}
+					<li class:bad={errors.recurringId}>
+						<OptionPicker
+							variant="row"
+							name="recurringId"
+							legend={item.isCredit ? 'Es el ingreso fijo' : 'Es el pago fijo'}
+							title={item.isCredit ? 'Es el ingreso fijo' : 'Es el pago fijo'}
+							items={[{ id: '', name: 'Ninguno', icon: 'categories', color: null }, ...data.rules]}
+							bind:value={recurringId}
+							placeholder="Ninguno"
+							nested={drawer}
+							error={errors.recurringId}
+							errorId="rule-error"
+						>
+							{#snippet empty()}<p class="hint pad">Todavía no hay opciones.</p>{/snippet}
+						</OptionPicker>
+					</li>
+				{/if}
 			{/if}
 		</ul>
 
