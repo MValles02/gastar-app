@@ -97,7 +97,13 @@ export async function autoApprovePending(userId: string): Promise<number> {
 export async function approveWithValues(
 	userId: string,
 	item: ImportItem,
-	values: { type: MovementType; description: string; categoryId: string; counterAccountId: string },
+	values: {
+		type: MovementType;
+		description: string;
+		categoryId: string;
+		counterAccountId: string;
+		recurringId: string;
+	},
 	remember: boolean,
 	auto = false
 ) {
@@ -129,7 +135,8 @@ export async function approveWithValues(
 			type: data.type,
 			categoryId: data.categoryId,
 			counterAccountId: isTransfer ? values.counterAccountId : null,
-			description: values.description
+			description: values.description,
+			recurringId: isTransfer || !values.recurringId ? null : values.recurringId
 		},
 		remember,
 		auto

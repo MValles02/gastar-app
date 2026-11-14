@@ -38,8 +38,8 @@
 	}
 
 	afterNavigate(() => {
-		if (data.saved || data.planSaved) {
-			toast.success(data.saved ? 'Pago registrado.' : 'Plan guardado.');
+		if (data.planSaved) {
+			toast.success('Plan guardado.');
 			void stripFlags();
 		}
 		const limit = page.url.searchParams.get('limit');
@@ -78,7 +78,6 @@
 <div class="page">
 	<CurrencyTabs value={data.currency} variant="pills" />
 	{#if !hydrated}
-		{#if data.saved}<p role="status">Pago registrado.</p>{/if}
 		{#if data.planSaved}<p role="status">Plan guardado.</p>{/if}
 	{/if}
 

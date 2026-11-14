@@ -9,18 +9,17 @@ import { requireUser } from '$lib/server/require-user';
 export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const userId = requireUser(locals).id;
 	const currency = preferredCurrency(cookies);
-	const saved = url.searchParams.get('saved') === '1';
 	const planSaved = url.searchParams.get('planSaved') === '1';
 	const summary = await accountSummary(userId);
 	if (!summary.some((s) => s.currency === currency && s.count > 0))
-		return { currency, saved, planSaved, hasCurrency: false as const };
+		return { currency, planSaved, hasCurrency: false as const };
 
 	const [plan, lists] = await Promise.all([
 		planView(userId, currency),
 		recurringLists(userId, currency)
 	]);
 
-	return { currency, saved, planSaved, hasCurrency: true as const, plan, ...lists };
+	return { currency, planSaved, hasCurrency: true as const, plan, ...lists };
 };
 
 export const actions: Actions = {

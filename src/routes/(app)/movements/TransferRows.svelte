@@ -10,7 +10,6 @@
 		showTransfer,
 		showRate,
 		mounted,
-		typeFixed,
 		drawer,
 		accountItems,
 		accountId,
@@ -23,7 +22,6 @@
 		showTransfer: boolean;
 		showRate: boolean;
 		mounted: boolean;
-		typeFixed: boolean;
 		drawer: boolean;
 		accountItems: ComponentProps<typeof OptionPicker>['items'];
 		accountId: string;
@@ -56,7 +54,7 @@
 	</li>
 {/if}
 
-{#if (!mounted && !typeFixed) || showRate}
+{#if !mounted || showRate}
 	<li class:bad={shown.exchangeRate}>
 		{#if !mounted}<p class="hint pad">Solo para transferencias entre monedas distintas</p>{/if}
 		{#if mounted}

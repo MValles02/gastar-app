@@ -1,68 +1,22 @@
 import { expect, test, type Page } from '@playwright/test';
 import {
 	deleteMovements,
-	deleteRules,
 	fillMovement,
-	fillRule,
 	fillSavings,
 	login,
 	OTHER_EMAIL,
 	pick,
 	postDelete,
-	setCurrencyCookie,
-	todayInAppTz
+	setCurrencyCookie
 } from './helpers';
 
 // Every test that writes runs as `otro` (ARS account "Otra cuenta pesos", category "Ajena"). Other specs
 // change his data too, so every assertion is about one uniquely named row, never a count.
 test.describe.configure({ timeout: 60_000 });
 
-const bell = (page: Page) => page.locator('header.top-bar a[aria-label^="Avisos"]');
 const pesos = (page: Page) => page.getByRole('region', { name: 'Pesos' });
 const alertRow = (page: Page, text: string) =>
 	pesos(page).locator('[role="listitem"]', { hasText: text });
-
-test('a payment due today alerts until it is registered', async ({ page, baseURL }) => {
-	await login(page, OTHER_EMAIL);
-	const description = `Aviso e2e ${Date.now()}`;
-	try {
-		await fillRule(page, {
-			description,
-			amount: '1.500',
-			day: String(Number(todayInAppTz().slice(8))),
-			account: 'Otra cuenta pesos',
-			category: 'Ajena'
-		});
-		await page.getByRole('button', { name: 'Guardar' }).click();
-		await expect(page).toHaveURL(/\/plan$/);
-
-		await page.goto('/notifications');
-		await expect(page.getByRole('heading', { level: 1, name: 'Avisos' })).toBeVisible();
-		const row = alertRow(page, description);
-		await expect(row).toContainText('Vence hoy');
-		await expect(row).toContainText('Otra cuenta pesos');
-		await expect(row).toContainText('$1.500');
-		// The bell lives on the full header (tab pages) only.
-		await page.goto('/');
-		await expect(bell(page)).toHaveAttribute('aria-label', /Avisos: \d+/);
-		await page.goto('/notifications');
-
-		await row.getByRole('link').click();
-		await expect(page).toHaveURL(/\/plan\/recurring\/[0-9a-f-]{36}$/);
-		await page.getByRole('link', { name: 'Registrar pago' }).click();
-		await page
-			.getByRole('dialog', { name: `Registrar ${description}` })
-			.getByRole('button', { name: 'Registrar pago', exact: true })
-			.click();
-		await expect(page.getByText('Pago registrado.')).toBeVisible();
-
-		await page.goto('/notifications');
-		await expect(alertRow(page, description)).toHaveCount(0);
-	} finally {
-		await deleteMovements(page, baseURL!, description);
-		await deleteRules(page, baseURL!, description);
-	}
-});
 
 test('a plan alert opens /plan in its currency, and the page works without JS', async ({
 	page,

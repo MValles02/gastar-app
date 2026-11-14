@@ -37,8 +37,8 @@ export async function submitLogin(page: Page, email: string, password = SEED_PAS
 
 /**
  * Signs up a fresh user, follows the verification link (which signs them in) and waits for Inicio.
- * The e2e build allows 50 sign-ups/hour/IP (production: 10). One full run makes 9 (signup 3,
- * plan-recurring-suggestions 2, plan-pages 1, profile 1, plan-budget 1, home 1). New specs must still
+ * The e2e build allows 50 sign-ups/hour/IP (production: 10). One full run makes 10 (signup 3,
+ * plan-recurring-suggestions 2, plan-pages 1, profile 1, plan-budget 1, home 1, recurring-link 1). New specs must still
  * reuse one user per file (sign up in `beforeAll`).
  */
 export async function signUpVerified(

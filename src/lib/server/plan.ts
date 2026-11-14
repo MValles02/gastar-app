@@ -8,18 +8,14 @@ import {
 } from '$lib/plan';
 import { daysInMonth, daysLeftIn, elapsedDays } from './month';
 
-/** Due day clamped to the month (31 → 30 in September); daysLeft is negative when overdue. */
-export function recurringStatus(dayOfMonth: number, paid: boolean, ym: string, todayYmd: string) {
-	const day = Math.min(dayOfMonth, daysInMonth(ym));
-	const daysLeft = day - elapsedDays(ym, todayYmd);
-	const status: RecurringStatus = paid
-		? 'paid'
-		: daysLeft < 0 || ym < todayYmd.slice(0, 7)
-			? 'overdue'
-			: daysLeft === 0
-				? 'today'
-				: 'upcoming';
-	return { day, daysLeft, status };
+/** Descriptions match ignoring case, accents and surrounding spaces (rule vs movement). */
+export const normalizeDescription = (s: string) =>
+	s.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+
+/** Due day clamped to the month (31 → 30 in September). */
+export function recurringStatus(dayOfMonth: number, paid: boolean, ym: string) {
+	const status: RecurringStatus = paid ? 'paid' : 'pending';
+	return { day: Math.min(dayOfMonth, daysInMonth(ym)), status };
 }
 
 /** Sum of the active rules of one type. */
