@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { toast } from 'svelte-sonner';
-	import { refreshAll } from '$app/navigation';
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
+	import { closeAfterSave } from '#lib/components/forms/form-enhance.ts';
 	import CategoryForm, { type CreatedCategory } from './CategoryForm.svelte';
 
 	/**
@@ -23,15 +22,9 @@
 	} = $props();
 
 	async function created(category: CreatedCategory) {
-		if (!onclose) {
-			oncreated?.(category);
-			open = false;
-			return;
-		}
-		// Refresh before the pop: a popstate landing first reuses the stale loads.
-		await refreshAll();
-		onclose();
-		toast.success('Guardado.');
+		if (onclose) return closeAfterSave(onclose)();
+		oncreated?.(category);
+		open = false;
 	}
 </script>
 

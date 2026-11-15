@@ -1,14 +1,10 @@
 <script lang="ts">
-	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
-	import { toast } from 'svelte-sonner';
-	import { enhance } from '$app/forms';
-	import { followRedirect } from '#lib/nav-stack.svelte.ts';
+	import { untrack, type ComponentProps } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { Button } from '#lib/components/ui/button/index.js';
 	import AmountHero from '#lib/components/AmountHero.svelte';
 	import DayOfMonthPicker from '#lib/components/DayOfMonthPicker.svelte';
 	import EntryFields from '#lib/components/EntryFields.svelte';
-	import FormActions from '#lib/components/FormActions.svelte';
+	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import OptionPicker from '#lib/components/OptionPicker.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
@@ -16,6 +12,7 @@
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 	type Fields = 'type' | 'description' | 'amount' | 'accountId' | 'categoryId' | 'dayOfMonth';
+	type Errors = Partial<Record<Fields, string>>;
 
 	let {
 		initial,
@@ -31,7 +28,7 @@
 		onclose
 	}: {
 		initial: Record<Fields, string>;
-		errors?: Partial<Record<Fields, string>>;
+		errors?: Errors;
 		accounts: Picker[];
 		categories: (Picker & { kind: string | null })[];
 		/** Page: the form's action. Drawer: the query (e.g. `?wizard=2`) added to /plan/recurring/new. */
@@ -63,14 +60,10 @@
 	let description = $state(untrack(() => initial.description));
 	let day = $state(untrack(() => initial.dayOfMonth));
 	let categoryId = $state(untrack(() => initial.categoryId));
-	let mounted = $state(false);
-	let submitting = $state(false);
-	onMount(() => (mounted = true));
 
 	// Errors from the drawer's post; the page shows the server-rendered `errors` instead.
-	let fieldErrors = $state<Partial<Record<Fields, string>>>({});
+	let fieldErrors = $state<Errors>({});
 	const shown = $derived({ ...errors, ...fieldErrors });
-	const canSave = $derived(isPositiveAmount(amount) && description.trim() !== '');
 
 	// The rule's own saved category stays pickable.
 	const pickableCategories = $derived(
@@ -86,216 +79,133 @@
 		const meta = accounts.find((a) => a.id === accountId)?.meta;
 		return meta === 'USD' ? 'USD' : meta === 'ARS' ? 'ARS' : undefined;
 	});
-
-	const focusFirstError = () =>
-		tick().then(() => {
-			document
-				.querySelector<HTMLElement>(
-					'form [aria-invalid="true"], form button[aria-describedby$="-error"]'
-				)
-				?.focus();
-		});
-
-	// After a failed submit, move focus to the first field marked invalid (inputs or picker triggers).
-	$effect(() => {
-		if (Object.values(errors).some(Boolean)) focusFirstError();
-	});
 </script>
 
-<form
-	method="POST"
-	action={drawer ? resolve('plan/recurring/new') + action : action}
-	class="form"
-	class:drawer
-	class:submitting
-	novalidate
-	use:enhance={() => {
-		submitting = true;
-		return async (input) => {
-			if (!drawer) {
-				await followRedirect(input);
-				submitting = false;
-				return;
-			}
-			const { result } = input;
-			if (result.type === 'redirect') onsaved?.();
-			else if (result.type === 'failure') {
-				fieldErrors = (result.data?.errors ?? {}) as typeof fieldErrors;
-				focusFirstError();
-			} else toast.error('No se pudo guardar.');
-			submitting = false;
-		};
-	}}
->
-	{#snippet fields()}
-		<div class="field">
-			<span id="rtype-label" class="visually-hidden">Tipo</span>
-			<SegmentedControl
-				name="type"
-				options={typeOptions}
-				bind:value={type}
-				labelledby="rtype-label"
-			/>
-			{#if shown.type}<p class="error" role="alert">{shown.type}</p>{/if}
-		</div>
+{#snippet account()}
+	<li class:bad={shown.accountId}>
+		<OptionPicker
+			name="accountId"
+			legend="Cuenta"
+			title="Elegí la cuenta"
+			items={accounts}
+			bind:value={accountId}
+			nested={drawer}
+			placeholder="Elegir"
+			error={shown.accountId}
+			errorId="raccount-error"
+		>
+			{#snippet empty()}
+				<p class="hint pad">
+					Todavía no tenés cuentas. <a href={resolve('accounts/new')}>Crear cuenta</a>
+				</p>
+			{/snippet}
+		</OptionPicker>
+	</li>
+{/snippet}
 
-		<AmountHero
-			bind:value={amount}
-			{currency}
-			error={shown.amount}
-			id="ramount"
-			autofocus={drawer}
-			color={drawer ? (type === 'income' ? 'var(--positive)' : 'var(--negative)') : undefined}
+{#snippet category()}
+	<li class:bad={shown.categoryId}>
+		<OptionPicker
+			name="categoryId"
+			legend="Categoría"
+			title="Elegí la categoría"
+			items={pickableCategories}
+			bind:value={categoryId}
+			nested={drawer}
+			placeholder="Elegir"
+			error={shown.categoryId}
+			errorId="rcategory-error"
+		>
+			{#snippet empty()}
+				<p class="hint pad">
+					Todavía no tenés categorías. <a href={resolve('categories/new')}>Crear categoría</a>
+				</p>
+			{/snippet}
+		</OptionPicker>
+	</li>
+{/snippet}
+
+{#snippet when()}
+	<li class:bad={shown.dayOfMonth}>
+		<DayOfMonthPicker
+			bind:value={day}
+			nested={drawer}
+			error={shown.dayOfMonth}
+			errorId="rday-error"
 		/>
+	</li>
+{/snippet}
 
-		{#snippet account()}
-			<li class:bad={shown.accountId}>
-				<OptionPicker
-					name="accountId"
-					legend="Cuenta"
-					title="Elegí la cuenta"
-					items={accounts}
-					bind:value={accountId}
-					nested={drawer}
-					placeholder="Elegir"
-					error={shown.accountId}
-					errorId="raccount-error"
-				>
-					{#snippet empty()}
-						<p class="hint pad">
-							Todavía no tenés cuentas. <a href={resolve('accounts/new')}>Crear cuenta</a>
-						</p>
-					{/snippet}
-				</OptionPicker>
-			</li>
-		{/snippet}
+<FormShell
+	action={drawer ? resolve('plan/recurring/new') + action : action}
+	{variant}
+	{errors}
+	onfailure={(data: { errors?: Errors }) => (fieldErrors = data.errors ?? {})}
+	{onsaved}
+	{onclose}
+	{cancelHref}
+	{submitLabel}
+	canSave={isPositiveAmount(amount) && description.trim() !== ''}
+	scroll="drawer"
+	style="--form-gap: var(--space-5)"
+>
+	<div class="field">
+		<span id="rtype-label" class="visually-hidden">Tipo</span>
+		<SegmentedControl
+			name="type"
+			options={typeOptions}
+			bind:value={type}
+			labelledby="rtype-label"
+		/>
+		{#if shown.type}<p class="error" role="alert">{shown.type}</p>{/if}
+	</div>
 
-		{#snippet category()}
-			<li class:bad={shown.categoryId}>
-				<OptionPicker
-					name="categoryId"
-					legend="Categoría"
-					title="Elegí la categoría"
-					items={pickableCategories}
-					bind:value={categoryId}
-					nested={drawer}
-					placeholder="Elegir"
-					error={shown.categoryId}
-					errorId="rcategory-error"
-				>
-					{#snippet empty()}
-						<p class="hint pad">
-							Todavía no tenés categorías. <a href={resolve('categories/new')}>Crear categoría</a>
-						</p>
-					{/snippet}
-				</OptionPicker>
-			</li>
-		{/snippet}
-
-		{#snippet when()}
-			<li class:bad={shown.dayOfMonth}>
-				<DayOfMonthPicker
-					bind:value={day}
-					nested={drawer}
-					error={shown.dayOfMonth}
-					errorId="rday-error"
-				/>
-			</li>
-		{/snippet}
-
-		{#if drawer}
-			<div class="text-field">
-				<label for="rdescription">Descripción</label>
-				<input
-					id="rdescription"
-					name="description"
-					type="text"
-					autocomplete="off"
-					maxlength={DESCRIPTION_MAX_LENGTH}
-					required
-					placeholder={type === 'income' ? 'Ej.: Sueldo' : 'Ej.: Alquiler'}
-					bind:value={description}
-					aria-invalid={shown.description ? 'true' : undefined}
-					aria-describedby={shown.description ? 'rdescription-error' : undefined}
-				/>
-				{#if shown.description}
-					<p class="error" id="rdescription-error" role="alert">{shown.description}</p>
-				{/if}
-			</div>
-			<ul class="card">
-				{@render account()}
-				{@render category()}
-				{@render when()}
-			</ul>
-		{:else}
-			<EntryFields
-				bind:description
-				descriptionId="rdescription"
-				descriptionError={shown.description}
-				{account}
-				{category}
-				{when}
-			/>
-		{/if}
-	{/snippet}
+	<AmountHero
+		bind:value={amount}
+		{currency}
+		error={shown.amount}
+		id="ramount"
+		autofocus={drawer}
+		color={drawer ? (type === 'income' ? 'var(--positive)' : 'var(--negative)') : undefined}
+	/>
 
 	{#if drawer}
-		<div class="scroll">{@render fields()}</div>
-		<div class="actions">
-			<Button
-				type="button"
-				variant="outline"
-				class="min-w-0 flex-1 basis-0"
-				onclick={() => onclose?.()}>Cancelar</Button
-			>
-			<Button
-				type="submit"
-				class="min-w-0 flex-1 basis-0"
-				disabled={mounted && (!canSave || submitting)}
-				aria-busy={submitting ? 'true' : undefined}>{submitLabel}</Button
-			>
+		<div class="text-field">
+			<label for="rdescription">Descripción</label>
+			<input
+				id="rdescription"
+				name="description"
+				type="text"
+				autocomplete="off"
+				maxlength={DESCRIPTION_MAX_LENGTH}
+				required
+				placeholder={type === 'income' ? 'Ej.: Sueldo' : 'Ej.: Alquiler'}
+				bind:value={description}
+				aria-invalid={shown.description ? 'true' : undefined}
+				aria-describedby={shown.description ? 'rdescription-error' : undefined}
+			/>
+			{#if shown.description}
+				<p class="error" id="rdescription-error" role="alert">{shown.description}</p>
+			{/if}
 		</div>
+		<ul class="card">
+			{@render account()}
+			{@render category()}
+			{@render when()}
+		</ul>
 	{:else}
-		{@render fields()}
-		<FormActions {cancelHref} {submitLabel} {submitting} />
+		<EntryFields
+			bind:description
+			descriptionId="rdescription"
+			descriptionError={shown.description}
+			{account}
+			{category}
+			{when}
+		/>
 	{/if}
-</form>
+</FormShell>
 
 <style>
-	.form {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-5);
-		padding-top: var(--space-1);
-	}
-
-	.form.drawer {
-		flex: 1;
-		min-height: 0;
-		gap: 0;
-		padding-top: 0;
-	}
-
-	.scroll {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-5);
-		min-height: 0;
-		overflow-y: auto;
-		padding: var(--space-1) var(--space-4) var(--space-4);
-	}
-
-	.form.submitting .scroll {
-		opacity: 0.55;
-	}
-
-	.actions {
-		display: flex;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
-		background: var(--popover);
-	}
-
 	.field {
 		display: flex;
 		flex-direction: column;

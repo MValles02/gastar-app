@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import PageHeader from '#lib/components/PageHeader.svelte';
-	import AccountForm from '../AccountForm.svelte';
+	import AccountForm from '#lib/components/accounts/AccountForm.svelte';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
