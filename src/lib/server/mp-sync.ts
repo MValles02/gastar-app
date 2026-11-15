@@ -589,6 +589,13 @@ async function syncReport(
 		const parsed = parseCsv(csv);
 		// A config that lacks a parser column (the PUT in ensureReportConfig did not go through) reads as blanks.
 		if (parsed.length && !REPORT_COLUMNS.every((k) => k in parsed[0])) throw fail('parse');
+		// Row shapes only (MP's codes, no amounts or ids): shows which descriptions a real report uses.
+		const shapes: Record<string, number> = {};
+		for (const r of parsed) {
+			const k = `${r.RECORD_TYPE}/${r.DESCRIPTION}`;
+			shapes[k] = (shapes[k] ?? 0) + 1;
+		}
+		console.info('mp report rows:', JSON.stringify(shapes));
 		for (const r of parsed) {
 			const item = reportItem(r);
 			if (!item) continue;
