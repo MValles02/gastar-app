@@ -341,12 +341,15 @@ const REPORT_COLUMNS = [
  * is why the scheduler requests it once a day (see mp-scheduler). `GMT-03` is Buenos Aires.
  * `include_withdrawal_at_end` is on so a payout stamped at the very end of a range is never left out
  * (a repeat is harmless: the item key dedupes it).
+ * `execute_after_withdrawal` is required: MP rejects a create without it; false means MP does not
+ * generate a report on its own after each withdrawal.
  */
 const REPORT_CONFIG = {
 	file_name_prefix: 'gastar-release',
 	display_timezone: 'GMT-03',
 	report_translation: 'en',
 	include_withdrawal_at_end: true,
+	execute_after_withdrawal: false,
 	columns: REPORT_COLUMNS.map((key) => ({ key })),
 	frequency: { hour: 0, type: 'monthly', value: 1 },
 	notification_email_list: [] as string[]
