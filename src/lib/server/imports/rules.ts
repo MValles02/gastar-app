@@ -1,16 +1,16 @@
 import { APP_TZ, formatDay, LOCALE } from '#lib/locale.ts';
 import { kindFits, type MovementType } from '#lib/movement.ts';
 import { localDay } from '../month';
-import { importSource, kindSpec } from './sources';
+import { importSource, type Kind, kindSpec, type SourceId } from './sources';
 import type { ImportRule } from './store';
 
 // Pure: what an item is called, which rule keys it has and what its review form starts from.
 
 type TitleFields = {
-	source: string;
+	source: SourceId;
 	counterpartyNickname: string | null;
 	merchant: string | null;
-	kind: string;
+	kind: Kind;
 	isCredit: boolean;
 	rawDescription: string;
 	/** Card statements: the cuota of an installment line, shown after the reference. */
@@ -35,7 +35,7 @@ export function importTitle(i: TitleFields): string {
 }
 
 /** dd/mm/aaaa hh:mm, 24 h, Buenos Aires, or just the day for a source whose items carry no time. */
-export function importDateLabel(source: string, d: Date): string {
+export function importDateLabel(source: SourceId, d: Date): string {
 	if (!importSource(source).timed) return formatDay(localDay(d));
 	const time = new Intl.DateTimeFormat(LOCALE, {
 		timeZone: APP_TZ,
@@ -52,8 +52,8 @@ export const importTypes = (isCredit: boolean): MovementType[] =>
 
 type ImportRuleKey = { matchKind: 'counterparty' | 'merchant' | 'kind'; matchValue: string };
 type ImportKeyFields = {
-	source: string;
-	kind: string;
+	source: SourceId;
+	kind: Kind;
 	isCredit: boolean;
 	operationType: string | null;
 	counterpartyId: string | null;

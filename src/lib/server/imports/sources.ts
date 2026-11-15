@@ -18,7 +18,7 @@ export const KIND = {
 	cardInstallment: 'card_installment',
 	cardTaxes: 'card_taxes'
 } as const;
-type Kind = (typeof KIND)[keyof typeof KIND];
+export type Kind = (typeof KIND)[keyof typeof KIND];
 
 /** Kinds whose items come from payments/search; their latest date is where the next search starts. */
 export const PAYMENT_KINDS: Kind[] = [KIND.payment, KIND.accountFund, KIND.refund];
@@ -29,6 +29,12 @@ export const SOURCE = {
 	galiciaMastercard: 'galicia_mastercard'
 } as const;
 export type SourceId = (typeof SOURCE)[keyof typeof SOURCE];
+
+/** The Banco Galicia source of a card network's statements. */
+export const GALICIA_SOURCE = {
+	visa: SOURCE.galiciaVisa,
+	mastercard: SOURCE.galiciaMastercard
+} as const;
 
 type KindSpec = {
 	/** Title when the item has no counterparty or merchant (else the raw description). */
@@ -122,8 +128,7 @@ const SOURCES: Record<SourceId, SourceSpec> = {
 	[SOURCE.galiciaMastercard]: card(SOURCE.galiciaMastercard)
 };
 
-/** The source of a stored item (its column is constrained to the three ids). */
-export const importSource = (source: string): SourceSpec => SOURCES[source as SourceId];
+export const importSource = (source: SourceId): SourceSpec => SOURCES[source];
 
-export const kindSpec = (source: string, kind: string): KindSpec =>
-	importSource(source).kinds[kind as Kind] ?? {};
+export const kindSpec = (source: SourceId, kind: Kind): KindSpec =>
+	importSource(source).kinds[kind] ?? {};
