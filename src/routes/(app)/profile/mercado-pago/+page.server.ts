@@ -4,20 +4,25 @@ import { dev } from '$app/env';
 import { accountOption } from '#lib/server/accounts/queries.ts';
 import { DAY_MS } from '#lib/dates.ts';
 import { dayStart, localDay } from '#lib/server/month.ts';
+import { getConnectionInfo, getMpImportAccount } from '#lib/server/imports/connections.ts';
 import {
 	deleteConnection,
-	getConnectionInfo,
-	getImportFromDay,
-	getMpImportAccount,
-	listReceivingAccounts,
 	mpOauthEnabled,
 	OAUTH_COOKIE,
 	OAUTH_PATH,
-	setImportFrom,
-	setReceivingAccount,
 	startAuthorization
-} from '#lib/server/mp-oauth.ts';
-import { getSyncState, leaseActive, startMpBackfill } from '#lib/server/mp-sync.ts';
+} from '#lib/server/imports/mercado-pago/oauth.ts';
+import {
+	getImportFromDay,
+	listReceivingAccounts,
+	setImportFrom,
+	setReceivingAccount
+} from '#lib/server/imports/mercado-pago/settings.ts';
+import {
+	getSyncState,
+	leaseActive,
+	startMpBackfill
+} from '#lib/server/imports/mercado-pago/sync.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
 

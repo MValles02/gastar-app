@@ -1,10 +1,10 @@
-import { pgErrorCode } from './db/errors';
+import { pgErrorCode } from '../../db/errors';
 import { DAY_MS } from '#lib/dates.ts';
 import { APP_TZ } from '#lib/locale.ts';
-import { dayStart, localDay } from './month';
-import { syncIntervalHours } from './mp-env';
-import { listUsableConnections, mpOauthEnabled } from './mp-oauth';
-import { syncScheduled } from './mp-sync';
+import { dayStart, localDay } from '../../month';
+import { syncIntervalHours } from './env';
+import { listUsableConnections, mpOauthEnabled } from './oauth';
+import { syncScheduled } from './sync';
 
 const HOUR_MS = 3_600_000;
 /** Buenos Aires hour of the daily release report: MP mails the account owner every time one is ready. */

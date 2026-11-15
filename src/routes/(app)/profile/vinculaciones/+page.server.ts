@@ -1,5 +1,5 @@
-import { getGaliciaConnection } from '#lib/server/galicia.ts';
-import { mpLinkState, mpOauthEnabled } from '#lib/server/mp-oauth.ts';
+import { getGaliciaConnection, mpLinkState } from '#lib/server/imports/connections.ts';
+import { mpOauthEnabled } from '#lib/server/imports/mercado-pago/oauth.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import type { PageServerLoad } from './$types';
 

@@ -1,16 +1,11 @@
 import type { MovementType } from '#lib/movement.ts';
-import type { MovementData } from './movements/form';
-import {
-	approveImport,
-	importPrefill,
-	listImportRules,
-	listPendingImports,
-	type ImportItem
-} from './import-queries';
-import { pgErrorCode } from './db/errors';
-import { listAccounts } from './accounts/queries';
-import { listCategories } from './categories/queries';
-import { resolvePostedMovement } from './movements/pickers';
+import type { MovementData } from '../movements/form';
+import { pgErrorCode } from '../db/errors';
+import { listAccounts } from '../accounts/queries';
+import { listCategories } from '../categories/queries';
+import { resolvePostedMovement } from '../movements/pickers';
+import { importPrefill } from './rules';
+import { approveImport, listImportRules, listPendingImports, type ImportItem } from './store';
 
 /** Active accounts in the item's currency other than its own: the only valid counter accounts (no exchange rate). */
 export const counterAccountsOf = <A extends { currency: string; id: string }>(
@@ -54,10 +49,10 @@ export async function approveSuggestion(
 }
 
 /**
- * Approves every pending item that has a suggestion; failures count as skipped. An automatic run leaves
- * out items the user already undid from an auto-approval.
+ * Approves every pending item that has a suggestion; failures count as skipped. "Aprobar N sugeridos"
+ * includes items undone from an auto-approval; an automatic run leaves them out.
  */
-async function approveAllSuggested(userId: string, auto: boolean) {
+export async function approveAllSuggested(userId: string, auto: boolean) {
 	const [items, ctx] = await Promise.all([listPendingImports(userId), suggestionContext(userId)]);
 	let approved = 0;
 	let skipped = 0;
@@ -77,17 +72,19 @@ async function approveAllSuggested(userId: string, auto: boolean) {
 	return { approved, skipped };
 }
 
-/** "Aprobar N sugeridos": every pending item with a suggestion, including ones undone from an auto-approval. */
-export const approveSuggestedImports = (userId: string) => approveAllSuggested(userId, false);
-
 /**
  * Approves every pending item whose prefill is a usable rule, except items the user already undid from an
- * auto-approval. Never creates or changes a rule; an item that fails validation stays pending. Only
- * ingestImportItems calls it. Returns how many were approved.
+ * auto-approval. Never creates or changes a rule; an item that fails validation stays pending. Never
+ * throws: auto-approval never fails an import. Returns how many were approved.
  */
 export async function autoApprovePending(userId: string): Promise<number> {
-	const { approved } = await approveAllSuggested(userId, true);
-	return approved;
+	try {
+		const { approved } = await approveAllSuggested(userId, true);
+		return approved;
+	} catch (e) {
+		console.error('[imports] auto-approve failed', pgErrorCode(e) ?? 'unknown');
+		return 0;
+	}
 }
 
 /**

@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 import { getDocumentProxy } from 'unpdf';
+import { CURRENCIES, type Currency } from '#lib/money.ts';
 
 // Parser for Banco Galicia credit-card statement PDFs (Visa and Mastercard). The PDF is read in
 // memory only; nothing here logs or returns the holder's name, address or account numbers.
 
-export type Currency = 'ARS' | 'USD';
 export type CardNetwork = 'visa' | 'mastercard';
 
 /** One consumo line of DETALLE DEL CONSUMO. `cents` is signed: negative lines are credits. */
@@ -34,7 +34,15 @@ export type Statement = {
 	charges: Record<Currency, number>;
 };
 
-export type StatementErrorCode = 'unreadable' | 'too_many_pages' | 'not_galicia' | 'unbalanced';
+/** What the upload says for each way a statement can fail. */
+export const STATEMENT_ERRORS = {
+	unreadable: 'No pudimos leer el PDF. Subí el resumen tal como lo descargaste de Galicia.',
+	too_many_pages: 'El PDF tiene demasiadas páginas para ser un resumen.',
+	not_galicia: 'Ese PDF no es un resumen de tarjeta de Banco Galicia.',
+	unbalanced: 'El resumen no cuadra con el total; no se importó nada.'
+} as const;
+
+export type StatementErrorCode = keyof typeof STATEMENT_ERRORS;
 
 export class StatementError extends Error {
 	readonly code: StatementErrorCode;
@@ -301,7 +309,7 @@ export async function parseGaliciaStatement(bytes: Uint8Array): Promise<Statemen
 	}
 
 	if (!total) throw new StatementError('unreadable');
-	for (const c of ['ARS', 'USD'] as const) {
+	for (const c of CURRENCIES) {
 		const lines = consumos.filter((l) => l.currency === c).reduce((s, l) => s + l.cents, 0);
 		if (known[c] + charges[c] + lines !== total[c]) throw new StatementError('unbalanced');
 	}
