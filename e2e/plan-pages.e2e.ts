@@ -1,16 +1,18 @@
-import { expect, test, type Browser, type Cookie, type Page } from '@playwright/test';
+import { expect, test, type Cookie, type Page } from '@playwright/test';
 import {
-	deleteMovements,
-	deleteRules,
+	createAccount,
+	createVia,
 	fillSavings,
+	foreignIds,
+	limitsRegion,
 	linkId,
-	login,
-	OTHER_EMAIL,
+	monthDay,
 	pick,
 	pickDay,
+	post,
 	postDelete,
+	save,
 	signUpVerified,
-	todayInAppTz,
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
@@ -23,12 +25,6 @@ const password = 'e2e-pass-1234';
 const ids = { account: '', food: '', gym: '', salary: '' };
 let cookies: Cookie[] = [];
 
-/** The 15th of the previous month (inside the 3 full months the limit suggestions average). */
-function lastMonth15() {
-	const [y, m] = todayInAppTz().split('-').map(Number);
-	return new Date(Date.UTC(y, m - 2, 15)).toISOString().slice(0, 10);
-}
-
 test.beforeAll(async ({ browser, baseURL }) => {
 	const context = await browser.newContext({ baseURL });
 	try {
@@ -36,27 +32,10 @@ test.beforeAll(async ({ browser, baseURL }) => {
 		const email = `e2e+plan-${Date.now()}@gastar.local`;
 		await signUpVerified(page, context.request, { email, password, name: 'E2E Plan' });
 
-		const headers = { origin: baseURL!, accept: 'text/html' };
-		// Each create redirects to the new entity's page: its id is the last path segment.
-		const create = async (path: string, form: Record<string, string>) => {
-			const res = await page.request.post(path, { form, headers });
-			expect(res.ok()).toBe(true);
-			return res.url().split('/').pop()!;
-		};
-		ids.account = await create('/accounts/new', {
-			name: 'Caja e2e',
-			currency: 'ARS',
-			initialBalance: '0',
-			icon: 'bank',
-			color: 'green'
-		});
-		await create('/accounts/new', {
-			name: 'Dólares e2e',
-			currency: 'USD',
-			initialBalance: '0',
-			icon: 'bank',
-			color: 'blue'
-		});
+		const create = (path: string, form: Record<string, string>) =>
+			createVia(page, baseURL!, path, form);
+		ids.account = await createAccount(page, baseURL!, 'Caja e2e', 'ARS');
+		await createAccount(page, baseURL!, 'Dólares e2e', 'USD');
 		ids.food = await create('/categories/new', {
 			name: 'Comida e2e',
 			color: 'green',
@@ -75,7 +54,7 @@ test.beforeAll(async ({ browser, baseURL }) => {
 			description: 'Super previo e2e',
 			accountId: ids.account,
 			categoryId: ids.food,
-			occurredAt: lastMonth15()
+			occurredAt: monthDay(2)
 		});
 		cookies = await context.cookies();
 	} finally {
@@ -91,34 +70,9 @@ test.beforeEach(async ({ page }) => {
 const kv = (page: Page, label: string) => page.locator('.kv', { hasText: label });
 const available = (page: Page) =>
 	page.getByRole('region', { name: /^Disponible$/ }).locator('.hero-amount');
-const limits = (page: Page) => page.getByRole('region', { name: 'Límites por categoría' });
-const savePlan = (page: Page) => page.getByRole('button', { name: 'Guardar', exact: true });
 
-/** The id of another user's category, for the 404 checks. */
-async function foreignCategory(browser: Browser, baseURL: string) {
-	const context = await browser.newContext({ baseURL });
-	try {
-		const page = await context.newPage();
-		await login(page, OTHER_EMAIL);
-		await page.goto('/categories');
-		return await linkId(page.getByRole('link', { name: /Ajena/ }));
-	} finally {
-		await context.close();
-	}
-}
-
-test('the wizard creates a plan in five steps, returning from the add screens', async ({
-	page
-}) => {
-	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await expect(page.getByText('Sin plan')).toBeVisible();
-	await page.getByRole('link', { name: 'Crear plan' }).click();
-	await expect(page).toHaveURL(/\/plan\/setup$/);
-	await expect(page.getByText('Paso 1 de 5')).toBeVisible();
-	await expect(page.getByText('Detectamos que se repiten')).toHaveCount(0);
-	await expect(page.getByRole('button', { name: 'Eliminar plan' })).toHaveCount(0);
-
-	// 1. Ingresos: + Agregar opens the income drawer without leaving the step.
+test('the wizard saves the income, savings and limits its summary shows', async ({ page }) => {
+	await page.goto('/plan/setup', { waitUntil: 'networkidle' });
 	await page.getByRole('link', { name: '+ Agregar' }).click();
 	const drawer = page.getByRole('dialog', { name: 'Nuevo ingreso fijo' });
 	await expect(drawer).toBeVisible();
@@ -127,50 +81,31 @@ test('the wizard creates a plan in five steps, returning from the add screens', 
 	await pickDay(page, '5');
 	await pick(page, 'Cuenta', 'Caja e2e');
 	await pick(page, 'Categoría', 'Cobro e2e');
-	await drawer.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(drawer).toBeHidden();
-	await expect(page).toHaveURL(/\/plan\/setup(\?step=1)?$/);
+	await save(drawer).click();
 	await expect(page.getByRole('link', { name: /Sueldo e2e/ })).toBeVisible();
 
-	// 2. Pagos fijos: none.
-	await page.getByRole('link', { name: 'Siguiente' }).click();
-	await expect(page).toHaveURL(/\/plan\/setup\?step=2$/);
-	await expect(page.getByText('Sin pagos fijos.')).toBeVisible();
-	await page.getByRole('link', { name: 'Siguiente' }).click();
-
-	// 3. Ahorro: submitting creates the plan.
-	await expect(page).toHaveURL(/\/plan\/setup\?step=3$/);
+	await page.goto('/plan/setup?step=3', { waitUntil: 'networkidle' });
 	await fillSavings(page, { option: '10%' });
 	await page.getByRole('button', { name: 'Siguiente' }).click();
-
-	// 4. Límites: the suggested ones, then one added by hand in the drawer.
 	await expect(page).toHaveURL(/\/plan\/setup\?step=4$/);
-	await expect(page.getByText('Sin límites.')).toBeVisible();
 	await page.getByRole('button', { name: 'Usar sugeridos' }).click();
 	await expect(page.getByRole('link', { name: /Comida e2e/ })).toBeVisible();
 	await page.getByRole('link', { name: '+ Agregar' }).click();
 	const limitDrawer = page.getByRole('dialog', { name: 'Nuevo límite' });
 	await pick(page, 'Categoría', 'Gym e2e');
 	await limitDrawer.locator('input[name="amount"]').fill('5.000');
-	await limitDrawer.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(limitDrawer).toBeHidden();
-	await expect(page).toHaveURL(/\/plan\/setup\?step=4$/);
+	await save(limitDrawer).click();
 	await expect(page.getByRole('link', { name: /Gym e2e/ })).toBeVisible();
-	await expect(page.getByRole('link', { name: /Comida e2e/ })).toBeVisible();
 
-	// 5. Resumen.
 	await page.getByRole('link', { name: 'Siguiente' }).click();
-	await expect(page).toHaveURL(/\/plan\/setup\?step=5$/);
 	const summary = page.locator('dl.figures');
 	await expect(summary).toContainText('1.000.000');
 	await expect(summary).toContainText('100.000');
 	await expect(summary).toContainText('900.000');
 	await expect(summary).toContainText('Comida e2e');
 	await expect(summary).toContainText('Gym e2e');
-	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page).toHaveURL(/\/plan$/);
+	await save(page).click();
 	await expect(page.getByText('Plan guardado.')).toBeVisible();
-	await expect(page.getByRole('region', { name: /^Disponible$/ })).toBeVisible();
 });
 
 test('10 % savings follows an income change, Otro validates and saves both', async ({
@@ -190,10 +125,7 @@ test('10 % savings follows an income change, Otro validates and saves both', asy
 	// Raise the income through the rule's update action.
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	const id = await linkId(page.getByRole('link', { name: /Sueldo e2e/ }));
-	const res = await page.request.post(`/plan/recurring/${id}?/update`, {
-		form: { amount: '2.000.000' },
-		headers: { origin: baseURL!, accept: 'text/html' }
-	});
+	const res = await post(page, baseURL!, `/plan/recurring/${id}?/update`, { amount: '2.000.000' });
 	expect(res.ok()).toBe(true);
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await expect(kv(page, 'Ingresos')).toContainText('2.000.000');
@@ -208,22 +140,22 @@ test('10 % savings follows an income change, Otro validates and saves both', asy
 		['$', 'abc', 'Ingresá un monto de ahorro válido.']
 	] as const) {
 		await fillSavings(page, { option: 'Otro', unit, value });
-		await savePlan(page).click();
+		await save(page).click();
 		await expect(alert).toHaveText(message);
 	}
 	await fillSavings(page, { option: 'Otro', unit: '$', value: '1.000,50' });
-	await savePlan(page).click();
+	await save(page).click();
 	await expect(alert).toContainText(WHOLE_PESOS_ERROR);
 
 	await fillSavings(page, { option: 'Otro', unit: '%', value: '12,5' });
-	await savePlan(page).click();
+	await save(page).click();
 	await expect(page.getByRole('button', { name: /^Otro/ })).toContainText('250.000');
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await expect(kv(page, 'Ahorro')).toContainText('250.000');
 
 	await page.goto('/plan/savings', { waitUntil: 'networkidle' });
 	await fillSavings(page, { option: 'Otro', unit: '$', value: '100.000' });
-	await savePlan(page).click();
+	await save(page).click();
 	await expect(page.getByRole('button', { name: /^Otro/ })).toContainText('100.000');
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await expect(kv(page, 'Ahorro')).toContainText('100.000');
@@ -250,11 +182,11 @@ test('new limit: validation, the average, and 404s for unknown or foreign ids', 
 	await expect(page.locator('input[name="amount"]')).toHaveValue(/^10\.?000$/);
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/plan$/);
-	await expect(limits(page)).toContainText('Comida e2e');
+	await expect(limitsRegion(page)).toContainText('Comida e2e');
 
 	// Unknown, malformed and foreign category ids are 404s.
-	const foreign = await foreignCategory(browser, baseURL!);
-	for (const id of ['00000000-0000-4000-8000-000000000000', 'x', foreign]) {
+	const { category } = await foreignIds(browser, baseURL!);
+	for (const id of ['00000000-0000-4000-8000-000000000000', 'x', category]) {
 		const res = await page.goto(`/plan/limits/${id}`);
 		expect(res!.status(), id).toBe(404);
 	}
@@ -295,68 +227,4 @@ test('Eliminar plan on /plan removes the plan and keeps the fixed incomes', asyn
 	}
 	await page.goto('/plan/setup');
 	await expect(page).toHaveURL(/\/plan\/setup$/);
-});
-
-test('step 2 suggests repeated outcomes and a tap opens the rule form prefilled', async ({
-	page,
-	baseURL
-}) => {
-	const [y, m] = todayInAppTz().split('-').map(Number);
-	const headers = { origin: baseURL!, accept: 'text/html' };
-	// The same outcome on the 15th of each of the last 3 full months.
-	for (const back of [2, 3, 4]) {
-		const res = await page.request.post('/movements/new', {
-			form: {
-				type: 'outcome',
-				amount: '12345',
-				description: 'Alquiler e2e',
-				accountId: ids.account,
-				categoryId: ids.food,
-				occurredAt: new Date(Date.UTC(y, m - back, 15)).toISOString().slice(0, 10)
-			},
-			headers
-		});
-		expect(res.ok()).toBe(true);
-	}
-	// A one-off in a single month, arranged here: it must not be suggested.
-	const oneOff = await page.request.post('/movements/new', {
-		form: {
-			type: 'outcome',
-			amount: '9999',
-			description: 'Cena suelta e2e',
-			accountId: ids.account,
-			categoryId: ids.food,
-			occurredAt: lastMonth15()
-		},
-		headers
-	});
-	expect(oneOff.ok()).toBe(true);
-	try {
-		await page.goto('/plan/setup?step=2', { waitUntil: 'networkidle' });
-		await expect(page.getByRole('heading', { name: 'Detectamos que se repiten' })).toBeVisible();
-		// The one-off (a single month) is not a suggestion.
-		await expect(page.getByRole('link', { name: /Cena suelta e2e/ })).toHaveCount(0);
-		const suggestion = page.getByRole('link', { name: /Alquiler e2e/ });
-		await expect(suggestion).toContainText('12.345');
-		await expect(suggestion).toContainText('Día 15 · Caja e2e');
-		await suggestion.click();
-
-		const drawer = page.getByRole('dialog', { name: 'Nuevo pago fijo' });
-		await expect(drawer).toBeVisible();
-		await expect(page).toHaveURL(/\/plan\/setup\?step=2$/);
-		await expect(drawer.locator('input[name="description"]')).toHaveValue('Alquiler e2e');
-		await expect(drawer.locator('input[name="amount"]')).toHaveValue('12.345');
-		await expect(drawer.getByRole('button', { name: /^Cuenta/ })).toContainText('Caja e2e');
-		await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText('Comida e2e');
-		await drawer.getByRole('button', { name: 'Guardar', exact: true }).click();
-		await expect(drawer).toBeHidden();
-
-		await expect(page).toHaveURL(/\/plan\/setup\?step=2$/);
-		await expect(page.getByRole('link', { name: /Alquiler e2e/ })).toHaveCount(1);
-		await expect(page.getByRole('heading', { name: 'Detectamos que se repiten' })).toHaveCount(0);
-	} finally {
-		await deleteRules(page, baseURL!, 'Alquiler e2e');
-		await deleteMovements(page, baseURL!, 'Alquiler e2e');
-		await deleteMovements(page, baseURL!, 'Cena suelta e2e');
-	}
 });

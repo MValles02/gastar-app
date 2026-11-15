@@ -1,5 +1,14 @@
 import { expect, test, type Cookie, type Page } from '@playwright/test';
-import { linkId, signUpVerified, todayInAppTz } from './helpers';
+import {
+	createAccount,
+	createVia,
+	linkId,
+	monthDay,
+	post,
+	rule,
+	savedId,
+	signUpVerified
+} from './helpers';
 
 // Rules of the "Detectamos que se repiten" list (recurringCandidates + recurringSuggestions). Each
 // test arranges its own data under a unique description, so the tests are independent of each other
@@ -13,12 +22,6 @@ const ids = { account: '', usd: '', archived: '', food: '', both: '' };
 let cookies: Cookie[] = [];
 let foreignSuggestionId = '';
 
-/** The 15th of the month `back` months ago (1 = this month, so 2..4 are the last 3 full months). */
-function dayOf(back: number, day = 15) {
-	const [y, m] = todayInAppTz().split('-').map(Number);
-	return new Date(Date.UTC(y, m - back, day)).toISOString().slice(0, 10);
-}
-
 type Mv = {
 	description: string;
 	amount?: string;
@@ -30,19 +33,16 @@ type Mv = {
 async function addOutcomes(page: Page, baseURL: string, mv: Mv, backs = [2, 3, 4]) {
 	const saved: string[] = [];
 	for (const back of backs) {
-		const res = await page.request.post('/movements/new', {
-			form: {
-				type: 'outcome',
-				amount: mv.amount ?? '12345',
-				description: mv.description,
-				accountId: mv.account ?? ids.account,
-				categoryId: mv.category ?? ids.food,
-				occurredAt: dayOf(back)
-			},
-			headers: { origin: baseURL, accept: 'text/html' }
+		const res = await post(page, baseURL, '/movements/new', {
+			type: 'outcome',
+			amount: mv.amount ?? '12345',
+			description: mv.description,
+			accountId: mv.account ?? ids.account,
+			categoryId: mv.category ?? ids.food,
+			occurredAt: monthDay(back)
 		});
 		expect(res.ok()).toBe(true);
-		saved.push(new URL(res.url()).searchParams.get('saved')!);
+		saved.push(savedId(res));
 	}
 	return saved;
 }
@@ -51,22 +51,10 @@ const suggestions = (page: Page) => page.goto('/plan/setup?step=2');
 const row = (page: Page, text: string) => page.getByRole('link', { name: new RegExp(text) });
 
 test.beforeAll(async ({ browser, baseURL }) => {
-	const create = async (page: Page, path: string, form: Record<string, string>) => {
-		const res = await page.request.post(path, {
-			form,
-			headers: { origin: baseURL!, accept: 'text/html' }
-		});
-		expect(res.ok()).toBe(true);
-		return res.url().split('/').pop()!;
-	};
-	const account = (page: Page, name: string, currency: string) =>
-		create(page, '/accounts/new', {
-			name,
-			currency,
-			initialBalance: '0',
-			icon: 'bank',
-			color: 'green'
-		});
+	const create = (page: Page, path: string, form: Record<string, string>) =>
+		createVia(page, baseURL!, path, form);
+	const account = (page: Page, name: string, currency: 'ARS' | 'USD') =>
+		createAccount(page, baseURL!, name, currency);
 
 	const context = await browser.newContext({ baseURL });
 	const other = await browser.newContext({ baseURL });
@@ -128,32 +116,22 @@ test('outcomes that do not repeat 3 months, or are linked or archived are not su
 	page,
 	baseURL
 }) => {
-	const headers = { origin: baseURL!, accept: 'text/html' };
 	await addOutcomes(page, baseURL!, { description: 'Dos meses sug e2e' }, [2, 3]);
 	await addOutcomes(page, baseURL!, { description: 'Tres meses sug e2e' });
 	// The rule has another name, so only the link (not the rule-name rule) can hide the group.
-	const created = await page.request.post('/plan/recurring/new', {
-		form: {
-			type: 'outcome',
-			description: 'Regla vinc sug e2e',
-			amount: '12345',
-			dayOfMonth: '15',
-			accountId: ids.account,
-			categoryId: ids.food
-		},
-		headers
+	await createVia(page, baseURL!, '/plan/recurring/new', {
+		type: 'outcome',
+		description: 'Regla vinc sug e2e',
+		amount: '12345',
+		dayOfMonth: '15',
+		accountId: ids.account,
+		categoryId: ids.food
 	});
-	expect(created.ok()).toBe(true);
 	await page.goto('/plan');
-	const ruleId = await linkId(
-		page.locator('.rule', { hasText: 'Regla vinc sug e2e' }).locator('a[data-slot="item"]')
-	);
+	const ruleId = await linkId(rule(page, 'Regla vinc sug e2e').locator('a[data-slot="item"]'));
 	const linked = await addOutcomes(page, baseURL!, { description: 'Vinculado sug e2e' });
 	for (const id of linked) {
-		const res = await page.request.post(`/movements/${id}?/link`, {
-			form: { recurringId: ruleId },
-			headers: { origin: baseURL!, accept: 'text/html' }
-		});
+		const res = await post(page, baseURL!, `/movements/${id}?/link`, { recurringId: ruleId });
 		expect(res.ok()).toBe(true);
 	}
 	await addOutcomes(page, baseURL!, { description: 'Archivada sug e2e', account: ids.archived });
@@ -166,16 +144,13 @@ test('outcomes that do not repeat 3 months, or are linked or archived are not su
 	await expect(row(page, 'Vinculado sug e2e')).toHaveCount(0);
 	await expect(row(page, 'Dolar sug e2e')).toHaveCount(1);
 
-	const res = await page.request.post(`/accounts/${ids.archived}?/archive`, {
-		form: {},
-		headers
-	});
+	const res = await post(page, baseURL!, `/accounts/${ids.archived}?/archive`, {});
 	expect(res.ok()).toBe(true);
 	await suggestions(page);
 	await expect(row(page, 'Archivada sug e2e')).toHaveCount(0);
 });
 
-test('grouping is case-insensitive, any category kind is suggested, the amount averages per-month sums', async ({
+test('grouping is case-insensitive, any category kind is suggested, the amount averages per-month sums and prefills the rule', async ({
 	page,
 	baseURL
 }) => {
@@ -193,6 +168,14 @@ test('grouping is case-insensitive, any category kind is suggested, the amount a
 	await expect(row(page, 'sug e2e').filter({ hasText: /mayus/i })).toHaveCount(1);
 	await expect(row(page, 'Mixta sug e2e')).toHaveCount(1);
 	await expect(row(page, 'Suma sug e2e')).toContainText('15.000');
+
+	await page.goto('/plan/setup?step=2', { waitUntil: 'networkidle' }); // hydration guard: the drawer needs JS
+	await row(page, 'Suma sug e2e').click();
+	const drawer = page.getByRole('dialog', { name: 'Nuevo pago fijo' });
+	await expect(drawer.locator('input[name="description"]')).toHaveValue('Suma sug e2e');
+	await expect(drawer.locator('input[name="amount"]')).toHaveValue('15.000');
+	await expect(drawer.getByRole('button', { name: /^Cuenta/ })).toContainText('Caja sug e2e');
+	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText('Comida sug e2e');
 });
 
 test("another user's repeated outcome is never suggested", async ({ page }) => {

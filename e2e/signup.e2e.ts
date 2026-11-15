@@ -3,7 +3,7 @@ import { SEED_EMAIL, submitLogin } from './helpers';
 import { latestMail, waitForLink } from './outbox';
 
 // Rate limits are in-memory (sign-up 50/h/IP in e2e builds, reset 3/15min, resend 3/15min).
-// The full suite makes 9 sign-ups (this file 3); this file also makes 2 reset requests (15 min window),
+// The full suite makes 10 sign-ups (this file 3, see signUpVerified in helpers.ts); this file also makes 2 reset requests (15 min window),
 // so re-running it within 15 minutes can hit the reset limit; restarting the server resets the counters.
 const password = 'e2e-pass-1234';
 let n = 0;
@@ -86,9 +86,13 @@ test('reset and sign-up do not reveal which emails exist', async ({ page, reques
 		.toBe(true);
 });
 
-test('expired links show "Enlace vencido"', async ({ page }) => {
+test('an invalid or expired link shows "Enlace vencido" and offers no new password', async ({
+	page
+}) => {
 	for (const url of ['/reset-password?error=INVALID_TOKEN', '/verify-email?error=TOKEN_EXPIRED']) {
 		await page.goto(url);
 		await expect(page.getByRole('heading', { name: 'Enlace vencido' })).toBeVisible();
+		await expect(page.getByLabel('Contraseña', { exact: true })).toHaveCount(0);
+		await expect(page).not.toHaveURL(/\/$/);
 	}
 });

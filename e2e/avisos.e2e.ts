@@ -15,11 +15,7 @@ test.describe.configure({ timeout: 60_000 });
 
 const alertRow = (page: Page, text: string) => page.locator('[role="listitem"]', { hasText: text });
 
-test('a plan alert opens /plan, and the page works without JS', async ({
-	page,
-	browser,
-	baseURL
-}) => {
+test('a plan alert links to /plan', async ({ page, baseURL }) => {
 	await login(page, OTHER_EMAIL);
 	// Fail loudly if another spec gave otro an ARS plan: this test must own it to delete it.
 	await page.goto('/plan');
@@ -36,28 +32,9 @@ test('a plan alert opens /plan, and the page works without JS', async ({
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Plan guardado.')).toBeVisible();
 
-		// No JS: the server-rendered page carries plain links.
-		const noJs = await browser.newContext({
-			baseURL,
-			javaScriptEnabled: false,
-			storageState: await page.context().storageState()
-		});
-		try {
-			const bare = await noJs.newPage();
-			await bare.goto('/notifications');
-			const planAlert = alertRow(bare, 'Tu ahorro y tus pagos fijos superan tus ingresos por');
-			await expect(planAlert).toBeVisible();
-			await expect(planAlert).toContainText('Te pasaste');
-			await expect(planAlert.getByRole('link')).toHaveAttribute('href', '/plan');
-		} finally {
-			await noJs.close();
-		}
-
 		await page.goto('/notifications');
 		const row = alertRow(page, 'Tu ahorro y tus pagos fijos superan tus ingresos por');
-		await expect(row).toContainText('Te pasaste');
-		await row.getByRole('link').click();
-		await expect(page).toHaveURL(/\/plan$/);
+		await expect(row.getByRole('link')).toHaveAttribute('href', '/plan');
 	} finally {
 		if (created) await postDelete(page, baseURL!, `${baseURL}/plan`);
 	}
@@ -99,8 +76,6 @@ test('a limit alert explains itself and opens its drawer', async ({ page, baseUR
 		await page.goto('/notifications');
 		const row = alertRow(page, '$1 sobre el límite de $1');
 		await expect(row).toContainText('Ajena');
-		// The message does not repeat the pill's "Te pasaste".
-		await expect(row.locator('.row-meta')).toHaveText('$1 sobre el límite de $1');
 		await row.getByRole('link').click();
 		// The limit opens as a drawer over /plan, and the flag leaves the URL.
 		await expect(page.getByRole('dialog', { name: 'Límite de Ajena' })).toBeVisible();

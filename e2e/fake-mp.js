@@ -17,7 +17,6 @@ const dir = fileURLToPath(new URL('./fixtures/mp/', import.meta.url));
 
 let requests = [];
 let tasks = 0;
-let forced = null;
 // Milliseconds a release report task stays pending, like MP's queue; set through /__fake/report-delay.
 let reportDelay = 0;
 const taskReadyAt = [];
@@ -27,10 +26,7 @@ let codes = new Map();
 let liveTokens = new Set();
 let latestRefresh = null;
 let issued = 0;
-let deny = false;
 let revoked = false;
-// Makes /oauth/token answer 500, like Mercado Pago being down.
-let tokenFails = false;
 // Release report config per OAuth grant (one per linked MP account). New grants start configured, with an
 // owner email, one column of their own and translated headers, unless /__fake/report-config says
 // otherwise. Config POST and PUT bodies are kept for the E2E to assert.
@@ -97,16 +93,13 @@ createServer(async (req, res) => {
 	if (path === '/__fake/reset' && req.method === 'POST') {
 		requests = [];
 		tasks = 0;
-		forced = null;
 		reportDelay = 0;
 		taskReadyAt.length = 0;
 		codes = new Map();
 		liveTokens = new Set();
 		latestRefresh = null;
 		issued = 0;
-		deny = false;
 		revoked = false;
-		tokenFails = false;
 		grantSeq = 0;
 		currentGrant = 0;
 		tokenGrant.clear();
@@ -131,15 +124,6 @@ createServer(async (req, res) => {
 		reportDelay = Number(JSON.parse((await readBody(req)) || '{}').ms) || 0;
 		return send(res, 200, { ok: true });
 	}
-	if (path === '/__fake/status' && req.method === 'POST') {
-		forced = JSON.parse((await readBody(req)) || '{}').status ?? null;
-		return send(res, 200, { ok: true });
-	}
-
-	if (path === '/__fake/oauth' && req.method === 'POST') {
-		deny = !!JSON.parse((await readBody(req)) || '{}').deny;
-		return send(res, 200, { ok: true });
-	}
 	// The current access token stops working; the refresh token still works.
 	if (path === '/__fake/expire' && req.method === 'POST') {
 		liveTokens.clear();
@@ -155,25 +139,17 @@ createServer(async (req, res) => {
 		const q = url.searchParams;
 		const back = new URL(q.get('redirect_uri') || '');
 		if (q.get('state')) back.searchParams.set('state', q.get('state'));
-		if (deny) back.searchParams.set('error', 'access_denied');
-		else {
-			const code = `TG-${++issued}`;
-			codes.set(code, {
-				challenge: q.get('code_challenge'),
-				method: q.get('code_challenge_method'),
-				redirectUri: q.get('redirect_uri')
-			});
-			back.searchParams.set('code', code);
-		}
+		const code = `TG-${++issued}`;
+		codes.set(code, {
+			challenge: q.get('code_challenge'),
+			method: q.get('code_challenge_method'),
+			redirectUri: q.get('redirect_uri')
+		});
+		back.searchParams.set('code', code);
 		res.writeHead(302, { location: back.toString() });
 		return res.end();
 	}
-	if (path === '/__fake/token-fail' && req.method === 'POST') {
-		tokenFails = !!JSON.parse((await readBody(req)) || '{}').fail;
-		return send(res, 200, { ok: true });
-	}
 	if (path === '/oauth/token' && req.method === 'POST') {
-		if (tokenFails) return send(res, 500, { message: 'down' });
 		const body = JSON.parse((await readBody(req)) || '{}');
 		const bad = (error) => send(res, 400, { error, message: error, status: 400 });
 		if (body.client_id !== CLIENT_ID || body.client_secret !== CLIENT_SECRET) {
@@ -233,7 +209,6 @@ createServer(async (req, res) => {
 	});
 	const bearer = (req.headers.authorization || '').replace(/^Bearer /, '');
 	if (!liveTokens.has(bearer)) return send(res, 401, { message: 'invalid_token', status: 401 });
-	if (forced) return send(res, forced, { message: 'forced' });
 
 	const grant = tokenGrant.get(bearer);
 	let m;

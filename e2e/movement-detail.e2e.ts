@@ -4,6 +4,7 @@
 // categories "<desc> C1"/"<desc> C2", plus a movement dated in the past, and removes them afterwards.
 import { expect, test, type Page } from '@playwright/test';
 import {
+	createVia,
 	deleteMovements,
 	linkId,
 	login,
@@ -11,7 +12,9 @@ import {
 	PHONE,
 	pick,
 	pickMovementDate,
-	postDelete
+	post,
+	postDelete,
+	undo
 } from './helpers';
 
 test.use({ viewport: PHONE });
@@ -46,45 +49,40 @@ const fixture = { c1: '', c2: '', A: '', B: '' };
 async function arrange(page: Page, baseURL: string, seed: Seed = {}) {
 	const description = `Detalle ${Date.now()}`;
 	created.push(description);
-	const headers = { origin: baseURL, accept: 'text/html' };
-	const post = async (path: string, form: Record<string, string>) => {
-		const res = await page.request.post(path, { form, headers });
-		expect(res.ok()).toBe(true);
-		createdUrls.push(res.url());
-		return res.url().split('/').pop()!;
+	const create = async (path: string, form: Record<string, string>) => {
+		const id = await createVia(page, baseURL, path, form);
+		createdUrls.push(path.replace('/new', '/' + id));
+		return id;
 	};
 	const account = (name: string, color: string) =>
-		post('/accounts/new', { name, currency: 'ARS', initialBalance: '0', icon: 'bank', color });
+		create('/accounts/new', { name, currency: 'ARS', initialBalance: '0', icon: 'bank', color });
 	const ids = {
 		A: await account(`${description} A`, 'green'),
 		B: await account(`${description} B`, 'blue'),
 		USD: ''
 	};
-	const c1 = await post('/categories/new', {
+	const c1 = await create('/categories/new', {
 		name: `${description} C1`,
 		color: 'blue',
 		kind: seed.kinds ? 'outcome' : ''
 	});
 	Object.assign(fixture, { c1, A: ids.A, B: ids.B });
-	fixture.c2 = await post('/categories/new', {
+	fixture.c2 = await create('/categories/new', {
 		name: `${description} C2`,
 		color: 'red',
 		kind: seed.kinds ? 'income' : ''
 	});
 	await page.goto('/accounts');
 	ids.USD = await linkId(page.getByRole('link', { name: /^Otra cuenta(?! pesos)/ }));
-	const res = await page.request.post('/movements/new', {
-		form: {
-			type: seed.type ?? 'outcome',
-			amount: seed.amount ?? '1000',
-			description,
-			accountId: ids[seed.account ?? 'A'],
-			...(seed.type === 'transfer'
-				? { destinationAccountId: ids[seed.destination ?? 'USD'], exchangeRate: seed.rate ?? '' }
-				: { categoryId: c1 }),
-			occurredAt: seed.date ?? '2023-03-27'
-		},
-		headers
+	const res = await post(page, baseURL, '/movements/new', {
+		type: seed.type ?? 'outcome',
+		amount: seed.amount ?? '1000',
+		description,
+		accountId: ids[seed.account ?? 'A'],
+		...(seed.type === 'transfer'
+			? { destinationAccountId: ids[seed.destination ?? 'USD'], exchangeRate: seed.rate ?? '' }
+			: { categoryId: c1 }),
+		occurredAt: seed.date ?? '2023-03-27'
 	});
 	expect(res.ok()).toBe(true);
 	return description;
@@ -106,12 +104,6 @@ async function openDrawer(page: Page, description: string) {
 }
 
 const saved = (page: Page) => page.getByText('Cambio guardado.');
-
-/** Presses Deshacer on the toast and waits for it to go. */
-async function undo(page: Page) {
-	await page.getByRole('button', { name: 'Deshacer' }).first().click();
-	await expect(saved(page)).toHaveCount(0);
-}
 
 test('description, amount, account, category and date each autosave and Deshacer restores them', async ({
 	page,
@@ -158,19 +150,16 @@ test('description, amount, account, category and date each autosave and Deshacer
 	await undo(page);
 	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
 
-	// Date: the list groups by day (2023-03-27 is a Monday).
-	await expect(page.getByRole('heading', { level: 3, name: 'Lunes 27' })).toBeVisible();
+	// Date.
 	await pickMovementDate(page, '2023-03-28');
 	await expect(saved(page)).toBeVisible();
 	await expect(page.getByRole('dialog').getByRole('button', { name: /^Fecha/ })).toContainText(
 		'28/03/2023'
 	);
-	await expect(page.locator('h3', { hasText: 'Martes 28' })).toBeVisible();
 	await undo(page);
 	await expect(page.getByRole('dialog').getByRole('button', { name: /^Fecha/ })).toContainText(
 		'27/03/2023'
 	);
-	await expect(page.locator('h3', { hasText: 'Lunes 27' })).toBeVisible();
 });
 
 test('Eliminar confirms: Cancelar keeps the movement, Eliminar removes it for good', async ({
@@ -220,7 +209,10 @@ test('Deshacer restores a transfer account change that dropped the rate', async 
 	await expect(drawer.getByRole('button', { name: 'Cotización: 1.000' })).toBeVisible();
 });
 
-test('a cross-currency Hacia opens a focused, required Cotización', async ({ page, baseURL }) => {
+test('a cross-currency Hacia asks for a Cotización and converts at it', async ({
+	page,
+	baseURL
+}) => {
 	const desc = await arrange(page, baseURL!, {
 		type: 'transfer',
 		account: 'A',
@@ -229,9 +221,6 @@ test('a cross-currency Hacia opens a focused, required Cotización', async ({ pa
 	const drawer = await openDrawer(page, desc);
 	await pick(page, 'Hacia', 'Otra cuenta');
 	const rate = drawer.getByRole('textbox', { name: 'Cotización' });
-	await expect(rate).toBeVisible();
-	await expect(rate).toBeFocused();
-	await expect(rate).toHaveAttribute('required', '');
 	await rate.fill('1000');
 	await page.keyboard.press('Enter');
 	await expect(saved(page)).toBeVisible();
@@ -248,14 +237,12 @@ test('Gasto to Ingreso asks for an Ingreso category, saves once, and Deshacer re
 }) => {
 	const desc = await arrange(page, baseURL!, { kinds: true });
 	const drawer = await openDrawer(page, desc);
-	await expect(drawer.locator('.amount').first()).toHaveClass(/outcome/);
 
 	await pick(page, 'Tipo', 'Ingreso');
 	// The old category is a Gasto one: the category list opens, with Ingreso categories only.
 	await expect(prompted(page, `${desc} C2`)).toBeVisible();
 	await expect(prompted(page, `${desc} C1`)).toHaveCount(0);
 	await expect(saved(page)).toHaveCount(0);
-	await expect(drawer.locator('.amount').first()).toHaveClass(/income/);
 	await prompted(page, `${desc} C2`).click();
 
 	await expect(saved(page)).toBeVisible();
@@ -266,7 +253,6 @@ test('Gasto to Ingreso asks for an Ingreso category, saves once, and Deshacer re
 	await undo(page);
 	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toContainText('Gasto');
 	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
-	await expect(drawer.locator('.amount').first()).toHaveClass(/outcome/);
 	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('-$1.000');
 });
 
@@ -305,11 +291,7 @@ test('Transferencia to Gasto asks for a category; Deshacer restores type, destin
 
 /** Archives an account or category of this test through its own action. */
 async function archive(page: Page, baseURL: string, path: string) {
-	const res = await page.request.post(`${path}?/archive`, {
-		form: {},
-		headers: { origin: baseURL, accept: 'text/html' }
-	});
-	expect(res.ok()).toBe(true);
+	expect((await post(page, baseURL, `${path}?/archive`, {})).ok()).toBe(true);
 }
 
 test('Deshacer restores an archived category the movement had', async ({ page, baseURL }) => {

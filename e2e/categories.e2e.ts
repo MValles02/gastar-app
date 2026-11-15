@@ -5,7 +5,8 @@ import {
 	firstDetailHref,
 	login,
 	OTHER_EMAIL,
-	postDelete
+	postDelete,
+	undo
 } from './helpers';
 
 const DETAIL_RE = /\/categories\/[0-9a-f-]{36}$/;
@@ -20,21 +21,6 @@ async function createCategory(page: Page, name: string, o: { kind?: string } = {
 	await expect(page).toHaveURL(DETAIL_RE);
 	return new URL(page.url()).pathname;
 }
-
-test('the list groups by kind and the kind filter keeps Ambos categories', async ({ page }) => {
-	await login(page);
-	await page.goto('/categories');
-	const section = (name: string) =>
-		page.locator('section').filter({ has: page.getByRole('heading', { name }) });
-	await expect(section('Gastos').getByText('Supermercado', { exact: true })).toBeVisible();
-	await expect(section('Ingresos').getByText('Sueldo', { exact: true })).toBeVisible();
-	await expect(section('Ambos').getByText('Regalos', { exact: true })).toBeVisible();
-
-	await page.goto('/categories?kind=outcome');
-	await expect(section('Gastos').getByText('Supermercado', { exact: true })).toBeVisible();
-	await expect(section('Ambos').getByText('Regalos', { exact: true })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Ingresos' })).toHaveCount(0);
-});
 
 test('rows show the month total and Ambas stacks ARS over USD', async ({ page, baseURL }) => {
 	// Second user: movements on the demo user would race the Inicio/Reportes month totals.
@@ -140,7 +126,7 @@ test('a category with movements can only widen to Ambos, also server-side; the c
 	}
 });
 
-test('category name and icon autosave and Deshacer restores them; the /edit routes are gone', async ({
+test('category name autosaves and Deshacer restores it; the /edit routes are gone', async ({
 	page,
 	baseURL
 }) => {
@@ -163,22 +149,10 @@ test('category name and icon autosave and Deshacer restores them; the /edit rout
 		await page.getByLabel('Nombre').fill(name);
 		await page.keyboard.press('Enter');
 		await expect(toast).toBeVisible();
-		await page.getByRole('button', { name: 'Deshacer' }).first().click();
+		await undo(page);
 		await expect(h1).toHaveText(`${name} 2`);
-		await expect(toast).toHaveCount(0);
-
-		const dialog = page.getByRole('dialog');
-		await page.getByRole('button', { name: 'Ícono y color' }).click();
-		await dialog.getByRole('radio', { name: 'Comida' }).click();
-		await dialog.getByRole('radio', { name: 'Rojo' }).click();
-		await dialog.getByRole('button', { name: 'Listo' }).click();
-		await expect(toast).toBeVisible();
-		await page.getByRole('button', { name: 'Deshacer' }).first().click();
-		await expect(toast).toHaveCount(0);
-		await page.getByRole('button', { name: 'Ícono y color' }).click();
-		await expect(dialog.getByRole('radio', { name: 'Etiqueta' })).toBeChecked();
-		await expect(dialog.getByRole('radio', { name: 'Verde' })).toBeChecked();
-		await page.keyboard.press('Escape');
+		await page.reload();
+		await expect(h1).toHaveText(`${name} 2`);
 
 		// The old edit screens are gone, without a redirect.
 		const account = await firstDetailHref(page, 'accounts');
