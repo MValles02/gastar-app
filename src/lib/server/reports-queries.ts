@@ -4,10 +4,10 @@ import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
 import { canAccessCategory, canAccessMovement } from './access';
 import { inRange, isIncomeOrOutcome, sumOfType, type Range } from './dashboard-queries';
-import { TZ } from './month';
+import { APP_TZ } from '$lib/locale';
 
 // sql.raw: a bound parameter would make SELECT and GROUP BY expressions differ.
-const localMonth = sql<string>`to_char(${movements.occurredAt} at time zone ${sql.raw(`'${TZ}'`)}, 'YYYY-MM')`;
+const localMonth = sql<string>`to_char(${movements.occurredAt} at time zone ${sql.raw(`'${APP_TZ}'`)}, 'YYYY-MM')`;
 
 /** Per local month income and outcome in one currency; transfers never count. */
 export function monthlyFlows(userId: string, cur: Currency, range: Range) {

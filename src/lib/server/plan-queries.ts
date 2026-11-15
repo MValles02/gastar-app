@@ -32,12 +32,15 @@ import {
 	planOwnedBy,
 	recurringOwnedBy
 } from './access';
-import { CURRENCIES, type Currency } from '$lib/money';
+import { dayOfMonth } from '$lib/dates';
+import { APP_TZ } from '$lib/locale';
+import { CURRENCIES, roundToStep, type Currency } from '$lib/money';
+import { PLAN_CURRENCY } from '$lib/plan';
 import type { MovementRow } from './movements';
 import type { DbExecutor } from './movements-queries';
-import type { MovementType } from './dashboard';
-import { currentMonth, daysInMonth, HISTORY_MONTHS, localDay, monthRange, TZ } from './month';
-import { activeTotal, isCurrentPlan, normalizeDescription, PLAN_CURRENCY, toPlan } from './plan';
+import type { MovementType } from '$lib/movement';
+import { currentMonth, daysInMonth, HISTORY_MONTHS, localDay, monthRange } from './month';
+import { activeTotal, isCurrentPlan, normalizeDescription, toPlan } from './plan';
 
 type Range = { start: Date; end: Date };
 
@@ -47,8 +50,8 @@ const occurredIn = (range: Range) =>
 const ownRule = (userId: string, id: string) =>
 	and(eq(recurringMovements.id, id), canAccessRecurring(userId));
 
-// TZ is inlined as a literal: a bound parameter makes SELECT and GROUP BY different expressions.
-const tzLiteral = sql.raw(`'${TZ}'`);
+// APP_TZ is inlined as a literal: a bound parameter makes SELECT and GROUP BY different expressions.
+const tzLiteral = sql.raw(`'${APP_TZ}'`);
 const localMonth = sql<string>`to_char(${movements.occurredAt} at time zone ${tzLiteral}, 'YYYY-MM')`;
 
 export type RecurringInput = {
@@ -163,10 +166,6 @@ export function updateRecurring(userId: string, id: string, row: RecurringInput)
 		.returning({ id: recurringMovements.id });
 }
 
-/** The rule amount a linked charge gives: ARS rules are whole pesos (round half up); USD follows the charge to the cent. */
-const ruleAmountFor = (currency: Currency, amount: number) =>
-	currency === 'ARS' ? Math.floor((amount + 50) / 100) * 100 : amount;
-
 /** Locks the user's rules `ids` in id order (one order everywhere, so two relinks cannot deadlock). */
 export async function lockRules(tx: DbExecutor, userId: string, ids: string[]) {
 	await tx
@@ -203,7 +202,7 @@ export async function unlinkRevert(tx: DbExecutor, userId: string, id: string) {
 		.from(recurringMovements)
 		.where(ownRule(userId, m.recurringId))
 		.for('update');
-	if (!rule || rule.previousAmount === null || rule.amount !== ruleAmountFor(m.currency, m.amount))
+	if (!rule || rule.previousAmount === null || rule.amount !== roundToStep(m.amount, m.currency))
 		return;
 	const [{ latest }] = await tx
 		.select({ latest: sql<string | null>`max(${localMonth})` })
@@ -221,7 +220,7 @@ export async function unlinkRevert(tx: DbExecutor, userId: string, id: string) {
 		.where(
 			and(eq(movements.recurringId, m.recurringId), ne(movements.id, id), canAccessMovement(userId))
 		);
-	if (others.some((o) => ruleAmountFor(o.currency, o.amount) === rule.amount)) return;
+	if (others.some((o) => roundToStep(o.amount, o.currency) === rule.amount)) return;
 	await tx
 		.update(recurringMovements)
 		.set({ amount: rule.previousAmount, previousAmount: null, updatedAt: new Date() })
@@ -248,7 +247,7 @@ export async function linkRuleFor(
 	if (m.type === 'transfer') return null;
 	const local = localDay(m.occurredAt);
 	const ym = local.slice(0, 7);
-	const day = Number(local.slice(8, 10));
+	const day = dayOfMonth(local);
 	const [account] = await tx
 		.select({ currency: financialAccounts.currency })
 		.from(financialAccounts)
@@ -301,7 +300,7 @@ export async function linkRuleFor(
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
 		.where(and(eq(movements.recurringId, rule.id), canAccessMovement(userId)));
-	const target = ruleAmountFor(account.currency, m.amount);
+	const target = roundToStep(m.amount, account.currency);
 	// Only payments update the rule: an income (a salary paid in parts) never changes its amount.
 	if (
 		m.type === 'outcome' &&

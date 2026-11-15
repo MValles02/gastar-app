@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
-import { PLAN_CURRENCY } from '$lib/server/plan';
+import { PLAN_CURRENCY } from '$lib/plan';
 import { currentPlan, planIncome, updatePlan } from '$lib/server/plan-queries';
 import { savingsBaseline } from '$lib/server/plan-view';
 import { requireUser } from '$lib/server/require-user';
@@ -12,7 +12,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const plan = await currentPlan(userId);
 	if (!plan) redirect(303, '/plan');
 	return {
-		currency: PLAN_CURRENCY,
 		...(await savingsBaseline(userId)),
 		income: await planIncome(userId),
 		savings: plan.savings,

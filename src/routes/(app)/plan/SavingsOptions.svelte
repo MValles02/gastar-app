@@ -2,9 +2,15 @@
 	import { untrack } from 'svelte';
 	import Check from '@lucide/svelte/icons/check';
 	import { autosave } from '$lib/autosave';
-	import { formatAmountInput, formatMoney, parseAmount, type Currency } from '$lib/money';
+	import {
+		currencyStep,
+		formatAmountInput,
+		formatMoney,
+		parseAmount,
+		type Currency
+	} from '$lib/money';
 	import { formatPercentInput } from '$lib/locale';
-	import { savingsFromPercent } from '$lib/savings';
+	import { PLAN_CURRENCY, SAVINGS_PERCENT_MAX, savingsFromPercent } from '$lib/plan';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import TextRow from '$lib/components/TextRow.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -17,7 +23,6 @@
 	 */
 	let {
 		income,
-		currency,
 		initial,
 		error,
 		mode = 'form',
@@ -26,7 +31,6 @@
 		path = '/plan/savings?/update'
 	}: {
 		income: number;
-		currency: Currency;
 		initial: { savings: number; savingsPercent: number | null };
 		error?: string;
 		mode?: 'form' | 'autosave';
@@ -35,6 +39,8 @@
 		daysLeft?: number;
 		path?: string;
 	} = $props();
+
+	const currency = PLAN_CURRENCY as Currency;
 
 	/** The option, unit and value text a stored plan maps to. */
 	function fromStored(savings: number, p: number | null) {
@@ -66,7 +72,7 @@
 
 	/** Left to spend per day with `savings` set aside; rounds like the plan's own per-day figure. */
 	const perDay = (savings: number) => {
-		const step = currency === 'ARS' ? 100 : 1;
+		const step = currencyStep(currency);
 		const left = base - savings;
 		return left > 0 ? Math.floor(left / daysLeft / step) * step : 0;
 	};
@@ -77,7 +83,8 @@
 	const formOther = $derived.by(() => {
 		const v = parseAmount(value);
 		if (v === null || v < 0) return null;
-		if (unit === 'percent') return v > 0 && v <= 10000 ? savingsFromPercent(income, v) : null;
+		if (unit === 'percent')
+			return v > 0 && v <= SAVINGS_PERCENT_MAX ? savingsFromPercent(income, v) : null;
 		return v;
 	});
 

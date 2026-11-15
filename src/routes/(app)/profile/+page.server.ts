@@ -4,13 +4,8 @@ import { userNameError } from '$lib/server/auth-forms';
 import { PREFERENCE_COOKIE_OPTIONS, THEME_COOKIE } from '$lib/server/cookies';
 import { profileCounts } from '$lib/server/profile-queries';
 import { requireUser } from '$lib/server/require-user';
+import { isTheme, type Theme } from '$lib/theme';
 import type { Actions, PageServerLoad } from './$types';
-
-const THEMES = ['light', 'dark', 'system'] as const;
-type Theme = (typeof THEMES)[number];
-
-const isTheme = (value: unknown): value is Theme =>
-	typeof value === 'string' && (THEMES as readonly string[]).includes(value);
 
 const parseTheme = (value: string | undefined): Theme => (isTheme(value) ? value : 'system');
 

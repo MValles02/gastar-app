@@ -7,7 +7,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Calendar } from '$lib/components/ui/calendar/index.js';
 	import * as Item from '$lib/components/ui/item/index.js';
-	import { formatDay } from '$lib/locale';
+	import { APP_TZ, formatDay } from '$lib/locale';
 
 	/**
 	 * Movement date row. The drawer lists Hoy and Ayer (one tap picks and closes) and "Otra fecha", which
@@ -46,9 +46,8 @@
 
 	onMount(() => (mounted = true));
 
-	const TZ = 'America/Argentina/Buenos_Aires';
-	const todayYmd = today(TZ).toString();
-	const yesterdayYmd = today(TZ).subtract({ days: 1 }).toString();
+	const todayYmd = today(APP_TZ).toString();
+	const yesterdayYmd = today(APP_TZ).subtract({ days: 1 }).toString();
 	const dm = (ymd: string) => `${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
 
 	// An invalid value (e.g. an echoed bad date) is shown as empty until a day is picked.

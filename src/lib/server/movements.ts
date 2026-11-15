@@ -1,5 +1,6 @@
-import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
-import { MOVEMENT_MESSAGES as MSG } from '$lib/movement-messages';
+import { MIN_DAY } from '$lib/dates';
+import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
+import { MOVEMENT_MESSAGES as MSG, MOVEMENT_TYPES, type MovementType } from '$lib/movement';
 import {
 	ARS_WHOLE_MESSAGE,
 	convertAmount,
@@ -10,7 +11,6 @@ import {
 	parseAmount
 } from '$lib/money';
 import { isUuid } from './db/util';
-import type { MovementType } from './dashboard';
 import { dayStart, localDay } from './month';
 
 export type MovementData = {
@@ -46,8 +46,6 @@ type MovementResolveResult =
 
 export const UNAVAILABLE_MESSAGE = 'La cuenta o la categoría ya no está disponible.';
 
-/** Earliest movement date (the form's date input uses the same `min`). */
-const MIN_DAY = '2000-01-01';
 // A longer search term cannot match any description, so it is dropped.
 const QUERY_MAX_LENGTH = DESCRIPTION_MAX_LENGTH;
 const MAX_PAGE = 10000;
@@ -58,8 +56,6 @@ const validDay = (s: string) => YMD_RE.test(s) && s < '9999' && dayStart(s) !== 
 
 export const kindMismatchMessage = (kind: 'income' | 'outcome') => MSG.kindMismatch[kind];
 
-const TYPES: MovementType[] = ['income', 'outcome', 'transfer'];
-
 export function parseMovementForm(fd: FormData): MovementFormResult {
 	const values: Record<string, string> = {};
 	for (const k of FIELDS) {
@@ -68,7 +64,7 @@ export function parseMovementForm(fd: FormData): MovementFormResult {
 	}
 	const errors: MovementFormErrors = {};
 
-	const type = TYPES.find((t) => t === values.type);
+	const type = MOVEMENT_TYPES.find((t) => t === values.type);
 	if (!type) errors.type = MSG.type;
 
 	const day = values.occurredAt;
@@ -227,7 +223,7 @@ export function parseMovementFilters(sp: URLSearchParams) {
 		q: q.length > QUERY_MAX_LENGTH ? '' : q,
 		from,
 		to,
-		type: TYPES.find((t) => t === get('type')) ?? '',
+		type: MOVEMENT_TYPES.find((t) => t === get('type')) ?? '',
 		account: uuids('account'),
 		category: uuids('category'),
 		currency: CURRENCIES.find((c) => c === get('currency')) ?? ''

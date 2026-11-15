@@ -1,10 +1,7 @@
-import { formatDay, LOCALE } from '$lib/locale';
+import { DAY_MS, dayOfMonth, MONTH_RE } from '$lib/dates';
+import { APP_TZ, formatDay, LOCALE } from '$lib/locale';
 
-export const TZ = 'America/Argentina/Buenos_Aires';
-
-const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const DAY_RE = /^(\d{4}-(?:0[1-9]|1[0-2]))-\d{2}$/;
-const DAY_MS = 86_400_000;
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -17,9 +14,9 @@ export function parseMonth(raw: string | null, now: Date): string {
 	return raw !== null && MONTH_RE.test(raw) ? raw : current;
 }
 
-/** UTC offset of TZ at the given instant, e.g. "-03:00". */
+/** UTC offset of APP_TZ at the given instant, e.g. "-03:00". */
 function offsetAt(probe: Date): string {
-	const name = new Intl.DateTimeFormat('en-US', { timeZone: TZ, timeZoneName: 'longOffset' })
+	const name = new Intl.DateTimeFormat('en-US', { timeZone: APP_TZ, timeZoneName: 'longOffset' })
 		.formatToParts(probe)
 		.find((p) => p.type === 'timeZoneName')!.value;
 	return name === 'GMT' ? '+00:00' : name.slice(3);
@@ -46,7 +43,7 @@ export function daysInMonth(ym: string): number {
 /** Day of `ym` that counts as "today": today's day in the current month, the last day for past months, 0 for future ones. */
 export function elapsedDays(ym: string, todayYmd: string): number {
 	const todayYm = todayYmd.slice(0, 7);
-	if (ym === todayYm) return Number(todayYmd.slice(8, 10));
+	if (ym === todayYm) return dayOfMonth(todayYmd);
 	return ym < todayYm ? daysInMonth(ym) : 0;
 }
 
@@ -107,10 +104,10 @@ export function dayStart(ymd: string): Date | null {
 	return null;
 }
 
-/** "YYYY-MM-DD" of a Date in TZ. */
+/** "YYYY-MM-DD" of a Date in APP_TZ. */
 export function localDay(d: Date): string {
 	return new Intl.DateTimeFormat('en-CA', {
-		timeZone: TZ,
+		timeZone: APP_TZ,
 		year: 'numeric',
 		month: '2-digit',
 		day: '2-digit'

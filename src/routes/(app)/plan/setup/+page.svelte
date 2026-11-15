@@ -16,6 +16,7 @@
 	import SwitchRow from '$lib/components/SwitchRow.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import { openShallow } from '$lib/open-shallow';
+	import { PLAN_CURRENCY } from '$lib/plan';
 	import { WIZARD_STEPS } from '$lib/plan-wizard';
 	import LimitList from '../LimitList.svelte';
 	import RecurringRow from '../RecurringRow.svelte';
@@ -105,7 +106,7 @@
 					<span>Total</span>
 					<Money
 						cents={income ? total : -total}
-						currency={data.currency}
+						currency={PLAN_CURRENCY}
 						tone="flow"
 						direction={income ? 'income' : 'outcome'}
 					/>
@@ -159,7 +160,6 @@
 			<Card.Root class="gap-0 py-2">
 				<SavingsOptions
 					income={data.income}
-					currency={data.currency}
 					initial={data.savings}
 					base={data.savingsBase.base}
 					daysLeft={data.savingsBase.daysLeft}
@@ -169,7 +169,7 @@
 			{#if data.income === 0}
 				<p class="warn">
 					<CircleAlert size={18} strokeWidth={1.75} aria-hidden="true" />Sin ingresos fijos, el plan
-					da {formatMoney(0, data.currency)} por día.
+					da {formatMoney(0, PLAN_CURRENCY)} por día.
 				</p>
 			{/if}
 			{@render bar('Siguiente')}
@@ -194,18 +194,18 @@
 				<div class="kv">
 					<dt>Ingresos</dt>
 					<dd>
-						<Money cents={s.income} currency={data.currency} tone="flow" direction="income" />
+						<Money cents={s.income} currency={PLAN_CURRENCY} tone="flow" direction="income" />
 					</dd>
 				</div>
 				<div class="kv">
 					<dt>Pagos fijos</dt>
 					<dd>
-						<Money cents={-s.bills} currency={data.currency} tone="flow" direction="outcome" />
+						<Money cents={-s.bills} currency={PLAN_CURRENCY} tone="flow" direction="outcome" />
 					</dd>
 				</div>
 				<div class="kv">
 					<dt>Ahorro</dt>
-					<dd><Money cents={s.savings} currency={data.currency} /></dd>
+					<dd><Money cents={s.savings} currency={PLAN_CURRENCY} /></dd>
 				</div>
 				{#each s.limits as l (l.categoryId)}
 					<div class="kv">
@@ -220,11 +220,11 @@
 				{/each}
 				<div class="kv sum">
 					<dt>Para gastar</dt>
-					<dd><Money cents={s.forSpending} currency={data.currency} /></dd>
+					<dd><Money cents={s.forSpending} currency={PLAN_CURRENCY} /></dd>
 				</div>
 				<div class="kv">
 					<dt>Por día</dt>
-					<dd>≈ <Money cents={perDay} currency={data.currency} /></dd>
+					<dd>≈ <Money cents={perDay} currency={PLAN_CURRENCY} /></dd>
 				</div>
 			</dl>
 		</Card.Root>

@@ -4,6 +4,7 @@ import { PREFERENCE_COOKIE_OPTIONS } from '$lib/server/cookies';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import type { Actions, PageServerLoad } from './$types';
 import { TOAST_FLAGS } from '$lib/url-flags';
+import { dayOfMonth } from '$lib/dates';
 import { localDay } from '$lib/server/month';
 import { parseMovementForm } from '$lib/server/movements';
 import { createMovement } from '$lib/server/movements-queries';
@@ -103,7 +104,7 @@ export const actions: Actions = {
 					amount: resolved.row.amount,
 					accountId: resolved.row.accountId,
 					categoryId,
-					dayOfMonth: Number(localDay(resolved.row.occurredAt).slice(8, 10))
+					dayOfMonth: dayOfMonth(localDay(resolved.row.occurredAt))
 				}));
 			} else {
 				[{ id: movementId }] = await createMovement(userId, resolved.row);

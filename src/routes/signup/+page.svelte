@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { PASSWORD_MIN_MESSAGE, USER_NAME_MAX_LENGTH } from '$lib/fields';
 	import AuthForm from '$lib/components/AuthForm.svelte';
 	import AuthPage from '$lib/components/AuthPage.svelte';
 	import AuthTabs from '$lib/components/AuthTabs.svelte';
@@ -32,7 +33,7 @@
 					type="text"
 					name="name"
 					autocomplete="name"
-					maxlength={80}
+					maxlength={USER_NAME_MAX_LENGTH}
 					value={form?.name ?? ''}
 					required
 					aria-invalid={form?.errors?.name ? true : undefined}
@@ -72,7 +73,7 @@
 				{#if form?.errors?.password}
 					<Field.Error id="password-hint">{form.errors.password}</Field.Error>
 				{:else}
-					<Field.Description id="password-hint">Mínimo 8 caracteres.</Field.Description>
+					<Field.Description id="password-hint">{PASSWORD_MIN_MESSAGE}</Field.Description>
 				{/if}
 			</Field.Field>
 

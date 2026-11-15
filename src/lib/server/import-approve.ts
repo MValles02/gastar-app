@@ -1,4 +1,4 @@
-import type { MovementType } from './dashboard';
+import type { MovementType } from '$lib/movement';
 import type { MovementData } from './movements';
 import {
 	approveImport,

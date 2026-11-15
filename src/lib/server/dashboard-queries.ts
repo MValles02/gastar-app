@@ -5,7 +5,7 @@ import { alias } from 'drizzle-orm/pg-core';
 import { db } from './db';
 import { categories, financialAccounts, movements, spendingPlans } from './db/schema';
 import { canAccessAccount, canAccessCategory, canAccessMovement, canAccessPlan } from './access';
-import { PLAN_CURRENCY } from './plan';
+import { PLAN_CURRENCY } from '$lib/plan';
 
 export type Range = { start: Date; end: Date };
 

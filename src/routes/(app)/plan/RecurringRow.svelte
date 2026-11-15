@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
-	import { dueTone, type RecurringStatus } from '$lib/plan';
+	import { dueTone, PLAN_CURRENCY, type RecurringStatus } from '$lib/plan';
 	import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
 	import type { Currency } from '$lib/money';
 
@@ -42,7 +42,7 @@
 		<span class="approx">
 			{#if r.converted === null}Sin cotización{:else}≈ <Money
 					cents={r.converted}
-					currency="ARS"
+					currency={PLAN_CURRENCY}
 				/>{/if}
 		</span>
 	{/if}

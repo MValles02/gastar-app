@@ -16,7 +16,8 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { followRedirect } from '$lib/nav-stack.svelte';
-	import { NAME_MAX_LENGTH } from '$lib/limits';
+	import { NAME_MAX_LENGTH } from '$lib/fields';
+	import { KIND_OPTIONS } from '$lib/movement';
 	import { CATEGORY_ICONS, toCategoryIconKey } from '$lib/appearance';
 	import * as Field from '$lib/components/ui/field/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -50,11 +51,7 @@
 	} = $props();
 
 	const drawer = $derived(variant === 'drawer');
-	const kindOptions = [
-		{ value: 'outcome', label: 'Gastos' },
-		{ value: 'income', label: 'Ingresos' },
-		{ value: '', label: 'Ambos' }
-	];
+	const kindOptions = [...KIND_OPTIONS, { value: '', label: 'Ambos' }];
 
 	let name = $state(untrack(() => initial.name ?? ''));
 	let color = $state(untrack(() => (initial.color ?? 'green') as SwatchKey));

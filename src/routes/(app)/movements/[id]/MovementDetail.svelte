@@ -5,7 +5,8 @@
 	import { refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { autosave, submitAction } from '$lib/autosave';
-	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
+	import { MIN_DAY } from '$lib/dates';
+	import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
 	import { navigateUp, upOnClick } from '$lib/nav-stack.svelte';
 	import { formatAmountInput, formatMoney } from '$lib/money';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
@@ -267,7 +268,7 @@
 				<MovementDatePicker
 					name="occurredAt"
 					label="Fecha"
-					min="2000-01-01"
+					min={MIN_DAY}
 					bind:value={() => values.occurredAt, (v) => void saveField('occurredAt', v)}
 					plain
 					nested={drawer}
