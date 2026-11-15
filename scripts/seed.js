@@ -31,7 +31,6 @@ if (process.env.SEED_ALLOW_REMOTE === '1') {
 }
 // When set, seeds this already-existing user instead of creating the demo users.
 const existingEmail = (process.env.SEED_EXISTING_USER || '').trim().toLowerCase();
-// The demo users need a password; SEED_EXISTING_USER mode never sets one.
 if (!password && !existingEmail) {
 	console.error('SEED_PASSWORD is not set: set it in .env (see .env.example) or the environment');
 	process.exit(1);
@@ -309,7 +308,6 @@ async function deleteAppData(tx, id) {
 	await tx`delete from financial_accounts where owner_id = ${id}`;
 }
 
-// Removes a seeded user and everything they own.
 async function deleteUserData(tx, id) {
 	await deleteAppData(tx, id);
 	await tx`delete from session where user_id = ${id}`;
