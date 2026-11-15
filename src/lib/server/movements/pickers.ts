@@ -1,7 +1,28 @@
-import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
+import { categoryLook } from '#lib/appearance.ts';
+import type { Currency } from '#lib/money.ts';
+import type { MovementType } from '#lib/movement.ts';
 import { accountOption, getAccount, listAccounts } from '../accounts/queries';
 import { getCategory, listCategories } from '../categories/queries';
 import { type KeptRefs, type MovementData, resolveMovement } from './form';
+
+type Row = { id: string; name: string; icon: string | null; color: string | null };
+
+/** An account as a picker item; `meta` is the shown label, `currency` the one to compute with. */
+export const accountItem = (a: Row & { currency: Currency; archivedAt: Date | null }) => ({
+	...accountOption(a),
+	meta: a.currency,
+	currency: a.currency,
+	archived: a.archivedAt !== null
+});
+
+/** A category as a picker item (unknown icon → the generic glyph). */
+export const categoryItem = (c: Row & { kind: MovementType | null; archivedAt: Date | null }) => ({
+	id: c.id,
+	name: c.name,
+	...categoryLook(c),
+	kind: c.kind,
+	archived: c.archivedAt !== null
+});
 
 /** Picker items: active accounts and categories, plus the archived ones in `keep` (edit). */
 export async function movementPickers(userId: string, keep?: KeptRefs) {
@@ -13,22 +34,10 @@ export async function movementPickers(userId: string, keep?: KeptRefs) {
 	return {
 		accounts: accountRows
 			.filter((a) => !a.archivedAt || keep?.accountIds.includes(a.id))
-			.map((a) => ({
-				...accountOption(a),
-				meta: a.currency,
-				currency: a.currency,
-				archived: a.archivedAt !== null
-			})),
+			.map(accountItem),
 		categories: categoryRows
 			.filter((c) => !c.archivedAt || c.id === keep?.categoryId)
-			.map((c) => ({
-				id: c.id,
-				name: c.name,
-				icon: toCategoryIconKey(c.icon) ?? ('categories' as const),
-				color: toSwatchKey(c.color),
-				kind: c.kind,
-				archived: c.archivedAt !== null
-			}))
+			.map(categoryItem)
 	};
 }
 

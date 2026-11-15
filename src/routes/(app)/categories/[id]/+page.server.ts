@@ -1,13 +1,13 @@
 import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 import {
 	DELETE_REFERENCED_MESSAGE,
 	DUPLICATE_NAME_MESSAGE,
-	EDITABLE,
+	editedForm,
 	KIND_LOCKED_MESSAGE,
 	NOT_FOUND_MESSAGE,
-	parseCategoryForm
+	parseCategoryForm,
+	toFormValues
 } from '#lib/server/categories/form.ts';
 import {
 	categoryMonthNet,
@@ -21,7 +21,7 @@ import {
 	writeIfNameFree
 } from '#lib/server/categories/queries.ts';
 import { archiveActions, deleteUnlessReferenced, lifecycleState } from '#lib/server/lifecycle.ts';
-import { currentMonth, monthLabel, monthRange, parseMonth } from '#lib/server/month.ts';
+import { monthNav, monthParam, monthRange } from '#lib/server/month.ts';
 import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
 import { CATEGORY_KINDS, kindFits } from '#lib/movement.ts';
 
@@ -46,7 +46,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	requireId(params.id);
 	const detail = await categoryOf(userId, params.id);
 
-	const month = parseMonth(url.searchParams.get('month'), new Date());
+	// Any month, future ones included.
+	const month = monthParam(url, { clamp: false });
+	const nav = monthNav(month);
 	const [rows, referenced] = await Promise.all([
 		categoryMonthNet(userId, params.id, monthRange(month)),
 		isCategoryReferenced(userId, params.id)
@@ -54,7 +56,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	return {
 		...detail,
-		month: { label: monthLabel(month), isCurrent: month >= currentMonth(new Date()) },
+		values: toFormValues(detail.category),
+		month: { label: nav.label, isCurrent: nav.isCurrent },
 		nets: toCurrencyNets(rows),
 		actions: lifecycleState({ referenced, archived: detail.category.archived })
 	};
@@ -67,16 +70,7 @@ export const actions: Actions = {
 		requireId(params.id);
 		const { category: current } = await categoryOf(userId, params.id);
 		const posted = await request.formData();
-		const fd = new FormData();
-		fd.set('name', current.name);
-		fd.set('icon', toCategoryIconKey(current.icon) ?? '');
-		fd.set('color', toSwatchKey(current.color) ?? 'green');
-		fd.set('kind', current.kind ?? '');
-		for (const k of EDITABLE) {
-			const v = posted.get(k);
-			if (typeof v === 'string') fd.set(k, v);
-		}
-		const parsed = parseCategoryForm(fd);
+		const parsed = parseCategoryForm(editedForm(current, posted));
 		if (!parsed.ok) return formFail(400, { values: parsed.values, errors: parsed.errors });
 
 		// Only a kind change is checked: a legacy category can still be renamed or recoloured.

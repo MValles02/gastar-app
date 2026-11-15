@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { NEW_MOVEMENT_PATH } from '#lib/movement.ts';
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
 	import { undoMovementSaved } from '#lib/undo-toast.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -21,7 +22,7 @@
 		// Not /movements/new itself: that is the ?saved=1 redirect after saving.
 		if (
 			from &&
-			from.url.pathname !== '/movements/new' &&
+			from.url.pathname !== NEW_MOVEMENT_PATH &&
 			path.startsWith('/') &&
 			!path.startsWith('//')
 		)

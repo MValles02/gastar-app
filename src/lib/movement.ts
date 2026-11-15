@@ -1,6 +1,12 @@
 import { AMOUNT_EXAMPLE } from './money';
 import { DESCRIPTION_TOO_LONG_MESSAGE } from './fields';
 
+/** The new-movement form's path (its own page, and the one a save never returns to). */
+export const NEW_MOVEMENT_PATH = '/movements/new';
+
+/** The single-valued movement list filters, as URL params (`account`/`category` repeat; `all`, `page` are not filters). */
+export const FILTER_PARAMS = ['q', 'from', 'to', 'type', 'currency'] as const;
+
 export const MOVEMENT_TYPES = ['income', 'outcome', 'transfer'] as const;
 export type MovementType = (typeof MOVEMENT_TYPES)[number];
 
