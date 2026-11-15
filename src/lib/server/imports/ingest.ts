@@ -1,10 +1,9 @@
 import { eq, sql } from 'drizzle-orm';
-import { userOwned } from './access';
-import { db } from './db';
-import { pgErrorCode } from './db/errors';
-import { mpImportItems } from './db/schema';
-import { autoApprovePending } from './import-approve';
-import { importSource, type SourceId } from './import-sources';
+import { userOwned } from '../access';
+import { db } from '../db';
+import { mpImportItems } from '../db/schema';
+import { autoApprovePending } from './approve';
+import { importSource, type SourceId } from './sources';
 
 const BATCH = 500;
 
@@ -22,8 +21,8 @@ const INSERTED = sql<boolean>`xmax = 0`;
 /**
  * The only writer of import items, and the only place that auto-approves afterwards: stores the rows as
  * pending items of `source` (an existing external key follows the source's conflict policy), then approves
- * every pending item a learned rule recognizes, also when `rows` is empty (items stored earlier still
- * count). Auto-approval never fails the import. Returns how many items are new and how many were approved.
+ * every pending item a learned rule recognizes (items stored earlier count too). Returns how many items
+ * are new and how many were approved.
  */
 export async function ingestImportItems(
 	userId: string,
@@ -58,11 +57,5 @@ export async function ingestImportItems(
 		created += written.filter((r) => r.inserted).length;
 	}
 
-	let autoApproved = 0;
-	try {
-		autoApproved = await autoApprovePending(userId);
-	} catch (e) {
-		console.error('[imports] auto-approve failed', pgErrorCode(e) ?? 'unknown');
-	}
-	return { created, autoApproved };
+	return { created, autoApproved: await autoApprovePending(userId) };
 }

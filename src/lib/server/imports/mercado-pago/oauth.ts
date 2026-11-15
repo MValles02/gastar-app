@@ -1,16 +1,12 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
-import { and, eq, isNotNull, isNull, lt, min } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import * as env from '$app/env/private';
-import { canAccessAccount, canAccessOwn, userOwned } from './access';
-import { db } from './db';
-import { financialAccounts, mpConnections, mpImportItems, mpSyncState } from './db/schema';
-import { mpApiBaseUrl } from './mp-env';
-import { DAY_MS } from '#lib/dates.ts';
-import { localDay } from './month';
+import { canAccessOwn, userOwned } from '../../access';
+import { db } from '../../db';
+import { mpConnections, mpSyncState } from '../../db/schema';
+import { mpApiBaseUrl } from './env';
 
 const DEFAULT_AUTH_BASE_URL = 'https://auth.mercadopago.com';
-/** How far back a first sync reaches when the user has not chosen an "importar desde" day. */
-export const DEFAULT_BACKFILL_DAYS = 30;
 const TOKEN_TIMEOUT_MS = 15_000;
 const FORMAT = 'v1:';
 
@@ -214,42 +210,7 @@ export async function refreshConnection(userId: string): Promise<RefreshOutcome>
 	return 'ok';
 }
 
-// --- Connection queries (tokens never leave this module except through getAccessToken) ---
-
-type MpConnectionInfo = {
-	accountId: string | null;
-	accountName: string | null;
-	needsReconnect: boolean;
-};
-
-/** The user's connection without any token, or null when not linked. */
-export async function getConnectionInfo(userId: string): Promise<MpConnectionInfo | null> {
-	const [row] = await db
-		.select({
-			accountId: mpConnections.accountId,
-			accountName: financialAccounts.name,
-			needsReconnect: mpConnections.needsReconnect
-		})
-		.from(mpConnections)
-		.leftJoin(financialAccounts, eq(financialAccounts.id, mpConnections.accountId))
-		.where(canAccessOwn(userId, mpConnections))
-		.limit(1);
-	return row ?? null;
-}
-
-/** The account the user's Mercado Pago connection feeds (also while a reconnect is pending), else null. */
-export async function getMpImportAccount(userId: string) {
-	const conn = await getConnectionInfo(userId);
-	return conn?.accountId ? { id: conn.accountId, name: conn.accountName ?? '' } : null;
-}
-
-/** How the user's Mercado Pago connection stands: linked, needing a reconnect, or not linked. */
-export async function mpLinkState(userId: string): Promise<'linked' | 'reconnect' | 'unlinked'> {
-	const conn = await getConnectionInfo(userId);
-	if (conn?.needsReconnect) return 'reconnect';
-	if (conn?.accountId) return 'linked';
-	return 'unlinked';
-}
+// --- Stored tokens (they never leave this module except through getAccessToken) ---
 
 /**
  * Decrypted access token and expiry for the sync, or null when not linked or the token cannot be decrypted
@@ -283,70 +244,6 @@ export async function listUsableConnections(): Promise<string[]> {
 		.from(mpConnections)
 		.where(and(isNotNull(mpConnections.accountId), eq(mpConnections.needsReconnect, false)));
 	return rows.map((r) => r.userId);
-}
-
-/** The user's active ARS accounts, the only valid receiving accounts. */
-export async function listReceivingAccounts(userId: string) {
-	return db
-		.select({
-			id: financialAccounts.id,
-			name: financialAccounts.name,
-			icon: financialAccounts.icon,
-			color: financialAccounts.color
-		})
-		.from(financialAccounts)
-		.where(
-			and(
-				canAccessAccount(userId),
-				eq(financialAccounts.currency, 'ARS'),
-				isNull(financialAccounts.archivedAt)
-			)
-		)
-		.orderBy(financialAccounts.name);
-}
-
-/** Saves the receiving account. False when the account is not the user's, active and ARS, or there is no connection. */
-export async function setReceivingAccount(userId: string, accountId: string): Promise<boolean> {
-	if (!(await listReceivingAccounts(userId)).some((a) => a.id === accountId)) return false;
-	const rows = await db
-		.update(mpConnections)
-		.set({ accountId })
-		.where(canAccessOwn(userId, mpConnections))
-		.returning({ userId: mpConnections.userId });
-	return rows.length > 0;
-}
-
-/** The effective "importar desde" day (`YYYY-MM-DD`): the chosen one, else the earliest imported item's day, else 30 days back. */
-export async function getImportFromDay(userId: string, accountId: string): Promise<string> {
-	const [row] = await db
-		.select({ chosen: mpConnections.importFrom })
-		.from(mpConnections)
-		.where(canAccessOwn(userId, mpConnections))
-		.limit(1);
-	if (row?.chosen) return localDay(row.chosen);
-	const [first] = await db
-		.select({ at: min(mpImportItems.occurredAt) })
-		.from(mpImportItems)
-		.where(and(canAccessOwn(userId, mpImportItems), eq(mpImportItems.accountId, accountId)));
-	return localDay(first?.at ?? new Date(Date.now() - DEFAULT_BACKFILL_DAYS * DAY_MS));
-}
-
-/** Saves "importar desde" and drops the pending items of the account before it (approved and rejected ones stay). */
-export async function setImportFrom(userId: string, accountId: string, from: Date): Promise<void> {
-	await db
-		.update(mpConnections)
-		.set({ importFrom: from })
-		.where(canAccessOwn(userId, mpConnections));
-	await db
-		.delete(mpImportItems)
-		.where(
-			and(
-				canAccessOwn(userId, mpImportItems),
-				eq(mpImportItems.accountId, accountId),
-				eq(mpImportItems.status, 'pending'),
-				lt(mpImportItems.occurredAt, from)
-			)
-		);
 }
 
 /** Deletes the connection. Items, rules and sync state stay. */

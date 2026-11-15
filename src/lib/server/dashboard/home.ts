@@ -8,9 +8,9 @@ import { hasAnyMovement } from '../movements/queries';
 import { hasAnyPlan } from '../plan/queries';
 import { currentMonth, dayHeading, localDay, monthLabel, monthRange } from '../month';
 import { planView } from '../plan/month-plan';
-import { pendingImportCount } from '../import-queries';
-import { getMpImportAccount, mpOauthEnabled } from '../mp-oauth';
-import { getGaliciaConnection } from '../galicia';
+import { pendingImportCount } from '../imports/store';
+import { getGaliciaConnection, getMpImportAccount } from '../imports/connections';
+import { mpOauthEnabled } from '../imports/mercado-pago/oauth';
 
 /** How many categories the home screen ranks. */
 const TOP_CATEGORIES = 3;

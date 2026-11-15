@@ -1,13 +1,15 @@
 import { and, eq, inArray, isNull, lt, max, or, sql } from 'drizzle-orm';
-import { db } from './db';
-import { financialAccounts, mpConnections, mpImportItems, mpSyncState } from './db/schema';
-import { canAccessAccount, canAccessOwn } from './access';
-import { batches, type ImportRow, ingestImportItems } from './import-ingest';
-import { KIND, SOURCE } from './import-sources';
-import { mpApiBaseUrl, reportPollMs } from './mp-env';
-import { DEFAULT_BACKFILL_DAYS, getAccessToken, refreshConnection } from './mp-oauth';
+import { db } from '../../db';
+import { financialAccounts, mpConnections, mpImportItems, mpSyncState } from '../../db/schema';
+import { canAccessAccount, canAccessOwn } from '../../access';
+import { autoApprovePending } from '../approve';
+import { batches, type ImportRow, ingestImportItems } from '../ingest';
+import { KIND, PAYMENT_KINDS, SOURCE } from '../sources';
+import { mpApiBaseUrl, reportPollMs } from './env';
+import { getAccessToken, refreshConnection } from './oauth';
+import { DEFAULT_BACKFILL_DAYS, MP_CURRENCY } from './settings';
 import { DAY_MS } from '#lib/dates.ts';
-import { dayStart, localDay } from './month';
+import { dayStart, localDay } from '../../month';
 
 /** Stored in mp_sync_state.last_error: a code only, never a message or payload. */
 type MpSyncError =
@@ -22,8 +24,6 @@ const END_LAG_MS = 5 * 60_000;
 const POLL_TIMEOUT_MS = 5 * 60_000;
 const PAGE = 1000; // payments/search max limit
 const AMOUNT_RE = /^-?\d+(?:[.,]\d{1,2})?$/;
-/** Kinds whose items come from payments/search; their latest date is where the next search starts. */
-const PAYMENT_KINDS = [KIND.payment, KIND.accountFund, KIND.refund];
 /** Refresh the token when it expires within this window (MP tokens last 180 days). */
 const REFRESH_WINDOW_MS = 30 * DAY_MS;
 /** A sync holds its lease this long without renewing it; a later one may take over. */
@@ -338,7 +338,7 @@ const REPORT_COLUMNS = [
  * Config created in an MP account that has none (the report create answers 404 without one). No
  * `scheduled`: MP ignores `frequency` unless scheduling is on. An empty `notification_email_list` keeps
  * extra recipients off MP's "report ready" email; MP mails the account owner on every report anyway, which
- * is why the scheduler requests it once a day (see mp-scheduler). `GMT-03` is Buenos Aires.
+ * is why the scheduler requests it once a day (see scheduler.ts). `GMT-03` is Buenos Aires.
  * `include_withdrawal_at_end` is on so a payout stamped at the very end of a range is never left out
  * (a repeat is harmless: the item key dedupes it).
  * `execute_after_withdrawal` is required: MP rejects a create without it; false means MP does not
@@ -714,7 +714,7 @@ async function execute(
 		return r.created;
 	};
 	try {
-		if (l.currency !== 'ARS') throw fail('config');
+		if (l.currency !== MP_CURRENCY) throw fail('config');
 		const stored = await getAccessToken(l.userId);
 		if (!stored) throw fail('reconnect');
 		let auth: Auth = { token: stored.token };
@@ -759,7 +759,7 @@ async function execute(
 		const { path, detail } = e as { path?: string; detail?: string };
 		console.error(`mp sync failed: ${code}`, path ?? '', detail ?? '');
 	}
-	if (!ok) await ingest([]);
+	if (!ok) autoApproved += await autoApprovePending(l.userId);
 	try {
 		await db
 			.update(mpSyncState)

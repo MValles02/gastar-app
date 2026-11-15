@@ -1,43 +1,18 @@
-import { and, eq, isNull } from 'drizzle-orm';
-import { db } from './db';
-import { financialAccounts, galiciaConnections } from './db/schema';
-import { canAccessAccount, canAccessOwn, userOwned } from './access';
-import { type ImportRow, ingestImportItems } from './import-ingest';
-import { KIND, kindSpec, SOURCE } from './import-sources';
-import { dayStart } from './month';
-import { StatementError, type Currency, type Statement } from './galicia-statement';
+import { CURRENCIES, type Currency } from '#lib/money.ts';
+import { db } from '../../db';
+import { galiciaConnections } from '../../db/schema';
+import { userOwned } from '../../access';
+import { dayStart } from '../../month';
+import { getGaliciaConnection, isActiveAccountIn } from '../connections';
+import { type ImportRow, ingestImportItems } from '../ingest';
+import { KIND, kindSpec, SOURCE } from '../sources';
+import { StatementError, type Statement } from './statement';
 
-/** Active accounts of one currency: the only ones a statement's lines can land on. */
-export function listStatementAccounts(userId: string, currency: Currency) {
-	return db
-		.select({
-			id: financialAccounts.id,
-			name: financialAccounts.name,
-			icon: financialAccounts.icon,
-			color: financialAccounts.color
-		})
-		.from(financialAccounts)
-		.where(
-			and(
-				canAccessAccount(userId),
-				eq(financialAccounts.currency, currency),
-				isNull(financialAccounts.archivedAt)
-			)
-		)
-		.orderBy(financialAccounts.name);
-}
+type GaliciaConnection = Awaited<ReturnType<typeof getGaliciaConnection>>;
 
-export async function getGaliciaConnection(userId: string) {
-	const [row] = await db
-		.select({
-			arsAccountId: galiciaConnections.arsAccountId,
-			usdAccountId: galiciaConnections.usdAccountId
-		})
-		.from(galiciaConnections)
-		.where(canAccessOwn(userId, galiciaConnections))
-		.limit(1);
-	return row;
-}
+/** The connection's account for one currency. */
+const accountFor = (conn: GaliciaConnection, c: Currency) =>
+	({ ARS: conn?.arsAccountId, USD: conn?.usdAccountId })[c];
 
 /** Saves the pesos or dollar account (creating the connection). False unless it is the user's, active and of that currency. */
 export async function setGaliciaAccount(
@@ -45,9 +20,8 @@ export async function setGaliciaAccount(
 	currency: Currency,
 	accountId: string
 ): Promise<boolean> {
-	if (!(await listStatementAccounts(userId, currency)).some((a) => a.id === accountId))
-		return false;
-	const set = currency === 'ARS' ? { arsAccountId: accountId } : { usdAccountId: accountId };
+	if (!(await isActiveAccountIn(userId, currency, accountId))) return false;
+	const set = { ARS: { arsAccountId: accountId }, USD: { usdAccountId: accountId } }[currency];
 	await db
 		.insert(galiciaConnections)
 		.values({ ...userOwned(userId), ...set })
@@ -73,25 +47,22 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 	const source = s.network === 'visa' ? SOURCE.galiciaVisa : SOURCE.galiciaMastercard;
 	const conn = await getGaliciaConnection(userId);
 	const accounts = {} as Record<Currency, string>;
-	for (const c of ['ARS', 'USD'] as const) {
+	for (const c of CURRENCIES) {
 		if (s.charges[c] === 0 && !s.consumos.some((l) => l.currency === c)) continue;
-		const id = c === 'ARS' ? conn?.arsAccountId : conn?.usdAccountId;
-		if (!id || !(await listStatementAccounts(userId, c)).some((a) => a.id === id))
-			return { ok: false, missing: c };
+		const id = accountFor(conn, c);
+		if (!id || !(await isActiveAccountIn(userId, c, id))) return { ok: false, missing: c };
 		accounts[c] = id;
 	}
-	const taxes: ImportRow[] = (['ARS', 'USD'] as const)
-		.filter((c) => s.charges[c] !== 0)
-		.map((c) => ({
-			accountId: accounts[c],
-			externalKey: ['galicia', s.network, 'taxes', s.numberHash, c].join(':'),
-			kind: KIND.cardTaxes,
-			occurredAt: day(s.closing),
-			amount: Math.abs(s.charges[c]),
-			isCredit: s.charges[c] < 0,
-			sourceId: '',
-			rawDescription: kindSpec(source, KIND.cardTaxes).title as string
-		}));
+	const taxes: ImportRow[] = CURRENCIES.filter((c) => s.charges[c] !== 0).map((c) => ({
+		accountId: accounts[c],
+		externalKey: ['galicia', s.network, 'taxes', s.numberHash, c].join(':'),
+		kind: KIND.cardTaxes,
+		occurredAt: day(s.closing),
+		amount: Math.abs(s.charges[c]),
+		isCredit: s.charges[c] < 0,
+		sourceId: '',
+		rawDescription: kindSpec(source, KIND.cardTaxes).title as string
+	}));
 
 	const seen = new Map<string, number>();
 	const rows: ImportRow[] = [];

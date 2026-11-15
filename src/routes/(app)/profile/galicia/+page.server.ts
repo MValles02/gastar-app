@@ -1,17 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { accountOption } from '#lib/server/accounts/queries.ts';
-import {
-	getGaliciaConnection,
-	importStatement,
-	listStatementAccounts,
-	setGaliciaAccount
-} from '#lib/server/galicia.ts';
+import { activeAccountsIn, getGaliciaConnection } from '#lib/server/imports/connections.ts';
+import { importStatement, setGaliciaAccount } from '#lib/server/imports/galicia/import.ts';
 import {
 	parseGaliciaStatement,
-	StatementError,
-	type StatementErrorCode
-} from '#lib/server/galicia-statement.ts';
+	STATEMENT_ERRORS,
+	StatementError
+} from '#lib/server/imports/galicia/statement.ts';
 import { pgErrorCode } from '#lib/server/db/errors.ts';
 import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import { requireUser } from '#lib/server/guards.ts';
@@ -19,13 +15,6 @@ import type { Actions, PageServerLoad } from './$types';
 
 /** Upload cap; the real statements are well under 1 MB. BODY_SIZE_LIMIT (Dockerfile) sits above it. */
 const MAX_BYTES = 5 * 1024 * 1024;
-
-const PARSE_ERRORS: Record<StatementErrorCode, string> = {
-	unreadable: 'No pudimos leer el PDF. Subí el resumen tal como lo descargaste de Galicia.',
-	too_many_pages: 'El PDF tiene demasiadas páginas para ser un resumen.',
-	not_galicia: 'Ese PDF no es un resumen de tarjeta de Banco Galicia.',
-	unbalanced: 'El resumen no cuadra con el total; no se importó nada.'
-};
 
 const ACCOUNT_ERRORS = {
 	ARS: 'Elegí una cuenta en pesos.',
@@ -36,8 +25,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const userId = requireUser(locals).id;
 	const [connection, ars, usd] = await Promise.all([
 		getGaliciaConnection(userId),
-		listStatementAccounts(userId, 'ARS'),
-		listStatementAccounts(userId, 'USD')
+		activeAccountsIn(userId, 'ARS'),
+		activeAccountsIn(userId, 'USD')
 	]);
 	return {
 		arsAccountId: connection?.arsAccountId ?? null,
@@ -74,13 +63,13 @@ export const actions: Actions = {
 
 		const bytes = new Uint8Array(await file.arrayBuffer());
 		if (new TextDecoder().decode(bytes.subarray(0, 5)) !== '%PDF-') {
-			return fail(400, { upload: PARSE_ERRORS.unreadable });
+			return fail(400, { upload: STATEMENT_ERRORS.unreadable });
 		}
 		let result;
 		try {
 			result = await importStatement(userId, await parseGaliciaStatement(bytes));
 		} catch (e) {
-			if (e instanceof StatementError) return fail(400, { upload: PARSE_ERRORS[e.code] });
+			if (e instanceof StatementError) return fail(400, { upload: STATEMENT_ERRORS[e.code] });
 			// Never log the statement itself: only that it failed and the DB code, if any.
 			console.error('[galicia] statement import failed', pgErrorCode(e) ?? 'unknown');
 			return fail(500, { upload: 'No se pudo importar el resumen. Probá de nuevo.' });

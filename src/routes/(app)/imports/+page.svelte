@@ -7,6 +7,7 @@
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import { afterNavigate, refreshAll } from '$app/navigation';
+	import { ALREADY_REVIEWED } from '#lib/imports.ts';
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Empty from '#lib/components/ui/empty/index.js';
@@ -34,7 +35,7 @@
 	const DONE_MESSAGES = {
 		approved: 'Movimiento aprobado.',
 		rejected: 'Movimiento descartado.',
-		stale: 'Ese movimiento ya fue revisado.'
+		stale: ALREADY_REVIEWED
 	};
 
 	const bulkMessage = $derived.by(() => {

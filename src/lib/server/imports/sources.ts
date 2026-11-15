@@ -1,3 +1,5 @@
+import { SOURCE_LABELS } from '#lib/imports.ts';
+
 /**
  * What each import source (Mercado Pago, a Banco Galicia card network) says about its items: the kinds it
  * produces, how a merchant is named, how its dates read and how a re-import treats an existing item.
@@ -17,6 +19,9 @@ export const KIND = {
 	cardTaxes: 'card_taxes'
 } as const;
 type Kind = (typeof KIND)[keyof typeof KIND];
+
+/** Kinds whose items come from payments/search; their latest date is where the next search starts. */
+export const PAYMENT_KINDS: Kind[] = [KIND.payment, KIND.accountFund, KIND.refund];
 
 export const SOURCE = {
 	mercadoPago: 'mercado_pago',
@@ -41,7 +46,7 @@ type KindSpec = {
 };
 
 type SourceSpec = {
-	label: string;
+	label: (typeof SOURCE_LABELS)[SourceId];
 	/** Re-importing an existing key: leave it (`skip`) or refresh it while it is still pending (`update`). */
 	conflict: 'skip' | 'update';
 	/** Items carry a time of day; otherwise only a day. */
@@ -86,8 +91,8 @@ const cardKinds: SourceSpec['kinds'] = {
 	[KIND.cardTaxes]: { title: 'Impuestos y percepciones', kindKey: 'always' }
 };
 
-const card = (label: string): SourceSpec => ({
-	label,
+const card = (id: SourceId): SourceSpec => ({
+	label: SOURCE_LABELS[id],
 	conflict: 'skip',
 	timed: false,
 	merchantName: cardMerchantName,
@@ -96,7 +101,7 @@ const card = (label: string): SourceSpec => ({
 
 const SOURCES: Record<SourceId, SourceSpec> = {
 	[SOURCE.mercadoPago]: {
-		label: 'Mercado Pago',
+		label: SOURCE_LABELS[SOURCE.mercadoPago],
 		conflict: 'update',
 		timed: true,
 		merchantName: (m) => m?.trim() ?? '',
@@ -113,8 +118,8 @@ const SOURCES: Record<SourceId, SourceSpec> = {
 			[KIND.other]: { review: true }
 		}
 	},
-	[SOURCE.galiciaVisa]: card('Galicia Visa'),
-	[SOURCE.galiciaMastercard]: card('Galicia Mastercard')
+	[SOURCE.galiciaVisa]: card(SOURCE.galiciaVisa),
+	[SOURCE.galiciaMastercard]: card(SOURCE.galiciaMastercard)
 };
 
 /** The source of a stored item (its column is constrained to the three ids). */

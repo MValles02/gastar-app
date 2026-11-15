@@ -1,25 +1,22 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { ALREADY_REVIEWED, type SyncPhase } from '#lib/imports.ts';
+import type { Currency } from '#lib/money.ts';
+import { undoApprovalAction } from '#lib/server/imports/actions.ts';
 import {
-	getImport,
-	importPrefill,
-	importTitle,
-	listAutoApproved,
-	listPendingImports,
-	undoApproval
-} from '#lib/server/import-queries.ts';
-import { importSource } from '#lib/server/import-sources.ts';
-import { getGaliciaConnection } from '#lib/server/galicia.ts';
-import { getConnectionInfo, getMpImportAccount, mpOauthEnabled } from '#lib/server/mp-oauth.ts';
-import { getSyncState, leaseActive, startMpSync } from '#lib/server/mp-sync.ts';
-import { dayHeading, localDay } from '#lib/server/month.ts';
-import { isUuid } from '#lib/server/db/util.ts';
-import { pgErrorCode } from '#lib/server/db/errors.ts';
-import {
-	approveSuggestedImports,
+	approveAllSuggested,
 	approveSuggestion,
 	counterAccountsOf,
 	suggestionContext
-} from '#lib/server/import-approve.ts';
+} from '#lib/server/imports/approve.ts';
+import { getMpImportAccount, importLinks } from '#lib/server/imports/connections.ts';
+import { mpOauthEnabled } from '#lib/server/imports/mercado-pago/oauth.ts';
+import { getSyncState, leaseActive, startMpSync } from '#lib/server/imports/mercado-pago/sync.ts';
+import { importPrefill, importTitle } from '#lib/server/imports/rules.ts';
+import { importSource } from '#lib/server/imports/sources.ts';
+import { getImport, listAutoApproved, listPendingImports } from '#lib/server/imports/store.ts';
+import { dayHeading, localDay } from '#lib/server/month.ts';
+import { isUuid } from '#lib/server/db/util.ts';
+import { pgErrorCode } from '#lib/server/db/errors.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -34,7 +31,6 @@ function agoLabel(at: Date, now: Date): string {
 
 const DONE = ['approved', 'rejected', 'stale'] as const;
 
-const ALREADY_REVIEWED = 'Ese movimiento ya fue revisado.';
 const APPROVE_FAILED = 'No se pudo aprobar.';
 
 /** A non-negative integer query param, else null. */
@@ -42,21 +38,21 @@ const countParam = (v: string | null) => (v !== null && /^\d{1,9}$/.test(v) ? Nu
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
-	const [mp, galicia, items, ctx, autoRows] = await Promise.all([
-		getMpImportAccount(userId),
-		getGaliciaConnection(userId),
-		listPendingImports(userId),
-		suggestionContext(userId),
-		listAutoApproved(userId)
-	]);
+	const [{ mpAccount: mp, needsReconnect, galiciaReady }, items, ctx, autoRows] = await Promise.all(
+		[
+			importLinks(userId),
+			listPendingImports(userId),
+			suggestionContext(userId),
+			listAutoApproved(userId)
+		]
+	);
 	// Nothing to review and no source linked: send the user to the connections.
-	if (!mp && !galicia?.arsAccountId && items.length === 0 && autoRows.length === 0) {
+	if (!mp && !galiciaReady && items.length === 0 && autoRows.length === 0) {
 		redirect(303, '/profile/vinculaciones');
 	}
 	// The source only disambiguates when the pending items come from more than one.
 	const mixed = new Set(items.map((i) => i.source)).size > 1;
 	const sync = mp ? await getSyncState(userId, mp.id) : null;
-	const needsReconnect = (await getConnectionInfo(userId))?.needsReconnect ?? false;
 
 	const now = new Date();
 	const today = localDay(now);
@@ -68,7 +64,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			id: string;
 			title: string;
 			amount: number;
-			currency: 'ARS' | 'USD';
+			currency: Currency;
 			isCredit: boolean;
 			suggestion: string | null;
 			source: string | null;
@@ -100,6 +96,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	}
 
 	const running = leaseActive(sync?.runningSince);
+	// 'payments' (also before the first step is recorded) or 'report'; null when idle.
+	const phase: SyncPhase | null = running
+		? sync?.phase === 'report'
+			? 'report'
+			: 'payments'
+		: null;
 	const done = url.searchParams.get('done');
 	const approved = countParam(url.searchParams.get('approved'));
 	const skipped = countParam(url.searchParams.get('skipped'));
@@ -113,8 +115,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		upload: imported === null ? null : { created: imported, auto: autoImported ?? 0 },
 		needsReconnect,
 		running,
-		// 'payments' (also before the first step is recorded) or 'report'; null when idle.
-		phase: running ? (sync?.phase === 'report' ? 'report' : 'payments') : null,
+		phase,
 		newItems: sync?.newItems ?? null,
 		autoApproved: sync?.autoApproved ?? null,
 		lastError: sync?.lastError ?? null,
@@ -154,22 +155,11 @@ export const actions: Actions = {
 		}
 	},
 
-	/** Deshacer of a quick or automatic approval: removes its movement and puts the item back to pending. */
-	undoApprove: async ({ locals, request }) => {
-		const userId = requireUser(locals).id;
-		const id = String((await request.formData()).get('id') ?? '');
-		if (!isUuid(id)) return fail(400, { message: 'No se pudo deshacer.' });
-		const result = await undoApproval(userId, id);
-		if (result === 'changed') {
-			return fail(409, { message: 'No se pudo deshacer: el movimiento ya cambió.' });
-		}
-		if (result === 'stale') return fail(409, { message: 'No se pudo deshacer.' });
-		return { undoneId: id };
-	},
+	undoApprove: undoApprovalAction,
 
 	approveSuggested: async ({ locals }) => {
 		const userId = requireUser(locals).id;
-		const { approved, skipped } = await approveSuggestedImports(userId);
+		const { approved, skipped } = await approveAllSuggested(userId, false);
 		redirect(303, `/imports?approved=${approved}&skipped=${skipped}`);
 	}
 };
