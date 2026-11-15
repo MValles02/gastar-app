@@ -4,8 +4,8 @@ Gastar-specific deployment details. The shared pipeline, CI gate and script cont
 
 ## Environments
 
-| Environment   | Branch    | GitHub environment | URL                    | Image tag                           |
-| ------------- | --------- | ------------------ | ---------------------- | ----------------------------------- |
+| Environment   | Branch    | GitHub environment | URL                    | Image tag                                  |
+| ------------- | --------- | ------------------ | ---------------------- | ------------------------------------------ |
 | `development` | `develop` | `development`      | https://dev.gastar.app | `ghcr.io/mvalles02-org/gastar-app:develop` |
 | `production`  | `main`    | `production`       | https://web.gastar.app | `ghcr.io/mvalles02-org/gastar-app:latest`  |
 
