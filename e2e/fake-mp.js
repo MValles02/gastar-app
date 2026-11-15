@@ -265,6 +265,9 @@ createServer(async (req, res) => {
 		if (req.method === 'POST') {
 			const config = JSON.parse((await readBody(req)) || '{}');
 			configPosts.push(config);
+			// Real MP rejects a create without a boolean execute_after_withdrawal.
+			if (typeof config.execute_after_withdrawal !== 'boolean')
+				return send(res, 400, { message: 'Invalid execute_after_withdrawal' });
 			grantConfig.set(grant, config);
 			return send(res, 201, config);
 		}
