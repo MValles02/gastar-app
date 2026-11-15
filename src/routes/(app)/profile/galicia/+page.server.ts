@@ -1,20 +1,20 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { formFail } from '$lib/form';
-import { accountOption } from '$lib/server/accounts/queries';
+import { formFail } from '#lib/form.ts';
+import { accountOption } from '#lib/server/accounts/queries.ts';
 import {
 	getGaliciaConnection,
 	importStatement,
 	listStatementAccounts,
 	setGaliciaAccount
-} from '$lib/server/galicia';
+} from '#lib/server/galicia.ts';
 import {
 	parseGaliciaStatement,
 	StatementError,
 	type StatementErrorCode
-} from '$lib/server/galicia-statement';
-import { pgErrorCode } from '$lib/server/db/errors';
-import { isBlocked, record } from '$lib/server/rate-limit';
-import { requireUser } from '$lib/server/guards';
+} from '#lib/server/galicia-statement.ts';
+import { pgErrorCode } from '#lib/server/db/errors.ts';
+import { isBlocked, record } from '#lib/server/rate-limit.ts';
+import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** Upload cap; the real statements are well under 1 MB. BODY_SIZE_LIMIT (Dockerfile) sits above it. */

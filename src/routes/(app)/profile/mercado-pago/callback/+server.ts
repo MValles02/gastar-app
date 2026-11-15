@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
-import { dev } from '$app/environment';
-import { exchangeCode, mpOauthEnabled, OAUTH_COOKIE, OAUTH_PATH } from '$lib/server/mp-oauth';
-import { requireUser } from '$lib/server/guards';
+import { dev } from '$app/env';
+import { exchangeCode, mpOauthEnabled, OAUTH_COOKIE, OAUTH_PATH } from '#lib/server/mp-oauth.ts';
+import { requireUser } from '#lib/server/guards.ts';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, cookies, locals }) => {

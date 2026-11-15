@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
-import { dev } from '$app/environment';
-import { deleteImportData } from '$lib/server/import-queries';
-import { deleteConnection } from '$lib/server/mp-oauth';
+import { dev } from '$app/env';
+import { deleteImportData } from '#lib/server/import-queries.ts';
+import { deleteConnection } from '#lib/server/mp-oauth.ts';
 import type { RequestHandler } from './$types';
 
 /** Dev/E2E only: wipes the user's import items, rules and sync state, and unlinks their Mercado Pago connection. */

@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { PASSWORD_MIN_MESSAGE, USER_NAME_MAX_LENGTH } from '$lib/fields';
-	import AuthForm from '$lib/components/AuthForm.svelte';
-	import AuthPage from '$lib/components/AuthPage.svelte';
-	import AuthTabs from '$lib/components/AuthTabs.svelte';
-	import CheckEmail from '$lib/components/CheckEmail.svelte';
-	import EmailField from '$lib/components/EmailField.svelte';
-	import * as Field from '$lib/components/ui/field/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
-	import PasswordField from '$lib/components/PasswordField.svelte';
+	import { PASSWORD_MIN_MESSAGE, USER_NAME_MAX_LENGTH } from '#lib/fields.ts';
+	import AuthForm from '#lib/components/AuthForm.svelte';
+	import AuthPage from '#lib/components/AuthPage.svelte';
+	import AuthTabs from '#lib/components/AuthTabs.svelte';
+	import CheckEmail from '#lib/components/CheckEmail.svelte';
+	import EmailField from '#lib/components/EmailField.svelte';
+	import * as Field from '#lib/components/ui/field/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import PasswordField from '#lib/components/PasswordField.svelte';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -21,7 +21,7 @@
 </svelte:head>
 
 {#if form?.checkEmail}
-	<CheckEmail email={form.checkEmail} kind="verify" backHref={resolve('/signup')} />
+	<CheckEmail email={form.checkEmail} kind="verify" backHref={resolve('signup')} />
 {:else}
 	<AuthPage>
 		<AuthTabs current="signup" />

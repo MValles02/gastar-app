@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
-	import AuthForm from '$lib/components/AuthForm.svelte';
-	import AuthPage from '$lib/components/AuthPage.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import CheckEmail from '$lib/components/CheckEmail.svelte';
-	import EmailField from '$lib/components/EmailField.svelte';
-	import { readPendingEmail } from '$lib/pending-email';
+	import AuthForm from '#lib/components/AuthForm.svelte';
+	import AuthPage from '#lib/components/AuthPage.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import CheckEmail from '#lib/components/CheckEmail.svelte';
+	import EmailField from '#lib/components/EmailField.svelte';
+	import { readPendingEmail } from '#lib/pending-email.ts';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -24,10 +24,10 @@
 </svelte:head>
 
 {#if form?.checkEmail}
-	<CheckEmail email={form.checkEmail} kind="verify" backHref={resolve('/login')} />
+	<CheckEmail email={form.checkEmail} kind="verify" backHref={resolve('login')} />
 {:else}
 	<AuthPage
-		backHref={resolve('/login')}
+		backHref={resolve('login')}
 		title="Enlace vencido"
 		icon="clock"
 		description="El enlace para confirmar tu cuenta venció. Pedí uno nuevo."
@@ -35,7 +35,7 @@
 		<AuthForm action="?/resend" submitLabel="Reenviar">
 			<EmailField bind:value={email} error={form?.emailError} />
 			{#snippet after()}
-				<Button href={resolve('/login')} variant="outline" class="w-full">Ir a Ingresar</Button>
+				<Button href={resolve('login')} variant="outline" class="w-full">Ir a Ingresar</Button>
 			{/snippet}
 		</AuthForm>
 	</AuthPage>

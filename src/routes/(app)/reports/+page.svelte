@@ -1,22 +1,22 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import Icon from '$lib/components/Icon.svelte';
-	import MonthNav from '$lib/components/MonthNav.svelte';
-	import Money from '$lib/components/Money.svelte';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
-	import Meter from '$lib/components/Meter.svelte';
-	import SectionHeader from '$lib/components/SectionHeader.svelte';
-	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
-	import HeroAmount from '$lib/components/HeroAmount.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { CURRENCY_NAME, formatMoney } from '$lib/money';
-	import { markReplace } from '$lib/nav-stack.svelte';
-	import { swatchVar, toSwatchKey } from '$lib/appearance';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import CurrencyTabs from '#lib/components/CurrencyTabs.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import Icon from '#lib/components/Icon.svelte';
+	import MonthNav from '#lib/components/MonthNav.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import ListRow from '#lib/components/ListRow.svelte';
+	import Meter from '#lib/components/Meter.svelte';
+	import SectionHeader from '#lib/components/SectionHeader.svelte';
+	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
+	import HeroAmount from '#lib/components/HeroAmount.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import { CURRENCY_NAME, formatMoney } from '#lib/money.ts';
+	import { markReplace } from '#lib/nav-stack.svelte.ts';
+	import { swatchVar, toSwatchKey } from '#lib/appearance.ts';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -39,16 +39,16 @@
 	<CurrencyTabs value={data.currency} variant="pills" />
 
 	{#if !data.hasCurrency}
-		<EmptyState icon="accounts" description="No tenés cuentas en {CURRENCY_NAME[data.currency]}.">
-			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
-		</EmptyState>
+		<EmptyState icon="accounts" description="No tenés cuentas en {CURRENCY_NAME[data.currency]}."
+			><Button href={resolve('accounts/new')}>Crear cuenta</Button></EmptyState
+		>
 	{:else}
 		{@const max = Math.max(1, ...data.bars.flatMap((b) => [b.income, b.outcome]))}
 		<div class="month-nav">
 			<MonthNav
 				label={data.nav.label}
-				prevHref={resolve(`/reports?month=${data.nav.prev}`)}
-				nextHref={data.nav.isCurrent ? null : resolve(`/reports?month=${data.nav.next}`)}
+				prevHref={resolve(`reports?month=${data.nav.prev}`)}
+				nextHref={data.nav.isCurrent ? null : resolve(`reports?month=${data.nav.next}`)}
 			/>
 		</div>
 
@@ -96,7 +96,7 @@
 							{#each data.bars as b (b.ym)}
 								<li class:current={b.ym === data.nav.ym}>
 									<a
-										href={resolve(`/reports?month=${b.ym}`)}
+										href={resolve(`reports?month=${b.ym}`)}
 										data-sveltekit-replacestate
 										onclick={markReplace}
 										aria-current={b.ym === data.nav.ym ? 'true' : undefined}
@@ -106,10 +106,10 @@
 											{#if b.income > 0}<span
 													class="bar in"
 													style:height="{(b.income / max) * 100}%"
-												></span>{/if}{#if b.outcome > 0}<span
-													class="bar out"
-													style:height="{(b.outcome / max) * 100}%"
-												></span>{/if}
+												></span>
+											{/if}{#if b.outcome > 0}
+												<span class="bar out" style:height="{(b.outcome / max) * 100}%"></span>
+											{/if}
 										</span>
 										<span class="bar-label" aria-hidden="true">{b.label}</span>
 									</a>
@@ -143,7 +143,7 @@
 							<ListRow
 								href={s.id === 'other'
 									? undefined
-									: resolve(`/categories/${s.id}?month=${data.nav.ym}`)}
+									: resolve(`categories/${s.id}?month=${data.nav.ym}`)}
 								lead={s.id === 'other'
 									? { icon: 'categories', color: null }
 									: {
@@ -178,7 +178,7 @@
 						</Card.Root>
 					{/if}
 					{#if data.biggest}
-						<a class="fact-link" href={resolve(`/movements/${data.biggest.id}`)}>
+						<a class="fact-link" href={resolve(`movements/${data.biggest.id}`)}>
 							<Card.Root>
 								<Card.Content>
 									<div class="fact-card">

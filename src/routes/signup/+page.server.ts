@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
-import { PASSWORD_MIN_MESSAGE } from '$lib/fields';
-import { auth } from '$lib/server/auth';
+import { PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
+import { auth } from '#lib/server/auth.ts';
 import {
 	EMAIL_RE,
 	ignoreApiError,
@@ -8,8 +8,8 @@ import {
 	resendAction,
 	userNameError,
 	VERIFY_EMAIL_PATH
-} from '$lib/server/auth-forms';
-import { isBlocked, record } from '$lib/server/rate-limit';
+} from '#lib/server/auth-forms.ts';
+import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import type { Actions } from './$types';
 
 export const actions: Actions = {

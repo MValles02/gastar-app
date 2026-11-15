@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
 	import DeleteForm from './DeleteForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -11,6 +11,6 @@
 	<title>Darme de baja · Gastar</title>
 </svelte:head>
 
-<PageHeader title="¿Darte de baja?" close={{ href: resolve('/profile'), label: 'Cerrar' }} />
+<PageHeader title="¿Darte de baja?" close={{ href: resolve('profile'), label: 'Cerrar' }} />
 
 <DeleteForm summary={data.summary} error={form?.formError} />

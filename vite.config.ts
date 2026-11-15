@@ -1,9 +1,19 @@
+import path from 'node:path';
 import { defineConfig } from 'vite';
 import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
+	resolve: {
+		// tw-animate-css only exports a `style` condition, which the SSR build of app.css does not apply.
+		alias: {
+			'tw-animate-css': path.resolve(
+				import.meta.dirname,
+				'node_modules/tw-animate-css/dist/tw-animate.css'
+			)
+		}
+	},
 	plugins: [
 		tailwindcss(),
 		sveltekit({

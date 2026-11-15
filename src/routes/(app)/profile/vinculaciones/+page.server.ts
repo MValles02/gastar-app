@@ -1,6 +1,6 @@
-import { getGaliciaConnection } from '$lib/server/galicia';
-import { mpLinkState, mpOauthEnabled } from '$lib/server/mp-oauth';
-import { requireUser } from '$lib/server/guards';
+import { getGaliciaConnection } from '#lib/server/galicia.ts';
+import { mpLinkState, mpOauthEnabled } from '#lib/server/mp-oauth.ts';
+import { requireUser } from '#lib/server/guards.ts';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
