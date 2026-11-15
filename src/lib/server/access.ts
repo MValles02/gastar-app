@@ -14,11 +14,6 @@ export function ownedBy(userId: string) {
 	return { ownerId: userId };
 }
 
-/** Spread into `values()` to set a movement's owner. */
-export function movementOwnedBy(userId: string) {
-	return { userId };
-}
-
 /** The single ownership check for movements: the movement and its origin account (inner-joined by the caller) must both be the user's. */
 export function canAccessMovement(
 	userId: string,
