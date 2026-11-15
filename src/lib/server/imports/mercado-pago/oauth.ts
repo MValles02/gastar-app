@@ -43,8 +43,6 @@ export function decryptToken(stored: string, userId: string): string {
 	return Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString('utf8');
 }
 
-// --- Authorization ---
-
 const b64url = (buf: Buffer) => buf.toString('base64url');
 
 const redirectUri = (origin: string) => origin + CALLBACK_PATH;

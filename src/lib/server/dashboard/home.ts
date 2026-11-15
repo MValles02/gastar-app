@@ -67,7 +67,6 @@ type TopCategory = ReturnType<typeof topCategories>[number] & {
 	icon: CategoryIconKey | null;
 };
 
-/** Everything the home page shows for `currency`. */
 export async function homeView(userId: string, currency: Currency, now: Date) {
 	const value = currentMonth(now);
 	const range = monthRange(value);

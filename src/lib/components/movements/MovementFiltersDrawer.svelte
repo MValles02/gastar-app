@@ -54,7 +54,6 @@
 	let stagedCategories = $state<string[]>([]);
 	let count = $state<number | null>(null);
 
-	// Every time the drawer opens, stage what is applied now.
 	$effect(() => {
 		if (!open) return;
 		currency = filters.currency ?? '';
@@ -91,7 +90,6 @@
 		return sp.toString();
 	});
 
-	// Count for the staged filters, debounced; a newer change aborts the previous request.
 	$effect(() => {
 		if (!open) return;
 		const qs = query;

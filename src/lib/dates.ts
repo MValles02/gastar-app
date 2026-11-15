@@ -27,6 +27,5 @@ export function toCalendarDate(ymd: string | undefined) {
 	}
 }
 
-/** The earliest day a calendar reaches: `min`, else 1900-01-01. */
 export const calendarFloor = (min: string | undefined) =>
 	toCalendarDate(min) ?? new CalendarDate(1900, 1, 1);

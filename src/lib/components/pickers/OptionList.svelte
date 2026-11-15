@@ -26,7 +26,6 @@
 		description?: (item: T) => string | undefined;
 		/** Muted text at the row's end, after the check. */
 		meta?: (item: T) => string | undefined;
-		/** The row's `data-value`. */
 		value?: (item: T) => string;
 		media?: Snippet<[T]>;
 		/** Last thing in the row. */

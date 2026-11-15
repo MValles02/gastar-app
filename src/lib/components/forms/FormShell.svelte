@@ -69,7 +69,6 @@
 		/** Layout overrides: `--form-gap`, `--form-pb`, `--actions-mt`. */
 		style?: string;
 		mounted?: boolean;
-		/** True while a submit is in flight. */
 		submitting?: boolean;
 		children: Snippet;
 	} = $props();

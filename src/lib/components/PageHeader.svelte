@@ -148,7 +148,6 @@
 		line-height: 1.2;
 	}
 
-	/* Back link row, then the title 4px below. */
 	.top-bar.stacked {
 		row-gap: var(--space-1);
 		padding-top: calc(var(--space-3) + env(safe-area-inset-top));

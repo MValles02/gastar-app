@@ -9,7 +9,6 @@ export type Range = { start: Date; end: Date };
 /** A movement's destination account, for transfers. */
 export const dest = alias(financialAccounts, 'dest');
 
-/** Sum of a column, 0 when there are no rows. */
 export const total = (col: unknown) => sql<number>`coalesce(sum(${col}), 0)`.mapWith(Number);
 
 export const inRange = (range?: Range) =>

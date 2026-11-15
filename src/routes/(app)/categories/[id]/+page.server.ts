@@ -46,7 +46,6 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	requireId(params.id);
 	const detail = await categoryOf(userId, params.id);
 
-	// Any month, future ones included.
 	const month = monthParam(url, { clamp: false });
 	const nav = monthNav(month);
 	const [rows, referenced] = await Promise.all([

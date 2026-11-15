@@ -226,7 +226,6 @@
 		color: var(--text-muted);
 	}
 
-	/* Summary card */
 	.box {
 		display: flex;
 		flex-direction: column;

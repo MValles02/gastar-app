@@ -50,7 +50,6 @@
 		{ value: 'transfer', label: 'Transf.' }
 	];
 
-	// Same filters, other page.
 	const filterParams = () => {
 		// SvelteURLSearchParams: required by the svelte/prefer-svelte-reactivity lint rule.
 		const sp = new SvelteURLSearchParams();

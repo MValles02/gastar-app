@@ -301,7 +301,6 @@
 		line-height: 1.2;
 	}
 
-	/* Five-bar progress, filled in the primary green. */
 	.steps {
 		list-style: none;
 		margin: 0;

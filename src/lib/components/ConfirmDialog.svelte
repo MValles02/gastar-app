@@ -22,7 +22,6 @@
 		triggerVariant?: 'default' | 'outline' | 'destructive';
 		title: string;
 		confirmLabel: string;
-		/** Destructive by default; pass 'default' for a non-destructive confirm. */
 		confirmVariant?: 'default' | 'destructive';
 		action: string;
 		/** `id` of the confirm form, so inputs elsewhere on the page can join it with `form=`. */

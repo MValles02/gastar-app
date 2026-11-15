@@ -21,7 +21,6 @@ export function parseListFilter<D extends string>(
 	};
 }
 
-/** Case-insensitive substring match of the list search term. */
 export const matchesQuery = (name: string, q: string) =>
 	name.toLowerCase().includes(q.toLowerCase());
 

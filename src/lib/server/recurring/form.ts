@@ -87,7 +87,6 @@ export function parseRecurringForm(fd: FormData): RecurringFormResult {
 	};
 }
 
-/** Active accounts and categories for the rule form. */
 export const recurringPickers = (userId: string) => movementPickers(userId);
 
 /**

@@ -94,7 +94,6 @@
 		color: var(--text-muted);
 	}
 
-	/* The prefix hugs the (right-aligned) value. */
 	.has-prefix input {
 		flex: 0 1 auto;
 		field-sizing: content;

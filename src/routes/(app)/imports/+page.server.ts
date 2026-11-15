@@ -32,7 +32,6 @@ function agoLabel(at: Date, now: Date): string {
 
 const APPROVE_FAILED = 'No se pudo aprobar.';
 
-/** A non-negative integer query param, else null. */
 const countParam = (v: string | null) => (v !== null && /^\d{1,9}$/.test(v) ? Number(v) : null);
 
 export const load: PageServerLoad = async ({ locals, url }) => {
