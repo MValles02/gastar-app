@@ -35,7 +35,11 @@
 		{/if}
 
 		<AuthForm action="?/login" submitLabel="Ingresar" onupdated={() => (password = '')}>
-			<EmailField value={form?.email ?? ''} ariaWiring={false} />
+			<EmailField
+				value={form?.email ?? ''}
+				ariaWiring={false}
+				describedby={form?.passwordError ? 'password-error' : undefined}
+			/>
 
 			<PasswordField
 				bind:value={password}

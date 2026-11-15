@@ -8,13 +8,16 @@
 		value = $bindable(''),
 		autocomplete = 'username',
 		error,
-		ariaWiring = true
+		ariaWiring = true,
+		describedby
 	}: {
 		value?: string;
 		autocomplete?: HTMLInputAttributes['autocomplete'];
 		error?: string;
-		/** false (login): no aria-invalid/aria-describedby and no error under the field. */
+		/** false (login): no error under the field; aria-invalid/aria-describedby only come from `describedby`. */
 		ariaWiring?: boolean;
+		/** Only used when ariaWiring is false: id of a shared error element this input points to (marks it invalid). */
+		describedby?: string;
 	} = $props();
 
 	const shownError = $derived(ariaWiring ? error : undefined);
@@ -30,8 +33,8 @@
 		autocapitalize="none"
 		bind:value
 		required
-		aria-invalid={shownError ? true : undefined}
-		aria-describedby={shownError ? 'email-error' : undefined}
+		aria-invalid={shownError || (!ariaWiring && describedby) ? true : undefined}
+		aria-describedby={shownError ? 'email-error' : ariaWiring ? undefined : describedby}
 	/>{#if ariaWiring}
 		<!-- eslint-disable-next-line svelte/no-useless-mustaches -- a plain space is trimmed at block start; it keeps the whitespace node the pages had before the error slot (login had none) -->
 		{' '}{#if shownError}
