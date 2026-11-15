@@ -1,6 +1,6 @@
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
-import { CURRENCIES, convertAmount, roundToStep, type Currency } from '$lib/money';
+import { CURRENCIES, roundToStep, type Currency } from '$lib/money';
 import {
 	dueLabel,
 	inactiveReason,
@@ -10,9 +10,9 @@ import {
 	PLAN_CURRENCY,
 	PLAN_STATUS_LABEL
 } from '$lib/plan';
-import { listAccounts } from './accounts/queries';
-import { listCategories } from './categories/queries';
-import { memoPerRequest } from './request-memo';
+import { listAccounts } from '../accounts/queries';
+import { listCategories } from '../categories/queries';
+import { memoPerRequest } from '../request-memo';
 import {
 	currentMonth,
 	HISTORY_MONTHS,
@@ -20,25 +20,23 @@ import {
 	localDay,
 	monthLabel,
 	monthRange
-} from './month';
+} from '../month';
+import {
+	listRecurring,
+	paidRecurring,
+	recurringCandidates,
+	type RecurringRule
+} from '../recurring/queries';
 import {
 	activeTotal,
+	convertTo,
 	isCurrentPlan,
 	planSpent,
 	planSummary,
 	recurringStatus,
-	toPlan
-} from './plan';
-import {
-	currentPlanLimits,
-	getPlan,
-	listRecurring,
-	monthOutcomes,
-	paidRecurring,
-	planRate,
-	recurringCandidates,
-	type RecurringRule
-} from './plan-queries';
+	toPlanCurrency
+} from './summary';
+import { currentPlanLimits, getPlan, monthOutcomes, planRate } from './queries';
 
 /**
  * The month's plan (always in pesos, USD items converted at the plan rate), computed once for everything
@@ -85,7 +83,7 @@ async function computeMonthPlan(userId: string) {
 		};
 	});
 	const toPesos = (pick: (p: (typeof perCurrency)[number]) => number) =>
-		perCurrency.reduce((a, p) => a + (toPlan(pick(p), p.cur, rate.value) ?? 0), 0);
+		perCurrency.reduce((a, p) => a + (toPlanCurrency(pick(p), p.cur, rate.value) ?? 0), 0);
 	const recurringIncome = toPesos((p) => p.income);
 
 	// A limit's spending: its own currency plus the other one converted into it (left out without a rate).
@@ -93,13 +91,7 @@ async function computeMonthPlan(userId: string) {
 		let spent = 0;
 		for (const p of perCurrency) {
 			const x = p.spent.byCategory.get(l.categoryId) ?? 0;
-			const converted =
-				p.cur === l.currency
-					? x
-					: rate.value === null
-						? null
-						: convertAmount(x, rate.value, p.cur, l.currency);
-			spent += converted ?? 0;
+			spent += convertTo(x, p.cur, l.currency, rate.value) ?? 0;
 		}
 		return { ...l, spent };
 	});
@@ -166,7 +158,7 @@ const ruleRow = (r: RecurringRule, rate: number | null) => ({
 	description: r.description,
 	amount: r.amount,
 	currency: r.currency,
-	converted: r.currency === PLAN_CURRENCY ? null : toPlan(r.amount, r.currency, rate),
+	converted: r.currency === PLAN_CURRENCY ? null : toPlanCurrency(r.amount, r.currency, rate),
 	accountName: r.accountName,
 	day: r.dayOfMonth,
 	categoryIcon: toCategoryIconKey(r.categoryIcon),
@@ -196,19 +188,6 @@ export async function ruleDueThisMonth(userId: string, rule: RecurringRule) {
 	const paid = (await paidRecurring(userId, monthRange(ym))).some((p) => p.recurringId === rule.id);
 	const s = recurringStatus(rule.dayOfMonth, paid, ym);
 	return { status: s.status, label: dueLabel(s, rule.type) };
-}
-
-/** Active rules of one type and currency, as picker items (linking a movement to a fixed payment). */
-export async function activeRuleItems(userId: string, cur: Currency, type: 'income' | 'outcome') {
-	const rules = await listRecurring(userId, cur);
-	return rules
-		.filter((r) => isRecurringActive(r) && r.type === type)
-		.map((r) => ({
-			id: r.id,
-			name: r.description,
-			icon: toCategoryIconKey(r.categoryIcon) ?? ('categories' as const),
-			color: toSwatchKey(r.categoryColor)
-		}));
 }
 
 /**

@@ -3,21 +3,27 @@ import {
 	isRecurringActive,
 	PLAN_CURRENCY,
 	limitPace,
+	paceOf,
 	type PlanStatus,
 	type RecurringStatus,
 	type RuleState
 } from '$lib/plan';
-import { daysInMonth, daysLeftIn, elapsedDays } from './month';
+import { daysInMonth, daysLeftIn, elapsedDays } from '../month';
 
-/** `amount` in plan pesos; null for a USD amount when there is no rate. */
-export function toPlan(amount: number, cur: Currency, rate: number | null): number | null {
-	if (cur === PLAN_CURRENCY) return amount;
-	return rate === null ? null : convertAmount(amount, rate, cur, PLAN_CURRENCY);
+/** `amount` from `from` into `to` at the plan rate; null across currencies when there is no rate. */
+export function convertTo(
+	amount: number,
+	from: Currency,
+	to: Currency,
+	rate: number | null
+): number | null {
+	if (from === to) return amount;
+	return rate === null ? null : convertAmount(amount, rate, from, to);
 }
 
-/** Descriptions match ignoring case, accents and surrounding spaces (rule vs movement). */
-export const normalizeDescription = (s: string) =>
-	s.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+/** `amount` in plan pesos; null for a USD amount when there is no rate. */
+export const toPlanCurrency = (amount: number, cur: Currency, rate: number | null) =>
+	convertTo(amount, cur, PLAN_CURRENCY, rate);
 
 /** Due day clamped to the month (31 → 30 in September). */
 export function recurringStatus(dayOfMonth: number, paid: boolean, ym: string) {
@@ -88,10 +94,9 @@ export function planSummary<L extends { amount: number; spent: number; currency:
 	const step = currencyStep(PLAN_CURRENCY);
 	const elapsedShare = elapsed / days;
 	// Pace is variable spending against what variable spending could reach (paid bills are already settled).
-	const variableBudget = available + p.variableSpent;
-	const spentShare =
-		variableBudget > 0 ? p.variableSpent / variableBudget : p.variableSpent > 0 ? 1 : 0;
-	const status: PlanStatus = available < 0 ? 'over' : spentShare > elapsedShare ? 'warn' : 'ok';
+	const pace = paceOf(p.variableSpent, available + p.variableSpent, elapsedShare);
+	const spentShare = pace.share;
+	const status: PlanStatus = available < 0 ? 'over' : pace.fast ? 'warn' : 'ok';
 	const limits = p.limits.map((l) => ({ ...l, ...limitPace(l.spent, l.amount, elapsedShare) }));
 	return {
 		income,

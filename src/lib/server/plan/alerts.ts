@@ -4,10 +4,10 @@ import {
 	toSwatchKey,
 	type CategoryIconKey,
 	type SwatchKey
-} from '../appearance';
-import { formatMoney } from '../money';
-import { accountSummary } from './accounts/queries';
-import { monthPlan, type MonthPlan } from './plan-view';
+} from '$lib/appearance';
+import { formatMoney } from '$lib/money';
+import { accountSummary } from '../accounts/queries';
+import { monthPlan, type MonthPlan } from './month-plan';
 
 export type AlertItem = {
 	id: string;

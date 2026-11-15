@@ -1,15 +1,7 @@
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-import { accountOption, getAccount, listAccounts } from './accounts/queries';
-import { getCategory, listCategories } from './categories/queries';
-import { type MovementData, resolveMovement } from './movements';
-
-/** Archived accounts/category already referenced by the movement being edited (they stay valid). */
-export type KeptRefs = {
-	accountIds: string[];
-	categoryId: string | null;
-	amount?: number | null;
-	archivedOk?: string[];
-};
+import { accountOption, getAccount, listAccounts } from '../accounts/queries';
+import { getCategory, listCategories } from '../categories/queries';
+import { type KeptRefs, type MovementData, resolveMovement } from './form';
 
 /** Picker items: active accounts and categories, plus the archived ones in `keep` (edit). */
 export async function movementPickers(userId: string, keep?: KeptRefs) {

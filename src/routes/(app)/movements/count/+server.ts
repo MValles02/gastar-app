@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { applyDefaultRange, parseMovementFilters } from '$lib/server/movements';
-import { summarizeMovements } from '$lib/server/movements-queries';
+import { applyDefaultRange, parseMovementFilters } from '$lib/server/movements/filters';
+import { summarizeMovements } from '$lib/server/movements/queries';
 import { requireUser } from '$lib/server/guards';
 
 /** How many movements the URL filters match (the filters drawer's "Ver N movimientos"). */

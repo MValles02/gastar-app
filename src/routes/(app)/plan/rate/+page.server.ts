@@ -3,8 +3,8 @@ import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { formatAmountInput, isValidRate, parseAmount } from '$lib/money';
 import { MOVEMENT_MESSAGES } from '$lib/movement';
-import { currentPlan, latestTransferRate, updatePlan } from '$lib/server/plan-queries';
-import { planView } from '$lib/server/plan-view';
+import { currentPlan, latestTransferRate, updatePlan } from '$lib/server/plan/queries';
+import { planView } from '$lib/server/plan/month-plan';
 import { requireUser } from '$lib/server/guards';
 
 export const load: PageServerLoad = async ({ locals }) => {
