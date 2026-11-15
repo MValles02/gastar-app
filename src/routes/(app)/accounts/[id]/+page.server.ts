@@ -2,7 +2,6 @@ import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
 import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
-import { notFoundHelpers } from '$lib/server/not-found';
 import {
 	DELETE_REFERENCED_MESSAGE,
 	accountActions,
@@ -18,7 +17,7 @@ import {
 	setArchived,
 	updateAccount
 } from '$lib/server/accounts-queries';
-import { requireUser } from '$lib/server/require-user';
+import { notFoundHelpers, requireUser } from '$lib/server/guards';
 import { toIconKey, toSwatchKey } from '$lib/appearance';
 import { formatAmountInput } from '$lib/money';
 

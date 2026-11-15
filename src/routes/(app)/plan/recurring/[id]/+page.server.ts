@@ -1,6 +1,5 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { notFoundHelpers } from '$lib/server/not-found';
 import { toIconKey } from '$lib/appearance';
 import { formatAmountInput } from '$lib/money';
 import { inactiveReason, isRecurringActive } from '$lib/plan';
@@ -12,7 +11,7 @@ import {
 	updateRecurring
 } from '$lib/server/plan-queries';
 import { ruleDueThisMonth } from '$lib/server/plan-view';
-import { requireUser } from '$lib/server/require-user';
+import { notFoundHelpers, requireUser } from '$lib/server/guards';
 import { readRecurringForm, recurringPickers } from '../form.server';
 
 const { notFound, requireId } = notFoundHelpers('Movimiento fijo no encontrado.');

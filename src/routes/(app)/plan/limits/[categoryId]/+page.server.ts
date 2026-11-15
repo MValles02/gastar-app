@@ -4,7 +4,6 @@ import type { Actions, PageServerLoad } from './$types';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { formatAmountInput } from '$lib/money';
 import { parseLimitAmount, planReturn } from '$lib/plan-wizard';
-import { notFoundHelpers } from '$lib/server/not-found';
 import {
 	deleteLimit,
 	currentPlan,
@@ -13,7 +12,7 @@ import {
 	upsertLimits
 } from '$lib/server/plan-queries';
 import { limitSuggestions, planView } from '$lib/server/plan-view';
-import { requireUser } from '$lib/server/require-user';
+import { notFoundHelpers, requireUser } from '$lib/server/guards';
 
 const { notFound, requireId } = notFoundHelpers('Límite no encontrado.');
 

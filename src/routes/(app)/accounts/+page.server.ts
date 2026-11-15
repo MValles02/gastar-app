@@ -1,8 +1,9 @@
 import type { PageServerLoad } from './$types';
 import { accountSummary } from '$lib/server/dashboard-queries';
+import { hasAccounts } from '$lib/server/dashboard';
 import { accountOriginSums, accountTransfersIn, listAccounts } from '$lib/server/accounts-queries';
 import { withBalances } from '$lib/server/accounts';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 import { CURRENCIES } from '$lib/money';
 
 const SEARCH_MAX_LENGTH = 40;
@@ -48,7 +49,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	return {
 		filters: { q, archived, currency },
 		facets,
-		hasAnyAccount: summary.some((s) => s.count > 0),
+		hasAnyAccount: hasAccounts(summary),
 		groups
 	};
 };

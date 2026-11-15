@@ -1,9 +1,10 @@
-import { and, asc, eq, gte, ilike, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
+import { and, asc, eq, ilike, isNull, ne, or, sql } from 'drizzle-orm';
 import { db } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
-import { canAccessCategory, canAccessMovement, categoryOwnedBy } from './access';
+import { canAccessMovement, canAccessOwn, userOwned } from './access';
 import { PG_UNIQUE_VIOLATION, pgErrorCode } from './db/errors';
 import { escapeLike } from './db/util';
+import { inRange, isIncomeOrOutcome, sumOfType, type Range } from './db/sql';
 import type { CategoryData } from './categories';
 
 export function listCategories(
@@ -15,7 +16,7 @@ export function listCategories(
 		.from(categories)
 		.where(
 			and(
-				canAccessCategory(userId),
+				canAccessOwn(userId, categories),
 				opts.archived ? undefined : isNull(categories.archivedAt),
 				opts.kind ? or(eq(categories.kind, opts.kind), isNull(categories.kind)) : undefined,
 				opts.q ? ilike(categories.name, `%${escapeLike(opts.q)}%`) : undefined
@@ -29,7 +30,7 @@ export function hasAnyCategory(userId: string) {
 	return db
 		.select({ id: categories.id })
 		.from(categories)
-		.where(canAccessCategory(userId))
+		.where(canAccessOwn(userId, categories))
 		.limit(1);
 }
 
@@ -37,7 +38,7 @@ export function getCategory(userId: string, id: string) {
 	return db
 		.select()
 		.from(categories)
-		.where(and(eq(categories.id, id), canAccessCategory(userId)))
+		.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
 		.limit(1);
 }
 
@@ -46,7 +47,7 @@ export function categoryReferenced(userId: string, id: string) {
 		.select({ id: movements.id })
 		.from(movements)
 		.innerJoin(categories, eq(movements.categoryId, categories.id))
-		.where(and(eq(categories.id, id), canAccessCategory(userId)))
+		.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
 		.limit(1);
 }
 
@@ -56,7 +57,7 @@ function categoryNameTaken(userId: string, name: string, exceptId?: string) {
 		.from(categories)
 		.where(
 			and(
-				canAccessCategory(userId),
+				canAccessOwn(userId, categories),
 				sql`lower(${categories.name}) = lower(${name})`,
 				exceptId ? ne(categories.id, exceptId) : undefined
 			)
@@ -84,16 +85,12 @@ export async function writeIfNameFree<T>(
 	}
 }
 
-export function categoryMonthNet(userId: string, id: string, range: { start: Date; end: Date }) {
-	const sumOf = (type: 'outcome' | 'income') =>
-		sql<number>`coalesce(sum(${movements.amount}) filter (where ${movements.type} = ${type}), 0)`.mapWith(
-			Number
-		);
+export function categoryMonthNet(userId: string, id: string, range: Range) {
 	return db
 		.select({
 			currency: financialAccounts.currency,
-			outcome: sumOf('outcome'),
-			income: sumOf('income')
+			outcome: sumOfType('outcome'),
+			income: sumOfType('income')
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
@@ -101,28 +98,23 @@ export function categoryMonthNet(userId: string, id: string, range: { start: Dat
 		.where(
 			and(
 				canAccessMovement(userId),
-				canAccessCategory(userId),
+				canAccessOwn(userId, categories),
 				eq(categories.id, id),
-				inArray(movements.type, ['income', 'outcome']),
-				gte(movements.occurredAt, range.start),
-				lt(movements.occurredAt, range.end)
+				isIncomeOrOutcome,
+				inRange(range)
 			)
 		)
 		.groupBy(financialAccounts.currency);
 }
 
 /** Income and outcome totals per category and currency for a range, never summed across currencies. */
-export function categoryMonthTotals(userId: string, range: { start: Date; end: Date }) {
-	const sumOf = (type: 'outcome' | 'income') =>
-		sql<number>`coalesce(sum(${movements.amount}) filter (where ${movements.type} = ${type}), 0)`.mapWith(
-			Number
-		);
+export function categoryMonthTotals(userId: string, range: Range) {
 	return db
 		.select({
 			categoryId: movements.categoryId,
 			currency: financialAccounts.currency,
-			outcome: sumOf('outcome'),
-			income: sumOf('income')
+			outcome: sumOfType('outcome'),
+			income: sumOfType('income')
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
@@ -130,10 +122,9 @@ export function categoryMonthTotals(userId: string, range: { start: Date; end: D
 		.where(
 			and(
 				canAccessMovement(userId),
-				canAccessCategory(userId),
-				inArray(movements.type, ['income', 'outcome']),
-				gte(movements.occurredAt, range.start),
-				lt(movements.occurredAt, range.end)
+				canAccessOwn(userId, categories),
+				isIncomeOrOutcome,
+				inRange(range)
 			)
 		)
 		.groupBy(movements.categoryId, financialAccounts.currency);
@@ -149,9 +140,9 @@ export function categoryMovementTypes(userId: string, id: string) {
 		.where(
 			and(
 				canAccessMovement(userId),
-				canAccessCategory(userId),
+				canAccessOwn(userId, categories),
 				eq(categories.id, id),
-				inArray(movements.type, ['income', 'outcome'])
+				isIncomeOrOutcome
 			)
 		);
 }
@@ -159,7 +150,7 @@ export function categoryMovementTypes(userId: string, id: string) {
 export function createCategory(userId: string, data: CategoryData) {
 	return db
 		.insert(categories)
-		.values({ ...data, ...categoryOwnedBy(userId) })
+		.values({ ...data, ...userOwned(userId) })
 		.returning({ id: categories.id });
 }
 
@@ -167,14 +158,14 @@ export function updateCategory(userId: string, id: string, data: CategoryData) {
 	return db
 		.update(categories)
 		.set(data)
-		.where(and(eq(categories.id, id), canAccessCategory(userId)))
+		.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
 		.returning({ id: categories.id });
 }
 
 export function deleteCategory(userId: string, id: string) {
 	return db
 		.delete(categories)
-		.where(and(eq(categories.id, id), canAccessCategory(userId)))
+		.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
 		.returning({ id: categories.id });
 }
 
@@ -182,6 +173,6 @@ export function setCategoryArchived(userId: string, id: string, at: Date | null)
 	return db
 		.update(categories)
 		.set({ archivedAt: at })
-		.where(and(eq(categories.id, id), canAccessCategory(userId)))
+		.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
 		.returning({ id: categories.id });
 }

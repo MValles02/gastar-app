@@ -4,8 +4,7 @@
 	import AuthForm from '$lib/components/AuthForm.svelte';
 	import AuthPage from '$lib/components/AuthPage.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Field from '$lib/components/ui/field/index.js';
-	import PasswordInput from '$lib/components/PasswordInput.svelte';
+	import PasswordField from '$lib/components/PasswordField.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -35,21 +34,13 @@
 	<AuthPage backHref={resolve('/login')} title="Nueva contraseña">
 		<AuthForm action="?/reset" submitLabel="Guardar contraseña" onupdated={() => (password = '')}>
 			<input type="hidden" name="token" value={data.token} />
-			<Field.Field>
-				<Field.Label for="password">Contraseña</Field.Label>
-				<PasswordInput
-					bind:value={password}
-					autocomplete="new-password"
-					minlength={PASSWORD_MIN_LENGTH}
-					invalid={!!form?.passwordError}
-					describedby={form?.passwordError ? 'password-error' : 'password-hint'}
-				/>
-				{#if form?.passwordError}
-					<Field.Error id="password-error">{form.passwordError}</Field.Error>
-				{:else}
-					<Field.Description id="password-hint">{PASSWORD_MIN_MESSAGE}</Field.Description>
-				{/if}
-			</Field.Field>
+			<PasswordField
+				bind:value={password}
+				autocomplete="new-password"
+				minlength={PASSWORD_MIN_LENGTH}
+				error={form?.passwordError}
+				hint={PASSWORD_MIN_MESSAGE}
+			/>
 		</AuthForm>
 	</AuthPage>
 {/if}

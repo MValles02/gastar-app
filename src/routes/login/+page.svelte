@@ -5,10 +5,10 @@
 	import AuthPage from '$lib/components/AuthPage.svelte';
 	import AuthTabs from '$lib/components/AuthTabs.svelte';
 	import CheckEmail from '$lib/components/CheckEmail.svelte';
+	import EmailField from '$lib/components/EmailField.svelte';
 	import * as Field from '$lib/components/ui/field/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
 	import Icon from '$lib/components/Icon.svelte';
-	import PasswordInput from '$lib/components/PasswordInput.svelte';
+	import PasswordField from '$lib/components/PasswordField.svelte';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -35,31 +35,13 @@
 		{/if}
 
 		<AuthForm action="?/login" submitLabel="Ingresar" onupdated={() => (password = '')}>
-			<Field.Field>
-				<Field.Label for="email">Email</Field.Label>
-				<Input
-					id="email"
-					type="email"
-					name="email"
-					autocomplete="username"
-					autocapitalize="none"
-					value={form?.email ?? ''}
-					required
-				/>
-			</Field.Field>
+			<EmailField value={form?.email ?? ''} ariaWiring={false} />
 
-			<Field.Field>
-				<Field.Label for="password">Contraseña</Field.Label>
-				<PasswordInput
-					bind:value={password}
-					autocomplete="current-password"
-					invalid={!!form?.passwordError}
-					describedby={form?.passwordError ? 'password-error' : undefined}
-				/>
-				{#if form?.passwordError}
-					<Field.Error id="password-error">{form.passwordError}</Field.Error>
-				{/if}
-			</Field.Field>
+			<PasswordField
+				bind:value={password}
+				autocomplete="current-password"
+				error={form?.passwordError}
+			/>
 
 			<a class="forgot" href={resolve('/forgot-password')}>Olvidé mi contraseña</a>
 

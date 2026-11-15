@@ -21,7 +21,7 @@ import {
 	recurringSuggestions,
 	savingsBaseline
 } from '$lib/server/plan-view';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 import { parseSavingsForm } from '../savings/form.server';
 
 /** Suggested limits the wizard can apply: active non-income categories with no limit yet and a suggestion above zero. */

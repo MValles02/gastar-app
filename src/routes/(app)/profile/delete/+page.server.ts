@@ -6,7 +6,7 @@ import { ignoreApiError } from '$lib/server/auth-forms';
 import { deleteUserAndData } from '$lib/server/delete-user';
 import { deletionSummary } from '$lib/server/profile-queries';
 import { isBlocked, record } from '$lib/server/rate-limit';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 import type { Actions, PageServerLoad } from './$types';
 
 /** What the confirmation lists: the user's real counts, so it says what is about to go. */

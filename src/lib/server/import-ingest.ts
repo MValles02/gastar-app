@@ -1,5 +1,5 @@
 import { eq, sql } from 'drizzle-orm';
-import { importOwnedBy } from './access';
+import { userOwned } from './access';
 import { db } from './db';
 import { pgErrorCode } from './db/errors';
 import { mpImportItems } from './db/schema';
@@ -38,7 +38,7 @@ export async function ingestImportItems(
 	for (const batch of batches(unique)) {
 		const insert = db
 			.insert(mpImportItems)
-			.values(batch.map((r) => ({ ...importOwnedBy(userId), ...r, source })));
+			.values(batch.map((r) => ({ ...userOwned(userId), ...r, source })));
 		const written = await (
 			conflict === 'skip'
 				? insert.onConflictDoNothing({ target })

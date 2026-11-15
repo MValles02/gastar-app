@@ -1,16 +1,22 @@
 import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 import type { PageServerLoad } from './$types';
 import {
 	accountSummary,
 	categorySums,
-	hasAnyMovement,
-	hasAnyPlan,
 	originTypeSums,
 	recentMovements,
 	transfersInSum
 } from '$lib/server/dashboard-queries';
-import { monthNet, toRecentItem, topCategories, totalBalance } from '$lib/server/dashboard';
+import {
+	hasAccounts,
+	monthNet,
+	toRecentItem,
+	topCategories,
+	totalBalance
+} from '$lib/server/dashboard';
+import { hasAnyMovement } from '$lib/server/movements-queries';
+import { hasAnyPlan } from '$lib/server/plan-queries';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import { currentMonth, dayHeading, localDay, monthLabel, monthRange } from '$lib/server/month';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
@@ -44,9 +50,9 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		hasAnyPlan(userId),
 		mpPending()
 	]);
-	const hasAnyAccount = summary.some((s) => s.count > 0);
+	const hasAnyAccount = hasAccounts(summary);
 	const row = summary.find((s) => s.currency === currency);
-	const hasCurrencyAccount = (row?.count ?? 0) > 0;
+	const hasCurrencyAccount = hasAccounts(summary, currency);
 	const hasMovement = hasAnyAccount && anyMovement;
 	const hasPlan = hasAnyAccount && anyPlan;
 	const base = {

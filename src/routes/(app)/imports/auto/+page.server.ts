@@ -3,7 +3,7 @@ import { importTitle, listAutoApproved, undoApproval } from '$lib/server/import-
 import { formatDay } from '$lib/locale';
 import { dayHeading, localDay } from '$lib/server/month';
 import { isUuid } from '$lib/server/db/util';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {

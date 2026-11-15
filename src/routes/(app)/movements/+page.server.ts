@@ -8,7 +8,7 @@ import { toRecentItem } from '$lib/server/dashboard';
 import { dayHeading, localDay, monthHeading } from '$lib/server/month';
 import { applyDefaultRange, parseMovementFilters } from '$lib/server/movements';
 import { listMovements, PAGE_SIZE, summarizeMovements } from '$lib/server/movements-queries';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;

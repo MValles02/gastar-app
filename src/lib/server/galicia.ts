@@ -1,7 +1,7 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from './db';
 import { financialAccounts, galiciaConnections } from './db/schema';
-import { canAccessAccount, canAccessGaliciaConnection, galiciaConnectionOwnedBy } from './access';
+import { canAccessAccount, canAccessOwn, userOwned } from './access';
 import { type ImportRow, ingestImportItems } from './import-ingest';
 import { KIND, kindSpec, SOURCE } from './import-sources';
 import { dayStart } from './month';
@@ -34,7 +34,7 @@ export async function getGaliciaConnection(userId: string) {
 			usdAccountId: galiciaConnections.usdAccountId
 		})
 		.from(galiciaConnections)
-		.where(canAccessGaliciaConnection(userId))
+		.where(canAccessOwn(userId, galiciaConnections))
 		.limit(1);
 	return row;
 }
@@ -50,7 +50,7 @@ export async function setGaliciaAccount(
 	const set = currency === 'ARS' ? { arsAccountId: accountId } : { usdAccountId: accountId };
 	await db
 		.insert(galiciaConnections)
-		.values({ ...galiciaConnectionOwnedBy(userId), ...set })
+		.values({ ...userOwned(userId), ...set })
 		.onConflictDoUpdate({ target: galiciaConnections.userId, set });
 	return true;
 }

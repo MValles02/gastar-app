@@ -5,7 +5,7 @@ import { PASSWORD_MIN_MESSAGE } from '$lib/fields';
 import { auth } from '$lib/server/auth';
 import { isValidPasswordLength } from '$lib/server/auth-forms';
 import { isBlocked, record } from '$lib/server/rate-limit';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
