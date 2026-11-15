@@ -5,7 +5,7 @@ import { TOAST_FLAGS, withSavedMovement } from '#lib/toast-flags.ts';
 import { dayOfMonth } from '#lib/dates.ts';
 import { withBalances } from '../accounts/balance';
 import { accountOriginSums, accountTransfersIn, listAccounts } from '../accounts/queries';
-import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '../db/errors';
+import { PG_FOREIGN_KEY_VIOLATION, pgConstraint, pgErrorCode } from '../db/errors';
 import { dateLabel, localDay } from '../month';
 import { notFoundHelpers } from '../guards';
 import { createMovementWithRule, getRecurring } from '../recurring/queries';
@@ -114,8 +114,15 @@ export async function drawerPickers(userId: string) {
 
 /** A write that hit an account/category deleted meanwhile fails on the form; anything else rethrows. */
 export function failIfUnavailable(e: unknown, values: Record<string, string>) {
-	if (pgErrorCode(e) === PG_FOREIGN_KEY_VIOLATION)
-		return formFail(400, { values, errors: { accountId: UNAVAILABLE_MESSAGE } });
+	if (pgErrorCode(e) === PG_FOREIGN_KEY_VIOLATION) {
+		const constraint = pgConstraint(e) ?? '';
+		const field = constraint.includes('destination_account_id')
+			? 'destinationAccountId'
+			: constraint.includes('category_id')
+				? 'categoryId'
+				: 'accountId';
+		return formFail(400, { values, errors: { [field]: UNAVAILABLE_MESSAGE } });
+	}
 	throw e;
 }
 
