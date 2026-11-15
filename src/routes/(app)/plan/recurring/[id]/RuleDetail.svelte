@@ -5,6 +5,7 @@
 	import { formatMoney } from '#lib/money.ts';
 	import { categoriesFor } from '#lib/movement.ts';
 	import { dueTone } from '#lib/plan.ts';
+	import { withWizard } from '#lib/plan-wizard.ts';
 	import DetailCard from '#lib/components/DetailCard.svelte';
 	import DetailLifecycle from '#lib/components/DetailLifecycle.svelte';
 	import DetailRow from '#lib/components/DetailRow.svelte';
@@ -27,7 +28,6 @@
 
 	const income = $derived(r.type === 'income');
 	const currency = $derived(r.currency === 'USD' ? 'USD' : 'ARS');
-	const wizardQuery = $derived(data.wizard ? `&wizard=${data.wizard}` : '');
 	const path = $derived(resolve(`plan/recurring/${r.id}`));
 
 	// What the update action stores, as the strings it takes (the server's `toFormValues`).
@@ -148,7 +148,7 @@
 			deleteTitle: `¿Eliminar este ${noun} fijo?`,
 			deleteBody: 'Los movimientos ya registrados se mantienen.'
 		}}
-		actions={{ unarchive: '?/archive', delete: `?/delete${wizardQuery}` }}
+		actions={{ unarchive: '?/archive', delete: withWizard('?/delete', data.wizard) }}
 		note={r.cannotRegister}
 	/>
 </div>

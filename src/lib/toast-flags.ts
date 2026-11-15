@@ -35,7 +35,8 @@ export const savedMovement = (sp: Flags, key: 'saved' | 'movementSaved') => ({
 	ruleId: sp.get('rule') || null
 });
 
-/** The `?planSaved=1` the plan wizard's last step lands with. */
+/** Where the plan wizard's last step lands: the plan, with `?planSaved=1`. */
+export const PLAN_SAVED_HREF = '/plan?planSaved=1';
 export const isPlanSaved = (sp: Flags) => sp.get('planSaved') === '1';
 
 /** An alert's `?limit=<categoryId>`: the limit drawer to open, when it looks like an id. */

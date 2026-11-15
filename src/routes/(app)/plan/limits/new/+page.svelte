@@ -1,16 +1,14 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { parseStep, planReturn } from '#lib/plan-wizard.ts';
+	import { planReturn, withWizard } from '#lib/plan-wizard.ts';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import LimitForm from '../LimitForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
-	const wizard = $derived(page.url.searchParams.get('wizard'));
-	const action = $derived(parseStep(wizard) ? `?wizard=${parseStep(wizard)}` : '');
-	const back = $derived(planReturn(wizard));
+	const action = $derived(withWizard('', data.wizard));
+	const back = $derived(planReturn(data.wizard ? String(data.wizard) : null));
 </script>
 
 <svelte:head>

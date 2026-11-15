@@ -1,14 +1,16 @@
 import { redirect } from '@sveltejs/kit';
-import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { parseLimitAmount, planReturn } from '#lib/plan-wizard.ts';
-import { deleteLimit, upsertLimits } from '#lib/server/plan/queries.ts';
+import { parseStep, planReturn } from '#lib/plan-wizard.ts';
+import { deleteLimit } from '#lib/server/plan/queries.ts';
+import { saveLimit } from '#lib/server/plan/limit-form.ts';
 import { limitView } from '#lib/server/plan/month-plan.ts';
-import { planFail, requireLimit, requirePlan } from '#lib/server/plan/guard.ts';
+import { requireLimit, requirePlan } from '#lib/server/plan/guard.ts';
 import { requireUser } from '#lib/server/guards.ts';
 
-export const load: PageServerLoad = async ({ locals, params }) =>
-	limitView(requireUser(locals).id, params.categoryId);
+export const load: PageServerLoad = async ({ locals, params, url }) => ({
+	...(await limitView(requireUser(locals).id, params.categoryId)),
+	wizard: parseStep(url.searchParams.get('wizard'))
+});
 
 export const actions: Actions = {
 	/** Changes the limit's amount; returns it in cents (what the autosave's Deshacer restores). */
@@ -18,17 +20,14 @@ export const actions: Actions = {
 		const limit = await requireLimit(userId, plan.id, params.categoryId);
 		const amount = String((await request.formData()).get('amount') ?? '');
 
-		const parsed = parseLimitAmount(amount, limit.currency);
-		const values = { amount };
-		if ('message' in parsed) return formFail(400, { values, errors: { amount: parsed.message } });
-		try {
-			await upsertLimits(userId, plan.id, [
-				{ categoryId: params.categoryId, amount: parsed.cents, currency: limit.currency }
-			]);
-		} catch (e) {
-			return planFail(e, 'amount', values);
-		}
-		return { amount: parsed.cents };
+		const saved = await saveLimit(
+			userId,
+			plan.id,
+			{ categoryId: params.categoryId, amount, currency: limit.currency },
+			{ values: { amount }, rejectedOn: 'amount' }
+		);
+		if (saved.failure) return saved.failure;
+		return { amount: saved.cents };
 	},
 	delete: async ({ locals, url, params }) => {
 		const userId = requireUser(locals).id;

@@ -7,6 +7,7 @@
 	import { formatAmountInput, formatMoney } from '#lib/money.ts';
 	import { navigateUp, upOnClick } from '#lib/nav-stack.svelte.ts';
 	import { limitPace, limitPercent, PLAN_STATUS_LABEL, PLAN_TONE } from '#lib/plan.ts';
+	import { withWizard } from '#lib/plan-wizard.ts';
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import IconBadge from '#lib/components/IconBadge.svelte';
@@ -169,7 +170,7 @@
 					triggerClass="w-full"
 					title="¿Eliminar este límite?"
 					confirmLabel="Eliminar"
-					action="?/delete{wizard ? `&wizard=${wizard}` : ''}"
+					action={withWizard('?/delete', wizard)}
 				>
 					Esta acción no se puede deshacer.
 				</ConfirmDialog>
