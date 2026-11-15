@@ -40,7 +40,6 @@
 	// The search form carries the active filters along (only after mount: without JS the noscript form owns them).
 	const carried = $derived([...page.url.searchParams].filter(([k]) => k !== 'q' && k !== 'page'));
 
-	// Drop empty params so the URL only carries what is set.
 	const onformdata = (e: FormDataEvent) => {
 		for (const [k, v] of [...e.formData]) if (v === '') e.formData.delete(k);
 	};

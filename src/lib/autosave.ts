@@ -34,7 +34,6 @@ export async function autosave<T>({
 	/** Action URL, e.g. `/movements/<id>?/update`. */
 	path: string;
 	fields: Record<string, string>;
-	/** The same fields as they were before the change. */
 	previous: Record<string, string>;
 	message?: string;
 	apply: (data: T) => void;

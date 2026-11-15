@@ -76,7 +76,6 @@
 		padding: 0;
 	}
 
-	/* Reset-lite */
 	*,
 	*::before,
 	*::after {
@@ -168,7 +167,6 @@
 		color: inherit;
 	}
 
-	/* Buttons */
 	button:not([data-slot]) {
 		font-family: inherit;
 		font-size: var(--font-size-base);
@@ -204,7 +202,6 @@
 		cursor: not-allowed;
 	}
 
-	/* Form controls */
 	input:not([type='radio'], [type='checkbox'], [data-slot]),
 	select:not([data-slot]) {
 		font-family: inherit;
@@ -299,7 +296,6 @@
 	--radius-pill: 999px;
 
 	--content-width: 560px;
-	/* Minimum hit area for anything tappable (44px). */
 	--tap-target: 2.75rem;
 	--ease-fast: 0.15s ease;
 	/* Floating tab bar: hugs the home indicator on notched devices, 0.75rem off the edge elsewhere. */
@@ -328,7 +324,6 @@
 	--font-size-hero: 2.25rem;
 	--font-size-input: 1rem;
 
-	/* Elevation scale: shadow-1 (cards, list containers) < shadow-lift (FAB). */
 	--shadow-1: 0 1px 2px light-dark(rgb(0 0 0 / 0.04), rgb(0 0 0 / 0.2));
 	--shadow-lift:
 		0 0 0 1px light-dark(transparent, var(--border)),

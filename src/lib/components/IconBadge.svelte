@@ -43,7 +43,6 @@
 		flex: none;
 		align-items: center;
 		justify-content: center;
-		/* Rounded square (canvas): 10px at every size. */
 		border-radius: 10px;
 		background: color-mix(in srgb, var(--tone) 14%, transparent);
 		color: var(--tone);
