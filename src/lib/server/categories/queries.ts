@@ -6,7 +6,7 @@ import { PG_UNIQUE_VIOLATION, pgErrorCode } from '../db/errors';
 import { escapeLike } from '../db/util';
 import { inRange, isIncomeOrOutcome, sumOfType, type Range } from '../db/sql';
 import type { CategoryData } from './form';
-import type { Currency } from '$lib/money';
+import type { Currency } from '#lib/money.ts';
 
 export function listCategories(
 	userId: string,

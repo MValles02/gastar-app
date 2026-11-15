@@ -1,6 +1,6 @@
-import { NAME_MAX_LENGTH, tooLongMessage } from '$lib/fields';
-import { CATEGORY_ICONS, SWATCHES } from '$lib/appearance';
-import { CATEGORY_KINDS, type CategoryKind } from '$lib/movement';
+import { NAME_MAX_LENGTH, tooLongMessage } from '#lib/fields.ts';
+import { CATEGORY_ICONS, SWATCHES } from '#lib/appearance.ts';
+import { CATEGORY_KINDS, type CategoryKind } from '#lib/movement.ts';
 
 export const NOT_FOUND_MESSAGE = 'Categoría no encontrada.';
 export const DUPLICATE_NAME_MESSAGE = 'Ya tenés una categoría con ese nombre.';

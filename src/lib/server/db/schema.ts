@@ -15,7 +15,7 @@ import {
 	uuid,
 	varchar
 } from 'drizzle-orm/pg-core';
-// Relative imports only: drizzle-kit loads this file outside SvelteKit, so $lib does not resolve.
+// Relative imports only: drizzle-kit loads this file outside SvelteKit, so the #lib alias does not resolve.
 import { MONTH_RE } from '../../dates';
 import { CURRENCIES } from '../../money';
 import { MOVEMENT_TYPES } from '../../movement';

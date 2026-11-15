@@ -1,6 +1,6 @@
-import { categoryLook, type CategoryIconKey, type SwatchKey } from '$lib/appearance';
-import type { Currency } from '$lib/money';
-import { signOf, type MovementType } from '$lib/movement';
+import { categoryLook, type CategoryIconKey, type SwatchKey } from '#lib/appearance.ts';
+import type { Currency } from '#lib/money.ts';
+import { signOf, type MovementType } from '#lib/movement.ts';
 import { accountSummary } from '../accounts/queries';
 import { hasAccounts, monthNet, totalBalance } from '../accounts/balance';
 import { categorySums, originTypeSums, recentMovements, transfersInSum } from './queries';

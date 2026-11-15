@@ -1,5 +1,5 @@
-import type { Currency } from '$lib/money';
-import type { MovementType } from '$lib/movement';
+import type { Currency } from '#lib/money.ts';
+import type { MovementType } from '#lib/movement.ts';
 
 export type TypeSum = { type: MovementType; amount: number };
 export type OriginSum = { accountId: string } & TypeSum;

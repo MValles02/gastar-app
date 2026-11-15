@@ -1,6 +1,6 @@
-import { MIN_DAY } from '$lib/dates';
-import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
-import { MOVEMENT_MESSAGES as MSG, MOVEMENT_TYPES, type MovementType } from '$lib/movement';
+import { MIN_DAY } from '#lib/dates.ts';
+import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+import { MOVEMENT_MESSAGES as MSG, MOVEMENT_TYPES, type MovementType } from '#lib/movement.ts';
 import {
 	ARS_WHOLE_MESSAGE,
 	convertAmount,
@@ -8,7 +8,7 @@ import {
 	isValidRate,
 	isWholeFor,
 	parseAmount
-} from '$lib/money';
+} from '#lib/money.ts';
 import { isUuid } from '../db/util';
 import { dayStart } from '../month';
 

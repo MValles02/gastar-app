@@ -1,4 +1,4 @@
-import type { MovementType } from '$lib/movement';
+import type { MovementType } from '#lib/movement.ts';
 import type { MovementData } from './movements/form';
 import {
 	approveImport,

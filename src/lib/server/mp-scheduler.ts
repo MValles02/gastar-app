@@ -1,6 +1,6 @@
 import { pgErrorCode } from './db/errors';
-import { DAY_MS } from '$lib/dates';
-import { APP_TZ } from '$lib/locale';
+import { DAY_MS } from '#lib/dates.ts';
+import { APP_TZ } from '#lib/locale.ts';
 import { dayStart, localDay } from './month';
 import { syncIntervalHours } from './mp-env';
 import { listUsableConnections, mpOauthEnabled } from './mp-oauth';

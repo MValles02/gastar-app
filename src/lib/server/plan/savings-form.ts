@@ -1,6 +1,6 @@
-import type { Currency } from '$lib/money';
-import { ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '$lib/money';
-import { SAVINGS_PERCENT_MAX, savingsFromPercent } from '$lib/plan';
+import type { Currency } from '#lib/money.ts';
+import { ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '#lib/money.ts';
+import { SAVINGS_PERCENT_MAX, savingsFromPercent } from '#lib/plan.ts';
 
 /**
  * Pure: reads the savings fields (`savingsOption` none|10|20|other, `savingsValue`, `savingsUnit`

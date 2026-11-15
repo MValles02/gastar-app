@@ -1,6 +1,6 @@
 import { fail, type RequestEvent } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USER_NAME_MAX_LENGTH } from '$lib/fields';
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USER_NAME_MAX_LENGTH } from '#lib/fields.ts';
 import { auth } from './auth';
 import { isBlocked, record } from './rate-limit';
 

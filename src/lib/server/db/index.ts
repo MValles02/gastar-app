@@ -1,4 +1,4 @@
-import { env } from '$env/dynamic/private';
+import * as env from '$app/env/private';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
@@ -8,6 +8,7 @@ import * as schema from './schema';
 // One pool per process: Vite HMR re-evaluates this module in dev, and a new
 // pool per reload leaked connections until Postgres hit max_connections (#180).
 const g = globalThis as typeof globalThis & { __gastarPg?: ReturnType<typeof postgres> };
+
 const client = (g.__gastarPg ??= postgres(env.DATABASE_URL ?? ''));
 
 export const db = drizzle(client, { schema });

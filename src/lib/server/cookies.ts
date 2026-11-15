@@ -1,4 +1,4 @@
-import { dev } from '$app/environment';
+import { dev } from '$app/env';
 
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 

@@ -1,4 +1,4 @@
-import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
+import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 import { accountOption, getAccount, listAccounts } from '../accounts/queries';
 import { getCategory, listCategories } from '../categories/queries';
 import { type KeptRefs, type MovementData, resolveMovement } from './form';
