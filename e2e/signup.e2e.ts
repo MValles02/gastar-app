@@ -85,3 +85,14 @@ test('reset and sign-up do not reveal which emails exist', async ({ page, reques
 		})
 		.toBe(true);
 });
+
+test('an invalid or expired link shows "Enlace vencido" and offers no new password', async ({
+	page
+}) => {
+	for (const url of ['/reset-password?error=INVALID_TOKEN', '/verify-email?error=TOKEN_EXPIRED']) {
+		await page.goto(url);
+		await expect(page.getByRole('heading', { name: 'Enlace vencido' })).toBeVisible();
+		await expect(page.getByLabel('Contraseña', { exact: true })).toHaveCount(0);
+		await expect(page).not.toHaveURL(/\/$/);
+	}
+});
