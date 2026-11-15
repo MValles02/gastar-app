@@ -1,14 +1,11 @@
-/// <reference types="@sveltejs/kit" />
-/// <reference no-default-lib="true"/>
-/// <reference lib="esnext" />
-/// <reference lib="webworker" />
-
-import { build, files, version } from '$service-worker';
-
-const sw = self as unknown as ServiceWorkerGlobalScope;
+import { version } from '$app/env';
+import { assets, immutable } from '$app/manifest';
+import { self as sw } from '$app/service-worker';
 
 const CACHE = `cache-${version}`;
-const ASSETS = new Set([...build, ...files]);
+const ASSETS = new Set(
+	[...immutable, ...assets].map(({ path }) => new URL(path, sw.location.origin).pathname)
+);
 
 sw.addEventListener('install', (event) => {
 	event.waitUntil(

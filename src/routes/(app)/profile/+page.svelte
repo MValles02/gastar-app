@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
-	import { autosave } from '$lib/autosave';
-	import { openShallow } from '$lib/open-shallow';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
-	import InlineText from '$lib/components/InlineText.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { USER_NAME_MAX_LENGTH } from '$lib/fields';
-	import { applyTheme, THEME_OPTIONS } from '$lib/theme';
+	import { autosave } from '#lib/autosave.ts';
+	import { openShallow } from '#lib/open-shallow.ts';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import ListRow from '#lib/components/ListRow.svelte';
+	import InlineText from '#lib/components/InlineText.svelte';
+	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { USER_NAME_MAX_LENGTH } from '#lib/fields.ts';
+	import { applyTheme, THEME_OPTIONS } from '#lib/theme.ts';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -46,7 +46,7 @@
 
 <PageHeader
 	title="Perfil"
-	back={{ href: resolve('/'), label: 'Volver al inicio', text: 'Inicio' }}
+	back={{ href: resolve(''), label: 'Volver al inicio', text: 'Inicio' }}
 />
 
 <div class="page">
@@ -70,21 +70,21 @@
 
 	<ListCard aria-label="Lo que administrás">
 		<ListRow
-			href={resolve('/accounts')}
+			href={resolve('accounts')}
 			lead={{ icon: 'accounts', color: null }}
 			title="Cuentas"
 			value={accountsCount}
 			chevron
 		/>
 		<ListRow
-			href={resolve('/categories')}
+			href={resolve('categories')}
 			lead={{ icon: 'categories', color: null }}
 			title="Categorías"
 			value={categoriesCount}
 			chevron
 		/>
 		<ListRow
-			href={resolve('/profile/vinculaciones')}
+			href={resolve('profile/vinculaciones')}
 			lead={{ icon: 'phone', color: null }}
 			title="Vinculaciones"
 			chevron
@@ -94,11 +94,11 @@
 	<ListCard aria-label="Tu identidad">
 		<ListRow lead={{ icon: 'profile', color: null }} title="Nombre" value={nameValue} />
 		<ListRow
-			href={resolve('/profile/password')}
+			href={resolve('profile/password')}
 			lead={{ icon: 'lock', color: null }}
 			title="Contraseña"
 			chevron
-			onclick={(e: MouseEvent) => openShallow(e, resolve('/profile/password'), 'password')}
+			onclick={(e: MouseEvent) => openShallow(e, resolve('profile/password'), 'password')}
 		/>
 	</ListCard>
 
@@ -143,8 +143,8 @@
 
 	<a
 		class="delete"
-		href={resolve('/profile/delete')}
-		onclick={(e) => openShallow(e, resolve('/profile/delete'), 'deleteAccount')}>Darme de baja</a
+		href={resolve('profile/delete')}
+		onclick={(e) => openShallow(e, resolve('profile/delete'), 'deleteAccount')}>Darme de baja</a
 	>
 </div>
 

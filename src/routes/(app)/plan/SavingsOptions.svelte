@@ -1,19 +1,19 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import Check from '@lucide/svelte/icons/check';
-	import { autosave } from '$lib/autosave';
+	import { autosave } from '#lib/autosave.ts';
 	import {
 		currencyStep,
 		formatAmountInput,
 		formatMoney,
 		parseAmount,
 		type Currency
-	} from '$lib/money';
-	import { formatPercentInput } from '$lib/locale';
-	import { PLAN_CURRENCY, SAVINGS_PERCENT_MAX, savingsFromPercent } from '$lib/plan';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import TextRow from '$lib/components/TextRow.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+	} from '#lib/money.ts';
+	import { formatPercentInput } from '#lib/locale.ts';
+	import { PLAN_CURRENCY, SAVINGS_PERCENT_MAX, savingsFromPercent } from '#lib/plan.ts';
+	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import TextRow from '#lib/components/TextRow.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
 
 	/**
 	 * The Ahorro choice as a list: Nada, 10 %, 20 %, Otro (a percentage or a fixed amount), each row showing

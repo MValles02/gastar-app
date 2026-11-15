@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { planReturn } from '$lib/plan-wizard';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import { planReturn } from '#lib/plan-wizard.ts';
+	import PageHeader from '#lib/components/PageHeader.svelte';
 	import RuleDetail from './RuleDetail.svelte';
 	import type { PageData } from './$types';
 
@@ -17,6 +17,6 @@
 
 <PageHeader
 	title="Plan"
-	back={{ href: resolve(back as '/'), label: 'Volver al plan', text: 'Plan' }}
+	back={{ href: resolve(back as ''), label: 'Volver al plan', text: 'Plan' }}
 />
 <RuleDetail {data} />

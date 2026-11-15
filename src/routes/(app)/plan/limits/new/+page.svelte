@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { parseStep, planReturn } from '$lib/plan-wizard';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import { parseStep, planReturn } from '#lib/plan-wizard.ts';
+	import PageHeader from '#lib/components/PageHeader.svelte';
 	import LimitForm from '../LimitForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -17,7 +17,7 @@
 	<title>Nuevo límite · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Nuevo límite" close={{ href: resolve(back as '/'), label: 'Cerrar' }} />
+<PageHeader title="Nuevo límite" close={{ href: resolve(back as ''), label: 'Cerrar' }} />
 
 <LimitForm
 	{action}

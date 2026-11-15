@@ -1,25 +1,25 @@
 <script lang="ts">
-	import { formatPercent } from '$lib/locale';
+	import { formatPercent } from '#lib/locale.ts';
 	import { resolve } from '$app/paths';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import ActionLink from '$lib/components/ActionLink.svelte';
-	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
-	import * as Empty from '$lib/components/ui/empty/index.js';
-	import FirstRunChecklist from '$lib/components/FirstRunChecklist.svelte';
-	import Icon from '$lib/components/Icon.svelte';
-	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
-	import Meter from '$lib/components/Meter.svelte';
-	import Money from '$lib/components/Money.svelte';
-	import HeroAmount from '$lib/components/HeroAmount.svelte';
-	import MovementRow from '$lib/components/MovementRow.svelte';
-	import MpPill from '$lib/components/MpPill.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import StatusPill from '$lib/components/StatusPill.svelte';
-	import { PLAN_TONE } from '$lib/plan';
-	import { swatchVar, toSwatchKey } from '$lib/appearance';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import ActionLink from '#lib/components/ActionLink.svelte';
+	import CurrencyTabs from '#lib/components/CurrencyTabs.svelte';
+	import * as Empty from '#lib/components/ui/empty/index.js';
+	import FirstRunChecklist from '#lib/components/FirstRunChecklist.svelte';
+	import Icon from '#lib/components/Icon.svelte';
+	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import ListRow from '#lib/components/ListRow.svelte';
+	import Meter from '#lib/components/Meter.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import HeroAmount from '#lib/components/HeroAmount.svelte';
+	import MovementRow from '#lib/components/MovementRow.svelte';
+	import MpPill from '#lib/components/MpPill.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import StatusPill from '#lib/components/StatusPill.svelte';
+	import { PLAN_TONE } from '#lib/plan.ts';
+	import { swatchVar, toSwatchKey } from '#lib/appearance.ts';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -55,7 +55,7 @@
 				</Empty.Header>
 			</Empty.Root>
 			<div class="empty-action">
-				<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
+				<Button href={resolve('accounts/new')}>Crear cuenta</Button>
 			</div>
 		{:else}
 			<section aria-labelledby="summary-heading">
@@ -101,7 +101,7 @@
 							{/if}
 						</div>
 						<div class="no-plan">
-							<Button href={resolve('/plan/setup')} class="w-full">Crear plan</Button>
+							<Button href={resolve('plan/setup')} class="w-full">Crear plan</Button>
 						</div>
 					{/if}
 				</Card.Root>

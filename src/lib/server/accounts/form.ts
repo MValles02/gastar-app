@@ -1,4 +1,4 @@
-import { NAME_MAX_LENGTH, tooLongMessage } from '$lib/fields';
+import { NAME_MAX_LENGTH, tooLongMessage } from '#lib/fields.ts';
 import {
 	AMOUNT_EXAMPLE,
 	ARS_WHOLE_MESSAGE,
@@ -6,8 +6,8 @@ import {
 	isWholeFor,
 	parseAmount,
 	type Currency
-} from '$lib/money';
-import { ACCOUNT_ICONS, SWATCHES } from '$lib/appearance';
+} from '#lib/money.ts';
+import { ACCOUNT_ICONS, SWATCHES } from '#lib/appearance.ts';
 
 export const NOT_FOUND_MESSAGE = 'Cuenta no encontrada.';
 export const DELETE_REFERENCED_MESSAGE = 'Esta cuenta tiene movimientos. Podés archivarla.';

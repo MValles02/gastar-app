@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
 	import PasswordForm from './PasswordForm.svelte';
 	import type { ActionData } from './$types';
 
@@ -11,6 +11,6 @@
 	<title>Cambiar contraseña · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Cambiar contraseña" close={{ href: resolve('/profile'), label: 'Cerrar' }} />
+<PageHeader title="Cambiar contraseña" close={{ href: resolve('profile'), label: 'Cerrar' }} />
 
 <PasswordForm errors={form?.errors} formError={form?.formError} />

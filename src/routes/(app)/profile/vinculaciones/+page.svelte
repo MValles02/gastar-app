@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import ListRow from '#lib/components/ListRow.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -14,7 +14,7 @@
 
 <PageHeader
 	title="Vinculaciones"
-	back={{ href: resolve('/profile'), label: 'Volver a Perfil', text: 'Perfil' }}
+	back={{ href: resolve('profile'), label: 'Volver a Perfil', text: 'Perfil' }}
 />
 
 <div class="page">
@@ -33,7 +33,7 @@
 	<ListCard aria-label="Vinculaciones">
 		{#if data.mp}
 			<ListRow
-				href={resolve('/profile/mercado-pago')}
+				href={resolve('profile/mercado-pago')}
 				lead={{ icon: 'phone', color: null }}
 				title="Mercado Pago"
 				value={mpState}
@@ -41,7 +41,7 @@
 			/>
 		{/if}
 		<ListRow
-			href={resolve('/profile/galicia')}
+			href={resolve('profile/galicia')}
 			lead={{ icon: 'card', color: null }}
 			title="Banco Galicia"
 			value={galiciaState}

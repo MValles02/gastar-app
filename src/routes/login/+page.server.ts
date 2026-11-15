@@ -1,8 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
-import { auth } from '$lib/server/auth';
-import { resendAction, VERIFY_EMAIL_PATH } from '$lib/server/auth-forms';
-import { isBlocked, record } from '$lib/server/rate-limit';
+import { auth } from '#lib/server/auth.ts';
+import { resendAction, VERIFY_EMAIL_PATH } from '#lib/server/auth-forms.ts';
+import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import type { Actions } from './$types';
 
 export const actions: Actions = {

@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import AuthForm from '$lib/components/AuthForm.svelte';
-	import AuthPage from '$lib/components/AuthPage.svelte';
-	import AuthTabs from '$lib/components/AuthTabs.svelte';
-	import CheckEmail from '$lib/components/CheckEmail.svelte';
-	import EmailField from '$lib/components/EmailField.svelte';
-	import * as Field from '$lib/components/ui/field/index.js';
-	import Icon from '$lib/components/Icon.svelte';
-	import PasswordField from '$lib/components/PasswordField.svelte';
+	import AuthForm from '#lib/components/AuthForm.svelte';
+	import AuthPage from '#lib/components/AuthPage.svelte';
+	import AuthTabs from '#lib/components/AuthTabs.svelte';
+	import CheckEmail from '#lib/components/CheckEmail.svelte';
+	import EmailField from '#lib/components/EmailField.svelte';
+	import * as Field from '#lib/components/ui/field/index.js';
+	import Icon from '#lib/components/Icon.svelte';
+	import PasswordField from '#lib/components/PasswordField.svelte';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -23,7 +23,7 @@
 </svelte:head>
 
 {#if form?.checkEmail}
-	<CheckEmail email={form.checkEmail} kind="verify" backHref={resolve('/login')} />
+	<CheckEmail email={form.checkEmail} kind="verify" backHref={resolve('login')} />
 {:else}
 	<AuthPage>
 		<AuthTabs current="login" />
@@ -43,7 +43,7 @@
 				error={form?.passwordError}
 			/>
 
-			<a class="forgot" href={resolve('/forgot-password')}>Olvidé mi contraseña</a>
+			<a class="forgot" href={resolve('forgot-password')}>Olvidé mi contraseña</a>
 
 			{#if form?.formError}
 				<Field.Error>{form.formError}</Field.Error>

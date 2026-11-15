@@ -1,4 +1,4 @@
-import type { Currency } from '$lib/money';
+import type { Currency } from '#lib/money.ts';
 import { and, desc, eq, or } from 'drizzle-orm';
 import { db } from '../db';
 import { categories, financialAccounts, movements } from '../db/schema';

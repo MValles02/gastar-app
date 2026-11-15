@@ -1,13 +1,13 @@
 import { redirect } from '@sveltejs/kit';
-import { formFail } from '$lib/form';
+import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-import { CURRENCIES } from '$lib/money';
-import { parseLimitAmount, planReturn } from '$lib/plan-wizard';
-import { listCategories } from '$lib/server/categories/queries';
-import { currentPlan, planLimits, PlanRejected, upsertLimits } from '$lib/server/plan-queries';
-import { limitSuggestions } from '$lib/server/plan-view';
-import { requireUser } from '$lib/server/guards';
+import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
+import { CURRENCIES } from '#lib/money.ts';
+import { parseLimitAmount, planReturn } from '#lib/plan-wizard.ts';
+import { listCategories } from '#lib/server/categories/queries.ts';
+import { currentPlan, planLimits, PlanRejected, upsertLimits } from '#lib/server/plan/queries.ts';
+import { limitSuggestions } from '#lib/server/plan/month-plan.ts';
+import { requireUser } from '#lib/server/guards.ts';
 
 /** Active expense (or both) categories that have no limit yet. */
 async function offered(userId: string, planId: string) {

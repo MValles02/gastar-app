@@ -84,7 +84,7 @@ Constraints: `UNIQUE (user_id, name)`.
 
 - `exchange_rate IS NOT NULL` **iff** `account.currency <> destination_account.currency` for a transfer.
 - If the two accounts share a currency, `destination_amount = amount`.
-- A movement cannot be created with an archived account or category, and new selections while editing exclude archived ones. Exception: editing a movement keeps an archived account or category it already references (`resolveMovement`'s `keep` argument in `src/lib/server/movements.ts`).
+- A movement cannot be created with an archived account or category, and new selections while editing exclude archived ones. Exception: editing a movement keeps an archived account or category it already references (`resolveMovement`'s `keep` argument in `src/lib/server/movements/form.ts`).
 - A movement or recurring rule cannot select a category whose non-null `kind` differs from its type; editing may keep the category it already has (`keep` argument; a recurring payment keeps its rule's category). `kind` does not affect category net, Reportes or Inicio, which aggregate by `movements.type`.
 
 #### Foreign keys
@@ -256,7 +256,7 @@ Encryption: tokens are AES-256-GCM ciphertext, `v1:` + base64(iv(12) | tag(16) |
 
 ## Derived formulas
 
-### Plan figures (one plan in ARS, per month; computed in `src/lib/server/plan.ts` and `plan-view.ts`)
+### Plan figures (one plan in ARS, per month; computed in `src/lib/server/plan/summary.ts` and `plan/month-plan.ts`)
 
 Figures are in pesos. USD items convert at the plan rate: the manual `spending_plans.exchange_rate` when set, else the latest transfer with an exchange rate and `occurred_at <= now()` (order `occurred_at` desc, `created_at` desc); with no rate, USD items are left out of the totals. Each figure (income, bills, pending bills, spent, variable spent, per-category spending, limits total) is summed per currency first and converted once with `convertAmount` (USD→ARS half up to whole pesos); rows are converted one by one for display only. A limit stays in its own currency: spending in the other currency converts into it. Savings are in ARS; a percentage applies to the total ARS income (USD income converted). Balances and Reportes are never converted.
 
@@ -306,7 +306,7 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 
 Shared server infrastructure each has one home: SQL fragments (`Range`, `inRange`, `sumOfType`, `total`, `isIncomeOrOutcome`, the `dest` alias, `localMonth`, `exists`) in `src/lib/server/db/sql.ts`; the `Tx`/`DbExecutor` types in `src/lib/server/db/index.ts`; the per-request memo (`memoPerRequest`, the only `getRequestEvent` reader) in `src/lib/server/request-memo.ts`; `requireUser` and the 404 helpers in `src/lib/server/guards.ts`; archive, unarchive and delete-unless-referenced actions (plus `catchForeignKey`) in `src/lib/server/lifecycle.ts`; the stored icon/colour → key mapping (`accountLook`, `categoryLook`) in `src/lib/appearance.ts`.
 
-Accounts, categories and the dashboard each have a folder under `src/lib/server/`: `queries.ts` holds DB I/O only, `form.ts` the form fields, parsing and messages, and pure maths or compositions are named by what they compute (`accounts/balance.ts`, `dashboard/home.ts`).
+Accounts, categories, the dashboard, movements, recurring rules and the plan each have a folder under `src/lib/server/`: `queries.ts` holds DB I/O only, `form.ts` the form fields, parsing and messages, and pure maths or compositions are named by what they compute (`accounts/balance.ts`, `dashboard/home.ts`, `movements/filters.ts`, `plan/summary.ts`, `plan/month-plan.ts`). Recurring auto-link (description matching, the rule amount following its latest payment, the rule locks, the revert on unlink) lives in `src/lib/server/recurring/link.ts`. Imports point one way: `plan` may import `recurring` and `movements`; `movements` may import `recurring/link`; neither `recurring` nor `movements` imports `plan`.
 
 `movements.user_id` is the movement's own owner column; reads, updates and deletes go through `canAccessMovement`, inserts through `movementOwnedBy`.
 

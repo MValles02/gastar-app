@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ComponentProps, Snippet } from 'svelte';
-	import Icon from '$lib/components/Icon.svelte';
-	import Wordmark from '$lib/components/Wordmark.svelte';
+	import Icon from '#lib/components/Icon.svelte';
+	import Wordmark from '#lib/components/Wordmark.svelte';
 
 	// Centered, narrow column shared by the signed-out pages: wordmark, optional "Volver" link at the top,
 	// status icon, title and description. Without a title the wordmark is the page heading (Ingresar / Crear cuenta).

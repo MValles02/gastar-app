@@ -2,17 +2,17 @@
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
-	import { followRedirect } from '$lib/nav-stack.svelte';
+	import { followRedirect } from '#lib/nav-stack.svelte.ts';
 	import { resolve } from '$app/paths';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import AmountHero from '$lib/components/AmountHero.svelte';
-	import DayOfMonthPicker from '$lib/components/DayOfMonthPicker.svelte';
-	import EntryFields from '$lib/components/EntryFields.svelte';
-	import FormActions from '$lib/components/FormActions.svelte';
-	import OptionPicker from '$lib/components/OptionPicker.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
-	import { isPositiveAmount } from '$lib/money';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import AmountHero from '#lib/components/AmountHero.svelte';
+	import DayOfMonthPicker from '#lib/components/DayOfMonthPicker.svelte';
+	import EntryFields from '#lib/components/EntryFields.svelte';
+	import FormActions from '#lib/components/FormActions.svelte';
+	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+	import { isPositiveAmount } from '#lib/money.ts';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 	type Fields = 'type' | 'description' | 'amount' | 'accountId' | 'categoryId' | 'dayOfMonth';
@@ -104,7 +104,7 @@
 
 <form
 	method="POST"
-	action={drawer ? resolve('/plan/recurring/new') + action : action}
+	action={drawer ? resolve('plan/recurring/new') + action : action}
 	class="form"
 	class:drawer
 	class:submitting
@@ -163,7 +163,7 @@
 				>
 					{#snippet empty()}
 						<p class="hint pad">
-							Todavía no tenés cuentas. <a href={resolve('/accounts/new')}>Crear cuenta</a>
+							Todavía no tenés cuentas. <a href={resolve('accounts/new')}>Crear cuenta</a>
 						</p>
 					{/snippet}
 				</OptionPicker>
@@ -185,7 +185,7 @@
 				>
 					{#snippet empty()}
 						<p class="hint pad">
-							Todavía no tenés categorías. <a href={resolve('/categories/new')}>Crear categoría</a>
+							Todavía no tenés categorías. <a href={resolve('categories/new')}>Crear categoría</a>
 						</p>
 					{/snippet}
 				</OptionPicker>

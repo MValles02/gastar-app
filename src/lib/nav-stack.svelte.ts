@@ -1,8 +1,8 @@
+import type { ActionResult } from '$app/forms';
 /* eslint-disable svelte/prefer-svelte-reactivity -- URLs here are parsed and compared, never mutated or rendered */
-import { goto, invalidateAll, replaceState } from '$app/navigation';
-import { isModifiedClick } from '$lib/open-shallow';
-import { TOAST_FLAGS } from '$lib/url-flags';
-import type { ActionResult, AfterNavigate, OnNavigate } from '@sveltejs/kit';
+import { goto, refreshAll, type AfterNavigate, type OnNavigate } from '$app/navigation';
+import { isModifiedClick } from '#lib/open-shallow.ts';
+import { TOAST_FLAGS } from '#lib/url-flags.ts';
 
 /**
  * In-memory mirror of this tab's history entries inside the app (pathname + search), so "up"
@@ -32,6 +32,8 @@ const pathOf = (key: string) => key.split('?')[0];
 
 /** Called from the root layout's `afterNavigate`. */
 export function track(nav: AfterNavigate) {
+	// A shallow `goto` (drawer open, flag strip) is not a history entry the stack tracks.
+	if (nav.shallow && nav.type === 'goto') return;
 	const url = nav.to?.url;
 	if (!url) return;
 	const key = keyOf(url);
@@ -78,16 +80,18 @@ export function markReplace(e?: MouseEvent) {
 export function replaceGoto(href: string, opts: Parameters<typeof goto>[1] = {}) {
 	replaceNext = true;
 	// eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass resolved same-origin paths
-	return goto(href, { ...opts, replaceState: true });
+	return goto(href, { ...opts, replace: true });
 }
 
 /**
- * Shallow `replaceState` that strips one-shot query flags (default: the toast flags a save leaves) from
- * the current URL and keeps the stack's copy in sync, so a later "up" to this screen still sees the flag
- * missing and replaces the entry with it. Deferred so it runs after `track` has recorded the navigation
- * (the order of `afterNavigate` callbacks is not fixed), and retried while SvelteKit's router is not
- * initialized yet (`replaceState` throws on a hard load). Resolves once stripped, so a caller can push
- * shallow state right after (a `replaceState` would wipe it).
+ * Strips one-shot query flags (default: the toast flags a save leaves) from the current URL with a
+ * replace navigation and keeps the stack's copy in sync, so a later "up" to this screen still sees the
+ * flag missing and replaces the entry with it. It is not shallow on purpose: a shallow goto leaves
+ * `page.url` (and the history entry's `pageUrl`) with the flag, so closing a drawer opened after it
+ * would be a full popstate navigation to the flagged URL and rerun the flag's effect. Deferred so it
+ * runs after `track` has recorded the navigation (the order of `afterNavigate` callbacks is not
+ * fixed), and retried while SvelteKit's router is not initialized yet. Resolves once stripped, so a
+ * caller can push shallow state right after (the navigation wipes `page.state`).
  */
 export function stripFlags(names: readonly string[] = TOAST_FLAGS) {
 	return new Promise<void>((done) => {
@@ -96,15 +100,15 @@ export function stripFlags(names: readonly string[] = TOAST_FLAGS) {
 			const url = new URL(location.href);
 			if (names.some((n) => url.searchParams.has(n))) {
 				for (const n of names) url.searchParams.delete(n);
-				try {
-					// eslint-disable-next-line svelte/no-navigation-without-resolve -- same-origin current URL
-					replaceState(url.pathname + url.search + url.hash, {});
-				} catch {
-					if (--tries > 0) setTimeout(run, 50);
-					else done();
-					return;
-				}
-				if (index >= 0 && pathOf(entries[index]) === url.pathname) entries[index] = keyOf(url);
+				replaceGoto(url.pathname + url.search + url.hash, { reset: false }).then(
+					() => done(),
+					() => {
+						replaceNext = false;
+						if (--tries > 0) setTimeout(run, 50);
+						else done();
+					}
+				);
+				return;
 			}
 			done();
 		};
@@ -138,7 +142,7 @@ export async function navigateUp(href: string, { refresh = false } = {}) {
 	if (to >= 0) {
 		const landed = entries[to];
 		if (target.search && landed !== key) afterPop = () => replaceAfterPop(key);
-		else if (refresh) afterPop = invalidateAll;
+		else if (refresh) afterPop = refreshAll;
 		pop(to);
 		return;
 	}
@@ -147,7 +151,7 @@ export async function navigateUp(href: string, { refresh = false } = {}) {
 		while (first > 0 && pathOf(entries[first - 1]) === location.pathname) first--;
 	if (first === index) {
 		transitionNext = 'back';
-		await replaceGoto(key, { invalidateAll: true });
+		await replaceGoto(key, { refreshAll: true });
 		return;
 	}
 	// Pop back to the first entry of the current screen's run (e.g. wizard step 1), then replace it.
@@ -158,7 +162,7 @@ export async function navigateUp(href: string, { refresh = false } = {}) {
 /** The replace that follows a pop: the pop already animated, so this one does not. */
 function replaceAfterPop(key: string) {
 	transitionNext = 'none';
-	return replaceGoto(key, { invalidateAll: true });
+	return replaceGoto(key, { refreshAll: true });
 }
 
 /**
@@ -213,7 +217,7 @@ export const upOnClick = (href: string) => (e: MouseEvent) => {
 
 type EnhanceResult = {
 	result: ActionResult;
-	update: (opts?: { reset?: boolean; invalidateAll?: boolean }) => Promise<void>;
+	update: (opts?: { reset?: boolean; refreshAll?: boolean }) => Promise<void>;
 };
 
 /**
@@ -228,6 +232,6 @@ export async function followRedirect(
 	const target = new URL(result.location, location.href);
 	if (target.origin === location.origin && target.pathname === location.pathname)
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- server-validated same-origin redirect location
-		return goto(keyOf(target), { invalidateAll: true });
+		return goto(keyOf(target), { refreshAll: true });
 	return navigateUp(result.location, { refresh: true });
 }

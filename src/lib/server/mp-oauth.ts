@@ -1,11 +1,11 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import { and, eq, isNotNull, isNull, lt, min } from 'drizzle-orm';
-import { env } from '$env/dynamic/private';
+import * as env from '$app/env/private';
 import { canAccessAccount, canAccessOwn, userOwned } from './access';
 import { db } from './db';
 import { financialAccounts, mpConnections, mpImportItems, mpSyncState } from './db/schema';
 import { mpApiBaseUrl } from './mp-env';
-import { DAY_MS } from '$lib/dates';
+import { DAY_MS } from '#lib/dates.ts';
 import { localDay } from './month';
 
 const DEFAULT_AUTH_BASE_URL = 'https://auth.mercadopago.com';

@@ -5,8 +5,8 @@
 	let { current }: { current: 'login' | 'signup' } = $props();
 
 	const tabs = [
-		{ key: 'login', href: resolve('/login'), label: 'Ingresar' },
-		{ key: 'signup', href: resolve('/signup'), label: 'Crear cuenta' }
+		{ key: 'login', href: resolve('login'), label: 'Ingresar' },
+		{ key: 'signup', href: resolve('signup'), label: 'Crear cuenta' }
 	] as const;
 </script>
 

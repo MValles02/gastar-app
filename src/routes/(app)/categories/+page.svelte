@@ -2,23 +2,23 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
-	import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-	import { replaceGoto } from '$lib/nav-stack.svelte';
-	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Empty from '$lib/components/ui/empty/index.js';
-	import FilterBar from '$lib/components/FilterBar.svelte';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
-	import { openShallow } from '$lib/open-shallow';
-	import Money from '$lib/components/Money.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import SectionHeader from '$lib/components/SectionHeader.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import SwitchRow from '$lib/components/SwitchRow.svelte';
-	import Icon from '$lib/components/Icon.svelte';
-	import { CURRENCIES, type Currency } from '$lib/money';
-	import { KIND_OPTIONS } from '$lib/movement';
+	import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
+	import { replaceGoto } from '#lib/nav-stack.svelte.ts';
+	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Empty from '#lib/components/ui/empty/index.js';
+	import FilterBar from '#lib/components/FilterBar.svelte';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import ListRow from '#lib/components/ListRow.svelte';
+	import { openShallow } from '#lib/open-shallow.ts';
+	import Money from '#lib/components/Money.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import SectionHeader from '#lib/components/SectionHeader.svelte';
+	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import SwitchRow from '#lib/components/SwitchRow.svelte';
+	import Icon from '#lib/components/Icon.svelte';
+	import { CURRENCIES, type Currency } from '#lib/money.ts';
+	import { KIND_OPTIONS } from '#lib/movement.ts';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -52,7 +52,7 @@
 		if (kind) sp.set('kind', kind);
 		if (currency !== 'ARS') sp.set('currency', currency);
 		if (archived) sp.set('archived', '1');
-		void replaceGoto(resolve(`/categories?${sp}` as '/'), { keepFocus: true });
+		void replaceGoto(resolve(`/categories?${sp}` as ''), { reset: false });
 	};
 	const currencyOptions = [
 		{ value: 'both', label: 'Ambas' },
@@ -72,9 +72,9 @@
 {#snippet archivedMeta()}Archivada{/snippet}
 {#snippet add()}
 	<Button
-		href={resolve('/categories/new')}
+		href={resolve('categories/new')}
 		class="h-10 gap-1 rounded-full bg-primary/12 pr-3.5 pl-2.5 font-semibold text-(--link) hover:bg-primary/20"
-		onclick={(e) => openShallow(e, resolve('/categories/new'), 'newCategory')}
+		onclick={(e) => openShallow(e, resolve('categories/new'), 'newCategory')}
 	>
 		<Plus size={18} strokeWidth={1.75} aria-hidden="true" />Agregar
 	</Button>
@@ -104,7 +104,7 @@
 
 <PageHeader
 	title="Categorías"
-	back={{ href: resolve('/profile'), label: 'Volver al perfil', text: 'Perfil' }}
+	back={{ href: resolve('profile'), label: 'Volver al perfil', text: 'Perfil' }}
 	action={data.hasAnyCategory ? add : undefined}
 />
 
@@ -120,8 +120,8 @@
 		</Empty.Root>
 		<div class="empty-action">
 			<Button
-				href={resolve('/categories/new')}
-				onclick={(e) => openShallow(e, resolve('/categories/new'), 'newCategory')}
+				href={resolve('categories/new')}
+				onclick={(e) => openShallow(e, resolve('categories/new'), 'newCategory')}
 				>Crear categoría</Button
 			>
 		</div>
@@ -162,7 +162,7 @@
 								</span>
 							{/snippet}
 							<ListRow
-								href={resolve(`/categories/${c.id}`)}
+								href={resolve(`categories/${c.id}`)}
 								lead={{
 									icon,
 									color: toSwatchKey(c.color)

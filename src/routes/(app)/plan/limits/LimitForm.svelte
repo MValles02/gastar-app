@@ -3,13 +3,13 @@
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { followRedirect } from '$lib/nav-stack.svelte';
-	import { formatAmountInput, formatMoney, isPositiveAmount, type Currency } from '$lib/money';
-	import FormActions from '$lib/components/FormActions.svelte';
-	import OptionPicker from '$lib/components/OptionPicker.svelte';
-	import AmountHero from '$lib/components/AmountHero.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { followRedirect } from '#lib/nav-stack.svelte.ts';
+	import { formatAmountInput, formatMoney, isPositiveAmount, type Currency } from '#lib/money.ts';
+	import FormActions from '#lib/components/FormActions.svelte';
+	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import AmountHero from '#lib/components/AmountHero.svelte';
+	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 
@@ -71,7 +71,7 @@
 
 <form
 	method="POST"
-	action={drawer ? resolve('/plan/limits/new') + action : action}
+	action={drawer ? resolve('plan/limits/new') + action : action}
 	class="form"
 	class:drawer
 	class:submitting

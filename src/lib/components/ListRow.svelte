@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { ComponentProps, Snippet } from 'svelte';
-	import type { SwatchKey } from '$lib/appearance';
-	import * as Item from '$lib/components/ui/item/index.js';
-	import type { StatusTone } from '$lib/plan';
+	import type { SwatchKey } from '#lib/appearance.ts';
+	import * as Item from '#lib/components/ui/item/index.js';
+	import type { StatusTone } from '#lib/plan.ts';
 	import Icon from './Icon.svelte';
 	import IconBadge from './IconBadge.svelte';
 	import StatusPill from './StatusPill.svelte';

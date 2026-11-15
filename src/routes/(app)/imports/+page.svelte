@@ -7,13 +7,13 @@
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import { afterNavigate, refreshAll } from '$app/navigation';
-	import { stripFlags } from '$lib/nav-stack.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Empty from '$lib/components/ui/empty/index.js';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import Icon from '$lib/components/Icon.svelte';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import { stripFlags } from '#lib/nav-stack.svelte.ts';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Empty from '#lib/components/ui/empty/index.js';
+	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import Icon from '#lib/components/Icon.svelte';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
 	import ImportRow from './ImportRow.svelte';
 	import type { PageData } from './$types';
 
@@ -51,7 +51,8 @@
 	onMount(() => (hydrated = true));
 	// Toast once per redirect, then strip its flags from the URL so a reload does not toast again.
 	const stripDone = () => stripFlags(['done', 'approved', 'skipped', 'imported', 'auto']);
-	afterNavigate(() => {
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
 		if (data.done) {
 			(data.done === 'stale' ? toast.info : toast.success)(DONE_MESSAGES[data.done]);
 			stripDone();
@@ -109,7 +110,7 @@
 
 <PageHeader
 	title="Importados"
-	back={{ href: resolve('/'), label: 'Volver al inicio', text: 'Inicio' }}
+	back={{ href: resolve(''), label: 'Volver al inicio', text: 'Inicio' }}
 />
 
 <div class="page">
@@ -135,7 +136,7 @@
 			</p>
 			{#if data.needsReconnect}
 				<Button
-					href={resolve('/profile/mercado-pago')}
+					href={resolve('profile/mercado-pago')}
 					variant="outline"
 					class="h-10 rounded-full px-4">Reconectar</Button
 				>
@@ -150,7 +151,7 @@
 	{/if}
 
 	{#if data.autoCount > 0}
-		<a class="auto" href={resolve('/imports/auto')}>
+		<a class="auto" href={resolve('imports/auto')}>
 			<span class="label">{autoLabel(data.autoCount)}</span>
 			<ChevronRight aria-hidden="true" />
 		</a>

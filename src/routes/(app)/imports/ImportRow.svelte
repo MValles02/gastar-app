@@ -2,11 +2,11 @@
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { submitAction } from '$lib/autosave';
-	import IconBadge from '$lib/components/IconBadge.svelte';
-	import Money from '$lib/components/Money.svelte';
-	import { openShallow } from '$lib/open-shallow';
-	import { undoToast } from '$lib/undo-toast';
+	import { submitAction } from '#lib/autosave.ts';
+	import IconBadge from '#lib/components/IconBadge.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import { openShallow } from '#lib/open-shallow.ts';
+	import { undoToast } from '#lib/undo-toast.ts';
 
 	/**
 	 * One pending imported item. The whole row opens its review; a suggested row also has a quick
@@ -27,11 +27,11 @@
 		};
 	} = $props();
 
-	const href = $derived(resolve(`/imports/${item.id}`));
+	const href = $derived(resolve(`imports/${item.id}`));
 	const open = (e: MouseEvent) => openShallow(e, href, 'importItem');
 
 	async function undo() {
-		const r = await submitAction(`${resolve('/imports')}?/undoApprove`, { id: item.id });
+		const r = await submitAction(`${resolve('imports')}?/undoApprove`, { id: item.id });
 		if (r.type !== 'success') throw new Error('undo');
 	}
 </script>

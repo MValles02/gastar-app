@@ -1,11 +1,11 @@
-import { formFail } from '$lib/form';
+import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
 import {
 	DELETE_REFERENCED_MESSAGE,
 	EDITABLE,
 	NOT_FOUND_MESSAGE,
 	parseAccountForm
-} from '$lib/server/accounts/form';
+} from '#lib/server/accounts/form.ts';
 import {
 	accountOriginSums,
 	accountTransfersIn,
@@ -14,12 +14,12 @@ import {
 	isAccountReferenced,
 	setArchived,
 	updateAccount
-} from '$lib/server/accounts/queries';
-import { withBalances } from '$lib/server/accounts/balance';
-import { archiveActions, deleteUnlessReferenced, lifecycleState } from '$lib/server/lifecycle';
-import { notFoundHelpers, requireUser } from '$lib/server/guards';
-import { toIconKey, toSwatchKey } from '$lib/appearance';
-import { formatAmountInput } from '$lib/money';
+} from '#lib/server/accounts/queries.ts';
+import { withBalances } from '#lib/server/accounts/balance.ts';
+import { archiveActions, deleteUnlessReferenced, lifecycleState } from '#lib/server/lifecycle.ts';
+import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
+import { toIconKey, toSwatchKey } from '#lib/appearance.ts';
+import { formatAmountInput } from '#lib/money.ts';
 
 const guards = notFoundHelpers(NOT_FOUND_MESSAGE);
 const { notFound, requireId } = guards;

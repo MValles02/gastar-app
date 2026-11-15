@@ -1,6 +1,6 @@
-import { formFail } from '$lib/form';
+import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
+import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 import {
 	DELETE_REFERENCED_MESSAGE,
 	DUPLICATE_NAME_MESSAGE,
@@ -8,7 +8,7 @@ import {
 	KIND_LOCKED_MESSAGE,
 	NOT_FOUND_MESSAGE,
 	parseCategoryForm
-} from '$lib/server/categories/form';
+} from '#lib/server/categories/form.ts';
 import {
 	categoryMonthNet,
 	categoryMovementTypes,
@@ -19,11 +19,11 @@ import {
 	toCurrencyNets,
 	updateCategory,
 	writeIfNameFree
-} from '$lib/server/categories/queries';
-import { archiveActions, deleteUnlessReferenced, lifecycleState } from '$lib/server/lifecycle';
-import { currentMonth, monthLabel, monthRange, parseMonth } from '$lib/server/month';
-import { notFoundHelpers, requireUser } from '$lib/server/guards';
-import { CATEGORY_KINDS, kindFits } from '$lib/movement';
+} from '#lib/server/categories/queries.ts';
+import { archiveActions, deleteUnlessReferenced, lifecycleState } from '#lib/server/lifecycle.ts';
+import { currentMonth, monthLabel, monthRange, parseMonth } from '#lib/server/month.ts';
+import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
+import { CATEGORY_KINDS, kindFits } from '#lib/movement.ts';
 
 const guards = notFoundHelpers(NOT_FOUND_MESSAGE);
 const { notFound, requireId } = guards;

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { Currency } from '$lib/money';
-	import * as Card from '$lib/components/ui/card/index.js';
+	import type { Currency } from '#lib/money.ts';
+	import * as Card from '#lib/components/ui/card/index.js';
 	import HeroAmount from './HeroAmount.svelte';
 
 	/**

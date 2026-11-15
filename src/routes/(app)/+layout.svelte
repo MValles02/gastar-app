@@ -3,13 +3,13 @@
 	import { toast } from 'svelte-sonner';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
-	import { stripFlags } from '$lib/nav-stack.svelte';
-	import { edgeSwipeBack, settleEdgeSwipe } from '$lib/edge-swipe-back';
-	import { TAB_ROUTES } from '$lib/form-routes';
+	import { stripFlags } from '#lib/nav-stack.svelte.ts';
+	import { edgeSwipeBack, settleEdgeSwipe } from '#lib/edge-swipe-back.ts';
+	import { TAB_ROUTES } from '#lib/form-routes.ts';
 	import { drawers, type DrawerKey } from './drawers';
-	import TabBar from '$lib/components/TabBar.svelte';
-	import { highlightMovement } from '$lib/highlight.svelte';
-	import { undoMovementSaved } from '$lib/undo-toast';
+	import TabBar from '#lib/components/TabBar.svelte';
+	import { highlightMovement } from '#lib/highlight.svelte.ts';
+	import { undoMovementSaved } from '#lib/undo-toast.ts';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -45,7 +45,8 @@
 		return () => clearTimeout(id);
 	});
 	let toasted: string | null = null;
-	afterNavigate(() => {
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
 		settleEdgeSwipe();
 		if (!movementSaved) return;
 		// Once per saved id, however many navigations land before the flag is stripped.

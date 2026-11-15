@@ -1,9 +1,9 @@
 import { redirect } from '@sveltejs/kit';
-import { formFail } from '$lib/form';
+import { formFail } from '#lib/form.ts';
 import type { Actions } from './$types';
-import { DUPLICATE_NAME_MESSAGE, parseCategoryForm } from '$lib/server/categories/form';
-import { createCategory, writeIfNameFree } from '$lib/server/categories/queries';
-import { requireUser } from '$lib/server/guards';
+import { DUPLICATE_NAME_MESSAGE, parseCategoryForm } from '#lib/server/categories/form.ts';
+import { createCategory, writeIfNameFree } from '#lib/server/categories/queries.ts';
+import { requireUser } from '#lib/server/guards.ts';
 
 export const actions: Actions = {
 	default: async ({ request, locals }) => {

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Empty from '$lib/components/ui/empty/index.js';
-	import Icon from '$lib/components/Icon.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Empty from '#lib/components/ui/empty/index.js';
+	import Icon from '#lib/components/Icon.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
 
 	const notFound = $derived(page.status === 404);
 	// Server error() calls use Spanish sentences ending in a period; SvelteKit's English defaults
@@ -14,7 +14,7 @@
 
 <PageHeader
 	title={notFound ? 'No encontrado' : 'Algo salió mal'}
-	back={{ href: resolve('/'), label: 'Volver al inicio', text: 'Inicio' }}
+	back={{ href: resolve(''), label: 'Volver al inicio', text: 'Inicio' }}
 />
 
 <Empty.Root>
@@ -29,4 +29,4 @@
 	</Empty.Header>
 </Empty.Root>
 
-<Button href={resolve('/')}>Volver a Inicio</Button>
+<Button href={resolve('')}>Volver a Inicio</Button>

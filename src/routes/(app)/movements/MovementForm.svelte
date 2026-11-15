@@ -1,23 +1,23 @@
 <script lang="ts">
-	import { MIN_DAY } from '$lib/dates';
-	import type { Currency } from '$lib/money';
-	import { MOVEMENT_MESSAGES } from '$lib/movement';
+	import { MIN_DAY } from '#lib/dates.ts';
+	import type { Currency } from '#lib/money.ts';
+	import { MOVEMENT_MESSAGES } from '#lib/movement.ts';
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
-	import { followRedirect } from '$lib/nav-stack.svelte';
+	import { followRedirect } from '#lib/nav-stack.svelte.ts';
 	import { resolve } from '$app/paths';
-	import AmountHero from '$lib/components/AmountHero.svelte';
+	import AmountHero from '#lib/components/AmountHero.svelte';
 	import CategoryCreateDrawer from '../categories/CategoryCreateDrawer.svelte';
 	import type { CreatedCategory } from '../categories/CategoryForm.svelte';
-	import EntryFields from '$lib/components/EntryFields.svelte';
-	import FormActions from '$lib/components/FormActions.svelte';
-	import MovementDatePicker from '$lib/components/MovementDatePicker.svelte';
-	import OptionPicker from '$lib/components/OptionPicker.svelte';
-	import SwitchRow from '$lib/components/SwitchRow.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { convertInput, isPositiveAmount, isValidRate, parseAmount } from '$lib/money';
+	import EntryFields from '#lib/components/EntryFields.svelte';
+	import FormActions from '#lib/components/FormActions.svelte';
+	import MovementDatePicker from '#lib/components/MovementDatePicker.svelte';
+	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import SwitchRow from '#lib/components/SwitchRow.svelte';
+	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { convertInput, isPositiveAmount, isValidRate, parseAmount } from '#lib/money.ts';
 	import CategoryRow from './CategoryRow.svelte';
 	import TransferRows from './TransferRows.svelte';
 
@@ -305,7 +305,7 @@
 
 <form
 	method="POST"
-	action={drawer ? resolve('/movements/new') : undefined}
+	action={drawer ? resolve('movements/new') : undefined}
 	class="form"
 	class:drawer
 	class:submitting

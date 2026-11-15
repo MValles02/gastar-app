@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { HTMLInputAttributes } from 'svelte/elements';
-	import * as Field from '$lib/components/ui/field/index.js';
-	import PasswordInput from '$lib/components/PasswordInput.svelte';
+	import * as Field from '#lib/components/ui/field/index.js';
+	import PasswordInput from '#lib/components/PasswordInput.svelte';
 
 	// Labelled `#password` field of the signed-out pages: error, else the optional hint, under it.
 	let {

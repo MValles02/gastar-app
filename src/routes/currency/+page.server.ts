@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { PREFERENCE_COOKIE_OPTIONS } from '$lib/server/cookies';
-import { CURRENCIES } from '$lib/money';
-import { CURRENCY_COOKIE, safeRedirectTo } from '$lib/server/currency-pref';
+import { PREFERENCE_COOKIE_OPTIONS } from '#lib/server/cookies.ts';
+import { CURRENCIES } from '#lib/money.ts';
+import { CURRENCY_COOKIE, safeRedirectTo } from '#lib/server/currency-pref.ts';
 import type { Actions } from './$types';
 
 /** Pre-single-currency cookie, cleared whenever the preference is saved. */

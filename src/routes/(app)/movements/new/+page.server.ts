@@ -1,16 +1,17 @@
 import { redirect } from '@sveltejs/kit';
-import { formFail } from '$lib/form';
-import { PREFERENCE_COOKIE_OPTIONS } from '$lib/server/cookies';
-import { preferredCurrency } from '$lib/server/currency-pref';
+import { formFail } from '#lib/form.ts';
+import { PREFERENCE_COOKIE_OPTIONS } from '#lib/server/cookies.ts';
+import { preferredCurrency } from '#lib/server/currency-pref.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { TOAST_FLAGS } from '$lib/url-flags';
-import { dayOfMonth } from '$lib/dates';
-import { localDay } from '$lib/server/month';
-import { parseMovementForm } from '$lib/server/movements';
-import { createMovement } from '$lib/server/movements-queries';
-import { createMovementWithRule } from '$lib/server/plan-queries';
-import { requireUser } from '$lib/server/guards';
-import { drawerPickers, failIfUnavailable, resolvePostedMovement } from '../form.server';
+import { TOAST_FLAGS } from '#lib/url-flags.ts';
+import { dayOfMonth } from '#lib/dates.ts';
+import { localDay } from '#lib/server/month.ts';
+import { parseMovementForm } from '#lib/server/movements/form.ts';
+import { createMovement } from '#lib/server/movements/queries.ts';
+import { createMovementWithRule } from '#lib/server/recurring/queries.ts';
+import { requireUser } from '#lib/server/guards.ts';
+import { drawerPickers, failIfUnavailable } from '#lib/server/movements/detail.ts';
+import { resolvePostedMovement } from '#lib/server/movements/pickers.ts';
 
 /** Remembers the account of the last saved movement as the next form's default. */
 const LAST_ACCOUNT_COOKIE = 'last_account';

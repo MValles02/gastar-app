@@ -1,25 +1,25 @@
 <script lang="ts">
-	import { formatMoney } from '$lib/money';
+	import { formatMoney } from '#lib/money.ts';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { afterNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import ActionLink from '$lib/components/ActionLink.svelte';
-	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import Money from '$lib/components/Money.svelte';
-	import HeroAmount from '$lib/components/HeroAmount.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import SectionHeader from '$lib/components/SectionHeader.svelte';
-	import StatusPill from '$lib/components/StatusPill.svelte';
-	import { stripFlags } from '$lib/nav-stack.svelte';
-	import { openShallow } from '$lib/open-shallow';
-	import { PLAN_CURRENCY, PLAN_TONE } from '$lib/plan';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import ActionLink from '#lib/components/ActionLink.svelte';
+	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import HeroAmount from '#lib/components/HeroAmount.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import SectionHeader from '#lib/components/SectionHeader.svelte';
+	import StatusPill from '#lib/components/StatusPill.svelte';
+	import { stripFlags } from '#lib/nav-stack.svelte.ts';
+	import { openShallow } from '#lib/open-shallow.ts';
+	import { PLAN_CURRENCY, PLAN_TONE } from '#lib/plan.ts';
 	import LimitList from './LimitList.svelte';
 	import RecurringRow from './RecurringRow.svelte';
 	import type { PageData } from './$types';
@@ -33,7 +33,7 @@
 	// (before the push: stripping replaces the entry's state).
 	async function openLimit(id: string) {
 		await stripFlags(['limit']);
-		await openShallow(null, resolve(`/plan/limits/${id}`), 'limit');
+		await openShallow(null, resolve(`plan/limits/${id}`), 'limit');
 	}
 
 	const rateLabel = (r: { value: number | null; manual: boolean; date: string | null }) =>
@@ -41,7 +41,8 @@
 			? 'Sin cotización'
 			: `Cotización: ${formatMoney(r.value, 'ARS')} (${r.manual ? 'manual' : `última compra, ${r.date}`})`;
 
-	afterNavigate(() => {
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
 		if (data.planSaved) {
 			toast.success('Plan guardado.');
 			void stripFlags();
@@ -59,21 +60,21 @@
 	<ActionLink
 		href="/plan/limits/new"
 		label="+ Agregar"
-		onclick={(e) => openShallow(e, resolve('/plan/limits/new'), 'newLimit')}
+		onclick={(e) => openShallow(e, resolve('plan/limits/new'), 'newLimit')}
 	/>
 {/snippet}
 {#snippet addIncome()}
 	<ActionLink
 		href="/plan/recurring/new?type=income"
 		label="+ Agregar"
-		onclick={(e) => openShallow(e, resolve('/plan/recurring/new?type=income'), 'newRule')}
+		onclick={(e) => openShallow(e, resolve('plan/recurring/new?type=income'), 'newRule')}
 	/>
 {/snippet}
 {#snippet addOutcome()}
 	<ActionLink
 		href="/plan/recurring/new?type=outcome"
 		label="+ Agregar"
-		onclick={(e) => openShallow(e, resolve('/plan/recurring/new?type=outcome'), 'newRule')}
+		onclick={(e) => openShallow(e, resolve('plan/recurring/new?type=outcome'), 'newRule')}
 	/>
 {/snippet}
 
@@ -86,7 +87,7 @@
 
 	{#if !data.hasAccount}
 		<EmptyState icon="accounts" description="No tenés cuentas.">
-			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
+			<Button href={resolve('accounts/new')}>Crear cuenta</Button>
 		</EmptyState>
 	{:else}
 		{#if data.plan.summary}
@@ -126,8 +127,8 @@
 						<div class="kv link">
 							<dt>
 								<a
-									href={resolve('/plan/savings')}
-									onclick={(e) => openShallow(e, resolve('/plan/savings'), 'savings')}
+									href={resolve('plan/savings')}
+									onclick={(e) => openShallow(e, resolve('plan/savings'), 'savings')}
 									>Ahorro<span aria-hidden="true">&nbsp;›</span></a
 								>
 							</dt>
@@ -142,8 +143,8 @@
 					</dl>
 					<a
 						class="rate"
-						href={resolve('/plan/rate')}
-						onclick={(e) => openShallow(e, resolve('/plan/rate'), 'rate')}
+						href={resolve('plan/rate')}
+						onclick={(e) => openShallow(e, resolve('plan/rate'), 'rate')}
 						>{rateLabel(data.plan.rate)}<span aria-hidden="true">&nbsp;›</span></a
 					>
 				</Card.Root>
@@ -167,7 +168,7 @@
 						{/if}
 						<p class="strong">Sin plan</p>
 						<p class="muted">Calculá cuánto podés gastar por día.</p>
-						<Button href={resolve('/plan/setup')}>Crear plan</Button>
+						<Button href={resolve('plan/setup')}>Crear plan</Button>
 					</div>
 				</Card.Content>
 			</Card.Root>

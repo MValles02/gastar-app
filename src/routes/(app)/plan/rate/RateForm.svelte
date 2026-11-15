@@ -3,11 +3,11 @@
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { followRedirect } from '$lib/nav-stack.svelte';
-	import { isPositiveAmount } from '$lib/money';
-	import FormActions from '$lib/components/FormActions.svelte';
-	import AmountHero from '$lib/components/AmountHero.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { followRedirect } from '#lib/nav-stack.svelte.ts';
+	import { isPositiveAmount } from '#lib/money.ts';
+	import FormActions from '#lib/components/FormActions.svelte';
+	import AmountHero from '#lib/components/AmountHero.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
 
 	/**
 	 * The plan's USD rate. `drawer`: opened over the plan (posts to /plan/rate and reports the result
@@ -36,7 +36,7 @@
 	} = $props();
 
 	const drawer = $derived(variant === 'drawer');
-	const path = resolve('/plan/rate');
+	const path = resolve('plan/rate');
 	let rate = $state(untrack(() => initial));
 	let mounted = $state(false);
 	let submitting = $state(false);

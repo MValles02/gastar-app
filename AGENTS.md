@@ -16,7 +16,7 @@ Public sign-up (email + password, email verification required, password reset by
 
 ## Stack
 
-SvelteKit 2 + TypeScript, Drizzle ORM + Postgres (`src/lib/server/db/schema.ts`), Better Auth (`src/lib/server/auth.ts`), Tailwind 4 + shadcn-svelte (bits-ui) components in `src/lib/components/ui`, Geist Mono via `@fontsource-variable/geist-mono`, Playwright (E2E), pnpm.
+SvelteKit 3 + TypeScript, Drizzle ORM + Postgres (`src/lib/server/db/schema.ts`), Better Auth (`src/lib/server/auth.ts`), Tailwind 4 + shadcn-svelte (bits-ui) components in `src/lib/components/ui`, Geist Mono via `@fontsource-variable/geist-mono`, Playwright (E2E), pnpm.
 
 ## Rules
 

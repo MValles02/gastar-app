@@ -1,4 +1,4 @@
-import { env } from '$env/dynamic/private';
+import * as env from '$app/env/private';
 
 /** Mercado Pago's API root; overridden in tests only. */
 export const mpApiBaseUrl = () => env.MP_API_BASE_URL || 'https://api.mercadopago.com';

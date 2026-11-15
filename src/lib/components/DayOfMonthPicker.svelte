@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import BottomDrawer from './BottomDrawer.svelte';
 
 	/**

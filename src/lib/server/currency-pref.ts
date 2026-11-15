@@ -1,5 +1,5 @@
 import type { Cookies } from '@sveltejs/kit';
-import type { Currency } from '$lib/money';
+import type { Currency } from '#lib/money.ts';
 
 /** Cookie holding the user's single-currency preference (read with `preferredCurrency`). */
 export const CURRENCY_COOKIE = 'currency';

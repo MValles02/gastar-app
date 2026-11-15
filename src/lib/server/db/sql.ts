@@ -1,6 +1,6 @@
 import { and, eq, gte, lt, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { APP_TZ } from '$lib/locale';
+import { APP_TZ } from '#lib/locale.ts';
 import { financialAccounts, movements } from './schema';
 
 /** Half-open: start inclusive, end exclusive. */

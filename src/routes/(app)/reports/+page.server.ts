@@ -1,9 +1,9 @@
 import type { PageServerLoad } from './$types';
-import { categoryLook, type CategoryIconKey } from '$lib/appearance';
-import { preferredCurrency } from '$lib/server/currency-pref';
-import { hasAccounts } from '$lib/server/accounts/balance';
-import { accountSummary } from '$lib/server/accounts/queries';
-import { biggestOutcome, categorySums, monthlyFlows } from '$lib/server/dashboard/queries';
+import { categoryLook, type CategoryIconKey } from '#lib/appearance.ts';
+import { preferredCurrency } from '#lib/server/currency-pref.ts';
+import { hasAccounts } from '#lib/server/accounts/balance.ts';
+import { accountSummary } from '#lib/server/accounts/queries.ts';
+import { biggestOutcome, categorySums, monthlyFlows } from '#lib/server/dashboard/queries.ts';
 import {
 	currentMonth,
 	dateLabel,
@@ -15,8 +15,8 @@ import {
 	parseMonth,
 	shiftMonth,
 	shortMonth
-} from '$lib/server/month';
-import { requireUser } from '$lib/server/guards';
+} from '#lib/server/month.ts';
+import { requireUser } from '#lib/server/guards.ts';
 
 const FLOW_MONTHS = 6;
 /** Categories listed as their own row; the rest are summed into "Otros". */

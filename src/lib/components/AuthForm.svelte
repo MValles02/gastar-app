@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { tick } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 
 	// Auth page form: progressive enhancement, busy state, and focus on the first invalid
 	// field after a failed submit. Children are the fields; the submit button comes last.

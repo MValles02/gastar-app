@@ -4,11 +4,11 @@
 	import { enhance } from '$app/forms';
 	import { refreshAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { autosave, submitAction } from '$lib/autosave';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import OptionPicker from '$lib/components/OptionPicker.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { autosave, submitAction } from '#lib/autosave.ts';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -54,7 +54,7 @@
 <PageHeader
 	title="Banco Galicia"
 	back={{
-		href: resolve('/profile/vinculaciones'),
+		href: resolve('profile/vinculaciones'),
 		label: 'Volver a Vinculaciones',
 		text: 'Vinculaciones'
 	}}
@@ -82,7 +82,7 @@
 				>
 					{#snippet empty()}
 						<p class="hint">
-							Necesitás una cuenta en pesos. <a href={resolve('/accounts/new')}>Crear cuenta</a>
+							Necesitás una cuenta en pesos. <a href={resolve('accounts/new')}>Crear cuenta</a>
 						</p>
 					{/snippet}
 				</OptionPicker>
@@ -104,7 +104,7 @@
 				>
 					{#snippet empty()}
 						<p class="hint">
-							No tenés cuentas en dólares. <a href={resolve('/accounts/new')}>Crear cuenta</a>
+							No tenés cuentas en dólares. <a href={resolve('accounts/new')}>Crear cuenta</a>
 						</p>
 					{/snippet}
 				</OptionPicker>

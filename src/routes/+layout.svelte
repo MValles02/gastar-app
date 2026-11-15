@@ -3,12 +3,12 @@
 	import '../app.css';
 	import { afterNavigate, onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
-	import { drawers } from '$lib/drawer-open.svelte';
-	import { track, transitionOf } from '$lib/nav-stack.svelte';
-	import { FORM_ROUTES, TAB_ROUTES } from '$lib/form-routes';
-	import favicon from '$lib/assets/favicon.svg';
-	import { Toaster } from '$lib/components/ui/sonner/index.js';
-	import NavProgress from '$lib/components/NavProgress.svelte';
+	import { drawers } from '#lib/drawer-open.svelte.ts';
+	import { track, transitionOf } from '#lib/nav-stack.svelte.ts';
+	import { FORM_ROUTES, TAB_ROUTES } from '#lib/form-routes.ts';
+	import favicon from '#lib/assets/favicon.svg';
+	import { Toaster } from '#lib/components/ui/sonner/index.js';
+	import NavProgress from '#lib/components/NavProgress.svelte';
 
 	let { children } = $props();
 
@@ -23,6 +23,9 @@
 
 	// Page transitions (View Transitions API): the direction goes on <html> for the CSS in app.css.
 	onNavigate((nav) => {
+		// A shallow goto (drawer open) is no page change; closing the drawer (shallow popstate) fires no
+		// hook as long as `page.url` matches the address bar, which `stripFlags` guarantees.
+		if (nav.shallow && nav.type === 'goto') return;
 		const kind = transitionOf(nav);
 		if (
 			!kind ||

@@ -2,20 +2,20 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { ACCOUNT_ICONS, toIconKey, toSwatchKey } from '$lib/appearance';
-	import { autosave } from '$lib/autosave';
-	import { NAME_MAX_LENGTH } from '$lib/fields';
-	import { formatAmountInput } from '$lib/money';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import DetailHero from '$lib/components/DetailHero.svelte';
-	import IconBadge from '$lib/components/IconBadge.svelte';
-	import IconColorDrawer from '$lib/components/IconColorDrawer.svelte';
-	import Icon from '$lib/components/Icon.svelte';
-	import InlineText from '$lib/components/InlineText.svelte';
-	import Money from '$lib/components/Money.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import StatusPill from '$lib/components/StatusPill.svelte';
+	import { ACCOUNT_ICONS, toIconKey, toSwatchKey } from '#lib/appearance.ts';
+	import { autosave } from '#lib/autosave.ts';
+	import { NAME_MAX_LENGTH } from '#lib/fields.ts';
+	import { formatAmountInput } from '#lib/money.ts';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import DetailHero from '#lib/components/DetailHero.svelte';
+	import IconBadge from '#lib/components/IconBadge.svelte';
+	import IconColorDrawer from '#lib/components/IconColorDrawer.svelte';
+	import Icon from '#lib/components/Icon.svelte';
+	import InlineText from '#lib/components/InlineText.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import StatusPill from '#lib/components/StatusPill.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	/**
@@ -29,7 +29,7 @@
 	let balance = $derived(data.balance);
 	const a = $derived(account);
 	const labelId = $props.id();
-	const path = $derived(resolve(`/accounts/${a.id}`));
+	const path = $derived(resolve(`accounts/${a.id}`));
 
 	let glyphOpen = $state(false);
 	let glyphError = $state('');
@@ -63,7 +63,7 @@
 <div class="detail">
 	<PageHeader
 		title={a.name}
-		back={{ href: resolve('/accounts'), label: 'Volver a cuentas', text: 'Cuentas' }}
+		back={{ href: resolve('accounts'), label: 'Volver a cuentas', text: 'Cuentas' }}
 	/>
 
 	<DetailHero cents={balance} currency={a.currency} label="Saldo" {labelId}>
@@ -135,7 +135,7 @@
 	{#if a.archived}<p class="note">No aparece al registrar movimientos.</p>{/if}
 
 	<div class="actions">
-		<Button href={resolve(`/movements?account=${a.id}&all=1`)} variant="outline" class="w-full">
+		<Button href={resolve(`movements?account=${a.id}&all=1`)} variant="outline" class="w-full">
 			Ver movimientos
 		</Button>
 		{#if data.actions.canArchive}

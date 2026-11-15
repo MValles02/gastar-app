@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { upOnClick } from '$lib/nav-stack.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { upOnClick } from '#lib/nav-stack.svelte.ts';
+	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SavingsOptions from '../SavingsOptions.svelte';
 	import type { PageData } from './$types';
 
@@ -13,7 +13,7 @@
 	<title>Ahorro · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Ahorro" close={{ href: resolve('/plan'), label: 'Cerrar' }} />
+<PageHeader title="Ahorro" close={{ href: resolve('plan'), label: 'Cerrar' }} />
 
 <div class="page">
 	<SavingsOptions
@@ -23,8 +23,7 @@
 		base={data.base}
 		daysLeft={data.daysLeft}
 	/>
-	<Button href={resolve('/plan')} onclick={upOnClick(resolve('/plan'))} class="w-full">Listo</Button
-	>
+	<Button href={resolve('plan')} onclick={upOnClick(resolve('plan'))} class="w-full">Listo</Button>
 </div>
 
 <style>

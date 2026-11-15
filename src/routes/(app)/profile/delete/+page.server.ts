@@ -1,12 +1,12 @@
 import { redirect } from '@sveltejs/kit';
-import { formFail } from '$lib/form';
+import { formFail } from '#lib/form.ts';
 import { APIError } from 'better-auth/api';
-import { auth } from '$lib/server/auth';
-import { ignoreApiError } from '$lib/server/auth-forms';
-import { deleteUserAndData } from '$lib/server/delete-user';
-import { deletionSummary } from '$lib/server/profile-queries';
-import { isBlocked, record } from '$lib/server/rate-limit';
-import { requireUser } from '$lib/server/guards';
+import { auth } from '#lib/server/auth.ts';
+import { ignoreApiError } from '#lib/server/auth-forms.ts';
+import { deleteUserAndData } from '#lib/server/delete-user.ts';
+import { deletionSummary } from '#lib/server/profile-queries.ts';
+import { isBlocked, record } from '#lib/server/rate-limit.ts';
+import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** What the confirmation lists: the user's real counts, so it says what is about to go. */

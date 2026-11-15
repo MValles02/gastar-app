@@ -1,11 +1,11 @@
 import { redirect } from '@sveltejs/kit';
-import { formFail } from '$lib/form';
+import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { parseStep } from '$lib/plan-wizard';
-import { listAccounts } from '$lib/server/accounts/queries';
-import { listCategories } from '$lib/server/categories/queries';
-import { currentMonth } from '$lib/server/month';
-import { PLAN_CURRENCY } from '$lib/plan';
+import { parseStep } from '#lib/plan-wizard.ts';
+import { listAccounts } from '#lib/server/accounts/queries.ts';
+import { listCategories } from '#lib/server/categories/queries.ts';
+import { currentMonth } from '#lib/server/month.ts';
+import { PLAN_CURRENCY } from '#lib/plan.ts';
 import {
 	currentPlan,
 	planIncome,
@@ -13,16 +13,16 @@ import {
 	updatePlan,
 	upsertLimits,
 	upsertPlan
-} from '$lib/server/plan-queries';
+} from '#lib/server/plan/queries.ts';
 import {
 	limitSuggestions,
 	planView,
 	recurringLists,
 	recurringSuggestions,
 	savingsBaseline
-} from '$lib/server/plan-view';
-import { requireUser } from '$lib/server/guards';
-import { parseSavingsForm } from '../savings/form.server';
+} from '#lib/server/plan/month-plan.ts';
+import { requireUser } from '#lib/server/guards.ts';
+import { parseSavingsForm } from '#lib/server/plan/savings-form.ts';
 
 /** Suggested limits the wizard can apply: active non-income categories with no limit yet and a suggestion above zero. */
 async function applicableSuggestions(userId: string, planId: string | null) {

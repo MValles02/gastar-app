@@ -1,18 +1,15 @@
-import { formFail } from '$lib/form';
-import { type Currency, formatAmountInput } from '$lib/money';
-import { withBalances } from '$lib/server/accounts/balance';
-import { accountOriginSums, accountTransfersIn, listAccounts } from '$lib/server/accounts/queries';
-import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
-import { dateLabel, localDay } from '$lib/server/month';
-import { notFoundHelpers } from '$lib/server/guards';
-import { UNAVAILABLE_MESSAGE } from '$lib/server/movements';
-import { type KeptRefs, movementPickers } from '$lib/server/movement-pickers';
-import { categoryUsage, getMovement } from '$lib/server/movements-queries';
-import { activeRuleItems } from '$lib/server/plan-view';
-import { listRecurring } from '$lib/server/plan-queries';
-import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-
-export { movementPickers, resolvePostedMovement } from '$lib/server/movement-pickers';
+import { formFail } from '#lib/form.ts';
+import { type Currency, formatAmountInput } from '#lib/money.ts';
+import { withBalances } from '../accounts/balance';
+import { accountOriginSums, accountTransfersIn, listAccounts } from '../accounts/queries';
+import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '../db/errors';
+import { dateLabel, localDay } from '../month';
+import { notFoundHelpers } from '../guards';
+import { getRecurring } from '../recurring/queries';
+import { activeRuleItems, ruleItem } from '../recurring/rule-items';
+import { type KeptRefs, UNAVAILABLE_MESSAGE } from './form';
+import { movementPickers } from './pickers';
+import { categoryUsage, getMovement } from './queries';
 
 export const { notFound, requireId } = notFoundHelpers('Movimiento no encontrado.');
 
@@ -59,14 +56,8 @@ export async function detailOf(userId: string, id: string) {
 	const rules =
 		m.type === 'transfer' ? [] : await activeRuleItems(userId, m.accountCurrency, m.type);
 	if (m.recurringId && !rules.some((r) => r.id === m.recurringId)) {
-		const [r] = await listRecurring(userId, undefined, m.recurringId);
-		if (r)
-			rules.push({
-				id: r.id,
-				name: r.description,
-				icon: toCategoryIconKey(r.categoryIcon) ?? ('categories' as const),
-				color: toSwatchKey(r.categoryColor)
-			});
+		const [r] = await getRecurring(userId, m.recurringId);
+		if (r) rules.push(ruleItem(r));
 	}
 	return {
 		movement: {

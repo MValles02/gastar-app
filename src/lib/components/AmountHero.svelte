@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { groupedAmount } from '$lib/amount-input';
-	import type { Currency } from '$lib/money';
+	import { groupedAmount } from '#lib/amount-input.ts';
+	import type { Currency } from '#lib/money.ts';
 
 	/** Big centered amount (no label, no box). The accessible name is "Monto". */
 	let {

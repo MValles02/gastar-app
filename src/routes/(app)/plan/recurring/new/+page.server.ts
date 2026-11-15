@@ -1,11 +1,11 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { planReturn } from '$lib/plan-wizard';
-import { formatAmountInput } from '$lib/money';
-import { recurringSuggestions } from '$lib/server/plan-view';
-import { createRecurring } from '$lib/server/plan-queries';
-import { requireUser } from '$lib/server/guards';
-import { readRecurringForm, recurringPickers } from '../form.server';
+import { planReturn } from '#lib/plan-wizard.ts';
+import { formatAmountInput } from '#lib/money.ts';
+import { recurringSuggestions } from '#lib/server/plan/month-plan.ts';
+import { createRecurring } from '#lib/server/recurring/queries.ts';
+import { requireUser } from '#lib/server/guards.ts';
+import { readRecurringForm, recurringPickers } from '#lib/server/recurring/form.ts';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;

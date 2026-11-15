@@ -4,17 +4,17 @@
 	import { enhance } from '$app/forms';
 	import { refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { submitAction } from '$lib/autosave';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import Money from '$lib/components/Money.svelte';
-	import OptionPicker from '$lib/components/OptionPicker.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import TextRow from '$lib/components/TextRow.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
-	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
-	import * as Field from '$lib/components/ui/field/index.js';
-	import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
+	import { submitAction } from '#lib/autosave.ts';
+	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import TextRow from '#lib/components/TextRow.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
+	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
+	import * as Field from '#lib/components/ui/field/index.js';
+	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
 	import type { PageData } from './$types';
 
 	/**
@@ -38,7 +38,7 @@
 
 	const drawer = $derived(variant === 'drawer');
 	const item = $derived(data.item);
-	const path = $derived(resolve(`/imports/${item.id}`));
+	const path = $derived(resolve(`imports/${item.id}`));
 
 	// Errors of the drawer's own post; the page shows the server-rendered ones instead.
 	let posted = $state<Record<string, string | undefined>>({});
@@ -195,7 +195,7 @@
 						{#snippet empty()}
 							<p class="hint pad">
 								Necesitás otra cuenta en pesos.
-								<a href={resolve('/accounts/new')}>Crear cuenta</a>
+								<a href={resolve('accounts/new')}>Crear cuenta</a>
 							</p>
 							{#if errors.counterAccountId}<p class="error pad" role="alert">
 									{errors.counterAccountId}
@@ -222,7 +222,7 @@
 						{#snippet empty()}
 							<p class="hint pad">
 								Todavía no tenés categorías.
-								<a href={resolve('/categories/new')}>Crear categoría</a>
+								<a href={resolve('categories/new')}>Crear categoría</a>
 							</p>
 							{#if errors.categoryId}<p class="error pad" role="alert">{errors.categoryId}</p>{/if}
 						{/snippet}

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { markReplace } from '$lib/nav-stack.svelte';
-	import { openShallow } from '$lib/open-shallow';
+	import { markReplace } from '#lib/nav-stack.svelte.ts';
+	import { openShallow } from '#lib/open-shallow.ts';
 	import House from '@lucide/svelte/icons/house';
 	import List from '@lucide/svelte/icons/list';
 	import CalendarCheck from '@lucide/svelte/icons/calendar-check';
@@ -10,12 +10,12 @@
 	import Plus from '@lucide/svelte/icons/plus';
 
 	const navItems = [
-		{ href: resolve('/'), path: '/', label: 'Inicio', icon: House },
-		{ href: resolve('/movements'), path: '/movements', label: 'Movimientos', icon: List },
-		{ href: resolve('/plan'), path: '/plan', label: 'Plan', icon: CalendarCheck },
-		{ href: resolve('/reports'), path: '/reports', label: 'Reportes', icon: ChartColumn }
+		{ href: resolve(''), path: '/', label: 'Inicio', icon: House },
+		{ href: resolve('movements'), path: '/movements', label: 'Movimientos', icon: List },
+		{ href: resolve('plan'), path: '/plan', label: 'Plan', icon: CalendarCheck },
+		{ href: resolve('reports'), path: '/reports', label: 'Reportes', icon: ChartColumn }
 	];
-	const newMovementHref = resolve('/movements/new');
+	const newMovementHref = resolve('movements/new');
 
 	function isActive(path: string): boolean {
 		const pathname = page.url.pathname;

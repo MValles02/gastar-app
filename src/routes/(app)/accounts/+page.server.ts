@@ -1,10 +1,14 @@
 import type { PageServerLoad } from './$types';
-import { accountSummary } from '$lib/server/accounts/queries';
-import { hasAccounts } from '$lib/server/accounts/balance';
-import { accountOriginSums, accountTransfersIn, listAccounts } from '$lib/server/accounts/queries';
-import { withBalances } from '$lib/server/accounts/balance';
-import { requireUser } from '$lib/server/guards';
-import { CURRENCIES } from '$lib/money';
+import { accountSummary } from '#lib/server/accounts/queries.ts';
+import { hasAccounts } from '#lib/server/accounts/balance.ts';
+import {
+	accountOriginSums,
+	accountTransfersIn,
+	listAccounts
+} from '#lib/server/accounts/queries.ts';
+import { withBalances } from '#lib/server/accounts/balance.ts';
+import { requireUser } from '#lib/server/guards.ts';
+import { CURRENCIES } from '#lib/money.ts';
 
 const SEARCH_MAX_LENGTH = 40;
 const CURRENCY_GROUPS = [

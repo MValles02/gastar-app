@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { DESCRIPTION_MAX_LENGTH, DESCRIPTION_TOO_LONG_MESSAGE } from '$lib/fields';
-import { isUuid } from '$lib/server/db/util';
+import { DESCRIPTION_MAX_LENGTH, DESCRIPTION_TOO_LONG_MESSAGE } from '#lib/fields.ts';
+import { isUuid } from '#lib/server/db/util.ts';
 import {
 	getImport,
 	importDateLabel,
@@ -9,11 +9,12 @@ import {
 	listImportRules,
 	rejectImport,
 	rememberKey
-} from '$lib/server/import-queries';
-import { failIfUnavailable, movementPickers } from '../../movements/form.server';
-import { approveWithValues, counterAccountsOf } from '$lib/server/import-approve';
-import { activeRuleItems } from '$lib/server/plan-view';
-import { notFoundHelpers, requireUser } from '$lib/server/guards';
+} from '#lib/server/import-queries.ts';
+import { failIfUnavailable } from '#lib/server/movements/detail.ts';
+import { movementPickers } from '#lib/server/movements/pickers.ts';
+import { approveWithValues, counterAccountsOf } from '#lib/server/import-approve.ts';
+import { activeRuleItems } from '#lib/server/recurring/rule-items.ts';
+import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const { notFound, requireId } = notFoundHelpers('Movimiento no encontrado.');

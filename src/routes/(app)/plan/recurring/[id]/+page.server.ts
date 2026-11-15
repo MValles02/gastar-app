@@ -1,18 +1,18 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { toIconKey } from '$lib/appearance';
-import { formatAmountInput } from '$lib/money';
-import { inactiveReason, isRecurringActive } from '$lib/plan';
-import { parseStep, planReturn } from '$lib/plan-wizard';
+import { toIconKey } from '#lib/appearance.ts';
+import { formatAmountInput } from '#lib/money.ts';
+import { inactiveReason, isRecurringActive } from '#lib/plan.ts';
+import { parseStep, planReturn } from '#lib/plan-wizard.ts';
 import {
 	deleteRecurring,
-	listRecurring,
+	getRecurring,
 	setRecurringArchived,
 	updateRecurring
-} from '$lib/server/plan-queries';
-import { ruleDueThisMonth } from '$lib/server/plan-view';
-import { notFoundHelpers, requireUser } from '$lib/server/guards';
-import { readRecurringForm, recurringPickers } from '../form.server';
+} from '#lib/server/recurring/queries.ts';
+import { ruleDueThisMonth } from '#lib/server/plan/month-plan.ts';
+import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
+import { readRecurringForm, recurringPickers } from '#lib/server/recurring/form.ts';
 
 const { notFound, requireId } = notFoundHelpers('Movimiento fijo no encontrado.');
 
@@ -21,7 +21,7 @@ const EDITABLE = ['description', 'amount', 'accountId', 'categoryId', 'dayOfMont
 
 async function findRule(userId: string, id: string) {
 	requireId(id);
-	const [rule] = await listRecurring(userId, undefined, id);
+	const [rule] = await getRecurring(userId, id);
 	if (!rule) notFound();
 	return rule;
 }

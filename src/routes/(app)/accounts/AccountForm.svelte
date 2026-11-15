@@ -3,16 +3,16 @@
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { followRedirect } from '$lib/nav-stack.svelte';
-	import { NAME_MAX_LENGTH } from '$lib/fields';
-	import { ACCOUNT_ICONS, type AccountIconKey, type SwatchKey } from '$lib/appearance';
-	import * as Field from '$lib/components/ui/field/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
-	import FormActions from '$lib/components/FormActions.svelte';
-	import IconBadge from '$lib/components/IconBadge.svelte';
-	import IconColorDrawer from '$lib/components/IconColorDrawer.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import { followRedirect } from '#lib/nav-stack.svelte.ts';
+	import { NAME_MAX_LENGTH } from '#lib/fields.ts';
+	import { ACCOUNT_ICONS, type AccountIconKey, type SwatchKey } from '#lib/appearance.ts';
+	import * as Field from '#lib/components/ui/field/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import FormActions from '#lib/components/FormActions.svelte';
+	import IconBadge from '#lib/components/IconBadge.svelte';
+	import IconColorDrawer from '#lib/components/IconColorDrawer.svelte';
+	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 
 	type Values = Partial<
 		Record<'name' | 'currency' | 'initialBalance' | 'icon' | 'color', string | null>
@@ -68,7 +68,7 @@
 
 <form
 	method="POST"
-	action={drawer ? resolve('/accounts/new') : ''}
+	action={drawer ? resolve('accounts/new') : ''}
 	class="form"
 	class:drawer
 	novalidate

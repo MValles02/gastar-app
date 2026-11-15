@@ -3,11 +3,11 @@
 	import { toast } from 'svelte-sonner';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { highlightMovement } from '$lib/highlight.svelte';
-	import { isModifiedClick, openShallow } from '$lib/open-shallow';
-	import { undoMovementSaved } from '$lib/undo-toast';
+	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { highlightMovement } from '#lib/highlight.svelte.ts';
+	import { isModifiedClick, openShallow } from '#lib/open-shallow.ts';
+	import { undoMovementSaved } from '#lib/undo-toast.ts';
 	import AccountForm from '../../accounts/AccountForm.svelte';
 	import MovementForm from '../MovementForm.svelte';
 	import type { PageData } from './$types';
@@ -26,7 +26,7 @@
 	// Reloads the page behind and this drawer's data, so the movement form opens with the new account.
 	async function accountSaved() {
 		await refreshAll();
-		await openShallow(null, resolve('/movements/new'), 'newMovement', { replace: true });
+		await openShallow(null, resolve('movements/new'), 'newMovement', { replace: true });
 		accountOpen = false;
 		toast.success('Guardado.');
 	}
@@ -44,7 +44,7 @@
 	{#if data.accounts.length === 0}
 		<div class="empty">
 			<p>Necesitás al menos una cuenta para registrar movimientos.</p>
-			<Button href={resolve('/accounts/new')} onclick={createAccount}>Crear cuenta</Button>
+			<Button href={resolve('accounts/new')} onclick={createAccount}>Crear cuenta</Button>
 		</div>
 	{:else}
 		<MovementForm

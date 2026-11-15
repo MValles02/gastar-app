@@ -1,5 +1,5 @@
-import type { MovementType } from '$lib/movement';
-import type { MovementData } from './movements';
+import type { MovementType } from '#lib/movement.ts';
+import type { MovementData } from './movements/form';
 import {
 	approveImport,
 	importPrefill,
@@ -10,7 +10,7 @@ import {
 import { pgErrorCode } from './db/errors';
 import { listAccounts } from './accounts/queries';
 import { listCategories } from './categories/queries';
-import { resolvePostedMovement } from './movement-pickers';
+import { resolvePostedMovement } from './movements/pickers';
 
 /** Active accounts in the item's currency other than its own: the only valid counter accounts (no exchange rate). */
 export const counterAccountsOf = <A extends { currency: string; id: string }>(

@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { autosave, submitAction } from '$lib/autosave';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import DatePicker from '$lib/components/DatePicker.svelte';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import OptionPicker from '$lib/components/OptionPicker.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { autosave, submitAction } from '#lib/autosave.ts';
+	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import DatePicker from '#lib/components/DatePicker.svelte';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import { refreshAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import type { PageData } from './$types';
@@ -59,7 +59,7 @@
 <PageHeader
 	title="Mercado Pago"
 	back={{
-		href: resolve('/profile/vinculaciones'),
+		href: resolve('profile/vinculaciones'),
 		label: 'Volver a Vinculaciones',
 		text: 'Vinculaciones'
 	}}
@@ -108,7 +108,7 @@
 					>
 						{#snippet empty()}
 							<p class="hint">
-								Necesitás una cuenta en pesos. <a href={resolve('/accounts/new')}>Crear cuenta</a>
+								Necesitás una cuenta en pesos. <a href={resolve('accounts/new')}>Crear cuenta</a>
 							</p>
 						{/snippet}
 					</OptionPicker>

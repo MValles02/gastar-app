@@ -1,12 +1,13 @@
 import { and, desc, eq, gte, ilike, inArray, isNotNull, lt, or, sql } from 'drizzle-orm';
-import { db, type Tx } from './db';
-import { categories, financialAccounts, movements } from './db/schema';
-import { dest, exists, sumOfType } from './db/sql';
-import { canAccessAccount, canAccessMovement, canAccessOwn, movementOwnedBy } from './access';
-import { linkRuleFor, lockRules, unlinkRevert } from './plan-queries';
-import { escapeLike } from './db/util';
-import { dayStart } from './month';
-import type { MovementFilterQuery, MovementRow } from './movements';
+import { db, type Tx } from '../db';
+import { categories, financialAccounts, movements } from '../db/schema';
+import { dest, exists, sumOfType } from '../db/sql';
+import { canAccessAccount, canAccessMovement, canAccessOwn, movementOwnedBy } from '../access';
+import { linkRuleFor, lockRules, unlinkRevert } from '../recurring/link';
+import { escapeLike } from '../db/util';
+import { dayStart } from '../month';
+import type { MovementFilterQuery } from './filters';
+import type { MovementRow } from './form';
 
 export const PAGE_SIZE = 50;
 

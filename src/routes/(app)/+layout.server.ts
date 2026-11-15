@@ -1,6 +1,6 @@
-import { alerts } from '$lib/server/alerts';
-import { APP_TZ, LOCALE } from '$lib/locale';
-import { requireUser } from '$lib/server/guards';
+import { alerts } from '#lib/server/plan/alerts.ts';
+import { APP_TZ, LOCALE } from '#lib/locale.ts';
+import { requireUser } from '#lib/server/guards.ts';
 import type { LayoutServerLoad } from './$types';
 
 const dayFmt = new Intl.DateTimeFormat(LOCALE, {

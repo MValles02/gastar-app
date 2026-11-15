@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
-import { auth } from '$lib/server/auth';
-import { EMAIL_RE, ignoreApiError } from '$lib/server/auth-forms';
-import { isBlocked, record } from '$lib/server/rate-limit';
+import { auth } from '#lib/server/auth.ts';
+import { EMAIL_RE, ignoreApiError } from '#lib/server/auth-forms.ts';
+import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import type { Actions, RequestEvent } from './$types';
 
 // Always reports success (same state for unknown email, rate limit or failed send) so it

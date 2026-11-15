@@ -1,5 +1,5 @@
 import { navigating } from '$app/state';
-import { skipNextTransition } from '$lib/nav-stack.svelte';
+import { skipNextTransition } from '#lib/nav-stack.svelte.ts';
 
 /**
  * Edge-swipe back for the installed PWA (iOS standalone has no system swipe-back). A touch that

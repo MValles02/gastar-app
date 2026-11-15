@@ -2,13 +2,13 @@
 	import type { ComponentProps } from 'svelte';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
-	import { thisMonth } from '$lib/dates';
-	import { replaceGoto } from '$lib/nav-stack.svelte';
+	import { thisMonth } from '#lib/dates.ts';
+	import { replaceGoto } from '#lib/nav-stack.svelte.ts';
 	import BottomDrawer from './BottomDrawer.svelte';
 	import DateRangePicker from './DateRangePicker.svelte';
 	import MultiPicker from './MultiPicker.svelte';
 	import SegmentedControl from './SegmentedControl.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 
 	type Picks = ComponentProps<typeof MultiPicker>['items'];
 
@@ -99,7 +99,7 @@
 		const ctl = new AbortController();
 		const timer = setTimeout(async () => {
 			try {
-				const res = await fetch(`${resolve('/movements/count')}?${qs}`, { signal: ctl.signal });
+				const res = await fetch(`${resolve('movements/count')}?${qs}`, { signal: ctl.signal });
 				if (res.ok) count = (await res.json()).count;
 			} catch {
 				// Aborted by a newer change (or offline): the button keeps its loading label.
@@ -120,7 +120,7 @@
 
 	const apply = () => {
 		open = false;
-		void replaceGoto(resolve(`/movements?${query}`), { keepFocus: true });
+		void replaceGoto(resolve(`movements?${query}`), { reset: false });
 	};
 
 	const viewLabel = $derived(
