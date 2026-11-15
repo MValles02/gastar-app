@@ -37,3 +37,9 @@ export const listRowShown = (
 	(f.archived || !row.archived) &&
 	(!f.currency || row.currency === f.currency) &&
 	(!f.kind || kindFits(row.kind ?? null, f.kind));
+
+/** How many list filters differ from their defaults (the filter button's badge). */
+export const activeListFilters = (
+	f: { archived: boolean; currency: string; kind?: string },
+	currencyDefault: string
+) => (f.kind ? 1 : 0) + (f.currency !== currencyDefault ? 1 : 0) + (f.archived ? 1 : 0);

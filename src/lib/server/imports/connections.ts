@@ -3,6 +3,8 @@ import type { Currency } from '#lib/money.ts';
 import { canAccessAccount, canAccessOwn } from '../access';
 import { db } from '../db';
 import { financialAccounts, galiciaConnections, mpConnections } from '../db/schema';
+import { mpOauthEnabled } from './mercado-pago/oauth';
+import { pendingImportCount } from './store';
 
 /** The user's active accounts of one currency, by name: the only ones an import source can feed. */
 export function activeAccountsIn(userId: string, currency: Currency) {
@@ -74,6 +76,17 @@ export async function getGaliciaConnection(userId: string) {
 		.where(canAccessOwn(userId, galiciaConnections))
 		.limit(1);
 	return row;
+}
+
+/**
+ * The home imports pill: pending items in both currencies, for a user with a source set up (Mercado
+ * Pago linked, also while a reconnect is pending, or a Banco Galicia account chosen); else null.
+ */
+export async function importsPending(userId: string): Promise<number | null> {
+	return (mpOauthEnabled() && (await getMpImportAccount(userId))) ||
+		(await getGaliciaConnection(userId))?.arsAccountId
+		? await pendingImportCount(userId)
+		: null;
 }
 
 /**

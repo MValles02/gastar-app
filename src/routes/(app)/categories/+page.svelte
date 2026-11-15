@@ -1,61 +1,26 @@
 <script lang="ts">
 	import Plus from '@lucide/svelte/icons/plus';
-	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
 	import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
-	import { replaceGoto } from '#lib/nav-stack.svelte.ts';
-	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Empty from '#lib/components/ui/empty/index.js';
 	import FilterBar from '#lib/components/FilterBar.svelte';
+	import ListFilterDrawer from '#lib/components/ListFilterDrawer.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import Money from '#lib/components/Money.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
-	import SwitchRow from '#lib/components/SwitchRow.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { CURRENCIES, type Currency } from '#lib/money.ts';
 	import { KIND_OPTIONS } from '#lib/movement.ts';
-	import { listRowShown } from '#lib/list-filter.ts';
+	import { activeListFilters } from '#lib/list-filter.ts';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
-	// Staged in the drawer: re-seeded from the applied filters every time it opens; applied by "Ver".
 	let open = $state(false);
-	let archived = $state(false);
-	let kind = $state('');
-	let currency = $state('ARS');
-	$effect(() => {
-		if (!open) return;
-		archived = data.filters.archived;
-		kind = data.filters.kind;
-		currency = data.filters.currency;
-	});
-	// Currency only changes which amounts a row shows, not which rows are listed.
-	const count = $derived(data.facets.filter((c) => listRowShown(c, { archived, kind })).length);
-	const clear = () => {
-		archived = false;
-		kind = '';
-		currency = 'ARS';
-	};
-	const apply = () => {
-		open = false;
-		const sp = new SvelteURLSearchParams();
-		if (data.filters.q) sp.set('q', data.filters.q);
-		if (kind) sp.set('kind', kind);
-		if (currency !== 'ARS') sp.set('currency', currency);
-		if (archived) sp.set('archived', '1');
-		void replaceGoto(resolve(`/categories?${sp}` as ''), { reset: false });
-	};
-	const currencyOptions = [
-		{ value: 'both', label: 'Ambas' },
-		{ value: 'ARS', label: 'Pesos' },
-		{ value: 'USD', label: 'Dólares' }
-	];
 
 	/** Currencies a row shows: the selected one, or (Ambas) each one with movements; none falls back to ARS. */
 	const shown = (totals: Partial<Record<Currency, number>>): Currency[] => {
@@ -75,24 +40,6 @@
 	>
 		<Plus size={18} strokeWidth={1.75} aria-hidden="true" />Agregar
 	</Button>
-{/snippet}
-{#snippet filters()}
-	<span id="kind-label" class="visually-hidden">Tipo</span>
-	<SegmentedControl name="kind" options={kindOptions} bind:value={kind} labelledby="kind-label" />
-	<span id="currency-label" class="visually-hidden">Moneda</span>
-	<SegmentedControl
-		name="currency"
-		options={currencyOptions}
-		bind:value={currency}
-		labelledby="currency-label"
-	/>
-	<SwitchRow
-		id="archived"
-		name="archived"
-		value="1"
-		label="Mostrar archivadas"
-		bind:checked={archived}
-	/>
 {/snippet}
 
 <svelte:head>
@@ -127,9 +74,7 @@
 			q={data.filters.q}
 			label="Buscar categoría"
 			placeholder="Buscar categoría"
-			active={(data.filters.kind ? 1 : 0) +
-				(data.filters.currency !== 'ARS' ? 1 : 0) +
-				(data.filters.archived ? 1 : 0)}
+			active={activeListFilters(data.filters, 'ARS')}
 			onfilters={() => (open = true)}
 		/>
 
@@ -177,25 +122,22 @@
 	{/if}
 </div>
 
-<!-- Staged: nothing navigates until "Ver". -->
-<BottomDrawer title="Filtros" bare bind:open>
-	<div class="scroll">
-		{@render filters()}
-	</div>
-	<div class="actions">
-		<Button
-			type="button"
-			variant="outline"
-			class="h-[50px] min-w-0 flex-1 basis-0 rounded-full text-[15px] font-semibold"
-			onclick={clear}>Limpiar</Button
-		>
-		<Button
-			type="button"
-			class="h-[50px] min-w-0 flex-[2] basis-0 rounded-full text-[15px] font-semibold whitespace-nowrap"
-			onclick={apply}>{count === 1 ? 'Ver 1 categoría' : `Ver ${count} categorías`}</Button
-		>
-	</div>
-</BottomDrawer>
+<!-- Currency only changes which amounts a row shows, not which rows are listed. -->
+<ListFilterDrawer
+	bind:open
+	path="/categories"
+	filters={data.filters}
+	facets={data.facets}
+	currencyDefault="ARS"
+	currencyOptions={[
+		{ value: 'both', label: 'Ambas' },
+		{ value: 'ARS', label: 'Pesos' },
+		{ value: 'USD', label: 'Dólares' }
+	]}
+	currencyCounts={false}
+	{kindOptions}
+	noun={['categoría', 'categorías']}
+/>
 
 <style>
 	.page {
@@ -207,23 +149,6 @@
 	.empty-action {
 		display: flex;
 		justify-content: center;
-	}
-
-	/* The options scroll; the actions stay pinned below them. */
-	.scroll {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-		min-height: 0;
-		overflow-y: auto;
-		padding: var(--space-1) var(--space-4) var(--space-4);
-	}
-
-	.actions {
-		display: flex;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
-		background: var(--popover);
 	}
 
 	/* Month totals stacked on the right (ARS on top); an empty month is a muted zero. */

@@ -5,14 +5,14 @@
 	import { formatMoney } from '#lib/money.ts';
 	import { categoriesFor } from '#lib/movement.ts';
 	import { dueTone } from '#lib/plan.ts';
-	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import FormShell from '#lib/components/forms/FormShell.svelte';
+	import DetailCard from '#lib/components/DetailCard.svelte';
+	import DetailLifecycle from '#lib/components/DetailLifecycle.svelte';
+	import DetailRow from '#lib/components/DetailRow.svelte';
 	import DayOfMonthPicker from '#lib/components/pickers/DayOfMonthPicker.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
 	import Money from '#lib/components/Money.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
-	import { Button } from '#lib/components/ui/button/index.js';
 	import type { PageData } from './$types';
 
 	/**
@@ -94,21 +94,18 @@
 			</p>{/if}
 	</div>
 
-	<ul class="card">
-		<li class="row">
-			<span class="k">Descripción</span>
-			<span class="v">
-				<InlineText
-					label="Descripción"
-					value={values.description}
-					maxlength={DESCRIPTION_MAX_LENGTH}
-					required
-					onsave={(next) => save('description', next)}
-				>
-					{#snippet display()}{r.description}{/snippet}
-				</InlineText>
-			</span>
-		</li>
+	<DetailCard>
+		<DetailRow label="Descripción">
+			<InlineText
+				label="Descripción"
+				value={values.description}
+				maxlength={DESCRIPTION_MAX_LENGTH}
+				required
+				onsave={(next) => save('description', next)}
+			>
+				{#snippet display()}{r.description}{/snippet}
+			</InlineText>
+		</DetailRow>
 		<li>
 			<OptionPicker
 				name="accountId"
@@ -142,31 +139,19 @@
 				errorId="day-error"
 			/>
 		</li>
-	</ul>
+	</DetailCard>
 
-	{#if r.cannotRegister}<p class="reason">{r.cannotRegister}</p>{/if}
-
-	<div class="actions">
-		{#if r.archived}
-			<FormShell action="?/archive" bar={false}>
-				<Button type="submit" class="w-full">Activar</Button>
-			</FormShell>
-		{:else}
-			<FormShell action="?/archive" bar={false}>
-				<Button type="submit" variant="outline" class="w-full">Desactivar</Button>
-			</FormShell>
-		{/if}
-		<ConfirmDialog
-			triggerLabel="Eliminar"
-			triggerVariant="destructive"
-			triggerClass="w-full"
-			title="¿Eliminar este {noun} fijo?"
-			confirmLabel="Eliminar"
-			action="?/delete{wizardQuery}"
-		>
-			Los movimientos ya registrados se mantienen.
-		</ConfirmDialog>
-	</div>
+	<DetailLifecycle
+		can={{ canArchive: !r.archived, canUnarchive: r.archived, canDelete: true }}
+		messages={{
+			archive: 'Desactivar',
+			unarchive: 'Activar',
+			deleteTitle: `¿Eliminar este ${noun} fijo?`,
+			deleteBody: 'Los movimientos ya registrados se mantienen.'
+		}}
+		actions={{ unarchive: '?/archive', delete: `?/delete${wizardQuery}` }}
+		note={r.cannotRegister}
+	/>
 </div>
 
 <style>
@@ -215,47 +200,8 @@
 		color: var(--positive);
 	}
 
-	.card {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-card);
-		box-shadow: var(--shadow-1);
-	}
-
-	.row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-		min-height: 3.5rem;
-		padding: 0 var(--space-4);
-		font-size: var(--font-size-base);
-	}
-
-	.v {
-		min-width: 0;
-		text-align: right;
-		font-weight: 500;
-	}
-
 	.hint {
 		padding: var(--space-4);
 		color: var(--text-muted);
-	}
-
-	.reason {
-		margin: 0;
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-		text-align: center;
-	}
-
-	.actions {
-		display: grid;
-		gap: var(--space-3);
 	}
 </style>
