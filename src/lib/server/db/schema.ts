@@ -15,6 +15,11 @@ import {
 	uuid,
 	varchar
 } from 'drizzle-orm/pg-core';
+// Relative imports only: drizzle-kit loads this file outside SvelteKit, so $lib does not resolve.
+import { MONTH_RE } from '../../dates';
+import { CURRENCIES } from '../../money';
+import { MOVEMENT_TYPES } from '../../movement';
+import { MAX_DAY_OF_MONTH, SAVINGS_PERCENT_MAX } from '../../plan';
 
 // --- Better Auth core tables (email+password only) ---
 // Generated with `npx @better-auth/cli generate` against better-auth 1.7.6.
@@ -106,8 +111,8 @@ export const accountRelations = relations(account, ({ one }) => ({
 
 // --- Finance domain tables (see docs/data-model.md) ---
 
-export const currencyEnum = pgEnum('currency', ['ARS', 'USD']);
-export const movementTypeEnum = pgEnum('movement_type', ['income', 'outcome', 'transfer']);
+export const currencyEnum = pgEnum('currency', CURRENCIES);
+export const movementTypeEnum = pgEnum('movement_type', MOVEMENT_TYPES);
 
 // ponytail: money columns use bigint mode 'number' (JS number, not JS bigint).
 // Ceiling is Number.MAX_SAFE_INTEGER (2^53 - 1) ≈ 9.007e15 minor units, i.e.
@@ -192,7 +197,10 @@ export const recurringMovements = pgTable(
 			sql`${table.previousAmount} IS NULL OR ${table.previousAmount} > 0`
 		),
 		check('recurring_movements_type_check', sql`${table.type} <> 'transfer'`),
-		check('recurring_movements_day_of_month_check', sql`${table.dayOfMonth} BETWEEN 1 AND 31`)
+		check(
+			'recurring_movements_day_of_month_check',
+			sql`${table.dayOfMonth} BETWEEN 1 AND ${sql.raw(String(MAX_DAY_OF_MONTH))}`
+		)
 	]
 );
 
@@ -223,7 +231,7 @@ export const spendingPlans = pgTable(
 		check('spending_plans_amounts_check', sql`${table.extraIncome} >= 0 AND ${table.savings} >= 0`),
 		check(
 			'spending_plans_savings_percent_check',
-			sql`${table.savingsPercent} IS NULL OR ${table.savingsPercent} BETWEEN 0 AND 10000`
+			sql`${table.savingsPercent} IS NULL OR ${table.savingsPercent} BETWEEN 0 AND ${sql.raw(String(SAVINGS_PERCENT_MAX))}`
 		),
 		check(
 			'spending_plans_exchange_rate_positive_check',
@@ -231,7 +239,7 @@ export const spendingPlans = pgTable(
 		),
 		check(
 			'spending_plans_month_check',
-			sql`${table.month} IS NULL OR ${table.month} ~ '^\\d{4}-(0[1-9]|1[0-2])$'`
+			sql`${table.month} IS NULL OR ${table.month} ~ ${sql.raw(`'${MONTH_RE.source}'`)}`
 		)
 	]
 );

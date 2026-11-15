@@ -14,6 +14,12 @@ const intFmt = new Intl.NumberFormat(LOCALE);
 /** Smallest unit shown and entered, in cents: whole pesos in ARS, the cent in USD. */
 export const currencyStep = (currency: Currency) => (currency === 'ARS' ? 100 : 1);
 
+/** `cents` rounded half up to the currency step (whole pesos in ARS; USD cents are unchanged). */
+export const roundToStep = (cents: number, currency: Currency) => {
+	const step = currencyStep(currency);
+	return Math.floor((cents + step / 2) / step) * step;
+};
+
 /** Unsigned display ("$1.234", "US$1.234,56"; no space after the symbol): direction is shown by colour, never by a sign. */
 export function formatMoney(cents: number, currency: Currency): string {
 	const step = currencyStep(currency);

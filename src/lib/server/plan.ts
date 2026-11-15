@@ -1,15 +1,13 @@
 import { convertAmount, currencyStep, type Currency } from '$lib/money';
 import {
 	isRecurringActive,
+	PLAN_CURRENCY,
 	limitPace,
 	type PlanStatus,
 	type RecurringStatus,
 	type RuleState
 } from '$lib/plan';
 import { daysInMonth, daysLeftIn, elapsedDays } from './month';
-
-/** The plan is always in pesos; USD items convert at the plan rate. */
-export const PLAN_CURRENCY = 'ARS' as const;
 
 /** `amount` in plan pesos; null for a USD amount when there is no rate. */
 export function toPlan(amount: number, cur: Currency, rate: number | null): number | null {

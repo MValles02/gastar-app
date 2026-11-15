@@ -6,7 +6,8 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import { RangeCalendar } from '$lib/components/ui/range-calendar/index.js';
-	import { formatDay } from '$lib/locale';
+	import { thisMonth } from '$lib/dates';
+	import { APP_TZ, formatDay } from '$lib/locale';
 
 	let {
 		from = $bindable(''),
@@ -40,22 +41,19 @@
 	const presets = [
 		{
 			label: 'Este mes',
-			range: () => {
-				const t = today('America/Argentina/Buenos_Aires');
-				return [startOfMonth(t), t];
-			}
+			range: thisMonth
 		},
 		{
 			label: 'Mes pasado',
 			range: () => {
-				const prev = startOfMonth(today('America/Argentina/Buenos_Aires')).subtract({ months: 1 });
+				const prev = startOfMonth(today(APP_TZ)).subtract({ months: 1 });
 				return [prev, endOfMonth(prev)];
 			}
 		},
 		{
 			label: 'Últimos 30 días',
 			range: () => {
-				const t = today('America/Argentina/Buenos_Aires');
+				const t = today(APP_TZ);
 				return [t.subtract({ days: 29 }), t];
 			}
 		}

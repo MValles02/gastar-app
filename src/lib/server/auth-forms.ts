@@ -1,6 +1,6 @@
 import { fail, type RequestEvent } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '$lib/limits';
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USER_NAME_MAX_LENGTH } from '$lib/fields';
 import { auth } from './auth';
 import { isBlocked, record } from './rate-limit';
 
@@ -8,8 +8,6 @@ import { isBlocked, record } from './rate-limit';
 export const VERIFY_EMAIL_PATH = '/verify-email';
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export const USER_NAME_MAX_LENGTH = 80;
 
 /** Error for an invalid (already trimmed) person name, or undefined when valid. */
 export function userNameError(name: string): string | undefined {

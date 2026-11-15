@@ -10,6 +10,7 @@ import {
 import { db } from './db';
 import { financialAccounts, mpConnections, mpImportItems, mpSyncState } from './db/schema';
 import { mpApiBaseUrl } from './mp-env';
+import { DAY_MS } from '$lib/dates';
 import { localDay } from './month';
 
 const DEFAULT_AUTH_BASE_URL = 'https://auth.mercadopago.com';
@@ -328,7 +329,7 @@ export async function getImportFromDay(userId: string, accountId: string): Promi
 		.select({ at: min(mpImportItems.occurredAt) })
 		.from(mpImportItems)
 		.where(and(canAccessImport(userId), eq(mpImportItems.accountId, accountId)));
-	return localDay(first?.at ?? new Date(Date.now() - DEFAULT_BACKFILL_DAYS * 86_400_000));
+	return localDay(first?.at ?? new Date(Date.now() - DEFAULT_BACKFILL_DAYS * DAY_MS));
 }
 
 /** Saves "importar desde" and drops the pending items of the account before it (approved and rejected ones stay). */

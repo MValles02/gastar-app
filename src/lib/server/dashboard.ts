@@ -1,7 +1,7 @@
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import type { Currency } from '$lib/money';
+import { signOf, type MovementType } from '$lib/movement';
 
-export type MovementType = 'income' | 'outcome' | 'transfer';
 export type TypeSum = { type: MovementType; amount: number };
 
 /** Whether the user has any account (archived included) in `currency`, from accountSummary rows. */
@@ -63,8 +63,7 @@ export function toRecentItem(row: RecentRow, currency: Currency) {
 		row.type === 'transfer' && row.accountCurrency !== currency
 			? (row.destinationAmount ?? row.amount)
 			: row.amount;
-	const sign: 'positive' | 'negative' | 'neutral' =
-		row.type === 'income' ? 'positive' : row.type === 'outcome' ? 'negative' : 'neutral';
+	const sign = signOf(row.type);
 	return {
 		id: row.id,
 		type: row.type,
