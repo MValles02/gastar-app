@@ -2,9 +2,9 @@
 	import { Calendar as CalendarPrimitive } from 'bits-ui';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
-	import * as Select from '$lib/components/ui/select/index.js';
-	import { LOCALE } from '$lib/locale';
-	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js';
+	import * as Select from '#lib/components/ui/select/index.js';
+	import { LOCALE } from '#lib/locale.ts';
+	import { cn, type WithoutChildrenOrChild } from '#lib/utils.js';
 
 	let {
 		ref = $bindable(null),

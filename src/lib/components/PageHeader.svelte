@@ -5,10 +5,10 @@
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import Bell from '@lucide/svelte/icons/bell';
 	import X from '@lucide/svelte/icons/x';
-	import * as Avatar from '$lib/components/ui/avatar/index.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { upOnClick } from '$lib/nav-stack.svelte';
+	import * as Avatar from '#lib/components/ui/avatar/index.js';
+	import { Badge } from '#lib/components/ui/badge/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { upOnClick } from '#lib/nav-stack.svelte.ts';
 
 	/**
 	 * Sticky top bar. Full (no `back` and no `close`; the 4 tab pages): [eyebrow + title] [avisos]
@@ -22,13 +22,14 @@
 		back,
 		close,
 		action
+
+		/** `text`: the parent screen's name shown next to the chevron; `label`: the accessible name. */
+		/** `back` or `close` header only: a pill action at the right end (e.g. "Agregar"). */
 	}: {
 		title: string;
 		eyebrow?: string;
-		/** `text`: the parent screen's name shown next to the chevron; `label`: the accessible name. */
 		back?: { href: string; label: string; text: string };
 		close?: { href: string; label: string };
-		/** `back` or `close` header only: a pill action at the right end (e.g. "Agregar"). */
 		action?: Snippet;
 	} = $props();
 
@@ -79,7 +80,7 @@
 	{#if header && full}
 		<a
 			class="bell"
-			href={resolve('/notifications')}
+			href={resolve('notifications')}
 			aria-current={page.url.pathname === '/notifications' ? 'page' : undefined}
 			aria-label={alertCount > 0 ? `Avisos: ${alertCount}` : 'Avisos'}
 		>
@@ -92,7 +93,7 @@
 		</a>
 		<a
 			class="avatar"
-			href={resolve('/profile')}
+			href={resolve('profile')}
 			aria-current={page.url.pathname === '/profile' ? 'page' : undefined}
 			aria-label="Perfil"
 		>

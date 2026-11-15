@@ -2,10 +2,10 @@
 	import type { ComponentProps } from 'svelte';
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import type { SwatchKey } from '$lib/appearance';
+	import type { SwatchKey } from '#lib/appearance.ts';
 	import BottomDrawer from './BottomDrawer.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Item from '$lib/components/ui/item/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Item from '#lib/components/ui/item/index.js';
 	import IconBadge from './IconBadge.svelte';
 
 	/**

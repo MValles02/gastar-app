@@ -1,15 +1,17 @@
 <script lang="ts">
-	import type { Currency } from '$lib/money';
+	import type { Currency } from '#lib/money.ts';
 	import { resolve } from '$app/paths';
-	import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
-	import { highlight } from '$lib/highlight.svelte';
-	import { openShallow } from '$lib/open-shallow';
+	import type { CategoryIconKey, SwatchKey } from '#lib/appearance.ts';
+	import { highlight } from '#lib/highlight.svelte.ts';
+	import { openShallow } from '#lib/open-shallow.ts';
 	import ListRow from './ListRow.svelte';
 	import Money from './Money.svelte';
 
 	let {
 		m,
 		date
+		/** Cross-currency transfer: the destination amount, shown under the amount. */
+		/** Pre-formatted day; omitted where a group header already shows it. */
 	}: {
 		m: {
 			id: string;
@@ -21,10 +23,8 @@
 			destinationAccountName: string | null;
 			categoryIcon: CategoryIconKey | null;
 			categoryColor: SwatchKey | null;
-			/** Cross-currency transfer: the destination amount, shown under the amount. */
 			secondary?: { cents: number; currency: Currency } | null;
 		};
-		/** Pre-formatted day; omitted where a group header already shows it. */
 		date?: string;
 	} = $props();
 
@@ -32,7 +32,7 @@
 
 	// Only a click on the link opens the detail drawer over the list.
 	const open = (e: MouseEvent) =>
-		(e.target as Element).closest('a') && openShallow(e, resolve(`/movements/${m.id}`), 'movement');
+		(e.target as Element).closest('a') && openShallow(e, resolve(`movements/${m.id}`), 'movement');
 </script>
 
 {#snippet value()}
@@ -56,7 +56,7 @@
 <div class="hl" data-highlighted={highlighted ? 'true' : undefined} onclick={open}>
 	<ListRow
 		class={highlighted ? 'highlighted' : ''}
-		href={resolve(`/movements/${m.id}`)}
+		href={resolve(`movements/${m.id}`)}
 		lead={m.type === 'transfer'
 			? { icon: 'transfer', color: null, glyph: 'var(--transfer)' }
 			: m.categoryColor || m.categoryIcon
