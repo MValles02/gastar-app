@@ -14,7 +14,7 @@ export default defineConfig({
 	fullyParallel: false,
 	// CI runners for this private repo have 2 vCPUs, so Playwright's default (half the cores)
 	// would run every spec on a single worker.
-	workers: process.env.CI ? 2 : undefined,
+	workers: process.env.CI ? 3 : undefined,
 	// html feeds the report artifact CI uploads on failure.
 	reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
 	use: {
