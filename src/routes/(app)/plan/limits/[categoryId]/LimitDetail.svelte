@@ -6,6 +6,7 @@
 	import { swatchVar } from '$lib/appearance';
 	import { formatAmountInput, formatMoney } from '$lib/money';
 	import { navigateUp, upOnClick } from '$lib/nav-stack.svelte';
+	import { limitPace, PLAN_STATUS_LABEL, PLAN_TONE } from '$lib/plan';
 	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import IconBadge from '$lib/components/IconBadge.svelte';
@@ -15,7 +16,7 @@
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import type { PageData } from '../../routes/(app)/plan/limits/[categoryId]/$types';
+	import type { PageData } from './$types';
 
 	/**
 	 * A category limit's detail and edit in one: the meter on top, the amount changes on tap and saves on
@@ -24,13 +25,14 @@
 	 */
 	let {
 		data,
-		variant,
+		variant = 'drawer',
 		onclose,
 		back = '/plan',
 		wizard
 	}: {
 		data: PageData;
-		variant: 'page' | 'drawer';
+		/** Rendered as a drawer unless the page says otherwise (the (app) layout passes only `data` and `onclose`). */
+		variant?: 'page' | 'drawer';
 		onclose?: () => void;
 		/** Page variant: where Listo and a delete go (unresolved path). */
 		back?: string;
@@ -47,9 +49,7 @@
 	const spent = $derived(data.progress?.spent ?? 0);
 	const amountText = $derived(cents === null ? data.amount : formatAmountInput(cents, currency));
 	const limit = $derived(cents ?? data.progress?.amount ?? 0);
-	const over = $derived(spent > limit);
-	// Same definition as the server's (plan.ts): within the limit but spending faster than the month elapses.
-	const fast = $derived(limit > 0 && spent <= limit && spent / limit > data.elapsedShare);
+	const pace = $derived(limitPace(spent, limit, data.elapsedShare));
 	const pct = $derived(limit > 0 ? Math.min(100, Math.floor((spent * 100) / limit)) : 0);
 
 	let error = $state('');
@@ -87,8 +87,8 @@
 					<IconBadge icon={data.category.icon} color={data.category.color} size="1.5rem" />
 					<span class="name">Límite de {data.category.name}</span>
 				</span>
-				{#if over}<StatusPill tone="bad" label="Te pasaste" />
-				{:else if fast}<StatusPill tone="warning" label="Vas rápido" />{/if}
+				{#if pace.over}<StatusPill tone={PLAN_TONE.over} label={PLAN_STATUS_LABEL.over} />
+				{:else if pace.fast}<StatusPill tone={PLAN_TONE.warn} label={PLAN_STATUS_LABEL.warn} />{/if}
 			</div>
 			<p class="of">
 				<span class="spent"><Money cents={spent} {currency} /></span> de
@@ -96,7 +96,7 @@
 			</p>
 			<Meter
 				percent={pct}
-				color={over ? 'var(--negative)' : swatchVar(data.category.color)}
+				color={pace.over ? 'var(--negative)' : swatchVar(data.category.color)}
 				label="Límite de {data.category.name}"
 				valueText="{formatMoney(spent, currency)} de {formatMoney(limit, currency)}"
 			/>
@@ -196,11 +196,6 @@
 {/if}
 
 <style>
-	/* The modal drawer turns the page behind it pointer-events: none, toasts included: keep Deshacer clickable. */
-	:global([data-sonner-toast]) {
-		pointer-events: auto;
-	}
-
 	.detail {
 		display: flex;
 		flex-direction: column;

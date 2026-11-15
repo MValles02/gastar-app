@@ -2,8 +2,7 @@
 	import { resolve } from '$app/paths';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import Money from '$lib/components/Money.svelte';
-	import { dueTone } from '$lib/status';
-	import type { RecurringStatus } from '$lib/server/plan';
+	import { dueTone, type RecurringStatus } from '$lib/plan';
 	import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
 	import type { Currency } from '$lib/money';
 
@@ -12,6 +11,9 @@
 		type: string;
 		description: string;
 		amount: number;
+		currency: Currency;
+		/** Amount in plan pesos for a USD rule; null for an ARS rule or when there is no rate. */
+		converted: number | null;
 		accountName: string;
 		day: number;
 		categoryIcon: CategoryIconKey | null;
@@ -21,26 +23,34 @@
 		| { reason: string; status?: undefined; label?: undefined }
 	);
 
-	let { row, currency, wizard }: { row: Row; currency: Currency; wizard?: number } = $props();
+	let { row, wizard }: { row: Row; wizard?: number } = $props();
 	const r = $derived(row);
 </script>
 
 {#snippet value()}
 	{#if r.reason}
-		<Money cents={r.amount} {currency} />
+		<Money cents={r.amount} currency={r.currency} />
 	{:else}
 		<Money
 			cents={r.type === 'income' ? r.amount : -r.amount}
-			{currency}
+			currency={r.currency}
 			tone="flow"
 			direction={r.type === 'income' ? 'income' : 'outcome'}
 		/>
+	{/if}
+	{#if r.currency === 'USD'}
+		<span class="approx">
+			{#if r.converted === null}Sin cotización{:else}≈ <Money
+					cents={r.converted}
+					currency="ARS"
+				/>{/if}
+		</span>
 	{/if}
 {/snippet}
 
 {#snippet meta()}Día {r.day} · {r.reason ?? r.accountName}{/snippet}
 
-<!-- Each row opens the detail, where "Registrar pago" lives. -->
+<!-- Each row opens the rule detail. -->
 <ListRow
 	class="rule"
 	href={resolve(`/plan/recurring/${r.id}${wizard ? `?wizard=${wizard}` : ''}`)}
@@ -51,7 +61,16 @@
 	}}
 	title={r.description}
 	{value}
-	status={r.reason ? undefined : { tone: dueTone(r.status!, r.type), label: r.label! }}
+	status={r.reason ? undefined : { tone: dueTone(r.status!), label: r.label! }}
 	{meta}
 	dimmed={!!r.reason}
 />
+
+<style>
+	.approx {
+		margin-left: var(--space-2);
+		font-size: var(--font-size-sm);
+		font-weight: 400;
+		color: var(--text-muted);
+	}
+</style>

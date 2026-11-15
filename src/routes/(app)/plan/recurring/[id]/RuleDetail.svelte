@@ -3,9 +3,8 @@
 	import { resolve } from '$app/paths';
 	import { autosave } from '$lib/autosave';
 	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
-	import { openShallow } from '$lib/open-shallow';
-	import { formatAmountInput } from '$lib/money';
-	import { dueTone } from '$lib/status';
+	import { formatAmountInput, formatMoney } from '$lib/money';
+	import { dueTone } from '$lib/plan';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import DayOfMonthPicker from '$lib/components/DayOfMonthPicker.svelte';
 	import InlineText from '$lib/components/InlineText.svelte';
@@ -13,12 +12,12 @@
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import type { PageData } from '../../routes/(app)/plan/recurring/[id]/$types';
+	import type { PageData } from './$types';
 
 	/**
 	 * A recurring rule's detail and edit in one: tapping a row or the amount changes it, and every change
 	 * saves on its own (`?/update`) with a Deshacer toast. Desactivar / Activar and Eliminar (with confirm)
-	 * sit below; registering links to the new-movement form.
+	 * sit below.
 	 */
 	let { data }: { data: PageData } = $props();
 
@@ -79,7 +78,7 @@
 			{:else if r.cannotRegister}
 				<StatusPill tone="warning" label={r.inactiveReason ?? ''} />
 			{:else if r.thisMonth}
-				<StatusPill tone={dueTone(r.thisMonth.status, r.type)} label={r.thisMonth.label} />
+				<StatusPill tone={dueTone(r.thisMonth.status)} label={r.thisMonth.label} />
 			{/if}
 		</p>
 		<div class="amount {r.type}">
@@ -94,6 +93,9 @@
 				{/snippet}
 			</InlineText>
 		</div>
+		{#if r.previousAmount !== null}<p class="before">
+				Antes {formatMoney(r.previousAmount, currency)}
+			</p>{/if}
 	</div>
 
 	<ul class="card">
@@ -156,16 +158,6 @@
 				<Button type="submit" class="w-full">Activar</Button>
 			</form>
 		{:else}
-			{#if !r.cannotRegister && r.thisMonth?.status !== 'paid'}
-				<Button
-					class="w-full"
-					href={resolve(`/movements/new?recurring=${r.id}`)}
-					onclick={(e: MouseEvent) =>
-						openShallow(e, resolve(`/movements/new?recurring=${r.id}`), 'registerRule')}
-				>
-					Registrar {noun}
-				</Button>
-			{/if}
 			<form method="POST" action="?/archive" use:enhance>
 				<Button type="submit" variant="outline" class="w-full">Desactivar</Button>
 			</form>
@@ -213,6 +205,12 @@
 		font-size: var(--font-size-hero);
 		font-weight: 500;
 		font-variant-numeric: tabular-nums;
+	}
+
+	.before {
+		margin: 0;
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
 	}
 
 	.amount.outcome {

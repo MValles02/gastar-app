@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import {
 	deleteMovements,
 	deleteRules,
+	fillMovement,
 	fillRule,
 	findMovements,
 	linkId,
@@ -9,29 +10,21 @@ import {
 	OTHER_EMAIL,
 	pick,
 	postDelete,
-	setCurrencyCookie,
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
 const rule = (page: Page, text: string) => page.locator('.rule', { hasText: text });
 
-test('seeded rules: rent is paid, the gym is inactive and cannot be registered', async ({
-	page
-}) => {
+test('seeded rules: rent is paid and the gym is inactive', async ({ page }) => {
 	await login(page);
 	await page.goto('/plan');
 	const rent = rule(page, 'Alquiler');
 	await expect(rent).toContainText('Pagado');
 	await expect(rent).toContainText('Día 3');
-	await expect(rent.getByRole('link', { name: /Registrar/ })).toHaveCount(0);
 
 	const inactive = page.getByRole('region', { name: 'Inactivos' });
 	await expect(inactive).toContainText('Gimnasio');
 	await expect(inactive).toContainText('Cuenta archivada');
-	const id = await linkId(inactive.getByRole('link', { name: /Gimnasio/ }));
-	await page.goto(`/movements/new?recurring=${id}`);
-	await expect(page.getByRole('heading', { level: 1, name: 'Nuevo movimiento' })).toBeVisible();
-	await expect(page.locator('input[name="recurringId"]')).toHaveCount(0);
 });
 
 test('a rule detail autosaves its amount with Deshacer, deactivates, activates and deletes', async ({
@@ -102,7 +95,7 @@ test('the new-rule drawer opens over the plan and Guardar waits for amount and d
 	await expect(save).toBeEnabled();
 });
 
-test('create a rule, register its payment and clean up', async ({ page, baseURL }) => {
+test('create a rule rejects ARS decimals and saves whole pesos', async ({ page, baseURL }) => {
 	await login(page, OTHER_EMAIL);
 	const description = 'Prueba e2e';
 	try {
@@ -124,23 +117,7 @@ test('create a rule, register its payment and clean up', async ({ page, baseURL 
 		const row = rule(page, description);
 		await expect(row).toBeVisible();
 		await expect(row).toContainText('Día 15');
-
-		await row.getByRole('link').click();
-		await page.getByRole('link', { name: 'Registrar pago' }).click();
-		const drawer = page.getByRole('dialog', { name: `Registrar ${description}` });
-		await expect(drawer.locator('input[name="description"]')).toHaveValue(description);
-		await expect(drawer.locator('input[name="amount"]')).toHaveValue(/^1\.?500$/);
-		await expect(drawer.locator('input[name="recurringId"]')).toHaveCount(1);
-		await drawer.getByRole('button', { name: 'Registrar pago', exact: true }).click();
-		await expect(page.getByText('Pago registrado.')).toBeVisible();
-		// Paid this month: the detail no longer offers to register it again.
-		await expect(page.getByRole('link', { name: 'Registrar pago' })).toHaveCount(0);
-
-		await page.goto('/plan');
-		await expect(rule(page, description)).toContainText('Pagado');
-		await expect(rule(page, description).getByRole('link', { name: /Registrar/ })).toHaveCount(0);
 	} finally {
-		await deleteMovements(page, baseURL!, description);
 		await deleteRules(page, baseURL!, description);
 	}
 });
@@ -161,14 +138,20 @@ test('a payment edited to an account in another currency no longer marks the rul
 		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
-		await rule(page, description).getByRole('link').click();
-		await page.getByRole('link', { name: 'Registrar pago' }).click();
-		await page.getByRole('button', { name: 'Registrar pago', exact: true }).click();
-		await expect(page.getByText('Pago registrado.')).toBeVisible();
+		// A payment with the rule's description (any case) on a pesos account links itself to the rule.
+		await fillMovement(page, {
+			type: 'Gasto',
+			amount: '1.500',
+			description: description.toUpperCase(),
+			account: 'Otra cuenta pesos',
+			category: 'Ajena'
+		});
+		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 		await page.goto('/plan');
 		await expect(rule(page, description)).toContainText('Pagado');
 
-		const [href] = await findMovements(page, description, 'ARS');
+		const [href] = await findMovements(page, description.toUpperCase(), 'ARS');
 		await page.goto(new URL(href).pathname);
 		await pick(page, 'Cuenta', 'Otra cuenta');
 		await expect(page.getByText('Cambio guardado.')).toBeVisible();
@@ -194,7 +177,6 @@ test("another user's rule is a 404, and so is the old edit route", async ({
 	try {
 		const otherPage = await otherContext.newPage();
 		await login(otherPage, OTHER_EMAIL);
-		await setCurrencyCookie(otherPage, baseURL!, 'USD');
 		await otherPage.goto('/plan');
 		id = await linkId(otherPage.getByRole('link', { name: /Regla ajena/ }).first());
 	} finally {

@@ -50,9 +50,24 @@ export function elapsedDays(ym: string, todayYmd: string): number {
 	return ym < todayYm ? daysInMonth(ym) : 0;
 }
 
+/** Days left in `ym` counting today, between 1 and the month length (a past or future month never reads 0). */
+export function daysLeftIn(ym: string, todayYmd: string): number {
+	const days = daysInMonth(ym);
+	return Math.min(Math.max(days - elapsedDays(ym, todayYmd) + 1, 1), days);
+}
+
 export function monthRange(ym: string): { start: Date; end: Date } {
 	const at = (m: string) => new Date(`${m}-01T00:00:00${offsetAt(new Date(`${m}-01T12:00:00Z`))}`);
 	return { start: at(ym), end: at(shiftMonth(ym, 1)) };
+}
+
+/** Full months of history behind suggested rules and limits; a suggested rule appears in each of them. */
+export const HISTORY_MONTHS = 3;
+
+/** The `HISTORY_MONTHS` full months before `ym`, as a range (the window for suggested rules and limits). */
+export function lastFullMonths(ym: string) {
+	const [oldest] = lastMonths(shiftMonth(ym, -1), HISTORY_MONTHS);
+	return { start: monthRange(oldest).start, end: monthRange(ym).start };
 }
 
 export function monthLabel(ym: string, withYear = true): string {

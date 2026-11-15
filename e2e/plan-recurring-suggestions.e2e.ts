@@ -1,5 +1,5 @@
 import { expect, test, type Cookie, type Page } from '@playwright/test';
-import { linkId, setCurrencyCookie, signUpVerified, todayInAppTz } from './helpers';
+import { linkId, signUpVerified, todayInAppTz } from './helpers';
 
 // Rules of the "Detectamos que se repiten" list (recurringCandidates + recurringSuggestions). Each
 // test arranges its own data under a unique description, so the tests are independent of each other
@@ -24,11 +24,11 @@ type Mv = {
 	amount?: string;
 	account?: string;
 	category?: string;
-	recurringId?: string;
 };
 
-/** Posts one outcome per entry of `backs` (months ago), the way a no-JS form would. */
+/** Posts one outcome per entry of `backs` (months ago), the way a no-JS form would; returns the saved ids. */
 async function addOutcomes(page: Page, baseURL: string, mv: Mv, backs = [2, 3, 4]) {
+	const saved: string[] = [];
 	for (const back of backs) {
 		const res = await page.request.post('/movements/new', {
 			form: {
@@ -37,13 +37,14 @@ async function addOutcomes(page: Page, baseURL: string, mv: Mv, backs = [2, 3, 4
 				description: mv.description,
 				accountId: mv.account ?? ids.account,
 				categoryId: mv.category ?? ids.food,
-				...(mv.recurringId ? { recurringId: mv.recurringId } : {}),
 				occurredAt: dayOf(back)
 			},
 			headers: { origin: baseURL, accept: 'text/html' }
 		});
 		expect(res.ok()).toBe(true);
+		saved.push(new URL(res.url()).searchParams.get('saved')!);
 	}
+	return saved;
 }
 
 const suggestions = (page: Page) => page.goto('/plan/setup?step=2');
@@ -123,7 +124,7 @@ test.beforeEach(async ({ page }) => {
 	await page.context().addCookies(cookies);
 });
 
-test('outcomes that do not repeat 3 months, are linked, archived or in another currency are not suggested', async ({
+test('outcomes that do not repeat 3 months, or are linked or archived are not suggested', async ({
 	page,
 	baseURL
 }) => {
@@ -147,7 +148,14 @@ test('outcomes that do not repeat 3 months, are linked, archived or in another c
 	const ruleId = await linkId(
 		page.locator('.rule', { hasText: 'Regla vinc sug e2e' }).locator('a[data-slot="item"]')
 	);
-	await addOutcomes(page, baseURL!, { description: 'Vinculado sug e2e', recurringId: ruleId });
+	const linked = await addOutcomes(page, baseURL!, { description: 'Vinculado sug e2e' });
+	for (const id of linked) {
+		const res = await page.request.post(`/movements/${id}?/link`, {
+			form: { recurringId: ruleId },
+			headers: { origin: baseURL!, accept: 'text/html' }
+		});
+		expect(res.ok()).toBe(true);
+	}
 	await addOutcomes(page, baseURL!, { description: 'Archivada sug e2e', account: ids.archived });
 	await addOutcomes(page, baseURL!, { description: 'Dolar sug e2e', account: ids.usd });
 
@@ -156,7 +164,7 @@ test('outcomes that do not repeat 3 months, are linked, archived or in another c
 	await expect(row(page, 'Archivada sug e2e')).toHaveCount(1);
 	await expect(row(page, 'Dos meses sug e2e')).toHaveCount(0);
 	await expect(row(page, 'Vinculado sug e2e')).toHaveCount(0);
-	await expect(row(page, 'Dolar sug e2e')).toHaveCount(0);
+	await expect(row(page, 'Dolar sug e2e')).toHaveCount(1);
 
 	const res = await page.request.post(`/accounts/${ids.archived}?/archive`, {
 		form: {},
@@ -165,9 +173,6 @@ test('outcomes that do not repeat 3 months, are linked, archived or in another c
 	expect(res.ok()).toBe(true);
 	await suggestions(page);
 	await expect(row(page, 'Archivada sug e2e')).toHaveCount(0);
-	await setCurrencyCookie(page, baseURL!, 'USD');
-	await suggestions(page);
-	await expect(row(page, 'Dolar sug e2e')).toHaveCount(1);
 });
 
 test('grouping is case-insensitive, any category kind is suggested, the amount averages per-month sums', async ({

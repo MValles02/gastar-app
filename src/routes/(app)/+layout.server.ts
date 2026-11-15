@@ -11,17 +11,16 @@ const dayFmt = new Intl.DateTimeFormat(LOCALE, {
 	timeZone: TZ
 });
 
-// Top bar data shared by every screen (see PageHeader).
 export const load: LayoutServerLoad = async ({ locals }) => {
 	const user = requireUser(locals);
 	const name = user.name?.trim() || user.email;
 	const now = new Date();
 	const date = dayFmt.format(now);
-	// Counts alerts, not money, so adding across currencies is fine. Refreshed on full loads and form actions.
+	// Refreshed on full loads and form actions.
 	// A failure here must not take down every screen: log it and show no badge.
 	let alertCount = 0;
 	try {
-		alertCount = (await alerts(user.id, now)).reduce((n, g) => n + g.items.length, 0);
+		alertCount = (await alerts(user.id)).length;
 	} catch (err) {
 		console.error('alerts failed', err);
 	}

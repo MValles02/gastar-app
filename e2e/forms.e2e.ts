@@ -1,14 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import {
-	deleteMovements,
-	deleteRules,
-	fillRule,
-	findMovements,
-	linkId,
-	login,
-	OTHER_EMAIL,
-	postDelete
-} from './helpers';
+import { login, OTHER_EMAIL, postDelete } from './helpers';
 
 // Created accounts (detail URLs) are removed in afterEach. Runs as otro so the demo user's totals stay untouched.
 const createdAccounts: string[] = [];
@@ -94,69 +85,6 @@ test('an account with movements has no Eliminar and a crafted delete is rejected
 		headers: { origin: baseURL!, 'x-sveltekit-action': 'true' }
 	});
 	expect((await res.json()).type).toBe('failure');
-});
-
-test('an income rule registers as "Registrar ingreso" with no type selector, with and without JS', async ({
-	page,
-	browser,
-	baseURL
-}) => {
-	await login(page, OTHER_EMAIL);
-	const description = `Forms ingreso ${Date.now()}`;
-	try {
-		await fillRule(page, {
-			description,
-			amount: '700',
-			day: '15',
-			account: 'Otra cuenta pesos',
-			category: 'Ajena',
-			type: 'income'
-		});
-		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-		await expect(page).toHaveURL(/\/plan$/);
-		const ruleId = await linkId(page.getByRole('link', { name: new RegExp(description) }));
-		const form = `/movements/new?recurring=${ruleId}`;
-
-		// With JavaScript, the rule's Registrar opens the drawer over its detail.
-		await page.goto(`/plan/recurring/${ruleId}`, { waitUntil: 'networkidle' }); // hydration guard
-		await page.getByRole('link', { name: 'Registrar ingreso' }).click();
-		const drawer = page.getByRole('dialog', { name: `Registrar ${description}` });
-		await expect(drawer.getByRole('radio', { name: /^(Ingreso|Gasto|Transf\.)$/ })).toHaveCount(0);
-		await expect(drawer.locator('input[name="type"]')).toHaveValue('income');
-		await drawer.getByRole('button', { name: 'Registrar ingreso', exact: true }).click();
-		await expect(page.getByText('Pago registrado.')).toBeVisible();
-
-		// No JS: the server-rendered form has no type selector or transfer fields and still saves an income.
-		const noJs = await browser.newContext({
-			baseURL,
-			javaScriptEnabled: false,
-			storageState: await page.context().storageState()
-		});
-		try {
-			const bare = await noJs.newPage();
-			await bare.goto(form);
-			await expect(bare.getByRole('heading', { level: 1 })).toHaveText('Registrar ingreso');
-			await expect(bare.locator('input[name="type"][type="radio"]')).toHaveCount(0);
-			await expect(bare.locator('[name="destinationAccountId"]')).toHaveCount(0);
-			await bare.getByRole('button', { name: 'Guardar', exact: true }).click();
-			await expect(bare).toHaveURL(/\/plan\?saved=1$/);
-		} finally {
-			await noJs.close();
-		}
-
-		const movements = await findMovements(page, description);
-		expect(movements).toHaveLength(2);
-		for (const href of movements) {
-			await page.goto(href);
-			// The amount carries the type by colour (income green), not by a tag.
-			await expect(page.getByRole('button', { name: /^Monto: / }).locator('.money')).toHaveClass(
-				/income/
-			);
-		}
-	} finally {
-		await deleteMovements(page, baseURL!, description);
-		await deleteRules(page, baseURL!, description);
-	}
 });
 
 test('an account without movements can be archived or deleted, and links to its movements', async ({

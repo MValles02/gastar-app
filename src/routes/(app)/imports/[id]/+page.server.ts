@@ -1,12 +1,10 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
-import { formatDay } from '$lib/locale';
-import { localDay } from '$lib/server/month';
 import { isUuid } from '$lib/server/db/util';
 import { notFoundHelpers } from '$lib/server/not-found';
 import {
 	getImport,
-	importDateTime,
+	importDateLabel,
 	importPrefill,
 	importTypes,
 	listImportRules,
@@ -15,6 +13,7 @@ import {
 } from '$lib/server/import-queries';
 import { failIfUnavailable, movementPickers } from '../../movements/form.server';
 import { approveWithValues, counterAccountsOf } from '$lib/server/import-approve';
+import { activeRuleItems } from '$lib/server/plan-view';
 import { requireUser } from '$lib/server/require-user';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -38,22 +37,19 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const userId = requireUser(locals).id;
 	const item = await findItem(userId, params.id);
 	if (item.status !== 'pending') notFound();
-	const [{ categories, accounts }, rules] = await Promise.all([
+	const [{ categories, accounts }, importRules, rules] = await Promise.all([
 		pickers(userId, item),
-		listImportRules(userId)
+		listImportRules(userId),
+		activeRuleItems(userId, item.currency, item.isCredit ? 'income' : 'outcome')
 	]);
-	const prefill = importPrefill(item, rules, categories, accounts);
+	const prefill = importPrefill(item, importRules, categories, accounts);
 	return {
 		item: {
 			id: item.id,
 			isCredit: item.isCredit,
 			amount: item.amount,
 			currency: item.currency,
-			// Card statement lines carry a day, not a time.
-			dateLabel:
-				item.source === 'mercado_pago'
-					? importDateTime(item.occurredAt)
-					: formatDay(localDay(item.occurredAt)),
+			dateLabel: importDateLabel(item.source, item.occurredAt),
 			rawDescription: item.rawDescription
 		},
 		initial: {
@@ -61,6 +57,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			description: prefill.description,
 			categoryId: prefill.categoryId,
 			counterAccountId: prefill.counterAccountId,
+			recurringId: rules.some((r) => r.id === prefill.recurringId) ? prefill.recurringId : '',
 			remember: ''
 		},
 		// No rule suggests anything for it: the form asks which type it is.
@@ -68,7 +65,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		// Unchecked by default, even when a rule prefilled the form; hidden when there is no stable key.
 		rememberLabel: rememberKey(item)?.label ?? null,
 		categories,
-		accounts
+		accounts,
+		rules
 	};
 };
 
@@ -88,6 +86,7 @@ export const actions: Actions = {
 			description: field('description').trim(),
 			categoryId: field('categoryId'),
 			counterAccountId: field('counterAccountId'),
+			recurringId: field('recurringId'),
 			// 'on' when the box is checked; kept as text so a failed submit re-renders it.
 			remember: field('remember')
 		};
@@ -108,6 +107,15 @@ export const actions: Actions = {
 						? 'Elegí una cuenta en dólares que no esté archivada.'
 						: 'Elegí una cuenta en pesos que no esté archivada.';
 		} else if (type && !isUuid(values.categoryId)) errors.categoryId = 'Elegí una categoría.';
+		if (type && type !== 'transfer' && values.recurringId) {
+			const rules = await activeRuleItems(
+				userId,
+				item.currency,
+				item.isCredit ? 'income' : 'outcome'
+			);
+			if (!rules.some((r) => r.id === values.recurringId))
+				errors.recurringId = 'Elegí un pago fijo válido.';
+		}
 		if (Object.keys(errors).length > 0) return fail(400, { values, errors });
 
 		let approved;
@@ -115,7 +123,7 @@ export const actions: Actions = {
 			approved = await approveWithValues(
 				userId,
 				item,
-				{ ...values, type: type! },
+				{ ...values, type: type!, recurringId: type === 'transfer' ? '' : values.recurringId },
 				values.remember === 'on'
 			);
 		} catch (e) {

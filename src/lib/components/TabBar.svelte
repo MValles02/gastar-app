@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { markReplace } from '$lib/nav-stack.svelte';
-	import { openNewMovement } from '$lib/new-movement';
+	import { openShallow } from '$lib/open-shallow';
 	import House from '@lucide/svelte/icons/house';
 	import List from '@lucide/svelte/icons/list';
 	import CalendarCheck from '@lucide/svelte/icons/calendar-check';
@@ -42,7 +42,12 @@
 		{/each}
 	</div>
 
-	<a href={newMovementHref} class="fab" onclick={openNewMovement} aria-label="Nuevo movimiento">
+	<a
+		href={newMovementHref}
+		class="fab"
+		onclick={(e) => openShallow(e, newMovementHref, 'newMovement')}
+		aria-label="Nuevo movimiento"
+	>
 		<Plus size={24} strokeWidth={1.75} aria-hidden="true" />
 	</a>
 </nav>

@@ -3,28 +3,21 @@ import type { Actions, PageServerLoad } from './$types';
 import { notFoundHelpers } from '$lib/server/not-found';
 import { toIconKey } from '$lib/appearance';
 import { formatAmountInput } from '$lib/money';
-import {
-	dueLabel,
-	inactiveReason,
-	isRecurringActive,
-	recurringStatus,
-	type RecurringStatus
-} from '$lib/server/plan';
-import { currentMonth, localDay, monthRange } from '$lib/server/month';
+import { inactiveReason, isRecurringActive } from '$lib/plan';
 import { parseStep, planReturn } from '$lib/plan-wizard';
 import {
 	deleteRecurring,
 	listRecurring,
-	paidRecurring,
 	setRecurringArchived,
 	updateRecurring
 } from '$lib/server/plan-queries';
+import { ruleDueThisMonth } from '$lib/server/plan-view';
 import { requireUser } from '$lib/server/require-user';
 import { readRecurringForm, recurringPickers } from '../form.server';
 
 const { notFound, requireId } = notFoundHelpers('Movimiento fijo no encontrado.');
 
-// Whitelist of posted fields; the type is always the stored one.
+// The type is never posted: a rule keeps its stored type.
 const EDITABLE = ['description', 'amount', 'accountId', 'categoryId', 'dayOfMonth'] as const;
 
 async function findRule(userId: string, id: string) {
@@ -34,15 +27,15 @@ async function findRule(userId: string, id: string) {
 	return rule;
 }
 
-/** Why the rule can't be registered as a movement now; null when it can (or when it is deactivated). */
+/** Why the rule does not count in the plan now; null when it does (or when it is deactivated). */
 function cannotRegister(r: {
 	archivedAt: Date | null;
 	accountArchivedAt: Date | null;
 	categoryArchivedAt: Date | null;
 }) {
 	if (r.archivedAt) return null;
-	if (r.accountArchivedAt) return 'No se puede registrar mientras la cuenta esté archivada.';
-	if (r.categoryArchivedAt) return 'No se puede registrar mientras la categoría esté archivada.';
+	if (r.accountArchivedAt) return 'No cuenta en el plan mientras la cuenta esté archivada.';
+	if (r.categoryArchivedAt) return 'No cuenta en el plan mientras la categoría esté archivada.';
 	return null;
 }
 
@@ -65,21 +58,13 @@ async function detailOf(userId: string, id: string) {
 		color: null,
 		kind: null
 	};
-	const now = new Date();
-	const ym = currentMonth(now);
-	let thisMonth: { status: RecurringStatus; label: string } | null = null;
-	if (isRecurringActive(rule)) {
-		const paid = (await paidRecurring(userId, monthRange(ym))).some(
-			(p) => p.recurringId === rule.id
-		);
-		const s = recurringStatus(rule.dayOfMonth, paid, ym, localDay(now));
-		thisMonth = { status: s.status, label: dueLabel(s, rule.type) };
-	}
+	const thisMonth = isRecurringActive(rule) ? await ruleDueThisMonth(userId, rule) : null;
 	return {
 		id: rule.id,
 		type: rule.type,
 		description: rule.description,
 		amount: rule.amount,
+		previousAmount: rule.previousAmount,
 		currency: rule.currency,
 		dayOfMonth: rule.dayOfMonth,
 		account,
@@ -110,7 +95,6 @@ export const load: PageServerLoad = async ({ locals, params, url }) => ({
 });
 
 export const actions: Actions = {
-	/** Saves the posted subset of fields over the stored values, with the form's validation. */
 	update: async ({ locals, params, request }) => {
 		const userId = requireUser(locals).id;
 		const rule = await findRule(userId, params.id);

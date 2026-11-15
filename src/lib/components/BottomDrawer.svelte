@@ -85,3 +85,10 @@
 		{@render content()}
 	</Drawer.Root>
 {/if}
+
+<style>
+	/* The modal drawer turns the page behind it pointer-events: none, toasts included: keep Deshacer clickable. */
+	:global([data-sonner-toast]) {
+		pointer-events: auto;
+	}
+</style>

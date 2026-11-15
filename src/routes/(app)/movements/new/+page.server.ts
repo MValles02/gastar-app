@@ -3,13 +3,11 @@ import { formFail } from '$lib/form';
 import { PREFERENCE_COOKIE_OPTIONS } from '$lib/server/cookies';
 import { preferredCurrency } from '$lib/server/currency-pref';
 import type { Actions, PageServerLoad } from './$types';
-import { isUuid } from '$lib/server/validation';
-import { formatAmountInput } from '$lib/money';
+import { TOAST_FLAGS } from '$lib/url-flags';
 import { localDay } from '$lib/server/month';
 import { parseMovementForm } from '$lib/server/movements';
 import { createMovement } from '$lib/server/movements-queries';
-import { isRecurringActive } from '$lib/server/plan';
-import { createMovementWithRule, listRecurring } from '$lib/server/plan-queries';
+import { createMovementWithRule } from '$lib/server/plan-queries';
 import { requireUser } from '$lib/server/require-user';
 import { drawerPickers, failIfUnavailable, resolvePostedMovement } from '../form.server';
 
@@ -17,8 +15,6 @@ import { drawerPickers, failIfUnavailable, resolvePostedMovement } from '../form
 const LAST_ACCOUNT_COOKIE = 'last_account';
 
 const FORM_PATH = '/movements/new';
-/** One-shot toast flags that must not ride along on the screen we return to. */
-const FLAGS = ['saved', 'planSaved', 'movementSaved', 'rule'];
 
 /**
  * The screen to return to after saving: a same-origin app path other than this form, with its toast
@@ -39,7 +35,7 @@ function originPath(value: unknown, base: URL): string | null {
 	// Dot segments can normalize to a protocol-relative path (`/.//evil.com` → `//evil.com`).
 	if (url.origin !== base.origin || url.pathname.startsWith('//') || path === FORM_PATH)
 		return null;
-	for (const flag of FLAGS) url.searchParams.delete(flag);
+	for (const flag of TOAST_FLAGS) url.searchParams.delete(flag);
 	return url.pathname + url.search;
 }
 
@@ -55,17 +51,9 @@ function refererPath(request: Request, base: URL) {
 	}
 }
 
-/** An active recurring rule owned by the user, or undefined (inactive, foreign and invalid ids alike). */
-async function findRule(userId: string, id: FormDataEntryValue | null) {
-	if (typeof id !== 'string' || !isUuid(id)) return undefined;
-	const [rule] = await listRecurring(userId, undefined, id);
-	return rule && isRecurringActive(rule) ? rule : undefined;
-}
-
 export const load: PageServerLoad = async ({ locals, cookies, url, request }) => {
 	const userId = requireUser(locals).id;
 	const { accounts, categories } = await drawerPickers(userId);
-	const rule = await findRule(userId, url.searchParams.get('recurring'));
 	const last = cookies.get(LAST_ACCOUNT_COOKIE);
 	// The last-used account, else the first active account in the selected currency, else the first one.
 	const currency = preferredCurrency(cookies);
@@ -77,23 +65,6 @@ export const load: PageServerLoad = async ({ locals, cookies, url, request }) =>
 		accounts,
 		categories,
 		now,
-		recurring: rule
-			? {
-					id: rule.id,
-					type: rule.type,
-					description: rule.description,
-					initial: {
-						type: rule.type,
-						amount: formatAmountInput(rule.amount, rule.currency),
-						description: rule.description,
-						accountId: rule.accountId,
-						destinationAccountId: '',
-						exchangeRate: '',
-						categoryId: rule.categoryId,
-						occurredAt: now
-					}
-				}
-			: null,
 		saved: url.searchParams.get('saved') || null,
 		savedRule: url.searchParams.get('rule') || null,
 		formKey: crypto.randomUUID(),
@@ -106,11 +77,6 @@ export const actions: Actions = {
 	default: async ({ request, locals, cookies, url }) => {
 		const userId = requireUser(locals).id;
 		const fd = await request.formData();
-		const rule = await findRule(userId, fd.get('recurringId'));
-		// A payment always takes the rule's category, whatever was posted.
-		if (rule) fd.set('categoryId', rule.categoryId);
-		// An income rule's form has no type selector: the type is the rule's (findRule checked ownership).
-		if (rule?.type === 'income') fd.set('type', 'income');
 		const parsed = parseMovementForm(fd);
 		const { values } = parsed;
 		// Keeps the checkbox state when the form is shown again with errors.
@@ -121,37 +87,15 @@ export const actions: Actions = {
 		if (!parsed.ok) return formFail(400, { values, errors: parsed.errors });
 		const { data } = parsed;
 
-		// The rule's category is forced on its payment, so it stays valid whatever its kind.
-		const { origin, resolved } = await resolvePostedMovement(
-			userId,
-			data,
-			rule ? { accountIds: [], categoryId: rule.categoryId } : undefined
-		);
+		const { resolved } = await resolvePostedMovement(userId, data);
 		if (!resolved.ok) return formFail(400, { values, errors: resolved.errors });
-
-		if (rule) {
-			if (data.type !== rule.type)
-				return formFail(400, {
-					values,
-					errors: {
-						type: `Este pago es un ${rule.type === 'income' ? 'ingreso' : 'gasto'}.`
-					}
-				});
-			if (origin!.currency !== rule.currency)
-				return formFail(400, {
-					values,
-					errors: {
-						accountId: `Elegí una cuenta en ${rule.currency} para registrar este pago.`
-					}
-				});
-		}
 
 		let movementId: string;
 		// Set when "Repetir todos los meses" created a rule: the client's Deshacer removes it too.
 		let ruleId: string | null = null;
 		try {
 			const { type, categoryId } = resolved.row;
-			if (!rule && fd.get('repeat') === 'on' && type !== 'transfer' && categoryId) {
+			if (fd.get('repeat') === 'on' && type !== 'transfer' && categoryId) {
 				// The rule repeats on the movement's Buenos Aires day (clamped by recurringStatus in short months).
 				({ movementId, ruleId } = await createMovementWithRule(userId, resolved.row, {
 					type,
@@ -162,16 +106,12 @@ export const actions: Actions = {
 					dayOfMonth: Number(localDay(resolved.row.occurredAt).slice(8, 10))
 				}));
 			} else {
-				[{ id: movementId }] = await createMovement(userId, {
-					...resolved.row,
-					recurringId: rule?.id ?? null
-				});
+				[{ id: movementId }] = await createMovement(userId, resolved.row);
 			}
 		} catch (e) {
 			return failIfUnavailable(e, values);
 		}
 		cookies.set(LAST_ACCOUNT_COOKIE, data.accountId, PREFERENCE_COOKIE_OPTIONS);
-		if (rule) redirect(303, '/plan?saved=1');
 		// Back to the screen the form was opened from, which toasts; else stay here for the next one.
 		const back = originPath(fd.get('returnTo'), url);
 		const ruleFlag = ruleId ? `&rule=${ruleId}` : '';

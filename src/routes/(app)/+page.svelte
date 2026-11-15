@@ -18,7 +18,7 @@
 	import MpPill from '$lib/components/MpPill.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
-	import { PLAN_TONE } from '$lib/status';
+	import { PLAN_TONE } from '$lib/plan';
 	import { swatchVar, toSwatchKey } from '$lib/appearance';
 	import type { PageData } from './$types';
 
@@ -67,9 +67,9 @@
 								<CardEyebrow as="h2" id="summary-heading">Disponible</CardEyebrow>
 								<StatusPill tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
 							</div>
-							<HeroAmount class="available-amount" cents={s.available} currency={data.currency} />
+							<HeroAmount class="available-amount" cents={s.available} currency="ARS" />
 							<p class="muted per-day">
-								<Money cents={s.perDay} currency={data.currency} /> por día · {s.daysLeft === 1
+								<Money cents={s.perDay} currency="ARS" /> por día · {s.daysLeft === 1
 									? 'queda 1 día'
 									: `quedan ${s.daysLeft} días`}
 							</p>

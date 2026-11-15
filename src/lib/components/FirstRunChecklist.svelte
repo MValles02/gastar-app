@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import { openNewMovement } from '$lib/new-movement';
+	import { openShallow } from '$lib/open-shallow';
 	import CardEyebrow from './CardEyebrow.svelte';
 	import Icon from './Icon.svelte';
 
@@ -27,7 +27,7 @@
 			title: 'Registrá un movimiento',
 			hint: 'Con el + de abajo',
 			href: resolve('/movements/new'),
-			onclick: openNewMovement
+			onclick: (e) => openShallow(e, resolve('/movements/new'), 'newMovement')
 		},
 		{
 			done: steps.plan,

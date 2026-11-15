@@ -71,7 +71,7 @@ Constraints: `UNIQUE (user_id, name)`.
 | `destination_account_id` | fk → `financial_accounts.id`, nullable | transfer only |
 | `destination_amount` | bigint, nullable, > 0 | transfer only, minor units |
 | `exchange_rate` | bigint, nullable, > 0 | transfer only, hundredths, only when currencies differ |
-| `recurring_id` | fk → `recurring_movements.id`, nullable | set when the movement logs a recurring rule; ON DELETE SET NULL |
+| `recurring_id` | fk → `recurring_movements.id`, nullable | set when the movement is linked to a recurring rule: at creation (decided before the INSERT, same transaction: explicit choice or description match) or later from the movement edit page; ON DELETE SET NULL |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
 
@@ -103,7 +103,7 @@ Constraints: `UNIQUE (user_id, name)`.
 
 ### `recurring_movements`
 
-Monthly recurring incomes or bills. Logging one creates a normal movement linked by `movements.recurring_id`; a rule is paid in a month when a linked movement exists in that month. Its currency is its account's currency.
+Monthly recurring incomes or bills. A movement links to a rule through `movements.recurring_id`; a rule is paid in a month when a linked movement exists in that month. Its currency is its account's currency. Invariant: at most one linked movement per rule per local (Buenos Aires) month, enforced in `linkRuleFor` with the rule rows locked (`FOR UPDATE`), not by a constraint. Amount rule: linking a payment (outcome) sets the rule's `amount` to the movement's amount (ARS rounded half-up to whole pesos) when it differs and the movement's month is not earlier than the rule's latest linked month, storing the old value in `previous_amount`; deleting or unlinking the movement that made the change restores it (`unlinkRevert`, same transaction) when no other linked movement is as recent; income rules never change from a link; a manual amount edit clears `previous_amount`. A one-time backfill in `scripts/migrate.js` links the previous and current month's unlinked movements by the same matching (no amount changes); it runs only in the migration that adds `mp_import_rules.recurring_id`.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -115,6 +115,7 @@ Monthly recurring incomes or bills. Logging one creates a normal movement linked
 | `account_id` | fk → `financial_accounts.id` | ON DELETE CASCADE |
 | `category_id` | fk → `categories.id` | ON DELETE CASCADE |
 | `day_of_month` | smallint | 1–31 (CHECK); clamped to the month's last day when reading |
+| `previous_amount` | bigint, nullable | amount before the last change that came from a linked charge; CHECK `recurring_movements_previous_amount_positive_check`: null or > 0 |
 | `archived_at` | timestamptz, nullable | null = active |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
@@ -123,7 +124,7 @@ Index: `(user_id)`.
 
 ### `spending_plans`
 
-At most one plan per user and currency. The currency is stored because a plan has no account.
+One plan per user, in ARS: "the plan" is the user's row with `currency = 'ARS'`. Rows with `currency = 'USD'` are legacy (one plan per currency before migration 0018): new code never reads, writes or deletes them. Cleanup release: `DELETE FROM spending_plans WHERE currency = 'USD'` once no running code reads them (afterwards the unique index on currency or the column itself may go).
 
 | Column | Type | Notes |
 |---|---|---|
@@ -134,6 +135,7 @@ At most one plan per user and currency. The currency is stored because a plan ha
 | `savings` | bigint, >= 0, default 0 | minor units |
 | `savings_percent` | integer, nullable, CHECK 0..10000 | percent x 100 (1000 = 10 %); set → savings = `floor(income / 1_000_000 * percent_x100)` whole units, computed at read time from the income; null → the `savings` amount |
 | `month` | varchar(7), nullable | null = every month; `YYYY-MM` = that month only (CHECK) |
+| `exchange_rate` | bigint, nullable, CHECK > 0 | manual plan rate (rate x 100, whole pesos); null = the latest ARS↔USD transfer's rate |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
 
@@ -147,9 +149,10 @@ Optional monthly limit per category.
 |---|---|---|
 | `plan_id` | fk → `spending_plans.id` | ON DELETE CASCADE |
 | `category_id` | fk → `categories.id` | ON DELETE CASCADE |
-| `amount` | bigint, > 0 | minor units |
+| `amount` | bigint, > 0 | minor units, in `currency` |
+| `currency` | enum('ARS','USD'), NOT NULL, default 'ARS' | the limit's own currency; the default keeps inserts from the previous release working |
 
-Constraints: PK `(plan_id, category_id)`.
+Constraints: PK `(plan_id, category_id)` (one limit per category). Migration 0018 copies legacy USD-plan limits onto the ARS plan with `currency = 'USD'` (an existing ARS limit on the category wins) and gives a user with only a USD plan an ARS plan (same month and percent, savings 0; fixed USD savings are not carried over).
 
 ### `mp_import_items`
 
@@ -181,7 +184,7 @@ Constraints: `UNIQUE (user_id, external_key)`. Index: `(user_id, status, occurre
 
 Approving is one transaction: a conditional `pending` → `approved` update (zero rows = already handled, nothing written), the movement insert, `movement_id`, and the rule upsert. Rejecting is a conditional `pending` → `rejected` update; the row stays so its external key is never re-imported.
 
-Auto-approval (`autoApprovePending(userId)`, source-agnostic, run after every sync run before the lease is released, and after every statement upload) approves, through the same transaction, every pending item whose read-time prefill is a usable rule, skipping `auto_approve_blocked` items; it never writes a rule and an item whose movement fails validation stays pending. It stamps `auto_approved_at`. Undoing an approval (one transaction: delete the unedited movement, item back to `pending`) clears `auto_approved_at` and, when it was set, sets `auto_approve_blocked`.
+Auto-approval (`autoApprovePending(userId)`, source-agnostic, run after each ingest: after the payments and again after the report of a sync run, and on every statement upload) approves, through the same transaction, every pending item whose read-time prefill is a usable rule, skipping `auto_approve_blocked` items; it never writes a rule and an item whose movement fails validation stays pending. It stamps `auto_approved_at`. Undoing an approval (one transaction: delete the unedited movement, item back to `pending`) clears `auto_approved_at` and, when it was set, sets `auto_approve_blocked`.
 
 ### `mp_import_rules`
 
@@ -197,6 +200,7 @@ Rules learned from approved items, used to pre-fill later ones.
 | `category_id` | fk → `categories.id`, nullable | ON DELETE CASCADE |
 | `counter_account_id` | fk → `financial_accounts.id`, nullable | ON DELETE CASCADE |
 | `description` | varchar(60), nullable | |
+| `recurring_id` | fk → `recurring_movements.id`, nullable | fixed payment items matching this rule link to; ON DELETE SET NULL |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
 
@@ -252,20 +256,19 @@ Encryption: tokens are AES-256-GCM ciphertext, `v1:` + base64(iv(12) | tag(16) |
 
 ## Derived formulas
 
-### Plan figures (per plan currency, per month; computed in `src/lib/server/plan.ts`)
+### Plan figures (one plan in ARS, per month; computed in `src/lib/server/plan.ts` and `plan-view.ts`)
 
-All inputs are in the plan's currency; nothing is converted or summed across currencies.
+Figures are in pesos. USD items convert at the plan rate: the manual `spending_plans.exchange_rate` when set, else the latest transfer with an exchange rate and `occurred_at <= now()` (order `occurred_at` desc, `created_at` desc); with no rate, USD items are left out of the totals. Each figure (income, bills, pending bills, spent, variable spent, per-category spending, limits total) is summed per currency first and converted once with `convertAmount` (USD→ARS half up to whole pesos); rows are converted one by one for display only. A limit stays in its own currency: spending in the other currency converts into it. Savings are in ARS; a percentage applies to the total ARS income (USD income converted). Balances and Reportes are never converted.
 
 ```
 income      = sum(active recurring incomes)
 forSpending = income - sum(active recurring bills) - savings
 available   = forSpending - spent        -- spent: see below
 perDay      = available > 0 ? floor(available / daysLeft / unit) * unit : 0
-              -- daysLeft = clamp(days - elapsed + 1, 1, days); unit = 100 for ARS, 1 for USD
-unassigned  = forSpending - sum(limits)
+              -- daysLeft = clamp(days - elapsed + 1, 1, days); unit = 100 (pesos)
 ```
 
-- Spent: outcomes in the current Buenos Aires month on accounts in the plan currency (archived accounts included), transfers excluded; outcomes linked to an active rule are excluded (the rule is already in the bills), outcomes linked to an inactive or deleted rule are counted.
+- Spent: outcomes in the current Buenos Aires month on accounts of both currencies, converted (archived accounts included), transfers excluded; outcomes linked to an active rule are excluded (the rule is already in the bills), outcomes linked to an inactive or deleted rule are counted.
 - Status: `over` if `available < 0`; `warn` if `spent / forSpending > elapsed / days`; otherwise `ok`. When `forSpending <= 0`, any spending counts as fully spent (share 1), so status is `warn`, or `over` if `available < 0`; no spending gives `ok`. Each limit shows its own progress the same way.
 - Savings: if `savings_percent` is set, savings = `floor(income * percent_x100 / 1_000_000) * 100` (whole units), computed at read time and never relied on from storage; saves also write that computed amount to `savings` for rollout compatibility (older releases read only `savings`). If null, savings is the `savings` amount.
 - Rule status: `paid` if a linked movement exists in the month; otherwise `overdue` for any past month, or by due day (clamped to the month's length) within the current/future month: `overdue` / `today` / `upcoming`.
@@ -336,6 +339,6 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 17. All account/movement access is authorized through a single ownership-check helper, to keep future shared-account support a one-place change.
 18. `movements.occurred_at` is the Buenos Aires local midnight of the movement's date; readers derive the date in Buenos Aires and tolerate non-midnight legacy values.
 19. Amounts imported from Mercado Pago keep their cents. Editing a movement may keep its existing amount (even non-whole); new or changed manual ARS amounts, initial balances and all exchange rates are multiples of 100 (whole pesos). Non-whole values are displayed rounded half-up.
-20. Recurring-rule and plan amounts are in the account's or plan's currency and are never summed across currencies. ARS values are whole pesos, validated in the actions.
-21. Plan figures (income, for spending, available, per day, status, limit progress) are computed at read time, never persisted. The plan setup wizard writes step by step (savings creates the plan, each limit and rule is saved on its own screen, the last step sets the plan month); nothing is staged across steps. Creating a movement with "Repetir cada mes" writes the rule and the movement (linked by `recurring_id`) in one transaction.
-22. Deletion: hard-deleting an unreferenced account or category cascades to its recurring rules and plan limits. Deleting a recurring rule sets the linked movements' `recurring_id` to NULL, so history is kept. Archiving does not touch plan rows; rules on an archived account or category are inactive (excluded from plan sums, cannot be logged).
+20. Recurring-rule amounts are in the account's currency and limit amounts in the limit's currency; only the plan figures convert them, at the plan rate. ARS values are whole pesos, validated in the actions.
+21. Plan figures (see above; the plan is the only place where currencies are converted) (income, for spending, available, per day, status, limit progress) are computed at read time, never persisted. The plan setup wizard writes step by step (savings creates the plan, each limit and rule is saved on its own screen, the last step sets the plan month); nothing is staged across steps. Creating a movement with "Repetir cada mes" writes the rule and the movement (linked by `recurring_id`) in one transaction.
+22. Deletion: hard-deleting an unreferenced account or category cascades to its recurring rules and plan limits. Deleting a recurring rule sets the linked movements' `recurring_id` to NULL, so history is kept. Archiving does not touch plan rows; rules on an archived account or category are inactive (excluded from plan sums, never linked to new movements).

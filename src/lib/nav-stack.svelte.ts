@@ -1,5 +1,7 @@
 /* eslint-disable svelte/prefer-svelte-reactivity -- URLs here are parsed and compared, never mutated or rendered */
 import { goto, invalidateAll, replaceState } from '$app/navigation';
+import { isModifiedClick } from '$lib/open-shallow';
+import { TOAST_FLAGS } from '$lib/url-flags';
 import type { ActionResult, AfterNavigate, OnNavigate } from '@sveltejs/kit';
 
 /**
@@ -68,7 +70,7 @@ export function track(nav: AfterNavigate) {
 
 /** Marks the next navigation as a replace (for links with `data-sveltekit-replacestate`). */
 export function markReplace(e?: MouseEvent) {
-	if (e && isModified(e)) return;
+	if (e && isModifiedClick(e)) return;
 	replaceNext = true;
 }
 
@@ -80,25 +82,34 @@ export function replaceGoto(href: string, opts: Parameters<typeof goto>[1] = {})
 }
 
 /**
- * Shallow `replaceState` that strips one-shot query flags (e.g. `?movementSaved=1`) from the current
- * URL and keeps the stack's copy in sync, so a later "up" to this screen still sees the flag missing
- * and replaces the entry with it. Deferred so it runs after `track` has recorded the navigation (the
- * order of `afterNavigate` callbacks is not fixed), retried while the router is not ready (hard load).
+ * Shallow `replaceState` that strips one-shot query flags (default: the toast flags a save leaves) from
+ * the current URL and keeps the stack's copy in sync, so a later "up" to this screen still sees the flag
+ * missing and replaces the entry with it. Deferred so it runs after `track` has recorded the navigation
+ * (the order of `afterNavigate` callbacks is not fixed), and retried while SvelteKit's router is not
+ * initialized yet (`replaceState` throws on a hard load). Resolves once stripped, so a caller can push
+ * shallow state right after (a `replaceState` would wipe it).
  */
-export function stripFlags(names: string[], tries = 20) {
-	setTimeout(() => {
-		const url = new URL(location.href);
-		if (!names.some((n) => url.searchParams.has(n))) return;
-		for (const n of names) url.searchParams.delete(n);
-		try {
-			// eslint-disable-next-line svelte/no-navigation-without-resolve -- same-origin current URL
-			replaceState(url.pathname + url.search + url.hash, {});
-		} catch {
-			if (tries > 1) stripFlags(names, tries - 1);
-			return;
-		}
-		if (index >= 0 && pathOf(entries[index]) === url.pathname) entries[index] = keyOf(url);
-	}, 50);
+export function stripFlags(names: readonly string[] = TOAST_FLAGS) {
+	return new Promise<void>((done) => {
+		let tries = 20;
+		const run = () => {
+			const url = new URL(location.href);
+			if (names.some((n) => url.searchParams.has(n))) {
+				for (const n of names) url.searchParams.delete(n);
+				try {
+					// eslint-disable-next-line svelte/no-navigation-without-resolve -- same-origin current URL
+					replaceState(url.pathname + url.search + url.hash, {});
+				} catch {
+					if (--tries > 0) setTimeout(run, 50);
+					else done();
+					return;
+				}
+				if (index >= 0 && pathOf(entries[index]) === url.pathname) entries[index] = keyOf(url);
+			}
+			done();
+		};
+		setTimeout(run, 50);
+	});
 }
 
 /**
@@ -193,13 +204,9 @@ function pop(to: number) {
 	history.go(to - index);
 }
 
-function isModified(e: MouseEvent) {
-	return e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
-}
-
 /** `onclick` for an "up" link that keeps its `href` (no-JS, new tab) but pops when it can. */
 export const upOnClick = (href: string) => (e: MouseEvent) => {
-	if (isModified(e)) return;
+	if (isModifiedClick(e)) return;
 	e.preventDefault();
 	void navigateUp(href);
 };
@@ -224,6 +231,3 @@ export async function followRedirect(
 		return goto(keyOf(target), { invalidateAll: true });
 	return navigateUp(result.location, { refresh: true });
 }
-
-/** Drop-in for bare `use:enhance`: `use:enhance={() => enhanceRedirect}`. */
-export const enhanceRedirect = (input: EnhanceResult) => followRedirect(input);

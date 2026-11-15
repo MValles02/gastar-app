@@ -3,11 +3,8 @@ import {
 	deleteMovements,
 	deleteRules,
 	fillMovement,
-	linkId,
 	login,
 	OTHER_EMAIL,
-	postDelete,
-	setCurrencyCookie,
 	todayInAppTz,
 	WHOLE_PESOS_ERROR
 } from './helpers';
@@ -189,96 +186,5 @@ test('ARS decimals with the switch on: message, nothing written, switch kept', a
 		await expect(rule(page, description)).toHaveCount(0);
 	} finally {
 		await cleanup(page, baseURL!, description);
-	}
-});
-
-test('Inicio with a plan shows the same Disponible as /plan and links to it', async ({
-	page,
-	baseURL
-}) => {
-	// otro's USD plan is mutated by no spec.
-	await login(page, OTHER_EMAIL);
-	await setCurrencyCookie(page, baseURL!, 'USD');
-	await page.goto('/');
-	const card = page.getByRole('region', { name: 'Disponible', exact: true });
-	await expect(card).toBeVisible();
-	await expect(card.getByText(/Vas bien|Vas rápido|Te pasaste/)).toBeVisible();
-	const onHome = await card.locator('.available-amount').innerText();
-
-	await page
-		.getByRole('navigation', { name: 'Navegación principal' })
-		.getByRole('link', { name: 'Plan', exact: true })
-		.click();
-	await expect(page).toHaveURL(/\/plan$/);
-	const summary = page.getByRole('region', { name: /^Disponible$/ });
-	// Inicio renders a negative amount as "-" + newline + amount: compare without whitespace.
-	expect((await summary.locator('.hero').innerText()).replace(/\s/g, '')).toBe(
-		onHome.replace(/\s/g, '')
-	);
-});
-
-test('Registrar pago saves the rule category, whatever category is posted', async ({
-	page,
-	baseURL
-}) => {
-	const description = 'Pago categoria e2e';
-	const extra = 'Otra categoria e2e';
-	const headers = { origin: baseURL!, accept: 'text/html' };
-	await login(page, OTHER_EMAIL);
-	let extraId: string | undefined;
-	// Leftovers of an interrupted run: a same-name category would make the create below fail.
-	await cleanup(page, baseURL!, description);
-	await page.goto('/categories');
-	const stale = await page
-		.getByRole('link', { name: new RegExp(extra) })
-		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).pathname));
-	for (const path of stale) await postDelete(page, baseURL!, path);
-	try {
-		const created = await page.request.post('/categories/new', {
-			form: { name: extra, color: 'green' },
-			headers
-		});
-		extraId = created.url().split('/').pop()!;
-		expect(extraId).toMatch(/^[0-9a-f-]{36}$/);
-
-		await fillOutcome(page, description, '1.000');
-		await checkbox(page).check();
-		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
-		await page.goto('/plan');
-		const id = await linkId(rule(page, description).locator('a[data-slot="item"]'));
-		// Drop the movement the rule was created with so this month's payment is still open.
-		await deleteMovements(page, baseURL!, description);
-
-		await page.goto(`/movements/new?recurring=${id}`);
-		await expect(checkbox(page)).toHaveCount(0);
-		await expect(page.locator('input[name="categoryId"]')).toHaveAttribute('type', 'hidden');
-		await expect(page.getByText('Ajena', { exact: true })).toBeVisible();
-		const accountId = await page.locator('input[name="accountId"]').getAttribute('value');
-
-		const res = await page.request.post('/movements/new', {
-			form: {
-				recurringId: id,
-				type: 'outcome',
-				amount: '1000',
-				description,
-				accountId: accountId!,
-				categoryId: extraId,
-				occurredAt: todayInAppTz()
-			},
-			headers
-		});
-		expect(res.url()).toMatch(/\/plan\?saved=1$/);
-
-		await page.goto(`/movements?q=${encodeURIComponent(description)}`);
-		const row = page.locator('a[href*="movements/"]').filter({ hasText: description });
-		await expect(row).toHaveCount(1);
-		// Rows show the category as an icon only; its name is on the detail page.
-		await row.click();
-		await expect(page.getByText('Ajena', { exact: true })).toBeVisible();
-		await expect(page.getByText(extra)).toHaveCount(0);
-	} finally {
-		await cleanup(page, baseURL!, description);
-		if (extraId) await postDelete(page, baseURL!, `/categories/${extraId}`);
 	}
 });

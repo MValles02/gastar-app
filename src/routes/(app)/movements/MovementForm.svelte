@@ -7,9 +7,8 @@
 	import { followRedirect } from '$lib/nav-stack.svelte';
 	import { resolve } from '$app/paths';
 	import AmountHero from '$lib/components/AmountHero.svelte';
-	import CategoryCreateDrawer, {
-		type CreatedCategory
-	} from '$lib/components/CategoryCreateDrawer.svelte';
+	import CategoryCreateDrawer from '../categories/CategoryCreateDrawer.svelte';
+	import type { CreatedCategory } from '../categories/CategoryForm.svelte';
 	import EntryFields from '$lib/components/EntryFields.svelte';
 	import FormActions from '$lib/components/FormActions.svelte';
 	import MovementDatePicker from '$lib/components/MovementDatePicker.svelte';
@@ -40,7 +39,6 @@
 		submitLabel,
 		cancelHref,
 		returnTo,
-		recurring,
 		repeatable = false,
 		repeatChecked = false,
 		variant = 'page',
@@ -55,8 +53,6 @@
 		cancelHref: string;
 		/** Where saving returns to (validated by the action); none keeps the user on the form. */
 		returnTo?: string | null;
-		/** Registering a payment of this recurring rule. */
-		recurring?: { id: string; type: string; description: string };
 		/** Offer "Repetir todos los meses" (new incomes and outcomes only). */
 		repeatable?: boolean;
 		/** Initial state of the "Repetir todos los meses" switch (kept when the form is shown again with errors). */
@@ -145,11 +141,9 @@
 		categoryId = c.id;
 	}
 
-	// A rule fixes the type: no selector and, without JS too, no transfer-only fields.
-	const typeFixed = $derived(!!recurring);
 	const isTransfer = $derived(type === 'transfer');
-	const showTransfer = $derived(!typeFixed && (!mounted || isTransfer));
-	const showCategory = $derived(typeFixed || !mounted || !isTransfer);
+	const showTransfer = $derived(!mounted || isTransfer);
+	const showCategory = $derived(!mounted || !isTransfer);
 
 	const focusFirstError = () =>
 		tick().then(() => {
@@ -219,30 +213,12 @@
 
 {#snippet fields()}
 	{#if returnTo}<input type="hidden" name="returnTo" value={returnTo} />{/if}
-	{#if recurring}
-		<input type="hidden" name="recurringId" value={recurring.id} />
-		{#if !drawer}
-			<p class="hint note">
-				Registrás {recurring.type === 'income' ? 'el ingreso' : 'el pago'} de
-				<strong>{recurring.description}</strong> de este mes.
-			</p>
-		{/if}
-	{/if}
 
-	{#if typeFixed}
-		<input type="hidden" name="type" value={recurring?.type ?? type} />
-	{:else}
-		<div class="field" class:centered={drawer}>
-			<span id="type-label" class="visually-hidden">Tipo</span>
-			<SegmentedControl
-				name="type"
-				options={typeOptions}
-				bind:value={type}
-				labelledby="type-label"
-			/>
-			{#if shown.type}<p class="error" role="alert">{shown.type}</p>{/if}
-		</div>
-	{/if}
+	<div class="field" class:centered={drawer}>
+		<span id="type-label" class="visually-hidden">Tipo</span>
+		<SegmentedControl name="type" options={typeOptions} bind:value={type} labelledby="type-label" />
+		{#if shown.type}<p class="error" role="alert">{shown.type}</p>{/if}
+	</div>
 
 	<AmountHero
 		bind:value={amount}
@@ -258,7 +234,7 @@
 		descriptionError={shown.description}
 		placeholder={DESCRIPTION_PLACEHOLDER[type as keyof typeof DESCRIPTION_PLACEHOLDER]}
 		outlineErrors={drawer}
-		extra={repeatable && !recurring && showCategory ? repeat : undefined}
+		extra={repeatable && showCategory ? repeat : undefined}
 	>
 		{#snippet account()}
 			<li class:bad={shown.accountId}>
@@ -282,7 +258,6 @@
 				{showTransfer}
 				{showRate}
 				{mounted}
-				{typeFixed}
 				{drawer}
 				{accountItems}
 				{accountId}
@@ -299,8 +274,6 @@
 				{showCategory}
 				{mounted}
 				{drawer}
-				{recurring}
-				{categories}
 				{pickableCategories}
 				{shown}
 				bind:categoryId
@@ -391,7 +364,7 @@
 	{/if}
 </form>
 
-{#if drawer && !recurring}
+{#if drawer}
 	<CategoryCreateDrawer
 		bind:open={createOpen}
 		defaultKind={type === 'income' ? 'income' : 'outcome'}
@@ -447,11 +420,6 @@
 
 	.centered {
 		align-items: stretch;
-	}
-
-	.note {
-		margin-bottom: calc(var(--space-3) * -1);
-		text-align: center;
 	}
 
 	.hint {

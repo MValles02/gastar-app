@@ -175,6 +175,8 @@ export const recurringMovements = pgTable(
 			.notNull()
 			.references(() => categories.id, { onDelete: 'cascade' }),
 		dayOfMonth: smallint('day_of_month').notNull(),
+		// Amount before the last change that came from a linked charge; NULL otherwise.
+		previousAmount: bigint('previous_amount', { mode: 'number' }),
 		archivedAt: timestamp('archived_at', { withTimezone: true }),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp('updated_at', { withTimezone: true })
@@ -185,6 +187,10 @@ export const recurringMovements = pgTable(
 	(table) => [
 		index('recurring_movements_user_id_idx').on(table.userId),
 		check('recurring_movements_amount_positive_check', sql`${table.amount} > 0`),
+		check(
+			'recurring_movements_previous_amount_positive_check',
+			sql`${table.previousAmount} IS NULL OR ${table.previousAmount} > 0`
+		),
 		check('recurring_movements_type_check', sql`${table.type} <> 'transfer'`),
 		check('recurring_movements_day_of_month_check', sql`${table.dayOfMonth} BETWEEN 1 AND 31`)
 	]
@@ -204,6 +210,8 @@ export const spendingPlans = pgTable(
 		savingsPercent: integer('savings_percent'),
 		// NULL = every month; 'YYYY-MM' = that month only.
 		month: varchar('month', { length: 7 }),
+		// Manual plan rate (rate x 100, whole pesos); NULL = the latest ARS<->USD transfer rate.
+		exchangeRate: bigint('exchange_rate', { mode: 'number' }),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp('updated_at', { withTimezone: true })
 			.defaultNow()
@@ -216,6 +224,10 @@ export const spendingPlans = pgTable(
 		check(
 			'spending_plans_savings_percent_check',
 			sql`${table.savingsPercent} IS NULL OR ${table.savingsPercent} BETWEEN 0 AND 10000`
+		),
+		check(
+			'spending_plans_exchange_rate_positive_check',
+			sql`${table.exchangeRate} IS NULL OR ${table.exchangeRate} > 0`
 		),
 		check(
 			'spending_plans_month_check',
@@ -233,7 +245,9 @@ export const planCategoryLimits = pgTable(
 		categoryId: uuid('category_id')
 			.notNull()
 			.references(() => categories.id, { onDelete: 'cascade' }),
-		amount: bigint('amount', { mode: 'number' }).notNull()
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		// The limit's own currency (the plan itself is in ARS).
+		currency: currencyEnum('currency').default('ARS').notNull()
 	},
 	(table) => [
 		primaryKey({ columns: [table.planId, table.categoryId] }),
@@ -388,6 +402,10 @@ export const mpImportRules = pgTable(
 			onDelete: 'cascade'
 		}),
 		description: varchar('description', { length: 60 }),
+		// Fixed payment the matching items link to; NULL = match by description only.
+		recurringId: uuid('recurring_id').references(() => recurringMovements.id, {
+			onDelete: 'set null'
+		}),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp('updated_at', { withTimezone: true })
 			.defaultNow()

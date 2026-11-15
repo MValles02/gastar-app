@@ -8,7 +8,9 @@ import {
 	type ImportItem
 } from './import-queries';
 import { pgErrorCode } from './db/errors';
-import { movementPickers, resolvePostedMovement } from './movement-pickers';
+import { listAccounts } from './accounts-queries';
+import { listCategories } from './categories-queries';
+import { resolvePostedMovement } from './movement-pickers';
 
 /** Active accounts in the item's currency other than its own: the only valid counter accounts (no exchange rate). */
 export const counterAccountsOf = <A extends { currency: string; id: string }>(
@@ -16,14 +18,14 @@ export const counterAccountsOf = <A extends { currency: string; id: string }>(
 	item: { accountId: string; currency: string }
 ) => accounts.filter((a) => a.currency === item.currency && a.id !== item.accountId);
 
-/** Rules and pickers needed to compute an item's suggestion. */
+/** Rules and the active accounts and categories an item's suggestion is computed from. */
 export async function suggestionContext(userId: string) {
-	const [rules, pickers] = await Promise.all([listImportRules(userId), movementPickers(userId)]);
-	return {
-		rules,
-		categories: pickers.categories,
-		accounts: pickers.accounts
-	};
+	const [rules, accounts, categories] = await Promise.all([
+		listImportRules(userId),
+		listAccounts(userId),
+		listCategories(userId)
+	]);
+	return { rules, categories, accounts };
 }
 
 type SuggestionContext = Awaited<ReturnType<typeof suggestionContext>>;
@@ -51,16 +53,15 @@ export async function approveSuggestion(
 	return 'result' in out && out.result === 'approved' ? 'approved' : 'stale';
 }
 
-/** Approves every pending item (filtered by `which`) that has a suggestion; failures count as skipped. */
-async function approveAllSuggested(
-	userId: string,
-	auto: boolean,
-	which: (item: ImportItem) => boolean = () => true
-) {
+/**
+ * Approves every pending item that has a suggestion; failures count as skipped. An automatic run leaves
+ * out items the user already undid from an auto-approval.
+ */
+async function approveAllSuggested(userId: string, auto: boolean) {
 	const [items, ctx] = await Promise.all([listPendingImports(userId), suggestionContext(userId)]);
 	let approved = 0;
 	let skipped = 0;
-	for (const item of items.filter(which)) {
+	for (const item of items.filter((i) => !(auto && i.autoApproveBlocked))) {
 		try {
 			const out = await approveSuggestion(userId, item, ctx, auto);
 			if (out === 'approved') approved++;
@@ -80,13 +81,12 @@ async function approveAllSuggested(
 export const approveSuggestedImports = (userId: string) => approveAllSuggested(userId, false);
 
 /**
- * Source-agnostic auto-approval, run after every import (sync run, statement upload): approves every
- * pending item whose prefill is a usable rule, except items the user already undid from an
- * auto-approval. Never creates or changes a rule; an item that fails validation stays pending.
- * Returns how many were approved.
+ * Approves every pending item whose prefill is a usable rule, except items the user already undid from an
+ * auto-approval. Never creates or changes a rule; an item that fails validation stays pending. Only
+ * ingestImportItems calls it. Returns how many were approved.
  */
 export async function autoApprovePending(userId: string): Promise<number> {
-	const { approved } = await approveAllSuggested(userId, true, (i) => !i.autoApproveBlocked);
+	const { approved } = await approveAllSuggested(userId, true);
 	return approved;
 }
 
@@ -97,7 +97,13 @@ export async function autoApprovePending(userId: string): Promise<number> {
 export async function approveWithValues(
 	userId: string,
 	item: ImportItem,
-	values: { type: MovementType; description: string; categoryId: string; counterAccountId: string },
+	values: {
+		type: MovementType;
+		description: string;
+		categoryId: string;
+		counterAccountId: string;
+		recurringId: string;
+	},
 	remember: boolean,
 	auto = false
 ) {
@@ -129,7 +135,8 @@ export async function approveWithValues(
 			type: data.type,
 			categoryId: data.categoryId,
 			counterAccountId: isTransfer ? values.counterAccountId : null,
-			description: values.description
+			description: values.description,
+			recurringId: isTransfer || !values.recurringId ? null : values.recurringId
 		},
 		remember,
 		auto

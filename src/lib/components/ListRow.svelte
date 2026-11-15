@@ -2,7 +2,7 @@
 	import type { ComponentProps, Snippet } from 'svelte';
 	import type { SwatchKey } from '$lib/appearance';
 	import * as Item from '$lib/components/ui/item/index.js';
-	import type { StatusTone } from '$lib/status';
+	import type { StatusTone } from '$lib/plan';
 	import Icon from './Icon.svelte';
 	import IconBadge from './IconBadge.svelte';
 	import StatusPill from './StatusPill.svelte';

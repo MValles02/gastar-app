@@ -20,17 +20,11 @@ import {
 import type { MovementType } from './dashboard';
 import type { MovementRow } from './movements';
 import { createMovement, deleteMovement } from './movements-queries';
+import { importSource, kindSpec } from './import-sources';
 import { localDay, TZ } from './month';
 
 const pending = (userId: string) =>
 	and(canAccessImport(userId), eq(mpImportItems.status, 'pending'));
-
-/** How the inbox names each source, where more than one is pending. */
-export const SOURCE_LABEL: Record<string, string> = {
-	mercado_pago: 'Mercado Pago',
-	galicia_visa: 'Galicia Visa',
-	galicia_mastercard: 'Galicia Mastercard'
-};
 
 const itemColumns = {
 	id: mpImportItems.id,
@@ -85,47 +79,8 @@ export function deleteImportData(userId: string) {
 	});
 }
 
-const FALLBACK_TITLE: Record<string, string> = {
-	yield: 'Rendimientos',
-	payout: 'Transferencia o retiro',
-	merchant_payout: 'Pago en comercio',
-	account_fund: 'Ingreso de dinero',
-	card_taxes: 'Impuestos y percepciones'
-};
-
-const CARD_KINDS = ['card_purchase', 'card_installment', 'card_taxes'];
-
-const isCardLine = (kind: string) => kind === 'card_purchase' || kind === 'card_installment';
-
-/**
- * The stable name of a card statement reference, in its original casing ('' when nothing is left).
- * Drops: leading Visa markers (*, K, E); an embedded "USD 1.234,56" amount; NN/NN installment tokens;
- * a leading "MERPAGO*"; trailing per-transaction codes (5+ digits, or letters+digits of 6+ chars; a
- * code glued to 3+ letters keeps the letters). The last remaining token is always kept. Trailing
- * whitespace and , ; : * - / go; a trailing period and inner punctuation stay.
- */
-export function cardMerchantName(reference: string): string {
-	const text = reference
-		.trim()
-		.replace(/^(?:[*KE]\s+)+/, '')
-		.replace(/\s*USD\s*\d[\d.]*,\d{2}/gi, '')
-		.replace(/(^|\s)\d{2}\/\d{2}(?=\s|$)/g, '$1')
-		.replace(/^\s*MERPAGO\s*\*\s*/i, '');
-	const tokens = text.split(/\s+/).filter(Boolean);
-	while (tokens.length > 1) {
-		const last = tokens[tokens.length - 1];
-		const glued = /^([A-Za-z]{3,})\d{5,}$/.exec(last);
-		if (glued) {
-			tokens[tokens.length - 1] = glued[1];
-			break;
-		}
-		if (/^\d{5,}$/.test(last) || /^(?=.*\d)(?=.*[A-Za-z])[A-Za-z0-9]{6,}$/.test(last)) tokens.pop();
-		else break;
-	}
-	return tokens.join(' ').replace(/[\s,;:*\-/]+$/, '');
-}
-
 type TitleFields = {
+	source: string;
 	counterpartyNickname: string | null;
 	merchant: string | null;
 	kind: string;
@@ -137,30 +92,24 @@ type TitleFields = {
 
 /** The list title of an item, also the default description of its movement. */
 export function importTitle(i: TitleFields): string {
+	const { title, titleWithWho } = kindSpec(i.source, i.kind);
 	// MP text comes padded sometimes; a blank value counts as absent.
 	const clean = (s: string | null | undefined) => s?.trim() || null;
-	if (isCardLine(i.kind)) {
-		const name = cardMerchantName(i.merchant ?? '') || i.rawDescription.trim();
-		return i.installment ? `${name} ${i.installment}` : name;
-	}
-	if (i.installment) return `${clean(i.merchant) ?? i.rawDescription.trim()} ${i.installment}`;
-	if (i.kind === 'refund') {
-		const of = clean(i.counterpartyNickname) ?? clean(i.merchant);
-		return of ? `Devolución · ${of}` : 'Devolución';
-	}
-	return (
-		clean(i.counterpartyNickname) ??
-		clean(i.merchant) ??
-		(i.kind === 'payment'
-			? i.isCredit
-				? 'Transferencia recibida'
-				: 'Pago'
-			: (FALLBACK_TITLE[i.kind] ?? i.rawDescription.trim()))
-	);
+	const who =
+		clean(i.counterpartyNickname) ?? clean(importSource(i.source).merchantName(i.merchant));
+	const fixed =
+		typeof title === 'string' ? title : title ? (i.isCredit ? title.credit : title.debit) : null;
+	const base = titleWithWho
+		? who
+			? `${fixed} · ${who}`
+			: fixed
+		: (who ?? fixed ?? i.rawDescription.trim());
+	return i.installment ? `${base} ${i.installment}` : base!;
 }
 
-/** dd/mm/aaaa hh:mm, 24 h, Buenos Aires. */
-export function importDateTime(d: Date): string {
+/** dd/mm/aaaa hh:mm, 24 h, Buenos Aires, or just the day for a source whose items carry no time. */
+export function importDateLabel(source: string, d: Date): string {
+	if (!importSource(source).timed) return formatDay(localDay(d));
 	const time = new Intl.DateTimeFormat(LOCALE, {
 		timeZone: TZ,
 		hour: '2-digit',
@@ -176,6 +125,7 @@ export const importTypes = (isCredit: boolean): MovementType[] =>
 
 type ImportRuleKey = { matchKind: 'counterparty' | 'merchant' | 'kind'; matchValue: string };
 type ImportKeyFields = {
+	source: string;
 	kind: string;
 	isCredit: boolean;
 	operationType: string | null;
@@ -185,31 +135,20 @@ type ImportKeyFields = {
 
 /** The rule keys an item can match, strongest first. */
 export function importRuleKeys(i: ImportKeyFields): ImportRuleKey[] {
+	const { learns, kindKey } = kindSpec(i.source, i.kind);
+	if (learns === 'never' || (learns === 'debit' && i.isCredit)) return [];
 	const keys: ImportRuleKey[] = [];
-	// A refund reverses its payment: learning from it would overwrite the payment's rule.
-	if (i.kind === 'refund') return keys;
-	// Same for a card credit (a reversed purchase); the taxes item keeps its kind key either way.
-	if (i.isCredit && CARD_KINDS.includes(i.kind) && i.kind !== 'card_taxes') return keys;
 	if (i.operationType === 'money_transfer' && i.counterpartyId)
 		keys.push({ matchKind: 'counterparty', matchValue: i.counterpartyId });
+	// The name drops per-transaction codes; the raw key stays as a lookup fallback for older rules.
+	const name = importSource(i.source).merchantName(i.merchant).toLowerCase();
 	const raw = i.merchant?.trim().toLowerCase();
-	if (isCardLine(i.kind)) {
-		// Card keys drop per-transaction codes; the raw key stays as a lookup fallback for older rules.
-		const name = cardMerchantName(i.merchant ?? '').toLowerCase();
-		if (name) keys.push({ matchKind: 'merchant', matchValue: name });
-		if (name && raw && raw !== name) keys.push({ matchKind: 'merchant', matchValue: raw });
-	} else if (raw) keys.push({ matchKind: 'merchant', matchValue: raw });
-	// A net-negative yield day must not share (and overwrite) the rule learned from the usual positive ones.
-	const stable =
-		i.kind === 'yield'
-			? i.isCredit
-			: ['payout', 'merchant_payout', 'account_fund', 'card_taxes'].includes(i.kind);
-	if (stable) keys.push({ matchKind: 'kind', matchValue: i.kind });
+	if (name) keys.push({ matchKind: 'merchant', matchValue: name });
+	if (name && raw && raw !== name) keys.push({ matchKind: 'merchant', matchValue: raw });
+	if (kindKey === 'always' || kindKey === 'lookup' || (kindKey === 'credit' && i.isCredit))
+		keys.push({ matchKind: 'kind', matchValue: i.kind });
 	return keys;
 }
-
-/** Payouts of either kind vary too much for one rule over the whole kind to be worth remembering. */
-const UNSTABLE_KINDS = ['payout', 'merchant_payout'];
 
 /**
  * The key an approval may remember and who it names ("Recordar para …"), or null when the item has no
@@ -219,15 +158,16 @@ export function rememberKey(
 	i: ImportKeyFields & TitleFields
 ): { key: ImportRuleKey; label: string } | null {
 	const key = importRuleKeys(i)[0];
-	if (!key || (key.matchKind === 'kind' && UNSTABLE_KINDS.includes(key.matchValue))) return null;
+	const { title, kindKey } = kindSpec(i.source, i.kind);
+	if (!key || (key.matchKind === 'kind' && kindKey === 'lookup')) return null;
 	const label =
 		key.matchKind === 'counterparty'
 			? i.counterpartyNickname?.trim() || null
 			: key.matchKind === 'merchant'
-				? isCardLine(i.kind)
-					? cardMerchantName(i.merchant!)
-					: i.merchant!.trim()
-				: FALLBACK_TITLE[key.matchValue];
+				? importSource(i.source).merchantName(i.merchant)
+				: typeof title === 'string'
+					? title
+					: null;
 	return { key, label: label || importTitle(i) };
 }
 
@@ -252,7 +192,8 @@ export function listImportRules(userId: string) {
 			type: mpImportRules.type,
 			categoryId: mpImportRules.categoryId,
 			counterAccountId: mpImportRules.counterAccountId,
-			description: mpImportRules.description
+			description: mpImportRules.description,
+			recurringId: mpImportRules.recurringId
 		})
 		.from(mpImportRules)
 		.where(canAccessImportRule(userId));
@@ -265,6 +206,8 @@ export type ImportPrefill = {
 	categoryId: string;
 	counterAccountId: string;
 	description: string;
+	/** Fixed payment remembered on the rule; '' for none or a transfer. */
+	recurringId: string;
 	/** Name of the rule's category or counter account; null without a usable rule. */
 	suggestion: string | null;
 	/** The type is a guess (kind "other"): the page asks for a review. */
@@ -299,23 +242,21 @@ export function importPrefill(
 				categoryId: rule.type === 'transfer' ? '' : target.id,
 				counterAccountId: rule.type === 'transfer' ? target.id : '',
 				description: rule.description ?? title,
+				recurringId: rule.type === 'transfer' ? '' : (rule.recurringId ?? ''),
 				suggestion: target.name,
 				review: false
 			};
 	}
-	const type: MovementType =
-		item.kind === 'payout' || item.kind === 'account_fund'
-			? 'transfer'
-			: item.isCredit
-				? 'income'
-				: 'outcome';
+	const { transfer, review } = kindSpec(item.source, item.kind);
+	const type: MovementType = transfer ? 'transfer' : item.isCredit ? 'income' : 'outcome';
 	return {
 		type,
 		categoryId: '',
 		counterAccountId: '',
 		description: title,
+		recurringId: '',
 		suggestion: null,
-		review: item.kind === 'other'
+		review: !!review
 	};
 }
 
@@ -324,6 +265,8 @@ export type ApproveRule = {
 	categoryId: string | null;
 	counterAccountId: string | null;
 	description: string;
+	/** Fixed payment to link the movement to (and to remember); null for none. */
+	recurringId: string | null;
 };
 
 /**
@@ -347,7 +290,7 @@ export function approveImport(
 			.returning({ id: mpImportItems.id });
 		if (!claimed) return 'stale';
 
-		const [movement] = await createMovement(userId, row, tx);
+		const [movement] = await createMovement(userId, row, { tx, ruleId: rule.recurringId });
 		await tx
 			.update(mpImportItems)
 			.set({ movementId: movement.id })
@@ -355,7 +298,7 @@ export function approveImport(
 
 		const key = remember ? rememberKey(item)?.key : undefined;
 		if (key) {
-			const { type, categoryId, counterAccountId, description } = rule;
+			const { type, categoryId, counterAccountId, description, recurringId } = rule;
 			await tx
 				.insert(mpImportRules)
 				.values({
@@ -364,11 +307,19 @@ export function approveImport(
 					type,
 					categoryId,
 					counterAccountId,
-					description
+					description,
+					recurringId
 				})
 				.onConflictDoUpdate({
 					target: [mpImportRules.userId, mpImportRules.matchKind, mpImportRules.matchValue],
-					set: { type, categoryId, counterAccountId, description, updatedAt: new Date() }
+					set: {
+						type,
+						categoryId,
+						counterAccountId,
+						description,
+						recurringId,
+						updatedAt: new Date()
+					}
 				});
 		}
 		return 'approved';
@@ -440,6 +391,7 @@ export function listAutoApproved(userId: string) {
 	return db
 		.select({
 			id: mpImportItems.id,
+			source: mpImportItems.source,
 			kind: mpImportItems.kind,
 			isCredit: mpImportItems.isCredit,
 			amount: mpImportItems.amount,

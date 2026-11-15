@@ -2,6 +2,7 @@ import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
 import { requireUser } from '$lib/server/require-user';
 import type { PageServerLoad } from './$types';
 import {
+	accountSummary,
 	categorySums,
 	hasAnyMovement,
 	hasAnyPlan,
@@ -13,7 +14,7 @@ import { monthNet, toRecentItem, topCategories, totalBalance } from '$lib/server
 import { preferredCurrency } from '$lib/server/currency-pref';
 import { currentMonth, dayHeading, localDay, monthLabel, monthRange } from '$lib/server/month';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-import { accountSummaryOnce, planViewOnce } from '$lib/server/plan-view';
+import { planView } from '$lib/server/plan-view';
 import { pendingImportCount } from '$lib/server/import-queries';
 import { getMpImportAccount, mpOauthEnabled } from '$lib/server/mp-oauth';
 import { getGaliciaConnection } from '$lib/server/galicia';
@@ -38,7 +39,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 			? await pendingImportCount(userId)
 			: null;
 	const [summary, anyMovement, anyPlan, mpPendingCount] = await Promise.all([
-		accountSummaryOnce(userId),
+		accountSummary(userId),
 		hasAnyMovement(userId),
 		hasAnyPlan(userId),
 		mpPending()
@@ -76,7 +77,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		originTypeSums(userId, currency, range),
 		categorySums(userId, currency, range),
 		recentMovements(userId, currency),
-		planViewOnce(userId, currency, now)
+		planView(userId)
 	]);
 
 	const top = topCategories(cats);

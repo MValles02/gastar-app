@@ -10,7 +10,6 @@ import {
 	pickDay,
 	postDelete,
 	signUpVerified,
-	setCurrencyCookie,
 	todayInAppTz,
 	WHOLE_PESOS_ERROR
 } from './helpers';
@@ -112,7 +111,7 @@ test('the wizard creates a plan in five steps, returning from the add screens', 
 	page
 }) => {
 	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await expect(page.getByText('Sin plan en pesos')).toBeVisible();
+	await expect(page.getByText('Sin plan')).toBeVisible();
 	await page.getByRole('link', { name: 'Crear plan' }).click();
 	await expect(page).toHaveURL(/\/plan\/setup$/);
 	await expect(page.getByText('Paso 1 de 5')).toBeVisible();
@@ -280,32 +279,13 @@ test('re-submitting step 3 keeps a this-month-only plan this-month-only', async 
 	await save(true);
 });
 
-test('a USD plan takes cents and can be created and deleted on its own', async ({
-	page,
-	baseURL
-}) => {
-	await setCurrencyCookie(page, baseURL!, 'USD');
-	await page.goto('/plan/setup?step=3', { waitUntil: 'networkidle' });
-	await fillSavings(page, { option: 'Otro', unit: 'US$', value: '10,50' });
-	await page.getByRole('button', { name: 'Siguiente' }).click();
-	await expect(page).toHaveURL(/\/plan\/setup\?step=4$/);
-	await page.getByRole('link', { name: 'Siguiente' }).click();
-	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page.getByText('Plan guardado.')).toBeVisible();
-	await expect(kv(page, 'Ahorro')).toContainText('10,50');
-
-	await page.getByRole('button', { name: 'Eliminar plan' }).click();
-	await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
-	await expect(page.getByText('Sin plan en dólares')).toBeVisible();
-});
-
 test('Eliminar plan on /plan removes the plan and keeps the fixed incomes', async ({ page }) => {
 	await page.goto('/plan', { waitUntil: 'networkidle' });
 	await page.getByRole('button', { name: 'Eliminar plan' }).click();
 	await expect(page.getByText('¿Eliminar este plan?')).toBeVisible();
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
 	await expect(page).toHaveURL(/\/plan$/);
-	await expect(page.getByText('Sin plan en pesos')).toBeVisible();
+	await expect(page.getByText('Sin plan')).toBeVisible();
 	await expect(page.getByRole('link', { name: /Sueldo e2e/ })).toBeVisible();
 
 	// Without a plan the plan-only screens go back to /plan, and the wizard opens again.

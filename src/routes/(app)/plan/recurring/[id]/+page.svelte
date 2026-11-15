@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { planReturn } from '$lib/plan-wizard';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import RuleDetail from '$lib/components/RuleDetail.svelte';
+	import RuleDetail from './RuleDetail.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();

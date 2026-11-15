@@ -1,15 +1,14 @@
 <script lang="ts">
-	import { CURRENCY_NAME } from '$lib/money';
+	import { formatMoney } from '$lib/money';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { afterNavigate, preloadData, pushState, replaceState } from '$app/navigation';
+	import { afterNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import ActionLink from '$lib/components/ActionLink.svelte';
 	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
-	import CurrencyTabs from '$lib/components/CurrencyTabs.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import ListCard from '$lib/components/ListCard.svelte';
@@ -18,8 +17,9 @@
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
+	import { stripFlags } from '$lib/nav-stack.svelte';
 	import { openShallow } from '$lib/open-shallow';
-	import { PLAN_TONE } from '$lib/status';
+	import { PLAN_TONE } from '$lib/plan';
 	import LimitList from './LimitList.svelte';
 	import RecurringRow from './RecurringRow.svelte';
 	import type { PageData } from './$types';
@@ -29,35 +29,22 @@
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
 	let hydrated = $state(false);
 	onMount(() => (hydrated = true));
-	// Strips one-shot flags from the URL so a reload does not repeat them. Runs in afterNavigate because
-	// replaceState throws before the router is initialized (hard load of ?saved=1), hence the retry.
-	const stripFlags = (names: string[]) =>
-		new Promise<void>((done) => {
-			const run = () => {
-				try {
-					const url = new URL(page.url);
-					for (const n of names) url.searchParams.delete(n);
-					replaceState(resolve((url.pathname + url.search + url.hash) as '/'), {});
-					done();
-				} catch {
-					setTimeout(run, 50);
-				}
-			};
-			run();
-		});
-
-	// An alert's `?limit=<categoryId>` opens that limit's drawer over the plan, then drops the flag.
+	// An alert's `?limit=<categoryId>` opens that limit's drawer over the plan, then drops the flag
+	// (before the push: stripping replaces the entry's state).
 	async function openLimit(id: string) {
-		const result = await preloadData(resolve(`/plan/limits/${id}`));
 		await stripFlags(['limit']);
-		if (result.type === 'loaded' && result.status === 200)
-			pushState('', { limit: result.data as App.PageState['limit'] });
+		await openShallow(null, resolve(`/plan/limits/${id}`), 'limit');
 	}
 
+	const rateLabel = (r: { value: number | null; manual: boolean; date: string | null }) =>
+		r.value === null
+			? 'Sin cotización'
+			: `Cotización: ${formatMoney(r.value, 'ARS')} (${r.manual ? 'manual' : `última compra, ${r.date}`})`;
+
 	afterNavigate(() => {
-		if (data.saved || data.planSaved) {
-			toast.success(data.saved ? 'Pago registrado.' : 'Plan guardado.');
-			void stripFlags(['saved', 'planSaved']);
+		if (data.planSaved) {
+			toast.success('Plan guardado.');
+			void stripFlags();
 		}
 		const limit = page.url.searchParams.get('limit');
 		if (limit && /^[0-9a-f-]{36}$/.test(limit)) void openLimit(limit);
@@ -93,14 +80,12 @@
 <PageHeader title="Plan" />
 
 <div class="page">
-	<CurrencyTabs value={data.currency} variant="pills" />
 	{#if !hydrated}
-		{#if data.saved}<p role="status">Pago registrado.</p>{/if}
 		{#if data.planSaved}<p role="status">Plan guardado.</p>{/if}
 	{/if}
 
-	{#if !data.hasCurrency}
-		<EmptyState icon="accounts" description="No tenés cuentas en {CURRENCY_NAME[data.currency]}.">
+	{#if !data.hasAccount}
+		<EmptyState icon="accounts" description="No tenés cuentas.">
 			<Button href={resolve('/accounts/new')}>Crear cuenta</Button>
 		</EmptyState>
 	{:else}
@@ -113,9 +98,9 @@
 							<CardEyebrow as="h2" id="summary-heading">Disponible</CardEyebrow>
 							<StatusPill tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
 						</div>
-						<HeroAmount cents={s.available} currency={data.currency} />
+						<HeroAmount cents={s.available} currency="ARS" />
 						<p class="per-day">
-							<Money cents={s.perDay} currency={data.currency} /> por día · {s.daysLeft === 1
+							<Money cents={s.perDay} currency="ARS" /> por día · {s.daysLeft === 1
 								? 'queda 1 día'
 								: `quedan ${s.daysLeft} días`}
 						</p>
@@ -124,18 +109,13 @@
 						<div class="kv">
 							<dt>Ingresos</dt>
 							<dd>
-								<Money cents={s.income} currency={data.currency} tone="flow" direction="income" />
+								<Money cents={s.income} currency="ARS" tone="flow" direction="income" />
 							</dd>
 						</div>
 						<div class="kv">
 							<dt>Pagos fijos</dt>
 							<dd>
-								<Money
-									cents={-s.pendingBills}
-									currency={data.currency}
-									tone="flow"
-									direction="outcome"
-								/>
+								<Money cents={-s.pendingBills} currency="ARS" tone="flow" direction="outcome" />
 							</dd>
 						</div>
 						<div class="kv link">
@@ -146,21 +126,32 @@
 									>Ahorro<span aria-hidden="true">&nbsp;›</span></a
 								>
 							</dt>
-							<dd><Money cents={s.savings} currency={data.currency} /></dd>
+							<dd><Money cents={s.savings} currency="ARS" /></dd>
 						</div>
 						<div class="kv">
 							<dt>Gastado</dt>
 							<dd>
-								<Money cents={-s.spent} currency={data.currency} tone="flow" direction="outcome" />
+								<Money cents={-s.spent} currency="ARS" tone="flow" direction="outcome" />
 							</dd>
 						</div>
 					</dl>
+					<a
+						class="rate"
+						href={resolve('/plan/rate')}
+						onclick={(e) => openShallow(e, resolve('/plan/rate'), 'rate')}
+						>{rateLabel(data.plan.rate)}<span aria-hidden="true">&nbsp;›</span></a
+					>
 				</Card.Root>
 			</section>
+			{#if data.plan.missingRate}
+				<p role="note" class="muted">
+					Sin cotización: lo que está en dólares no se suma a los totales.
+				</p>
+			{/if}
 
 			<section aria-labelledby="limits-heading">
 				<SectionHeader id="limits-heading" title="Límites por categoría" aside={addLimit} />
-				<LimitList limits={s.limits} currency={data.currency} />
+				<LimitList limits={s.limits} />
 			</section>
 		{:else}
 			<Card.Root>
@@ -169,7 +160,7 @@
 						{#if data.plan.endedMonthName}
 							<p class="strong">Tu plan de {data.plan.endedMonthName} terminó.</p>
 						{/if}
-						<p class="strong">Sin plan en {CURRENCY_NAME[data.currency]}</p>
+						<p class="strong">Sin plan</p>
 						<p class="muted">Calculá cuánto podés gastar por día.</p>
 						<Button href={resolve('/plan/setup')}>Crear plan</Button>
 					</div>
@@ -182,7 +173,7 @@
 				<SectionHeader id="income-heading" title="Ingresos fijos" aside={addIncome} />
 				{#if data.incomes.length}
 					<ListCard>
-						{#each data.incomes as r (r.id)}<RecurringRow row={r} currency={data.currency} />{/each}
+						{#each data.incomes as r (r.id)}<RecurringRow row={r} />{/each}
 					</ListCard>
 				{:else}
 					<EmptyState icon="plan" description="Sin ingresos fijos." />
@@ -193,10 +184,7 @@
 				<SectionHeader id="outcome-heading" title="Pagos fijos pendientes" aside={addOutcome} />
 				{#if data.outcomes.length}
 					<ListCard>
-						{#each data.outcomes as r (r.id)}<RecurringRow
-								row={r}
-								currency={data.currency}
-							/>{/each}
+						{#each data.outcomes as r (r.id)}<RecurringRow row={r} />{/each}
 					</ListCard>
 				{:else}
 					<EmptyState icon="plan" description="Sin pagos fijos." />
@@ -207,10 +195,7 @@
 				<section aria-labelledby="inactive-heading">
 					<SectionHeader id="inactive-heading" title="Inactivos" />
 					<ListCard>
-						{#each data.inactive as r (r.id)}<RecurringRow
-								row={r}
-								currency={data.currency}
-							/>{/each}
+						{#each data.inactive as r (r.id)}<RecurringRow row={r} />{/each}
 					</ListCard>
 				</section>
 			{/if}
@@ -313,6 +298,15 @@
 		content: '';
 		position: absolute;
 		inset: calc(var(--space-2) * -1);
+	}
+
+	.rate {
+		display: block;
+		padding: var(--space-3) 1.25rem var(--space-4);
+		font-size: var(--font-size-sm);
+		font-weight: 500;
+		color: var(--text-muted);
+		text-decoration: none;
 	}
 
 	.no-plan {
