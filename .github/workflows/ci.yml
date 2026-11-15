@@ -20,7 +20,7 @@ concurrency:
 jobs:
   checks:
     name: checks
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 5
 
     steps:
@@ -80,7 +80,7 @@ jobs:
 
   e2e:
     name: e2e
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 10
 
     steps:
