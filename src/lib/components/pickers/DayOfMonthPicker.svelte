@@ -13,17 +13,17 @@
 	let {
 		value = $bindable(''),
 		error,
-		errorId,
 		nested = false
 	}: {
 		/** The day as text ("5"), or '' when none. */
 		value?: string;
 		error?: string;
-		errorId?: string;
 		/** Opens the grid stacked over the drawer this row is rendered in. */
 		nested?: boolean;
 	} = $props();
 
+	const labelId = $props.id();
+	const errorId = `${labelId}-error`;
 	const mounted = hydrated();
 	let open = $state(false);
 	let trigger: HTMLButtonElement | null = $state(null);
@@ -41,8 +41,7 @@
 
 {#if mounted.current}
 	<PickerTrigger
-		labelId="rday-label"
-		valueId="rday-value"
+		{labelId}
 		label="Día del mes"
 		labelClass="text-base font-normal"
 		value={value || 'Elegir'}
@@ -68,10 +67,10 @@
 		<p class="hint">Si el mes tiene menos días, se usa el último.</p>
 	</BottomDrawer>
 {:else}
-	<label class="row" for="rday">
+	<label class="row" for="{labelId}-native">
 		<span>Día del mes</span>
 		<input
-			id="rday"
+			id="{labelId}-native"
 			name="dayOfMonth"
 			type="number"
 			inputmode="numeric"

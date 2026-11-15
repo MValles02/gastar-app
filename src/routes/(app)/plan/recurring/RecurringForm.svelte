@@ -125,12 +125,7 @@
 
 {#snippet when()}
 	<li class:bad={shown.dayOfMonth}>
-		<DayOfMonthPicker
-			bind:value={day}
-			nested={drawer}
-			error={shown.dayOfMonth}
-			errorId="rday-error"
-		/>
+		<DayOfMonthPicker bind:value={day} nested={drawer} error={shown.dayOfMonth} />
 	</li>
 {/snippet}
 

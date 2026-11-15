@@ -35,9 +35,10 @@ SvelteKit 3 + TypeScript, Drizzle ORM + Postgres (`src/lib/server/db/schema.ts`)
 
 ```sh
 pnpm dev           # vite dev --host 127.0.0.1 (loopback only)
-# git hooks install automatically on `pnpm install` (husky: lint-staged + gitleaks via docker, skipped with a warning if the docker CLI is missing; the commit is blocked if the docker engine is not running)
+# git hooks install automatically on `pnpm install` (husky: pre-commit: lint-staged + gitleaks via docker, skipped with a warning if the docker CLI is missing, the commit is blocked if the docker engine is not running; pre-push: prettier --check on files changed vs upstream + pnpm typecheck:fast)
 pnpm build         # vite build
-pnpm typecheck     # svelte-kit sync && svelte-check
+pnpm typecheck     # svelte-kit sync && svelte-check (what CI runs)
+pnpm typecheck:fast # same check on TS 7 native (--tsgo-experimental-api; plain --tsgo reports false errors), used by pre-push
 pnpm lint          # prettier --check . && eslint .
 pnpm format        # prettier --write .
 pnpm test:e2e      # playwright test (Chromium; reuses a running `pnpm dev`, else builds with VITE_E2E=1 and serves `node build`; needs a migrated + seeded DB)

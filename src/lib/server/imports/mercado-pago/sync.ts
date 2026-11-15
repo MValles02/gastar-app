@@ -1,6 +1,7 @@
 import { and, eq, isNull, lt, or, sql } from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { db } from '../../db';
+import { pgErrorCode } from '../../db/errors';
 import { financialAccounts, mpConnections, mpSyncState } from '../../db/schema';
 import { canAccessAccount, canAccessOwn } from '../../access';
 import { autoApprovePending } from '../approve';
@@ -26,6 +27,9 @@ import { MP_CURRENCY } from './settings';
 const REFRESH_WINDOW_MS = 30 * DAY_MS;
 /** A sync holds its lease this long without renewing it; a later one may take over. */
 const LEASE_MINUTES = 15;
+/** Log-safe failure detail: PG error code or error name, never messages. */
+const errorDetail = (e: unknown) => pgErrorCode(e) ?? (e as Error)?.name ?? 'unknown';
+
 const LEASE_MS = LEASE_MINUTES * 60_000;
 
 /** Whether a sync that took its lease at `since` is still running. */
@@ -93,8 +97,8 @@ async function acquire(userId: string): Promise<Lease | null> {
 					floor: conn.floor
 				}
 			: null;
-	} catch {
-		console.error('mp sync failed: network');
+	} catch (e) {
+		console.error('mp sync failed: db', errorDetail(e));
 		return null;
 	}
 }
@@ -182,8 +186,9 @@ async function release(
 					}
 				: { runningSince: null, phase: null, lastError: code, autoApproved }
 		);
-	} catch {
-		console.error('mp sync failed: network');
+	} catch (e) {
+		// A failed final write leaves runningSince set; the lease expires after LEASE_MINUTES.
+		console.error('mp sync failed: db', errorDetail(e));
 	}
 }
 
