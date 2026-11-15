@@ -75,7 +75,6 @@
 		{ id: 'transfer', name: 'Transferencia', icon: 'transfer', color: null }
 	];
 
-	// Picker rows report their error here, keyed by field.
 	let errors = $state<Record<string, string>>({});
 	const originId = $derived(pending.accountId ?? m.accountId);
 	const destinationId = $derived(pending.destinationAccountId ?? m.destinationAccountId ?? '');

@@ -265,7 +265,6 @@
 		color: var(--text-muted);
 	}
 
-	/* 2x2 grid of figures. */
 	.figures {
 		display: grid;
 		grid-template-columns: 1fr 1fr;

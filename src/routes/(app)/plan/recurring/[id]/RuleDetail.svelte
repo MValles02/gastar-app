@@ -42,7 +42,6 @@
 		}))
 	);
 
-	// Picker rows report their error here, keyed by field.
 	let errors = $state<Record<string, string>>({});
 
 	async function save(key: string, value: string) {
