@@ -15,7 +15,7 @@
 
 <RateForm
 	initial={form?.values?.rate ?? data.amount}
-	manual={data.rate.manual}
+	manual={data.manual}
 	hasTransfer={data.hasTransfer}
 	error={form?.errors?.rate}
 />

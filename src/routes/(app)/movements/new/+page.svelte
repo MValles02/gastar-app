@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { NEW_MOVEMENT_PATH } from '#lib/movement.ts';
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
 	import { undoMovementSaved } from '#lib/undo-toast.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -21,7 +22,7 @@
 		// Not /movements/new itself: that is the ?saved=1 redirect after saving.
 		if (
 			from &&
-			from.url.pathname !== '/movements/new' &&
+			from.url.pathname !== NEW_MOVEMENT_PATH &&
 			path.startsWith('/') &&
 			!path.startsWith('//')
 		)
@@ -34,11 +35,12 @@
 	let toasted: string | null = null;
 	afterNavigate(({ shallow, type }) => {
 		if (shallow && type === 'goto') return;
-		if (data.saved && !form) {
+		const { id, ruleId } = data.saved;
+		if (id && !form) {
 			// Once per saved id, however many navigations land before the flag is stripped.
-			if (data.saved !== toasted) {
-				toasted = data.saved;
-				undoMovementSaved(data.saved, data.savedRule);
+			if (id !== toasted) {
+				toasted = id;
+				undoMovementSaved(id, ruleId);
 			}
 			void stripFlags();
 		}
@@ -66,19 +68,10 @@
 	</Empty.Root>
 	<Button href={resolve('accounts/new')}>Crear cuenta</Button>
 {:else}
-	{#if data.saved && !form && !hydrated}<p role="status">Movimiento guardado.</p>{/if}
+	{#if data.saved.id && !form && !hydrated}<p role="status">Movimiento guardado.</p>{/if}
 	{#key data.formKey}
 		<MovementForm
-			initial={form?.values ?? {
-				type: 'outcome',
-				amount: '',
-				description: '',
-				accountId: data.defaultAccountId,
-				destinationAccountId: '',
-				exchangeRate: '',
-				categoryId: '',
-				occurredAt: data.now
-			}}
+			initial={form?.values ?? data.values}
 			errors={form?.errors}
 			accounts={data.accounts}
 			categories={data.categories}

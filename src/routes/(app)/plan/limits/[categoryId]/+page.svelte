@@ -1,15 +1,13 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { parseStep, planReturn } from '#lib/plan-wizard.ts';
+	import { planReturn } from '#lib/plan-wizard.ts';
 	import LimitDetail from './LimitDetail.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
-	const step = $derived(parseStep(page.url.searchParams.get('wizard')));
-	const back = $derived(planReturn(page.url.searchParams.get('wizard')));
+	const back = $derived(planReturn(data.wizard ? String(data.wizard) : null));
 </script>
 
 <svelte:head>
@@ -21,4 +19,4 @@
 	close={{ href: resolve(back as ''), label: 'Cerrar' }}
 />
 
-<LimitDetail {data} variant="page" {back} wizard={step ?? undefined} />
+<LimitDetail {data} variant="page" {back} wizard={data.wizard ?? undefined} />

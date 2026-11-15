@@ -1,7 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { parseMovementForm } from '#lib/server/movements/form.ts';
+import { editedForm, parseMovementForm } from '#lib/server/movements/form.ts';
+import { str, undoArchivedOk } from '#lib/server/forms.ts';
 import { isUuid } from '#lib/server/db/util.ts';
 import { deleteMovement, setMovementRule, updateMovement } from '#lib/server/movements/queries.ts';
 import { requireUser } from '#lib/server/guards.ts';
@@ -9,24 +10,12 @@ import {
 	detailOf,
 	failIfUnavailable,
 	findMovement,
-	formValues,
 	keptRefs,
 	notFound,
-	requireId
+	requireId,
+	savedSlice
 } from '#lib/server/movements/detail.ts';
 import { resolvePostedMovement } from '#lib/server/movements/pickers.ts';
-
-// Whitelist of posted fields; `type` goes through the same parse/resolve path as every other field.
-const EDITABLE = [
-	'type',
-	'occurredAt',
-	'description',
-	'amount',
-	'accountId',
-	'destinationAccountId',
-	'categoryId',
-	'exchangeRate'
-] as const;
 
 export const load: PageServerLoad = ({ locals, params }) =>
 	detailOf(requireUser(locals).id, params.id);
@@ -36,30 +25,15 @@ export const actions: Actions = {
 	update: async ({ request, locals, params }) => {
 		const userId = requireUser(locals).id;
 		const m = await findMovement(userId, params.id);
-
 		const posted = await request.formData();
-		const fd = new FormData();
-		for (const [k, v] of Object.entries(formValues(m))) fd.set(k, v);
-		for (const k of EDITABLE) {
-			const v = posted.get(k);
-			if (typeof v === 'string') fd.set(k, v);
-		}
-
-		const parsed = parseMovementForm(fd);
+		const parsed = parseMovementForm(editedForm(m, posted));
 		const { values } = parsed;
 		if (!parsed.ok) return formFail(400, { values, errors: parsed.errors });
 
 		// An undo may restore the archived refs the movement had; rows still come from the owner-scoped getAccount/getCategory.
 		const kept = keptRefs(m);
-		const keep =
-			posted.get('undo') === '1'
-				? {
-						...kept,
-						archivedOk: ['accountId', 'destinationAccountId', 'categoryId']
-							.map((k) => posted.get(k))
-							.filter((v): v is string => typeof v === 'string' && v !== '')
-					}
-				: kept;
+		const archivedOk = undoArchivedOk(posted, ['accountId', 'destinationAccountId', 'categoryId']);
+		const keep = archivedOk ? { ...kept, archivedOk } : kept;
 		const { resolved } = await resolvePostedMovement(userId, parsed.data, keep);
 		if (!resolved.ok) return formFail(400, { values, errors: resolved.errors });
 
@@ -70,15 +44,12 @@ export const actions: Actions = {
 			return failIfUnavailable(e, values);
 		}
 		if (rows.length === 0) notFound();
-		const { movement, rules } = await detailOf(userId, params.id);
-		return { movement, rules };
+		return await savedSlice(userId, params.id);
 	},
 	/** Links the movement to a fixed payment (recurringId) or unlinks it (empty). */
 	link: async ({ request, locals, params }) => {
 		const userId = requireUser(locals).id;
-		const fd = await request.formData();
-		const raw = fd.get('recurringId');
-		const recurringId = typeof raw === 'string' ? raw : '';
+		const recurringId = str(await request.formData(), 'recurringId');
 		const values = { recurringId };
 		if (recurringId && !isUuid(recurringId))
 			return formFail(400, { values, errors: { recurringId: 'Elegí un pago fijo válido.' } });
@@ -91,8 +62,7 @@ export const actions: Actions = {
 					recurringId: 'Ese pago fijo no está disponible o ya tiene un movimiento ese mes.'
 				}
 			});
-		const { movement, rules } = await detailOf(userId, params.id);
-		return { movement, rules };
+		return await savedSlice(userId, params.id);
 	},
 	delete: async ({ locals, params }) => {
 		const userId = requireUser(locals).id;

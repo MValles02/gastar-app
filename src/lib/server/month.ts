@@ -14,6 +14,27 @@ export function parseMonth(raw: string | null, now: Date): string {
 	return raw !== null && MONTH_RE.test(raw) ? raw : current;
 }
 
+/**
+ * The `?month=YYYY-MM` of a URL, the current month when absent or malformed. `clamp`: a future
+ * month reads as the current one (Reportes); otherwise any month is taken as is.
+ */
+export function monthParam(url: URL, opts: { clamp: boolean }, now = new Date()): string {
+	const ym = parseMonth(url.searchParams.get('month'), now);
+	const current = currentMonth(now);
+	return opts.clamp && ym > current ? current : ym;
+}
+
+/** A month header's navigation: its label, the months either side, and whether it is (or is past) the current one. */
+export function monthNav(ym: string, now = new Date()) {
+	return {
+		ym,
+		label: monthLabel(ym),
+		prev: shiftMonth(ym, -1),
+		next: shiftMonth(ym, 1),
+		isCurrent: ym >= currentMonth(now)
+	};
+}
+
 /** UTC offset of APP_TZ at the given instant, e.g. "-03:00". */
 function offsetAt(probe: Date): string {
 	const name = new Intl.DateTimeFormat('en-US', { timeZone: APP_TZ, timeZoneName: 'longOffset' })
@@ -86,6 +107,16 @@ export function shortMonth(ym: string): string {
 	return monthLabel(ym, false).slice(0, 3);
 }
 
+const todayFmt = new Intl.DateTimeFormat(LOCALE, {
+	weekday: 'long',
+	day: 'numeric',
+	month: 'long',
+	timeZone: APP_TZ
+});
+
+/** The header's date, e.g. "sábado, 15 de noviembre". */
+export const todayLabel = (now: Date) => todayFmt.format(now);
+
 export function dateLabel(d: Date): string {
 	return formatDay(localDay(d));
 }
@@ -137,4 +168,10 @@ export function dayHeading(ymd: string, todayYmd: string, short = false): string
 			.format(new Date(at(ymd)))
 			.replace(',', '')
 	);
+}
+
+/** The "YYYY-MM-DD" after `ymd` (calendar arithmetic, no time zone). */
+export function nextDay(ymd: string): string {
+	const [y, m, d] = ymd.split('-').map(Number);
+	return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
 }

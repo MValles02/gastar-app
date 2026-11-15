@@ -5,19 +5,24 @@ import { accountOption } from '#lib/server/accounts/queries.ts';
 import { DAY_MS } from '#lib/dates.ts';
 import { dayStart, localDay } from '#lib/server/month.ts';
 import {
-	deleteConnection,
+	activeAccountsIn,
 	getConnectionInfo,
-	getImportFromDay,
-	getMpImportAccount,
-	listReceivingAccounts,
+	getMpImportAccount
+} from '#lib/server/imports/connections.ts';
+import {
+	deleteConnection,
 	mpOauthEnabled,
 	OAUTH_COOKIE,
 	OAUTH_PATH,
-	setImportFrom,
-	setReceivingAccount,
 	startAuthorization
-} from '#lib/server/mp-oauth.ts';
-import { getSyncState, leaseActive, startMpBackfill } from '#lib/server/mp-sync.ts';
+} from '#lib/server/imports/mercado-pago/oauth.ts';
+import {
+	getImportFromDay,
+	MP_CURRENCY,
+	setImportFrom,
+	setReceivingAccount
+} from '#lib/server/imports/mercado-pago/settings.ts';
+import { getSyncState, leaseActive, runMpSync } from '#lib/server/imports/mercado-pago/sync.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -38,7 +43,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const account = connection?.accountId ? await getMpImportAccount(userId) : null;
 	return {
 		connection,
-		accounts: (await listReceivingAccounts(userId)).map(accountOption),
+		accounts: (await activeAccountsIn(userId, MP_CURRENCY)).map(accountOption),
 		// The minimum date of every sync; only once an account receives the movements.
 		importFrom: account ? await getImportFromDay(userId, account.id) : null,
 		today: localDay(new Date()),
@@ -95,7 +100,7 @@ export const actions: Actions = {
 		const earlier = ymd < (await getImportFromDay(userId, account.id));
 		// Trimming while a run holds the lease would let it re-insert what was just deleted.
 		const busy = earlier
-			? !(await startMpBackfill(userId, from))
+			? !(await runMpSync(userId, { from, report: true, background: true }))
 			: leaseActive((await getSyncState(userId, account.id))?.runningSince);
 		if (busy) {
 			return formFail(409, {

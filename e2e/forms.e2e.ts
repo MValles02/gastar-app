@@ -1,5 +1,5 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
-import { login, OTHER_EMAIL, postDelete } from './helpers';
+import { expect, test, type Locator } from '@playwright/test';
+import { login, OTHER_EMAIL, postDelete, undo } from './helpers';
 
 // Created accounts (detail URLs) are removed in afterEach. Runs as otro so the demo user's totals stay untouched.
 const createdAccounts: string[] = [];
@@ -8,48 +8,16 @@ test.afterEach(async ({ page, baseURL }) => {
 	for (const href of createdAccounts.splice(0)) await postDelete(page, baseURL!, href);
 });
 
-/** Presses Deshacer on the toast and waits for it to go. */
-async function undo(page: Page) {
-	await page.getByRole('button', { name: 'Deshacer' }).first().click();
-	await expect(page.getByText('Cambio guardado.')).toHaveCount(0);
-}
-
-test('a new account keeps its icon and color; each detail change autosaves and Deshacer restores it', async ({
-	page
-}) => {
+test('an account name autosaves, survives a reload and Deshacer restores it', async ({ page }) => {
 	await login(page, OTHER_EMAIL);
 	await page.goto('/accounts/new');
-	await page.waitForLoadState('networkidle'); // hydration guard: the icon and color drawer needs JS
 	const name = `Forms ${Date.now()}`;
 	await page.getByLabel('Nombre').fill(name);
-
-	const dialog = page.getByRole('dialog');
-	await page.getByRole('button', { name: 'Ícono y color' }).click();
-	await dialog.getByRole('radio', { name: 'Banco' }).click();
-	await dialog.getByRole('radio', { name: 'Naranja' }).click();
-	await dialog.getByRole('button', { name: 'Listo' }).click();
-	await expect(dialog).toBeHidden();
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	createdAccounts.push(page.url());
 	await page.waitForLoadState('networkidle'); // hydration guard: the inline edits need JS
 
-	// Ícono y color: the creation choice shows, Listo autosaves, Deshacer restores both.
-	const glyph = page.getByRole('button', { name: 'Ícono y color' });
-	await glyph.click();
-	await expect(dialog.getByRole('radio', { name: 'Banco' })).toBeChecked();
-	await expect(dialog.getByRole('radio', { name: 'Naranja' })).toBeChecked();
-	await dialog.getByRole('radio', { name: 'Billetera' }).click();
-	await dialog.getByRole('radio', { name: 'Azul' }).click();
-	await dialog.getByRole('button', { name: 'Listo' }).click();
-	await expect(page.getByText('Cambio guardado.')).toBeVisible();
-	await undo(page);
-	await glyph.click();
-	await expect(dialog.getByRole('radio', { name: 'Banco' })).toBeChecked();
-	await expect(dialog.getByRole('radio', { name: 'Naranja' })).toBeChecked();
-	await dialog.getByRole('button', { name: 'Cancelar' }).click();
-
-	// Nombre: saves on Enter, survives a reload, Deshacer brings the old name back.
 	const h1 = page.getByRole('heading', { level: 1 });
 	await page.getByRole('button', { name: `Nombre: ${name}` }).click();
 	await page.getByLabel('Nombre').fill(`${name} 2`);

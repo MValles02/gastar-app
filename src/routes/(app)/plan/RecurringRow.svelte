@@ -3,6 +3,7 @@
 	import ListRow from '#lib/components/ListRow.svelte';
 	import Money from '#lib/components/Money.svelte';
 	import { dueTone, PLAN_CURRENCY, type RecurringStatus } from '#lib/plan.ts';
+	import { withWizard } from '#lib/plan-wizard.ts';
 	import type { CategoryIconKey, SwatchKey } from '#lib/appearance.ts';
 	import type { Currency } from '#lib/money.ts';
 
@@ -53,7 +54,7 @@
 <!-- Each row opens the rule detail. -->
 <ListRow
 	class="rule"
-	href={resolve(`plan/recurring/${r.id}${wizard ? `?wizard=${wizard}` : ''}`)}
+	href={withWizard(resolve(`plan/recurring/${r.id}`), wizard)}
 	lead={{
 		icon: r.categoryIcon ?? undefined,
 		letter: r.categoryIcon ? undefined : r.description.charAt(0).toUpperCase(),

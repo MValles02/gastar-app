@@ -8,7 +8,7 @@
 	import { highlightMovement } from '#lib/highlight.svelte.ts';
 	import { isModifiedClick, openShallow } from '#lib/open-shallow.ts';
 	import { undoMovementSaved } from '#lib/undo-toast.ts';
-	import AccountForm from '../../accounts/AccountForm.svelte';
+	import AccountForm from '#lib/components/accounts/AccountForm.svelte';
 	import MovementForm from '../MovementForm.svelte';
 	import type { PageData } from './$types';
 
@@ -49,16 +49,7 @@
 	{:else}
 		<MovementForm
 			variant="drawer"
-			initial={{
-				type: 'outcome',
-				amount: '',
-				description: '',
-				accountId: data.defaultAccountId,
-				destinationAccountId: '',
-				exchangeRate: '',
-				categoryId: '',
-				occurredAt: data.now
-			}}
+			initial={data.values}
 			accounts={data.accounts}
 			categories={data.categories}
 			submitLabel="Guardar"

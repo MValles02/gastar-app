@@ -1,6 +1,6 @@
 import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
-import { CURRENCIES, roundToStep, type Currency } from '#lib/money.ts';
+import { CURRENCIES, formatAmountInput, roundToStep, type Currency } from '#lib/money.ts';
 import {
 	dueLabel,
 	inactiveReason,
@@ -36,7 +36,8 @@ import {
 	recurringStatus,
 	toPlanCurrency
 } from './summary';
-import { currentPlanLimits, getPlan, monthOutcomes, planRate } from './queries';
+import { currentPlanLimits, getPlan, monthOutcomes, planLimits, planRate } from './queries';
+import { requireLimit, requirePlan } from './guard';
 
 /**
  * The month's plan (always in pesos, USD items converted at the plan rate), computed once for everything
@@ -250,4 +251,34 @@ export async function limitSuggestions(
 		}
 	}
 	return out;
+}
+
+/** The categories a limit can go on: active expense (or both) categories with no limit on the plan yet. */
+export async function limitCandidates(userId: string, planId: string | null) {
+	const [categories, limits] = await Promise.all([
+		listCategories(userId),
+		planId ? planLimits(userId, planId) : []
+	]);
+	const limited = new Set(limits.map((l) => l.categoryId));
+	return categories.filter((c) => c.kind !== 'income' && !limited.has(c.id));
+}
+
+/** A category limit's detail: its progress this month, amount and suggestion. No plan → /plan; no limit → 404. */
+export async function limitView(userId: string, categoryId: string) {
+	const plan = await requirePlan(userId);
+	const limit = await requireLimit(userId, plan.id, categoryId);
+	const [suggestions, view] = await Promise.all([limitSuggestions(userId), planView(userId)]);
+	return {
+		progress: view.summary?.limits.find((l) => l.categoryId === limit.categoryId),
+		elapsedShare: view.summary?.elapsedShare ?? 0,
+		currency: limit.currency,
+		category: {
+			id: limit.categoryId,
+			name: limit.name,
+			icon: toCategoryIconKey(limit.icon) ?? ('categories' as const),
+			color: toSwatchKey(limit.color)
+		},
+		amount: formatAmountInput(limit.amount, limit.currency),
+		suggested: suggestions.get(limit.categoryId)?.[limit.currency] ?? 0
+	};
 }

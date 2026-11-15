@@ -1,22 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
-import postgres from 'postgres';
 import { visaStatement } from './galicia-pdf';
-import { GALICIA_EMAIL, login, OTHER_EMAIL, pick } from './helpers';
+import { GALICIA_EMAIL, login, OTHER_EMAIL, pick, upload, withDb } from './helpers';
 
 test.describe.configure({ mode: 'serial' });
 
 let page: Page;
-
-async function withDb<T>(fn: (sql: postgres.Sql) => Promise<T>) {
-	const sql = postgres(
-		process.env.DATABASE_URL || 'postgres://gastar:gastar@localhost:5432/gastar'
-	);
-	try {
-		return await fn(sql);
-	} finally {
-		await sql.end();
-	}
-}
 
 /** The user's imported items with their account, local day and signed amount, oldest key first. */
 const items = () =>
@@ -28,15 +16,6 @@ const items = () =>
 		where i.user_id = (select id from "user" where email = ${GALICIA_EMAIL})
 		order by i.external_key`
 	);
-
-/** Uploads a statement from /profile/galicia. */
-async function upload(pdf: Buffer) {
-	await page.goto('/profile/galicia');
-	await page
-		.locator('input[name="statement"]')
-		.setInputFiles({ name: 'resumen.pdf', mimeType: 'application/pdf', buffer: pdf });
-	await page.getByRole('button', { name: 'Subir resumen' }).click();
-}
 
 test.beforeAll(async ({ browser }) => {
 	// Local DBs are reused between runs: start from no items and no connection.
@@ -63,7 +42,7 @@ test('a statement lands its lines on the chosen pesos and dollar accounts', asyn
 	await pick(page, 'Dólares', 'Caja dólares');
 	await expect(page.getByRole('button', { name: /Dólares/ })).toContainText('Caja dólares');
 
-	await upload(visaStatement());
+	await upload(page, visaStatement());
 	await expect(page).toHaveURL(/\/imports/);
 	await expect(page.getByText('5 movimientos nuevos.')).toBeVisible();
 	await expect(page.locator('main').getByText('TIENDA FICTICIA_CS 03/06')).toBeVisible();
@@ -127,13 +106,13 @@ test('a statement lands its lines on the chosen pesos and dollar accounts', asyn
 });
 
 test('uploading the same statement again creates nothing', async () => {
-	await upload(visaStatement());
+	await upload(page, visaStatement());
 	await expect(page.getByText('Sin movimientos nuevos.')).toBeVisible();
 	expect(await items()).toHaveLength(5);
 });
 
 test('a statement that does not add up to its total is rejected with nothing written', async () => {
-	await upload(visaStatement({ number: 'VI00000000007654321', total: '12.065,51' }));
+	await upload(page, visaStatement({ number: 'VI00000000007654321', total: '12.065,51' }));
 	await expect(page.getByRole('alert')).toHaveText(
 		'El resumen no cuadra con el total; no se importó nada.'
 	);
@@ -149,6 +128,7 @@ test('a remembered merchant matches the same merchant with another reference cod
 	await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
 
 	await upload(
+		page,
 		visaStatement({
 			number: 'VI00000000002222222',
 			cafe: { reference: 'MOVISTAR DA 000000583683789', voucher: '000901' }
@@ -170,6 +150,7 @@ test('a remembered merchant matches the same merchant with another reference cod
 
 	// Next month: same merchant, another code; the upload approves it with the learned category.
 	await upload(
+		page,
 		visaStatement({
 			number: 'VI00000000003333333',
 			cafe: { reference: 'MOVISTAR DA 000000600111222', voucher: '000902' }

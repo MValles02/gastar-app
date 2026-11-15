@@ -4,7 +4,7 @@ import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { building } from '$app/env';
 import { auth } from '#lib/server/auth.ts';
 import { checkEnv } from '#lib/server/env-check.ts';
-import { startMpScheduler } from '#lib/server/mp-scheduler.ts';
+import { startMpScheduler } from '#lib/server/imports/mercado-pago/scheduler.ts';
 import { themeColors } from '#lib/theme.ts';
 import { THEME_COOKIE } from '#lib/server/cookies.ts';
 

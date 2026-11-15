@@ -3,27 +3,17 @@ import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 import { CURRENCIES } from '#lib/money.ts';
-import { parseLimitAmount, planReturn } from '#lib/plan-wizard.ts';
-import { listCategories } from '#lib/server/categories/queries.ts';
-import { currentPlan, planLimits, PlanRejected, upsertLimits } from '#lib/server/plan/queries.ts';
-import { limitSuggestions } from '#lib/server/plan/month-plan.ts';
+import { parseStep, planReturn } from '#lib/plan-wizard.ts';
+import { saveLimit } from '#lib/server/plan/limit-form.ts';
+import { limitCandidates, limitSuggestions } from '#lib/server/plan/month-plan.ts';
+import { requirePlan } from '#lib/server/plan/guard.ts';
 import { requireUser } from '#lib/server/guards.ts';
 
-/** Active expense (or both) categories that have no limit yet. */
-async function offered(userId: string, planId: string) {
-	const [categories, limits] = await Promise.all([
-		listCategories(userId),
-		planLimits(userId, planId)
-	]);
-	const limited = new Set(limits.map((l) => l.categoryId));
-	return categories.filter((c) => c.kind !== 'income' && !limited.has(c.id));
-}
-
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
-	const plan = (await currentPlan(userId)) ?? redirect(303, '/plan');
+	const plan = await requirePlan(userId);
 	const [categories, suggestions] = await Promise.all([
-		offered(userId, plan.id),
+		limitCandidates(userId, plan.id),
 		limitSuggestions(userId)
 	]);
 	return {
@@ -33,33 +23,33 @@ export const load: PageServerLoad = async ({ locals }) => {
 			icon: toCategoryIconKey(c.icon) ?? ('categories' as const),
 			color: toSwatchKey(c.color),
 			suggested: suggestions.get(c.id) ?? { ARS: 0, USD: 0 }
-		}))
+		})),
+		wizard: parseStep(url.searchParams.get('wizard'))
 	};
 };
 
 export const actions: Actions = {
 	default: async ({ locals, request, url }) => {
 		const userId = requireUser(locals).id;
-		const plan = (await currentPlan(userId)) ?? redirect(303, '/plan');
+		const plan = await requirePlan(userId);
 		const fd = await request.formData();
 		const categoryId = String(fd.get('categoryId') ?? '');
 		const amount = String(fd.get('amount') ?? '');
 		const currency = CURRENCIES.find((c) => c === fd.get('currency'));
+		const values = { categoryId, amount, currency: currency ?? 'ARS' };
 		const reject = (errors: { categoryId?: string; amount?: string; currency?: string }) =>
-			formFail(400, { values: { categoryId, amount, currency: currency ?? 'ARS' }, errors });
+			formFail(400, { values, errors });
 
 		if (!currency) return reject({ currency: 'Elegí una moneda.' });
-		if (!(await offered(userId, plan.id)).some((c) => c.id === categoryId))
+		if (!(await limitCandidates(userId, plan.id)).some((c) => c.id === categoryId))
 			return reject({ categoryId: 'Elegí una categoría.' });
-		const parsed = parseLimitAmount(amount, currency);
-		if ('message' in parsed) return reject({ amount: parsed.message });
-
-		try {
-			await upsertLimits(userId, plan.id, [{ categoryId, amount: parsed.cents, currency }]);
-		} catch (e) {
-			if (e instanceof PlanRejected) return reject({ categoryId: e.message });
-			throw e;
-		}
+		const saved = await saveLimit(
+			userId,
+			plan.id,
+			{ categoryId, amount, currency },
+			{ values, rejectedOn: 'categoryId' }
+		);
+		if (saved.failure) return saved.failure;
 		redirect(303, planReturn(url.searchParams.get('wizard')));
 	}
 };

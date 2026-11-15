@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { onMount, tick, untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { enhance } from '$app/forms';
-	import { refreshAll } from '$app/navigation';
+	import { goto, refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { submitAction } from '#lib/autosave.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import Money from '#lib/components/Money.svelte';
-	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import TextRow from '#lib/components/TextRow.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -15,6 +15,8 @@
 	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
 	import * as Field from '#lib/components/ui/field/index.js';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+	import { categoriesFor } from '#lib/movement.ts';
+	import { importDoneOf, type ImportDone } from '#lib/toast-flags.ts';
 	import type { PageData } from './$types';
 
 	/**
@@ -33,7 +35,7 @@
 		/** Page: the failed action's result (values and errors). */
 		form?: { values?: Record<string, string>; errors?: Record<string, string | undefined> } | null;
 		/** Drawer: the item was approved, discarded or was already reviewed. */
-		ondone?: (done: 'approved' | 'rejected' | 'stale') => void;
+		ondone?: (done: ImportDone) => void;
 	} = $props();
 
 	const drawer = $derived(variant === 'drawer');
@@ -67,31 +69,24 @@
 	const showCategory = $derived(!mounted || !isTransfer);
 
 	// Without JS the type changes without a reload, so every category is listed (the server validates).
+	// An import item has no saved category to keep pickable.
 	const pickableCategories = $derived(
-		!mounted || isTransfer
-			? data.categories
-			: data.categories.filter((c) => c.kind === null || c.kind === type)
+		!mounted || isTransfer ? data.categories : categoriesFor(data.categories, type, null)
 	);
 	$effect(() => {
 		if (categoryId && !pickableCategories.some((c) => c.id === categoryId)) categoryId = '';
 	});
 
-	// After a failed submit, move focus to the first field marked invalid.
-	$effect(() => {
-		if (!Object.values(errors).some(Boolean)) return;
-		tick().then(() => {
-			document
-				.querySelector<HTMLElement>(
-					'form [aria-invalid="true"], form button[aria-describedby$="-error"]'
-				)
-				?.focus();
-		});
-	});
-
-	const doneOf = (location: string) => {
-		const done = new URL(location, 'http://x').searchParams.get('done');
-		return done === 'rejected' || done === 'stale' ? done : 'approved';
-	};
+	async function approved(location: string) {
+		if (!drawer) {
+			// eslint-disable-next-line svelte/no-navigation-without-resolve -- server-validated same-origin redirect location
+			await goto(location, { invalidateAll: true });
+			return;
+		}
+		// refreshAll keeps the drawer's shallow-route state (invalidateAll would reset it).
+		await refreshAll();
+		ondone?.(importDoneOf(location));
+	}
 
 	async function discard() {
 		const r = await submitAction(`${path}?/reject`, {});
@@ -99,7 +94,7 @@
 			toast.error('No se pudo descartar.');
 			return;
 		}
-		ondone?.(doneOf(r.location));
+		ondone?.(importDoneOf(r.location));
 	}
 </script>
 
@@ -123,34 +118,16 @@
 		<p class="hint">No sabemos qué es: elegí el tipo.</p>
 	{/if}
 
-	<form
+	<FormShell
 		id="import-form"
-		method="POST"
 		action={drawer ? `${path}?/approve` : '?/approve'}
-		class="form"
-		class:submitting
-		novalidate
-		use:enhance={() => {
-			submitting = true;
-			return async (input) => {
-				const { result, update } = input;
-				if (drawer && result.type === 'redirect') {
-					// refreshAll keeps the drawer's shallow-route state (invalidateAll would reset it).
-					await refreshAll();
-					ondone?.(doneOf(result.location));
-				} else if (drawer && result.type === 'failure') {
-					posted = ((result.data as { errors?: Record<string, string> })?.errors ?? {}) as Record<
-						string,
-						string | undefined
-					>;
-				} else if (drawer) {
-					toast.error('No se pudo aprobar.');
-				} else {
-					await update();
-				}
-				submitting = false;
-			};
-		}}
+		{variant}
+		bar={false}
+		errors={form?.errors}
+		onfailure={(d: { errors?: Record<string, string | undefined> }) => (posted = d.errors ?? {})}
+		onsaved={approved}
+		errorToast="No se pudo aprobar."
+		bind:submitting
 	>
 		<div class="field">
 			<span id="type-label" class="visually-hidden">Tipo</span>
@@ -261,7 +238,7 @@
 		{/if}
 
 		{#if formError}<p class="error" role="alert">{formError}</p>{/if}
-	</form>
+	</FormShell>
 
 	<div class="actions">
 		{#if drawer}
@@ -353,13 +330,7 @@
 		font-size: var(--font-size-sm);
 	}
 
-	.form {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-	}
-
-	.form.submitting > :global(*) {
+	.review :global(#import-form.submitting > *) {
 		opacity: 0.55;
 	}
 

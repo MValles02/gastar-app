@@ -8,7 +8,7 @@ import {
 } from '#lib/server/accounts/queries.ts';
 import { withBalances } from '#lib/server/accounts/balance.ts';
 import { requireUser } from '#lib/server/guards.ts';
-import { CURRENCIES } from '#lib/money.ts';
+import { listRowShown, matchesQuery, parseListFilter } from '#lib/list-filter.ts';
 
 const SEARCH_MAX_LENGTH = 40;
 const CURRENCY_GROUPS = [
@@ -18,9 +18,11 @@ const CURRENCY_GROUPS = [
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
-	const q = (url.searchParams.get('q') ?? '').trim().slice(0, SEARCH_MAX_LENGTH);
-	const currency = CURRENCIES.find((c) => c === url.searchParams.get('currency')) ?? '';
-	const archived = url.searchParams.get('archived') === '1';
+	const filters = parseListFilter(url.searchParams, {
+		qMax: SEARCH_MAX_LENGTH,
+		currencyDefault: ''
+	});
+	const { q, archived, currency } = filters;
 
 	const [summary, all, sums, ins] = await Promise.all([
 		accountSummary(userId),
@@ -30,18 +32,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	]);
 
 	// The drawer counts the staged choice client-side from these (every account, archived included).
-	const matches = (name: string) => name.toLowerCase().includes(q.toLowerCase());
 	const facets = all.map((a) => ({
 		currency: a.currency,
 		archived: a.archivedAt !== null,
-		match: matches(a.name)
+		match: matchesQuery(a.name, q)
 	}));
-	const accounts = all.filter(
-		(a) =>
-			(archived || a.archivedAt === null) &&
-			(!currency || a.currency === currency) &&
-			matches(a.name)
-	);
+	const accounts = all.filter((_, i) => listRowShown(facets[i], filters));
 	const accountsWithBalance = withBalances(accounts, sums, ins);
 	const groups = CURRENCY_GROUPS.flatMap(([cur, label]) => {
 		const items = accountsWithBalance.filter((a) => a.currency === cur);

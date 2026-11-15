@@ -1,19 +1,11 @@
 <script lang="ts">
-	import { toast } from 'svelte-sonner';
-	import { refreshAll } from '$app/navigation';
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
+	import { closeAfterSave } from '#lib/components/forms/form-enhance.ts';
 	import RecurringForm from '../RecurringForm.svelte';
 	import type { PageData } from './$types';
 
 	// "Nuevo pago o ingreso fijo" opened over the plan or the wizard.
 	let { data, onclose }: { data: PageData; onclose: () => void } = $props();
-
-	async function saved() {
-		// Refresh before the pop: a popstate landing first reuses the stale loads.
-		await refreshAll();
-		onclose();
-		toast.success('Guardado.');
-	}
 </script>
 
 <BottomDrawer
@@ -37,7 +29,7 @@
 		categories={data.categories}
 		submitLabel="Guardar"
 		type={data.type}
-		onsaved={saved}
+		onsaved={closeAfterSave(onclose)}
 		{onclose}
 	/>
 </BottomDrawer>

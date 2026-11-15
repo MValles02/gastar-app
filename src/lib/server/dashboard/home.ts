@@ -8,9 +8,7 @@ import { hasAnyMovement } from '../movements/queries';
 import { hasAnyPlan } from '../plan/queries';
 import { currentMonth, dayHeading, localDay, monthLabel, monthRange } from '../month';
 import { planView } from '../plan/month-plan';
-import { pendingImportCount } from '../import-queries';
-import { getMpImportAccount, mpOauthEnabled } from '../mp-oauth';
-import { getGaliciaConnection } from '../galicia';
+import { importsPending } from '../imports/connections';
 
 /** How many categories the home screen ranks. */
 const TOP_CATEGORIES = 3;
@@ -69,23 +67,14 @@ type TopCategory = ReturnType<typeof topCategories>[number] & {
 	icon: CategoryIconKey | null;
 };
 
-/** Everything the home page shows for `currency`. */
 export async function homeView(userId: string, currency: Currency, now: Date) {
 	const value = currentMonth(now);
 	const range = monthRange(value);
-
-	// Imports pill: only for a user with a source set up (Mercado Pago linked, also while a reconnect is
-	// pending, or a Banco Galicia account chosen); counts both currencies.
-	const mpPending = async () =>
-		(mpOauthEnabled() && (await getMpImportAccount(userId))) ||
-		(await getGaliciaConnection(userId))?.arsAccountId
-			? await pendingImportCount(userId)
-			: null;
 	const [summary, anyMovement, anyPlan, mpPendingCount] = await Promise.all([
 		accountSummary(userId),
 		hasAnyMovement(userId),
 		hasAnyPlan(userId),
-		mpPending()
+		importsPending(userId)
 	]);
 	const hasAnyAccount = hasAccounts(summary);
 	const row = summary.find((s) => s.currency === currency);
@@ -99,6 +88,8 @@ export async function homeView(userId: string, currency: Currency, now: Date) {
 		monthName: monthLabel(value, false).toLowerCase(),
 		/** Done state of the first-run checklist steps. */
 		steps: { account: hasAnyAccount, movement: hasMovement, plan: hasPlan },
+		firstRunDone: hasAnyAccount && hasMovement && hasPlan,
+		currencyWord: currency === 'ARS' ? 'pesos' : 'dólares',
 		/** Pending Mercado Pago items; null when not linked or the feature is off. */
 		mpPending: mpPendingCount
 	};

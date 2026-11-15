@@ -1,8 +1,8 @@
-import { fail } from '@sveltejs/kit';
-import { importTitle, listAutoApproved, undoApproval } from '#lib/server/import-queries.ts';
+import { undoApprovalAction } from '#lib/server/imports/actions.ts';
+import { importTitle } from '#lib/server/imports/rules.ts';
+import { listAutoApproved } from '#lib/server/imports/store.ts';
 import { formatDay } from '#lib/locale.ts';
 import { dayHeading, localDay } from '#lib/server/month.ts';
-import { isUuid } from '#lib/server/db/util.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -29,16 +29,5 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	/** Deshacer of an automatic approval: same as the inbox's, and the item is never auto-approved again. */
-	undo: async ({ locals, request }) => {
-		const userId = requireUser(locals).id;
-		const id = String((await request.formData()).get('id') ?? '');
-		if (!isUuid(id)) return fail(400, { message: 'No se pudo deshacer.' });
-		const result = await undoApproval(userId, id);
-		if (result === 'changed') {
-			return fail(409, { message: 'No se pudo deshacer: el movimiento ya cambió.' });
-		}
-		if (result === 'stale') return fail(409, { message: 'No se pudo deshacer.' });
-		return { undoneId: id };
-	}
+	undo: undoApprovalAction
 };

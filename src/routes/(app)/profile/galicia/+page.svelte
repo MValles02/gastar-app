@@ -6,7 +6,7 @@
 	import { toast } from 'svelte-sonner';
 	import { autosave, submitAction } from '#lib/autosave.ts';
 	import ListCard from '#lib/components/ListCard.svelte';
-	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import type { ActionData, PageData } from './$types';

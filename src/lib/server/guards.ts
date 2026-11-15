@@ -14,6 +14,8 @@ export function requireUser(locals: App.Locals): NonNullable<App.Locals['user']>
 }
 
 /** A detail route's 404: `notFound()` throws it; `requireId(id)` throws it for a malformed id, before any query. */
+export type Guards = ReturnType<typeof notFoundHelpers>;
+
 export function notFoundHelpers(message: string) {
 	const notFound = (): never => error(404, message);
 	const requireId = (id: string) => {

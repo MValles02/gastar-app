@@ -5,15 +5,14 @@ import { hasAccounts } from '#lib/server/accounts/balance.ts';
 import { accountSummary } from '#lib/server/accounts/queries.ts';
 import { biggestOutcome, categorySums, monthlyFlows } from '#lib/server/dashboard/queries.ts';
 import {
-	currentMonth,
 	dateLabel,
 	elapsedDays,
 	lastMonths,
 	localDay,
 	monthLabel,
+	monthNav,
+	monthParam,
 	monthRange,
-	parseMonth,
-	shiftMonth,
 	shortMonth
 } from '#lib/server/month.ts';
 import { requireUser } from '#lib/server/guards.ts';
@@ -26,16 +25,9 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	const userId = requireUser(locals).id;
 	const currency = preferredCurrency(cookies);
 	const now = new Date();
-	const current = currentMonth(now);
-	const raw = parseMonth(url.searchParams.get('month'), now);
-	const ym = raw > current ? current : raw;
-	const nav = {
-		ym,
-		label: monthLabel(ym),
-		prev: shiftMonth(ym, -1),
-		next: shiftMonth(ym, 1),
-		isCurrent: ym >= current
-	};
+	// A future month reads as the current one.
+	const ym = monthParam(url, { clamp: true }, now);
+	const nav = monthNav(ym, now);
 
 	const months = lastMonths(ym, FLOW_MONTHS);
 	const range = monthRange(ym);

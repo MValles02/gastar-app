@@ -1,9 +1,10 @@
 import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
-import { MOVEMENT_TYPES, type MovementType } from '#lib/movement.ts';
+import { FILTER_PARAMS, MOVEMENT_TYPES, type MovementType } from '#lib/movement.ts';
 import { CURRENCIES, type Currency } from '#lib/money.ts';
 import { isUuid } from '../db/util';
 import { localDay } from '../month';
 import { validDay } from './form';
+import { summarizeMovements } from './queries';
 
 // A longer search term cannot match any description, so it is dropped.
 const QUERY_MAX_LENGTH = DESCRIPTION_MAX_LENGTH;
@@ -39,16 +40,18 @@ export function parseMovementFilters(sp: URLSearchParams) {
 	};
 	const n = Number(get('page'));
 	const page = Number.isSafeInteger(n) && n >= 1 && n <= MAX_PAGE ? n : 1;
-	// An account filter fixes the currency (its own), so currency only counts as active without one.
-	const { account, category, ...scalars } = query;
-	const shown: Record<string, string> = scalars;
+	const { account, category } = query;
+	const shown: Record<string, string> = Object.fromEntries(FILTER_PARAMS.map((k) => [k, query[k]]));
 	const activeCount =
-		Object.values({
-			...shown,
-			currency: account.length ? '' : query.currency,
-			// Desde + Hasta are one range selection in the UI.
-			to: query.from ? '' : query.to
-		}).filter(Boolean).length +
+		FILTER_PARAMS.filter((k) =>
+			// An account filter fixes the currency (its own), so currency only counts as active without one.
+			k === 'currency'
+				? !account.length && query.currency
+				: // Desde + Hasta are one range selection in the UI.
+					k === 'to'
+					? !query.from && query.to
+					: query[k]
+		).length +
 		(account.length ? 1 : 0) +
 		(category.length ? 1 : 0);
 	return { values: shown, accounts: account, categories: category, query, page, activeCount };
@@ -72,4 +75,32 @@ export function applyDefaultRange(
 		allDates,
 		explicitDefault: query.from === monthStart && query.to === today
 	};
+}
+
+/**
+ * The movements query a URL asks for (the list and the drawer's count read it alike): its filters,
+ * the default range, and an explicit account filter winning over `?currency=`.
+ */
+export function movementQueryFromUrl(url: URL, today = localDay(new Date())) {
+	const parsed = parseMovementFilters(url.searchParams);
+	const {
+		query: ranged,
+		allDates,
+		explicitDefault
+	} = applyDefaultRange(parsed.query, url.searchParams, today);
+	const filters: Record<string, string> = { ...parsed.values, from: ranged.from, to: ranged.to };
+	return {
+		query: { ...ranged, currency: ranged.account.length ? ('' as const) : ranged.currency },
+		filters,
+		allDates,
+		page: parsed.page,
+		// The default range, implicit or explicit, is not an active filter.
+		activeCount: parsed.activeCount - (explicitDefault ? 1 : 0)
+	};
+}
+
+/** How many movements `query` matches (the list's total and the drawer's "Ver N movimientos"). */
+export async function countMovements(userId: string, query: MovementFilterQuery) {
+	const rows = await summarizeMovements(userId, query);
+	return rows.reduce((a, r) => a + r.count, 0);
 }

@@ -12,7 +12,6 @@ let nextId = 1;
 // ponytail: in-memory dev/E2E outbox, only filled when RESEND_API_KEY is unset in dev
 const outbox: OutboxEntry[] = [];
 
-/** Latest dev outbox entry for a recipient, if any. */
 export function latestOutbox(to: string): OutboxEntry | undefined {
 	return [...outbox].reverse().find((e) => e.to === to);
 }

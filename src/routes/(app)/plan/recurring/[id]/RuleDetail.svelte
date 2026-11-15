@@ -1,17 +1,19 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { autosave } from '#lib/autosave.ts';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
-	import { formatAmountInput, formatMoney } from '#lib/money.ts';
+	import { formatMoney } from '#lib/money.ts';
+	import { categoriesFor } from '#lib/movement.ts';
 	import { dueTone } from '#lib/plan.ts';
-	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import DayOfMonthPicker from '#lib/components/DayOfMonthPicker.svelte';
+	import { withWizard } from '#lib/plan-wizard.ts';
+	import DetailCard from '#lib/components/DetailCard.svelte';
+	import DetailLifecycle from '#lib/components/DetailLifecycle.svelte';
+	import DetailRow from '#lib/components/DetailRow.svelte';
+	import DayOfMonthPicker from '#lib/components/pickers/DayOfMonthPicker.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
 	import Money from '#lib/components/Money.svelte';
-	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
-	import { Button } from '#lib/components/ui/button/index.js';
 	import type { PageData } from './$types';
 
 	/**
@@ -26,27 +28,20 @@
 
 	const income = $derived(r.type === 'income');
 	const currency = $derived(r.currency === 'USD' ? 'USD' : 'ARS');
-	const wizardQuery = $derived(data.wizard ? `&wizard=${data.wizard}` : '');
 	const path = $derived(resolve(`plan/recurring/${r.id}`));
 
-	// What the update action stores, as the strings it takes.
-	const values = $derived<Record<string, string>>({
-		description: r.description,
-		amount: formatAmountInput(r.amount, currency),
-		accountId: r.account.id,
-		categoryId: r.category.id,
-		dayOfMonth: String(r.dayOfMonth)
-	});
+	// What the update action stores, as the strings it takes (the server's `toFormValues`).
+	const values = $derived<Record<string, string>>(r.values);
 
 	const archived = (name: string, is: boolean) => (is ? `${name} · Archivada` : name);
 	const accounts = $derived(r.accounts.map((a) => ({ ...a, name: archived(a.name, a.archived) })));
 	const categories = $derived(
-		r.categories
-			.filter((c) => c.kind === null || c.kind === r.type)
-			.map((c) => ({ ...c, name: archived(c.name, c.archived) }))
+		categoriesFor(r.categories, r.type, null).map((c) => ({
+			...c,
+			name: archived(c.name, c.archived)
+		}))
 	);
 
-	// Picker rows report their error here, keyed by field.
 	let errors = $state<Record<string, string>>({});
 
 	async function save(key: string, value: string) {
@@ -98,21 +93,18 @@
 			</p>{/if}
 	</div>
 
-	<ul class="card">
-		<li class="row">
-			<span class="k">Descripción</span>
-			<span class="v">
-				<InlineText
-					label="Descripción"
-					value={values.description}
-					maxlength={DESCRIPTION_MAX_LENGTH}
-					required
-					onsave={(next) => save('description', next)}
-				>
-					{#snippet display()}{r.description}{/snippet}
-				</InlineText>
-			</span>
-		</li>
+	<DetailCard>
+		<DetailRow label="Descripción">
+			<InlineText
+				label="Descripción"
+				value={values.description}
+				maxlength={DESCRIPTION_MAX_LENGTH}
+				required
+				onsave={(next) => save('description', next)}
+			>
+				{#snippet display()}{r.description}{/snippet}
+			</InlineText>
+		</DetailRow>
 		<li>
 			<OptionPicker
 				name="accountId"
@@ -146,31 +138,19 @@
 				errorId="day-error"
 			/>
 		</li>
-	</ul>
+	</DetailCard>
 
-	{#if r.cannotRegister}<p class="reason">{r.cannotRegister}</p>{/if}
-
-	<div class="actions">
-		{#if r.archived}
-			<form method="POST" action="?/archive" use:enhance>
-				<Button type="submit" class="w-full">Activar</Button>
-			</form>
-		{:else}
-			<form method="POST" action="?/archive" use:enhance>
-				<Button type="submit" variant="outline" class="w-full">Desactivar</Button>
-			</form>
-		{/if}
-		<ConfirmDialog
-			triggerLabel="Eliminar"
-			triggerVariant="destructive"
-			triggerClass="w-full"
-			title="¿Eliminar este {noun} fijo?"
-			confirmLabel="Eliminar"
-			action="?/delete{wizardQuery}"
-		>
-			Los movimientos ya registrados se mantienen.
-		</ConfirmDialog>
-	</div>
+	<DetailLifecycle
+		can={{ canArchive: !r.archived, canUnarchive: r.archived, canDelete: true }}
+		messages={{
+			archive: 'Desactivar',
+			unarchive: 'Activar',
+			deleteTitle: `¿Eliminar este ${noun} fijo?`,
+			deleteBody: 'Los movimientos ya registrados se mantienen.'
+		}}
+		actions={{ unarchive: '?/archive', delete: withWizard('?/delete', data.wizard) }}
+		note={r.cannotRegister}
+	/>
 </div>
 
 <style>
@@ -219,47 +199,8 @@
 		color: var(--positive);
 	}
 
-	.card {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-card);
-		box-shadow: var(--shadow-1);
-	}
-
-	.row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-		min-height: 3.5rem;
-		padding: 0 var(--space-4);
-		font-size: var(--font-size-base);
-	}
-
-	.v {
-		min-width: 0;
-		text-align: right;
-		font-weight: 500;
-	}
-
 	.hint {
 		padding: var(--space-4);
 		color: var(--text-muted);
-	}
-
-	.reason {
-		margin: 0;
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-		text-align: center;
-	}
-
-	.actions {
-		display: grid;
-		gap: var(--space-3);
 	}
 </style>

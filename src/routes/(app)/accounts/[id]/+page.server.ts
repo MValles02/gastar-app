@@ -2,7 +2,7 @@ import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
 import {
 	DELETE_REFERENCED_MESSAGE,
-	EDITABLE,
+	editedForm,
 	NOT_FOUND_MESSAGE,
 	parseAccountForm
 } from '#lib/server/accounts/form.ts';
@@ -18,8 +18,6 @@ import {
 import { withBalances } from '#lib/server/accounts/balance.ts';
 import { archiveActions, deleteUnlessReferenced, lifecycleState } from '#lib/server/lifecycle.ts';
 import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
-import { toIconKey, toSwatchKey } from '#lib/appearance.ts';
-import { formatAmountInput } from '#lib/money.ts';
 
 const guards = notFoundHelpers(NOT_FOUND_MESSAGE);
 const { notFound, requireId } = guards;
@@ -42,7 +40,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	requireId(params.id);
 	const detail = await detailOf(userId, params.id);
 	const referenced = await isAccountReferenced(userId, params.id);
-	return { ...detail, actions: lifecycleState({ referenced, archived: detail.account.archived }) };
+	return {
+		...detail,
+		actions: lifecycleState({ referenced, archived: detail.account.archived })
+	};
 };
 
 export const actions: Actions = {
@@ -52,17 +53,7 @@ export const actions: Actions = {
 		requireId(params.id);
 		const { account } = await detailOf(userId, params.id);
 		const posted = await request.formData();
-		const fd = new FormData();
-		fd.set('name', account.name);
-		fd.set('currency', account.currency);
-		fd.set('initialBalance', formatAmountInput(account.initialBalance, account.currency));
-		fd.set('icon', toIconKey(account.icon));
-		fd.set('color', toSwatchKey(account.color) ?? 'green');
-		for (const k of EDITABLE) {
-			const v = posted.get(k);
-			if (typeof v === 'string') fd.set(k, v);
-		}
-		const parsed = parseAccountForm(fd, 'edit');
+		const parsed = parseAccountForm(editedForm(account, posted), 'edit');
 		if (!parsed.ok) return formFail(400, { values: parsed.values, errors: parsed.errors });
 		const rows = await updateAccount(userId, params.id, parsed.data);
 		if (rows.length === 0) notFound();

@@ -6,11 +6,11 @@ import {
 	OTHER_EMAIL,
 	pathOf,
 	signUpVerified,
-	submitLogin
+	submitLogin,
+	undo
 } from './helpers';
 
-// Sign-up is rate-limited to 10/h/IP (in-memory): this spec uses 1 sign-up, shared by the
-// account tests. Restart the dev server to reset the counters.
+// This spec uses 1 sign-up (see signUpVerified for the suite's budget).
 const password = 'e2e-pass-1234';
 
 // One user for the account tests. Serial because change-password changes the shared
@@ -43,26 +43,29 @@ test.describe('account changes', () => {
 	}) => {
 		await signIn(page);
 
-		await page.goto('/profile');
-		await page.waitForLoadState('networkidle'); // hydration guard: the inline name edit needs JS
-		const shownName = page.locator('.who .name');
+		const stored = async (name: string) => {
+			await page.goto('/profile', { waitUntil: 'networkidle' }); // hydration guard: the inline edit needs JS
+			await expect(page.getByRole('button', { name: `Nombre: ${name}` })).toBeVisible();
+		};
 		const edit = async (value: string) => {
 			await page.getByRole('button', { name: /^Nombre: / }).click();
 			await page.getByRole('textbox', { name: 'Nombre' }).fill(value);
 			await page.getByRole('textbox', { name: 'Nombre' }).press('Enter');
 		};
 
+		await stored('Nombre Viejo');
 		await edit('   ');
 		await expect(page.getByRole('alert').filter({ hasText: 'Falta el nombre.' })).toBeVisible();
-		await expect(shownName).toHaveText('Nombre Viejo');
+		await stored('Nombre Viejo');
 
 		await edit('  Nombre Nuevo  ');
-		await expect(shownName).toHaveText('Nombre Nuevo');
-		await page.getByRole('button', { name: 'Deshacer' }).click();
-		await expect(shownName).toHaveText('Nombre Viejo');
+		await expect(page.getByText('Cambio guardado.')).toBeVisible();
+		await undo(page);
+		await stored('Nombre Viejo');
 
 		await edit('Nombre Nuevo');
-		await expect(shownName).toHaveText('Nombre Nuevo');
+		await expect(page.getByText('Cambio guardado.')).toBeVisible();
+		await stored('Nombre Nuevo');
 		await page.goto('/');
 		await expect(page.getByRole('heading', { level: 1, name: /^Hola, Nombre/ })).toBeAttached();
 		expect((await page.request.get('/profile/name')).status()).toBe(404);

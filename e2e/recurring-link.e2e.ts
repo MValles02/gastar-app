@@ -1,13 +1,18 @@
 import { expect, test, type Page } from '@playwright/test';
 import { visaStatement } from './galicia-pdf';
 import {
+	createAccount,
+	createVia,
 	findMovements,
-	pathOf,
+	monthDay,
+	openItem,
 	pick,
 	postDelete,
+	rule,
 	setCurrencyCookie,
 	signUpVerified,
-	todayInAppTz
+	todayInAppTz,
+	upload
 } from './helpers';
 
 // Fixed payments link to imported charges: by description (amount follows the charge) and by an explicit,
@@ -19,33 +24,10 @@ let page: Page;
 /** DD-MM-YY of a YYYY-MM-DD day, the way the statement prints it. */
 const statementDate = (ymd: string) => `${ymd.slice(8)}-${ymd.slice(5, 7)}-${ymd.slice(2, 4)}`;
 
-/** The 10th of last month, as YYYY-MM-DD. */
-const lastMonth10 = () => {
-	const [y, m] = todayInAppTz().split('-').map(Number);
-	return new Date(Date.UTC(y, m - 2, 10)).toISOString().slice(0, 10);
-};
-
-const rule = (text: string) => page.locator('.rule', { hasText: text });
-
-async function upload(pdf: Buffer) {
-	await page.goto('/profile/galicia');
-	await page
-		.locator('input[name="statement"]')
-		.setInputFiles({ name: 'resumen.pdf', mimeType: 'application/pdf', buffer: pdf });
-	await page.getByRole('button', { name: 'Subir resumen' }).click();
+/** Uploads a statement and waits for the import to land on /imports. */
+async function uploadStatement(pdf: Buffer) {
+	await upload(page, pdf);
 	await expect(page).toHaveURL(/\/imports/);
-}
-
-/** Opens the review page of the pending item whose title contains `text`. */
-async function openItem(text: string) {
-	const href = await pathOf(
-		page
-			.locator('[data-slot="item-group"] [role="listitem"]')
-			.filter({ hasText: text })
-			.getByRole('link')
-	);
-	// hydration guard: the pickers on the review page need JavaScript.
-	await page.goto(href, { waitUntil: 'networkidle' });
 }
 
 test.beforeAll(async ({ browser, baseURL }) => {
@@ -56,14 +38,10 @@ test.beforeAll(async ({ browser, baseURL }) => {
 		password: 'e2e-pass-1234',
 		name: 'E2E Vinculo'
 	});
-	const headers = { origin: baseURL!, accept: 'text/html' };
-	const create = async (path: string, form: Record<string, string>) => {
-		const res = await page.request.post(path, { form, headers });
-		expect(res.ok()).toBe(true);
-		return res.url().split('/').pop()!;
-	};
-	const account = (name: string, currency: string) =>
-		create('/accounts/new', { name, currency, initialBalance: '0', icon: 'bank', color: 'green' });
+	const create = (path: string, form: Record<string, string>) =>
+		createVia(page, baseURL!, path, form);
+	const account = (name: string, currency: 'ARS' | 'USD') =>
+		createAccount(page, baseURL!, name, currency);
 	const accountId = await account('Caja pesos', 'ARS');
 	await account('Caja dólares', 'USD');
 	const categoryId = await create('/categories/new', {
@@ -100,24 +78,24 @@ test.afterAll(async () => {
 test('an imported charge matching a rule by description is linked on approval', async ({
 	baseURL
 }) => {
-	await upload(
+	await uploadStatement(
 		visaStatement({
 			number: 'VI00000000005555551',
 			cafe: { reference: 'CAFE INVENTADO', voucher: '000456', date: statementDate(todayInAppTz()) }
 		})
 	);
-	await openItem('CAFE INVENTADO');
+	await openItem(page, 'CAFE INVENTADO');
 	await pick(page, 'Categoría', 'Fijos');
 	await page.getByRole('button', { name: 'Aprobar', exact: true }).click();
 	await expect(page.getByText('Movimiento aprobado.')).toBeVisible();
 
 	await page.goto('/plan');
-	await expect(rule('Café Inventado')).toContainText('Pagado');
+	await expect(rule(page, 'Café Inventado')).toContainText('Pagado');
 	expect(await findMovements(page, 'CAFE INVENTADO')).toHaveLength(1);
 
 	// The rule follows the charge (2.500,50 rounds to whole pesos) and remembers what it was.
 	await page.goto('/plan');
-	await rule('Café Inventado').locator('a[data-slot="item"]').click();
+	await rule(page, 'Café Inventado').locator('a[data-slot="item"]').click();
 	await expect(page.getByRole('button', { name: /^Monto:/ })).toContainText('2.501');
 	await expect(page.getByText('Antes $2.000')).toBeVisible();
 
@@ -125,23 +103,23 @@ test('an imported charge matching a rule by description is linked on approval', 
 	for (const href of await findMovements(page, 'CAFE INVENTADO'))
 		await postDelete(page, baseURL!, href);
 	await page.goto('/plan');
-	await rule('Café Inventado').locator('a[data-slot="item"]').click();
+	await rule(page, 'Café Inventado').locator('a[data-slot="item"]').click();
 	await expect(page.getByRole('button', { name: /^Monto:/ })).toContainText('2.000');
 	await expect(page.getByText('Antes $')).toHaveCount(0);
 });
 
 test("a remembered explicit link links next month's item with another description", async () => {
-	await upload(
+	await uploadStatement(
 		visaStatement({
 			number: 'VI00000000005555552',
 			cafe: {
 				reference: 'MOVISTAR DA 000000583683789',
 				voucher: '000901',
-				date: statementDate(lastMonth10())
+				date: statementDate(monthDay(2, 10))
 			}
 		})
 	);
-	await openItem('MOVISTAR DA');
+	await openItem(page, 'MOVISTAR DA');
 	await pick(page, 'Categoría', 'Fijos');
 	await pick(page, 'Es el pago fijo', 'Teléfono');
 	await page.getByRole('checkbox', { name: 'Recordar para la próxima' }).check();
@@ -150,10 +128,10 @@ test("a remembered explicit link links next month's item with another descriptio
 
 	// Last month's charge does not pay this month.
 	await page.goto('/plan');
-	await expect(rule('Teléfono')).toContainText('Pendiente · día 10');
+	await expect(rule(page, 'Teléfono')).toContainText('Pendiente · día 10');
 
 	// This month: same merchant, another code; the upload auto-approves it into the remembered rule.
-	await upload(
+	await uploadStatement(
 		visaStatement({
 			number: 'VI00000000005555553',
 			cafe: {
@@ -164,5 +142,5 @@ test("a remembered explicit link links next month's item with another descriptio
 		})
 	);
 	await page.goto('/plan');
-	await expect(rule('Teléfono')).toContainText('Pagado');
+	await expect(rule(page, 'Teléfono')).toContainText('Pagado');
 });

@@ -1,5 +1,13 @@
 // Shared constants and steps for the E2E specs.
-import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
+import {
+	expect,
+	type APIRequestContext,
+	type Browser,
+	type Locator,
+	type Page
+} from '@playwright/test';
+import postgres from 'postgres';
+import { APP_TZ } from '../src/lib/locale';
 import { waitForLink } from './outbox';
 
 // Same defaults as scripts/seed.js (local demo users, not secrets).
@@ -12,10 +20,10 @@ export const IMPORT_EMAIL = 'importa@gastar.local';
 /** Fourth seeded user, same password: ARS "Caja pesos" and USD "Caja dólares", for the Banco Galicia statements. */
 export const GALICIA_EMAIL = 'galicia@gastar.local';
 
-/** The app time zone (`TZ` in src/lib/server/month.ts, which is not importable here: it uses `#lib`). */
-const APP_TZ = 'America/Argentina/Buenos_Aires';
-
 export const PHONE = { width: 390, height: 844 };
+
+/** `test.use` options for a spec block that runs without JavaScript. */
+export const NO_JS = { javaScriptEnabled: false };
 
 /** A movement detail URL (no trailing path). */
 export const MOVEMENT_DETAIL_RE = /\/movements\/[0-9a-f-]{36}$/;
@@ -38,8 +46,8 @@ export async function submitLogin(page: Page, email: string, password = SEED_PAS
 /**
  * Signs up a fresh user, follows the verification link (which signs them in) and waits for Inicio.
  * The e2e build allows 50 sign-ups/hour/IP (production: 10). One full run makes 10 (signup 3,
- * plan-recurring-suggestions 2, plan-pages 1, profile 1, plan-budget 1, home 1, recurring-link 1). New specs must still
- * reuse one user per file (sign up in `beforeAll`).
+ * plan-recurring-suggestions 2, plan-pages 1, profile 1, plan-budget 1, recurring-link 1, reportes 1).
+ * New specs must still reuse one user per file (sign up in `beforeAll`).
  */
 export async function signUpVerified(
 	page: Page,
@@ -83,7 +91,7 @@ export async function pick(page: Page, legend: string, name: string) {
 }
 
 /** Sets the calendar's Select-based month and year (options render in a portal outside the dialog). */
-export async function pickMonthYear(page: Page, dialog: Locator, ymd: string) {
+async function pickMonthYear(page: Page, dialog: Locator, ymd: string) {
 	const [y, m] = ymd.split('-').map(Number);
 	await dialog.getByLabel('Año', { exact: true }).click();
 	await page.getByRole('option', { name: String(y), exact: true }).click();
@@ -220,8 +228,7 @@ export async function deleteMovements(page: Page, baseURL: string, query: string
 /** Deletes every rule on /plan (in the cookie currency) whose row contains `description`. */
 export async function deleteRules(page: Page, baseURL: string, description: string) {
 	await page.goto('/plan');
-	const hrefs = await page
-		.locator('.rule', { hasText: description })
+	const hrefs = await rule(page, description)
 		.locator('a[data-slot="item"]')
 		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
 	for (const href of hrefs) await postDelete(page, baseURL, href);
@@ -240,4 +247,147 @@ export async function firstDetailHref(page: Page, entity: string, query = '') {
 	await page.goto(`/${entity}${query}`);
 	const link = page.locator(`main a[href*="${entity}/"]:not([href$="/new"])`).first();
 	return (await link.count()) ? pathOf(link) : null;
+}
+
+/** `${prefix} ${Date.now()}`, recorded in `created` so the spec's afterEach can delete it. */
+export function unique(created: string[], prefix: string) {
+	const d = `${prefix} ${Date.now()}`;
+	created.push(d);
+	return d;
+}
+
+/** Text with whitespace runs (NBSP included) collapsed to one space and zero-width spaces dropped. */
+export function norm(s: string | null) {
+	return (s ?? '')
+		.replace(/\u200B/g, '')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+/** The "Movimiento guardado." toast. */
+export function toast(page: Page) {
+	return page.locator('[data-sonner-toast]', { hasText: 'Movimiento guardado.' }).first();
+}
+
+/** The Guardar button of a page or drawer. */
+export const save = (scope: Page | Locator) =>
+	scope.getByRole('button', { name: 'Guardar', exact: true });
+
+/** A fixed-payment row on /plan. */
+export const rule = (page: Page, text: string) => page.locator('.rule', { hasText: text });
+
+/** The "Límites por categoría" section of /plan. */
+export const limitsRegion = (page: Page) =>
+	page.getByRole('region', { name: 'Límites por categoría' });
+
+/** Presses Deshacer on the "Cambio guardado." toast and waits for it to go. */
+export async function undo(page: Page) {
+	await page.getByRole('button', { name: 'Deshacer' }).first().click();
+	await expect(page.getByText('Cambio guardado.')).toHaveCount(0);
+}
+
+/** A radio of the no-JS movement form, where the pickers render as plain radio groups. */
+export const noJsOption = (page: Page, group: 'Cuenta' | 'Categoría', name: RegExp) =>
+	page.getByRole('group', { name: group, exact: true }).getByRole('radio', { name });
+
+/** Posts a form the way a no-JS browser would; never throws on a 4xx. */
+export const post = (page: Page, baseURL: string, path: string, form: Record<string, string>) =>
+	page.request.post(path, { form, headers: { origin: baseURL, accept: 'text/html' } });
+
+/** Posts a create form and returns the new entity's id (the last path segment of the redirect). */
+export async function createVia(
+	page: Page,
+	baseURL: string,
+	path: string,
+	form: Record<string, string>
+) {
+	const res = await post(page, baseURL, path, form);
+	expect(res.ok()).toBe(true);
+	return res.url().split('/').pop()!;
+}
+
+/** Creates an account through its form action and returns its id. */
+export const createAccount = (
+	page: Page,
+	baseURL: string,
+	name: string,
+	currency: 'ARS' | 'USD',
+	initialBalance = '0'
+) =>
+	createVia(page, baseURL, '/accounts/new', {
+		name,
+		currency,
+		initialBalance,
+		icon: 'bank',
+		color: 'green'
+	});
+
+/** The id of the movement a /movements/new POST saved (it redirects with `?saved=<id>`). */
+export const savedId = (res: { url(): string }) => new URL(res.url()).searchParams.get('saved')!;
+
+/** The `day` of the month `back` months ago, as YYYY-MM-DD (1 = this month, 2 = last month). */
+export function monthDay(back: number, day = 15) {
+	const [y, m] = todayInAppTz().split('-').map(Number);
+	return new Date(Date.UTC(y, m - back, day)).toISOString().slice(0, 10);
+}
+
+/** The seeded `otro` user's category "Ajena" and rule "Regla ajena" ids, read from a second context. */
+export async function foreignIds(browser: Browser, baseURL: string) {
+	const context = await browser.newContext({ baseURL });
+	try {
+		const page = await context.newPage();
+		await login(page, OTHER_EMAIL);
+		await page.goto('/categories');
+		const category = await linkId(page.getByRole('link', { name: /Ajena/ }));
+		await page.goto('/plan');
+		const rule = await linkId(page.getByRole('link', { name: /Regla ajena/ }).first());
+		return { category, rule };
+	} finally {
+		await context.close();
+	}
+}
+
+/** Deletes every category of the signed-in user whose link matches `name`. */
+export async function deleteCategories(page: Page, baseURL: string, name: string) {
+	await page.goto('/categories');
+	const paths = await page
+		.getByRole('link', { name: new RegExp(name) })
+		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).pathname));
+	for (const path of paths) await postDelete(page, baseURL, path);
+}
+
+/** Runs `fn` with a connection to the e2e database. */
+export async function withDb<T>(fn: (sql: postgres.Sql) => Promise<T>) {
+	const sql = postgres(
+		process.env.DATABASE_URL || 'postgres://gastar:gastar@localhost:5432/gastar'
+	);
+	try {
+		return await fn(sql);
+	} finally {
+		await sql.end();
+	}
+}
+
+/** Uploads a Banco Galicia statement from /profile/galicia. */
+export async function upload(page: Page, pdf: Buffer) {
+	await page.goto('/profile/galicia');
+	await page
+		.locator('input[name="statement"]')
+		.setInputFiles({ name: 'resumen.pdf', mimeType: 'application/pdf', buffer: pdf });
+	await page.getByRole('button', { name: 'Subir resumen' }).click();
+}
+
+/** The review drawer of an imported item. */
+export const reviewDrawer = (page: Page) =>
+	page.getByRole('dialog', { name: 'Revisar movimiento' });
+
+/** Opens the review drawer of the pending /imports item whose list row contains all `texts`. */
+export async function openItem(page: Page, ...texts: string[]) {
+	await page.goto('/imports');
+	await page.waitForLoadState('networkidle'); // hydration guard: the drawer is a shallow route opened by JS
+	let row = page.locator('[data-slot="item-group"] [role="listitem"]');
+	for (const t of texts) row = row.filter({ hasText: t });
+	await row.getByRole('link').first().click();
+	await expect(reviewDrawer(page)).toBeVisible();
+	await expect(page).toHaveURL(/\/imports$/);
 }

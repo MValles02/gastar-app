@@ -14,8 +14,8 @@
 	import Meter from '#lib/components/Meter.svelte';
 	import Money from '#lib/components/Money.svelte';
 	import HeroAmount from '#lib/components/HeroAmount.svelte';
-	import MovementRow from '#lib/components/MovementRow.svelte';
-	import MpPill from '#lib/components/MpPill.svelte';
+	import MovementRow from '#lib/components/movements/MovementRow.svelte';
+	import MpPill from './MpPill.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import { PLAN_TONE } from '#lib/plan.ts';
@@ -23,9 +23,6 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-
-	const currencyWord = $derived(data.currency === 'ARS' ? 'pesos' : 'dólares');
-	const firstRunDone = $derived(data.steps.account && data.steps.movement && data.steps.plan);
 </script>
 
 <svelte:head>
@@ -38,7 +35,7 @@
 	{#if !data.hasAnyAccount}
 		<FirstRunChecklist steps={data.steps} />
 	{:else}
-		{#if !firstRunDone}
+		{#if !data.firstRunDone}
 			<FirstRunChecklist steps={data.steps} />
 		{/if}
 
@@ -51,7 +48,7 @@
 			<Empty.Root>
 				<Empty.Header>
 					<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
-					<Empty.Description>Sin cuentas en {currencyWord}.</Empty.Description>
+					<Empty.Description>Sin cuentas en {data.currencyWord}.</Empty.Description>
 				</Empty.Header>
 			</Empty.Root>
 			<div class="empty-action">
@@ -158,7 +155,7 @@
 				{#if data.recent.length === 0}
 					<Card.Root>
 						<Card.Content>
-							<p class="muted inline-empty">Todavía no hay movimientos en {currencyWord}.</p>
+							<p class="muted inline-empty">Todavía no hay movimientos en {data.currencyWord}.</p>
 						</Card.Content>
 					</Card.Root>
 				{:else}
@@ -229,7 +226,6 @@
 		color: var(--text-muted);
 	}
 
-	/* Summary card */
 	.box {
 		display: flex;
 		flex-direction: column;

@@ -2,15 +2,15 @@ import { MIN_DAY } from '#lib/dates.ts';
 import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
 import { MOVEMENT_MESSAGES as MSG, MOVEMENT_TYPES, type MovementType } from '#lib/movement.ts';
 import {
-	ARS_WHOLE_MESSAGE,
 	convertAmount,
 	type Currency,
+	formatAmountInput,
 	isValidRate,
-	isWholeFor,
 	parseAmount
 } from '#lib/money.ts';
 import { isUuid } from '../db/util';
-import { dayStart } from '../month';
+import { amountFor, editFormData, readFields, requiredText } from '../forms';
+import { dayStart, localDay } from '../month';
 
 export type MovementData = {
 	type: MovementType;
@@ -22,7 +22,7 @@ export type MovementData = {
 	categoryId: string | null;
 	exchangeRate: number | null;
 };
-const FIELDS = [
+export const FIELDS = [
 	'type',
 	'occurredAt',
 	'description',
@@ -33,6 +33,8 @@ const FIELDS = [
 	'exchangeRate'
 ] as const;
 type MovementField = (typeof FIELDS)[number];
+/** Every field: `?/update` takes any of them, `type` included, through the same parse/resolve path. */
+export const EDITABLE = FIELDS;
 type MovementFormErrors = Partial<Record<MovementField, string>>;
 type MovementFormResult =
 	| { ok: true; values: Record<string, string>; data: MovementData }
@@ -60,24 +62,66 @@ export const validDay = (s: string) => YMD_RE.test(s) && s < '9999' && dayStart(
 
 export const kindMismatchMessage = (kind: 'income' | 'outcome') => MSG.kindMismatch[kind];
 
+/** The movement type posted, if `types` (every type by default; an import narrows them) has it. */
+export const movementTypeOf = (raw: string, types: readonly MovementType[] = MOVEMENT_TYPES) =>
+	types.find((t) => t === raw);
+
+export const descriptionField = requiredText(DESCRIPTION_MAX_LENGTH, {
+	empty: MSG.descEmpty,
+	long: MSG.descLong
+});
+
+/** The stored movement as the form's strings (what `parseMovementForm` takes back). */
+export const toFormValues = (m: {
+	type: MovementType;
+	occurredAt: Date;
+	description: string;
+	amount: number;
+	accountId: string;
+	accountCurrency: Currency;
+	destinationAccountId: string | null;
+	exchangeRate: number | null;
+	categoryId: string | null;
+}) => ({
+	type: m.type,
+	occurredAt: localDay(m.occurredAt),
+	description: m.description,
+	amount: formatAmountInput(m.amount, m.accountCurrency),
+	accountId: m.accountId,
+	destinationAccountId: m.destinationAccountId ?? '',
+	exchangeRate: m.exchangeRate !== null ? formatAmountInput(m.exchangeRate, 'ARS') : '',
+	categoryId: m.categoryId ?? ''
+});
+
+/** The form `?/update` validates: `row`'s stored values with the posted EDITABLE fields over them. */
+export const editedForm = (row: Parameters<typeof toFormValues>[0], posted: FormData) =>
+	editFormData(toFormValues(row), posted, EDITABLE);
+
+/** The new-movement form's starting values: an outcome today on `accountId`. */
+export const emptyMovementValues = (accountId: string, today: string) => ({
+	type: 'outcome',
+	amount: '',
+	description: '',
+	accountId,
+	destinationAccountId: '',
+	exchangeRate: '',
+	categoryId: '',
+	occurredAt: today
+});
+
 export function parseMovementForm(fd: FormData): MovementFormResult {
-	const values: Record<string, string> = {};
-	for (const k of FIELDS) {
-		const v = fd.get(k);
-		values[k] = typeof v === 'string' ? v : '';
-	}
+	const values: Record<string, string> = readFields(fd, FIELDS);
 	const errors: MovementFormErrors = {};
 
-	const type = MOVEMENT_TYPES.find((t) => t === values.type);
+	const type = movementTypeOf(values.type);
 	if (!type) errors.type = MSG.type;
 
 	const day = values.occurredAt;
 	const occurredAt = validDay(day) && day >= MIN_DAY ? dayStart(day) : null;
 	if (!occurredAt) errors.occurredAt = MSG.date;
 
-	const description = values.description.trim();
-	if (!description) errors.description = MSG.descEmpty;
-	else if (description.length > DESCRIPTION_MAX_LENGTH) errors.description = MSG.descLong;
+	const { value: description, error: descriptionError } = descriptionField(values.description);
+	if (descriptionError) errors.description = descriptionError;
 
 	const amount = parseAmount(values.amount);
 	if (amount === null || amount <= 0) errors.amount = MSG.amount;
@@ -137,11 +181,10 @@ export function resolveMovement(
 		!keep.archivedOk?.includes(origin.id)
 	)
 		errors.accountId = MSG.archivedAccount;
-	else if (
-		!(keep.amount != null && data.amount === keep.amount) &&
-		!isWholeFor(data.amount, origin.currency)
-	)
-		errors.amount = ARS_WHOLE_MESSAGE;
+	else if (!(keep.amount != null && data.amount === keep.amount)) {
+		const whole = amountFor(origin.currency)(data.amount);
+		if (whole) errors.amount = whole;
+	}
 
 	if (data.type !== 'transfer') {
 		if (!category) errors.categoryId = MSG.category;

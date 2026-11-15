@@ -1,13 +1,15 @@
 import { expect, test, type Page } from '@playwright/test';
-import { deleteMovements, fillMovement, findMovements, login, WHOLE_PESOS_ERROR } from './helpers';
+import {
+	deleteMovements,
+	fillMovement,
+	findMovements,
+	login,
+	unique,
+	WHOLE_PESOS_ERROR
+} from './helpers';
 
 // Descriptions of movements this spec created; removed in afterEach.
 const created: string[] = [];
-const unique = (prefix: string) => {
-	const d = `${prefix} ${Date.now()}`;
-	created.push(d);
-	return d;
-};
 
 test.beforeEach(async ({ page }) => {
 	await login(page);
@@ -36,8 +38,8 @@ const postUpdate = (page: Page, baseURL: string, href: string, form: Record<stri
 	});
 
 test('?/update with only a description persists it', async ({ page, baseURL }) => {
-	const before = unique('Update desc');
-	const after = unique('Update desc nuevo');
+	const before = unique(created, 'Update desc');
+	const after = unique(created, 'Update desc nuevo');
 	await create(page, before, 'Banco Galicia');
 	const [href] = await findMovements(page, before);
 	const res = await postUpdate(page, baseURL!, href, { description: after });
@@ -47,7 +49,7 @@ test('?/update with only a description persists it', async ({ page, baseURL }) =
 });
 
 test('?/update rejects an ARS amount with decimals', async ({ page, baseURL }) => {
-	const desc = unique('Update monto');
+	const desc = unique(created, 'Update monto');
 	await create(page, desc, 'Banco Galicia');
 	const [href] = await findMovements(page, desc);
 	const res = await postUpdate(page, baseURL!, href, { amount: '10,50' });
@@ -58,7 +60,7 @@ test('?/update rejects an ARS amount with decimals', async ({ page, baseURL }) =
 });
 
 test('?/update takes a type change through the same validation', async ({ page, baseURL }) => {
-	const desc = unique('Update tipo');
+	const desc = unique(created, 'Update tipo');
 	await create(page, desc, 'Banco Galicia');
 	const [href] = await findMovements(page, desc);
 	// A transfer needs its destination: nothing is saved without it.

@@ -8,6 +8,8 @@
 	import Money from '#lib/components/Money.svelte';
 	import { formatMoney, type Currency } from '#lib/money.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
+	import { limitPercent } from '#lib/plan.ts';
+	import { withWizard } from '#lib/plan-wizard.ts';
 
 	type Limit = {
 		categoryId: string;
@@ -38,7 +40,7 @@
 {#if limits.length}
 	<ListCard>
 		{#each limits as l (l.categoryId)}
-			{@const pct = l.amount > 0 ? Math.floor((l.spent * 100) / l.amount) : 0}
+			{@const pct = limitPercent(l.spent, l.amount)}
 			{#snippet value()}
 				<span class="inline"
 					><span class="pct" class:over={l.over}>{pct}%</span><Money
@@ -59,7 +61,7 @@
 			<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 			<div onclick={(e) => open(e, l.categoryId)}>
 				<ListRow
-					href={resolve(`plan/limits/${l.categoryId}${wizard ? `?wizard=${wizard}` : ''}`)}
+					href={withWizard(resolve(`plan/limits/${l.categoryId}`), wizard)}
 					lead={{
 						icon: toCategoryIconKey(l.icon ?? null) ?? undefined,
 						letter: toCategoryIconKey(l.icon ?? null) ? undefined : l.name.charAt(0).toUpperCase(),

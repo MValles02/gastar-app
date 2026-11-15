@@ -2,6 +2,7 @@
 	import { toast } from 'svelte-sonner';
 	import { refreshAll } from '$app/navigation';
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
+	import { ALREADY_REVIEWED } from '#lib/imports.ts';
 	import ImportItemForm from './ImportItemForm.svelte';
 	import type { PageData } from './$types';
 
@@ -11,7 +12,7 @@
 	async function done(result: 'approved' | 'rejected' | 'stale') {
 		await refreshAll();
 		onclose();
-		if (result === 'stale') toast.info('Ese movimiento ya fue revisado.');
+		if (result === 'stale') toast.info(ALREADY_REVIEWED);
 		else toast.success(result === 'approved' ? 'Movimiento aprobado.' : 'Movimiento descartado.');
 	}
 </script>

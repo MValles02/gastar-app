@@ -14,6 +14,7 @@
 		action,
 		formId,
 		closeOnFailure = false,
+		ondone,
 		triggerClass,
 		children
 	}: {
@@ -21,13 +22,14 @@
 		triggerVariant?: 'default' | 'outline' | 'destructive';
 		title: string;
 		confirmLabel: string;
-		/** Destructive by default; pass 'default' for a non-destructive confirm. */
 		confirmVariant?: 'default' | 'destructive';
 		action: string;
 		/** `id` of the confirm form, so inputs elsewhere on the page can join it with `form=`. */
 		formId?: string;
 		/** Close the dialog on a failed action too, so the page behind shows its error. */
 		closeOnFailure?: boolean;
+		/** Gets the result type instead of following its redirect (e.g. a drawer that closes itself). */
+		ondone?: (type: string) => unknown;
 		/** Extra classes for the trigger button (and the no-JS summary). */
 		triggerClass?: string;
 		children?: Snippet;
@@ -59,7 +61,8 @@
 				use:enhance={() => async (input) => {
 					const { type } = input.result;
 					if (closeOnFailure || (type !== 'failure' && type !== 'error')) open = false;
-					await followRedirect(input);
+					if (ondone) await ondone(type);
+					else await followRedirect(input);
 				}}
 			>
 				<AlertDialog.Footer>

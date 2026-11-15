@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { NAME_MAX_LENGTH } from '#lib/fields.ts';
-import { CATEGORY_KINDS, KIND_LABEL, kindFits } from '#lib/movement.ts';
-import { CURRENCIES, type Currency } from '#lib/money.ts';
+import { CATEGORY_KINDS, KIND_LABEL } from '#lib/movement.ts';
+import { listRowShown, matchesQuery, parseListFilter } from '#lib/list-filter.ts';
 import {
 	categoryMonthTotals,
 	hasAnyCategory,
@@ -17,13 +17,13 @@ const KIND_GROUPS = [
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
-	const q = (url.searchParams.get('q') ?? '').trim().slice(0, NAME_MAX_LENGTH);
-	const archived = url.searchParams.get('archived') === '1';
-	const kind = CATEGORY_KINDS.find((k) => k === url.searchParams.get('kind')) ?? '';
 	// ARS by default (like Home); `both` lists each currency's total, never summed.
-	const param = url.searchParams.get('currency');
-	const currency: Currency | 'both' =
-		param === 'both' ? 'both' : (CURRENCIES.find((c) => c === param) ?? 'ARS');
+	const { q, archived, currency } = parseListFilter(url.searchParams, {
+		qMax: NAME_MAX_LENGTH,
+		currencyDefault: 'ARS',
+		extra: ['both']
+	});
+	const kind = CATEGORY_KINDS.find((k) => k === url.searchParams.get('kind')) ?? '';
 
 	const [anyCategory, all, totals] = await Promise.all([
 		hasAnyCategory(userId),
@@ -32,16 +32,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	]);
 
 	// The drawer counts the staged choice client-side from these (every category, archived included).
-	const matches = (name: string) => name.toLowerCase().includes(q.toLowerCase());
 	const facets = all.map((c) => ({
 		kind: c.kind,
 		archived: c.archivedAt !== null,
-		match: matches(c.name)
+		match: matchesQuery(c.name, q)
 	}));
-	const categories = all.filter(
-		(c) =>
-			(archived || c.archivedAt === null) && (!kind || kindFits(c.kind, kind)) && matches(c.name)
-	);
+	// Currency only changes which amounts a row shows, not which rows are listed.
+	const categories = all.filter((_, i) => listRowShown(facets[i], { archived, kind }));
 
 	// Month net (income - outcome) per category and currency, computed at read time.
 	const nets = new Map<string, { ARS?: number; USD?: number }>();

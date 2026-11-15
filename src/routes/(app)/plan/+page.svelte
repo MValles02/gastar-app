@@ -18,6 +18,7 @@
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
+	import { limitFlag } from '#lib/toast-flags.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import { PLAN_CURRENCY, PLAN_TONE } from '#lib/plan.ts';
 	import LimitList from './LimitList.svelte';
@@ -47,8 +48,8 @@
 			toast.success('Plan guardado.');
 			void stripFlags();
 		}
-		const limit = page.url.searchParams.get('limit');
-		if (limit && /^[0-9a-f-]{36}$/.test(limit)) void openLimit(limit);
+		const limit = limitFlag(page.url.searchParams);
+		if (limit) void openLimit(limit);
 	});
 </script>
 
@@ -264,7 +265,6 @@
 		color: var(--text-muted);
 	}
 
-	/* 2x2 grid of figures. */
 	.figures {
 		display: grid;
 		grid-template-columns: 1fr 1fr;

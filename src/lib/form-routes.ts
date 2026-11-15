@@ -21,3 +21,9 @@ export const TAB_ROUTES: ReadonlySet<string> = new Set<RouteId>([
 	'/(app)/plan',
 	'/(app)/reports'
 ]);
+
+/** The delete actions a "Movimiento guardado." Deshacer posts: the movement's and its repeat rule's. */
+export const DELETE_ACTION = {
+	movement: (id: string) => `/movements/${id}?/delete`,
+	recurring: (id: string) => `/plan/recurring/${id}?/delete`
+};

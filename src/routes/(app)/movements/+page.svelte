@@ -6,14 +6,14 @@
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import DateRangePicker from '#lib/components/DateRangePicker.svelte';
+	import DateRangePicker from '#lib/components/pickers/DateRangePicker.svelte';
 	import * as Empty from '#lib/components/ui/empty/index.js';
 	import Icon from '#lib/components/Icon.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
-	import MovementFiltersDrawer from '#lib/components/MovementFiltersDrawer.svelte';
-	import MovementRow from '#lib/components/MovementRow.svelte';
-	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import MovementFiltersDrawer from '#lib/components/movements/MovementFiltersDrawer.svelte';
+	import MovementRow from '#lib/components/movements/MovementRow.svelte';
+	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
@@ -50,7 +50,6 @@
 		{ value: 'transfer', label: 'Transf.' }
 	];
 
-	// Same filters, other page.
 	const filterParams = () => {
 		// SvelteURLSearchParams: required by the svelte/prefer-svelte-reactivity lint rule.
 		const sp = new SvelteURLSearchParams();

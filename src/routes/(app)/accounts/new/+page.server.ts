@@ -9,10 +9,7 @@ export const actions: Actions = {
 	default: async ({ request, locals }) => {
 		const parsed = parseAccountForm(await request.formData(), 'create');
 		if (!parsed.ok) return formFail(400, { values: parsed.values, errors: parsed.errors });
-		const [row] = await createAccount(requireUser(locals).id, {
-			...parsed.data,
-			currency: parsed.data.currency!
-		});
+		const [row] = await createAccount(requireUser(locals).id, parsed.data);
 		redirect(303, `/accounts/${row.id}`);
 	}
 };

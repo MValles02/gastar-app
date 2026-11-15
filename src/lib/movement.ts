@@ -1,6 +1,12 @@
 import { AMOUNT_EXAMPLE } from './money';
 import { DESCRIPTION_TOO_LONG_MESSAGE } from './fields';
 
+/** The new-movement form's path (its own page, and the one a save never returns to). */
+export const NEW_MOVEMENT_PATH = '/movements/new';
+
+/** The single-valued movement list filters, as URL params (`account`/`category` repeat; `all`, `page` are not filters). */
+export const FILTER_PARAMS = ['q', 'from', 'to', 'type', 'currency'] as const;
+
 export const MOVEMENT_TYPES = ['income', 'outcome', 'transfer'] as const;
 export type MovementType = (typeof MOVEMENT_TYPES)[number];
 
@@ -9,7 +15,33 @@ export const CATEGORY_KINDS = ['outcome', 'income'] as const;
 export type CategoryKind = (typeof CATEGORY_KINDS)[number];
 
 /** Whether a category of `kind` can hold a movement of `type`. */
-export const kindFits = (kind: string | null, type: string) => kind === null || kind === type;
+export const kindFits = (kind: string | null, type: string) => (kind ?? type) === type;
+
+/**
+ * The categories a movement or rule of `type` can pick: those whose kind fits, plus `savedId`, the
+ * category it already has (pass null where a saved category gets no exemption).
+ */
+export const categoriesFor = <C extends { id: string; kind: string | null }>(
+	categories: C[],
+	type: string,
+	savedId: string | null
+) => categories.filter((c) => kindFits(c.kind, type) || (!!savedId && c.id === savedId));
+
+/**
+ * The fields a movement of `type` needs besides amount, description, account and date: a category
+ * (income, outcome), or a destination and, between accounts of different currencies, a rate.
+ */
+export function movementNeeds(
+	type: string,
+	{ origin, destination }: { origin?: string; destination?: string }
+) {
+	const transfer = type === 'transfer';
+	return {
+		category: !transfer,
+		destination: transfer,
+		rate: transfer && !!origin && !!destination && origin !== destination
+	};
+}
 
 /** How an amount of `type` reads: income up, outcome down, transfers neither. */
 export const signOf = (type: MovementType): 'positive' | 'negative' | 'neutral' =>

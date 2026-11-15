@@ -2,20 +2,14 @@ import { and, desc, eq, gte, ilike, inArray, isNotNull, lt, or, sql } from 'driz
 import { db, type Tx } from '../db';
 import { categories, financialAccounts, movements } from '../db/schema';
 import { dest, exists, sumOfType } from '../db/sql';
-import { canAccessAccount, canAccessMovement, canAccessOwn, movementOwnedBy } from '../access';
+import { canAccessAccount, canAccessMovement, canAccessOwn, userOwned } from '../access';
 import { linkRuleFor, lockRules, unlinkRevert } from '../recurring/link';
 import { escapeLike } from '../db/util';
-import { dayStart } from '../month';
+import { dayStart, nextDay } from '../month';
 import type { MovementFilterQuery } from './filters';
 import type { MovementRow } from './form';
 
 export const PAGE_SIZE = 50;
-
-/** "YYYY-MM-DD" of the next calendar day. */
-const nextDay = (ymd: string) => {
-	const [y, m, d] = ymd.split('-').map(Number);
-	return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
-};
 
 /** Whether the user has any movement, in any currency (first-run checklist). */
 export function hasAnyMovement(userId: string) {
@@ -42,7 +36,7 @@ export function createMovement(
 		const recurringId = await linkRuleFor(tx, userId, row, opts.ruleId ?? null);
 		return tx
 			.insert(movements)
-			.values({ ...row, ...movementOwnedBy(userId), recurringId })
+			.values({ ...row, ...userOwned(userId), recurringId })
 			.returning({ id: movements.id });
 	};
 	return opts.tx ? run(opts.tx) : db.transaction(run);
