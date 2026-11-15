@@ -1,9 +1,9 @@
 <script lang="ts">
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import StatusPill from '$lib/components/StatusPill.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import ListRow from '#lib/components/ListRow.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import StatusPill from '#lib/components/StatusPill.svelte';
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 
@@ -16,7 +16,7 @@
 
 <PageHeader
 	title="Avisos"
-	back={{ href: resolve('/'), label: 'Volver al inicio', text: 'Inicio' }}
+	back={{ href: resolve(''), label: 'Volver al inicio', text: 'Inicio' }}
 />
 
 <div class="page">

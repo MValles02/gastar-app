@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { CURRENCIES, type Currency } from '$lib/money';
+	import { CURRENCIES, type Currency } from '#lib/money.ts';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { replaceGoto } from '$lib/nav-stack.svelte';
+	import { replaceGoto } from '#lib/nav-stack.svelte.ts';
 	import SegmentedControl from './SegmentedControl.svelte';
 
 	/**
@@ -37,9 +37,8 @@
 			} else if (result.type === 'redirect') {
 				// Switching currency is not a new screen: overwrite the entry so back skips it.
 				await replaceGoto(result.location, {
-					invalidateAll: true,
-					keepFocus: true,
-					noScroll: true
+					refreshAll: true,
+					reset: false
 				});
 				form
 					.querySelector<HTMLElement>('[role="radio"][aria-checked="true"], [aria-pressed="true"]')

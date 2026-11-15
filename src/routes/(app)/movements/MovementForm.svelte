@@ -1,23 +1,23 @@
 <script lang="ts">
-	import { MIN_DAY } from '$lib/dates';
-	import type { Currency } from '$lib/money';
-	import { MOVEMENT_MESSAGES } from '$lib/movement';
+	import { MIN_DAY } from '#lib/dates.ts';
+	import type { Currency } from '#lib/money.ts';
+	import { MOVEMENT_MESSAGES } from '#lib/movement.ts';
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
-	import { followRedirect } from '$lib/nav-stack.svelte';
+	import { followRedirect } from '#lib/nav-stack.svelte.ts';
 	import { resolve } from '$app/paths';
-	import AmountHero from '$lib/components/AmountHero.svelte';
+	import AmountHero from '#lib/components/AmountHero.svelte';
 	import CategoryCreateDrawer from '../categories/CategoryCreateDrawer.svelte';
 	import type { CreatedCategory } from '../categories/CategoryForm.svelte';
-	import EntryFields from '$lib/components/EntryFields.svelte';
-	import FormActions from '$lib/components/FormActions.svelte';
-	import MovementDatePicker from '$lib/components/MovementDatePicker.svelte';
-	import OptionPicker from '$lib/components/OptionPicker.svelte';
-	import SwitchRow from '$lib/components/SwitchRow.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { convertInput, isPositiveAmount, isValidRate, parseAmount } from '$lib/money';
+	import EntryFields from '#lib/components/EntryFields.svelte';
+	import FormActions from '#lib/components/FormActions.svelte';
+	import MovementDatePicker from '#lib/components/MovementDatePicker.svelte';
+	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import SwitchRow from '#lib/components/SwitchRow.svelte';
+	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { convertInput, isPositiveAmount, isValidRate, parseAmount } from '#lib/money.ts';
 	import CategoryRow from './CategoryRow.svelte';
 	import TransferRows from './TransferRows.svelte';
 
@@ -45,6 +45,16 @@
 		variant = 'page',
 		onsaved,
 		onclose
+
+		/** Where saving returns to (validated by the action); none keeps the user on the form. */
+		/** Offer "Repetir todos los meses" (new incomes and outcomes only). */
+		/** Initial state of the "Repetir todos los meses" switch (kept when the form is shown again with errors). */
+		/**
+		 * `drawer`: the new-movement drawer (stacked pickers, per-row validation, actions pinned below,
+		 * posts to /movements/new and reports the result instead of navigating). `page`: a full page.
+		 */
+		/** Drawer: the save succeeded; ids come from the action's redirect flags. */
+		/** Drawer: Cancelar. */
 	}: {
 		initial: Record<Fields, string>;
 		errors?: Partial<Record<Fields, string>>;
@@ -52,20 +62,11 @@
 		categories: (Picker & { kind: string | null })[];
 		submitLabel: string;
 		cancelHref: string;
-		/** Where saving returns to (validated by the action); none keeps the user on the form. */
 		returnTo?: string | null;
-		/** Offer "Repetir todos los meses" (new incomes and outcomes only). */
 		repeatable?: boolean;
-		/** Initial state of the "Repetir todos los meses" switch (kept when the form is shown again with errors). */
 		repeatChecked?: boolean;
-		/**
-		 * `drawer`: the new-movement drawer (stacked pickers, per-row validation, actions pinned below,
-		 * posts to /movements/new and reports the result instead of navigating). `page`: a full page.
-		 */
 		variant?: 'page' | 'drawer';
-		/** Drawer: the save succeeded; ids come from the action's redirect flags. */
 		onsaved?: (saved: { id: string; ruleId: string | null }) => void;
-		/** Drawer: Cancelar. */
 		onclose?: () => void;
 	} = $props();
 
@@ -305,7 +306,7 @@
 
 <form
 	method="POST"
-	action={drawer ? resolve('/movements/new') : undefined}
+	action={drawer ? resolve('movements/new') : undefined}
 	class="form"
 	class:drawer
 	class:submitting
@@ -360,6 +361,7 @@
 		</div>
 	{:else}
 		{@render fields()}
+
 		<FormActions {cancelHref} {submitLabel} {submitting} />
 	{/if}
 </form>

@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { swatchVar, toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
-	import Meter from '$lib/components/Meter.svelte';
-	import Money from '$lib/components/Money.svelte';
-	import { formatMoney, type Currency } from '$lib/money';
-	import { openShallow } from '$lib/open-shallow';
+	import { swatchVar, toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
+	import EmptyState from '#lib/components/EmptyState.svelte';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import ListRow from '#lib/components/ListRow.svelte';
+	import Meter from '#lib/components/Meter.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import { formatMoney, type Currency } from '#lib/money.ts';
+	import { openShallow } from '#lib/open-shallow.ts';
 
 	type Limit = {
 		categoryId: string;
@@ -31,7 +31,7 @@
 	// An unmodified click opens the drawer (shallow route, URL unchanged); anything else follows the link.
 	async function open(e: MouseEvent, id: string) {
 		if (wizard || !(e.target as Element).closest('a')) return;
-		await openShallow(e, resolve(`/plan/limits/${id}`), 'limit');
+		await openShallow(e, resolve(`plan/limits/${id}`), 'limit');
 	}
 </script>
 
@@ -59,7 +59,7 @@
 			<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 			<div onclick={(e) => open(e, l.categoryId)}>
 				<ListRow
-					href={resolve(`/plan/limits/${l.categoryId}${wizard ? `?wizard=${wizard}` : ''}`)}
+					href={resolve(`plan/limits/${l.categoryId}${wizard ? `?wizard=${wizard}` : ''}`)}
 					lead={{
 						icon: toCategoryIconKey(l.icon ?? null) ?? undefined,
 						letter: toCategoryIconKey(l.icon ?? null) ? undefined : l.name.charAt(0).toUpperCase(),

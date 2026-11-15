@@ -1,5 +1,5 @@
-import { formFail } from '$lib/form';
-import { type Currency, formatAmountInput } from '$lib/money';
+import { formFail } from '#lib/form.ts';
+import { type Currency, formatAmountInput } from '#lib/money.ts';
 import { withBalances } from '../accounts/balance';
 import { accountOriginSums, accountTransfersIn, listAccounts } from '../accounts/queries';
 import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '../db/errors';

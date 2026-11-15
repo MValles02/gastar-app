@@ -4,18 +4,18 @@
 	import { toast } from 'svelte-sonner';
 	import { refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { autosave, submitAction } from '$lib/autosave';
-	import { MIN_DAY } from '$lib/dates';
-	import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
-	import { navigateUp, upOnClick } from '$lib/nav-stack.svelte';
-	import { formatAmountInput, formatMoney } from '$lib/money';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import InlineText from '$lib/components/InlineText.svelte';
-	import Money from '$lib/components/Money.svelte';
-	import MovementDatePicker from '$lib/components/MovementDatePicker.svelte';
-	import OptionPicker from '$lib/components/OptionPicker.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
+	import { autosave, submitAction } from '#lib/autosave.ts';
+	import { MIN_DAY } from '#lib/dates.ts';
+	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+	import { navigateUp, upOnClick } from '#lib/nav-stack.svelte.ts';
+	import { formatAmountInput, formatMoney } from '#lib/money.ts';
+	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import InlineText from '#lib/components/InlineText.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import MovementDatePicker from '#lib/components/MovementDatePicker.svelte';
+	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
 	import type { PageData } from './$types';
 
 	/**
@@ -56,7 +56,6 @@
 	const typeStaged = $derived('type' in pending);
 	const effType = $derived((pending.type ?? m.type) as Movement['type']);
 	const isTransfer = $derived(effType === 'transfer');
-
 	const archived = (name: string, is: boolean) => (is ? `${name} · Archivada` : name);
 	const accounts = $derived(
 		data.accounts.map((a) => ({ ...a, name: archived(a.name, a.archived), archived: false }))
@@ -67,6 +66,7 @@
 			.filter((c) => kindFits(c.kind, effType) || (!typeStaged && c.id === m.categoryId))
 			.map((c) => ({ ...c, name: archived(c.name, c.archived), archived: false }))
 	);
+
 	// The stored category only carries over to a new type whose kind accepts it.
 	const keptCategory = (type: string) => {
 		const c = data.categories.find((c) => c.id === m.categoryId);
@@ -88,8 +88,7 @@
 	const crossCurrency = $derived(
 		isTransfer && !!destinationId && currencyOf(originId) !== currencyOf(destinationId)
 	);
-
-	const path = $derived(resolve(`/movements/${m.id}`));
+	const path = $derived(resolve(`movements/${m.id}`));
 
 	const ruleItems = $derived([
 		{ id: '', name: 'Ninguno', icon: 'categories', color: null },
@@ -97,6 +96,7 @@
 	] as ComponentProps<typeof OptionPicker>['items']);
 	async function linkRule(v: string) {
 		if (v === (m.recurringId ?? '')) return;
+
 		errors.recurringId =
 			(await autosave<Saved>({
 				path: `${path}?/link`,
@@ -214,8 +214,9 @@
 		}
 		// refreshAll keeps the drawer's shallow-route state (invalidateAll would reset it).
 		await refreshAll();
+
 		if (drawer) onclose?.();
-		else await navigateUp(resolve('/movements'), { refresh: true });
+		else await navigateUp(resolve('movements'), { refresh: true });
 	}
 </script>
 
@@ -420,7 +421,7 @@
 		{#if drawer}
 			<Button class="w-full" onclick={() => onclose?.()}>Listo</Button>
 		{:else}
-			<Button class="w-full" href={resolve('/movements')} onclick={upOnClick('/movements')}
+			<Button class="w-full" href={resolve('movements')} onclick={upOnClick('/movements')}
 				>Listo</Button
 			>
 		{/if}

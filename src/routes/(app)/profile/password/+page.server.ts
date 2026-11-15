@@ -1,11 +1,11 @@
 import { redirect } from '@sveltejs/kit';
-import { formFail } from '$lib/form';
+import { formFail } from '#lib/form.ts';
 import { APIError } from 'better-auth/api';
-import { PASSWORD_MIN_MESSAGE } from '$lib/fields';
-import { auth } from '$lib/server/auth';
-import { isValidPasswordLength } from '$lib/server/auth-forms';
-import { isBlocked, record } from '$lib/server/rate-limit';
-import { requireUser } from '$lib/server/guards';
+import { PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
+import { auth } from '#lib/server/auth.ts';
+import { isValidPasswordLength } from '#lib/server/auth-forms.ts';
+import { isBlocked, record } from '#lib/server/rate-limit.ts';
+import { requireUser } from '#lib/server/guards.ts';
 import type { Actions } from './$types';
 
 export const actions: Actions = {

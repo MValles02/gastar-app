@@ -1,7 +1,6 @@
-import { deserialize } from '$app/forms';
+import { deserialize, type ActionResult } from '$app/forms';
 import { refreshAll } from '$app/navigation';
-import type { ActionResult } from '@sveltejs/kit';
-import { undoToast } from '$lib/undo-toast';
+import { undoToast } from '#lib/undo-toast.ts';
 
 const UNSAVED = 'No se pudo guardar el cambio.';
 
@@ -31,11 +30,12 @@ export async function autosave<T>({
 	previous,
 	message = 'Cambio guardado.',
 	apply
-}: {
+
 	/** Action URL, e.g. `/movements/<id>?/update`. */
+	/** The same fields as they were before the change. */
+}: {
 	path: string;
 	fields: Record<string, string>;
-	/** The same fields as they were before the change. */
 	previous: Record<string, string>;
 	message?: string;
 	apply: (data: T) => void;

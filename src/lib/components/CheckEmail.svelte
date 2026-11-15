@@ -2,9 +2,9 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import AuthPage from '$lib/components/AuthPage.svelte';
-	import { rememberPendingEmail } from '$lib/pending-email';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import AuthPage from '#lib/components/AuthPage.svelte';
+	import { rememberPendingEmail } from '#lib/pending-email.ts';
 
 	// Shared "Revisá tu email" screen. The page that renders it must have a `resend` action.
 	// `verify` confirms an account (the address is remembered for /verify-email); `reset` is the
@@ -57,7 +57,7 @@
 	>
 		<input type="hidden" name="email" value={email} />
 		{#if kind === 'reset'}
-			<Button href={resolve('/login')} class="w-full">Ir a Ingresar</Button>
+			<Button href={resolve('login')} class="w-full">Ir a Ingresar</Button>
 		{/if}
 		<Button
 			type="submit"

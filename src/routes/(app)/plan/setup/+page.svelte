@@ -1,23 +1,23 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { formatMoney } from '$lib/money';
+	import { formatMoney } from '#lib/money.ts';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import { enhance } from '$app/forms';
-	import { followRedirect } from '$lib/nav-stack.svelte';
+	import { followRedirect } from '#lib/nav-stack.svelte.ts';
 	import { resolve } from '$app/paths';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import FormActions from '$lib/components/FormActions.svelte';
-	import CardEyebrow from '$lib/components/CardEyebrow.svelte';
-	import ActionLink from '$lib/components/ActionLink.svelte';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import ListRow from '$lib/components/ListRow.svelte';
-	import Money from '$lib/components/Money.svelte';
-	import SwitchRow from '$lib/components/SwitchRow.svelte';
-	import SectionHeader from '$lib/components/SectionHeader.svelte';
-	import { openShallow } from '$lib/open-shallow';
-	import { PLAN_CURRENCY } from '$lib/plan';
-	import { WIZARD_STEPS } from '$lib/plan-wizard';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import FormActions from '#lib/components/FormActions.svelte';
+	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
+	import ActionLink from '#lib/components/ActionLink.svelte';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import ListRow from '#lib/components/ListRow.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import SwitchRow from '#lib/components/SwitchRow.svelte';
+	import SectionHeader from '#lib/components/SectionHeader.svelte';
+	import { openShallow } from '#lib/open-shallow.ts';
+	import { PLAN_CURRENCY } from '#lib/plan.ts';
+	import { WIZARD_STEPS } from '#lib/plan-wizard.ts';
 	import LimitList from '../LimitList.svelte';
 	import RecurringRow from '../RecurringRow.svelte';
 	import SavingsOptions from '../SavingsOptions.svelte';
@@ -62,7 +62,7 @@
 {/snippet}
 
 {#snippet add(href: string, key: 'newRule' | 'newLimit')}
-	<ActionLink {href} label="+ Agregar" onclick={(e) => openShallow(e, resolve(href as '/'), key)} />
+	<ActionLink {href} label="+ Agregar" onclick={(e) => openShallow(e, resolve(href as ''), key)} />
 {/snippet}
 
 {#snippet addRule()}
@@ -131,10 +131,10 @@
 					<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 					<div
 						onclick={(e) =>
-							(e.target as Element).closest('a') && openShallow(e, resolve(href as '/'), 'newRule')}
+							(e.target as Element).closest('a') && openShallow(e, resolve(href as ''), 'newRule')}
 					>
 						<ListRow
-							href={resolve(href as '/')}
+							href={resolve(href as '')}
 							lead={{ letter: s.description.charAt(0).toUpperCase(), color: null }}
 							title={s.description}
 						>

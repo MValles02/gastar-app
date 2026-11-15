@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import * as RadioGroup from '$lib/components/ui/radio-group/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
-	import { cn } from '$lib/utils.js';
+	import * as RadioGroup from '#lib/components/ui/radio-group/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import { cn } from '#lib/utils.js';
 
 	let {
 		name,

@@ -2,20 +2,20 @@
 	import { untrack } from 'svelte';
 	import { refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { autosave, submitAction } from '$lib/autosave';
-	import { swatchVar } from '$lib/appearance';
-	import { formatAmountInput, formatMoney } from '$lib/money';
-	import { navigateUp, upOnClick } from '$lib/nav-stack.svelte';
-	import { limitPace, PLAN_STATUS_LABEL, PLAN_TONE } from '$lib/plan';
-	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import IconBadge from '$lib/components/IconBadge.svelte';
-	import InlineText from '$lib/components/InlineText.svelte';
-	import Meter from '$lib/components/Meter.svelte';
-	import Money from '$lib/components/Money.svelte';
-	import StatusPill from '$lib/components/StatusPill.svelte';
-	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { autosave, submitAction } from '#lib/autosave.ts';
+	import { swatchVar } from '#lib/appearance.ts';
+	import { formatAmountInput, formatMoney } from '#lib/money.ts';
+	import { navigateUp, upOnClick } from '#lib/nav-stack.svelte.ts';
+	import { limitPace, PLAN_STATUS_LABEL, PLAN_TONE } from '#lib/plan.ts';
+	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
+	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import IconBadge from '#lib/components/IconBadge.svelte';
+	import InlineText from '#lib/components/InlineText.svelte';
+	import Meter from '#lib/components/Meter.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import StatusPill from '#lib/components/StatusPill.svelte';
+	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import type { PageData } from './$types';
 
 	/**
@@ -42,7 +42,7 @@
 
 	const drawer = $derived(variant === 'drawer');
 	const currency = $derived(data.currency);
-	const path = $derived(resolve(`/plan/limits/${data.category.id}` as '/'));
+	const path = $derived(resolve(`/plan/limits/${data.category.id}` as ''));
 
 	// The limit in cents: set by a save or an undo (the preloaded drawer data does not reload).
 	let cents = $state<number | null>(untrack(() => data.progress?.amount ?? null));
@@ -173,7 +173,7 @@
 				>
 					Esta acción no se puede deshacer.
 				</ConfirmDialog>
-				<Button class="w-full" href={resolve(back as '/')} onclick={upOnClick(resolve(back as '/'))}
+				<Button class="w-full" href={resolve(back as '')} onclick={upOnClick(resolve(back as ''))}
 					>Listo</Button
 				>
 			{/if}

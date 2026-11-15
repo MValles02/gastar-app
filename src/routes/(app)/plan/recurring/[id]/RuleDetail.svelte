@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { autosave } from '$lib/autosave';
-	import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
-	import { formatAmountInput, formatMoney } from '$lib/money';
-	import { dueTone } from '$lib/plan';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import DayOfMonthPicker from '$lib/components/DayOfMonthPicker.svelte';
-	import InlineText from '$lib/components/InlineText.svelte';
-	import Money from '$lib/components/Money.svelte';
-	import OptionPicker from '$lib/components/OptionPicker.svelte';
-	import StatusPill from '$lib/components/StatusPill.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { autosave } from '#lib/autosave.ts';
+	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+	import { formatAmountInput, formatMoney } from '#lib/money.ts';
+	import { dueTone } from '#lib/plan.ts';
+	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import DayOfMonthPicker from '#lib/components/DayOfMonthPicker.svelte';
+	import InlineText from '#lib/components/InlineText.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import StatusPill from '#lib/components/StatusPill.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import type { PageData } from './$types';
 
 	/**
@@ -27,7 +27,7 @@
 	const income = $derived(r.type === 'income');
 	const currency = $derived(r.currency === 'USD' ? 'USD' : 'ARS');
 	const wizardQuery = $derived(data.wizard ? `&wizard=${data.wizard}` : '');
-	const path = $derived(resolve(`/plan/recurring/${r.id}`));
+	const path = $derived(resolve(`plan/recurring/${r.id}`));
 
 	// What the update action stores, as the strings it takes.
 	const values = $derived<Record<string, string>>({

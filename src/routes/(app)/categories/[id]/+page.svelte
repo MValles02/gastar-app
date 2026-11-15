@@ -3,22 +3,22 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { CATEGORY_ICONS, toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-	import { autosave } from '$lib/autosave';
-	import { NAME_MAX_LENGTH } from '$lib/fields';
-	import { KIND_OPTIONS } from '$lib/movement';
-	import type { Currency } from '$lib/money';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import DetailHero from '$lib/components/DetailHero.svelte';
-	import HeroAmount from '$lib/components/HeroAmount.svelte';
-	import Icon from '$lib/components/Icon.svelte';
-	import IconBadge from '$lib/components/IconBadge.svelte';
-	import IconColorDrawer from '$lib/components/IconColorDrawer.svelte';
-	import InlineText from '$lib/components/InlineText.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import Money from '$lib/components/Money.svelte';
+	import { CATEGORY_ICONS, toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
+	import { autosave } from '#lib/autosave.ts';
+	import { NAME_MAX_LENGTH } from '#lib/fields.ts';
+	import { KIND_OPTIONS } from '#lib/movement.ts';
+	import type { Currency } from '#lib/money.ts';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
+	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import DetailHero from '#lib/components/DetailHero.svelte';
+	import HeroAmount from '#lib/components/HeroAmount.svelte';
+	import Icon from '#lib/components/Icon.svelte';
+	import IconBadge from '#lib/components/IconBadge.svelte';
+	import IconColorDrawer from '#lib/components/IconColorDrawer.svelte';
+	import InlineText from '#lib/components/InlineText.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Money from '#lib/components/Money.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	/**
@@ -30,7 +30,7 @@
 	// A reload (archive, Deshacer) brings the stored category back in; a save sets it at once.
 	let detail = $derived({ category: data.category, disabledKinds: data.disabledKinds });
 	const c = $derived(detail.category);
-	const path = $derived(resolve(`/categories/${c.id}`));
+	const path = $derived(resolve(`categories/${c.id}`));
 	const single = $derived(data.nets.length === 1 ? data.nets[0] : null);
 
 	let glyphOpen = $state(false);
@@ -80,7 +80,11 @@
 <div class="detail">
 	<PageHeader
 		title={c.name}
-		back={{ href: resolve('/categories'), label: 'Volver a categorías', text: 'Categorías' }}
+		back={{
+			href: resolve('categories'),
+			label: 'Volver a categorías',
+			text: 'Categorías'
+		}}
 	/>
 
 	<DetailHero ariaLabel="Resumen del mes" label={data.month.label}>
@@ -170,9 +174,10 @@
 	{/if}
 
 	<div class="actions">
-		<Button href={resolve(`/movements?category=${c.id}&all=1`)} variant="outline" class="w-full">
-			Ver movimientos
-		</Button>
+		<Button href={resolve(`movements?category=${c.id}&all=1`)} variant="outline" class="w-full"
+			>Ver movimientos</Button
+		>
+
 		{#if data.actions.canArchive}
 			<form method="POST" action="?/archive" use:enhance>
 				<Button type="submit" variant="outline" class="w-full">Archivar</Button>

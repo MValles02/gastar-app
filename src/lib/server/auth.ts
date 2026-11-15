@@ -1,9 +1,9 @@
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '$lib/fields';
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '#lib/fields.ts';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { requestEvent } from './request-memo';
-import { env } from '$env/dynamic/private';
+import * as env from '$app/env/private';
 import { existingAccount, resetPassword, verifyEmail } from './auth-emails';
 import { db } from './db';
 import { sendEmail } from './email';

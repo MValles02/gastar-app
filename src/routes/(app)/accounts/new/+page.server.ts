@@ -1,9 +1,9 @@
 import { redirect } from '@sveltejs/kit';
-import { formFail } from '$lib/form';
+import { formFail } from '#lib/form.ts';
 import type { Actions } from './$types';
-import { parseAccountForm } from '$lib/server/accounts/form';
-import { createAccount } from '$lib/server/accounts/queries';
-import { requireUser } from '$lib/server/guards';
+import { parseAccountForm } from '#lib/server/accounts/form.ts';
+import { createAccount } from '#lib/server/accounts/queries.ts';
+import { requireUser } from '#lib/server/guards.ts';
 
 export const actions: Actions = {
 	default: async ({ request, locals }) => {

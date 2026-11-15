@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
-	import * as Item from '$lib/components/ui/item/index.js';
-	import { cn } from '$lib/utils.js';
+	import * as Item from '#lib/components/ui/item/index.js';
+	import { cn } from '#lib/utils.js';
 
 	/** Bordered card holding a list of ListRow. */
 	let {

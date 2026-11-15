@@ -1,6 +1,6 @@
-import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
-import { MOVEMENT_TYPES, type MovementType } from '$lib/movement';
-import { CURRENCIES, type Currency } from '$lib/money';
+import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+import { MOVEMENT_TYPES, type MovementType } from '#lib/movement.ts';
+import { CURRENCIES, type Currency } from '#lib/money.ts';
 import { isUuid } from '../db/util';
 import { localDay } from '../month';
 import { validDay } from './form';

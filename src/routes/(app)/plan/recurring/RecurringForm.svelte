@@ -2,17 +2,17 @@
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
-	import { followRedirect } from '$lib/nav-stack.svelte';
+	import { followRedirect } from '#lib/nav-stack.svelte.ts';
 	import { resolve } from '$app/paths';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import AmountHero from '$lib/components/AmountHero.svelte';
-	import DayOfMonthPicker from '$lib/components/DayOfMonthPicker.svelte';
-	import EntryFields from '$lib/components/EntryFields.svelte';
-	import FormActions from '$lib/components/FormActions.svelte';
-	import OptionPicker from '$lib/components/OptionPicker.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
-	import { isPositiveAmount } from '$lib/money';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import AmountHero from '#lib/components/AmountHero.svelte';
+	import DayOfMonthPicker from '#lib/components/DayOfMonthPicker.svelte';
+	import EntryFields from '#lib/components/EntryFields.svelte';
+	import FormActions from '#lib/components/FormActions.svelte';
+	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+	import { isPositiveAmount } from '#lib/money.ts';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 	type Fields = 'type' | 'description' | 'amount' | 'accountId' | 'categoryId' | 'dayOfMonth';
@@ -29,25 +29,26 @@
 		variant = 'page',
 		onsaved,
 		onclose
+
+		/** Page: the form's action. Drawer: the query (e.g. `?wizard=2`) added to /plan/recurring/new. */
+		/** `income` or `outcome`: where the Pago / Ingreso switch starts. */
+		/**
+		 * `drawer`: the new-rule drawer (stacked pickers, Guardar waits for amount and description, posts to
+		 * /plan/recurring/new and reports the result instead of navigating). `page`: a full page.
+		 */
+		/** Drawer: the save succeeded. */
+		/** Drawer: Cancelar. */
 	}: {
 		initial: Record<Fields, string>;
 		errors?: Partial<Record<Fields, string>>;
 		accounts: Picker[];
 		categories: (Picker & { kind: string | null })[];
-		/** Page: the form's action. Drawer: the query (e.g. `?wizard=2`) added to /plan/recurring/new. */
 		action?: string;
 		submitLabel: string;
 		cancelHref?: string;
-		/** `income` or `outcome`: where the Pago / Ingreso switch starts. */
 		type: string;
-		/**
-		 * `drawer`: the new-rule drawer (stacked pickers, Guardar waits for amount and description, posts to
-		 * /plan/recurring/new and reports the result instead of navigating). `page`: a full page.
-		 */
 		variant?: 'page' | 'drawer';
-		/** Drawer: the save succeeded. */
 		onsaved?: () => void;
-		/** Drawer: Cancelar. */
 		onclose?: () => void;
 	} = $props();
 
@@ -104,7 +105,7 @@
 
 <form
 	method="POST"
-	action={drawer ? resolve('/plan/recurring/new') + action : action}
+	action={drawer ? resolve('plan/recurring/new') + action : action}
 	class="form"
 	class:drawer
 	class:submitting
@@ -163,7 +164,8 @@
 				>
 					{#snippet empty()}
 						<p class="hint pad">
-							Todavía no tenés cuentas. <a href={resolve('/accounts/new')}>Crear cuenta</a>
+							Todavía no tenés cuentas.
+							<a href={resolve('accounts/new')}>Crear cuenta</a>
 						</p>
 					{/snippet}
 				</OptionPicker>
@@ -185,7 +187,8 @@
 				>
 					{#snippet empty()}
 						<p class="hint pad">
-							Todavía no tenés categorías. <a href={resolve('/categories/new')}>Crear categoría</a>
+							Todavía no tenés categorías.
+							<a href={resolve('categories/new')}>Crear categoría</a>
 						</p>
 					{/snippet}
 				</OptionPicker>
@@ -257,6 +260,7 @@
 		</div>
 	{:else}
 		{@render fields()}
+
 		<FormActions {cancelHref} {submitLabel} {submitting} />
 	{/if}
 </form>

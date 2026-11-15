@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { untrack, type Snippet } from 'svelte';
 	import { Drawer as DrawerPrimitive } from 'vaul-svelte';
-	import { drawers } from '$lib/drawer-open.svelte';
+	import { drawers } from '#lib/drawer-open.svelte.ts';
 	import X from '@lucide/svelte/icons/x';
-	import * as Drawer from '$lib/components/ui/drawer/index.js';
-	import { buttonVariants } from '$lib/components/ui/button/index.js';
+	import * as Drawer from '#lib/components/ui/drawer/index.js';
+	import { buttonVariants } from '#lib/components/ui/button/index.js';
 
 	let {
 		title,

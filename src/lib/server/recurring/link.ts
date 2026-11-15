@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
-import { dayOfMonth } from '$lib/dates';
-import { roundToStep, type Currency } from '$lib/money';
-import type { MovementType } from '$lib/movement';
+import { dayOfMonth } from '#lib/dates.ts';
+import { roundToStep, type Currency } from '#lib/money.ts';
+import type { MovementType } from '#lib/movement.ts';
 import type { DbExecutor } from '../db';
 import { categories, financialAccounts, movements, recurringMovements } from '../db/schema';
 import { localMonth } from '../db/sql';

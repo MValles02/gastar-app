@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import { openShallow } from '$lib/open-shallow';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import { openShallow } from '#lib/open-shallow.ts';
 	import CardEyebrow from './CardEyebrow.svelte';
 	import Icon from './Icon.svelte';
 
@@ -20,20 +20,20 @@
 			done: steps.account,
 			title: 'Creá tu primera cuenta',
 			hint: 'Banco, efectivo o billetera',
-			href: resolve('/accounts/new')
+			href: resolve('accounts/new')
 		},
 		{
 			done: steps.movement,
 			title: 'Registrá un movimiento',
 			hint: 'Con el + de abajo',
-			href: resolve('/movements/new'),
-			onclick: (e) => openShallow(e, resolve('/movements/new'), 'newMovement')
+			href: resolve('movements/new'),
+			onclick: (e) => openShallow(e, resolve('movements/new'), 'newMovement')
 		},
 		{
 			done: steps.plan,
 			title: 'Armá tu plan',
 			hint: 'Cuánto podés gastar por día',
-			href: resolve('/plan/setup')
+			href: resolve('plan/setup')
 		}
 	]);
 	const firstOpen = $derived(items.findIndex((i) => !i.done));

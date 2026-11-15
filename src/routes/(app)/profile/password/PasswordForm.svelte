@@ -3,11 +3,11 @@
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { followRedirect } from '$lib/nav-stack.svelte';
-	import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '$lib/fields';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import FormActions from '$lib/components/FormActions.svelte';
-	import PasswordInput from '$lib/components/PasswordInput.svelte';
+	import { followRedirect } from '#lib/nav-stack.svelte.ts';
+	import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '#lib/fields.ts';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import FormActions from '#lib/components/FormActions.svelte';
+	import PasswordInput from '#lib/components/PasswordInput.svelte';
 
 	type Errors = { current?: string; next?: string };
 
@@ -21,13 +21,14 @@
 		variant = 'page',
 		onsaved,
 		onclose
+
+		/** Drawer: the password changed. */
+		/** Drawer: Cancelar. */
 	}: {
 		errors?: Errors;
 		formError?: string;
 		variant?: 'page' | 'drawer';
-		/** Drawer: the password changed. */
 		onsaved?: () => void;
-		/** Drawer: Cancelar. */
 		onclose?: () => void;
 	} = $props();
 
@@ -44,7 +45,7 @@
 
 <form
 	method="POST"
-	action={drawer ? resolve('/profile/password') : ''}
+	action={drawer ? resolve('profile/password') : ''}
 	class="form"
 	novalidate
 	use:enhance={() => {

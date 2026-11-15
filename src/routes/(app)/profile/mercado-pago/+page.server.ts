@@ -1,9 +1,9 @@
 import { error, redirect } from '@sveltejs/kit';
-import { formFail } from '$lib/form';
-import { dev } from '$app/environment';
-import { accountOption } from '$lib/server/accounts/queries';
-import { DAY_MS } from '$lib/dates';
-import { dayStart, localDay } from '$lib/server/month';
+import { formFail } from '#lib/form.ts';
+import { dev } from '$app/env';
+import { accountOption } from '#lib/server/accounts/queries.ts';
+import { DAY_MS } from '#lib/dates.ts';
+import { dayStart, localDay } from '#lib/server/month.ts';
 import {
 	deleteConnection,
 	getConnectionInfo,
@@ -16,9 +16,9 @@ import {
 	setImportFrom,
 	setReceivingAccount,
 	startAuthorization
-} from '$lib/server/mp-oauth';
-import { getSyncState, leaseActive, startMpBackfill } from '$lib/server/mp-sync';
-import { requireUser } from '$lib/server/guards';
+} from '#lib/server/mp-oauth.ts';
+import { getSyncState, leaseActive, startMpBackfill } from '#lib/server/mp-sync.ts';
+import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const FLASHES = {
@@ -60,7 +60,8 @@ export const actions: Actions = {
 			secure: !dev,
 			maxAge: 600
 		});
-		redirect(303, authorizeUrl);
+		// Mercado Pago's OAuth page: the only external redirect, allowed by origin.
+		redirect(303, authorizeUrl, { external: [new URL(authorizeUrl).origin] });
 	},
 
 	/** Autosaved: answers with the stored value (an undo posts the previous one the same way). */

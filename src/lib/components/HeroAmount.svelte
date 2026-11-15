@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatMoney } from '$lib/money';
+	import { formatMoney } from '#lib/money.ts';
 	import Money from './Money.svelte';
 
 	/** The big display amount of Inicio, Plan and Reportes; shrinks only when the amount would overflow its box. */

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { HTMLInputAttributes } from 'svelte/elements';
-	import Icon from '$lib/components/Icon.svelte';
-	import * as InputGroup from '$lib/components/ui/input-group/index.js';
+	import Icon from '#lib/components/Icon.svelte';
+	import * as InputGroup from '#lib/components/ui/input-group/index.js';
 
 	// `#password` / `name="password"` input with a show/hide toggle; the page renders the label.
 	let {

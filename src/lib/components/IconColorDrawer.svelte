@@ -1,12 +1,12 @@
 <script lang="ts" generics="Key extends string">
 	import type { ComponentProps } from 'svelte';
-	import { SWATCHES, type SwatchKey } from '$lib/appearance';
+	import { SWATCHES, type SwatchKey } from '#lib/appearance.ts';
 	import BottomDrawer from './BottomDrawer.svelte';
 	import Icon from './Icon.svelte';
 	import IconBadge from './IconBadge.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
-	import * as RadioGroup from '$lib/components/ui/radio-group/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import * as RadioGroup from '#lib/components/ui/radio-group/index.js';
 
 	/**
 	 * "Ícono y color": a drawer stacked over the one that opened it. The choice is staged here (live

@@ -6,7 +6,7 @@ import { batches, type ImportRow, ingestImportItems } from './import-ingest';
 import { KIND, SOURCE } from './import-sources';
 import { mpApiBaseUrl, reportPollMs } from './mp-env';
 import { DEFAULT_BACKFILL_DAYS, getAccessToken, refreshConnection } from './mp-oauth';
-import { DAY_MS } from '$lib/dates';
+import { DAY_MS } from '#lib/dates.ts';
 import { dayStart, localDay } from './month';
 
 /** Stored in mp_sync_state.last_error: a code only, never a message or payload. */

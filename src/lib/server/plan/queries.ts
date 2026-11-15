@@ -9,8 +9,8 @@ import {
 } from '../db/schema';
 import { exists, inRange, type Range } from '../db/sql';
 import { canAccessMovement, canAccessOwn, userOwned } from '../access';
-import { CURRENCIES, type Currency } from '$lib/money';
-import { PLAN_CURRENCY } from '$lib/plan';
+import { CURRENCIES, type Currency } from '#lib/money.ts';
+import { PLAN_CURRENCY } from '#lib/plan.ts';
 import { currentMonth, localDay } from '../month';
 import { listRecurring } from '../recurring/queries';
 import { activeTotal, isCurrentPlan, toPlanCurrency } from './summary';

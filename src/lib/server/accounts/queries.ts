@@ -1,5 +1,5 @@
-import type { Currency } from '$lib/money';
-import { accountLook } from '$lib/appearance';
+import type { Currency } from '#lib/money.ts';
+import { accountLook } from '#lib/appearance.ts';
 import { and, asc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { financialAccounts, movements } from '../db/schema';

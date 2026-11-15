@@ -5,18 +5,18 @@
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import DateRangePicker from '$lib/components/DateRangePicker.svelte';
-	import * as Empty from '$lib/components/ui/empty/index.js';
-	import Icon from '$lib/components/Icon.svelte';
-	import FilterBar from '$lib/components/FilterBar.svelte';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import MovementFiltersDrawer from '$lib/components/MovementFiltersDrawer.svelte';
-	import MovementRow from '$lib/components/MovementRow.svelte';
-	import OptionPicker from '$lib/components/OptionPicker.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import { openShallow } from '$lib/open-shallow';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import DateRangePicker from '#lib/components/DateRangePicker.svelte';
+	import * as Empty from '#lib/components/ui/empty/index.js';
+	import Icon from '#lib/components/Icon.svelte';
+	import FilterBar from '#lib/components/FilterBar.svelte';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import MovementFiltersDrawer from '#lib/components/MovementFiltersDrawer.svelte';
+	import MovementRow from '#lib/components/MovementRow.svelte';
+	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
+	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import { openShallow } from '#lib/open-shallow.ts';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -28,8 +28,10 @@
 	onMount(() => {
 		const bar = document.querySelector('header');
 		if (!bar) return;
+
 		const measure = () =>
 			(barHeight = getComputedStyle(bar).position === 'sticky' ? bar.offsetHeight : 0);
+
 		measure();
 		const ro = new ResizeObserver(measure);
 		ro.observe(bar);
@@ -138,9 +140,9 @@
 				</Empty.Header>
 			</Empty.Root>
 			<div class="empty-action">
-				<Button href={resolve(`/movements?${firstPageQuery}`)} variant="outline">
-					Ir a la primera página
-				</Button>
+				<Button href={resolve(`movements?${firstPageQuery}`)} variant="outline"
+					>Ir a la primera página</Button
+				>
 			</div>
 		{:else if data.activeCount === 0}
 			<Empty.Root>
@@ -151,8 +153,8 @@
 			</Empty.Root>
 			<div class="empty-action">
 				<Button
-					href={resolve('/movements/new')}
-					onclick={(e) => openShallow(e, resolve('/movements/new'), 'newMovement')}
+					href={resolve('movements/new')}
+					onclick={(e) => openShallow(e, resolve('movements/new'), 'newMovement')}
 					>Nuevo movimiento</Button
 				>
 			</div>
@@ -163,8 +165,9 @@
 					<Empty.Description>Sin resultados.</Empty.Description>
 				</Empty.Header>
 			</Empty.Root>
+
 			<div class="empty-action">
-				<Button href={resolve('/movements')} variant="outline">Limpiar filtros</Button>
+				<Button href={resolve('movements')} variant="outline">Limpiar filtros</Button>
 			</div>
 		{/if}
 	{:else}
@@ -195,13 +198,15 @@
 		{#if data.page > 1 || data.hasNext}
 			<nav class="pager" aria-label="Paginación">
 				{#if data.page > 1}
-					<Button href={resolve(`/movements?${pageQuery(data.page - 1)}`)} variant="outline">
-						<ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />Más recientes
+					<Button href={resolve(`movements?${pageQuery(data.page - 1)}`)} variant="outline">
+						<ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
+						Más recientes
 					</Button>
 				{/if}
 				{#if data.hasNext}
-					<Button href={resolve(`/movements?${pageQuery(data.page + 1)}`)} variant="outline">
-						Más antiguos<ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
+					<Button href={resolve(`movements?${pageQuery(data.page + 1)}`)} variant="outline">
+						Más antiguos
+						<ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
 					</Button>
 				{/if}
 			</nav>

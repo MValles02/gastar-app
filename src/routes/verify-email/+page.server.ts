@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { resendVerification } from '$lib/server/auth-forms';
+import { resendVerification } from '#lib/server/auth-forms.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals, url, request }) => {

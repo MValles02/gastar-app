@@ -1,11 +1,11 @@
-import { PLAN_CURRENCY, PLAN_STATUS_LABEL, PLAN_TONE, type StatusTone } from '$lib/plan';
+import { PLAN_CURRENCY, PLAN_STATUS_LABEL, PLAN_TONE, type StatusTone } from '#lib/plan.ts';
 import {
 	toCategoryIconKey,
 	toSwatchKey,
 	type CategoryIconKey,
 	type SwatchKey
-} from '$lib/appearance';
-import { formatMoney } from '$lib/money';
+} from '#lib/appearance.ts';
+import { formatMoney } from '#lib/money.ts';
 import { accountSummary } from '../accounts/queries';
 import { monthPlan, type MonthPlan } from './month-plan';
 

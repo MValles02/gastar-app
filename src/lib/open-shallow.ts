@@ -1,4 +1,4 @@
-import { goto, preloadData, pushState, replaceState } from '$app/navigation';
+import { goto, preloadData } from '$app/navigation';
 import { page } from '$app/state';
 
 /** A click the browser should handle itself (new tab, new window, non-primary button). */
@@ -22,9 +22,14 @@ export async function openShallow(
 		e.preventDefault();
 	}
 	const result = await preloadData(href);
+	// A redirect, an error or a failed load is a normal navigation.
 	if (result.type === 'loaded' && result.status === 200) {
-		if (!replace) pushState('', { [key]: result.data } as App.PageState);
-		else if (page.state[key]) replaceState('', { [key]: result.data } as App.PageState);
+		const state = { [key]: result.data } as App.PageState;
+		// Shallow: the URL stays the one in the address bar.
+		// eslint-disable-next-line svelte/no-navigation-without-resolve -- shallow goto keeps the current URL
+		if (!replace) goto('', { shallow: true, state });
+		// eslint-disable-next-line svelte/no-navigation-without-resolve -- shallow goto keeps the current URL
+		else if (page.state[key]) goto('', { shallow: true, replace: true, state });
 	}
 	// eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass a resolved href
 	else await goto(href);

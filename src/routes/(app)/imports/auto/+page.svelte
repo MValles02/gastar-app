@@ -3,12 +3,12 @@
 	import { toast } from 'svelte-sonner';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
-	import * as Empty from '$lib/components/ui/empty/index.js';
-	import Icon from '$lib/components/Icon.svelte';
-	import IconBadge from '$lib/components/IconBadge.svelte';
-	import ListCard from '$lib/components/ListCard.svelte';
-	import Money from '$lib/components/Money.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import * as Empty from '#lib/components/ui/empty/index.js';
+	import Icon from '#lib/components/Icon.svelte';
+	import IconBadge from '#lib/components/IconBadge.svelte';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -29,7 +29,11 @@
 
 <PageHeader
 	title="Aprobados automáticamente"
-	back={{ href: resolve('/imports'), label: 'Volver a Importados', text: 'Importados' }}
+	back={{
+		href: resolve('imports'),
+		label: 'Volver a Importados',
+		text: 'Importados'
+	}}
 />
 
 <div class="page">
@@ -82,6 +86,7 @@
 												(result.data as { message?: string } | undefined)?.message) ||
 												'No se pudo deshacer.'
 										);
+
 									await update();
 								}}
 						>

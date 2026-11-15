@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { refreshAll } from '$app/navigation';
-	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
+	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import LimitForm from '../LimitForm.svelte';
 	import type { PageData } from './$types';
 

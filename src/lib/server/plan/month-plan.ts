@@ -1,6 +1,6 @@
-import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
-import { CURRENCIES, roundToStep, type Currency } from '$lib/money';
+import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
+import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+import { CURRENCIES, roundToStep, type Currency } from '#lib/money.ts';
 import {
 	dueLabel,
 	inactiveReason,
@@ -9,7 +9,7 @@ import {
 	MAX_DAY_OF_MONTH,
 	PLAN_CURRENCY,
 	PLAN_STATUS_LABEL
-} from '$lib/plan';
+} from '#lib/plan.ts';
 import { listAccounts } from '../accounts/queries';
 import { listCategories } from '../categories/queries';
 import { memoPerRequest } from '../request-memo';

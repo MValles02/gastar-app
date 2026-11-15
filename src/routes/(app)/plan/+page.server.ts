@@ -1,9 +1,9 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { accountSummary } from '$lib/server/accounts/queries';
-import { deletePlan } from '$lib/server/plan/queries';
-import { planView, recurringLists } from '$lib/server/plan/month-plan';
-import { requireUser } from '$lib/server/guards';
+import { accountSummary } from '#lib/server/accounts/queries.ts';
+import { deletePlan } from '#lib/server/plan/queries.ts';
+import { planView, recurringLists } from '#lib/server/plan/month-plan.ts';
+import { requireUser } from '#lib/server/guards.ts';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;

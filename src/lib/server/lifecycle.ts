@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { formFail } from '$lib/form';
+import { formFail } from '#lib/form.ts';
 import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from './db/errors';
 import { requireUser } from './guards';
 

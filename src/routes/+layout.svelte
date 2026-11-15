@@ -3,12 +3,12 @@
 	import '../app.css';
 	import { afterNavigate, onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
-	import { drawers } from '$lib/drawer-open.svelte';
-	import { track, transitionOf } from '$lib/nav-stack.svelte';
-	import { FORM_ROUTES, TAB_ROUTES } from '$lib/form-routes';
-	import favicon from '$lib/assets/favicon.svg';
-	import { Toaster } from '$lib/components/ui/sonner/index.js';
-	import NavProgress from '$lib/components/NavProgress.svelte';
+	import { drawers } from '#lib/drawer-open.svelte.ts';
+	import { track, transitionOf } from '#lib/nav-stack.svelte.ts';
+	import { FORM_ROUTES, TAB_ROUTES } from '#lib/form-routes.ts';
+	import favicon from '#lib/assets/favicon.svg';
+	import { Toaster } from '#lib/components/ui/sonner/index.js';
+	import NavProgress from '#lib/components/NavProgress.svelte';
 
 	let { children } = $props();
 
@@ -17,13 +17,17 @@
 
 	// The last popstate was already animated by the browser (iOS swipe-back): don't animate it twice.
 	let uaAnimatedPop = false;
+
 	const onpopstate = (e: PopStateEvent) =>
 		(uaAnimatedPop =
 			(e as PopStateEvent & { hasUAVisualTransition?: boolean }).hasUAVisualTransition === true);
 
 	// Page transitions (View Transitions API): the direction goes on <html> for the CSS in app.css.
 	onNavigate((nav) => {
+		if (nav.shallow && nav.type === 'goto') return;
+
 		const kind = transitionOf(nav);
+
 		if (
 			!kind ||
 			!document.startViewTransition ||
@@ -31,6 +35,7 @@
 			matchMedia('(prefers-reduced-motion: reduce)').matches
 		)
 			return;
+
 		document.documentElement.dataset.navTransition = kind;
 		return new Promise<void>((resolve) => {
 			document.startViewTransition(async () => {
@@ -56,12 +61,8 @@
 <svelte:window {onpopstate} />
 
 <!-- iOS Safari only applies :active (pressed rows and buttons) when the page listens to touches. -->
-<svelte:document ontouchstart={() => {}} />
-
-<svelte:head>
-	<link rel="icon" href={favicon} />
-</svelte:head>
-
+<svelte:document ontouchstart={() => {}}></svelte:document>
+<svelte:head><link rel="icon" href={favicon} /></svelte:head>
 <NavProgress />
 
 {@render children()}

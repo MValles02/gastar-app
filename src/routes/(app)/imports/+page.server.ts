@@ -6,21 +6,21 @@ import {
 	listAutoApproved,
 	listPendingImports,
 	undoApproval
-} from '$lib/server/import-queries';
-import { importSource } from '$lib/server/import-sources';
-import { getGaliciaConnection } from '$lib/server/galicia';
-import { getConnectionInfo, getMpImportAccount, mpOauthEnabled } from '$lib/server/mp-oauth';
-import { getSyncState, leaseActive, startMpSync } from '$lib/server/mp-sync';
-import { dayHeading, localDay } from '$lib/server/month';
-import { isUuid } from '$lib/server/db/util';
-import { pgErrorCode } from '$lib/server/db/errors';
+} from '#lib/server/import-queries.ts';
+import { importSource } from '#lib/server/import-sources.ts';
+import { getGaliciaConnection } from '#lib/server/galicia.ts';
+import { getConnectionInfo, getMpImportAccount, mpOauthEnabled } from '#lib/server/mp-oauth.ts';
+import { getSyncState, leaseActive, startMpSync } from '#lib/server/mp-sync.ts';
+import { dayHeading, localDay } from '#lib/server/month.ts';
+import { isUuid } from '#lib/server/db/util.ts';
+import { pgErrorCode } from '#lib/server/db/errors.ts';
 import {
 	approveSuggestedImports,
 	approveSuggestion,
 	counterAccountsOf,
 	suggestionContext
-} from '$lib/server/import-approve';
-import { requireUser } from '$lib/server/guards';
+} from '#lib/server/import-approve.ts';
+import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** "Recién", "Hace 5 min", "Hace 2 h", "Hace 3 d". */

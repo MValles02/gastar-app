@@ -1,5 +1,5 @@
 <script lang="ts">
-	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
+	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import DeleteForm from './DeleteForm.svelte';
 	import type { PageData } from './$types';
 

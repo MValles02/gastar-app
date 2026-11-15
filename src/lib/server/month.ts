@@ -1,5 +1,5 @@
-import { DAY_MS, dayOfMonth, MONTH_RE } from '$lib/dates';
-import { APP_TZ, formatDay, LOCALE } from '$lib/locale';
+import { DAY_MS, dayOfMonth, MONTH_RE } from '#lib/dates.ts';
+import { APP_TZ, formatDay, LOCALE } from '#lib/locale.ts';
 
 const DAY_RE = /^(\d{4}-(?:0[1-9]|1[0-2]))-\d{2}$/;
 

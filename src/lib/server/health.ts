@@ -1,4 +1,4 @@
-import { db } from '$lib/server/db';
+import { db } from '#lib/server/db/index.ts';
 import { sql } from 'drizzle-orm';
 
 /** Resolves when the database answers a trivial query, rejects otherwise. */

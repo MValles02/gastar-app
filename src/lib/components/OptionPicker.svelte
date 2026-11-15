@@ -2,13 +2,13 @@
 	import { onMount, tick, type ComponentProps, type Snippet } from 'svelte';
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import type { SwatchKey } from '$lib/appearance';
+	import type { SwatchKey } from '#lib/appearance.ts';
 	import BottomDrawer from './BottomDrawer.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Item from '$lib/components/ui/item/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Item from '#lib/components/ui/item/index.js';
 	import IconBadge from './IconBadge.svelte';
 	import Money from './Money.svelte';
-	import type { Currency } from '$lib/money';
+	import type { Currency } from '#lib/money.ts';
 
 	type Item = {
 		id: string;

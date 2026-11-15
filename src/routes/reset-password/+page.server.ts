@@ -1,8 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
-import { PASSWORD_MIN_MESSAGE } from '$lib/fields';
-import { auth } from '$lib/server/auth';
-import { isValidPasswordLength } from '$lib/server/auth-forms';
+import { PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
+import { auth } from '#lib/server/auth.ts';
+import { isValidPasswordLength } from '#lib/server/auth-forms.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ url }) => {

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import * as Field from '$lib/components/ui/field/index.js';
-	import { Switch } from '$lib/components/ui/switch/index.js';
+	import * as Field from '#lib/components/ui/field/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
 
 	/** Form row: label on the left, switch at the end. Posts `name=value` when on. */
 	let {

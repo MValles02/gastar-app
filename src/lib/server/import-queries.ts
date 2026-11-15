@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gt, inArray, isNotNull, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { APP_TZ, formatDay, LOCALE } from '$lib/locale';
+import { APP_TZ, formatDay, LOCALE } from '#lib/locale.ts';
 import { db } from './db';
 import {
 	categories,
@@ -11,7 +11,7 @@ import {
 	mpSyncState
 } from './db/schema';
 import { canAccessAccount, canAccessMovement, canAccessOwn, userOwned } from './access';
-import { kindFits, type MovementType } from '$lib/movement';
+import { kindFits, type MovementType } from '#lib/movement.ts';
 import type { MovementRow } from './movements/form';
 import { createMovement, deleteMovement } from './movements/queries';
 import { importSource, kindSpec } from './import-sources';
