@@ -1,9 +1,9 @@
 import { isPlanSaved } from '#lib/toast-flags.ts';
-import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { accountSummary } from '#lib/server/accounts/queries.ts';
 import { deletePlan } from '#lib/server/plan/queries.ts';
 import { planView, recurringLists } from '#lib/server/plan/month-plan.ts';
+import { toPlan } from '#lib/server/plan/guard.ts';
 import { requireUser } from '#lib/server/guards.ts';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -20,6 +20,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 export const actions: Actions = {
 	delete: async ({ locals }) => {
 		await deletePlan(requireUser(locals).id);
-		redirect(303, '/plan');
+		toPlan();
 	}
 };

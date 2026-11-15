@@ -6,7 +6,7 @@
 	import { swatchVar } from '#lib/appearance.ts';
 	import { formatAmountInput, formatMoney } from '#lib/money.ts';
 	import { navigateUp, upOnClick } from '#lib/nav-stack.svelte.ts';
-	import { limitPace, PLAN_STATUS_LABEL, PLAN_TONE } from '#lib/plan.ts';
+	import { limitPace, limitPercent, PLAN_STATUS_LABEL, PLAN_TONE } from '#lib/plan.ts';
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import IconBadge from '#lib/components/IconBadge.svelte';
@@ -50,7 +50,7 @@
 	const amountText = $derived(cents === null ? data.amount : formatAmountInput(cents, currency));
 	const limit = $derived(cents ?? data.progress?.amount ?? 0);
 	const pace = $derived(limitPace(spent, limit, data.elapsedShare));
-	const pct = $derived(limit > 0 ? Math.min(100, Math.floor((spent * 100) / limit)) : 0);
+	const pct = $derived(Math.min(100, limitPercent(spent, limit)));
 
 	let error = $state('');
 

@@ -3,37 +3,34 @@ import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { parseStep } from '#lib/plan-wizard.ts';
 import { listAccounts } from '#lib/server/accounts/queries.ts';
-import { listCategories } from '#lib/server/categories/queries.ts';
 import { currentMonth } from '#lib/server/month.ts';
 import { PLAN_CURRENCY } from '#lib/plan.ts';
 import {
 	currentPlan,
 	planIncome,
-	planLimits,
 	updatePlan,
 	upsertLimits,
 	upsertPlan
 } from '#lib/server/plan/queries.ts';
 import {
+	limitCandidates,
 	limitSuggestions,
 	planView,
 	recurringLists,
 	recurringSuggestions,
 	savingsBaseline
 } from '#lib/server/plan/month-plan.ts';
+import { toPlan } from '#lib/server/plan/guard.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import { parseSavingsForm } from '#lib/server/plan/savings-form.ts';
 
-/** Suggested limits the wizard can apply: active non-income categories with no limit yet and a suggestion above zero. */
+/** Suggested limits the wizard can apply: limit candidates with a suggestion above zero. */
 async function applicableSuggestions(userId: string, planId: string | null) {
-	const [categories, suggestions, limits] = await Promise.all([
-		listCategories(userId),
-		limitSuggestions(userId),
-		planId ? planLimits(userId, planId) : []
+	const [categories, suggestions] = await Promise.all([
+		limitCandidates(userId, planId),
+		limitSuggestions(userId)
 	]);
-	const limited = new Set(limits.map((l) => l.categoryId));
 	return categories
-		.filter((c) => c.kind !== 'income' && !limited.has(c.id))
 		.map((c) => {
 			const avg = suggestions.get(c.id);
 			// The pesos average wins; with no pesos spending the limit is in dollars.
@@ -43,60 +40,55 @@ async function applicableSuggestions(userId: string, planId: string | null) {
 		.filter((l) => l.amount > 0);
 }
 
-type Summary = NonNullable<Awaited<ReturnType<typeof planView>>['summary']>;
-
+/** One shape per step, told apart by `step`. */
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
 	const param = parseStep(url.searchParams.get('step'));
 	const step = param ?? 1;
 
 	const [accounts, plan] = await Promise.all([listAccounts(userId), currentPlan(userId)]);
-	if (accounts.length === 0) redirect(303, '/plan');
-	if (!param && plan) redirect(303, '/plan');
+	if (accounts.length === 0) toPlan();
+	if (!param && plan) toPlan();
 	if (step >= 4 && !plan) redirect(303, '/plan/setup?step=3');
 
-	// One shape for every step (SvelteKit turns a union of returns into optional fields).
-	const none = {
-		active: [] as Awaited<ReturnType<typeof recurringLists>>['incomes'],
-		inactive: [] as Awaited<ReturnType<typeof recurringLists>>['inactive'],
-		income: 0,
-		savingsBase: { base: 0, daysLeft: 1 },
-		savings: { savings: plan?.savings ?? 0, savingsPercent: plan?.savingsPercent ?? null },
-		suggestions: [] as Awaited<ReturnType<typeof recurringSuggestions>>,
-		limits: [] as Summary['limits'],
-		canSuggest: false,
-		summary: null as Summary | null,
-		monthName: '',
-		repeats: true
-	};
-	const base = { ...none, step };
-	if (step <= 2) {
+	if (step === 1 || step === 2) {
 		const [lists, suggestions] = await Promise.all([
 			recurringLists(userId),
 			step === 2 ? recurringSuggestions(userId) : []
 		]);
 		const type = step === 1 ? 'income' : 'outcome';
+		const active = step === 1 ? lists.incomes : lists.outcomes;
 		return {
-			...base,
-			active: step === 1 ? lists.incomes : lists.outcomes,
+			step,
+			active,
 			inactive: lists.inactive.filter((r) => r.type === type),
-			suggestions
+			suggestions,
+			// In plan pesos: ARS as is, USD at the plan rate (left out without one).
+			total: active.reduce(
+				(a, r) => a + (r.currency === PLAN_CURRENCY ? r.amount : (r.converted ?? 0)),
+				0
+			)
 		};
 	}
 	if (step === 3) {
 		const [income, savingsBase] = await Promise.all([planIncome(userId), savingsBaseline(userId)]);
-		return { ...base, income, savingsBase };
+		return {
+			step,
+			income,
+			savingsBase,
+			savings: { savings: plan?.savings ?? 0, savingsPercent: plan?.savingsPercent ?? null }
+		};
 	}
 
 	const view = await planView(userId);
 	const summary = view.summary!;
 	if (step === 4)
 		return {
-			...base,
+			step,
 			limits: summary.limits,
 			canSuggest: (await applicableSuggestions(userId, plan!.id)).length > 0
 		};
-	return { ...base, summary, monthName: view.monthName, repeats: plan!.month === null };
+	return { step, summary, monthName: view.monthName, repeats: plan!.month === null };
 };
 
 export const actions: Actions = {

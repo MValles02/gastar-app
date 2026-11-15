@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { toIconKey } from '#lib/appearance.ts';
-import { inactiveReason, isRecurringActive } from '#lib/plan.ts';
+import { cannotRegister, inactiveReason, isRecurringActive } from '#lib/plan.ts';
 import { parseStep, planReturn } from '#lib/plan-wizard.ts';
 import {
 	deleteRecurring,
@@ -26,18 +26,6 @@ async function findRule(userId: string, id: string) {
 	const [rule] = await getRecurring(userId, id);
 	if (!rule) notFound();
 	return rule;
-}
-
-/** Why the rule does not count in the plan now; null when it does (or when it is deactivated). */
-function cannotRegister(r: {
-	archivedAt: Date | null;
-	accountArchivedAt: Date | null;
-	categoryArchivedAt: Date | null;
-}) {
-	if (r.archivedAt) return null;
-	if (r.accountArchivedAt) return 'No cuenta en el plan mientras la cuenta esté archivada.';
-	if (r.categoryArchivedAt) return 'No cuenta en el plan mientras la categoría esté archivada.';
-	return null;
 }
 
 /** The rule as the detail shows it (the load without `wizard`; what `update` returns). */

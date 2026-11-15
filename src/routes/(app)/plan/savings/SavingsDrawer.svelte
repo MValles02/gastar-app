@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { currentMonthName } from '#lib/locale.ts';
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
+	import { PLAN_CURRENCY } from '#lib/plan.ts';
 	import SavingsOptions from '../SavingsOptions.svelte';
 	import type { PageData } from './$types';
 
@@ -14,6 +15,8 @@
 	<div class="body">
 		<SavingsOptions
 			mode="autosave"
+			path="/plan/savings?/update"
+			currency={PLAN_CURRENCY}
 			income={data.income}
 			initial={data}
 			base={data.base}

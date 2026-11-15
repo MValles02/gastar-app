@@ -12,7 +12,7 @@
 	<RateForm
 		variant="drawer"
 		initial={data.amount}
-		manual={data.rate.manual}
+		manual={data.manual}
 		hasTransfer={data.hasTransfer}
 		onsaved={closeAfterSave(onclose, 'Cotización guardada.')}
 		{onclose}
