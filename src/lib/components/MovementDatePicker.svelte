@@ -4,10 +4,10 @@
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import BottomDrawer from './BottomDrawer.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Calendar } from '$lib/components/ui/calendar/index.js';
-	import * as Item from '$lib/components/ui/item/index.js';
-	import { APP_TZ, formatDay } from '$lib/locale';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Calendar } from '#lib/components/ui/calendar/index.js';
+	import * as Item from '#lib/components/ui/item/index.js';
+	import { APP_TZ, formatDay } from '#lib/locale.ts';
 
 	/**
 	 * Movement date row. The drawer lists Hoy and Ayer (one tap picks and closes) and "Otra fecha", which

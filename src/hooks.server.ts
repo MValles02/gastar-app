@@ -1,14 +1,14 @@
-import { isRedirect, redirect, type Handle, type ServerInit } from '@sveltejs/kit';
+import { isRedirect, redirect } from '@sveltejs/kit';
+import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
-import { building } from '$app/environment';
-import { env } from '$env/dynamic/private';
-import { auth } from '$lib/server/auth';
-import { checkEnv } from '$lib/server/env-check';
-import { startMpScheduler } from '$lib/server/mp-scheduler';
-import { themeColors } from '$lib/theme';
-import { THEME_COOKIE } from '$lib/server/cookies';
+import { building } from '$app/env';
+import { auth } from '#lib/server/auth.ts';
+import { checkEnv } from '#lib/server/env-check.ts';
+import { startMpScheduler } from '#lib/server/mp-scheduler.ts';
+import { themeColors } from '#lib/theme.ts';
+import { THEME_COOKIE } from '#lib/server/cookies.ts';
 
-if (!building && process.env.NODE_ENV === 'production') checkEnv(env);
+if (!building && process.env.NODE_ENV === 'production') checkEnv(process.env);
 
 export const init: ServerInit = () => {
 	if (!building) startMpScheduler();

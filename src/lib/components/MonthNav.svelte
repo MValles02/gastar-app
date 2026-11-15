@@ -1,8 +1,8 @@
 <script lang="ts">
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { markReplace } from '$lib/nav-stack.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { markReplace } from '#lib/nav-stack.svelte.ts';
 
 	/** "‹ Mes ›" stepper; `nextHref` is null on the current month, which disables the forward arrow. */
 	let { label, prevHref, nextHref }: { label: string; prevHref: string; nextHref: string | null } =

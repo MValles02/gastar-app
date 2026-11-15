@@ -2,10 +2,10 @@
 	import { onMount, type Snippet } from 'svelte';
 	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import { page } from '$app/state';
-	import { markReplace } from '$lib/nav-stack.svelte';
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as InputGroup from '$lib/components/ui/input-group/index.js';
+	import { markReplace } from '#lib/nav-stack.svelte.ts';
+	import { Badge } from '#lib/components/ui/badge/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as InputGroup from '#lib/components/ui/input-group/index.js';
 	import Icon from './Icon.svelte';
 
 	/**
@@ -53,7 +53,7 @@
 <form
 	method="GET"
 	class="search"
-	data-sveltekit-keepfocus
+	data-sveltekit-reset="false"
 	data-sveltekit-replacestate
 	bind:this={searchForm}
 	onsubmit={() => markReplace()}

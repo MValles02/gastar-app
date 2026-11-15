@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
 	import type { ComponentProps } from 'svelte';
-	import { swatchVar, type SwatchKey } from '$lib/appearance';
+	import { swatchVar, type SwatchKey } from '#lib/appearance.ts';
 
 	let {
 		icon,

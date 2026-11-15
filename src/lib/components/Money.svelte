@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { Currency } from '$lib/money';
-	import { formatMoney } from '$lib/money';
+	import type { Currency } from '#lib/money.ts';
+	import { formatMoney } from '#lib/money.ts';
 
 	/**
 	 * Amount with the decimals dimmed ("US$1.250" + ",50"). Font size and weight come from the parent.

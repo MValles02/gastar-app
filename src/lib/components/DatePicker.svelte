@@ -3,9 +3,9 @@
 	import { CalendarDate, parseDate } from '@internationalized/date';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import BottomDrawer from './BottomDrawer.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Calendar } from '$lib/components/ui/calendar/index.js';
-	import { formatDay } from '$lib/locale';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Calendar } from '#lib/components/ui/calendar/index.js';
+	import { formatDay } from '#lib/locale.ts';
 
 	let {
 		name,

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { upOnClick } from '$lib/nav-stack.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { upOnClick } from '#lib/nav-stack.svelte.ts';
 
 	/**
 	 * Cancel and primary action side by side (50/50), pinned to the bottom of the viewport. The primary
@@ -35,8 +35,8 @@
 
 {#snippet cancel()}
 	<Button
-		href={resolve(cancelHref as '/')}
-		onclick={upOnClick(resolve(cancelHref as '/'))}
+		href={resolve(cancelHref as '')}
+		onclick={upOnClick(resolve(cancelHref as ''))}
 		variant="outline"
 		class="h-auto min-h-[50px] min-w-0 flex-1 basis-0 whitespace-normal">{cancelLabel}</Button
 	>
@@ -67,7 +67,7 @@
 			<div class="half">{@render primary()}</div>
 		{:else if submitHref}
 			<Button
-				href={resolve(submitHref as '/')}
+				href={resolve(submitHref as '')}
 				class="h-auto min-h-[50px] min-w-0 flex-1 basis-0 whitespace-normal">{submitLabel}</Button
 			>
 		{:else}

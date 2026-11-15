@@ -1,4 +1,4 @@
-import type { auth } from '$lib/server/auth';
+import type { auth } from '#lib/server/auth.ts';
 import type { DrawerStates } from './routes/(app)/drawers';
 
 type Session = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;

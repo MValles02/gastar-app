@@ -12,7 +12,7 @@ export const IMPORT_EMAIL = 'importa@gastar.local';
 /** Fourth seeded user, same password: ARS "Caja pesos" and USD "Caja dólares", for the Banco Galicia statements. */
 export const GALICIA_EMAIL = 'galicia@gastar.local';
 
-/** The app time zone (`TZ` in src/lib/server/month.ts, which is not importable here: it uses `$lib`). */
+/** The app time zone (`TZ` in src/lib/server/month.ts, which is not importable here: it uses `#lib`). */
 const APP_TZ = 'America/Argentina/Buenos_Aires';
 
 export const PHONE = { width: 390, height: 844 };

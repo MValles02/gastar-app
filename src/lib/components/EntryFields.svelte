@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
+	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
 
 	/**
 	 * The fields shared by the movement and recurring forms: a labelled Descripción input, then one card

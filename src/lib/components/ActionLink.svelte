@@ -9,7 +9,7 @@
 	}: { href: string; label?: string; onclick?: (e: MouseEvent) => void } = $props();
 </script>
 
-<a class="action" href={resolve(href as '/')} {onclick}
+<a class="action" href={resolve(href as '')} {onclick}
 	>{#if label === 'Agregar'}<span aria-hidden="true">+&nbsp;</span>{/if}{label}</a
 >
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
-	import type { AccountIconKey, CategoryIconKey } from '$lib/appearance';
+	import type { AccountIconKey, CategoryIconKey } from '#lib/appearance.ts';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
