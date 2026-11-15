@@ -4,10 +4,10 @@
 	import { resolve } from '$app/paths';
 	import { thisMonth } from '#lib/dates.ts';
 	import { replaceGoto } from '#lib/nav-stack.svelte.ts';
-	import BottomDrawer from './BottomDrawer.svelte';
-	import DateRangePicker from './DateRangePicker.svelte';
-	import MultiPicker from './MultiPicker.svelte';
-	import SegmentedControl from './SegmentedControl.svelte';
+	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
+	import DateRangePicker from '#lib/components/pickers/DateRangePicker.svelte';
+	import MultiPicker from '#lib/components/pickers/MultiPicker.svelte';
+	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 
 	type Picks = ComponentProps<typeof MultiPicker>['items'];

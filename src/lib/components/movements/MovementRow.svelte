@@ -4,8 +4,8 @@
 	import type { CategoryIconKey, SwatchKey } from '#lib/appearance.ts';
 	import { highlight } from '#lib/highlight.svelte.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
-	import ListRow from './ListRow.svelte';
-	import Money from './Money.svelte';
+	import ListRow from '#lib/components/ListRow.svelte';
+	import Money from '#lib/components/Money.svelte';
 
 	let {
 		m,

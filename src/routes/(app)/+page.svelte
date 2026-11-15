@@ -14,8 +14,8 @@
 	import Meter from '#lib/components/Meter.svelte';
 	import Money from '#lib/components/Money.svelte';
 	import HeroAmount from '#lib/components/HeroAmount.svelte';
-	import MovementRow from '#lib/components/MovementRow.svelte';
-	import MpPill from '#lib/components/MpPill.svelte';
+	import MovementRow from '#lib/components/movements/MovementRow.svelte';
+	import MpPill from './MpPill.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import { PLAN_TONE } from '#lib/plan.ts';

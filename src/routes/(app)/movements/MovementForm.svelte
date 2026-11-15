@@ -6,14 +6,14 @@
 	import { untrack, type ComponentProps } from 'svelte';
 	import Plus from '@lucide/svelte/icons/plus';
 	import { resolve } from '$app/paths';
-	import AmountHero from '#lib/components/AmountHero.svelte';
+	import AmountInput from '#lib/components/AmountInput.svelte';
 	import CategoryCreateDrawer from '#lib/components/categories/CategoryCreateDrawer.svelte';
 	import type { CreatedCategory } from '#lib/components/categories/CategoryForm.svelte';
 	import EntryFields from '#lib/components/EntryFields.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import CrossCurrencyRows from '#lib/components/movements/CrossCurrencyRows.svelte';
-	import MovementDatePicker from '#lib/components/MovementDatePicker.svelte';
-	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import DatePicker from '#lib/components/pickers/DatePicker.svelte';
+	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import SwitchRow from '#lib/components/SwitchRow.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import TextRow from '#lib/components/TextRow.svelte';
@@ -246,7 +246,7 @@
 			{#if shown.type}<p class="error" role="alert">{shown.type}</p>{/if}
 		</div>
 
-		<AmountHero
+		<AmountInput
 			bind:value={amount}
 			currency={originCurrency}
 			error={shown.amount}
@@ -372,7 +372,8 @@
 
 			{#snippet when()}
 				<li class:bad={shown.occurredAt}>
-					<MovementDatePicker
+					<DatePicker
+						presets
 						name="occurredAt"
 						label="Fecha"
 						min={MIN_DAY}

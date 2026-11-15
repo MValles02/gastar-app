@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { isPositiveAmount } from '#lib/money.ts';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
-	import AmountHero from '#lib/components/AmountHero.svelte';
+	import AmountInput from '#lib/components/AmountInput.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 
 	/**
@@ -50,7 +50,7 @@
 	style="--form-gap: var(--space-3); --form-pb: var(--space-3)"
 >
 	<p class="label">1 USD =</p>
-	<AmountHero bind:value={rate} currency="ARS" name="rate" id="rrate" error={shown} />
+	<AmountInput bind:value={rate} currency="ARS" name="rate" id="rrate" error={shown} />
 	{#if manual && hasTransfer}
 		<Button
 			type="submit"

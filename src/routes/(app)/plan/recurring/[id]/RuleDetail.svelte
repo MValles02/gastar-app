@@ -7,10 +7,10 @@
 	import { dueTone } from '#lib/plan.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
-	import DayOfMonthPicker from '#lib/components/DayOfMonthPicker.svelte';
+	import DayOfMonthPicker from '#lib/components/pickers/DayOfMonthPicker.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
 	import Money from '#lib/components/Money.svelte';
-	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import type { PageData } from './$types';

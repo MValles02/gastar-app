@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { untrack, type ComponentProps } from 'svelte';
 	import { resolve } from '$app/paths';
-	import AmountHero from '#lib/components/AmountHero.svelte';
-	import DayOfMonthPicker from '#lib/components/DayOfMonthPicker.svelte';
+	import AmountInput from '#lib/components/AmountInput.svelte';
+	import DayOfMonthPicker from '#lib/components/pickers/DayOfMonthPicker.svelte';
 	import EntryFields from '#lib/components/EntryFields.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
-	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
 	import { isPositiveAmount } from '#lib/money.ts';
@@ -158,7 +158,7 @@
 		{#if shown.type}<p class="error" role="alert">{shown.type}</p>{/if}
 	</div>
 
-	<AmountHero
+	<AmountInput
 		bind:value={amount}
 		{currency}
 		error={shown.amount}

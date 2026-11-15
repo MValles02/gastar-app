@@ -3,8 +3,8 @@
 	import { resolve } from '$app/paths';
 	import { formatAmountInput, formatMoney, isPositiveAmount, type Currency } from '#lib/money.ts';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
-	import OptionPicker from '#lib/components/OptionPicker.svelte';
-	import AmountHero from '#lib/components/AmountHero.svelte';
+	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
+	import AmountInput from '#lib/components/AmountInput.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 
@@ -96,7 +96,7 @@
 		{#if shown.currency}<p class="error" role="alert">{shown.currency}</p>{/if}
 	</div>
 
-	<AmountHero bind:value={amount} {currency} error={shown.amount} id="lamount" />
+	<AmountInput bind:value={amount} {currency} error={shown.amount} id="lamount" />
 
 	{#if suggested > 0}
 		<Button
