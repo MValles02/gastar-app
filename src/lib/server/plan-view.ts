@@ -12,7 +12,7 @@ import {
 } from '$lib/plan';
 import { listAccounts } from './accounts-queries';
 import { listCategories } from './categories-queries';
-import { memoPerRequest } from './dashboard-queries';
+import { memoPerRequest } from './request-memo';
 import {
 	currentMonth,
 	HISTORY_MONTHS,
@@ -47,8 +47,7 @@ import {
  * Shared by the loads of one request; never call it from a form action.
  * `summary` is always computed: without a plan it has no savings and no limits (`hasPlan` tells).
  */
-export const monthPlan = (userId: string) =>
-	memoPerRequest(`plan:${userId}`, () => computeMonthPlan(userId));
+export const monthPlan = memoPerRequest('plan', computeMonthPlan);
 
 export type MonthPlan = Awaited<ReturnType<typeof computeMonthPlan>>;
 

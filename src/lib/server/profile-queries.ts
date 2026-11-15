@@ -1,12 +1,6 @@
 import { and, count, eq, isNull, sql, type SQLWrapper } from 'drizzle-orm';
 import { db } from './db';
-import {
-	canAccessAccount,
-	canAccessCategory,
-	canAccessMovement,
-	canAccessPlan,
-	canAccessRecurring
-} from './access';
+import { canAccessAccount, canAccessMovement, canAccessOwn } from './access';
 import {
 	categories,
 	financialAccounts,
@@ -37,7 +31,7 @@ export async function profileCounts(userId: string) {
 		categories: db
 			.select({ n: count() })
 			.from(categories)
-			.where(and(canAccessCategory(userId), isNull(categories.archivedAt)))
+			.where(and(canAccessOwn(userId, categories), isNull(categories.archivedAt)))
 	});
 	return row;
 }
@@ -46,14 +40,17 @@ export async function profileCounts(userId: string) {
 export async function deletionSummary(userId: string) {
 	const row = await counts({
 		accounts: db.select({ n: count() }).from(financialAccounts).where(canAccessAccount(userId)),
-		categories: db.select({ n: count() }).from(categories).where(canAccessCategory(userId)),
+		categories: db.select({ n: count() }).from(categories).where(canAccessOwn(userId, categories)),
 		movements: db
 			.select({ n: count() })
 			.from(movements)
 			.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
 			.where(canAccessMovement(userId)),
-		rules: db.select({ n: count() }).from(recurringMovements).where(canAccessRecurring(userId)),
-		plans: db.select({ n: count() }).from(spendingPlans).where(canAccessPlan(userId))
+		rules: db
+			.select({ n: count() })
+			.from(recurringMovements)
+			.where(canAccessOwn(userId, recurringMovements)),
+		plans: db.select({ n: count() }).from(spendingPlans).where(canAccessOwn(userId, spendingPlans))
 	});
 	return {
 		accounts: row.accounts,

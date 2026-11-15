@@ -3,7 +3,7 @@ import { formFail } from '$lib/form';
 import type { Actions } from './$types';
 import { parseAccountForm } from '$lib/server/accounts';
 import { createAccount } from '$lib/server/accounts-queries';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 
 export const actions: Actions = {
 	default: async ({ request, locals }) => {

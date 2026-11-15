@@ -7,7 +7,7 @@ import { parseLimitAmount, planReturn } from '$lib/plan-wizard';
 import { listCategories } from '$lib/server/categories-queries';
 import { currentPlan, planLimits, PlanRejected, upsertLimits } from '$lib/server/plan-queries';
 import { limitSuggestions } from '$lib/server/plan-view';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 
 /** Active expense (or both) categories that have no limit yet. */
 async function offered(userId: string, planId: string) {

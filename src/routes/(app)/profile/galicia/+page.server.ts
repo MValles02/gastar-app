@@ -14,7 +14,7 @@ import {
 } from '$lib/server/galicia-statement';
 import { pgErrorCode } from '$lib/server/db/errors';
 import { isBlocked, record } from '$lib/server/rate-limit';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 import type { Actions, PageServerLoad } from './$types';
 
 /** Upload cap; the real statements are well under 1 MB. BODY_SIZE_LIMIT (Dockerfile) sits above it. */

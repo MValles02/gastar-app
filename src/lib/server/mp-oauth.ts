@@ -1,12 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import { and, eq, isNotNull, isNull, lt, min } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
-import {
-	canAccessAccount,
-	canAccessImport,
-	canAccessMpConnection,
-	mpConnectionOwnedBy
-} from './access';
+import { canAccessAccount, canAccessOwn, userOwned } from './access';
 import { db } from './db';
 import { financialAccounts, mpConnections, mpImportItems, mpSyncState } from './db/schema';
 import { mpApiBaseUrl } from './mp-env';
@@ -148,7 +143,7 @@ export async function exchangeCode(
 	};
 	await db
 		.insert(mpConnections)
-		.values({ ...mpConnectionOwnedBy(userId), ...tokens })
+		.values({ ...userOwned(userId), ...tokens })
 		.onConflictDoUpdate({ target: mpConnections.userId, set: tokens })
 		.returning({ accountId: mpConnections.accountId })
 		.then(async ([row]) => {
@@ -176,7 +171,7 @@ export async function refreshConnection(userId: string): Promise<RefreshOutcome>
 	const [conn] = await db
 		.select({ refreshToken: mpConnections.refreshToken })
 		.from(mpConnections)
-		.where(canAccessMpConnection(userId))
+		.where(canAccessOwn(userId, mpConnections))
 		.limit(1);
 	if (!conn) return 'reconnect';
 	const reconnect = async (): Promise<RefreshOutcome> => {
@@ -185,7 +180,7 @@ export async function refreshConnection(userId: string): Promise<RefreshOutcome>
 			.set({ needsReconnect: true })
 			.where(
 				and(
-					canAccessMpConnection(userId),
+					canAccessOwn(userId, mpConnections),
 					// Same condition as the success path: a concurrent relink or refresh is not re-flagged.
 					conn.refreshToken
 						? eq(mpConnections.refreshToken, conn.refreshToken)
@@ -213,7 +208,9 @@ export async function refreshConnection(userId: string): Promise<RefreshOutcome>
 			expiresAt: grant.expiresAt,
 			needsReconnect: false
 		})
-		.where(and(canAccessMpConnection(userId), eq(mpConnections.refreshToken, conn.refreshToken)));
+		.where(
+			and(canAccessOwn(userId, mpConnections), eq(mpConnections.refreshToken, conn.refreshToken))
+		);
 	return 'ok';
 }
 
@@ -235,7 +232,7 @@ export async function getConnectionInfo(userId: string): Promise<MpConnectionInf
 		})
 		.from(mpConnections)
 		.leftJoin(financialAccounts, eq(financialAccounts.id, mpConnections.accountId))
-		.where(canAccessMpConnection(userId))
+		.where(canAccessOwn(userId, mpConnections))
 		.limit(1);
 	return row ?? null;
 }
@@ -263,7 +260,7 @@ export async function getAccessToken(userId: string) {
 	const [row] = await db
 		.select({ accessToken: mpConnections.accessToken, expiresAt: mpConnections.expiresAt })
 		.from(mpConnections)
-		.where(canAccessMpConnection(userId))
+		.where(canAccessOwn(userId, mpConnections))
 		.limit(1);
 	if (!row) return null;
 	try {
@@ -272,7 +269,9 @@ export async function getAccessToken(userId: string) {
 		await db
 			.update(mpConnections)
 			.set({ needsReconnect: true })
-			.where(and(canAccessMpConnection(userId), eq(mpConnections.accessToken, row.accessToken)));
+			.where(
+				and(canAccessOwn(userId, mpConnections), eq(mpConnections.accessToken, row.accessToken))
+			);
 		return null;
 	}
 }
@@ -312,7 +311,7 @@ export async function setReceivingAccount(userId: string, accountId: string): Pr
 	const rows = await db
 		.update(mpConnections)
 		.set({ accountId })
-		.where(canAccessMpConnection(userId))
+		.where(canAccessOwn(userId, mpConnections))
 		.returning({ userId: mpConnections.userId });
 	return rows.length > 0;
 }
@@ -322,24 +321,27 @@ export async function getImportFromDay(userId: string, accountId: string): Promi
 	const [row] = await db
 		.select({ chosen: mpConnections.importFrom })
 		.from(mpConnections)
-		.where(canAccessMpConnection(userId))
+		.where(canAccessOwn(userId, mpConnections))
 		.limit(1);
 	if (row?.chosen) return localDay(row.chosen);
 	const [first] = await db
 		.select({ at: min(mpImportItems.occurredAt) })
 		.from(mpImportItems)
-		.where(and(canAccessImport(userId), eq(mpImportItems.accountId, accountId)));
+		.where(and(canAccessOwn(userId, mpImportItems), eq(mpImportItems.accountId, accountId)));
 	return localDay(first?.at ?? new Date(Date.now() - DEFAULT_BACKFILL_DAYS * DAY_MS));
 }
 
 /** Saves "importar desde" and drops the pending items of the account before it (approved and rejected ones stay). */
 export async function setImportFrom(userId: string, accountId: string, from: Date): Promise<void> {
-	await db.update(mpConnections).set({ importFrom: from }).where(canAccessMpConnection(userId));
+	await db
+		.update(mpConnections)
+		.set({ importFrom: from })
+		.where(canAccessOwn(userId, mpConnections));
 	await db
 		.delete(mpImportItems)
 		.where(
 			and(
-				canAccessImport(userId),
+				canAccessOwn(userId, mpImportItems),
 				eq(mpImportItems.accountId, accountId),
 				eq(mpImportItems.status, 'pending'),
 				lt(mpImportItems.occurredAt, from)
@@ -349,5 +351,5 @@ export async function setImportFrom(userId: string, accountId: string, from: Dat
 
 /** Deletes the connection. Items, rules and sync state stay. */
 export async function deleteConnection(userId: string): Promise<void> {
-	await db.delete(mpConnections).where(canAccessMpConnection(userId));
+	await db.delete(mpConnections).where(canAccessOwn(userId, mpConnections));
 }

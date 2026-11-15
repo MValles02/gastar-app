@@ -4,7 +4,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { PLAN_CURRENCY } from '$lib/plan';
 import { currentPlan, planIncome, updatePlan } from '$lib/server/plan-queries';
 import { savingsBaseline } from '$lib/server/plan-view';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 import { parseSavingsForm } from './form.server';
 
 export const load: PageServerLoad = async ({ locals }) => {

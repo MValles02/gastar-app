@@ -1,19 +1,6 @@
-import {
-	and,
-	desc,
-	eq,
-	gte,
-	inArray,
-	isNotNull,
-	isNull,
-	lt,
-	lte,
-	ne,
-	sql,
-	type SQL
-} from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, lte, ne, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { db } from './db';
+import { db, type DbExecutor } from './db';
 import {
 	categories,
 	financialAccounts,
@@ -22,37 +9,34 @@ import {
 	recurringMovements,
 	spendingPlans
 } from './db/schema';
+import { appTz, exists, inRange, localMonth, type Range } from './db/sql';
 import {
 	canAccessAccount,
-	canAccessCategory,
 	canAccessMovement,
-	canAccessPlan,
-	canAccessRecurring,
+	canAccessOwn,
 	movementOwnedBy,
-	planOwnedBy,
-	recurringOwnedBy
+	userOwned
 } from './access';
 import { dayOfMonth } from '$lib/dates';
-import { APP_TZ } from '$lib/locale';
 import { CURRENCIES, roundToStep, type Currency } from '$lib/money';
 import { PLAN_CURRENCY } from '$lib/plan';
 import type { MovementRow } from './movements';
-import type { DbExecutor } from './movements-queries';
 import type { MovementType } from '$lib/movement';
 import { currentMonth, daysInMonth, HISTORY_MONTHS, localDay, monthRange } from './month';
 import { activeTotal, isCurrentPlan, normalizeDescription, toPlan } from './plan';
 
-type Range = { start: Date; end: Date };
-
-const occurredIn = (range: Range) =>
-	and(gte(movements.occurredAt, range.start), lt(movements.occurredAt, range.end));
-
 const ownRule = (userId: string, id: string) =>
-	and(eq(recurringMovements.id, id), canAccessRecurring(userId));
+	and(eq(recurringMovements.id, id), canAccessOwn(userId, recurringMovements));
 
-// APP_TZ is inlined as a literal: a bound parameter makes SELECT and GROUP BY different expressions.
-const tzLiteral = sql.raw(`'${APP_TZ}'`);
-const localMonth = sql<string>`to_char(${movements.occurredAt} at time zone ${tzLiteral}, 'YYYY-MM')`;
+/** Whether the user has a spending plan (first-run checklist); legacy USD rows do not count. */
+export function hasAnyPlan(userId: string) {
+	return exists(
+		db
+			.select({ id: spendingPlans.id })
+			.from(spendingPlans)
+			.where(and(canAccessOwn(userId, spendingPlans), eq(spendingPlans.currency, PLAN_CURRENCY)))
+	);
+}
 
 export type RecurringInput = {
 	type: 'income' | 'outcome';
@@ -91,11 +75,11 @@ export function listRecurring(userId: string, cur?: Currency, id?: string) {
 		)
 		.innerJoin(
 			categories,
-			and(eq(recurringMovements.categoryId, categories.id), canAccessCategory(userId))
+			and(eq(recurringMovements.categoryId, categories.id), canAccessOwn(userId, categories))
 		)
 		.where(
 			and(
-				canAccessRecurring(userId),
+				canAccessOwn(userId, recurringMovements),
 				cur ? eq(financialAccounts.currency, cur) : undefined,
 				id ? eq(recurringMovements.id, id) : undefined
 			)
@@ -121,7 +105,7 @@ export function paidRecurring(userId: string, range: Range, executor: DbExecutor
 		.where(
 			and(
 				canAccessMovement(userId),
-				occurredIn(range),
+				inRange(range),
 				eq(movements.type, recurringMovements.type),
 				eq(financialAccounts.currency, ruleAccount.currency)
 			)
@@ -131,7 +115,7 @@ export function paidRecurring(userId: string, range: Range, executor: DbExecutor
 export function createRecurring(userId: string, row: RecurringInput) {
 	return db
 		.insert(recurringMovements)
-		.values({ ...row, ...recurringOwnedBy(userId) })
+		.values({ ...row, ...userOwned(userId) })
 		.returning({ id: recurringMovements.id });
 }
 
@@ -143,7 +127,7 @@ export function createMovementWithRule(userId: string, row: MovementRow, ruleRow
 	return db.transaction(async (tx) => {
 		const [rule] = await tx
 			.insert(recurringMovements)
-			.values({ ...ruleRow, ...recurringOwnedBy(userId) })
+			.values({ ...ruleRow, ...userOwned(userId) })
 			.returning({ id: recurringMovements.id });
 		const [movement] = await tx
 			.insert(movements)
@@ -171,7 +155,7 @@ export async function lockRules(tx: DbExecutor, userId: string, ids: string[]) {
 	await tx
 		.select({ id: recurringMovements.id })
 		.from(recurringMovements)
-		.where(and(inArray(recurringMovements.id, ids), canAccessRecurring(userId)))
+		.where(and(inArray(recurringMovements.id, ids), canAccessOwn(userId, recurringMovements)))
 		.orderBy(recurringMovements.id)
 		.for('update');
 }
@@ -268,11 +252,11 @@ export async function linkRuleFor(
 		)
 		.innerJoin(
 			categories,
-			and(eq(recurringMovements.categoryId, categories.id), canAccessCategory(userId))
+			and(eq(recurringMovements.categoryId, categories.id), canAccessOwn(userId, categories))
 		)
 		.where(
 			and(
-				canAccessRecurring(userId),
+				canAccessOwn(userId, recurringMovements),
 				eq(recurringMovements.type, m.type),
 				eq(financialAccounts.currency, account.currency),
 				isNull(recurringMovements.archivedAt),
@@ -345,7 +329,7 @@ export function recurringCandidates(userId: string, range: Range) {
 					Number
 				),
 			dayOfMonth:
-				sql<number>`extract(day from max(${movements.occurredAt}) at time zone ${tzLiteral})`.mapWith(
+				sql<number>`extract(day from max(${movements.occurredAt}) at time zone ${appTz})`.mapWith(
 					Number
 				),
 			accountId: movements.accountId,
@@ -359,7 +343,7 @@ export function recurringCandidates(userId: string, range: Range) {
 				isNull(financialAccounts.archivedAt),
 				isNull(movements.recurringId),
 				eq(movements.type, 'outcome'),
-				occurredIn(range)
+				inRange(range)
 			)
 		)
 		.groupBy(
@@ -391,7 +375,7 @@ export function getPlan(userId: string) {
 			exchangeRate: spendingPlans.exchangeRate
 		})
 		.from(spendingPlans)
-		.where(and(canAccessPlan(userId), eq(spendingPlans.currency, PLAN_CURRENCY)))
+		.where(and(canAccessOwn(userId, spendingPlans), eq(spendingPlans.currency, PLAN_CURRENCY)))
 		.limit(1);
 }
 
@@ -447,11 +431,11 @@ function limitRows(userId: string, where: SQL | undefined) {
 		.from(planCategoryLimits)
 		.innerJoin(
 			spendingPlans,
-			and(eq(planCategoryLimits.planId, spendingPlans.id), canAccessPlan(userId))
+			and(eq(planCategoryLimits.planId, spendingPlans.id), canAccessOwn(userId, spendingPlans))
 		)
 		.innerJoin(
 			categories,
-			and(eq(planCategoryLimits.categoryId, categories.id), canAccessCategory(userId))
+			and(eq(planCategoryLimits.categoryId, categories.id), canAccessOwn(userId, categories))
 		)
 		.where(where)
 		.orderBy(desc(planCategoryLimits.amount), categories.name);
@@ -471,7 +455,7 @@ export function monthOutcomes(userId: string, range: Range) {
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.where(and(canAccessMovement(userId), eq(movements.type, 'outcome'), occurredIn(range)))
+		.where(and(canAccessMovement(userId), eq(movements.type, 'outcome'), inRange(range)))
 		.groupBy(financialAccounts.currency, movements.categoryId, movements.recurringId);
 }
 
@@ -481,7 +465,7 @@ export class PlanRejected extends Error {}
 export function deletePlan(userId: string) {
 	return db
 		.delete(spendingPlans)
-		.where(and(canAccessPlan(userId), eq(spendingPlans.currency, PLAN_CURRENCY)))
+		.where(and(canAccessOwn(userId, spendingPlans), eq(spendingPlans.currency, PLAN_CURRENCY)))
 		.returning({ id: spendingPlans.id });
 }
 
@@ -508,7 +492,7 @@ export type PlanSavings = { savings: number; savingsPercent: number | null; mont
 export function upsertPlan(userId: string, v: PlanSavings) {
 	return db
 		.insert(spendingPlans)
-		.values({ ...v, currency: PLAN_CURRENCY, ...planOwnedBy(userId) })
+		.values({ ...v, currency: PLAN_CURRENCY, ...userOwned(userId) })
 		.onConflictDoUpdate({
 			target: [spendingPlans.userId, spendingPlans.currency],
 			set: { ...v, updatedAt: new Date() }
@@ -523,7 +507,7 @@ export function updatePlan(
 	return db
 		.update(spendingPlans)
 		.set({ ...patch, updatedAt: new Date() })
-		.where(and(canAccessPlan(userId), eq(spendingPlans.currency, PLAN_CURRENCY)))
+		.where(and(canAccessOwn(userId, spendingPlans), eq(spendingPlans.currency, PLAN_CURRENCY)))
 		.returning({ id: spendingPlans.id });
 }
 
@@ -537,13 +521,13 @@ export function upsertLimits(
 		const [plan] = await tx
 			.select({ id: spendingPlans.id })
 			.from(spendingPlans)
-			.where(and(eq(spendingPlans.id, planId), canAccessPlan(userId)));
+			.where(and(eq(spendingPlans.id, planId), canAccessOwn(userId, spendingPlans)));
 		if (!plan) throw new PlanRejected('Plan no encontrado.');
 		const ids = limits.map((l) => l.categoryId);
 		const owned = await tx
 			.select({ id: categories.id })
 			.from(categories)
-			.where(and(inArray(categories.id, ids), canAccessCategory(userId)));
+			.where(and(inArray(categories.id, ids), canAccessOwn(userId, categories)));
 		if (owned.length !== new Set(ids).size) throw new PlanRejected('Elegí una categoría válida.');
 		for (const l of limits)
 			await tx
@@ -560,7 +544,7 @@ export async function deleteLimit(userId: string, planId: string, categoryId: st
 	const plans = db
 		.select({ id: spendingPlans.id })
 		.from(spendingPlans)
-		.where(and(eq(spendingPlans.id, planId), canAccessPlan(userId)));
+		.where(and(eq(spendingPlans.id, planId), canAccessOwn(userId, spendingPlans)));
 	await db
 		.delete(planCategoryLimits)
 		.where(

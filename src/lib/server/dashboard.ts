@@ -4,11 +4,11 @@ import { signOf, type MovementType } from '$lib/movement';
 
 export type TypeSum = { type: MovementType; amount: number };
 
-/** Whether the user has any account (archived included) in `currency`, from accountSummary rows. */
-export const hasAccountsIn = (
+/** Whether the user has any account (archived included), in `currency` when given, from accountSummary rows. */
+export const hasAccounts = (
 	summary: { currency: Currency; count: number }[],
-	currency: Currency
-): boolean => summary.some((s) => s.currency === currency && s.count > 0);
+	currency?: Currency
+): boolean => summary.some((s) => (!currency || s.currency === currency) && s.count > 0);
 
 const sumOf = (sums: TypeSum[], type: MovementType) =>
 	sums.filter((s) => s.type === type).reduce((a, s) => a + s.amount, 0);

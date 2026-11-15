@@ -11,3 +11,7 @@ const g = globalThis as typeof globalThis & { __gastarPg?: ReturnType<typeof pos
 const client = (g.__gastarPg ??= postgres(env.DATABASE_URL ?? ''));
 
 export const db = drizzle(client, { schema });
+
+/** The db or a transaction callback's handle. */
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type DbExecutor = Tx | typeof db;

@@ -4,7 +4,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { parseMovementForm } from '$lib/server/movements';
 import { isUuid } from '$lib/server/db/util';
 import { deleteMovement, setMovementRule, updateMovement } from '$lib/server/movements-queries';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 import {
 	detailOf,
 	failIfUnavailable,
@@ -12,6 +12,7 @@ import {
 	formValues,
 	keptRefs,
 	notFound,
+	requireId,
 	resolvePostedMovement
 } from '../form.server';
 
@@ -95,7 +96,7 @@ export const actions: Actions = {
 	},
 	delete: async ({ locals, params }) => {
 		const userId = requireUser(locals).id;
-		await findMovement(userId, params.id);
+		requireId(params.id);
 		if ((await deleteMovement(userId, params.id)).length === 0) notFound();
 		redirect(303, '/movements');
 	}

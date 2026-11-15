@@ -3,7 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { accountSummary } from '$lib/server/dashboard-queries';
 import { deletePlan } from '$lib/server/plan-queries';
 import { planView, recurringLists } from '$lib/server/plan-view';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;

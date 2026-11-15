@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { toCategoryIconKey, toSwatchKey, type CategoryIconKey } from '$lib/appearance';
 import { preferredCurrency } from '$lib/server/currency-pref';
-import { hasAccountsIn } from '$lib/server/dashboard';
+import { hasAccounts } from '$lib/server/dashboard';
 import { accountSummary, categorySums } from '$lib/server/dashboard-queries';
 
 import {
@@ -17,7 +17,7 @@ import {
 	shortMonth
 } from '$lib/server/month';
 import { biggestOutcome, monthlyFlows } from '$lib/server/reports-queries';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 
 const FLOW_MONTHS = 6;
 /** Categories listed as their own row; the rest are summed into "Otros". */
@@ -46,7 +46,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		categorySums(userId, currency, range),
 		biggestOutcome(userId, currency, range)
 	]);
-	if (!hasAccountsIn(summary, currency)) return { currency, nav, hasCurrency: false as const };
+	if (!hasAccounts(summary, currency)) return { currency, nav, hasCurrency: false as const };
 
 	const bars = months.map((m) => {
 		const f = flows.find((x) => x.month === m);

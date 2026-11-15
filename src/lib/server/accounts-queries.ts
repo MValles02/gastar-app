@@ -2,13 +2,11 @@ import type { Currency } from '$lib/money';
 import { and, asc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 import { db } from './db';
 import { financialAccounts, movements } from './db/schema';
+import { dest, total } from './db/sql';
 import { canAccessAccount, canAccessMovement, ownedBy } from './access';
-import { alias } from 'drizzle-orm/pg-core';
 import { type AccountData } from './accounts';
 import { escapeLike } from './db/util';
 
-const dest = alias(financialAccounts, 'dest');
-const total = (col: unknown) => sql<number>`coalesce(sum(${col}), 0)`.mapWith(Number);
 const ownedAccount = (userId: string, id: string) =>
 	and(eq(financialAccounts.id, id), canAccessAccount(userId));
 const returningId = { id: financialAccounts.id };

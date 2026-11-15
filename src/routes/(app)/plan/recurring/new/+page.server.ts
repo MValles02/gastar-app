@@ -4,7 +4,7 @@ import { planReturn } from '$lib/plan-wizard';
 import { formatAmountInput } from '$lib/money';
 import { recurringSuggestions } from '$lib/server/plan-view';
 import { createRecurring } from '$lib/server/plan-queries';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 import { readRecurringForm, recurringPickers } from '../form.server';
 
 export const load: PageServerLoad = async ({ locals, url }) => {

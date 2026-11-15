@@ -301,13 +301,10 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 - `ownedBy(userId)`: insert-side counterpart, sets `owner_id`.
 - `canAccessMovement(userId, origin = financialAccounts)`: `movements.user_id = userId` AND `canAccessAccount(userId, origin)`. The caller must inner-join the origin account.
 - `movementOwnedBy(userId)`: insert-side counterpart, sets `movements.user_id`.
-- `canAccessCategory(userId, cat = categories)` and `categoryOwnedBy(userId)`: the same pair for `categories.user_id`.
-- `canAccessRecurring(userId, r = recurringMovements)` and `recurringOwnedBy(userId)`: the same pair for `recurring_movements.user_id`.
-- `canAccessPlan(userId, p = spendingPlans)` and `planOwnedBy(userId)`: the same pair for `spending_plans.user_id`. Category limits have no owner column; they are reached only by joining their plan.
-- `canAccessImport(userId, i = mpImportItems)` and `importOwnedBy(userId)`: the same pair for `mp_import_items.user_id`.
-- `canAccessMpConnection(userId, c = mpConnections)` and `mpConnectionOwnedBy(userId)`: the same pair for `mp_connections.user_id`.
-- `canAccessGaliciaConnection(userId, c = galiciaConnections)` and `galiciaConnectionOwnedBy(userId)`: the same pair for `galicia_connections.user_id`.
-- `canAccessImportRule(userId, r = mpImportRules)` and `importRuleOwnedBy(userId)`: the same pair for `mp_import_rules.user_id`. `mp_sync_state` has no owner column; it is reached only by joining its account.
+- `canAccessOwn(userId, table)` and `userOwned(userId)`: the same pair for every other table with a `user_id` owner column: `categories`, `recurring_movements`, `spending_plans`, `mp_import_items`, `mp_import_rules`, `mp_connections`, `galicia_connections`. `table` may be an alias. Category limits have no owner column; they are reached only by joining their plan. `mp_sync_state` has no owner column; it is reached only by joining its account.
+- `allMovementsOf(userId)`: `movements.user_id = userId`, the single path for bulk operations over every movement a user owns (account deletion).
+
+Shared server infrastructure each has one home: SQL fragments (`Range`, `inRange`, `sumOfType`, `total`, `isIncomeOrOutcome`, the `dest` alias, `localMonth`, `exists`) in `src/lib/server/db/sql.ts`; the `Tx`/`DbExecutor` types in `src/lib/server/db/index.ts`; the per-request memo (`memoPerRequest`, the only `getRequestEvent` reader) in `src/lib/server/request-memo.ts`; `requireUser` and the 404 helpers in `src/lib/server/guards.ts`.
 
 `movements.user_id` is the movement's own owner column; reads, updates and deletes go through `canAccessMovement`, inserts through `movementOwnedBy`.
 

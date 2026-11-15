@@ -4,7 +4,7 @@ import { withBalances } from '$lib/server/accounts';
 import { accountOriginSums, accountTransfersIn, listAccounts } from '$lib/server/accounts-queries';
 import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
 import { dateLabel, localDay } from '$lib/server/month';
-import { notFoundHelpers } from '$lib/server/not-found';
+import { notFoundHelpers } from '$lib/server/guards';
 import { UNAVAILABLE_MESSAGE } from '$lib/server/movements';
 import { type KeptRefs, movementPickers } from '$lib/server/movement-pickers';
 import { categoryUsage, getMovement } from '$lib/server/movements-queries';
