@@ -18,11 +18,7 @@ import {
 	setImportFrom,
 	setReceivingAccount
 } from '#lib/server/imports/mercado-pago/settings.ts';
-import {
-	getSyncState,
-	leaseActive,
-	startMpBackfill
-} from '#lib/server/imports/mercado-pago/sync.ts';
+import { getSyncState, leaseActive, runMpSync } from '#lib/server/imports/mercado-pago/sync.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -100,7 +96,7 @@ export const actions: Actions = {
 		const earlier = ymd < (await getImportFromDay(userId, account.id));
 		// Trimming while a run holds the lease would let it re-insert what was just deleted.
 		const busy = earlier
-			? !(await startMpBackfill(userId, from))
+			? !(await runMpSync(userId, { from, report: true, background: true }))
 			: leaseActive((await getSyncState(userId, account.id))?.runningSince);
 		if (busy) {
 			return formFail(409, {

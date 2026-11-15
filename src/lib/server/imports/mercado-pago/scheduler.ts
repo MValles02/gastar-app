@@ -4,7 +4,7 @@ import { APP_TZ } from '#lib/locale.ts';
 import { dayStart, localDay } from '../../month';
 import { syncIntervalHours } from './env';
 import { listUsableConnections, mpOauthEnabled } from './oauth';
-import { syncScheduled } from './sync';
+import { runMpSync } from './sync';
 
 const HOUR_MS = 3_600_000;
 /** Buenos Aires hour of the daily release report: MP mails the account owner every time one is ready. */
@@ -55,7 +55,9 @@ async function runAll(report: boolean): Promise<void> {
 	}
 	for (const userId of users) {
 		try {
-			await syncScheduled(userId, (syncedUntil) => report && reportDue(syncedUntil, new Date()));
+			await runMpSync(userId, {
+				report: (syncedUntil) => report && reportDue(syncedUntil, new Date())
+			});
 		} catch (e) {
 			console.error('mp sync failed: network', errorDetail(e));
 		}
