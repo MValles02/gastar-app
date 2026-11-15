@@ -113,7 +113,9 @@ Personal finance PWA for Argentina. Answers two questions:
 
 - Route `/notifications` (back to Inicio), h1 "Avisos", reached from the bell in the top bar. Alerts are worked out from existing data when a page loads; nothing is stored, so there is no read state. The bell's badge is the number of alerts (capped at "9+"; label "Avisos: N"); it refreshes on full page loads and after form submissions, not on client-side navigation.
 - One list (no currency groups) for the unified plan; plan amounts are in ARS and a limit's amounts in the limit's currency. The plan first, then limits. Fixed payments never alert.
-  - "Te pasaste del plan" or "Estás gastando más rápido de lo planeado" ("Gastado X de Y"; when savings plus fixed payments exceed income: "Tu ahorro y tus pagos fijos superan tus ingresos por X"), and "{categoría} superó su límite" ("X de Y"). Every row is a plain link: the plan alert opens `/plan`, a limit alert opens `/plan?limit=<id>`. Limits that are only "Vas rápido" do not alert.
+  - The plan, when it is "Te pasaste" ("Tus gastos y pagos fijos pendientes superan lo que tenés por X"; when savings plus fixed payments exceed income: "Tu ahorro y tus pagos fijos superan tus ingresos por X") or "Vas rápido" ("Gastaste N% de lo que tenés para gastar y quedan N días").
+  - Each limit that is "Te pasaste" ("X sobre el límite de Y") or "Vas rápido" ("Gastaste N% del límite y quedan N días"); both count in the bell's badge.
+  - Every row is a plain link: the plan alert opens `/plan`, a limit alert opens `/plan?limit=<id>`.
 - Nothing to show: "Estás al día. Acá vas a ver los límites o el plan cuando vayan rápido o se pasen."
 
 ### Accounts
