@@ -3,8 +3,7 @@
 	import AuthForm from '$lib/components/AuthForm.svelte';
 	import AuthPage from '$lib/components/AuthPage.svelte';
 	import CheckEmail from '$lib/components/CheckEmail.svelte';
-	import * as Field from '$lib/components/ui/field/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
+	import EmailField from '$lib/components/EmailField.svelte';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -26,23 +25,7 @@
 		description="Te mandamos un enlace por email."
 	>
 		<AuthForm action="?/request" submitLabel="Enviar enlace">
-			<Field.Field>
-				<Field.Label for="email">Email</Field.Label>
-				<Input
-					id="email"
-					type="email"
-					name="email"
-					autocomplete="username"
-					autocapitalize="none"
-					value={initialEmail}
-					required
-					aria-invalid={form?.emailError ? true : undefined}
-					aria-describedby={form?.emailError ? 'email-error' : undefined}
-				/>
-				{#if form?.emailError}
-					<Field.Error id="email-error">{form.emailError}</Field.Error>
-				{/if}
-			</Field.Field>
+			<EmailField value={initialEmail} error={form?.emailError} />
 		</AuthForm>
 	</AuthPage>
 {/if}
