@@ -1,13 +1,39 @@
 import { formFail } from '#lib/form.ts';
-import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
-import { accountOption, getAccount, listAccounts } from '../accounts/queries';
-import { getCategory, listCategories } from '../categories/queries';
-import { DESCRIPTION_MAX_LENGTH, DESCRIPTION_TOO_LONG_MESSAGE } from '#lib/fields.ts';
-import { AMOUNT_EXAMPLE, ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '#lib/money.ts';
-import type { MovementType } from '#lib/movement.ts';
-import { isUuid } from '../db/util';
-import { kindMismatchMessage } from '../movements/form';
+import { formatAmountInput, parseAmount, type Currency } from '#lib/money.ts';
+import { MOVEMENT_MESSAGES as MSG, type MovementType } from '#lib/movement.ts';
 import { MAX_DAY_OF_MONTH } from '#lib/plan.ts';
+import { getAccount } from '../accounts/queries';
+import { getCategory } from '../categories/queries';
+import { isUuid } from '../db/util';
+import { amountFor, editFormData, readFields } from '../forms';
+import { descriptionField, kindMismatchMessage } from '../movements/form';
+import { movementPickers } from '../movements/pickers';
+
+const FIELDS = ['type', 'description', 'amount', 'accountId', 'categoryId', 'dayOfMonth'] as const;
+/** The only fields `?/update` takes: a rule keeps its stored type. */
+export const EDITABLE = ['description', 'amount', 'accountId', 'categoryId', 'dayOfMonth'] as const;
+
+/** The stored rule as the form's strings (what `parseRecurringForm` takes back). */
+export const toFormValues = (r: {
+	type: MovementType;
+	description: string;
+	amount: number;
+	currency: Currency;
+	accountId: string;
+	categoryId: string;
+	dayOfMonth: number;
+}) => ({
+	type: r.type,
+	description: r.description,
+	amount: formatAmountInput(r.amount, r.currency),
+	accountId: r.accountId,
+	categoryId: r.categoryId,
+	dayOfMonth: String(r.dayOfMonth)
+});
+
+/** The form `?/update` validates: `row`'s stored values with the posted EDITABLE fields over them. */
+export const editedForm = (row: Parameters<typeof toFormValues>[0], posted: FormData) =>
+	editFormData(toFormValues(row), posted, EDITABLE);
 
 type RecurringFormValues = Record<
 	'type' | 'description' | 'amount' | 'accountId' | 'categoryId' | 'dayOfMonth',
@@ -30,33 +56,19 @@ type RecurringFormResult =
 
 /**
  * Pure: validates the recurring income/payment form (ownership is checked by the caller).
- * The currency is unknown here, so the ARS whole-peso check (`isWholeFor`) is the actions' job.
+ * The currency is unknown here, so the ARS whole-peso check (`amountFor`) is the actions' job.
  */
-function parseRecurringForm(fd: FormData): RecurringFormResult {
-	const get = (k: string) => {
-		const v = fd.get(k);
-		return typeof v === 'string' ? v : '';
-	};
-	const values: RecurringFormValues = {
-		type: get('type'),
-		description: get('description'),
-		amount: get('amount'),
-		accountId: get('accountId'),
-		categoryId: get('categoryId'),
-		dayOfMonth: get('dayOfMonth')
-	};
+export function parseRecurringForm(fd: FormData): RecurringFormResult {
+	const values: RecurringFormValues = readFields(fd, FIELDS);
 	const errors: Partial<RecurringFormValues> = {};
 	const type = values.type === 'income' || values.type === 'outcome' ? values.type : null;
 	if (!type) errors.type = 'Elegí si es un ingreso o un pago.';
-	const description = values.description.trim();
-	if (!description) errors.description = 'Ingresá una descripción.';
-	else if (description.length > DESCRIPTION_MAX_LENGTH)
-		errors.description = DESCRIPTION_TOO_LONG_MESSAGE;
+	const { value: description, error: descriptionError } = descriptionField(values.description);
+	if (descriptionError) errors.description = descriptionError;
 	const amount = parseAmount(values.amount);
-	if (amount === null || amount <= 0)
-		errors.amount = `Ingresá un monto mayor a cero ${AMOUNT_EXAMPLE}.`;
-	if (!isUuid(values.accountId)) errors.accountId = 'Elegí una cuenta.';
-	if (!isUuid(values.categoryId)) errors.categoryId = 'Elegí una categoría.';
+	if (amount === null || amount <= 0) errors.amount = MSG.amount;
+	if (!isUuid(values.accountId)) errors.accountId = MSG.account;
+	if (!isUuid(values.categoryId)) errors.categoryId = MSG.category;
 	const day = Number(values.dayOfMonth);
 	if (!/^\d{1,2}$/.test(values.dayOfMonth) || day < 1 || day > MAX_DAY_OF_MONTH)
 		errors.dayOfMonth = `Elegí un día entre 1 y ${MAX_DAY_OF_MONTH}.`;
@@ -75,33 +87,18 @@ function parseRecurringForm(fd: FormData): RecurringFormResult {
 	};
 }
 
-export async function recurringPickers(userId: string) {
-	const [accountRows, categoryRows] = await Promise.all([
-		listAccounts(userId),
-		listCategories(userId)
-	]);
-	return {
-		accounts: accountRows.map((a) => ({
-			...accountOption(a),
-			meta: a.currency
-		})),
-		categories: categoryRows.map((c) => ({
-			id: c.id,
-			name: c.name,
-			icon: toCategoryIconKey(c.icon) ?? ('categories' as const),
-			color: toSwatchKey(c.color),
-			kind: c.kind
-		}))
-	};
-}
+/** Active accounts and categories for the rule form. */
+export const recurringPickers = (userId: string) => movementPickers(userId);
 
+/**
+ * Parses the rule form and checks its account and category. On an edit, `fd` is
+ * `editFormData(toFormValues(rule), posted, EDITABLE)` and `current` the rule's own refs.
+ */
 export async function readRecurringForm(
 	userId: string,
 	fd: FormData,
-	current?: { accountId: string; categoryId: string; type: string; archivedOk?: string[] }
+	current?: { accountId: string; categoryId: string; archivedOk?: string[] }
 ) {
-	// An edit never changes the type: the stored one wins over whatever was submitted.
-	if (current) fd.set('type', current.type);
 	const parsed = parseRecurringForm(fd);
 	if (!parsed.ok)
 		return { failure: formFail(400, { values: parsed.values, errors: parsed.errors }) };
@@ -114,7 +111,10 @@ export async function readRecurringForm(
 	const keeps = (id: string, own?: string) => id === own || !!current?.archivedOk?.includes(id);
 	if (!account || (account.archivedAt && !keeps(account.id, current?.accountId)))
 		errors.accountId = 'Elegí una cuenta activa.';
-	else if (!isWholeFor(parsed.data.amount, account.currency)) errors.amount = ARS_WHOLE_MESSAGE;
+	else {
+		const whole = amountFor(account.currency)(parsed.data.amount);
+		if (whole) errors.amount = whole;
+	}
 	if (!category || (category.archivedAt && !keeps(category.id, current?.categoryId)))
 		errors.categoryId = 'Elegí una categoría activa.';
 	else if (

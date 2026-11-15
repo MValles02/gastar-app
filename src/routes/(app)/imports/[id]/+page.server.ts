@@ -1,6 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { DESCRIPTION_MAX_LENGTH, DESCRIPTION_TOO_LONG_MESSAGE } from '#lib/fields.ts';
+import { MOVEMENT_MESSAGES as MSG } from '#lib/movement.ts';
 import { isUuid } from '#lib/server/db/util.ts';
+import { readFields } from '#lib/server/forms.ts';
+import { descriptionField, movementTypeOf } from '#lib/server/movements/form.ts';
 import {
 	getImport,
 	importDateLabel,
@@ -76,27 +78,23 @@ export const actions: Actions = {
 		const item = await findItem(userId, params.id);
 		if (item.status !== 'pending') redirect(303, '/imports?done=stale');
 
-		const fd = await request.formData();
-		const field = (k: string) => {
-			const v = fd.get(k);
-			return typeof v === 'string' ? v : '';
-		};
-		const values = {
-			type: field('type'),
-			description: field('description').trim(),
-			categoryId: field('categoryId'),
-			counterAccountId: field('counterAccountId'),
-			recurringId: field('recurringId'),
-			// 'on' when the box is checked; kept as text so a failed submit re-renders it.
-			remember: field('remember')
-		};
+		// 'remember' is 'on' when the box is checked; kept as text so a failed submit re-renders it.
+		const posted = readFields(await request.formData(), [
+			'type',
+			'description',
+			'categoryId',
+			'counterAccountId',
+			'recurringId',
+			'remember'
+		]);
+		const description = descriptionField(posted.description);
+		const values = { ...posted, description: description.value };
 		const errors: Partial<Record<keyof typeof values | 'form', string>> = {};
 
-		const type = importTypes(item.isCredit).find((t) => t === values.type);
-		if (!type) errors.type = 'Elegí un tipo de movimiento.';
-		if (!values.description) errors.description = 'Ingresá una descripción.';
-		else if (values.description.length > DESCRIPTION_MAX_LENGTH)
-			errors.description = DESCRIPTION_TOO_LONG_MESSAGE;
+		// The movement form's type and description checks, with the types this item can take.
+		const type = movementTypeOf(values.type, importTypes(item.isCredit));
+		if (!type) errors.type = MSG.type;
+		if (description.error) errors.description = description.error;
 
 		const { accounts } = await pickers(userId, item);
 		if (type === 'transfer') {
@@ -106,7 +104,7 @@ export const actions: Actions = {
 					item.currency === 'USD'
 						? 'Elegí una cuenta en dólares que no esté archivada.'
 						: 'Elegí una cuenta en pesos que no esté archivada.';
-		} else if (type && !isUuid(values.categoryId)) errors.categoryId = 'Elegí una categoría.';
+		} else if (type && !isUuid(values.categoryId)) errors.categoryId = MSG.category;
 		if (type && type !== 'transfer' && values.recurringId) {
 			const rules = await activeRuleItems(
 				userId,

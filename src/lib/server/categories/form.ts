@@ -1,6 +1,7 @@
 import { NAME_MAX_LENGTH, tooLongMessage } from '#lib/fields.ts';
-import { CATEGORY_ICONS, SWATCHES } from '#lib/appearance.ts';
+import { CATEGORY_ICONS, SWATCHES, toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 import { CATEGORY_KINDS, type CategoryKind } from '#lib/movement.ts';
+import { editFormData, readFields, requiredText } from '../forms';
 
 export const NOT_FOUND_MESSAGE = 'Categoría no encontrada.';
 export const DUPLICATE_NAME_MESSAGE = 'Ya tenés una categoría con ese nombre.';
@@ -22,22 +23,34 @@ export type CategoryFormResult =
 	| { ok: true; data: CategoryData }
 	| { ok: false; values: Record<string, string>; errors: CategoryFormErrors };
 
-const str = (fd: FormData, key: string) => {
-	const v = fd.get(key);
-	return typeof v === 'string' ? v : '';
-};
+const nameField = requiredText(NAME_MAX_LENGTH, {
+	empty: 'Ingresá un nombre.',
+	long: tooLongMessage('El nombre', NAME_MAX_LENGTH)
+});
+
+/** The stored category as the form's strings (what `parseCategoryForm` takes back). */
+export const toFormValues = (c: {
+	name: string;
+	icon: string | null;
+	color: string | null;
+	kind: string | null;
+}) => ({
+	name: c.name,
+	icon: toCategoryIconKey(c.icon) ?? '',
+	color: toSwatchKey(c.color) ?? 'green',
+	kind: c.kind ?? ''
+});
+
+/** The form `?/update` validates: `row`'s stored values with the posted EDITABLE fields over them. */
+export const editedForm = (row: Parameters<typeof toFormValues>[0], posted: FormData) =>
+	editFormData(toFormValues(row), posted, EDITABLE);
 
 export function parseCategoryForm(fd: FormData): CategoryFormResult {
-	const values = Object.fromEntries(FIELDS.map((k) => [k, str(fd, k)])) as Record<
-		(typeof FIELDS)[number],
-		string
-	>;
+	const values = readFields(fd, FIELDS);
 	const errors: CategoryFormErrors = {};
 
-	const name = values.name.trim();
-	if (!name) errors.name = 'Ingresá un nombre.';
-	else if (name.length > NAME_MAX_LENGTH)
-		errors.name = tooLongMessage('El nombre', NAME_MAX_LENGTH);
+	const name = nameField(values.name);
+	if (name.error) errors.name = name.error;
 	if (!SWATCHES.some((s) => s.key === values.color)) errors.color = 'Elegí un color.';
 	// '' (or a missing field) means no icon.
 	if (values.icon !== '' && !CATEGORY_ICONS.some((i) => i.key === values.icon))
@@ -47,5 +60,8 @@ export function parseCategoryForm(fd: FormData): CategoryFormResult {
 	if (values.kind !== '' && !kind) errors.kind = 'Elegí un tipo.';
 
 	if (Object.keys(errors).length > 0) return { ok: false, values, errors };
-	return { ok: true, data: { name, color: values.color, icon: values.icon || null, kind } };
+	return {
+		ok: true,
+		data: { name: name.value, color: values.color, icon: values.icon || null, kind }
+	};
 }

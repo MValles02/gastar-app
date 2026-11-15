@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { NEW_MOVEMENT_PATH } from '#lib/movement.ts';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { markReplace } from '#lib/nav-stack.svelte.ts';
@@ -20,7 +21,7 @@
 	function isActive(path: string): boolean {
 		const pathname = page.url.pathname;
 		if (path === '/') return pathname === '/';
-		if (path === '/movements' && pathname === '/movements/new') return false;
+		if (path === '/movements' && pathname === NEW_MOVEMENT_PATH) return false;
 		return pathname === path || pathname.startsWith(`${path}/`);
 	}
 </script>

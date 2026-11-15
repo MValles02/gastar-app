@@ -1,44 +1,29 @@
 import type { PageServerLoad } from './$types';
-import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
-import { accountOption, listAccounts } from '#lib/server/accounts/queries.ts';
+import { listAccounts } from '#lib/server/accounts/queries.ts';
 import { listCategories } from '#lib/server/categories/queries.ts';
 import type { Currency } from '#lib/money.ts';
 import { toRecentItem } from '#lib/server/dashboard/home.ts';
 import { dayHeading, localDay, monthHeading } from '#lib/server/month.ts';
-import { applyDefaultRange, parseMovementFilters } from '#lib/server/movements/filters.ts';
-import { listMovements, PAGE_SIZE, summarizeMovements } from '#lib/server/movements/queries.ts';
+import { countMovements, movementQueryFromUrl } from '#lib/server/movements/filters.ts';
+import { listMovements, PAGE_SIZE } from '#lib/server/movements/queries.ts';
+import { accountItem, categoryItem } from '#lib/server/movements/pickers.ts';
 import { requireUser } from '#lib/server/guards.ts';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
-	const {
-		values,
-		accounts: accountIds,
-		categories: categoryIds,
-		query: base,
-		page,
-		activeCount: parsedCount
-	} = parseMovementFilters(url.searchParams);
 	const today = localDay(new Date());
-	const {
-		query: parsed,
-		allDates,
-		explicitDefault
-	} = applyDefaultRange(base, url.searchParams, today);
-	// The default range, implicit or explicit, is not an active filter.
-	const activeCount = parsedCount - (explicitDefault ? 1 : 0);
-	// An explicit account filter wins over ?currency=.
-	const query = { ...parsed, currency: accountIds.length ? ('' as const) : parsed.currency };
+	const { query, filters, allDates, page, activeCount } = movementQueryFromUrl(url, today);
+	const { account: accountIds, category: categoryIds } = query;
 
-	const [rows, accountRows, categoryRows, summaryRows] = await Promise.all([
+	const [rows, accountRows, categoryRows, count] = await Promise.all([
 		listMovements(userId, query, page),
 		listAccounts(userId, { archived: true }),
 		listCategories(userId, { archived: true }),
-		activeCount > 0 ? summarizeMovements(userId, query) : []
+		activeCount > 0 ? countMovements(userId, query) : null
 	]);
 
 	// Filter/search active: total matches.
-	const summary = activeCount > 0 ? { count: summaryRows.reduce((a, r) => a + r.count, 0) } : null;
+	const summary = count !== null ? { count } : null;
 
 	// Common currency of the selected accounts (null when none or mixed).
 	const selectedCurrencies = new Set(
@@ -85,7 +70,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	}
 
 	return {
-		filters: { ...values, from: parsed.from, to: parsed.to } as Record<string, string>,
+		filters,
 		allDates,
 		accountIds,
 		categoryIds,
@@ -94,21 +79,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		summary,
 		accounts: [
 			{ id: '', name: 'Todas', icon: 'accounts' as const, color: null },
-			...accountRows.map((a) => ({
-				...accountOption(a),
-				meta: a.currency,
-				archived: a.archivedAt !== null
-			}))
+			...accountRows.map(accountItem)
 		],
 		categories: [
 			{ id: '', name: 'Todas', icon: 'categories' as const, color: null },
-			...categoryRows.map((c) => ({
-				id: c.id,
-				name: c.name,
-				icon: toCategoryIconKey(c.icon) ?? ('categories' as const),
-				color: toSwatchKey(c.color),
-				archived: c.archivedAt !== null
-			}))
+			...categoryRows.map(categoryItem)
 		],
 		page,
 		hasNext,
