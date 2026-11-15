@@ -1,15 +1,5 @@
 import { eq, inArray } from 'drizzle-orm';
-import {
-	allMovementsOf,
-	canAccessAccount,
-	canAccessCategory,
-	canAccessGaliciaConnection,
-	canAccessImport,
-	canAccessImportRule,
-	canAccessMpConnection,
-	canAccessPlan,
-	canAccessRecurring
-} from './access';
+import { allMovementsOf, canAccessAccount, canAccessOwn } from './access';
 import { db } from './db';
 import {
 	categories,
@@ -34,24 +24,24 @@ import {
  */
 export async function deleteUserAndData(userId: string): Promise<void> {
 	await db.transaction(async (tx) => {
-		await tx.delete(mpConnections).where(canAccessMpConnection(userId));
-		await tx.delete(galiciaConnections).where(canAccessGaliciaConnection(userId));
-		await tx.delete(mpImportItems).where(canAccessImport(userId));
-		await tx.delete(mpImportRules).where(canAccessImportRule(userId));
+		await tx.delete(mpConnections).where(canAccessOwn(userId, mpConnections));
+		await tx.delete(galiciaConnections).where(canAccessOwn(userId, galiciaConnections));
+		await tx.delete(mpImportItems).where(canAccessOwn(userId, mpImportItems));
+		await tx.delete(mpImportRules).where(canAccessOwn(userId, mpImportRules));
 		const ownAccounts = tx
 			.select({ id: financialAccounts.id })
 			.from(financialAccounts)
 			.where(canAccessAccount(userId));
 		await tx.delete(mpSyncState).where(inArray(mpSyncState.accountId, ownAccounts));
 		await tx.delete(movements).where(allMovementsOf(userId));
-		await tx.delete(recurringMovements).where(canAccessRecurring(userId));
+		await tx.delete(recurringMovements).where(canAccessOwn(userId, recurringMovements));
 		const plans = tx
 			.select({ id: spendingPlans.id })
 			.from(spendingPlans)
-			.where(canAccessPlan(userId));
+			.where(canAccessOwn(userId, spendingPlans));
 		await tx.delete(planCategoryLimits).where(inArray(planCategoryLimits.planId, plans));
-		await tx.delete(spendingPlans).where(canAccessPlan(userId));
-		await tx.delete(categories).where(canAccessCategory(userId));
+		await tx.delete(spendingPlans).where(canAccessOwn(userId, spendingPlans));
+		await tx.delete(categories).where(canAccessOwn(userId, categories));
 		await tx.delete(financialAccounts).where(canAccessAccount(userId));
 		// Reset-password tokens store the user id in `value`.
 		await tx.delete(verification).where(eq(verification.value, userId));

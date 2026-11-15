@@ -1,9 +1,8 @@
 import { and, desc, eq, gte, ilike, inArray, isNotNull, lt, or, sql } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
-import { db } from './db';
+import { db, type Tx } from './db';
 import { categories, financialAccounts, movements } from './db/schema';
-import { canAccessAccount, canAccessCategory, canAccessMovement, movementOwnedBy } from './access';
-import { sumOfType } from './dashboard-queries';
+import { dest, exists, sumOfType } from './db/sql';
+import { canAccessAccount, canAccessMovement, canAccessOwn, movementOwnedBy } from './access';
 import { linkRuleFor, lockRules, unlinkRevert } from './plan-queries';
 import { escapeLike } from './db/util';
 import { dayStart } from './month';
@@ -11,17 +10,22 @@ import type { MovementFilterQuery, MovementRow } from './movements';
 
 export const PAGE_SIZE = 50;
 
-const dest = alias(financialAccounts, 'dest');
-
 /** "YYYY-MM-DD" of the next calendar day. */
 const nextDay = (ymd: string) => {
 	const [y, m, d] = ymd.split('-').map(Number);
 	return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
 };
 
-/** The db or a transaction callback's handle. */
-export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-export type DbExecutor = Tx | typeof db;
+/** Whether the user has any movement, in any currency (first-run checklist). */
+export function hasAnyMovement(userId: string) {
+	return exists(
+		db
+			.select({ id: movements.id })
+			.from(movements)
+			.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+			.where(canAccessMovement(userId))
+	);
+}
 
 /**
  * Inserts an income/outcome/transfer. The link to a fixed-payment rule is decided first (explicit
@@ -140,7 +144,10 @@ export function listMovements(userId: string, query: MovementFilterQuery, page: 
 			dest,
 			and(eq(movements.destinationAccountId, dest.id), canAccessAccount(userId, dest))
 		)
-		.leftJoin(categories, and(eq(movements.categoryId, categories.id), canAccessCategory(userId)))
+		.leftJoin(
+			categories,
+			and(eq(movements.categoryId, categories.id), canAccessOwn(userId, categories))
+		)
 		.where(filterWhere(userId, query))
 		.orderBy(desc(movements.occurredAt), desc(movements.createdAt), desc(movements.id))
 		.limit(PAGE_SIZE + 1)
@@ -185,7 +192,10 @@ export function getMovement(userId: string, id: string) {
 			dest,
 			and(eq(movements.destinationAccountId, dest.id), canAccessAccount(userId, dest))
 		)
-		.leftJoin(categories, and(eq(movements.categoryId, categories.id), canAccessCategory(userId)))
+		.leftJoin(
+			categories,
+			and(eq(movements.categoryId, categories.id), canAccessOwn(userId, categories))
+		)
 		.where(and(eq(movements.id, id), canAccessMovement(userId)))
 		.limit(1);
 }
@@ -237,7 +247,10 @@ export function summarizeMovements(userId: string, query: MovementFilterQuery) {
 			dest,
 			and(eq(movements.destinationAccountId, dest.id), canAccessAccount(userId, dest))
 		)
-		.leftJoin(categories, and(eq(movements.categoryId, categories.id), canAccessCategory(userId)))
+		.leftJoin(
+			categories,
+			and(eq(movements.categoryId, categories.id), canAccessOwn(userId, categories))
+		)
 		.where(filterWhere(userId, query))
 		.groupBy(financialAccounts.currency);
 }

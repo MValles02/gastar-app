@@ -18,7 +18,7 @@ import {
 	startAuthorization
 } from '$lib/server/mp-oauth';
 import { getSyncState, leaseActive, startMpBackfill } from '$lib/server/mp-sync';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 import type { Actions, PageServerLoad } from './$types';
 
 const FLASHES = {

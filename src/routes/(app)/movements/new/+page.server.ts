@@ -9,7 +9,7 @@ import { localDay } from '$lib/server/month';
 import { parseMovementForm } from '$lib/server/movements';
 import { createMovement } from '$lib/server/movements-queries';
 import { createMovementWithRule } from '$lib/server/plan-queries';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 import { drawerPickers, failIfUnavailable, resolvePostedMovement } from '../form.server';
 
 /** Remembers the account of the last saved movement as the next form's default. */

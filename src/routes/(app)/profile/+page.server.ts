@@ -3,7 +3,7 @@ import { auth } from '$lib/server/auth';
 import { userNameError } from '$lib/server/auth-forms';
 import { PREFERENCE_COOKIE_OPTIONS, THEME_COOKIE } from '$lib/server/cookies';
 import { profileCounts } from '$lib/server/profile-queries';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 import { isTheme, type Theme } from '$lib/theme';
 import type { Actions, PageServerLoad } from './$types';
 

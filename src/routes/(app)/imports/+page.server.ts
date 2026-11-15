@@ -20,7 +20,7 @@ import {
 	counterAccountsOf,
 	suggestionContext
 } from '$lib/server/import-approve';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 import type { Actions, PageServerLoad } from './$types';
 
 /** "Recién", "Hace 5 min", "Hace 2 h", "Hace 3 d". */

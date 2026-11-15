@@ -10,13 +10,7 @@ import {
 	mpImportRules,
 	mpSyncState
 } from './db/schema';
-import {
-	canAccessAccount,
-	canAccessImport,
-	canAccessImportRule,
-	canAccessMovement,
-	importRuleOwnedBy
-} from './access';
+import { canAccessAccount, canAccessMovement, canAccessOwn, userOwned } from './access';
 import { kindFits, type MovementType } from '$lib/movement';
 import type { MovementRow } from './movements';
 import { createMovement, deleteMovement } from './movements-queries';
@@ -24,7 +18,7 @@ import { importSource, kindSpec } from './import-sources';
 import { localDay } from './month';
 
 const pending = (userId: string) =>
-	and(canAccessImport(userId), eq(mpImportItems.status, 'pending'));
+	and(canAccessOwn(userId, mpImportItems), eq(mpImportItems.status, 'pending'));
 
 const itemColumns = {
 	id: mpImportItems.id,
@@ -63,8 +57,8 @@ export async function pendingImportCount(userId: string): Promise<number> {
 /** Dev reset: the user's items and rules, plus the sync state of every account they own. */
 export function deleteImportData(userId: string) {
 	return db.transaction(async (tx) => {
-		await tx.delete(mpImportItems).where(canAccessImport(userId));
-		await tx.delete(mpImportRules).where(canAccessImportRule(userId));
+		await tx.delete(mpImportItems).where(canAccessOwn(userId, mpImportItems));
+		await tx.delete(mpImportRules).where(canAccessOwn(userId, mpImportRules));
 		await tx
 			.delete(mpSyncState)
 			.where(
@@ -177,7 +171,9 @@ export async function getImport(userId: string, id: string) {
 		.select(itemColumns)
 		.from(mpImportItems)
 		.innerJoin(financialAccounts, eq(financialAccounts.id, mpImportItems.accountId))
-		.where(and(eq(mpImportItems.id, id), canAccessImport(userId), canAccessAccount(userId)))
+		.where(
+			and(eq(mpImportItems.id, id), canAccessOwn(userId, mpImportItems), canAccessAccount(userId))
+		)
 		.limit(1);
 	return row;
 }
@@ -196,7 +192,7 @@ export function listImportRules(userId: string) {
 			recurringId: mpImportRules.recurringId
 		})
 		.from(mpImportRules)
-		.where(canAccessImportRule(userId));
+		.where(canAccessOwn(userId, mpImportRules));
 }
 
 type ImportRule = Awaited<ReturnType<typeof listImportRules>>[number];
@@ -292,7 +288,7 @@ export function approveImport(
 		await tx
 			.update(mpImportItems)
 			.set({ movementId: movement.id })
-			.where(and(eq(mpImportItems.id, item.id), canAccessImport(userId)));
+			.where(and(eq(mpImportItems.id, item.id), canAccessOwn(userId, mpImportItems)));
 
 		const key = remember ? rememberKey(item)?.key : undefined;
 		if (key) {
@@ -300,7 +296,7 @@ export function approveImport(
 			await tx
 				.insert(mpImportRules)
 				.values({
-					...importRuleOwnedBy(userId),
+					...userOwned(userId),
 					...key,
 					type,
 					categoryId,
@@ -347,7 +343,11 @@ export function undoApproval(userId: string, id: string): Promise<'undone' | 'ch
 			.select({ movementId: mpImportItems.movementId })
 			.from(mpImportItems)
 			.where(
-				and(eq(mpImportItems.id, id), canAccessImport(userId), eq(mpImportItems.status, 'approved'))
+				and(
+					eq(mpImportItems.id, id),
+					canAccessOwn(userId, mpImportItems),
+					eq(mpImportItems.status, 'approved')
+				)
 			)
 			.for('update')
 			.limit(1);
@@ -373,7 +373,7 @@ export function undoApproval(userId: string, id: string): Promise<'undone' | 'ch
 				autoApprovedAt: null,
 				autoApproveBlocked: sql`${mpImportItems.autoApproveBlocked} or ${mpImportItems.autoApprovedAt} is not null`
 			})
-			.where(and(eq(mpImportItems.id, id), canAccessImport(userId)));
+			.where(and(eq(mpImportItems.id, id), canAccessOwn(userId, mpImportItems)));
 		return 'undone';
 	});
 }
@@ -417,7 +417,7 @@ export function listAutoApproved(userId: string) {
 		)
 		.where(
 			and(
-				canAccessImport(userId),
+				canAccessOwn(userId, mpImportItems),
 				canAccessMovement(userId),
 				canAccessAccount(userId, itemAccount),
 				eq(mpImportItems.status, 'approved'),

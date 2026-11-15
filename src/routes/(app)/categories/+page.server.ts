@@ -8,7 +8,7 @@ import {
 	listCategories
 } from '$lib/server/categories-queries';
 import { currentMonth, monthRange } from '$lib/server/month';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 
 const KIND_GROUPS = [
 	...CATEGORY_KINDS.map((k) => [k, KIND_LABEL[k]] as const),

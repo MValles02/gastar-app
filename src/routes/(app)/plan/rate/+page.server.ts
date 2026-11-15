@@ -5,7 +5,7 @@ import { formatAmountInput, isValidRate, parseAmount } from '$lib/money';
 import { MOVEMENT_MESSAGES } from '$lib/movement';
 import { currentPlan, latestTransferRate, updatePlan } from '$lib/server/plan-queries';
 import { planView } from '$lib/server/plan-view';
-import { requireUser } from '$lib/server/require-user';
+import { requireUser } from '$lib/server/guards';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const userId = requireUser(locals).id;
