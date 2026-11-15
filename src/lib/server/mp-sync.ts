@@ -507,16 +507,19 @@ function netCents(r: Row): number {
 }
 
 /**
- * Only `release` rows described as `payout` (money leaving the available balance), `asset_management_gain`
- * or `asset_management_loss` (daily yield); every other row is a payment, which payments/search already
- * brings, or a balance line. A payout with an EXTERNAL_REFERENCE is a payment at a merchant
+ * Only `release` rows described as `payout` (money leaving the available balance) or `asset_management`
+ * (daily yield; real reports use that one description, signed by credit/debit, though the documented
+ * `asset_management_gain` / `asset_management_loss` are accepted too); every other row is a payment, which
+ * payments/search already brings, or a balance line. A payout with an EXTERNAL_REFERENCE is a payment at a merchant
  * (interoperable QR); without one it is a transfer or withdrawal. A yield row is signed (a loss is a debit);
  * syncReport nets them per local day. Keys are the ones the old settlement report used.
  */
 function reportItem(r: Row): Omit<ImportRow, 'accountId'> | null {
 	if (r.RECORD_TYPE !== 'release') return null;
 	const isYield =
-		r.DESCRIPTION === 'asset_management_gain' || r.DESCRIPTION === 'asset_management_loss';
+		r.DESCRIPTION === 'asset_management' ||
+		r.DESCRIPTION === 'asset_management_gain' ||
+		r.DESCRIPTION === 'asset_management_loss';
 	if (!isYield && r.DESCRIPTION !== 'payout') return null;
 	const signed = netCents(r);
 	if (signed === 0) return null;
