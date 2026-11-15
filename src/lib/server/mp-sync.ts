@@ -68,7 +68,8 @@ async function api(path: string, { token }: Auth, init: RequestInit = {}): Promi
 		} catch {
 			/* no JSON body */
 		}
-		throw Object.assign(fail(`mp_${res.status}`), { detail });
+		// The endpoint (no query) says which step failed.
+		throw Object.assign(fail(`mp_${res.status}`), { detail, path: path.split('?')[0] });
 	}
 	return res;
 }
@@ -742,7 +743,8 @@ async function execute(
 		ok = true;
 	} catch (e) {
 		code = (e as { mp?: boolean }).mp ? ((e as Error).message as MpSyncError) : 'network';
-		console.error(`mp sync failed: ${code}`);
+		const { path, detail } = e as { path?: string; detail?: string };
+		console.error(`mp sync failed: ${code}`, path ?? '', detail ?? '');
 	}
 	if (!ok) await ingest([]);
 	try {
