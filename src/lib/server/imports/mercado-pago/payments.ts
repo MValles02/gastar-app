@@ -16,7 +16,8 @@ import {
 	obj,
 	OVERLAP_DAYS,
 	str,
-	text
+	text,
+	isAuthError
 } from './client';
 
 // Payments: /v1/payments/search, both sides, in seconds.
@@ -118,7 +119,7 @@ export async function syncPayments(
 			try {
 				n = text(obj(await apiJson(`/users/${encodeURIComponent(id)}`, auth)).nickname);
 			} catch (e) {
-				if ((e as Error).message === 'auth') throw e;
+				if (isAuthError(e)) throw e;
 			}
 			nicknames.set(id, n);
 		}

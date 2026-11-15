@@ -9,10 +9,17 @@ export function parseStep(raw: string | null): 1 | 2 | 3 | 4 | 5 | null {
 	return Number(raw) as 1 | 2 | 3 | 4 | 5;
 }
 
+/** The wizard's step `n` (`/plan/setup?step=N`). */
+export const setupStepHref = (n: number) => `/plan/setup?step=${n}`;
+
+/** `href` opened from wizard step `step` (`?wizard=N`, or `&wizard=N` after a query); as is without one. */
+export const withWizard = (href: string, step: number | null | undefined) =>
+	step ? `${href}${href.includes('?') ? '&' : '?'}wizard=${step}` : href;
+
 /** Where a limit screen returns to: the wizard step it was opened from, else the plan. */
 export function planReturn(raw: string | null): string {
 	const step = parseStep(raw);
-	return step ? `/plan/setup?step=${step}` : '/plan';
+	return step ? setupStepHref(step) : '/plan';
 }
 
 /** A category limit typed by the user: a positive amount, whole in ARS. */

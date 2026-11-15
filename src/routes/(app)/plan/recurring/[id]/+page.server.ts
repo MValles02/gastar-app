@@ -11,13 +11,9 @@ import {
 } from '#lib/server/recurring/queries.ts';
 import { ruleDueThisMonth } from '#lib/server/plan/month-plan.ts';
 import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
-import {
-	editedForm,
-	readRecurringForm,
-	recurringPickers,
-	toFormValues
-} from '#lib/server/recurring/form.ts';
+import { editedForm, readRecurringForm, toFormValues } from '#lib/server/recurring/form.ts';
 import { undoArchivedOk } from '#lib/server/forms.ts';
+import { movementPickers } from '#lib/server/movements/pickers.ts';
 
 const { notFound, requireId } = notFoundHelpers('Movimiento fijo no encontrado.');
 
@@ -31,7 +27,7 @@ async function findRule(userId: string, id: string) {
 /** The rule as the detail shows it (the load without `wizard`; what `update` returns). */
 async function detailOf(userId: string, id: string) {
 	const rule = await findRule(userId, id);
-	const pickers = await recurringPickers(userId);
+	const pickers = await movementPickers(userId);
 	// The rule's own account and category may be archived since, so they are not in the pickers.
 	const account = pickers.accounts.find((a) => a.id === rule.accountId) ?? {
 		id: rule.accountId,

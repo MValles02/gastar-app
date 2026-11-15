@@ -4,13 +4,7 @@ import type { Currency } from '#lib/money.ts';
 import { db, type DbExecutor } from '../db';
 import { categories, financialAccounts, movements, recurringMovements } from '../db/schema';
 import { appTz, inRange, localMonth, type Range } from '../db/sql';
-import {
-	canAccessAccount,
-	canAccessMovement,
-	canAccessOwn,
-	movementOwnedBy,
-	userOwned
-} from '../access';
+import { canAccessAccount, canAccessMovement, canAccessOwn, userOwned } from '../access';
 import { HISTORY_MONTHS } from '../month';
 import type { MovementRow } from '../movements/form';
 
@@ -113,7 +107,7 @@ export function createMovementWithRule(userId: string, row: MovementRow, ruleRow
 			.returning({ id: recurringMovements.id });
 		const [movement] = await tx
 			.insert(movements)
-			.values({ ...row, ...movementOwnedBy(userId), recurringId: rule.id })
+			.values({ ...row, ...userOwned(userId), recurringId: rule.id })
 			.returning({ id: movements.id });
 		return { ruleId: rule.id, movementId: movement.id };
 	});

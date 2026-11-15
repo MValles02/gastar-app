@@ -6,8 +6,7 @@ import {
 	editedForm,
 	KIND_LOCKED_MESSAGE,
 	NOT_FOUND_MESSAGE,
-	parseCategoryForm,
-	toFormValues
+	parseCategoryForm
 } from '#lib/server/categories/form.ts';
 import {
 	categoryMonthNet,
@@ -21,7 +20,7 @@ import {
 	writeIfNameFree
 } from '#lib/server/categories/queries.ts';
 import { archiveActions, deleteUnlessReferenced, lifecycleState } from '#lib/server/lifecycle.ts';
-import { monthNav, monthParam, monthRange } from '#lib/server/month.ts';
+import { monthLabel, monthParam, monthRange } from '#lib/server/month.ts';
 import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
 import { CATEGORY_KINDS, kindFits } from '#lib/movement.ts';
 
@@ -47,7 +46,6 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const detail = await categoryOf(userId, params.id);
 
 	const month = monthParam(url, { clamp: false });
-	const nav = monthNav(month);
 	const [rows, referenced] = await Promise.all([
 		categoryMonthNet(userId, params.id, monthRange(month)),
 		isCategoryReferenced(userId, params.id)
@@ -55,8 +53,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	return {
 		...detail,
-		values: toFormValues(detail.category),
-		month: { label: nav.label, isCurrent: nav.isCurrent },
+		month: { label: monthLabel(month) },
 		nets: toCurrencyNets(rows),
 		actions: lifecycleState({ referenced, archived: detail.category.archived })
 	};

@@ -4,8 +4,7 @@ import {
 	DELETE_REFERENCED_MESSAGE,
 	editedForm,
 	NOT_FOUND_MESSAGE,
-	parseAccountForm,
-	toFormValues
+	parseAccountForm
 } from '#lib/server/accounts/form.ts';
 import {
 	accountOriginSums,
@@ -43,7 +42,6 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const referenced = await isAccountReferenced(userId, params.id);
 	return {
 		...detail,
-		values: toFormValues(detail.account),
 		actions: lifecycleState({ referenced, archived: detail.account.archived })
 	};
 };

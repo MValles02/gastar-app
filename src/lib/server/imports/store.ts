@@ -14,6 +14,11 @@ import type { MovementType } from '#lib/movement.ts';
 import type { MovementRow } from '../movements/form';
 import { createMovement, deleteMovement } from '../movements/queries';
 import { rememberKey } from './rules';
+import type { Kind, SourceId } from './sources';
+
+// The columns are CHECK-constrained to the SOURCE ids and KIND values: the one cast from text.
+const itemSource = sql<SourceId>`${mpImportItems.source}`;
+const itemKind = sql<Kind>`${mpImportItems.kind}`;
 
 const pending = (userId: string) =>
 	and(canAccessOwn(userId, mpImportItems), eq(mpImportItems.status, 'pending'));
@@ -23,10 +28,10 @@ const itemColumns = {
 	accountId: mpImportItems.accountId,
 	// The item's account currency: amounts are in it, and transfers stay within it.
 	currency: financialAccounts.currency,
-	source: mpImportItems.source,
+	source: itemSource,
 	installment: mpImportItems.installment,
 	status: mpImportItems.status,
-	kind: mpImportItems.kind,
+	kind: itemKind,
 	isCredit: mpImportItems.isCredit,
 	amount: mpImportItems.amount,
 	occurredAt: mpImportItems.occurredAt,
@@ -238,8 +243,8 @@ export function listAutoApproved(userId: string) {
 	return db
 		.select({
 			id: mpImportItems.id,
-			source: mpImportItems.source,
-			kind: mpImportItems.kind,
+			source: itemSource,
+			kind: itemKind,
 			isCredit: mpImportItems.isCredit,
 			amount: mpImportItems.amount,
 			occurredAt: mpImportItems.occurredAt,

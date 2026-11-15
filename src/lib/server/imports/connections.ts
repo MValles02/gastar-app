@@ -2,6 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import type { Currency } from '#lib/money.ts';
 import { canAccessAccount, canAccessOwn } from '../access';
 import { db } from '../db';
+import { isUuid } from '../db/util';
 import { financialAccounts, galiciaConnections, mpConnections } from '../db/schema';
 import { mpOauthEnabled } from './mercado-pago/oauth';
 import { pendingImportCount } from './store';
@@ -16,19 +17,27 @@ export function activeAccountsIn(userId: string, currency: Currency) {
 			color: financialAccounts.color
 		})
 		.from(financialAccounts)
-		.where(
-			and(
-				canAccessAccount(userId),
-				eq(financialAccounts.currency, currency),
-				isNull(financialAccounts.archivedAt)
-			)
-		)
+		.where(activeIn(userId, currency))
 		.orderBy(financialAccounts.name);
 }
 
+const activeIn = (userId: string, currency: Currency) =>
+	and(
+		canAccessAccount(userId),
+		eq(financialAccounts.currency, currency),
+		isNull(financialAccounts.archivedAt)
+	);
+
 /** True when `accountId` is one of the user's active accounts of that currency. */
-export const isActiveAccountIn = async (userId: string, currency: Currency, accountId: string) =>
-	(await activeAccountsIn(userId, currency)).some((a) => a.id === accountId);
+export async function isActiveAccountIn(userId: string, currency: Currency, accountId: string) {
+	if (!isUuid(accountId)) return false;
+	const [row] = await db
+		.select({ id: financialAccounts.id })
+		.from(financialAccounts)
+		.where(and(eq(financialAccounts.id, accountId), activeIn(userId, currency)))
+		.limit(1);
+	return !!row;
+}
 
 type MpConnectionInfo = {
 	accountId: string | null;

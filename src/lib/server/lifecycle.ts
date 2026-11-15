@@ -1,9 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from './db/errors';
-import { requireUser } from './guards';
+import { requireUser, type Guards } from './guards';
 
-type Guards = { notFound: () => never; requireId: (id: string) => void };
 type IdEvent = { locals: App.Locals; params: { id: string } };
 type Write = (userId: string, id: string) => Promise<unknown[]>;
 

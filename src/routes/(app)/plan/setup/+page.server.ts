@@ -1,7 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { parseStep } from '#lib/plan-wizard.ts';
+import { parseStep, setupStepHref } from '#lib/plan-wizard.ts';
+import { PLAN_SAVED_HREF } from '#lib/toast-flags.ts';
 import { listAccounts } from '#lib/server/accounts/queries.ts';
 import { currentMonth } from '#lib/server/month.ts';
 import { PLAN_CURRENCY } from '#lib/plan.ts';
@@ -49,7 +50,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const [accounts, plan] = await Promise.all([listAccounts(userId), currentPlan(userId)]);
 	if (accounts.length === 0) toPlan();
 	if (!param && plan) toPlan();
-	if (step >= 4 && !plan) redirect(303, '/plan/setup?step=3');
+	if (step >= 4 && !plan) redirect(303, setupStepHref(3));
 
 	if (step === 1 || step === 2) {
 		const [lists, suggestions] = await Promise.all([
@@ -102,21 +103,21 @@ export const actions: Actions = {
 			savingsPercent: r.savingsPercent,
 			month: plan ? plan.month : null
 		});
-		redirect(303, '/plan/setup?step=4');
+		redirect(303, setupStepHref(4));
 	},
 	suggested: async ({ locals }) => {
 		const userId = requireUser(locals).id;
 		const plan = await currentPlan(userId);
-		if (!plan) redirect(303, '/plan/setup?step=3');
+		if (!plan) redirect(303, setupStepHref(3));
 		const limits = await applicableSuggestions(userId, plan.id);
 		if (limits.length > 0) await upsertLimits(userId, plan.id, limits);
-		redirect(303, '/plan/setup?step=4');
+		redirect(303, setupStepHref(4));
 	},
 	finish: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
-		if (!(await currentPlan(userId))) redirect(303, '/plan/setup?step=3');
+		if (!(await currentPlan(userId))) redirect(303, setupStepHref(3));
 		const repeat = (await request.formData()).get('repeat') === 'on';
 		await updatePlan(userId, { month: repeat ? null : currentMonth(new Date()) });
-		redirect(303, '/plan?planSaved=1');
+		redirect(303, PLAN_SAVED_HREF);
 	}
 };

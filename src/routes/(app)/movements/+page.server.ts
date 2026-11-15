@@ -74,7 +74,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		allDates,
 		accountIds,
 		categoryIds,
-		lockedCurrency,
 		months,
 		summary,
 		accounts: [

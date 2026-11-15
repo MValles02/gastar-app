@@ -169,3 +169,9 @@ export function dayHeading(ymd: string, todayYmd: string, short = false): string
 			.replace(',', '')
 	);
 }
+
+/** The "YYYY-MM-DD" after `ymd` (calendar arithmetic, no time zone). */
+export function nextDay(ymd: string): string {
+	const [y, m, d] = ymd.split('-').map(Number);
+	return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+}

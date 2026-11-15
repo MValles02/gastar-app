@@ -5,7 +5,8 @@ import { formatAmountInput } from '#lib/money.ts';
 import { recurringSuggestions } from '#lib/server/plan/month-plan.ts';
 import { createRecurring } from '#lib/server/recurring/queries.ts';
 import { requireUser } from '#lib/server/guards.ts';
-import { readRecurringForm, recurringPickers } from '#lib/server/recurring/form.ts';
+import { readRecurringForm } from '#lib/server/recurring/form.ts';
+import { movementPickers } from '#lib/server/movements/pickers.ts';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
@@ -18,7 +19,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			? (await recurringSuggestions(userId)).find((c) => c.id === id)
 			: undefined;
 	return {
-		...(await recurringPickers(userId)),
+		...(await movementPickers(userId)),
 		returnHref: planReturn(url.searchParams.get('wizard')),
 		type,
 		suggested: s && {

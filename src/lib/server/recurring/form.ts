@@ -7,7 +7,6 @@ import { getCategory } from '../categories/queries';
 import { isUuid } from '../db/util';
 import { amountFor, editFormData, readFields } from '../forms';
 import { descriptionField, kindMismatchMessage } from '../movements/form';
-import { movementPickers } from '../movements/pickers';
 
 const FIELDS = ['type', 'description', 'amount', 'accountId', 'categoryId', 'dayOfMonth'] as const;
 /** The only fields `?/update` takes: a rule keeps its stored type. */
@@ -86,8 +85,6 @@ export function parseRecurringForm(fd: FormData): RecurringFormResult {
 		}
 	};
 }
-
-export const recurringPickers = (userId: string) => movementPickers(userId);
 
 /**
  * Parses the rule form and checks its account and category. On an edit, `fd` is

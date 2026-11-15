@@ -5,16 +5,13 @@ import { canAccessOwn } from '../../access';
 import { db } from '../../db';
 import { mpConnections, mpImportItems } from '../../db/schema';
 import { localDay } from '../../month';
-import { activeAccountsIn, isActiveAccountIn } from '../connections';
+import { isActiveAccountIn } from '../connections';
 
 /** Mercado Pago accounts are in pesos: the receiving account must be too. */
 export const MP_CURRENCY = 'ARS' satisfies Currency;
 
 /** How far back a first sync reaches when the user has not chosen an "importar desde" day. */
 export const DEFAULT_BACKFILL_DAYS = 30;
-
-/** The user's active ARS accounts, the only valid receiving accounts. */
-export const listReceivingAccounts = (userId: string) => activeAccountsIn(userId, MP_CURRENCY);
 
 /** Saves the receiving account. False when the account is not the user's, active and ARS, or there is no connection. */
 export async function setReceivingAccount(userId: string, accountId: string): Promise<boolean> {

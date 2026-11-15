@@ -4,7 +4,11 @@ import { dev } from '$app/env';
 import { accountOption } from '#lib/server/accounts/queries.ts';
 import { DAY_MS } from '#lib/dates.ts';
 import { dayStart, localDay } from '#lib/server/month.ts';
-import { getConnectionInfo, getMpImportAccount } from '#lib/server/imports/connections.ts';
+import {
+	activeAccountsIn,
+	getConnectionInfo,
+	getMpImportAccount
+} from '#lib/server/imports/connections.ts';
 import {
 	deleteConnection,
 	mpOauthEnabled,
@@ -14,7 +18,7 @@ import {
 } from '#lib/server/imports/mercado-pago/oauth.ts';
 import {
 	getImportFromDay,
-	listReceivingAccounts,
+	MP_CURRENCY,
 	setImportFrom,
 	setReceivingAccount
 } from '#lib/server/imports/mercado-pago/settings.ts';
@@ -39,7 +43,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const account = connection?.accountId ? await getMpImportAccount(userId) : null;
 	return {
 		connection,
-		accounts: (await listReceivingAccounts(userId)).map(accountOption),
+		accounts: (await activeAccountsIn(userId, MP_CURRENCY)).map(accountOption),
 		// The minimum date of every sync; only once an account receives the movements.
 		importFrom: account ? await getImportFromDay(userId, account.id) : null,
 		today: localDay(new Date()),

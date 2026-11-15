@@ -5,7 +5,7 @@ import { userOwned } from '../../access';
 import { dayStart } from '../../month';
 import { getGaliciaConnection, isActiveAccountIn } from '../connections';
 import { type ImportRow, ingestImportItems } from '../ingest';
-import { KIND, kindSpec, SOURCE } from '../sources';
+import { GALICIA_SOURCE, KIND, kindSpec } from '../sources';
 import { StatementError, type Statement } from './statement';
 
 type GaliciaConnection = Awaited<ReturnType<typeof getGaliciaConnection>>;
@@ -43,7 +43,7 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 		if (!d) throw new StatementError('unreadable');
 		return d;
 	};
-	const source = s.network === 'visa' ? SOURCE.galiciaVisa : SOURCE.galiciaMastercard;
+	const source = GALICIA_SOURCE[s.network];
 	const conn = await getGaliciaConnection(userId);
 	const accounts = {} as Record<Currency, string>;
 	for (const c of CURRENCIES) {

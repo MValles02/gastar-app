@@ -17,7 +17,7 @@
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import { PLAN_CURRENCY } from '#lib/plan.ts';
-	import { WIZARD_STEPS } from '#lib/plan-wizard.ts';
+	import { setupStepHref, WIZARD_STEPS, withWizard } from '#lib/plan-wizard.ts';
 	import LimitList from '../LimitList.svelte';
 	import RecurringRow from '../RecurringRow.svelte';
 	import SavingsOptions from '../SavingsOptions.svelte';
@@ -32,13 +32,12 @@
 		'¿Dónde querés cuidar el gasto?',
 		'Tu plan'
 	];
-	const stepHref = (n: number) => `/plan/setup?step=${n}`;
 
 	// Steps share this component, so the switch starts on until step 5 is the first one loaded.
 	let repeat = $state(untrack(() => data.repeats ?? true));
 	const perDay = $derived(data.summary?.perDay ?? 0);
 	const newRule = (type: 'income' | 'outcome') =>
-		`/plan/recurring/new?type=${type}&wizard=${data.step}`;
+		withWizard(`/plan/recurring/new?type=${type}`, data.step);
 </script>
 
 <svelte:head>
@@ -47,7 +46,7 @@
 
 {#snippet bar(submitLabel: string, nextHref?: string)}
 	<FormActions
-		cancelHref={data.step === 1 ? '/plan' : stepHref(data.step - 1)}
+		cancelHref={data.step === 1 ? '/plan' : setupStepHref(data.step - 1)}
 		cancelLabel={data.step === 1 ? 'Cancelar' : 'Atrás'}
 		{submitLabel}
 		submitHref={nextHref}
@@ -67,7 +66,7 @@
 {/snippet}
 
 {#snippet addLimit()}
-	{@render add('/plan/limits/new?wizard=4', 'newLimit')}
+	{@render add(withWizard('/plan/limits/new', 4), 'newLimit')}
 {/snippet}
 
 <div class="wizard root">
@@ -123,7 +122,7 @@
 			<p class="muted small">Tocá uno para agregarlo como pago fijo.</p>
 			<ListCard>
 				{#each data.suggestions as s (s.id)}
-					{@const href = `/plan/recurring/new?type=outcome&wizard=2&suggestion=${s.id}`}
+					{@const href = `${withWizard('/plan/recurring/new?type=outcome', 2)}&suggestion=${s.id}`}
 					<!-- The wrapper only carries the click that opens the drawer; it adds no box. -->
 					<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 					<div
@@ -144,7 +143,7 @@
 				{/each}
 			</ListCard>
 		{/if}
-		{@render bar('Siguiente', stepHref(data.step + 1))}
+		{@render bar('Siguiente', setupStepHref(data.step + 1))}
 	{:else if data.step === 3}
 		{@render question()}
 		<form
@@ -184,7 +183,7 @@
 			<SectionHeader level={3} title="Límites" aside={addLimit} />
 			<LimitList limits={data.limits} wizard={4} />
 		</section>
-		{@render bar('Siguiente', stepHref(5))}
+		{@render bar('Siguiente', setupStepHref(5))}
 	{:else}
 		{@const s = data.summary!}
 		<h1 class="question">{titles[4]} para {data.monthName}</h1>

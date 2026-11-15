@@ -1,6 +1,7 @@
 import { toast } from 'svelte-sonner';
 import { refreshAll } from '$app/navigation';
-
+import { submitAction } from './autosave';
+import { DELETE_ACTION } from './form-routes';
 import { looksLikeUuid } from './toast-flags';
 
 /**
@@ -26,12 +27,7 @@ export function undoToast(message: string, undo: () => Promise<void>) {
 
 /** Posts an existing form action the way `use:enhance` does; throws unless it answered with a redirect or success. */
 async function postAction(path: string) {
-	const res = await fetch(path, {
-		method: 'POST',
-		body: new FormData(),
-		headers: { 'x-sveltekit-action': 'true' }
-	});
-	const result = (await res.json()) as { type?: string };
+	const result = await submitAction(path, {});
 	if (result.type !== 'redirect' && result.type !== 'success') throw new Error(path);
 }
 
@@ -40,7 +36,7 @@ export function undoMovementSaved(id: string, ruleId?: string | null) {
 	// The rule id comes from the URL: only a UUID reaches the fetch path.
 	const rule = ruleId && looksLikeUuid(ruleId) ? ruleId : null;
 	undoToast('Movimiento guardado.', async () => {
-		await postAction(`/movements/${id}?/delete`);
-		if (rule) await postAction(`/plan/recurring/${rule}?/delete`);
+		await postAction(DELETE_ACTION.movement(id));
+		if (rule) await postAction(DELETE_ACTION.recurring(rule));
 	});
 }
