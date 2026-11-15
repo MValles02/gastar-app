@@ -1,13 +1,13 @@
 import type { PageServerLoad } from './$types';
-import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-import { accountOption, listAccounts } from '$lib/server/accounts/queries';
-import { listCategories } from '$lib/server/categories/queries';
-import type { Currency } from '$lib/money';
-import { toRecentItem } from '$lib/server/dashboard/home';
-import { dayHeading, localDay, monthHeading } from '$lib/server/month';
-import { applyDefaultRange, parseMovementFilters } from '$lib/server/movements/filters';
-import { listMovements, PAGE_SIZE, summarizeMovements } from '$lib/server/movements/queries';
-import { requireUser } from '$lib/server/guards';
+import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
+import { accountOption, listAccounts } from '#lib/server/accounts/queries.ts';
+import { listCategories } from '#lib/server/categories/queries.ts';
+import type { Currency } from '#lib/money.ts';
+import { toRecentItem } from '#lib/server/dashboard/home.ts';
+import { dayHeading, localDay, monthHeading } from '#lib/server/month.ts';
+import { applyDefaultRange, parseMovementFilters } from '#lib/server/movements/filters.ts';
+import { listMovements, PAGE_SIZE, summarizeMovements } from '#lib/server/movements/queries.ts';
+import { requireUser } from '#lib/server/guards.ts';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;

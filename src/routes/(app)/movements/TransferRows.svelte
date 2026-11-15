@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { ComponentProps } from 'svelte';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import InlineText from '$lib/components/InlineText.svelte';
-	import OptionPicker from '$lib/components/OptionPicker.svelte';
-	import TextRow from '$lib/components/TextRow.svelte';
-	import { formatMoney, parseAmount, type Currency } from '$lib/money';
+	import InlineText from '#lib/components/InlineText.svelte';
+	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import TextRow from '#lib/components/TextRow.svelte';
+	import { formatMoney, parseAmount, type Currency } from '#lib/money.ts';
 
 	let {
 		showTransfer,

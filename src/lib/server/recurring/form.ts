@@ -1,13 +1,13 @@
-import { formFail } from '$lib/form';
-import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
+import { formFail } from '#lib/form.ts';
+import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 import { accountOption, getAccount, listAccounts } from '../accounts/queries';
 import { getCategory, listCategories } from '../categories/queries';
-import { DESCRIPTION_MAX_LENGTH, DESCRIPTION_TOO_LONG_MESSAGE } from '$lib/fields';
-import { AMOUNT_EXAMPLE, ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '$lib/money';
-import type { MovementType } from '$lib/movement';
+import { DESCRIPTION_MAX_LENGTH, DESCRIPTION_TOO_LONG_MESSAGE } from '#lib/fields.ts';
+import { AMOUNT_EXAMPLE, ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '#lib/money.ts';
+import type { MovementType } from '#lib/movement.ts';
 import { isUuid } from '../db/util';
 import { kindMismatchMessage } from '../movements/form';
-import { MAX_DAY_OF_MONTH } from '$lib/plan';
+import { MAX_DAY_OF_MONTH } from '#lib/plan.ts';
 
 type RecurringFormValues = Record<
 	'type' | 'description' | 'amount' | 'accountId' | 'categoryId' | 'dayOfMonth',

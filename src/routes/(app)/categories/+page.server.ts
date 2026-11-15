@@ -1,14 +1,14 @@
 import type { PageServerLoad } from './$types';
-import { NAME_MAX_LENGTH } from '$lib/fields';
-import { CATEGORY_KINDS, KIND_LABEL, kindFits } from '$lib/movement';
-import { CURRENCIES, type Currency } from '$lib/money';
+import { NAME_MAX_LENGTH } from '#lib/fields.ts';
+import { CATEGORY_KINDS, KIND_LABEL, kindFits } from '#lib/movement.ts';
+import { CURRENCIES, type Currency } from '#lib/money.ts';
 import {
 	categoryMonthTotals,
 	hasAnyCategory,
 	listCategories
-} from '$lib/server/categories/queries';
-import { currentMonth, monthRange } from '$lib/server/month';
-import { requireUser } from '$lib/server/guards';
+} from '#lib/server/categories/queries.ts';
+import { currentMonth, monthRange } from '#lib/server/month.ts';
+import { requireUser } from '#lib/server/guards.ts';
 
 const KIND_GROUPS = [
 	...CATEGORY_KINDS.map((k) => [k, KIND_LABEL[k]] as const),

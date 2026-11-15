@@ -2,11 +2,11 @@
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { submitAction } from '$lib/autosave';
-	import IconBadge from '$lib/components/IconBadge.svelte';
-	import Money from '$lib/components/Money.svelte';
-	import { openShallow } from '$lib/open-shallow';
-	import { undoToast } from '$lib/undo-toast';
+	import { submitAction } from '#lib/autosave.ts';
+	import IconBadge from '#lib/components/IconBadge.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import { openShallow } from '#lib/open-shallow.ts';
+	import { undoToast } from '#lib/undo-toast.ts';
 
 	/**
 	 * One pending imported item. The whole row opens its review; a suggested row also has a quick
@@ -14,6 +14,7 @@
 	 */
 	let {
 		item
+		/** Where it came from, only when the inbox mixes sources. */
 	}: {
 		item: {
 			id: string;
@@ -22,16 +23,15 @@
 			currency: 'ARS' | 'USD';
 			isCredit: boolean;
 			suggestion: string | null;
-			/** Where it came from, only when the inbox mixes sources. */
 			source: string | null;
 		};
 	} = $props();
 
-	const href = $derived(resolve(`/imports/${item.id}`));
+	const href = $derived(resolve(`imports/${item.id}`));
 	const open = (e: MouseEvent) => openShallow(e, href, 'importItem');
 
 	async function undo() {
-		const r = await submitAction(`${resolve('/imports')}?/undoApprove`, { id: item.id });
+		const r = await submitAction(`${resolve('imports')}?/undoApprove`, { id: item.id });
 		if (r.type !== 'success') throw new Error('undo');
 	}
 </script>
@@ -45,6 +45,7 @@
 	/>
 	<div class="text">
 		<a {href} class="title" onclick={open}>{item.title}</a>
+
 		<span class="meta" class:unknown={item.suggestion === null}>
 			{item.source ? `${item.source} · ` : ''}{item.suggestion === null
 				? 'No sabemos qué es'
@@ -62,6 +63,7 @@
 		</span>
 		{#if item.suggestion === null}
 			<!-- The title link is the accessible one; this shortcut only widens the touch target. -->
+
 			<a {href} class="pill" onclick={open} aria-hidden="true" tabindex="-1">Revisar</a>
 		{:else}
 			<form

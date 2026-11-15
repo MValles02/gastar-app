@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { refreshAll } from '$app/navigation';
-	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
+	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import AccountForm from '../AccountForm.svelte';
 
 	// "Nueva cuenta" opened over the Cuentas list. The /accounts/new page renders the same form.

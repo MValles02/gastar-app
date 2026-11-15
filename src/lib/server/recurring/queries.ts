@@ -1,6 +1,6 @@
 import { and, eq, isNull, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import type { Currency } from '$lib/money';
+import type { Currency } from '#lib/money.ts';
 import { db, type DbExecutor } from '../db';
 import { categories, financialAccounts, movements, recurringMovements } from '../db/schema';
 import { appTz, inRange, localMonth, type Range } from '../db/sql';

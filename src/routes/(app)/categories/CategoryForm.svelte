@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
+	import type { CategoryIconKey, SwatchKey } from '#lib/appearance.ts';
 
 	export type CreatedCategory = {
 		id: string;
@@ -15,17 +15,17 @@
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { followRedirect } from '$lib/nav-stack.svelte';
-	import { NAME_MAX_LENGTH } from '$lib/fields';
-	import { KIND_OPTIONS } from '$lib/movement';
-	import { CATEGORY_ICONS, toCategoryIconKey } from '$lib/appearance';
-	import * as Field from '$lib/components/ui/field/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
-	import FormActions from '$lib/components/FormActions.svelte';
-	import IconBadge from '$lib/components/IconBadge.svelte';
-	import IconColorDrawer from '$lib/components/IconColorDrawer.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import { followRedirect } from '#lib/nav-stack.svelte.ts';
+	import { NAME_MAX_LENGTH } from '#lib/fields.ts';
+	import { KIND_OPTIONS } from '#lib/movement.ts';
+	import { CATEGORY_ICONS, toCategoryIconKey } from '#lib/appearance.ts';
+	import * as Field from '#lib/components/ui/field/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import FormActions from '#lib/components/FormActions.svelte';
+	import IconBadge from '#lib/components/IconBadge.svelte';
+	import IconColorDrawer from '#lib/components/IconColorDrawer.svelte';
+	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 
 	type Values = Partial<Record<'name' | 'color' | 'icon' | 'kind', string | null>>;
 
@@ -40,13 +40,14 @@
 		variant = 'page',
 		oncreated,
 		onclose
+
+		/** Drawer: the category was created. */
+		/** Drawer: Cancelar. */
 	}: {
 		initial?: Values;
 		errors?: Partial<Record<keyof Values, string>>;
 		variant?: 'page' | 'drawer';
-		/** Drawer: the category was created. */
 		oncreated?: (category: CreatedCategory) => void;
-		/** Drawer: Cancelar. */
 		onclose?: () => void;
 	} = $props();
 
@@ -77,7 +78,7 @@
 
 <form
 	method="POST"
-	action={drawer ? resolve('/categories/new') : ''}
+	action={drawer ? resolve('categories/new') : ''}
 	class="form"
 	novalidate
 	use:enhance={() => {
@@ -113,10 +114,8 @@
 				class="glyph"
 				aria-label="Ícono y color"
 				aria-haspopup="dialog"
-				onclick={() => (glyphOpen = true)}
+				onclick={() => (glyphOpen = true)}><IconBadge {icon} {color} size="2.75rem" /></button
 			>
-				<IconBadge {icon} {color} size="2.75rem" />
-			</button>
 		{/if}
 		<Field.Field class="flex-1">
 			<Field.Label for="name" class="visually-hidden">Nombre</Field.Label>

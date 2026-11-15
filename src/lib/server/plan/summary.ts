@@ -1,4 +1,4 @@
-import { convertAmount, currencyStep, type Currency } from '$lib/money';
+import { convertAmount, currencyStep, type Currency } from '#lib/money.ts';
 import {
 	isRecurringActive,
 	PLAN_CURRENCY,
@@ -7,7 +7,7 @@ import {
 	type PlanStatus,
 	type RecurringStatus,
 	type RuleState
-} from '$lib/plan';
+} from '#lib/plan.ts';
 import { daysInMonth, daysLeftIn, elapsedDays } from '../month';
 
 /** `amount` from `from` into `to` at the plan rate; null across currencies when there is no rate. */

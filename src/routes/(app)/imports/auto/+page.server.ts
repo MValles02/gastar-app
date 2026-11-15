@@ -1,9 +1,9 @@
 import { fail } from '@sveltejs/kit';
-import { importTitle, listAutoApproved, undoApproval } from '$lib/server/import-queries';
-import { formatDay } from '$lib/locale';
-import { dayHeading, localDay } from '$lib/server/month';
-import { isUuid } from '$lib/server/db/util';
-import { requireUser } from '$lib/server/guards';
+import { importTitle, listAutoApproved, undoApproval } from '#lib/server/import-queries.ts';
+import { formatDay } from '#lib/locale.ts';
+import { dayHeading, localDay } from '#lib/server/month.ts';
+import { isUuid } from '#lib/server/db/util.ts';
+import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {

@@ -2,7 +2,7 @@
 	import type { ComponentProps } from 'svelte';
 	import Plus from '@lucide/svelte/icons/plus';
 	import { resolve } from '$app/paths';
-	import OptionPicker from '$lib/components/OptionPicker.svelte';
+	import OptionPicker from '#lib/components/OptionPicker.svelte';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'];
 
@@ -32,8 +32,11 @@
 		onclick={() => {
 			close();
 			oncreate();
-		}}><Plus size={18} strokeWidth={2} aria-hidden="true" />Nueva categoría</button
+		}}
 	>
+		<Plus size={18} strokeWidth={2} aria-hidden="true" />
+		Nueva categoría
+	</button>
 {/snippet}
 
 {#if showCategory}
@@ -53,13 +56,14 @@
 		>
 			{#snippet empty()}
 				{#if drawer}
-					<button type="button" class="new-category" onclick={() => oncreate()}
-						><Plus size={18} strokeWidth={2} aria-hidden="true" />Nueva categoría</button
-					>
+					<button type="button" class="new-category" onclick={() => oncreate()}>
+						<Plus size={18} strokeWidth={2} aria-hidden="true" />
+						Nueva categoría
+					</button>
 				{:else}
 					<p class="hint pad">
 						Todavía no tenés categorías.
-						<a href={resolve('/categories/new')}>Crear categoría</a>
+						<a href={resolve('categories/new')}>Crear categoría</a>
 					</p>
 				{/if}
 			{/snippet}
