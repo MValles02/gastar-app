@@ -1,4 +1,5 @@
 import { and, eq, isNull, lt, or, sql } from 'drizzle-orm';
+import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { db } from '../../db';
 import { financialAccounts, mpConnections, mpSyncState } from '../../db/schema';
 import { canAccessAccount, canAccessOwn } from '../../access';
@@ -6,7 +7,16 @@ import { autoApprovePending } from '../approve';
 import { type ImportRow, ingestImportItems } from '../ingest';
 import { SOURCE } from '../sources';
 import { DAY_MS } from '#lib/dates.ts';
-import { apiJson, type Auth, fail, type MpSyncError, obj, str } from './client';
+import {
+	apiJson,
+	type Auth,
+	fail,
+	isAuthError,
+	mpCode,
+	type MpSyncError,
+	obj,
+	str
+} from './client';
 import { getAccessToken, refreshConnection } from './oauth';
 import { syncPayments } from './payments';
 import { syncReport } from './report';
@@ -31,6 +41,10 @@ type Lease = {
 };
 
 type Ingest = (rows: ImportRow[]) => Promise<number>;
+
+/** The single writer of a run's progress and outcome to the account's mp_sync_state row. */
+const progress = (accountId: string, patch: PgUpdateSetSource<typeof mpSyncState>) =>
+	db.update(mpSyncState).set(patch).where(eq(mpSyncState.accountId, accountId));
 
 /** Loads the user's usable connection with its account and takes the lease; null when off or held elsewhere. */
 async function acquire(userId: string): Promise<Lease | null> {
@@ -103,7 +117,7 @@ async function currentAuth(userId: string): Promise<Auth> {
 		try {
 			auth = await refreshed(userId);
 		} catch (e) {
-			if ((e as Error).message === 'reconnect' || stored.expiresAt.getTime() <= Date.now()) throw e;
+			if (mpCode(e) === 'reconnect' || stored.expiresAt.getTime() <= Date.now()) throw e;
 		}
 	}
 	return auth;
@@ -116,7 +130,7 @@ async function whoAmI(userId: string, auth: Auth): Promise<{ auth: Auth; me: str
 		meJson = await apiJson('/users/me', auth);
 	} catch (e) {
 		// A 401 here means the token died early: refresh once and retry the run once.
-		if ((e as Error).message !== 'auth') throw e;
+		if (!isAuthError(e)) throw e;
 		auth = await refreshed(userId);
 		meJson = await apiJson('/users/me', auth);
 	}
@@ -134,19 +148,15 @@ async function paymentsStep(
 ): Promise<void> {
 	const paid = await ingest(await syncPayments(l.accountId, l.userId, me, auth, l.floor, from));
 	// Progress for the inbox: payments are stored, the report is next (if any).
-	await db
-		.update(mpSyncState)
-		.set({ phase: report ? 'report' : 'payments', newItems: paid })
-		.where(eq(mpSyncState.accountId, l.accountId));
+	await progress(l.accountId, { phase: report ? 'report' : 'payments', newItems: paid });
 }
 
 async function reportStep(l: Lease, auth: Auth, from: Date | undefined, ingest: Ingest) {
 	const r = await syncReport(l.accountId, l.syncedUntil, auth, l.floor, from);
 	const added = await ingest(r.rows);
-	await db
-		.update(mpSyncState)
-		.set({ newItems: sql`coalesce(${mpSyncState.newItems}, 0) + ${added}` })
-		.where(eq(mpSyncState.accountId, l.accountId));
+	await progress(l.accountId, {
+		newItems: sql`coalesce(${mpSyncState.newItems}, 0) + ${added}`
+	});
 	return r.end;
 }
 
@@ -159,21 +169,19 @@ async function release(
 	autoApproved: number
 ): Promise<void> {
 	try {
-		await db
-			.update(mpSyncState)
-			.set(
-				ok
-					? {
-							runningSince: null,
-							phase: null,
-							lastError: null,
-							...(end && !from ? { syncedUntil: end } : {}),
-							lastRunAt: sql`now()`,
-							autoApproved
-						}
-					: { runningSince: null, phase: null, lastError: code, autoApproved }
-			)
-			.where(eq(mpSyncState.accountId, l.accountId));
+		await progress(
+			l.accountId,
+			ok
+				? {
+						runningSince: null,
+						phase: null,
+						lastError: null,
+						...(end && !from ? { syncedUntil: end } : {}),
+						lastRunAt: sql`now()`,
+						autoApproved
+					}
+				: { runningSince: null, phase: null, lastError: code, autoApproved }
+		);
 	} catch {
 		console.error('mp sync failed: network');
 	}
@@ -202,7 +210,7 @@ async function execute(l: Lease, { from, report }: { from?: Date; report: boolea
 		if (report) end = await reportStep(l, auth, from, ingest);
 		ok = true;
 	} catch (e) {
-		code = (e as { mp?: boolean }).mp ? ((e as Error).message as MpSyncError) : 'network';
+		code = mpCode(e) ?? 'network';
 		const { path, detail } = e as { path?: string; detail?: string };
 		console.error(`mp sync failed: ${code}`, path ?? '', detail ?? '');
 	}

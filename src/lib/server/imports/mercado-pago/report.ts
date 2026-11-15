@@ -19,7 +19,9 @@ import {
 	parseCsv,
 	type Row,
 	str,
-	text
+	text,
+	isAuthError,
+	mpCode
 } from './client';
 import { reportPollMs } from './env';
 
@@ -128,8 +130,7 @@ async function ensureReportConfig(auth: Auth): Promise<void> {
 	try {
 		config = obj(await apiJson(path, auth));
 	} catch (e) {
-		const code = (e as Error).message;
-		if (code === 'mp_404') {
+		if (mpCode(e) === 'mp_404') {
 			await api(path, auth, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -137,7 +138,7 @@ async function ensureReportConfig(auth: Auth): Promise<void> {
 			});
 			return;
 		}
-		if (code === 'auth') throw e;
+		if (isAuthError(e)) throw e;
 		console.warn('mp release config: could not read it');
 		return;
 	}
@@ -150,7 +151,7 @@ async function ensureReportConfig(auth: Auth): Promise<void> {
 			body: JSON.stringify(configPutBody(config, columns, missing))
 		});
 	} catch (e) {
-		if ((e as Error).message === 'auth') throw e;
+		if (isAuthError(e)) throw e;
 		console.warn(
 			`mp release config: PUT failed, ${(e as Error).message} ${(e as { detail?: string }).detail ?? ''}`.trimEnd()
 		);

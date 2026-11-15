@@ -15,7 +15,23 @@ export type Auth = { token: string };
 
 export type Row = Record<string, string>;
 
-export const fail = (code: MpSyncError) => Object.assign(new Error(code), { mp: true });
+/** A sync failure; `message` is the code too. `detail` and `path` (MP's HTTP errors) are for the logs only. */
+export class MpError extends Error {
+	readonly code: MpSyncError;
+	readonly detail?: string;
+	readonly path?: string;
+	constructor(code: MpSyncError, extra: { detail?: string; path?: string } = {}) {
+		super(code);
+		this.code = code;
+		this.detail = extra.detail;
+		this.path = extra.path;
+	}
+}
+
+export const fail = (code: MpSyncError) => new MpError(code);
+/** The MpSyncError code of a thrown value; null for anything not raised by `fail`. */
+export const mpCode = (e: unknown) => (e instanceof MpError ? e.code : null);
+export const isAuthError = (e: unknown) => mpCode(e) === 'auth';
 export const obj = (v: unknown) =>
 	v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
 export const str = (v: unknown) =>
@@ -51,7 +67,7 @@ export async function api(
 			/* no JSON body */
 		}
 		// The endpoint (no query) says which step failed.
-		throw Object.assign(fail(`mp_${res.status}`), { detail, path: path.split('?')[0] });
+		throw new MpError(`mp_${res.status}`, { detail, path: path.split('?')[0] });
 	}
 	return res;
 }
