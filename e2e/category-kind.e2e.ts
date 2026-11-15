@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { login } from './helpers';
+import { login, NO_JS, noJsOption } from './helpers';
 
 const MISMATCH = 'Esa categoría es de ingresos. Elegí otra.';
 
@@ -27,7 +27,7 @@ test.describe('with JavaScript', () => {
 });
 
 test.describe('without JavaScript', () => {
-	test.use({ javaScriptEnabled: false });
+	test.use(NO_JS);
 
 	test('an income category is rejected for an expense and nothing is saved', async ({
 		page,
@@ -35,10 +35,8 @@ test.describe('without JavaScript', () => {
 	}) => {
 		await login(page);
 		await page.goto('/movements/new');
-		const option = (group: 'Cuenta' | 'Categoría', name: RegExp) =>
-			page.getByRole('group', { name: group, exact: true }).getByRole('radio', { name });
-		const accountId = await option('Cuenta', /Banco Galicia/).getAttribute('value');
-		const categoryId = await option('Categoría', /Sueldo/).getAttribute('value');
+		const accountId = await noJsOption(page, 'Cuenta', /Banco Galicia/).getAttribute('value');
+		const categoryId = await noJsOption(page, 'Categoría', /Sueldo/).getAttribute('value');
 		const desc = `Tipo cruzado ${Date.now()}`;
 
 		const res = await page.request.post('/movements/new', {

@@ -1,13 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
-import { deleteMovements, login } from './helpers';
+import { deleteMovements, login, NO_JS, noJsOption, unique } from './helpers';
 
 // Descriptions of movements this spec may have created; removed in afterEach.
 const created: string[] = [];
-const unique = (prefix: string) => {
-	const d = `${prefix} ${Date.now()}`;
-	created.push(d);
-	return d;
-};
 
 test.beforeEach(async ({ page }) => {
 	await login(page);
@@ -17,17 +12,13 @@ test.afterEach(async ({ page, baseURL }) => {
 	for (const prefix of created.splice(0)) await deleteMovements(page, baseURL!, prefix);
 });
 
-// No-JS form: the pickers render as plain radio groups.
-const option = (page: Page, group: 'Cuenta' | 'Categoría', name: RegExp) =>
-	page.getByRole('group', { name: group, exact: true }).getByRole('radio', { name });
-
 /** Creates a 1-peso outcome dated `date` through the no-JS form. */
 async function create(page: Page, description: string, date: string) {
 	await page.goto('/movements/new');
 	await page.locator('input[name="amount"]').fill('1');
 	await page.locator('input[name="description"]').fill(description);
-	await option(page, 'Cuenta', /Banco Galicia/).check({ force: true });
-	await option(page, 'Categoría', /Supermercado/).check({ force: true });
+	await noJsOption(page, 'Cuenta', /Banco Galicia/).check({ force: true });
+	await noJsOption(page, 'Categoría', /Supermercado/).check({ force: true });
 	await page.locator('input[name="occurredAt"]').fill(date);
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
@@ -37,10 +28,10 @@ async function create(page: Page, description: string, date: string) {
 const dateOf = (page: Page) => page.locator('input[name="occurredAt"]');
 
 test.describe('without JavaScript', () => {
-	test.use({ javaScriptEnabled: false });
+	test.use(NO_JS);
 
 	test('create stores the date and shows no time', async ({ page }) => {
-		const desc = unique('Fecha crear');
+		const desc = unique(created, 'Fecha crear');
 		await create(page, desc, '2024-02-29');
 		// Without date params the list shows this month only; `all=1` asks for every date.
 		await page.goto(`/movements?q=${encodeURIComponent(desc)}&all=1`);
@@ -80,9 +71,9 @@ test.describe('without JavaScript', () => {
 
 	test('a datetime is rejected and nothing is saved', async ({ page, baseURL }) => {
 		await page.goto('/movements/new');
-		const accountId = await option(page, 'Cuenta', /Banco Galicia/).getAttribute('value');
-		const categoryId = await option(page, 'Categoría', /Supermercado/).getAttribute('value');
-		const desc = unique('Fecha hora');
+		const accountId = await noJsOption(page, 'Cuenta', /Banco Galicia/).getAttribute('value');
+		const categoryId = await noJsOption(page, 'Categoría', /Supermercado/).getAttribute('value');
+		const desc = unique(created, 'Fecha hora');
 		const res = await page.request.post('/movements/new', {
 			form: {
 				type: 'outcome',
