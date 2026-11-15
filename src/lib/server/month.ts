@@ -107,6 +107,16 @@ export function shortMonth(ym: string): string {
 	return monthLabel(ym, false).slice(0, 3);
 }
 
+const todayFmt = new Intl.DateTimeFormat(LOCALE, {
+	weekday: 'long',
+	day: 'numeric',
+	month: 'long',
+	timeZone: APP_TZ
+});
+
+/** The header's date, e.g. "sábado, 15 de noviembre". */
+export const todayLabel = (now: Date) => todayFmt.format(now);
+
 export function dateLabel(d: Date): string {
 	return formatDay(localDay(d));
 }

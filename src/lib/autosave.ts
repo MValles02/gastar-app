@@ -60,3 +60,22 @@ export async function autosave<T>({
 	await refreshAll();
 	return null;
 }
+
+/**
+ * `autosave` for an edit-in-place screen whose stored `values` are the action's strings: an unchanged
+ * save is skipped (null), and the undo posts those fields as they were in `values`.
+ */
+export async function autosaveChanged<T>(
+	path: string,
+	values: Record<string, string>,
+	fields: Record<string, string>,
+	apply: (data: T) => void
+): Promise<string | null> {
+	if (Object.entries(fields).every(([k, v]) => v === values[k])) return null;
+	return autosave<T>({
+		path,
+		fields,
+		previous: Object.fromEntries(Object.keys(fields).map((k) => [k, values[k]])),
+		apply
+	});
+}
