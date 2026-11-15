@@ -10,7 +10,9 @@ const e2e = [
 	'BETTER_AUTH_URL=http://localhost:5173',
 	'ORIGIN=http://localhost:5173',
 	// CI-only demo password for the throwaway database.
-	'SEED_PASSWORD=demo1234'
+	'SEED_PASSWORD=demo1234',
+	// Google Chrome preinstalled on the ubuntu runner image; no browser download.
+	'CHROMIUM_PATH=/usr/bin/google-chrome'
 ];
 const lines = { checks, e2e }[process.argv[2]];
 if (!lines) {
