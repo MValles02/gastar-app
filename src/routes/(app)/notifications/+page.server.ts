@@ -1,5 +1,5 @@
-import { alerts } from '$lib/server/plan/alerts';
-import { requireUser } from '$lib/server/guards';
+import { alerts } from '#lib/server/plan/alerts.ts';
+import { requireUser } from '#lib/server/guards.ts';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {

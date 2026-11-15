@@ -3,13 +3,13 @@
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { followRedirect } from '$lib/nav-stack.svelte';
-	import { formatAmountInput, formatMoney, isPositiveAmount, type Currency } from '$lib/money';
-	import FormActions from '$lib/components/FormActions.svelte';
-	import OptionPicker from '$lib/components/OptionPicker.svelte';
-	import AmountHero from '$lib/components/AmountHero.svelte';
-	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { followRedirect } from '#lib/nav-stack.svelte.ts';
+	import { formatAmountInput, formatMoney, isPositiveAmount, type Currency } from '#lib/money.ts';
+	import FormActions from '#lib/components/FormActions.svelte';
+	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import AmountHero from '#lib/components/AmountHero.svelte';
+	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 
@@ -26,18 +26,19 @@
 		variant = 'page',
 		onsaved,
 		onclose
-	}: {
+
 		/** Page: the form's action. Drawer: the query (e.g. `?wizard=4`) added to /plan/limits/new. */
+		/** The categories on offer (none has a limit yet), each with its suggested limit. */
+		/** Drawer: the save succeeded. */
+		/** Drawer: Cancelar. */
+	}: {
 		action?: string;
 		cancelHref?: string;
-		/** The categories on offer (none has a limit yet), each with its suggested limit. */
 		categories?: (Picker & { suggested: Record<Currency, number> })[];
 		initial: { categoryId: string; amount: string; currency: Currency };
 		errors?: { categoryId?: string; amount?: string; currency?: string };
 		variant?: 'page' | 'drawer';
-		/** Drawer: the save succeeded. */
 		onsaved?: () => void;
-		/** Drawer: Cancelar. */
 		onclose?: () => void;
 	} = $props();
 
@@ -71,7 +72,7 @@
 
 <form
 	method="POST"
-	action={drawer ? resolve('/plan/limits/new') + action : action}
+	action={drawer ? resolve('plan/limits/new') + action : action}
 	class="form"
 	class:drawer
 	class:submitting
@@ -134,9 +135,8 @@
 				variant="ghost"
 				class="average"
 				onclick={() => (amount = formatAmountInput(suggested, currency))}
+				>Usar promedio · {formatMoney(suggested, currency)}</Button
 			>
-				Usar promedio · {formatMoney(suggested, currency)}
-			</Button>
 		{/if}
 	</div>
 

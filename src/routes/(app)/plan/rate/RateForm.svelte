@@ -3,11 +3,11 @@
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { followRedirect } from '$lib/nav-stack.svelte';
-	import { isPositiveAmount } from '$lib/money';
-	import FormActions from '$lib/components/FormActions.svelte';
-	import AmountHero from '$lib/components/AmountHero.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { followRedirect } from '#lib/nav-stack.svelte.ts';
+	import { isPositiveAmount } from '#lib/money.ts';
+	import FormActions from '#lib/components/FormActions.svelte';
+	import AmountHero from '#lib/components/AmountHero.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
 
 	/**
 	 * The plan's USD rate. `drawer`: opened over the plan (posts to /plan/rate and reports the result
@@ -21,22 +21,23 @@
 		variant = 'page',
 		onsaved,
 		onclose
-	}: {
+
 		/** The rate shown to edit (es-AR input). */
-		initial: string;
 		/** A manual rate is set. */
+		/** Drawer: the save succeeded. */
+		/** Drawer: Cancelar. */
+	}: {
+		initial: string;
 		manual: boolean;
 		hasTransfer: boolean;
 		error?: string;
 		variant?: 'page' | 'drawer';
-		/** Drawer: the save succeeded. */
 		onsaved?: () => void;
-		/** Drawer: Cancelar. */
 		onclose?: () => void;
 	} = $props();
 
 	const drawer = $derived(variant === 'drawer');
-	const path = resolve('/plan/rate');
+	const path = resolve('plan/rate');
 	let rate = $state(untrack(() => initial));
 	let mounted = $state(false);
 	let submitting = $state(false);

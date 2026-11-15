@@ -1,10 +1,10 @@
-import { formFail } from '$lib/form';
-import { auth } from '$lib/server/auth';
-import { userNameError } from '$lib/server/auth-forms';
-import { PREFERENCE_COOKIE_OPTIONS, THEME_COOKIE } from '$lib/server/cookies';
-import { profileCounts } from '$lib/server/profile-queries';
-import { requireUser } from '$lib/server/guards';
-import { isTheme, type Theme } from '$lib/theme';
+import { formFail } from '#lib/form.ts';
+import { auth } from '#lib/server/auth.ts';
+import { userNameError } from '#lib/server/auth-forms.ts';
+import { PREFERENCE_COOKIE_OPTIONS, THEME_COOKIE } from '#lib/server/cookies.ts';
+import { profileCounts } from '#lib/server/profile-queries.ts';
+import { requireUser } from '#lib/server/guards.ts';
+import { isTheme, type Theme } from '#lib/theme.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const parseTheme = (value: string | undefined): Theme => (isTheme(value) ? value : 'system');

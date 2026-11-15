@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import MovementDetail from './MovementDetail.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -13,6 +13,10 @@
 
 <PageHeader
 	title="Movimiento"
-	back={{ href: resolve('/movements'), label: 'Volver a movimientos', text: 'Movimientos' }}
+	back={{
+		href: resolve('movements'),
+		label: 'Volver a movimientos',
+		text: 'Movimientos'
+	}}
 />
 <MovementDetail {data} variant="page" />

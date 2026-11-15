@@ -1,18 +1,18 @@
 import { redirect } from '@sveltejs/kit';
-import { formFail } from '$lib/form';
+import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-import { formatAmountInput } from '$lib/money';
-import { parseLimitAmount, planReturn } from '$lib/plan-wizard';
+import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
+import { formatAmountInput } from '#lib/money.ts';
+import { parseLimitAmount, planReturn } from '#lib/plan-wizard.ts';
 import {
 	deleteLimit,
 	currentPlan,
 	planLimits,
 	PlanRejected,
 	upsertLimits
-} from '$lib/server/plan/queries';
-import { limitSuggestions, planView } from '$lib/server/plan/month-plan';
-import { notFoundHelpers, requireUser } from '$lib/server/guards';
+} from '#lib/server/plan/queries.ts';
+import { limitSuggestions, planView } from '#lib/server/plan/month-plan.ts';
+import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
 
 const { notFound, requireId } = notFoundHelpers('Límite no encontrado.');
 

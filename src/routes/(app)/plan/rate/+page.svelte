@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import PageHeader from '#lib/components/PageHeader.svelte';
 	import RateForm from './RateForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -11,7 +11,7 @@
 	<title>Cotización · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Cotización" close={{ href: resolve('/plan'), label: 'Cerrar' }} />
+<PageHeader title="Cotización" close={{ href: resolve('plan'), label: 'Cerrar' }} />
 
 <RateForm
 	initial={form?.values?.rate ?? data.amount}

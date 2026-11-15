@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { currentMonthName } from '$lib/locale';
-	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
+	import { currentMonthName } from '#lib/locale.ts';
+	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import SavingsOptions from '../SavingsOptions.svelte';
 	import type { PageData } from './$types';
 

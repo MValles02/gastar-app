@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import ListRow from '$lib/components/ListRow.svelte';
-	import Money from '$lib/components/Money.svelte';
-	import { dueTone, PLAN_CURRENCY, type RecurringStatus } from '$lib/plan';
-	import type { CategoryIconKey, SwatchKey } from '$lib/appearance';
-	import type { Currency } from '$lib/money';
+	import ListRow from '#lib/components/ListRow.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import { dueTone, PLAN_CURRENCY, type RecurringStatus } from '#lib/plan.ts';
+	import type { CategoryIconKey, SwatchKey } from '#lib/appearance.ts';
+	import type { Currency } from '#lib/money.ts';
 
 	type Row = {
 		id: string;
@@ -53,7 +53,7 @@
 <!-- Each row opens the rule detail. -->
 <ListRow
 	class="rule"
-	href={resolve(`/plan/recurring/${r.id}${wizard ? `?wizard=${wizard}` : ''}`)}
+	href={resolve(`plan/recurring/${r.id}${wizard ? `?wizard=${wizard}` : ''}`)}
 	lead={{
 		icon: r.categoryIcon ?? undefined,
 		letter: r.categoryIcon ? undefined : r.description.charAt(0).toUpperCase(),

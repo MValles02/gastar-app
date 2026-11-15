@@ -1,10 +1,10 @@
 import { redirect } from '@sveltejs/kit';
-import { formFail } from '$lib/form';
+import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { parseMovementForm } from '$lib/server/movements/form';
-import { isUuid } from '$lib/server/db/util';
-import { deleteMovement, setMovementRule, updateMovement } from '$lib/server/movements/queries';
-import { requireUser } from '$lib/server/guards';
+import { parseMovementForm } from '#lib/server/movements/form.ts';
+import { isUuid } from '#lib/server/db/util.ts';
+import { deleteMovement, setMovementRule, updateMovement } from '#lib/server/movements/queries.ts';
+import { requireUser } from '#lib/server/guards.ts';
 import {
 	detailOf,
 	failIfUnavailable,
@@ -13,8 +13,8 @@ import {
 	keptRefs,
 	notFound,
 	requireId
-} from '$lib/server/movements/detail';
-import { resolvePostedMovement } from '$lib/server/movements/pickers';
+} from '#lib/server/movements/detail.ts';
+import { resolvePostedMovement } from '#lib/server/movements/pickers.ts';
 
 // Whitelist of posted fields; `type` goes through the same parse/resolve path as every other field.
 const EDITABLE = [

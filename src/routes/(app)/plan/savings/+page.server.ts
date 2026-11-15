@@ -1,11 +1,11 @@
 import { redirect } from '@sveltejs/kit';
-import { formFail } from '$lib/form';
+import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { PLAN_CURRENCY } from '$lib/plan';
-import { currentPlan, planIncome, updatePlan } from '$lib/server/plan/queries';
-import { savingsBaseline } from '$lib/server/plan/month-plan';
-import { requireUser } from '$lib/server/guards';
-import { parseSavingsForm } from '$lib/server/plan/savings-form';
+import { PLAN_CURRENCY } from '#lib/plan.ts';
+import { currentPlan, planIncome, updatePlan } from '#lib/server/plan/queries.ts';
+import { savingsBaseline } from '#lib/server/plan/month-plan.ts';
+import { requireUser } from '#lib/server/guards.ts';
+import { parseSavingsForm } from '#lib/server/plan/savings-form.ts';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const userId = requireUser(locals).id;

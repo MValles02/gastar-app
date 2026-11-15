@@ -1,5 +1,5 @@
 <script lang="ts">
-	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
+	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import MovementDetail from './MovementDetail.svelte';
 	import type { PageData } from './$types';
 
