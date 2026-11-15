@@ -10,7 +10,7 @@ import {
 } from '#lib/server/imports/approve.ts';
 import { getMpImportAccount, importLinks } from '#lib/server/imports/connections.ts';
 import { mpOauthEnabled } from '#lib/server/imports/mercado-pago/oauth.ts';
-import { getSyncState, leaseActive, startMpSync } from '#lib/server/imports/mercado-pago/sync.ts';
+import { getSyncState, leaseActive, runMpSync } from '#lib/server/imports/mercado-pago/sync.ts';
 import { importPrefill, importTitle } from '#lib/server/imports/rules.ts';
 import { importSource } from '#lib/server/imports/sources.ts';
 import { getImport, listAutoApproved, listPendingImports } from '#lib/server/imports/store.ts';
@@ -132,7 +132,7 @@ export const actions: Actions = {
 		const userId = requireUser(locals).id;
 		if (!mpOauthEnabled() || !(await getMpImportAccount(userId)))
 			redirect(303, '/profile/vinculaciones');
-		await startMpSync(userId);
+		await runMpSync(userId, { report: true, background: true });
 		redirect(303, '/imports');
 	},
 
