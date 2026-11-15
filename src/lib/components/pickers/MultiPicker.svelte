@@ -1,12 +1,11 @@
 <script lang="ts">
 	import type { ComponentProps } from 'svelte';
 	import Check from '@lucide/svelte/icons/check';
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import type { SwatchKey } from '#lib/appearance.ts';
-	import BottomDrawer from './BottomDrawer.svelte';
-	import { Button } from '#lib/components/ui/button/index.js';
+	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
+	import IconBadge from '#lib/components/IconBadge.svelte';
 	import * as Item from '#lib/components/ui/item/index.js';
-	import IconBadge from './IconBadge.svelte';
+	import PickerTrigger from './PickerTrigger.svelte';
 
 	/**
 	 * A row that opens a stacked list of toggle rows (several can be selected). Empty selection reads
@@ -51,19 +50,15 @@
 </script>
 
 <div class="field">
-	<Button
-		variant="ghost"
-		class="h-14 w-full justify-between gap-3 rounded-none px-4"
-		aria-haspopup="dialog"
-		aria-labelledby="{labelId} {labelId}-value"
+	<PickerTrigger
+		{labelId}
+		label={legend}
+		value={summary}
+		placeholder={value.length === 0}
+		scrollMargin={false}
+		valueClass="truncate"
 		onclick={() => (open = true)}
-	>
-		<span class="label" id={labelId}>{legend}</span>
-		<span id="{labelId}-value" class="current" class:placeholder={value.length === 0}
-			>{summary}</span
-		>
-		<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="chev" />
-	</Button>
+	/>
 </div>
 
 <BottomDrawer {title} nested bind:open>
@@ -104,32 +99,6 @@
 </BottomDrawer>
 
 <style>
-	.label {
-		flex: none;
-		font-size: var(--font-size-base);
-		color: var(--text);
-	}
-
-	.current {
-		flex: 1;
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		text-align: right;
-		font-weight: 500;
-	}
-
-	.placeholder {
-		color: var(--text-muted);
-		font-weight: 400;
-	}
-
-	.field :global(.chev) {
-		flex: none;
-		color: var(--text-muted);
-	}
-
 	.options {
 		display: flex;
 		flex-direction: column;

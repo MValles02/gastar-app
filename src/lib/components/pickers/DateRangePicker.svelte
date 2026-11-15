@@ -1,13 +1,15 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
-	import { endOfMonth, parseDate, startOfMonth, today } from '@internationalized/date';
+	import { endOfMonth, startOfMonth, today } from '@internationalized/date';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import BottomDrawer from './BottomDrawer.svelte';
+	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Item from '#lib/components/ui/item/index.js';
 	import { RangeCalendar } from '#lib/components/ui/range-calendar/index.js';
-	import { thisMonth } from '#lib/dates.ts';
+	import { thisMonth, toCalendarDate } from '#lib/dates.ts';
 	import { APP_TZ, formatDay } from '#lib/locale.ts';
+	import { hydrated } from './hydrated.svelte.ts';
+	import { commitPick } from './pick.ts';
+	import PickerTrigger from './PickerTrigger.svelte';
 
 	let {
 		from = $bindable(''),
@@ -22,22 +24,13 @@
 		nested?: boolean;
 	} = $props();
 
-	let mounted = $state(false);
+	const mounted = hydrated();
 	let open = $state(false);
 	let custom = $state(false);
 	let trigger: HTMLButtonElement | null = $state(null);
 	let hidden: HTMLInputElement | null = $state(null);
 	const labelId = $props.id();
 
-	onMount(() => (mounted = true));
-
-	function toDate(ymd: string) {
-		try {
-			return ymd ? parseDate(ymd) : undefined;
-		} catch {
-			return undefined;
-		}
-	}
 	const presets = [
 		{
 			label: 'Este mes',
@@ -58,7 +51,7 @@
 			}
 		}
 	];
-	const range = $derived({ start: toDate(from), end: toDate(to) });
+	const range = $derived({ start: toCalendarDate(from), end: toCalendarDate(to) });
 	// A range that equals a preset reads as the preset ("Este mes").
 	const presetLabel = $derived(
 		from && to
@@ -87,33 +80,28 @@
 		open = true;
 	}
 
-	async function apply(f: string, t: string) {
-		from = f;
-		to = t;
-		open = false;
-		await tick();
-		// The hidden inputs carry the new values; let ancestors (e.g. the filter bar form) see a change.
-		hidden?.dispatchEvent(new Event('change', { bubbles: true }));
-		trigger?.focus();
-	}
+	const apply = (f: string, t: string) =>
+		commitPick({
+			set: () => {
+				from = f;
+				to = t;
+			},
+			close: () => (open = false),
+			changeFrom: hidden,
+			trigger
+		});
 </script>
 
-{#if mounted}
+{#if mounted.current}
 	<div class="field">
-		<Button
-			variant="ghost"
-			class="h-14 w-full scroll-mb-24 justify-between gap-3 rounded-none px-4"
-			aria-haspopup="dialog"
-			aria-labelledby="{labelId} {labelId}-value"
+		<PickerTrigger
+			{labelId}
+			label="Fechas"
+			value={summary || 'Todas'}
+			placeholder={!summary}
 			bind:ref={trigger}
 			onclick={openSheet}
-		>
-			<span class="label" id={labelId}>Fechas</span>
-			<span id="{labelId}-value" class="current" class:placeholder={!summary}>
-				{summary || 'Todas'}
-			</span>
-			<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="chev" />
-		</Button>
+		/>
 		<!-- The Drawer is portaled out of the form, so the values submit through these inputs. -->
 		<input type="hidden" name="from" value={from} disabled={!from} bind:this={hidden} />
 		<input type="hidden" name="to" value={to} disabled={!to} />
@@ -187,29 +175,6 @@
 	legend,
 	.native label {
 		font-size: var(--font-size-sm);
-		color: var(--text-muted);
-	}
-
-	.label {
-		flex: none;
-		font-size: var(--font-size-base);
-		color: var(--text);
-	}
-
-	.current {
-		flex: 1;
-		min-width: 0;
-		text-align: right;
-		font-weight: 500;
-	}
-
-	.placeholder {
-		color: var(--text-muted);
-		font-weight: 400;
-	}
-
-	.field :global(.chev) {
-		flex: none;
 		color: var(--text-muted);
 	}
 </style>

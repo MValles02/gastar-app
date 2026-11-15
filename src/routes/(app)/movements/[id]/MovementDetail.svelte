@@ -12,8 +12,8 @@
 	import InlineText from '#lib/components/InlineText.svelte';
 	import Money from '#lib/components/Money.svelte';
 	import CrossCurrencyRows from '#lib/components/movements/CrossCurrencyRows.svelte';
-	import MovementDatePicker from '#lib/components/MovementDatePicker.svelte';
-	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import DatePicker from '#lib/components/pickers/DatePicker.svelte';
+	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import type { PageData } from './$types';
 
@@ -259,7 +259,8 @@
 		</li>
 		<li>
 			<fieldset class="lock" disabled={typeStaged}>
-				<MovementDatePicker
+				<DatePicker
+					presets
 					name="occurredAt"
 					label="Fecha"
 					min={MIN_DAY}

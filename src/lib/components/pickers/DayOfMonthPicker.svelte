@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import BottomDrawer from './BottomDrawer.svelte';
+	import { hydrated } from './hydrated.svelte.ts';
+	import { commitPick } from './pick.ts';
+	import PickerTrigger from './PickerTrigger.svelte';
 
 	/**
 	 * "Día del mes" row: opens a 1-31 grid (31 means the month's last day; the server clamps it). Posts
@@ -23,37 +24,34 @@
 		nested?: boolean;
 	} = $props();
 
-	let mounted = $state(false);
+	const mounted = hydrated();
 	let open = $state(false);
 	let trigger: HTMLButtonElement | null = $state(null);
-	onMount(() => (mounted = true));
 
 	const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
-	async function choose(d: string) {
-		value = d;
-		open = false;
-		await tick();
-		trigger?.focus();
-	}
+	const choose = (d: string) =>
+		commitPick({
+			set: () => (value = d),
+			close: () => (open = false),
+			changeFrom: false,
+			trigger
+		});
 </script>
 
-{#if mounted}
-	<Button
-		variant="ghost"
-		class="h-14 w-full scroll-mb-24 justify-between gap-3 rounded-none px-4"
-		aria-haspopup="dialog"
-		aria-labelledby="rday-label rday-value"
-		aria-describedby={error ? errorId : undefined}
+{#if mounted.current}
+	<PickerTrigger
+		labelId="rday-label"
+		valueId="rday-value"
+		label="Día del mes"
+		labelClass="text-base font-normal"
+		value={value || 'Elegir'}
+		placeholder={!value}
+		strongPlaceholder
+		describedBy={error ? errorId : undefined}
 		bind:ref={trigger}
 		onclick={() => (open = true)}
-	>
-		<span id="rday-label" class="text-base font-normal">Día del mes</span>
-		<span id="rday-value" class="flex-1 text-right" class:text-muted-foreground={!value}>
-			{value || 'Elegir'}
-		</span>
-		<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="text-muted-foreground" />
-	</Button>
+	/>
 	<input type="hidden" name="dayOfMonth" {value} />
 	<BottomDrawer title="Día del mes" {nested} bind:open>
 		<div class="days">

@@ -1,4 +1,4 @@
-import { startOfMonth, today } from '@internationalized/date';
+import { CalendarDate, parseDate, startOfMonth, today } from '@internationalized/date';
 import { APP_TZ } from './locale';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
@@ -17,3 +17,16 @@ export function thisMonth(): [string, string] {
 	const t = today(APP_TZ);
 	return [startOfMonth(t).toString(), t.toString()];
 }
+
+/** A "YYYY-MM-DD" as a CalendarDate; '' or an invalid day (e.g. an echoed bad date) gives undefined. */
+export function toCalendarDate(ymd: string | undefined) {
+	try {
+		return ymd ? parseDate(ymd) : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+/** The earliest day a calendar reaches: `min`, else 1900-01-01. */
+export const calendarFloor = (min: string | undefined) =>
+	toCalendarDate(min) ?? new CalendarDate(1900, 1, 1);

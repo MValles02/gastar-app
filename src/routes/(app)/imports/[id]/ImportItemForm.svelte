@@ -7,7 +7,7 @@
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import Money from '#lib/components/Money.svelte';
-	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import TextRow from '#lib/components/TextRow.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';

@@ -2,9 +2,9 @@
 	import { resolve } from '$app/paths';
 	import { autosave, submitAction } from '#lib/autosave.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import DatePicker from '#lib/components/DatePicker.svelte';
+	import DatePicker from '#lib/components/pickers/DatePicker.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
-	import OptionPicker from '#lib/components/OptionPicker.svelte';
+	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { refreshAll } from '$app/navigation';
