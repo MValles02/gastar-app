@@ -1,27 +1,20 @@
 import type { Currency } from '$lib/money';
-import { and, desc, eq, or, sql } from 'drizzle-orm';
-import { db } from './db';
-import { categories, financialAccounts, movements } from './db/schema';
-import { dest, inRange, isIncomeOrOutcome, sumOfType, total, type Range } from './db/sql';
-import { canAccessAccount, canAccessMovement, canAccessOwn } from './access';
-import { memoPerRequest } from './request-memo';
+import { and, desc, eq, or } from 'drizzle-orm';
+import { db } from '../db';
+import { categories, financialAccounts, movements } from '../db/schema';
+import {
+	dest,
+	inRange,
+	isIncomeOrOutcome,
+	localMonth,
+	sumOfType,
+	total,
+	type Range
+} from '../db/sql';
+import { canAccessAccount, canAccessMovement, canAccessOwn } from '../access';
 
 /** Movements listed under "Movimientos" on the home screen. */
 const RECENT_LIMIT = 10;
-
-// No archived filter: archived accounts still count toward the total balance.
-/** Per currency: account count and initial balances. Loads only (shared per request, see `memoPerRequest`). */
-export const accountSummary = memoPerRequest('accounts', (userId: string) =>
-	db
-		.select({
-			currency: financialAccounts.currency,
-			count: sql<number>`count(*)`.mapWith(Number),
-			initial: total(financialAccounts.initialBalance)
-		})
-		.from(financialAccounts)
-		.where(canAccessAccount(userId))
-		.groupBy(financialAccounts.currency)
-);
 
 export function originTypeSums(userId: string, cur: Currency, range?: Range) {
 	return db
@@ -106,4 +99,48 @@ export function recentMovements(userId: string, cur?: Currency) {
 		)
 		.orderBy(desc(movements.occurredAt), desc(movements.createdAt), desc(movements.id))
 		.limit(RECENT_LIMIT);
+}
+
+/** Per local month income and outcome in one currency; transfers never count. */
+export function monthlyFlows(userId: string, cur: Currency, range: Range) {
+	return db
+		.select({ month: localMonth, income: sumOfType('income'), outcome: sumOfType('outcome') })
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.where(
+			and(
+				canAccessMovement(userId),
+				eq(financialAccounts.currency, cur),
+				isIncomeOrOutcome,
+				inRange(range)
+			)
+		)
+		.groupBy(localMonth);
+}
+
+export function biggestOutcome(userId: string, cur: Currency, range: Range) {
+	return db
+		.select({
+			id: movements.id,
+			description: movements.description,
+			amount: movements.amount,
+			occurredAt: movements.occurredAt,
+			categoryName: categories.name
+		})
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.leftJoin(
+			categories,
+			and(eq(movements.categoryId, categories.id), canAccessOwn(userId, categories))
+		)
+		.where(
+			and(
+				canAccessMovement(userId),
+				eq(financialAccounts.currency, cur),
+				eq(movements.type, 'outcome'),
+				inRange(range)
+			)
+		)
+		.orderBy(desc(movements.amount), desc(movements.occurredAt), desc(movements.id))
+		.limit(1);
 }

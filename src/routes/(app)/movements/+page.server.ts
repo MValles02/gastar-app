@@ -1,10 +1,9 @@
 import type { PageServerLoad } from './$types';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-import { accountOption } from '$lib/server/account-options';
-import { listAccounts } from '$lib/server/accounts-queries';
-import { listCategories } from '$lib/server/categories-queries';
+import { accountOption, listAccounts } from '$lib/server/accounts/queries';
+import { listCategories } from '$lib/server/categories/queries';
 import type { Currency } from '$lib/money';
-import { toRecentItem } from '$lib/server/dashboard';
+import { toRecentItem } from '$lib/server/dashboard/home';
 import { dayHeading, localDay, monthHeading } from '$lib/server/month';
 import { applyDefaultRange, parseMovementFilters } from '$lib/server/movements';
 import { listMovements, PAGE_SIZE, summarizeMovements } from '$lib/server/movements-queries';

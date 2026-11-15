@@ -1,8 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
 import type { Actions } from './$types';
-import { parseAccountForm } from '$lib/server/accounts';
-import { createAccount } from '$lib/server/accounts-queries';
+import { parseAccountForm } from '$lib/server/accounts/form';
+import { createAccount } from '$lib/server/accounts/queries';
 import { requireUser } from '$lib/server/guards';
 
 export const actions: Actions = {

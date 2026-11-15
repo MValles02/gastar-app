@@ -6,7 +6,7 @@ import {
 	type SwatchKey
 } from '../appearance';
 import { formatMoney } from '../money';
-import { accountSummary } from './dashboard-queries';
+import { accountSummary } from './accounts/queries';
 import { monthPlan, type MonthPlan } from './plan-view';
 
 export type AlertItem = {

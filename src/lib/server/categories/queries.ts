@@ -1,11 +1,12 @@
 import { and, asc, eq, ilike, isNull, ne, or, sql } from 'drizzle-orm';
-import { db } from './db';
-import { categories, financialAccounts, movements } from './db/schema';
-import { canAccessMovement, canAccessOwn, userOwned } from './access';
-import { PG_UNIQUE_VIOLATION, pgErrorCode } from './db/errors';
-import { escapeLike } from './db/util';
-import { inRange, isIncomeOrOutcome, sumOfType, type Range } from './db/sql';
-import type { CategoryData } from './categories';
+import { db } from '../db';
+import { categories, financialAccounts, movements } from '../db/schema';
+import { canAccessMovement, canAccessOwn, userOwned } from '../access';
+import { PG_UNIQUE_VIOLATION, pgErrorCode } from '../db/errors';
+import { escapeLike } from '../db/util';
+import { inRange, isIncomeOrOutcome, sumOfType, type Range } from '../db/sql';
+import type { CategoryData } from './form';
+import type { Currency } from '$lib/money';
 
 export function listCategories(
 	userId: string,
@@ -42,13 +43,15 @@ export function getCategory(userId: string, id: string) {
 		.limit(1);
 }
 
-export function categoryReferenced(userId: string, id: string) {
-	return db
+/** Whether any movement uses the category. */
+export async function isCategoryReferenced(userId: string, id: string) {
+	const rows = await db
 		.select({ id: movements.id })
 		.from(movements)
 		.innerJoin(categories, eq(movements.categoryId, categories.id))
 		.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
 		.limit(1);
+	return rows.length > 0;
 }
 
 function categoryNameTaken(userId: string, name: string, exceptId?: string) {
@@ -105,6 +108,15 @@ export function categoryMonthNet(userId: string, id: string, range: Range) {
 			)
 		)
 		.groupBy(financialAccounts.currency);
+}
+
+/** Net per currency (outcomes minus incomes) from categoryMonthNet rows, ARS first. Never sums across currencies. */
+export function toCurrencyNets(
+	rows: { currency: Currency; outcome: number; income: number }[]
+): { currency: Currency; net: number }[] {
+	return rows
+		.map((r) => ({ currency: r.currency, net: r.outcome - r.income }))
+		.sort((a, b) => (a.currency === b.currency ? 0 : a.currency === 'ARS' ? -1 : 1));
 }
 
 /** Income and outcome totals per category and currency for a range, never summed across currencies. */

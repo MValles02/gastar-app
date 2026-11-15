@@ -1,7 +1,6 @@
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-import { accountOption } from './account-options';
-import { getAccount, listAccounts } from './accounts-queries';
-import { getCategory, listCategories } from './categories-queries';
+import { accountOption, getAccount, listAccounts } from './accounts/queries';
+import { getCategory, listCategories } from './categories/queries';
 import { type MovementData, resolveMovement } from './movements';
 
 /** Archived accounts/category already referenced by the movement being edited (they stay valid). */

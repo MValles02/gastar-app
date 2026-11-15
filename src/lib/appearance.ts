@@ -61,6 +61,28 @@ export const toCategoryIconKey = (s: string | null): CategoryIconKey | null =>
 	CATEGORY_ICONS.some((i) => i.key === s) ? (s as CategoryIconKey) : null;
 export const toSwatchKey = (s: string | null): SwatchKey | null =>
 	SWATCHES.some((w) => w.key === s) ? (s as SwatchKey) : null;
+
+type Stored = { icon: string | null; color: string | null };
+
+/** An account's icon and swatch as stored, mapped to known keys (unknown icon → 'wallet'). */
+export const accountLook = (a: Stored) => ({
+	icon: toIconKey(a.icon),
+	color: toSwatchKey(a.color)
+});
+
+/** A category's icon and swatch as stored; an unknown icon falls back to `fallback` (the generic glyph by default). */
+export function categoryLook(c: Stored): {
+	icon: CategoryIconKey | 'categories';
+	color: SwatchKey | null;
+};
+export function categoryLook(
+	c: Stored,
+	fallback: null
+): { icon: CategoryIconKey | null; color: SwatchKey | null };
+export function categoryLook(c: Stored, fallback: 'categories' | null = 'categories') {
+	return { icon: toCategoryIconKey(c.icon) ?? fallback, color: toSwatchKey(c.color) };
+}
+
 /** CSS colour for a category/account swatch; no colour falls back to the primary tone app-wide. */
 export const swatchVar = (c: string | null | undefined) =>
 	c ? `var(--swatch-${c})` : 'var(--primary)';

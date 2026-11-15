@@ -1,8 +1,7 @@
 import { formFail } from '$lib/form';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-import { accountOption } from '$lib/server/account-options';
-import { getAccount, listAccounts } from '$lib/server/accounts-queries';
-import { getCategory, listCategories } from '$lib/server/categories-queries';
+import { accountOption, getAccount, listAccounts } from '$lib/server/accounts/queries';
+import { getCategory, listCategories } from '$lib/server/categories/queries';
 import { DESCRIPTION_MAX_LENGTH, DESCRIPTION_TOO_LONG_MESSAGE } from '$lib/fields';
 import { AMOUNT_EXAMPLE, ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '$lib/money';
 import type { MovementType } from '$lib/movement';
