@@ -32,7 +32,6 @@ export function recurringStatus(dayOfMonth: number, paid: boolean, ym: string) {
 	return { day: Math.min(dayOfMonth, daysInMonth(ym)), status };
 }
 
-/** Sum of the active rules of one type. */
 export function activeTotal(rules: (RuleState & { type: string; amount: number })[], type: string) {
 	return rules
 		.filter((r) => r.type === type && isRecurringActive(r))
@@ -65,7 +64,6 @@ export function planSpent(
 }
 
 export type PlanInput<L extends { amount: number; spent: number; currency: Currency }> = {
-	/** Sum of active recurring incomes. */
 	recurringIncome: number;
 	/** Sum of active recurring outcomes. */
 	bills: number;

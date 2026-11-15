@@ -11,7 +11,6 @@ import type { MovementRow } from './form';
 
 export const PAGE_SIZE = 50;
 
-/** "YYYY-MM-DD" of the next calendar day. */
 const nextDay = (ymd: string) => {
 	const [y, m, d] = ymd.split('-').map(Number);
 	return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);

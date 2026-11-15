@@ -94,11 +94,11 @@ async function refreshed(userId: string): Promise<Auth> {
 	return { token: fresh.token };
 }
 
-/** The stored token, refreshed ahead of expiry; if MP is unreachable the current token may still work. */
 async function currentAuth(userId: string): Promise<Auth> {
 	const stored = await getAccessToken(userId);
 	if (!stored) throw fail('reconnect');
 	let auth: Auth = { token: stored.token };
+	// Refresh ahead of expiry; if MP is unreachable the current token may still work.
 	if (stored.expiresAt.getTime() < Date.now() + REFRESH_WINDOW_MS) {
 		try {
 			auth = await refreshed(userId);

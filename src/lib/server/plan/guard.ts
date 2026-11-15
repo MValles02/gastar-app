@@ -3,7 +3,6 @@ import { formFail } from '#lib/form.ts';
 import { notFoundHelpers } from '../guards';
 import { currentPlan, planLimits, PlanRejected } from './queries';
 
-/** Back to the plan screen (a 303 redirect). */
 export function toPlan(): never {
 	redirect(303, '/plan');
 }

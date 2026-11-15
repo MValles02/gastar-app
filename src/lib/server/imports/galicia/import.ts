@@ -10,7 +10,6 @@ import { StatementError, type Statement } from './statement';
 
 type GaliciaConnection = Awaited<ReturnType<typeof getGaliciaConnection>>;
 
-/** The connection's account for one currency. */
 const accountFor = (conn: GaliciaConnection, c: Currency) =>
 	({ ARS: conn?.arsAccountId, USD: conn?.usdAccountId })[c];
 
