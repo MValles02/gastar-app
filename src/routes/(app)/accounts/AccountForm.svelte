@@ -28,14 +28,13 @@
 		variant = 'page',
 		onsaved,
 		onclose
-
-		/** Drawer: the save succeeded. */
-		/** Drawer: Cancelar. */
 	}: {
 		initial: Values;
 		errors?: Partial<Record<keyof Values, string>>;
 		variant?: 'page' | 'drawer';
+		/** Drawer: the save succeeded. */
 		onsaved?: () => void;
+		/** Drawer: Cancelar. */
 		onclose?: () => void;
 	} = $props();
 
@@ -98,8 +97,10 @@
 				class="glyph"
 				aria-label="Ícono y color"
 				aria-haspopup="dialog"
-				onclick={() => (glyphOpen = true)}><IconBadge {icon} {color} size="2.75rem" /></button
+				onclick={() => (glyphOpen = true)}
 			>
+				<IconBadge {icon} {color} size="2.75rem" />
+			</button>
 		{/if}
 		<Field.Field class="flex-1">
 			<Field.Label for="name" class="visually-hidden">Nombre</Field.Label>

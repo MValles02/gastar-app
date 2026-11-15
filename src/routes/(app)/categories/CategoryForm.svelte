@@ -40,14 +40,13 @@
 		variant = 'page',
 		oncreated,
 		onclose
-
-		/** Drawer: the category was created. */
-		/** Drawer: Cancelar. */
 	}: {
 		initial?: Values;
 		errors?: Partial<Record<keyof Values, string>>;
 		variant?: 'page' | 'drawer';
+		/** Drawer: the category was created. */
 		oncreated?: (category: CreatedCategory) => void;
+		/** Drawer: Cancelar. */
 		onclose?: () => void;
 	} = $props();
 
@@ -114,8 +113,10 @@
 				class="glyph"
 				aria-label="Ícono y color"
 				aria-haspopup="dialog"
-				onclick={() => (glyphOpen = true)}><IconBadge {icon} {color} size="2.75rem" /></button
+				onclick={() => (glyphOpen = true)}
 			>
+				<IconBadge {icon} {color} size="2.75rem" />
+			</button>
 		{/if}
 		<Field.Field class="flex-1">
 			<Field.Label for="name" class="visually-hidden">Nombre</Field.Label>

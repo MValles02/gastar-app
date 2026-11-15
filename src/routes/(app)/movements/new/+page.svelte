@@ -15,10 +15,8 @@
 
 	// The + button opens this from any screen: back and Cancelar return there (same-origin path only).
 	let cameFrom = $state<string | null>(null);
-
 	afterNavigate(({ from, shallow, type }) => {
 		if (shallow && type === 'goto') return;
-
 		const path = from ? from.url.pathname + from.url.search : '';
 		// Not /movements/new itself: that is the ?saved=1 redirect after saving.
 		if (
@@ -34,10 +32,8 @@
 	onMount(() => (hydrated = true));
 	// Toast once per saved redirect, then strip ?saved so a reload does not toast again.
 	let toasted: string | null = null;
-
 	afterNavigate(({ shallow, type }) => {
 		if (shallow && type === 'goto') return;
-
 		if (data.saved && !form) {
 			// Once per saved id, however many navigations land before the flag is stripped.
 			if (data.saved !== toasted) {

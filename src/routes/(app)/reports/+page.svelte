@@ -39,9 +39,9 @@
 	<CurrencyTabs value={data.currency} variant="pills" />
 
 	{#if !data.hasCurrency}
-		<EmptyState icon="accounts" description="No tenés cuentas en {CURRENCY_NAME[data.currency]}."
-			><Button href={resolve('accounts/new')}>Crear cuenta</Button></EmptyState
-		>
+		<EmptyState icon="accounts" description="No tenés cuentas en {CURRENCY_NAME[data.currency]}.">
+			<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+		</EmptyState>
 	{:else}
 		{@const max = Math.max(1, ...data.bars.flatMap((b) => [b.income, b.outcome]))}
 		<div class="month-nav">
@@ -106,10 +106,10 @@
 											{#if b.income > 0}<span
 													class="bar in"
 													style:height="{(b.income / max) * 100}%"
-												></span>
-											{/if}{#if b.outcome > 0}
-												<span class="bar out" style:height="{(b.outcome / max) * 100}%"></span>
-											{/if}
+												></span>{/if}{#if b.outcome > 0}<span
+													class="bar out"
+													style:height="{(b.outcome / max) * 100}%"
+												></span>{/if}
 										</span>
 										<span class="bar-label" aria-hidden="true">{b.label}</span>
 									</a>

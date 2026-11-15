@@ -6,11 +6,7 @@
 
 	const tabs = [
 		{ key: 'login', href: resolve('login'), label: 'Ingresar' },
-		{
-			key: 'signup',
-			href: resolve('signup'),
-			label: 'Crear cuenta'
-		}
+		{ key: 'signup', href: resolve('signup'), label: 'Crear cuenta' }
 	] as const;
 </script>
 

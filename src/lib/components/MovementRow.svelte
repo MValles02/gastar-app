@@ -10,8 +10,6 @@
 	let {
 		m,
 		date
-		/** Cross-currency transfer: the destination amount, shown under the amount. */
-		/** Pre-formatted day; omitted where a group header already shows it. */
 	}: {
 		m: {
 			id: string;
@@ -23,8 +21,10 @@
 			destinationAccountName: string | null;
 			categoryIcon: CategoryIconKey | null;
 			categoryColor: SwatchKey | null;
+			/** Cross-currency transfer: the destination amount, shown under the amount. */
 			secondary?: { cents: number; currency: Currency } | null;
 		};
+		/** Pre-formatted day; omitted where a group header already shows it. */
 		date?: string;
 	} = $props();
 

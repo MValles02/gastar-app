@@ -1,5 +1,4 @@
 import type { ActionResult } from '$app/forms';
-
 /* eslint-disable svelte/prefer-svelte-reactivity -- URLs here are parsed and compared, never mutated or rendered */
 import { goto, refreshAll, type AfterNavigate, type OnNavigate } from '$app/navigation';
 import { isModifiedClick } from '#lib/open-shallow.ts';
@@ -85,12 +84,14 @@ export function replaceGoto(href: string, opts: Parameters<typeof goto>[1] = {})
 }
 
 /**
- * Shallow `replaceState` that strips one-shot query flags (default: the toast flags a save leaves) from
- * the current URL and keeps the stack's copy in sync, so a later "up" to this screen still sees the flag
- * missing and replaces the entry with it. Deferred so it runs after `track` has recorded the navigation
- * (the order of `afterNavigate` callbacks is not fixed), and retried while SvelteKit's router is not
- * initialized yet (`replaceState` throws on a hard load). Resolves once stripped, so a caller can push
- * shallow state right after (a `replaceState` would wipe it).
+ * Strips one-shot query flags (default: the toast flags a save leaves) from the current URL with a
+ * replace navigation and keeps the stack's copy in sync, so a later "up" to this screen still sees the
+ * flag missing and replaces the entry with it. It is not shallow on purpose: a shallow goto leaves
+ * `page.url` (and the history entry's `pageUrl`) with the flag, so closing a drawer opened after it
+ * would be a full popstate navigation to the flagged URL and rerun the flag's effect. Deferred so it
+ * runs after `track` has recorded the navigation (the order of `afterNavigate` callbacks is not
+ * fixed), and retried while SvelteKit's router is not initialized yet. Resolves once stripped, so a
+ * caller can push shallow state right after (the navigation wipes `page.state`).
  */
 export function stripFlags(names: readonly string[] = TOAST_FLAGS) {
 	return new Promise<void>((done) => {
@@ -99,13 +100,10 @@ export function stripFlags(names: readonly string[] = TOAST_FLAGS) {
 			const url = new URL(location.href);
 			if (names.some((n) => url.searchParams.has(n))) {
 				for (const n of names) url.searchParams.delete(n);
-				// eslint-disable-next-line svelte/no-navigation-without-resolve -- same-origin current URL
-				goto(url.pathname + url.search + url.hash, { shallow: true, replace: true }).then(
+				replaceGoto(url.pathname + url.search + url.hash, { reset: false }).then(
+					() => done(),
 					() => {
-						if (index >= 0 && pathOf(entries[index]) === url.pathname) entries[index] = keyOf(url);
-						done();
-					},
-					() => {
+						replaceNext = false;
 						if (--tries > 0) setTimeout(run, 50);
 						else done();
 					}

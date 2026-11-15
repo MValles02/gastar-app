@@ -22,7 +22,6 @@ export async function openShallow(
 		e.preventDefault();
 	}
 	const result = await preloadData(href);
-	// A redirect, an error or a failed load is a normal navigation.
 	if (result.type === 'loaded' && result.status === 200) {
 		const state = { [key]: result.data } as App.PageState;
 		// Shallow: the URL stays the one in the address bar.

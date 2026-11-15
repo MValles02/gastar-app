@@ -105,6 +105,10 @@ test('a limit alert explains itself and opens its drawer', async ({ page, baseUR
 		// The limit opens as a drawer over /plan, and the flag leaves the URL.
 		await expect(page.getByRole('dialog', { name: 'Límite de Ajena' })).toBeVisible();
 		await expect(page).toHaveURL(/\/plan$/);
+		// Closing it leaves it closed: the flag is gone from the page URL too, so nothing reopens it.
+		await page.keyboard.press('Escape');
+		await expect(page.getByRole('dialog', { name: 'Límite de Ajena' })).toBeHidden();
+		await expect(page).toHaveURL(/\/plan$/);
 	} finally {
 		await deleteMovements(page, baseURL!, description);
 		if (created) await postDelete(page, baseURL!, `${baseURL}/plan`);

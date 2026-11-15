@@ -23,14 +23,13 @@
 		categoryIds,
 		accounts,
 		categories
-
-		/** Applied scalar filters from the URL (`q`, `type`, `currency`, `from`, `to`). */
-		/** Each with `meta` = its currency. */
 	}: {
 		open?: boolean;
+		/** Applied scalar filters from the URL (`q`, `type`, `currency`, `from`, `to`). */
 		filters: Record<string, string>;
 		accountIds: string[];
 		categoryIds: string[];
+		/** Each with `meta` = its currency. */
 		accounts: Picks;
 		categories: Picks;
 	} = $props();

@@ -54,8 +54,9 @@
 					<Empty.Description>Sin cuentas en {currencyWord}.</Empty.Description>
 				</Empty.Header>
 			</Empty.Root>
-
-			<div class="empty-action"><Button href={resolve('accounts/new')}>Crear cuenta</Button></div>
+			<div class="empty-action">
+				<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+			</div>
 		{:else}
 			<section aria-labelledby="summary-heading">
 				<Card.Root class="gap-0 overflow-hidden py-0">
@@ -99,7 +100,6 @@
 								<p class="strong">Terminó el plan de {data.plan.endedMonthName}.</p>
 							{/if}
 						</div>
-
 						<div class="no-plan">
 							<Button href={resolve('plan/setup')} class="w-full">Crear plan</Button>
 						</div>

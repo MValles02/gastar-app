@@ -51,10 +51,8 @@
 	onMount(() => (hydrated = true));
 	// Toast once per redirect, then strip its flags from the URL so a reload does not toast again.
 	const stripDone = () => stripFlags(['done', 'approved', 'skipped', 'imported', 'auto']);
-
 	afterNavigate(({ shallow, type }) => {
 		if (shallow && type === 'goto') return;
-
 		if (data.done) {
 			(data.done === 'stale' ? toast.info : toast.success)(DONE_MESSAGES[data.done]);
 			stripDone();
@@ -116,17 +114,11 @@
 />
 
 <div class="page">
-	{#if data.done && !hydrated}
-		<p role="status">{DONE_MESSAGES[data.done]}</p>
-	{/if}
-
-	{#if bulkMessage && !data.done && !hydrated}
-		<p role="status">{bulkMessage}</p>
-	{/if}
-
-	{#if uploadMessage && !data.done && !data.bulk && !hydrated}
-		<p role="status">{uploadMessage}</p>
-	{/if}
+	{#if data.done && !hydrated}<p role="status">{DONE_MESSAGES[data.done]}</p>{/if}
+	{#if bulkMessage && !data.done && !hydrated}<p role="status">{bulkMessage}</p>{/if}
+	{#if uploadMessage && !data.done && !data.bulk && !hydrated}<p role="status">
+			{uploadMessage}
+		</p>{/if}
 
 	<!-- The sync line is Mercado Pago's: without a link only the pending items show. -->
 	{#if data.mpLinked && data.running}

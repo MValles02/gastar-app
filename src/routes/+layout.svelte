@@ -17,17 +17,16 @@
 
 	// The last popstate was already animated by the browser (iOS swipe-back): don't animate it twice.
 	let uaAnimatedPop = false;
-
 	const onpopstate = (e: PopStateEvent) =>
 		(uaAnimatedPop =
 			(e as PopStateEvent & { hasUAVisualTransition?: boolean }).hasUAVisualTransition === true);
 
 	// Page transitions (View Transitions API): the direction goes on <html> for the CSS in app.css.
 	onNavigate((nav) => {
+		// A shallow goto (drawer open) is no page change; closing the drawer (shallow popstate) fires no
+		// hook as long as `page.url` matches the address bar, which `stripFlags` guarantees.
 		if (nav.shallow && nav.type === 'goto') return;
-
 		const kind = transitionOf(nav);
-
 		if (
 			!kind ||
 			!document.startViewTransition ||
@@ -35,7 +34,6 @@
 			matchMedia('(prefers-reduced-motion: reduce)').matches
 		)
 			return;
-
 		document.documentElement.dataset.navTransition = kind;
 		return new Promise<void>((resolve) => {
 			document.startViewTransition(async () => {
@@ -61,8 +59,12 @@
 <svelte:window {onpopstate} />
 
 <!-- iOS Safari only applies :active (pressed rows and buttons) when the page listens to touches. -->
-<svelte:document ontouchstart={() => {}}></svelte:document>
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<svelte:document ontouchstart={() => {}} />
+
+<svelte:head>
+	<link rel="icon" href={favicon} />
+</svelte:head>
+
 <NavProgress />
 
 {@render children()}

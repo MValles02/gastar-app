@@ -63,11 +63,7 @@
 <div class="detail">
 	<PageHeader
 		title={a.name}
-		back={{
-			href: resolve('accounts'),
-			label: 'Volver a cuentas',
-			text: 'Cuentas'
-		}}
+		back={{ href: resolve('accounts'), label: 'Volver a cuentas', text: 'Cuentas' }}
 	/>
 
 	<DetailHero cents={balance} currency={a.currency} label="Saldo" {labelId}>
@@ -139,10 +135,9 @@
 	{#if a.archived}<p class="note">No aparece al registrar movimientos.</p>{/if}
 
 	<div class="actions">
-		<Button href={resolve(`movements?account=${a.id}&all=1`)} variant="outline" class="w-full"
-			>Ver movimientos</Button
-		>
-
+		<Button href={resolve(`movements?account=${a.id}&all=1`)} variant="outline" class="w-full">
+			Ver movimientos
+		</Button>
 		{#if data.actions.canArchive}
 			<form method="POST" action="?/archive" use:enhance>
 				<Button type="submit" variant="outline" class="w-full">Archivar</Button>

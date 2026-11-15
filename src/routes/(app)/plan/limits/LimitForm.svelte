@@ -26,19 +26,18 @@
 		variant = 'page',
 		onsaved,
 		onclose
-
-		/** Page: the form's action. Drawer: the query (e.g. `?wizard=4`) added to /plan/limits/new. */
-		/** The categories on offer (none has a limit yet), each with its suggested limit. */
-		/** Drawer: the save succeeded. */
-		/** Drawer: Cancelar. */
 	}: {
+		/** Page: the form's action. Drawer: the query (e.g. `?wizard=4`) added to /plan/limits/new. */
 		action?: string;
 		cancelHref?: string;
+		/** The categories on offer (none has a limit yet), each with its suggested limit. */
 		categories?: (Picker & { suggested: Record<Currency, number> })[];
 		initial: { categoryId: string; amount: string; currency: Currency };
 		errors?: { categoryId?: string; amount?: string; currency?: string };
 		variant?: 'page' | 'drawer';
+		/** Drawer: the save succeeded. */
 		onsaved?: () => void;
+		/** Drawer: Cancelar. */
 		onclose?: () => void;
 	} = $props();
 
@@ -135,8 +134,9 @@
 				variant="ghost"
 				class="average"
 				onclick={() => (amount = formatAmountInput(suggested, currency))}
-				>Usar promedio · {formatMoney(suggested, currency)}</Button
 			>
+				Usar promedio · {formatMoney(suggested, currency)}
+			</Button>
 		{/if}
 	</div>
 

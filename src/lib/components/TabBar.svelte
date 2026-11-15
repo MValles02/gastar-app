@@ -11,26 +11,9 @@
 
 	const navItems = [
 		{ href: resolve(''), path: '/', label: 'Inicio', icon: House },
-		{
-			href: resolve('movements'),
-			path: '/movements',
-			label: 'Movimientos',
-			icon: List
-		},
-
-		{
-			href: resolve('plan'),
-			path: '/plan',
-			label: 'Plan',
-			icon: CalendarCheck
-		},
-
-		{
-			href: resolve('reports'),
-			path: '/reports',
-			label: 'Reportes',
-			icon: ChartColumn
-		}
+		{ href: resolve('movements'), path: '/movements', label: 'Movimientos', icon: List },
+		{ href: resolve('plan'), path: '/plan', label: 'Plan', icon: CalendarCheck },
+		{ href: resolve('reports'), path: '/reports', label: 'Reportes', icon: ChartColumn }
 	];
 	const newMovementHref = resolve('movements/new');
 

@@ -87,11 +87,7 @@
 
 <PageHeader
 	title="Cuentas"
-	back={{
-		href: resolve('profile'),
-		label: 'Volver al perfil',
-		text: 'Perfil'
-	}}
+	back={{ href: resolve('profile'), label: 'Volver al perfil', text: 'Perfil' }}
 	action={data.hasAnyAccount ? add : undefined}
 />
 

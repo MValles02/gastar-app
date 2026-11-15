@@ -44,7 +44,6 @@
 	{#if data.accounts.length === 0}
 		<div class="empty">
 			<p>Necesitás al menos una cuenta para registrar movimientos.</p>
-
 			<Button href={resolve('accounts/new')} onclick={createAccount}>Crear cuenta</Button>
 		</div>
 	{:else}
