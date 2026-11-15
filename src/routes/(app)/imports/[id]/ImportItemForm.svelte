@@ -14,7 +14,7 @@
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 	import * as Field from '$lib/components/ui/field/index.js';
-	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
+	import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
 	import type { PageData } from './$types';
 
 	/**

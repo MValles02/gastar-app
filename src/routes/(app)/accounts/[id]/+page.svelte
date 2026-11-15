@@ -4,7 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { ACCOUNT_ICONS, toIconKey, toSwatchKey } from '$lib/appearance';
 	import { autosave } from '$lib/autosave';
-	import { NAME_MAX_LENGTH } from '$lib/limits';
+	import { NAME_MAX_LENGTH } from '$lib/fields';
 	import { formatAmountInput } from '$lib/money';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';

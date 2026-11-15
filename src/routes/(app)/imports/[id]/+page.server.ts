@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
+import { DESCRIPTION_MAX_LENGTH, DESCRIPTION_TOO_LONG_MESSAGE } from '$lib/fields';
 import { isUuid } from '$lib/server/db/util';
 import { notFoundHelpers } from '$lib/server/not-found';
 import {
@@ -96,7 +96,7 @@ export const actions: Actions = {
 		if (!type) errors.type = 'Elegí un tipo de movimiento.';
 		if (!values.description) errors.description = 'Ingresá una descripción.';
 		else if (values.description.length > DESCRIPTION_MAX_LENGTH)
-			errors.description = `La descripción puede tener hasta ${DESCRIPTION_MAX_LENGTH} caracteres.`;
+			errors.description = DESCRIPTION_TOO_LONG_MESSAGE;
 
 		const { accounts } = await pickers(userId, item);
 		if (type === 'transfer') {

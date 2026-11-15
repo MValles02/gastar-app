@@ -5,7 +5,7 @@ import { parseStep } from '$lib/plan-wizard';
 import { listAccounts } from '$lib/server/accounts-queries';
 import { listCategories } from '$lib/server/categories-queries';
 import { currentMonth } from '$lib/server/month';
-import { PLAN_CURRENCY } from '$lib/server/plan';
+import { PLAN_CURRENCY } from '$lib/plan';
 import {
 	currentPlan,
 	planIncome,
@@ -69,7 +69,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		monthName: '',
 		repeats: true
 	};
-	const base = { ...none, currency: PLAN_CURRENCY, step };
+	const base = { ...none, step };
 	if (step <= 2) {
 		const [lists, suggestions] = await Promise.all([
 			recurringLists(userId),

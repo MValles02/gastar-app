@@ -3,9 +3,9 @@ import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { accountOption } from '$lib/server/account-options';
 import { getAccount, listAccounts } from '$lib/server/accounts-queries';
 import { getCategory, listCategories } from '$lib/server/categories-queries';
-import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
+import { DESCRIPTION_MAX_LENGTH, DESCRIPTION_TOO_LONG_MESSAGE } from '$lib/fields';
 import { AMOUNT_EXAMPLE, ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '$lib/money';
-import type { MovementType } from '$lib/server/dashboard';
+import type { MovementType } from '$lib/movement';
 import { isUuid } from '$lib/server/db/util';
 import { kindMismatchMessage } from '$lib/server/movements';
 import { MAX_DAY_OF_MONTH } from '$lib/plan';
@@ -52,7 +52,7 @@ function parseRecurringForm(fd: FormData): RecurringFormResult {
 	const description = values.description.trim();
 	if (!description) errors.description = 'Ingresá una descripción.';
 	else if (description.length > DESCRIPTION_MAX_LENGTH)
-		errors.description = `La descripción puede tener hasta ${DESCRIPTION_MAX_LENGTH} caracteres.`;
+		errors.description = DESCRIPTION_TOO_LONG_MESSAGE;
 	const amount = parseAmount(values.amount);
 	if (amount === null || amount <= 0)
 		errors.amount = `Ingresá un monto mayor a cero ${AMOUNT_EXAMPLE}.`;

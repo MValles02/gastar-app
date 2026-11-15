@@ -1,6 +1,6 @@
 import type { Currency } from '$lib/money';
 import { ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '$lib/money';
-import { savingsFromPercent } from '$lib/savings';
+import { SAVINGS_PERCENT_MAX, savingsFromPercent } from '$lib/plan';
 
 /**
  * Pure: reads the savings fields (`savingsOption` none|10|20|other, `savingsValue`, `savingsUnit`
@@ -25,7 +25,7 @@ export function parseSavingsForm(
 
 	const value = parseAmount(get('savingsValue'));
 	if (get('savingsUnit') === 'percent') {
-		if (value === null || value <= 0 || value > 10000)
+		if (value === null || value <= 0 || value > SAVINGS_PERCENT_MAX)
 			return { ok: false, message: 'Ingresá un porcentaje entre 0 y 100.' };
 		return { ok: true, savings: savingsFromPercent(income, value), savingsPercent: value };
 	}

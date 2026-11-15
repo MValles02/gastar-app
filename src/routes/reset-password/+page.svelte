@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PASSWORD_MIN_LENGTH } from '$lib/limits';
+	import { PASSWORD_MIN_LENGTH, PASSWORD_MIN_MESSAGE } from '$lib/fields';
 	import { resolve } from '$app/paths';
 	import AuthForm from '$lib/components/AuthForm.svelte';
 	import AuthPage from '$lib/components/AuthPage.svelte';
@@ -47,7 +47,7 @@
 				{#if form?.passwordError}
 					<Field.Error id="password-error">{form.passwordError}</Field.Error>
 				{:else}
-					<Field.Description id="password-hint">Mínimo 8 caracteres.</Field.Description>
+					<Field.Description id="password-hint">{PASSWORD_MIN_MESSAGE}</Field.Description>
 				{/if}
 			</Field.Field>
 		</AuthForm>

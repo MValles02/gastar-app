@@ -5,7 +5,8 @@
 	import { resolve } from '$app/paths';
 	import { CATEGORY_ICONS, toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 	import { autosave } from '$lib/autosave';
-	import { NAME_MAX_LENGTH } from '$lib/limits';
+	import { NAME_MAX_LENGTH } from '$lib/fields';
+	import { KIND_OPTIONS } from '$lib/movement';
 	import type { Currency } from '$lib/money';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import BottomDrawer from '$lib/components/BottomDrawer.svelte';
@@ -37,11 +38,15 @@
 	let glyphError = $state('');
 	let kindError = $state('');
 
-	const KINDS = [
-		{ value: 'outcome', label: 'Gastos', hint: 'Solo aparece al registrar gastos.' },
-		{ value: 'income', label: 'Ingresos', hint: 'Solo aparece al registrar ingresos.' },
-		{ value: '', label: 'Ambos', hint: 'Aparece al registrar gastos e ingresos.' }
-	];
+	const KIND_HINT: Record<string, string> = {
+		outcome: 'Solo aparece al registrar gastos.',
+		income: 'Solo aparece al registrar ingresos.',
+		'': 'Aparece al registrar gastos e ingresos.'
+	};
+	const KINDS = [...KIND_OPTIONS, { value: '', label: 'Ambos' }].map((k) => ({
+		...k,
+		hint: KIND_HINT[k.value]
+	}));
 	const kindLabel = $derived(KINDS.find((k) => k.value === (c.kind ?? ''))?.label);
 
 	// What the update action stores, as the strings it takes.

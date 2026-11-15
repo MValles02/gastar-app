@@ -11,7 +11,7 @@
 	import FormActions from '$lib/components/FormActions.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
-	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
+	import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
 	import { isPositiveAmount } from '$lib/money';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];

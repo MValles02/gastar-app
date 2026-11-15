@@ -4,7 +4,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { followRedirect } from '$lib/nav-stack.svelte';
-	import { NAME_MAX_LENGTH } from '$lib/limits';
+	import { NAME_MAX_LENGTH } from '$lib/fields';
 	import { ACCOUNT_ICONS, type AccountIconKey, type SwatchKey } from '$lib/appearance';
 	import * as Field from '$lib/components/ui/field/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
