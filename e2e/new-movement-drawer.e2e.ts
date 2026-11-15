@@ -8,6 +8,7 @@ import {
 	PHONE,
 	pick,
 	save,
+	setCurrencyCookie,
 	toast,
 	unique
 } from './helpers';
@@ -41,8 +42,14 @@ async function fill(page: Page, description: string) {
 	await page.locator('input[name="description"]').fill(description);
 }
 
-test('Cuenta comes preselected and the movement is saved to that account', async ({ page }) => {
+test('Cuenta comes preselected and the movement is saved to that account', async ({
+	page,
+	baseURL
+}) => {
 	const description = unique(created, 'Preseleccion');
+	// The default is the first account in the selected currency. movement-detail.e2e.ts creates and deletes
+	// ARS accounts for `otro`, so pin USD, where the only account is the seeded one.
+	await setCurrencyCookie(page, baseURL!, 'USD');
 	await open(page);
 	const account = drawer(page).getByRole('button', { name: /^Cuenta/ });
 	await expect(account).not.toContainText('Elegir');
