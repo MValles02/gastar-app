@@ -112,7 +112,6 @@ async function computeMonthPlan(userId: string) {
 		spent: toPesos((p) => p.spent.total),
 		variableSpent: toPesos((p) => p.spent.variable),
 		limits,
-		limitsTotal: limits.reduce((a, l) => a + (toPlan(l.amount, l.currency, rate.value) ?? 0), 0),
 		ym,
 		todayYmd: today
 	});

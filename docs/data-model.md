@@ -266,7 +266,6 @@ forSpending = income - sum(active recurring bills) - savings
 available   = forSpending - spent        -- spent: see below
 perDay      = available > 0 ? floor(available / daysLeft / unit) * unit : 0
               -- daysLeft = clamp(days - elapsed + 1, 1, days); unit = 100 (pesos)
-unassigned  = forSpending - sum(limits)
 ```
 
 - Spent: outcomes in the current Buenos Aires month on accounts of both currencies, converted (archived accounts included), transfers excluded; outcomes linked to an active rule are excluded (the rule is already in the bills), outcomes linked to an inactive or deleted rule are counted.

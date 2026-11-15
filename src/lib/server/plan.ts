@@ -72,8 +72,6 @@ export type PlanInput<L extends { amount: number; spent: number; currency: Curre
 	/** Month outcomes not linked to an active recurring rule. */
 	variableSpent: number;
 	limits: L[];
-	/** Sum of the limits in plan pesos. */
-	limitsTotal: number;
 	ym: string;
 	todayYmd: string;
 };
@@ -112,7 +110,6 @@ export function planSummary<L extends { amount: number; spent: number; currency:
 		spentShare,
 		elapsedShare,
 		status,
-		limits,
-		unassigned: forSpending - p.limitsTotal
+		limits
 	};
 }
