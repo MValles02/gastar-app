@@ -4,7 +4,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import { CURRENCIES } from '$lib/money';
 import { parseLimitAmount, planReturn } from '$lib/plan-wizard';
-import { listCategories } from '$lib/server/categories-queries';
+import { listCategories } from '$lib/server/categories/queries';
 import { currentPlan, planLimits, PlanRejected, upsertLimits } from '$lib/server/plan-queries';
 import { limitSuggestions } from '$lib/server/plan-view';
 import { requireUser } from '$lib/server/guards';

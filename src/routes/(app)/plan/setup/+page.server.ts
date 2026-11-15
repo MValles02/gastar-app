@@ -2,8 +2,8 @@ import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { parseStep } from '$lib/plan-wizard';
-import { listAccounts } from '$lib/server/accounts-queries';
-import { listCategories } from '$lib/server/categories-queries';
+import { listAccounts } from '$lib/server/accounts/queries';
+import { listCategories } from '$lib/server/categories/queries';
 import { currentMonth } from '$lib/server/month';
 import { PLAN_CURRENCY } from '$lib/plan';
 import {

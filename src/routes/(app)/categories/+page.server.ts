@@ -6,7 +6,7 @@ import {
 	categoryMonthTotals,
 	hasAnyCategory,
 	listCategories
-} from '$lib/server/categories-queries';
+} from '$lib/server/categories/queries';
 import { currentMonth, monthRange } from '$lib/server/month';
 import { requireUser } from '$lib/server/guards';
 

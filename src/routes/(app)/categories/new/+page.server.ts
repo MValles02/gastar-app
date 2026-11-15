@@ -1,8 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
 import type { Actions } from './$types';
-import { DUPLICATE_NAME_MESSAGE, parseCategoryForm } from '$lib/server/categories';
-import { createCategory, writeIfNameFree } from '$lib/server/categories-queries';
+import { DUPLICATE_NAME_MESSAGE, parseCategoryForm } from '$lib/server/categories/form';
+import { createCategory, writeIfNameFree } from '$lib/server/categories/queries';
 import { requireUser } from '$lib/server/guards';
 
 export const actions: Actions = {

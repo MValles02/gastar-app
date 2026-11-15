@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
 import { dev } from '$app/environment';
-import { accountOption } from '$lib/server/account-options';
+import { accountOption } from '$lib/server/accounts/queries';
 import { DAY_MS } from '$lib/dates';
 import { dayStart, localDay } from '$lib/server/month';
 import {

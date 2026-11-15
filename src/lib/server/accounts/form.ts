@@ -8,10 +8,13 @@ import {
 	type Currency
 } from '$lib/money';
 import { ACCOUNT_ICONS, SWATCHES } from '$lib/appearance';
-import type { MovementType } from '$lib/movement';
-import { totalBalance } from './dashboard';
 
+export const NOT_FOUND_MESSAGE = 'Cuenta no encontrada.';
 export const DELETE_REFERENCED_MESSAGE = 'Esta cuenta tiene movimientos. Podés archivarla.';
+
+export const FIELDS = ['name', 'currency', 'initialBalance', 'icon', 'color'] as const;
+/** The only fields `?/update` takes; the currency never changes there. */
+export const EDITABLE = ['name', 'icon', 'color', 'initialBalance'] as const;
 
 export type AccountData = {
 	name: string;
@@ -33,13 +36,10 @@ const str = (fd: FormData, key: string) => {
 };
 
 export function parseAccountForm(fd: FormData, mode: 'create' | 'edit'): AccountFormResult {
-	const values = {
-		name: str(fd, 'name'),
-		currency: str(fd, 'currency'),
-		initialBalance: str(fd, 'initialBalance'),
-		icon: str(fd, 'icon'),
-		color: str(fd, 'color')
-	};
+	const values = Object.fromEntries(FIELDS.map((k) => [k, str(fd, k)])) as Record<
+		(typeof FIELDS)[number],
+		string
+	>;
 	const errors: AccountFormErrors = {};
 
 	const name = values.name.trim();
@@ -74,36 +74,4 @@ export function parseAccountForm(fd: FormData, mode: 'create' | 'edit'): Account
 			color: values.color
 		}
 	};
-}
-
-export const accountActions = ({
-	referenced,
-	archived
-}: {
-	referenced: boolean;
-	archived: boolean;
-}) => ({
-	canDelete: !referenced,
-	canArchive: !archived,
-	canUnarchive: archived
-});
-
-export type OriginSum = { accountId: string; type: MovementType; amount: number };
-/** `accountId` is the destination account (null never matches an account). */
-export type TransferIn = { accountId: string | null; amount: number };
-
-/** Balance per account, same formula as the dashboard total (all movements, archived included). */
-export function withBalances<A extends { id: string; initialBalance: number }>(
-	accounts: A[],
-	originSums: OriginSum[],
-	transfersIn: TransferIn[]
-): (A & { balance: number })[] {
-	return accounts.map((a) => ({
-		...a,
-		balance: totalBalance(
-			a.initialBalance,
-			originSums.filter((s) => s.accountId === a.id),
-			transfersIn.filter((t) => t.accountId === a.id).reduce((n, t) => n + t.amount, 0)
-		)
-	}));
 }

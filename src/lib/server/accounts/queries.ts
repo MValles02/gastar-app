@@ -1,15 +1,39 @@
 import type { Currency } from '$lib/money';
+import { accountLook } from '$lib/appearance';
 import { and, asc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
-import { db } from './db';
-import { financialAccounts, movements } from './db/schema';
-import { dest, total } from './db/sql';
-import { canAccessAccount, canAccessMovement, ownedBy } from './access';
-import { type AccountData } from './accounts';
-import { escapeLike } from './db/util';
+import { db } from '../db';
+import { financialAccounts, movements } from '../db/schema';
+import { dest, total } from '../db/sql';
+import { canAccessAccount, canAccessMovement, ownedBy } from '../access';
+import { memoPerRequest } from '../request-memo';
+import type { AccountData } from './form';
+import { escapeLike } from '../db/util';
 
 const ownedAccount = (userId: string, id: string) =>
 	and(eq(financialAccounts.id, id), canAccessAccount(userId));
 const returningId = { id: financialAccounts.id };
+
+// No archived filter: archived accounts still count toward the total balance.
+/** Per currency: account count and initial balances. Loads only (shared per request, see `memoPerRequest`). */
+export const accountSummary = memoPerRequest('accounts', (userId: string) =>
+	db
+		.select({
+			currency: financialAccounts.currency,
+			count: sql<number>`count(*)`.mapWith(Number),
+			initial: total(financialAccounts.initialBalance)
+		})
+		.from(financialAccounts)
+		.where(canAccessAccount(userId))
+		.groupBy(financialAccounts.currency)
+);
+
+/** The base picker option of an account row; callers spread it and add their own extra fields. */
+export const accountOption = (a: {
+	id: string;
+	name: string;
+	icon: string | null;
+	color: string | null;
+}) => ({ id: a.id, name: a.name, ...accountLook(a) });
 
 export function listAccounts(
 	userId: string,

@@ -1,13 +1,11 @@
-import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
-import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
 import {
 	DELETE_REFERENCED_MESSAGE,
-	accountActions,
-	parseAccountForm,
-	withBalances
-} from '$lib/server/accounts';
+	EDITABLE,
+	NOT_FOUND_MESSAGE,
+	parseAccountForm
+} from '$lib/server/accounts/form';
 import {
 	accountOriginSums,
 	accountTransfersIn,
@@ -16,15 +14,15 @@ import {
 	isAccountReferenced,
 	setArchived,
 	updateAccount
-} from '$lib/server/accounts-queries';
+} from '$lib/server/accounts/queries';
+import { withBalances } from '$lib/server/accounts/balance';
+import { archiveActions, deleteUnlessReferenced, lifecycleState } from '$lib/server/lifecycle';
 import { notFoundHelpers, requireUser } from '$lib/server/guards';
 import { toIconKey, toSwatchKey } from '$lib/appearance';
 import { formatAmountInput } from '$lib/money';
 
-const { notFound, requireId } = notFoundHelpers('Cuenta no encontrada.');
-
-/** The only fields `?/update` takes; the currency never changes here. */
-const EDITABLE = ['name', 'icon', 'color', 'initialBalance'] as const;
+const guards = notFoundHelpers(NOT_FOUND_MESSAGE);
+const { notFound, requireId } = guards;
 
 /** The account as the detail shows it (what the load returns and `update` hands back). */
 async function detailOf(userId: string, id: string) {
@@ -44,17 +42,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	requireId(params.id);
 	const detail = await detailOf(userId, params.id);
 	const referenced = await isAccountReferenced(userId, params.id);
-	return { ...detail, actions: accountActions({ referenced, archived: detail.account.archived }) };
+	return { ...detail, actions: lifecycleState({ referenced, archived: detail.account.archived }) };
 };
-
-const archiveAction =
-	(archive: boolean): Actions[string] =>
-	async ({ locals, params }) => {
-		requireId(params.id);
-		const rows = await setArchived(requireUser(locals).id, params.id, archive ? new Date() : null);
-		if (rows.length === 0) notFound();
-		return { done: true };
-	};
 
 export const actions: Actions = {
 	/** Saves the posted subset of fields over the stored values, with the create form's validation. */
@@ -79,22 +68,14 @@ export const actions: Actions = {
 		if (rows.length === 0) notFound();
 		return await detailOf(userId, params.id);
 	},
-	archive: archiveAction(true),
-	unarchive: archiveAction(false),
-	delete: async ({ locals, params }) => {
-		const userId = requireUser(locals).id;
-		requireId(params.id);
-		if (await isAccountReferenced(userId, params.id))
-			return formFail(409, { formError: DELETE_REFERENCED_MESSAGE });
-		let rows;
-		try {
-			rows = await deleteAccount(userId, params.id);
-		} catch (e) {
-			if (pgErrorCode(e) === PG_FOREIGN_KEY_VIOLATION)
-				return formFail(409, { formError: DELETE_REFERENCED_MESSAGE });
-			throw e;
-		}
-		if (rows.length === 0) notFound();
-		redirect(303, '/accounts');
-	}
+	...archiveActions(setArchived, guards),
+	delete: deleteUnlessReferenced(
+		{
+			isReferenced: isAccountReferenced,
+			remove: deleteAccount,
+			message: DELETE_REFERENCED_MESSAGE,
+			redirectTo: '/accounts'
+		},
+		guards
+	)
 };

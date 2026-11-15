@@ -273,7 +273,7 @@ perDay      = available > 0 ? floor(available / daysLeft / unit) * unit : 0
 - Savings: if `savings_percent` is set, savings = `floor(income * percent_x100 / 1_000_000) * 100` (whole units), computed at read time and never relied on from storage; saves also write that computed amount to `savings` for rollout compatibility (older releases read only `savings`). If null, savings is the `savings` amount.
 - Rule status: `paid` if a linked movement exists in the month; otherwise `overdue` for any past month, or by due day (clamped to the month's length) within the current/future month: `overdue` / `today` / `upcoming`.
 
-### Account balance (always computed, never stored)
+### Account balance (always computed, never stored; `src/lib/server/accounts/balance.ts`)
 
 ```
 balance = initial_balance
@@ -283,7 +283,7 @@ balance = initial_balance
         + sum(transfers_in.destination_amount) -- this account as destination
 ```
 
-### Category net (per currency, per period)
+### Category net (per currency, per period; `toCurrencyNets` in `src/lib/server/categories/queries.ts`, home top 3 in `src/lib/server/dashboard/home.ts`)
 
 ```
 category_net = sum(outcomes.amount) - sum(incomes.amount)   -- within that category, currency, period
@@ -304,7 +304,9 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 - `canAccessOwn(userId, table)` and `userOwned(userId)`: the same pair for every other table with a `user_id` owner column: `categories`, `recurring_movements`, `spending_plans`, `mp_import_items`, `mp_import_rules`, `mp_connections`, `galicia_connections`. `table` may be an alias. Category limits have no owner column; they are reached only by joining their plan. `mp_sync_state` has no owner column; it is reached only by joining its account.
 - `allMovementsOf(userId)`: `movements.user_id = userId`, the single path for bulk operations over every movement a user owns (account deletion).
 
-Shared server infrastructure each has one home: SQL fragments (`Range`, `inRange`, `sumOfType`, `total`, `isIncomeOrOutcome`, the `dest` alias, `localMonth`, `exists`) in `src/lib/server/db/sql.ts`; the `Tx`/`DbExecutor` types in `src/lib/server/db/index.ts`; the per-request memo (`memoPerRequest`, the only `getRequestEvent` reader) in `src/lib/server/request-memo.ts`; `requireUser` and the 404 helpers in `src/lib/server/guards.ts`.
+Shared server infrastructure each has one home: SQL fragments (`Range`, `inRange`, `sumOfType`, `total`, `isIncomeOrOutcome`, the `dest` alias, `localMonth`, `exists`) in `src/lib/server/db/sql.ts`; the `Tx`/`DbExecutor` types in `src/lib/server/db/index.ts`; the per-request memo (`memoPerRequest`, the only `getRequestEvent` reader) in `src/lib/server/request-memo.ts`; `requireUser` and the 404 helpers in `src/lib/server/guards.ts`; archive, unarchive and delete-unless-referenced actions (plus `catchForeignKey`) in `src/lib/server/lifecycle.ts`; the stored icon/colour → key mapping (`accountLook`, `categoryLook`) in `src/lib/appearance.ts`.
+
+Accounts, categories and the dashboard each have a folder under `src/lib/server/`: `queries.ts` holds DB I/O only, `form.ts` the form fields, parsing and messages, and pure maths or compositions are named by what they compute (`accounts/balance.ts`, `dashboard/home.ts`).
 
 `movements.user_id` is the movement's own owner column; reads, updates and deletes go through `canAccessMovement`, inserts through `movementOwnedBy`.
 
