@@ -45,7 +45,7 @@
 	// Errors of the drawer's own post; the page shows the server-rendered ones instead.
 	let posted = $state<Record<string, string | undefined>>({});
 	const errors = $derived({ ...(form?.errors ?? {}), ...posted });
-	const formError = $derived(errors.form ?? errors.accountId);
+	const formError = $derived(errors.form ?? errors.accountId ?? errors.destinationAccountId);
 
 	const typeOptions = $derived([
 		item.isCredit ? { value: 'income', label: 'Ingreso' } : { value: 'outcome', label: 'Gasto' },

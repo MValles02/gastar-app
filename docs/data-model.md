@@ -124,7 +124,7 @@ Index: `(user_id)`.
 
 ### `spending_plans`
 
-One plan per user, in ARS: "the plan" is the user's row with `currency = 'ARS'`. Rows with `currency = 'USD'` are legacy (one plan per currency before migration 0018): new code never reads, writes or deletes them. Cleanup release: `DELETE FROM spending_plans WHERE currency = 'USD'` once no running code reads them (afterwards the unique index on currency or the column itself may go).
+One plan per user, in ARS: "the plan" is the user's row with `currency = 'ARS'`. Rows with `currency = 'USD'` were legacy (one plan per currency before migration 0018); migration `0019_drop_legacy_usd_plans.sql` deletes them (their limits cascade). New code never reads or writes them. The unique index on currency or the column itself may go in a later release.
 
 | Column | Type | Notes |
 |---|---|---|

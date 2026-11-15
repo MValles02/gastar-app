@@ -45,7 +45,7 @@ export async function resendVerification(email: string, ip: string): Promise<voi
 export async function resendAction({ request, getClientAddress }: RequestEvent) {
 	const ip = getClientAddress();
 	const email = (await request.formData()).get('email');
-	if (typeof email !== 'string' || !email) return fail(400, { email: '' });
+	if (typeof email !== 'string' || !EMAIL_RE.test(email)) return fail(400, { email: '' });
 
 	await resendVerification(email, ip);
 	return { checkEmail: email };

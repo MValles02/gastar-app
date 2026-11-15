@@ -98,11 +98,13 @@
 			<Button
 				type="button"
 				variant="outline"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0"
+				class="h-auto min-h-[50px] min-w-0 flex-1 basis-0 whitespace-normal"
 				onclick={() => (open = false)}>Cancelar</Button
 			>
-			<Button type="button" class="h-auto min-h-11 min-w-0 flex-1 basis-0" onclick={done}
-				>Listo</Button
+			<Button
+				type="button"
+				class="h-auto min-h-[50px] min-w-0 flex-1 basis-0 whitespace-normal"
+				onclick={done}>Listo</Button
 			>
 		</div>
 	</div>

@@ -135,7 +135,6 @@
 			<DayOfMonthPicker
 				bind:value={() => values.dayOfMonth, (v) => void save('dayOfMonth', v)}
 				error={errors.dayOfMonth}
-				errorId="day-error"
 			/>
 		</li>
 	</DetailCard>

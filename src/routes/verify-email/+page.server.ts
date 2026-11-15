@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { resendVerification } from '#lib/server/auth-forms.ts';
+import { EMAIL_RE, resendVerification } from '#lib/server/auth-forms.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals, url, request }) => {
@@ -16,7 +16,7 @@ export const actions: Actions = {
 	resend: async ({ request, getClientAddress }) => {
 		const ip = getClientAddress();
 		const email = String((await request.formData()).get('email') ?? '').trim();
-		if (!email) return fail(400, { emailError: 'Ingresá tu email.' });
+		if (!EMAIL_RE.test(email)) return fail(400, { email, emailError: 'Email inválido.' });
 
 		await resendVerification(email, ip);
 		return { checkEmail: email };

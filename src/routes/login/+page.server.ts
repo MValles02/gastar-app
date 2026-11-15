@@ -8,16 +8,16 @@ import type { Actions } from './$types';
 export const actions: Actions = {
 	login: async ({ request, getClientAddress }) => {
 		const ip = getClientAddress();
-		if (isBlocked('signIn', ip)) {
-			return fail(429, {
-				email: '',
-				formError: 'Demasiados intentos. Probá de nuevo en un minuto.'
-			});
-		}
-
 		const data = await request.formData();
 		const email = data.get('email');
 		const password = data.get('password');
+
+		if (isBlocked('signIn', ip)) {
+			return fail(429, {
+				email: typeof email === 'string' ? email : '',
+				formError: 'Demasiados intentos. Probá de nuevo en un minuto.'
+			});
+		}
 
 		if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
 			return fail(400, {

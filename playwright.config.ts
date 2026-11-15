@@ -16,6 +16,8 @@ export default defineConfig({
 	// would run every spec on a single worker.
 	workers: process.env.CI ? 2 : undefined,
 	retries: process.env.CI ? 1 : 0,
+	// The retry still runs (trace/report), but a test that only passes on retry fails the job.
+	failOnFlakyTests: !!process.env.CI,
 	// html feeds the report artifact CI uploads on failure.
 	reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
 	use: {
