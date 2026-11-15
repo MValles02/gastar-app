@@ -182,7 +182,6 @@
 				<li class:bad={errors.counterAccountId}>
 					{#if !mounted}<p class="hint pad">Solo para transferencias</p>{/if}
 					<OptionPicker
-						variant="row"
 						name="counterAccountId"
 						legend={item.isCredit ? 'Origen' : 'Destino'}
 						title={item.isCredit ? 'Elegí la cuenta de origen' : 'Elegí la cuenta de destino'}
@@ -210,7 +209,6 @@
 				<li class:bad={errors.categoryId}>
 					{#if !mounted}<p class="hint pad">Solo para ingresos y gastos</p>{/if}
 					<OptionPicker
-						variant="row"
 						name="categoryId"
 						legend="Categoría"
 						title="Elegí la categoría"
@@ -233,7 +231,6 @@
 				{#if data.rules.length}
 					<li class:bad={errors.recurringId}>
 						<OptionPicker
-							variant="row"
 							name="recurringId"
 							legend={item.isCredit ? 'Es el ingreso fijo' : 'Es el pago fijo'}
 							title={item.isCredit ? 'Es el ingreso fijo' : 'Es el pago fijo'}

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { groupedAmount } from '$lib/amount-input';
-	import Icon from '$lib/components/Icon.svelte';
 
 	/** Inline form row: label left, borderless right-aligned input right (G6). */
 	let {
@@ -16,9 +15,6 @@
 		error,
 		errorId,
 		amount = false,
-		password = false,
-		autocomplete = 'off',
-		minlength,
 		form,
 		prefix,
 		end
@@ -35,10 +31,6 @@
 		errorId?: string;
 		/** Group thousands as the user types (whole-pesos / decimal amounts). */
 		amount?: boolean;
-		/** Password row: masked, with a show/hide toggle. */
-		password?: boolean;
-		autocomplete?: 'off' | 'current-password' | 'new-password';
-		minlength?: number;
 		/** `id` of a `<form>` elsewhere in the page this input submits with. */
 		form?: string;
 		/** Muted text before the input (e.g. the currency symbol), so an empty row reads "$ 0". */
@@ -46,8 +38,6 @@
 		/** Content after the input, inside the row (sibling of the label). */
 		end?: Snippet;
 	} = $props();
-
-	let shown = $state(false);
 </script>
 
 <div class="wrap">
@@ -59,29 +49,17 @@
 				{id}
 				{name}
 				{form}
-				type={password && !shown ? 'password' : 'text'}
+				type="text"
 				{maxlength}
-				{minlength}
 				{inputmode}
 				{required}
 				{placeholder}
-				{autocomplete}
+				autocomplete="off"
 				bind:value
 				{@attach (node) => (amount ? groupedAmount(node) : undefined)}
 				aria-invalid={error ? 'true' : undefined}
 				aria-describedby={error ? errorId : undefined}
 			/>
-			{#if password}
-				<button
-					type="button"
-					class="toggle"
-					aria-pressed={shown}
-					aria-label={shown ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-					onclick={() => (shown = !shown)}
-				>
-					<Icon name={shown ? 'eye-off' : 'eye'} size="1.25rem" />
-				</button>
-			{/if}
 		</label>
 		{#if end}{@render end()}{/if}
 	</div>
@@ -149,19 +127,6 @@
 		outline-offset: -2px;
 		/* The ring follows the card's rounding instead of a square box. */
 		border-radius: var(--radius-sm);
-	}
-
-	.toggle {
-		display: grid;
-		place-items: center;
-		flex: none;
-		min-width: 2.75rem;
-		min-height: 2.75rem;
-		margin-inline-end: calc(var(--space-2) * -1);
-		padding: 0;
-		border: 0;
-		background: transparent;
-		color: var(--text-muted);
 	}
 
 	.error {

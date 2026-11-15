@@ -2,7 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { parseMovementForm } from '$lib/server/movements';
-import { isUuid } from '$lib/server/validation';
+import { isUuid } from '$lib/server/db/util';
 import { deleteMovement, setMovementRule, updateMovement } from '$lib/server/movements-queries';
 import { requireUser } from '$lib/server/require-user';
 import {

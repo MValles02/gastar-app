@@ -6,25 +6,21 @@
 
 	/**
 	 * "Día del mes" row: opens a 1-31 grid (31 means the month's last day; the server clamps it). Posts
-	 * `name` through a hidden input, as the drawer is portaled out of any form. Without JavaScript: a
+	 * `dayOfMonth` through a hidden input, as the drawer is portaled out of any form. Without JavaScript: a
 	 * number input.
 	 */
 	let {
 		value = $bindable(''),
-		name = 'dayOfMonth',
 		error,
 		errorId,
-		nested = false,
-		id = 'rday'
+		nested = false
 	}: {
 		/** The day as text ("5"), or '' when none. */
 		value?: string;
-		name?: string;
 		error?: string;
 		errorId?: string;
 		/** Opens the grid stacked over the drawer this row is rendered in. */
 		nested?: boolean;
-		id?: string;
 	} = $props();
 
 	let mounted = $state(false);
@@ -47,18 +43,18 @@
 		variant="ghost"
 		class="h-14 w-full scroll-mb-24 justify-between gap-3 rounded-none px-4"
 		aria-haspopup="dialog"
-		aria-labelledby="{id}-label {id}-value"
+		aria-labelledby="rday-label rday-value"
 		aria-describedby={error ? errorId : undefined}
 		bind:ref={trigger}
 		onclick={() => (open = true)}
 	>
-		<span id="{id}-label" class="text-base font-normal">Día del mes</span>
-		<span id="{id}-value" class="flex-1 text-right" class:text-muted-foreground={!value}>
+		<span id="rday-label" class="text-base font-normal">Día del mes</span>
+		<span id="rday-value" class="flex-1 text-right" class:text-muted-foreground={!value}>
 			{value || 'Elegir'}
 		</span>
 		<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="text-muted-foreground" />
 	</Button>
-	<input type="hidden" {name} {value} />
+	<input type="hidden" name="dayOfMonth" {value} />
 	<BottomDrawer title="Día del mes" {nested} bind:open>
 		<div class="days">
 			{#each days as d (d)}
@@ -74,11 +70,11 @@
 		<p class="hint">Si el mes tiene menos días, se usa el último.</p>
 	</BottomDrawer>
 {:else}
-	<label class="row" for={id}>
+	<label class="row" for="rday">
 		<span>Día del mes</span>
 		<input
-			{id}
-			{name}
+			id="rday"
+			name="dayOfMonth"
 			type="number"
 			inputmode="numeric"
 			min="1"

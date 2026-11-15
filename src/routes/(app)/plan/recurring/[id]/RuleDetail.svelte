@@ -115,7 +115,6 @@
 		</li>
 		<li>
 			<OptionPicker
-				variant="row"
 				name="accountId"
 				legend="Cuenta"
 				title="Elegí la cuenta"
@@ -129,7 +128,6 @@
 		</li>
 		<li>
 			<OptionPicker
-				variant="row"
 				name="categoryId"
 				legend="Categoría"
 				title="Elegí la categoría"

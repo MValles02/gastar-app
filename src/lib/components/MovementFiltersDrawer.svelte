@@ -154,7 +154,7 @@
 			labelledby="f-type-label"
 		/>
 		<div class="group">
-			<DateRangePicker legend="Fechas" nested bind:from bind:to />
+			<DateRangePicker nested bind:from bind:to />
 			<MultiPicker
 				legend="Cuenta"
 				title="Cuenta"

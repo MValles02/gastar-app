@@ -44,7 +44,7 @@ export class StatementError extends Error {
 	}
 }
 
-export const MAX_PAGES = 20;
+const MAX_PAGES = 20;
 /** Deadline for PDF text extraction (loading + all pages); a crafted PDF cannot keep the server busy longer. */
 const PARSE_TIMEOUT_MS = 5000;
 const GALICIA_CUIT = '30-50000173-5';

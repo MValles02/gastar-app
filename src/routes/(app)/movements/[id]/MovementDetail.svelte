@@ -252,7 +252,6 @@
 	<ul class="card">
 		<li>
 			<OptionPicker
-				variant="row"
 				name="type"
 				legend="Tipo"
 				title="Tipo"
@@ -280,7 +279,6 @@
 		<li>
 			<fieldset class="lock" disabled={typeStaged}>
 				<OptionPicker
-					variant="row"
 					name="accountId"
 					legend={isTransfer ? 'Desde' : 'Cuenta'}
 					title={isTransfer ? 'Desde' : 'Cuenta'}
@@ -297,7 +295,6 @@
 		{#if isTransfer}
 			<li data-row="destination">
 				<OptionPicker
-					variant="row"
 					name="destinationAccountId"
 					legend="Hacia"
 					title="Hacia"
@@ -354,7 +351,6 @@
 		{:else}
 			<li data-row="category">
 				<OptionPicker
-					variant="row"
 					name="categoryId"
 					legend="Categoría"
 					title="Categoría"
@@ -370,7 +366,6 @@
 			{#if !typeStaged && (rules.length || m.recurringId)}
 				<li data-row="rule">
 					<OptionPicker
-						variant="row"
 						name="recurringId"
 						legend={effType === 'income' ? 'Ingreso fijo' : 'Pago fijo'}
 						title={effType === 'income' ? 'Ingreso fijo' : 'Pago fijo'}

@@ -98,7 +98,6 @@
 		<ul class="card">
 			<li class:bad={shown.categoryId}>
 				<OptionPicker
-					variant="row"
 					name="categoryId"
 					legend="Categoría"
 					title="Elegí la categoría"
