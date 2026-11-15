@@ -45,20 +45,16 @@
 		return () => clearTimeout(id);
 	});
 	let toasted: string | null = null;
-
 	afterNavigate(({ shallow, type }) => {
 		if (shallow && type === 'goto') return;
-
 		settleEdgeSwipe();
 		if (!movementSaved) return;
 		// Once per saved id, however many navigations land before the flag is stripped.
 		if (movementSaved !== toasted) {
 			toasted = movementSaved;
-
 			if (/^[0-9a-f-]{36}$/.test(movementSaved))
 				undoMovementSaved(movementSaved, page.url.searchParams.get('rule'));
 			else toast.success('Movimiento guardado.');
-
 			highlightMovement(movementSaved);
 		}
 		void stripFlags();

@@ -37,7 +37,6 @@
 			} else errors[currency] = ERROR[currency];
 			return;
 		}
-
 		errors[currency] =
 			(await autosave<{ accountId: string }>({
 				path: '?/account',
@@ -83,8 +82,7 @@
 				>
 					{#snippet empty()}
 						<p class="hint">
-							Necesitás una cuenta en pesos.
-							<a href={resolve('accounts/new')}>Crear cuenta</a>
+							Necesitás una cuenta en pesos. <a href={resolve('accounts/new')}>Crear cuenta</a>
 						</p>
 					{/snippet}
 				</OptionPicker>
@@ -106,8 +104,7 @@
 				>
 					{#snippet empty()}
 						<p class="hint">
-							No tenés cuentas en dólares.
-							<a href={resolve('accounts/new')}>Crear cuenta</a>
+							No tenés cuentas en dólares. <a href={resolve('accounts/new')}>Crear cuenta</a>
 						</p>
 					{/snippet}
 				</OptionPicker>

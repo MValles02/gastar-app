@@ -21,18 +21,17 @@
 		variant = 'page',
 		onsaved,
 		onclose
-
-		/** The rate shown to edit (es-AR input). */
-		/** A manual rate is set. */
-		/** Drawer: the save succeeded. */
-		/** Drawer: Cancelar. */
 	}: {
+		/** The rate shown to edit (es-AR input). */
 		initial: string;
+		/** A manual rate is set. */
 		manual: boolean;
 		hasTransfer: boolean;
 		error?: string;
 		variant?: 'page' | 'drawer';
+		/** Drawer: the save succeeded. */
 		onsaved?: () => void;
+		/** Drawer: Cancelar. */
 		onclose?: () => void;
 	} = $props();
 

@@ -28,10 +28,8 @@
 	onMount(() => {
 		const bar = document.querySelector('header');
 		if (!bar) return;
-
 		const measure = () =>
 			(barHeight = getComputedStyle(bar).position === 'sticky' ? bar.offsetHeight : 0);
-
 		measure();
 		const ro = new ResizeObserver(measure);
 		ro.observe(bar);
@@ -140,9 +138,9 @@
 				</Empty.Header>
 			</Empty.Root>
 			<div class="empty-action">
-				<Button href={resolve(`movements?${firstPageQuery}`)} variant="outline"
-					>Ir a la primera página</Button
-				>
+				<Button href={resolve(`movements?${firstPageQuery}`)} variant="outline">
+					Ir a la primera página
+				</Button>
 			</div>
 		{:else if data.activeCount === 0}
 			<Empty.Root>
@@ -165,7 +163,6 @@
 					<Empty.Description>Sin resultados.</Empty.Description>
 				</Empty.Header>
 			</Empty.Root>
-
 			<div class="empty-action">
 				<Button href={resolve('movements')} variant="outline">Limpiar filtros</Button>
 			</div>
@@ -199,14 +196,12 @@
 			<nav class="pager" aria-label="Paginación">
 				{#if data.page > 1}
 					<Button href={resolve(`movements?${pageQuery(data.page - 1)}`)} variant="outline">
-						<ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
-						Más recientes
+						<ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />Más recientes
 					</Button>
 				{/if}
 				{#if data.hasNext}
 					<Button href={resolve(`movements?${pageQuery(data.page + 1)}`)} variant="outline">
-						Más antiguos
-						<ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
+						Más antiguos<ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
 					</Button>
 				{/if}
 			</nav>

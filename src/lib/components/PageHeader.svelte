@@ -22,14 +22,13 @@
 		back,
 		close,
 		action
-
-		/** `text`: the parent screen's name shown next to the chevron; `label`: the accessible name. */
-		/** `back` or `close` header only: a pill action at the right end (e.g. "Agregar"). */
 	}: {
 		title: string;
 		eyebrow?: string;
+		/** `text`: the parent screen's name shown next to the chevron; `label`: the accessible name. */
 		back?: { href: string; label: string; text: string };
 		close?: { href: string; label: string };
+		/** `back` or `close` header only: a pill action at the right end (e.g. "Agregar"). */
 		action?: Snippet;
 	} = $props();
 

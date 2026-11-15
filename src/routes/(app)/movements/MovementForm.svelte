@@ -45,16 +45,6 @@
 		variant = 'page',
 		onsaved,
 		onclose
-
-		/** Where saving returns to (validated by the action); none keeps the user on the form. */
-		/** Offer "Repetir todos los meses" (new incomes and outcomes only). */
-		/** Initial state of the "Repetir todos los meses" switch (kept when the form is shown again with errors). */
-		/**
-		 * `drawer`: the new-movement drawer (stacked pickers, per-row validation, actions pinned below,
-		 * posts to /movements/new and reports the result instead of navigating). `page`: a full page.
-		 */
-		/** Drawer: the save succeeded; ids come from the action's redirect flags. */
-		/** Drawer: Cancelar. */
 	}: {
 		initial: Record<Fields, string>;
 		errors?: Partial<Record<Fields, string>>;
@@ -62,11 +52,20 @@
 		categories: (Picker & { kind: string | null })[];
 		submitLabel: string;
 		cancelHref: string;
+		/** Where saving returns to (validated by the action); none keeps the user on the form. */
 		returnTo?: string | null;
+		/** Offer "Repetir todos los meses" (new incomes and outcomes only). */
 		repeatable?: boolean;
+		/** Initial state of the "Repetir todos los meses" switch (kept when the form is shown again with errors). */
 		repeatChecked?: boolean;
+		/**
+		 * `drawer`: the new-movement drawer (stacked pickers, per-row validation, actions pinned below,
+		 * posts to /movements/new and reports the result instead of navigating). `page`: a full page.
+		 */
 		variant?: 'page' | 'drawer';
+		/** Drawer: the save succeeded; ids come from the action's redirect flags. */
 		onsaved?: (saved: { id: string; ruleId: string | null }) => void;
+		/** Drawer: Cancelar. */
 		onclose?: () => void;
 	} = $props();
 
@@ -361,7 +360,6 @@
 		</div>
 	{:else}
 		{@render fields()}
-
 		<FormActions {cancelHref} {submitLabel} {submitting} />
 	{/if}
 </form>

@@ -23,7 +23,6 @@
 		base={data.base}
 		daysLeft={data.daysLeft}
 	/>
-
 	<Button href={resolve('plan')} onclick={upOnClick(resolve('plan'))} class="w-full">Listo</Button>
 </div>
 

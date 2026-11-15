@@ -21,14 +21,13 @@
 		variant = 'page',
 		onsaved,
 		onclose
-
-		/** Drawer: the password changed. */
-		/** Drawer: Cancelar. */
 	}: {
 		errors?: Errors;
 		formError?: string;
 		variant?: 'page' | 'drawer';
+		/** Drawer: the password changed. */
 		onsaved?: () => void;
+		/** Drawer: Cancelar. */
 		onclose?: () => void;
 	} = $props();
 

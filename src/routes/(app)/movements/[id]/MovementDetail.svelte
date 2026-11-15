@@ -56,6 +56,7 @@
 	const typeStaged = $derived('type' in pending);
 	const effType = $derived((pending.type ?? m.type) as Movement['type']);
 	const isTransfer = $derived(effType === 'transfer');
+
 	const archived = (name: string, is: boolean) => (is ? `${name} · Archivada` : name);
 	const accounts = $derived(
 		data.accounts.map((a) => ({ ...a, name: archived(a.name, a.archived), archived: false }))
@@ -66,7 +67,6 @@
 			.filter((c) => kindFits(c.kind, effType) || (!typeStaged && c.id === m.categoryId))
 			.map((c) => ({ ...c, name: archived(c.name, c.archived), archived: false }))
 	);
-
 	// The stored category only carries over to a new type whose kind accepts it.
 	const keptCategory = (type: string) => {
 		const c = data.categories.find((c) => c.id === m.categoryId);
@@ -88,6 +88,7 @@
 	const crossCurrency = $derived(
 		isTransfer && !!destinationId && currencyOf(originId) !== currencyOf(destinationId)
 	);
+
 	const path = $derived(resolve(`movements/${m.id}`));
 
 	const ruleItems = $derived([
@@ -96,7 +97,6 @@
 	] as ComponentProps<typeof OptionPicker>['items']);
 	async function linkRule(v: string) {
 		if (v === (m.recurringId ?? '')) return;
-
 		errors.recurringId =
 			(await autosave<Saved>({
 				path: `${path}?/link`,
@@ -214,7 +214,6 @@
 		}
 		// refreshAll keeps the drawer's shallow-route state (invalidateAll would reset it).
 		await refreshAll();
-
 		if (drawer) onclose?.();
 		else await navigateUp(resolve('movements'), { refresh: true });
 	}

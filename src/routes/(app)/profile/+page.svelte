@@ -93,7 +93,6 @@
 
 	<ListCard aria-label="Tu identidad">
 		<ListRow lead={{ icon: 'profile', color: null }} title="Nombre" value={nameValue} />
-
 		<ListRow
 			href={resolve('profile/password')}
 			lead={{ icon: 'lock', color: null }}

@@ -29,11 +29,7 @@
 
 <PageHeader
 	title="Aprobados automáticamente"
-	back={{
-		href: resolve('imports'),
-		label: 'Volver a Importados',
-		text: 'Importados'
-	}}
+	back={{ href: resolve('imports'), label: 'Volver a Importados', text: 'Importados' }}
 />
 
 <div class="page">
@@ -86,7 +82,6 @@
 												(result.data as { message?: string } | undefined)?.message) ||
 												'No se pudo deshacer.'
 										);
-
 									await update();
 								}}
 						>

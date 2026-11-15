@@ -13,10 +13,6 @@
 
 <PageHeader
 	title="Movimiento"
-	back={{
-		href: resolve('movements'),
-		label: 'Volver a movimientos',
-		text: 'Movimientos'
-	}}
+	back={{ href: resolve('movements'), label: 'Volver a movimientos', text: 'Movimientos' }}
 />
 <MovementDetail {data} variant="page" />

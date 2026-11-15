@@ -27,16 +27,12 @@
 		variant,
 		form = null,
 		ondone
-
-		/** Page: the failed action's result (values and errors). */
-		/** Drawer: the item was approved, discarded or was already reviewed. */
 	}: {
 		data: PageData;
 		variant: 'page' | 'drawer';
-		form?: {
-			values?: Record<string, string>;
-			errors?: Record<string, string | undefined>;
-		} | null;
+		/** Page: the failed action's result (values and errors). */
+		form?: { values?: Record<string, string>; errors?: Record<string, string | undefined> } | null;
+		/** Drawer: the item was approved, discarded or was already reviewed. */
 		ondone?: (done: 'approved' | 'rejected' | 'stale') => void;
 	} = $props();
 

@@ -27,7 +27,6 @@
 	>
 		<div class="actions">
 			<Button href={resolve('forgot-password')} class="w-full">Pedir otro</Button>
-
 			<Button href={resolve('login')} variant="outline" class="w-full">Ir a Ingresar</Button>
 		</div>
 	</AuthPage>

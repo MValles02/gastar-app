@@ -80,11 +80,7 @@
 <div class="detail">
 	<PageHeader
 		title={c.name}
-		back={{
-			href: resolve('categories'),
-			label: 'Volver a categorías',
-			text: 'Categorías'
-		}}
+		back={{ href: resolve('categories'), label: 'Volver a categorías', text: 'Categorías' }}
 	/>
 
 	<DetailHero ariaLabel="Resumen del mes" label={data.month.label}>
@@ -174,10 +170,9 @@
 	{/if}
 
 	<div class="actions">
-		<Button href={resolve(`movements?category=${c.id}&all=1`)} variant="outline" class="w-full"
-			>Ver movimientos</Button
-		>
-
+		<Button href={resolve(`movements?category=${c.id}&all=1`)} variant="outline" class="w-full">
+			Ver movimientos
+		</Button>
 		{#if data.actions.canArchive}
 			<form method="POST" action="?/archive" use:enhance>
 				<Button type="submit" variant="outline" class="w-full">Archivar</Button>

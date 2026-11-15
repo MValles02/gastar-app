@@ -104,11 +104,7 @@
 
 <PageHeader
 	title="Categorías"
-	back={{
-		href: resolve('profile'),
-		label: 'Volver al perfil',
-		text: 'Perfil'
-	}}
+	back={{ href: resolve('profile'), label: 'Volver al perfil', text: 'Perfil' }}
 	action={data.hasAnyCategory ? add : undefined}
 />
 
@@ -167,7 +163,10 @@
 							{/snippet}
 							<ListRow
 								href={resolve(`categories/${c.id}`)}
-								lead={{ icon, color: toSwatchKey(c.color) }}
+								lead={{
+									icon,
+									color: toSwatchKey(c.color)
+								}}
 								title={c.name}
 								{value}
 								meta={c.archivedAt ? archivedMeta : undefined}

@@ -14,7 +14,6 @@
 	 */
 	let {
 		item
-		/** Where it came from, only when the inbox mixes sources. */
 	}: {
 		item: {
 			id: string;
@@ -23,6 +22,7 @@
 			currency: 'ARS' | 'USD';
 			isCredit: boolean;
 			suggestion: string | null;
+			/** Where it came from, only when the inbox mixes sources. */
 			source: string | null;
 		};
 	} = $props();
@@ -45,7 +45,6 @@
 	/>
 	<div class="text">
 		<a {href} class="title" onclick={open}>{item.title}</a>
-
 		<span class="meta" class:unknown={item.suggestion === null}>
 			{item.source ? `${item.source} · ` : ''}{item.suggestion === null
 				? 'No sabemos qué es'
@@ -63,7 +62,6 @@
 		</span>
 		{#if item.suggestion === null}
 			<!-- The title link is the accessible one; this shortcut only widens the touch target. -->
-
 			<a {href} class="pill" onclick={open} aria-hidden="true" tabindex="-1">Revisar</a>
 		{:else}
 			<form

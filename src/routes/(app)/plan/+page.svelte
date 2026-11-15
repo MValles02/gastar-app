@@ -43,7 +43,6 @@
 
 	afterNavigate(({ shallow, type }) => {
 		if (shallow && type === 'goto') return;
-
 		if (data.planSaved) {
 			toast.success('Plan guardado.');
 			void stripFlags();
@@ -87,9 +86,9 @@
 	{/if}
 
 	{#if !data.hasAccount}
-		<EmptyState icon="accounts" description="No tenés cuentas."
-			><Button href={resolve('accounts/new')}>Crear cuenta</Button></EmptyState
-		>
+		<EmptyState icon="accounts" description="No tenés cuentas.">
+			<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+		</EmptyState>
 	{:else}
 		{#if data.plan.summary}
 			{@const s = data.plan.summary}
@@ -130,7 +129,7 @@
 								<a
 									href={resolve('plan/savings')}
 									onclick={(e) => openShallow(e, resolve('plan/savings'), 'savings')}
-									>Ahorro<span aria-hidden="true">›</span></a
+									>Ahorro<span aria-hidden="true">&nbsp;›</span></a
 								>
 							</dt>
 							<dd><Money cents={s.savings} currency={PLAN_CURRENCY} /></dd>
@@ -146,10 +145,8 @@
 						class="rate"
 						href={resolve('plan/rate')}
 						onclick={(e) => openShallow(e, resolve('plan/rate'), 'rate')}
+						>{rateLabel(data.plan.rate)}<span aria-hidden="true">&nbsp;›</span></a
 					>
-						{rateLabel(data.plan.rate)}
-						<span aria-hidden="true">›</span>
-					</a>
 				</Card.Root>
 			</section>
 			{#if data.plan.missingRate}

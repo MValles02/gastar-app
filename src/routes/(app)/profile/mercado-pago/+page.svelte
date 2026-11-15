@@ -31,7 +31,6 @@
 			} else errors.accountId = 'Elegí una cuenta en pesos.';
 			return;
 		}
-
 		errors.accountId =
 			(await autosave<{ accountId: string }>({
 				path: '?/account',
@@ -43,7 +42,6 @@
 
 	async function saveFrom(next: string) {
 		if (!next || next === importFrom) return;
-
 		errors.from =
 			(await autosave<{ from: string }>({
 				path: '?/importFrom',
@@ -68,13 +66,8 @@
 />
 
 <div class="page">
-	{#if data.flash}
-		<p class="flash bad" role="alert">{data.flash}</p>
-	{/if}
-
-	{#if data.linked}
-		<p class="flash" role="status">Mercado Pago vinculado.</p>
-	{/if}
+	{#if data.flash}<p class="flash bad" role="alert">{data.flash}</p>{/if}
+	{#if data.linked}<p class="flash" role="status">Mercado Pago vinculado.</p>{/if}
 
 	{#if !data.connection}
 		<section class="card" aria-labelledby="intro">
@@ -115,8 +108,7 @@
 					>
 						{#snippet empty()}
 							<p class="hint">
-								Necesitás una cuenta en pesos.
-								<a href={resolve('accounts/new')}>Crear cuenta</a>
+								Necesitás una cuenta en pesos. <a href={resolve('accounts/new')}>Crear cuenta</a>
 							</p>
 						{/snippet}
 					</OptionPicker>

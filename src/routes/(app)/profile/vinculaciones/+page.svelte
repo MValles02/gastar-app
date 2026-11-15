@@ -14,11 +14,7 @@
 
 <PageHeader
 	title="Vinculaciones"
-	back={{
-		href: resolve('profile'),
-		label: 'Volver a Perfil',
-		text: 'Perfil'
-	}}
+	back={{ href: resolve('profile'), label: 'Volver a Perfil', text: 'Perfil' }}
 />
 
 <div class="page">
