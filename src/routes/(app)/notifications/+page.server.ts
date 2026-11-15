@@ -1,4 +1,4 @@
-import { alerts } from '$lib/server/alerts';
+import { alerts } from '$lib/server/plan/alerts';
 import { requireUser } from '$lib/server/guards';
 import type { PageServerLoad } from './$types';
 

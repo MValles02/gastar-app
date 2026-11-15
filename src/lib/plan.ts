@@ -59,10 +59,16 @@ export function inactiveReason(r: RuleState): string | null {
 	return null;
 }
 
+/** Share of `budget` spent (1 when there is no budget left but some spending), and whether it outpaces the month. */
+export function paceOf(spent: number, budget: number, elapsedShare: number) {
+	const share = budget > 0 ? spent / budget : spent > 0 ? 1 : 0;
+	return { share, fast: share > elapsedShare };
+}
+
 /** A category limit's pace: over it, or within it but spending faster than the month elapses. */
 export function limitPace(spent: number, limit: number, elapsedShare: number) {
-	const share = limit > 0 ? spent / limit : 0;
-	return { share, over: spent > limit, fast: spent <= limit && share > elapsedShare };
+	const { share, fast } = paceOf(spent, limit, elapsedShare);
+	return { share, over: spent > limit, fast: spent <= limit && fast };
 }
 
 /** Whole units (ARS has no decimals), rounded down, in cents. `p` is percent x 100 (1000 = 10 %). */

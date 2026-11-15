@@ -6,11 +6,12 @@ import type { Actions, PageServerLoad } from './$types';
 import { TOAST_FLAGS } from '$lib/url-flags';
 import { dayOfMonth } from '$lib/dates';
 import { localDay } from '$lib/server/month';
-import { parseMovementForm } from '$lib/server/movements';
-import { createMovement } from '$lib/server/movements-queries';
-import { createMovementWithRule } from '$lib/server/plan-queries';
+import { parseMovementForm } from '$lib/server/movements/form';
+import { createMovement } from '$lib/server/movements/queries';
+import { createMovementWithRule } from '$lib/server/recurring/queries';
 import { requireUser } from '$lib/server/guards';
-import { drawerPickers, failIfUnavailable, resolvePostedMovement } from '../form.server';
+import { drawerPickers, failIfUnavailable } from '$lib/server/movements/detail';
+import { resolvePostedMovement } from '$lib/server/movements/pickers';
 
 /** Remembers the account of the last saved movement as the next form's default. */
 const LAST_ACCOUNT_COOKIE = 'last_account';

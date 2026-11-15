@@ -1,4 +1,4 @@
-import { alerts } from '$lib/server/alerts';
+import { alerts } from '$lib/server/plan/alerts';
 import { APP_TZ, LOCALE } from '$lib/locale';
 import { requireUser } from '$lib/server/guards';
 import type { LayoutServerLoad } from './$types';

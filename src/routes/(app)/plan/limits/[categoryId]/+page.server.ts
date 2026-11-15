@@ -10,8 +10,8 @@ import {
 	planLimits,
 	PlanRejected,
 	upsertLimits
-} from '$lib/server/plan-queries';
-import { limitSuggestions, planView } from '$lib/server/plan-view';
+} from '$lib/server/plan/queries';
+import { limitSuggestions, planView } from '$lib/server/plan/month-plan';
 import { notFoundHelpers, requireUser } from '$lib/server/guards';
 
 const { notFound, requireId } = notFoundHelpers('Límite no encontrado.');

@@ -16,7 +16,7 @@ const LOCK_ID = 727274001;
 const MIGRATIONS_FOLDER = './drizzle';
 const TZ = 'America/Argentina/Buenos_Aires';
 
-// Same as normalizeDescription in src/lib/server/plan.ts (this script cannot import app code).
+// Same as normalizeDescription in src/lib/server/recurring/link.ts (this script cannot import app code).
 const normalizeDescription = (s) => s.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
 const daysInMonth = (ym) =>
 	new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)), 0)).getUTCDate();

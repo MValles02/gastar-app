@@ -13,16 +13,16 @@ import {
 	updatePlan,
 	upsertLimits,
 	upsertPlan
-} from '$lib/server/plan-queries';
+} from '$lib/server/plan/queries';
 import {
 	limitSuggestions,
 	planView,
 	recurringLists,
 	recurringSuggestions,
 	savingsBaseline
-} from '$lib/server/plan-view';
+} from '$lib/server/plan/month-plan';
 import { requireUser } from '$lib/server/guards';
-import { parseSavingsForm } from '../savings/form.server';
+import { parseSavingsForm } from '$lib/server/plan/savings-form';
 
 /** Suggested limits the wizard can apply: active non-income categories with no limit yet and a suggestion above zero. */
 async function applicableSuggestions(userId: string, planId: string | null) {

@@ -1,12 +1,12 @@
 import { formFail } from '$lib/form';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-import { accountOption, getAccount, listAccounts } from '$lib/server/accounts/queries';
-import { getCategory, listCategories } from '$lib/server/categories/queries';
+import { accountOption, getAccount, listAccounts } from '../accounts/queries';
+import { getCategory, listCategories } from '../categories/queries';
 import { DESCRIPTION_MAX_LENGTH, DESCRIPTION_TOO_LONG_MESSAGE } from '$lib/fields';
 import { AMOUNT_EXAMPLE, ARS_WHOLE_MESSAGE, isWholeFor, parseAmount } from '$lib/money';
 import type { MovementType } from '$lib/movement';
-import { isUuid } from '$lib/server/db/util';
-import { kindMismatchMessage } from '$lib/server/movements';
+import { isUuid } from '../db/util';
+import { kindMismatchMessage } from '../movements/form';
 import { MAX_DAY_OF_MONTH } from '$lib/plan';
 
 type RecurringFormValues = Record<

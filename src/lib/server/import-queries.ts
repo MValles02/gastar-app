@@ -12,8 +12,8 @@ import {
 } from './db/schema';
 import { canAccessAccount, canAccessMovement, canAccessOwn, userOwned } from './access';
 import { kindFits, type MovementType } from '$lib/movement';
-import type { MovementRow } from './movements';
-import { createMovement, deleteMovement } from './movements-queries';
+import type { MovementRow } from './movements/form';
+import { createMovement, deleteMovement } from './movements/queries';
 import { importSource, kindSpec } from './import-sources';
 import { localDay } from './month';
 
