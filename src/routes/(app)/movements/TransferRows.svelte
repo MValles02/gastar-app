@@ -37,7 +37,6 @@
 	<li class:bad={shown.destinationAccountId}>
 		{#if !mounted}<p class="hint pad">Solo para transferencias</p>{/if}
 		<OptionPicker
-			variant="row"
 			name="destinationAccountId"
 			legend="Hacia"
 			title="Hacia"

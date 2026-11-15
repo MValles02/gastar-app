@@ -9,12 +9,10 @@
 	import { formatDay } from '$lib/locale';
 
 	let {
-		legend = 'Fechas',
 		from = $bindable(''),
 		to = $bindable(''),
 		nested = false
 	}: {
-		legend?: string;
 		/** `YYYY-MM-DD`, or '' when empty. */
 		from?: string;
 		/** `YYYY-MM-DD`, or '' when empty. */
@@ -112,7 +110,7 @@
 			bind:ref={trigger}
 			onclick={openSheet}
 		>
-			<span class="label" id={labelId}>{legend}</span>
+			<span class="label" id={labelId}>Fechas</span>
 			<span id="{labelId}-value" class="current" class:placeholder={!summary}>
 				{summary || 'Todas'}
 			</span>
@@ -167,7 +165,7 @@
 	</BottomDrawer>
 {:else}
 	<fieldset class="native">
-		<legend>{legend}</legend>
+		<legend>Fechas</legend>
 		<label>Desde <input type="date" name="from" bind:value={from} /></label>
 		<label>Hasta <input type="date" name="to" bind:value={to} /></label>
 	</fieldset>

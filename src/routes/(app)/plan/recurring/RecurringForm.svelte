@@ -151,7 +151,6 @@
 		{#snippet account()}
 			<li class:bad={shown.accountId}>
 				<OptionPicker
-					variant="row"
 					name="accountId"
 					legend="Cuenta"
 					title="Elegí la cuenta"
@@ -174,7 +173,6 @@
 		{#snippet category()}
 			<li class:bad={shown.categoryId}>
 				<OptionPicker
-					variant="row"
 					name="categoryId"
 					legend="Categoría"
 					title="Elegí la categoría"

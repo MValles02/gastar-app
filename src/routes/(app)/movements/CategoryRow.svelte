@@ -40,7 +40,6 @@
 	<li class:bad={shown.categoryId}>
 		{#if !mounted}<p class="hint pad">Solo para ingresos y gastos</p>{/if}
 		<OptionPicker
-			variant="row"
 			name="categoryId"
 			legend="Categoría"
 			title="Categoría"

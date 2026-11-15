@@ -20,7 +20,7 @@ const FORMAT = 'v1:';
 
 export const OAUTH_COOKIE = 'mp_oauth';
 export const OAUTH_PATH = '/profile/mercado-pago';
-export const CALLBACK_PATH = `${OAUTH_PATH}/callback`;
+const CALLBACK_PATH = `${OAUTH_PATH}/callback`;
 
 /** The feature is on only when the client id, client secret and token key are all set. */
 export function mpOauthEnabled(): boolean {
@@ -55,7 +55,7 @@ export function decryptToken(stored: string, userId: string): string {
 
 const b64url = (buf: Buffer) => buf.toString('base64url');
 
-export const redirectUri = (origin: string) => origin + CALLBACK_PATH;
+const redirectUri = (origin: string) => origin + CALLBACK_PATH;
 
 /** New PKCE verifier and CSRF state, plus the authorization URL for them. */
 export function startAuthorization(origin: string) {
@@ -164,7 +164,7 @@ export async function exchangeCode(
 	return true;
 }
 
-export type RefreshOutcome = 'ok' | 'reconnect' | 'error';
+type RefreshOutcome = 'ok' | 'reconnect' | 'error';
 
 /**
  * Rotates the user's tokens. Call it only while holding the account lease. 'reconnect' means the row now has
@@ -218,7 +218,7 @@ export async function refreshConnection(userId: string): Promise<RefreshOutcome>
 
 // --- Connection queries (tokens never leave this module except through getAccessToken) ---
 
-export type MpConnectionInfo = {
+type MpConnectionInfo = {
 	accountId: string | null;
 	accountName: string | null;
 	needsReconnect: boolean;

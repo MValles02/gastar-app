@@ -239,7 +239,6 @@
 		{#snippet account()}
 			<li class:bad={shown.accountId}>
 				<OptionPicker
-					variant="row"
 					name="accountId"
 					legend={isTransfer ? 'Desde' : 'Cuenta'}
 					title={isTransfer ? 'Desde' : 'Cuenta'}

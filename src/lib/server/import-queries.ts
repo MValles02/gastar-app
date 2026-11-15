@@ -134,7 +134,7 @@ type ImportKeyFields = {
 };
 
 /** The rule keys an item can match, strongest first. */
-export function importRuleKeys(i: ImportKeyFields): ImportRuleKey[] {
+function importRuleKeys(i: ImportKeyFields): ImportRuleKey[] {
 	const { learns, kindKey } = kindSpec(i.source, i.kind);
 	if (learns === 'never' || (learns === 'debit' && i.isCredit)) return [];
 	const keys: ImportRuleKey[] = [];
@@ -201,7 +201,7 @@ export function listImportRules(userId: string) {
 
 type ImportRule = Awaited<ReturnType<typeof listImportRules>>[number];
 
-export type ImportPrefill = {
+type ImportPrefill = {
 	type: MovementType;
 	categoryId: string;
 	counterAccountId: string;
@@ -260,7 +260,7 @@ export function importPrefill(
 	};
 }
 
-export type ApproveRule = {
+type ApproveRule = {
 	type: MovementType;
 	categoryId: string | null;
 	counterAccountId: string | null;

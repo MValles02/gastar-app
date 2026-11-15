@@ -10,8 +10,6 @@ import {
 import { ACCOUNT_ICONS, SWATCHES } from '$lib/appearance';
 import { totalBalance, type MovementType } from './dashboard';
 
-export const CURRENCY_LOCKED_MESSAGE =
-	'No podés cambiar la moneda porque la cuenta tiene movimientos.';
 export const DELETE_REFERENCED_MESSAGE = 'Esta cuenta tiene movimientos. Podés archivarla.';
 
 export type AccountData = {

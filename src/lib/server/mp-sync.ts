@@ -9,7 +9,7 @@ import { DEFAULT_BACKFILL_DAYS, getAccessToken, refreshConnection } from './mp-o
 import { dayStart, localDay } from './month';
 
 /** Stored in mp_sync_state.last_error: a code only, never a message or payload. */
-export type MpSyncError =
+type MpSyncError =
 	'auth' | 'report_timeout' | 'network' | 'parse' | 'config' | 'reconnect' | `mp_${number}`;
 
 const HTTP_TIMEOUT_MS = 30_000;

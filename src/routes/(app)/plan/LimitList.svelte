@@ -26,11 +26,7 @@
 	 * below; over the limit the % and the meter turn red. Outside the wizard a click opens the limit's
 	 * drawer over the screen; in the wizard (`wizard` step) the row links to the page.
 	 */
-	let {
-		limits,
-		wizard,
-		linked = true
-	}: { limits: Limit[]; wizard?: number; linked?: boolean } = $props();
+	let { limits, wizard }: { limits: Limit[]; wizard?: number } = $props();
 
 	// An unmodified click opens the drawer (shallow route, URL unchanged); anything else follows the link.
 	async function open(e: MouseEvent, id: string) {
@@ -63,9 +59,7 @@
 			<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 			<div onclick={(e) => open(e, l.categoryId)}>
 				<ListRow
-					href={linked
-						? resolve(`/plan/limits/${l.categoryId}${wizard ? `?wizard=${wizard}` : ''}`)
-						: undefined}
+					href={resolve(`/plan/limits/${l.categoryId}${wizard ? `?wizard=${wizard}` : ''}`)}
 					lead={{
 						icon: toCategoryIconKey(l.icon ?? null) ?? undefined,
 						letter: toCategoryIconKey(l.icon ?? null) ? undefined : l.name.charAt(0).toUpperCase(),
