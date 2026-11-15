@@ -15,6 +15,7 @@ import { movementPickers } from '#lib/server/movements/pickers.ts';
 import { approveWithValues, counterAccountsOf } from '#lib/server/imports/approve.ts';
 import { activeRuleItems } from '#lib/server/recurring/rule-items.ts';
 import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
+import { importDoneHref } from '#lib/toast-flags.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const { notFound, requireId } = notFoundHelpers('Movimiento no encontrado.');
@@ -74,7 +75,7 @@ export const actions: Actions = {
 	approve: async ({ locals, params, request }) => {
 		const userId = requireUser(locals).id;
 		const item = await findItem(userId, params.id);
-		if (item.status !== 'pending') redirect(303, '/imports?done=stale');
+		if (item.status !== 'pending') redirect(303, importDoneHref('stale'));
 
 		// 'remember' is 'on' when the box is checked; kept as text so a failed submit re-renders it.
 		const posted = readFields(await request.formData(), [
@@ -131,12 +132,12 @@ export const actions: Actions = {
 			const { categoryId, ...rest } = approved.errors;
 			return fail(400, { values, errors: { categoryId, form: Object.values(rest)[0] } });
 		}
-		redirect(303, `/imports?done=${approved.result}`);
+		redirect(303, importDoneHref(approved.result));
 	},
 
 	reject: async ({ locals, params }) => {
 		const userId = requireUser(locals).id;
 		await findItem(userId, params.id);
-		redirect(303, `/imports?done=${await rejectImport(userId, params.id)}`);
+		redirect(303, importDoneHref(await rejectImport(userId, params.id)));
 	}
 };

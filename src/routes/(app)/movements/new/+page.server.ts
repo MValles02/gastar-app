@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
+import { savedMovement } from '#lib/toast-flags.ts';
 import { PREFERENCE_COOKIE_OPTIONS } from '#lib/server/cookies.ts';
 import { preferredCurrency } from '#lib/server/currency-pref.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -32,8 +33,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url, request }) =>
 		accounts,
 		categories,
 		now,
-		saved: url.searchParams.get('saved') || null,
-		savedRule: url.searchParams.get('rule') || null,
+		saved: savedMovement(url.searchParams, 'saved'),
 		formKey: crypto.randomUUID(),
 		from: refererPath(request, url),
 		defaultAccountId,

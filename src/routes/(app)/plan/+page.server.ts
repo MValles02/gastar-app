@@ -1,3 +1,4 @@
+import { isPlanSaved } from '#lib/toast-flags.ts';
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { accountSummary } from '#lib/server/accounts/queries.ts';
@@ -7,7 +8,7 @@ import { requireUser } from '#lib/server/guards.ts';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
-	const planSaved = url.searchParams.get('planSaved') === '1';
+	const planSaved = isPlanSaved(url.searchParams);
 	const summary = await accountSummary(userId);
 	if (!summary.some((s) => s.count > 0)) return { planSaved, hasAccount: false as const };
 

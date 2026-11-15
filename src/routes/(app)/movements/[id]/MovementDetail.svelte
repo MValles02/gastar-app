@@ -1,21 +1,20 @@
 <script lang="ts">
 	import { type ComponentProps, untrack } from 'svelte';
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { toast } from 'svelte-sonner';
 	import { refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { autosave, submitAction } from '#lib/autosave.ts';
+	import { autosave } from '#lib/autosave.ts';
 	import { MIN_DAY } from '#lib/dates.ts';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
-	import { navigateUp, upOnClick } from '#lib/nav-stack.svelte.ts';
-	import { formatAmountInput, formatMoney } from '#lib/money.ts';
+	import { categoriesFor, kindFits, MOVEMENT_MESSAGES, movementNeeds } from '#lib/movement.ts';
+	import { upOnClick } from '#lib/nav-stack.svelte.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
 	import Money from '#lib/components/Money.svelte';
+	import CrossCurrencyRows from '#lib/components/movements/CrossCurrencyRows.svelte';
 	import MovementDatePicker from '#lib/components/MovementDatePicker.svelte';
 	import OptionPicker from '#lib/components/OptionPicker.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
 	import type { PageData } from './$types';
 
 	/**
@@ -36,19 +35,14 @@
 	let m = $state<Movement>(untrack(() => data.movement));
 	// Fixed payments the movement can link to; they depend on its type and account currency, so every save refreshes them.
 	let rules = $state(untrack(() => data.rules));
-	type Saved = { movement: Movement; rules: typeof data.rules };
-
-	// What the update action stores, as the strings it takes (same as `formValues` on the server).
-	const values = $derived<Record<string, string>>({
-		type: m.type,
-		occurredAt: m.occurredAt,
-		description: m.description,
-		amount: formatAmountInput(m.amount, m.accountCurrency),
-		accountId: m.accountId,
-		destinationAccountId: m.destinationAccountId ?? '',
-		categoryId: m.categoryId ?? '',
-		exchangeRate: m.exchangeRate !== null ? formatAmountInput(m.exchangeRate, 'ARS') : ''
-	});
+	// What the update action stores, as the strings it takes (the server's `toFormValues`).
+	let values = $state<Record<string, string>>(untrack(() => data.values));
+	type Saved = { movement: Movement; rules: typeof data.rules; values: typeof data.values };
+	function applySaved(r: Saved) {
+		m = r.movement;
+		rules = r.rules;
+		values = r.values;
+	}
 
 	// Changes that wait for a field they need (a type or account change missing its category, Hacia or
 	// Cotización): they are saved together, in one post, once nothing is missing.
@@ -61,11 +55,12 @@
 	const accounts = $derived(
 		data.accounts.map((a) => ({ ...a, name: archived(a.name, a.archived), archived: false }))
 	);
-	const kindFits = (kind: string | null, type: string) => kind === null || kind === type;
 	const categories = $derived(
-		data.categories
-			.filter((c) => kindFits(c.kind, effType) || (!typeStaged && c.id === m.categoryId))
-			.map((c) => ({ ...c, name: archived(c.name, c.archived), archived: false }))
+		categoriesFor(data.categories, effType, typeStaged ? null : m.categoryId).map((c) => ({
+			...c,
+			name: archived(c.name, c.archived),
+			archived: false
+		}))
 	);
 	// The stored category only carries over to a new type whose kind accepts it.
 	const keptCategory = (type: string) => {
@@ -86,7 +81,8 @@
 	const destinationId = $derived(pending.destinationAccountId ?? m.destinationAccountId ?? '');
 	const currencyOf = (id: string) => data.accounts.find((a) => a.id === id)?.currency;
 	const crossCurrency = $derived(
-		isTransfer && !!destinationId && currencyOf(originId) !== currencyOf(destinationId)
+		movementNeeds(effType, { origin: currencyOf(originId), destination: currencyOf(destinationId) })
+			.rate
 	);
 
 	const path = $derived(resolve(`movements/${m.id}`));
@@ -103,8 +99,7 @@
 				fields: { recurringId: v },
 				previous: { recurringId: m.recurringId ?? '' },
 				apply: (r) => {
-					m = r.movement;
-					rules = r.rules;
+					applySaved(r);
 					errors = {};
 				}
 			})) ?? '';
@@ -127,8 +122,7 @@
 			fields,
 			previous,
 			apply: (r) => {
-				m = r.movement;
-				rules = r.rules;
+				applySaved(r);
 				pending = {};
 				errors = {};
 			}
@@ -138,14 +132,17 @@
 	// What the staged fields still lack before the server can take them (same rules as resolveMovement).
 	function missing(f: Record<string, string>) {
 		const type = f.type ?? m.type;
-		if (type !== 'transfer') {
+		const destination = f.destinationAccountId ?? m.destinationAccountId ?? '';
+		const needs = movementNeeds(type, {
+			origin: currencyOf(f.accountId ?? m.accountId),
+			destination: currencyOf(destination)
+		});
+		if (needs.category) {
 			const kept = 'type' in f ? keptCategory(type) : (m.categoryId ?? '');
 			return (f.categoryId ?? kept) ? null : 'category';
 		}
-		const destination = f.destinationAccountId ?? m.destinationAccountId ?? '';
 		if (!destination) return 'destination';
-		const cross = currencyOf(f.accountId ?? m.accountId) !== currencyOf(destination);
-		return cross && !f.exchangeRate && !m.exchangeRate ? 'rate' : null;
+		return needs.rate && !f.exchangeRate && !m.exchangeRate ? 'rate' : null;
 	}
 
 	// The picker returns focus to its row as it closes: take it back (or open the one that is needed).
@@ -166,8 +163,8 @@
 		const what = missing(fields);
 		if (!what) return save(fields);
 		Object.assign(pending, extra);
-		if (what === 'category') errors.categoryId = 'Elegí una categoría.';
-		if (what === 'destination') errors.destinationAccountId = 'Elegí la cuenta de destino.';
+		if (what === 'category') errors.categoryId = MOVEMENT_MESSAGES.category;
+		if (what === 'destination') errors.destinationAccountId = MOVEMENT_MESSAGES.destination;
 		prompt(what);
 		return null;
 	}
@@ -194,8 +191,6 @@
 		await commit({ type: next });
 	}
 
-	// Same text as the server (src/lib/server/movements.ts).
-	const RATE_MESSAGE = 'Ingresá la cotización (1 USD = X ARS) en pesos enteros y mayor a cero.';
 	const needsRate = $derived(crossCurrency && !m.exchangeRate && !pending.exchangeRate);
 	// Closing with a change still waiting for a field drops it: say so.
 	$effect(() => () => {
@@ -206,16 +201,15 @@
 
 	const saveRate = (next: string) => commit({ exchangeRate: next });
 
-	async function remove() {
-		const r = await submitAction(`${path}?/delete`, {});
-		if (r.type !== 'redirect') {
+	/** Drawer: the delete's answer (the page follows its redirect to the list). */
+	async function deleted(type: string) {
+		if (type !== 'redirect') {
 			errors.delete = 'No se pudo eliminar el movimiento.';
 			return;
 		}
 		// refreshAll keeps the drawer's shallow-route state (invalidateAll would reset it).
 		await refreshAll();
-		if (drawer) onclose?.();
-		else await navigateUp(resolve('movements'), { refresh: true });
+		onclose?.();
 	}
 </script>
 
@@ -310,44 +304,22 @@
 				/>
 			</li>
 			{#if crossCurrency}
-				<li>
-					<p class="row" aria-live="polite">
-						<span class="k">En destino</span>
-						{#if m.destinationAmount !== null && m.destinationCurrency && !pending.accountId && !pending.destinationAccountId && !typeStaged}
-							<span class="v converted"
-								>{formatMoney(m.destinationAmount, m.destinationCurrency)}</span
-							>
-						{:else}
-							<span class="v muted">—</span>
-						{/if}
-					</p>
-				</li>
-				<li>
-					<div class="row rate">
-						<span class="k">Cotización</span>
-						<span class="v">
-							<InlineText
-								label="Cotización"
-								inputmode="numeric"
-								prefix="1 USD = $"
-								value={values.exchangeRate}
-								open={needsRate}
-								required={needsRate}
-								onsave={saveRate}
-							>
-								{#snippet display()}
-									<span class:muted={m.exchangeRate === null}
-										>{m.exchangeRate !== null
-											? `1 USD = ${formatMoney(m.exchangeRate, 'ARS')}`
-											: 'Ingresar'}</span
-									>
-									<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="chev" />
-								{/snippet}
-							</InlineText>
-						</span>
-					</div>
-					{#if needsRate}<p class="staged" role="alert">{RATE_MESSAGE}</p>{/if}
-				</li>
+				<CrossCurrencyRows
+					rate={values.exchangeRate}
+					rateCents={m.exchangeRate}
+					open={needsRate}
+					required={needsRate}
+					onsave={saveRate}
+					error={needsRate ? MOVEMENT_MESSAGES.rate : undefined}
+					converted={m.destinationAmount !== null &&
+					m.destinationCurrency &&
+					!pending.accountId &&
+					!pending.destinationAccountId &&
+					!typeStaged
+						? { cents: m.destinationAmount, currency: m.destinationCurrency }
+						: null}
+					destinationFirst
+				/>
 			{/if}
 		{:else}
 			<li data-row="category">
@@ -385,38 +357,18 @@
 
 	{#if errors.delete}<p class="error" role="alert">{errors.delete}</p>{/if}
 	<div class="actions">
-		{#if drawer}
-			<AlertDialog.Root>
-				<AlertDialog.Trigger>
-					{#snippet child({ props })}
-						<Button {...props} variant="destructive" class="w-full">Eliminar</Button>
-					{/snippet}
-				</AlertDialog.Trigger>
-				<AlertDialog.Content>
-					<AlertDialog.Header>
-						<AlertDialog.Title>¿Eliminar este movimiento?</AlertDialog.Title>
-						<AlertDialog.Description>Esta acción no se puede deshacer.</AlertDialog.Description>
-					</AlertDialog.Header>
-					<AlertDialog.Footer>
-						<AlertDialog.Cancel type="button" class="w-full">Cancelar</AlertDialog.Cancel>
-						<AlertDialog.Action type="button" variant="destructive" class="w-full" onclick={remove}
-							>Eliminar</AlertDialog.Action
-						>
-					</AlertDialog.Footer>
-				</AlertDialog.Content>
-			</AlertDialog.Root>
-		{:else if !drawer}
-			<ConfirmDialog
-				triggerLabel="Eliminar"
-				triggerVariant="destructive"
-				triggerClass="w-full"
-				title="¿Eliminar este movimiento?"
-				confirmLabel="Eliminar"
-				action="?/delete"
-			>
-				Esta acción no se puede deshacer.
-			</ConfirmDialog>
-		{/if}
+		<ConfirmDialog
+			triggerLabel="Eliminar"
+			triggerVariant="destructive"
+			triggerClass="w-full"
+			title="¿Eliminar este movimiento?"
+			confirmLabel="Eliminar"
+			action="{path}?/delete"
+			closeOnFailure={drawer}
+			ondone={drawer ? deleted : undefined}
+		>
+			Esta acción no se puede deshacer.
+		</ConfirmDialog>
 		{#if drawer}
 			<Button class="w-full" onclick={() => onclose?.()}>Listo</Button>
 		{:else}
@@ -487,72 +439,10 @@
 		box-shadow: var(--shadow-1);
 	}
 
-	.row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-		min-height: 3.5rem;
-		margin: 0;
-		padding: 0 var(--space-4);
-		font-size: var(--font-size-base);
-	}
-
-	.v {
-		min-width: 0;
-		text-align: right;
-		font-weight: 500;
-	}
-
-	.converted {
-		color: var(--transfer);
-		font-weight: 600;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-weight: 400;
-	}
-
-	/* Cotización reads like the picker rows: the value side is the tap target, chevron at the end. */
-	/* Same label weight as the picker rows (ghost buttons). */
-	.row .k {
-		font-weight: 500;
-	}
-
-	.rate .v {
-		flex: 1;
-	}
-
-	.rate :global(.edit) {
-		white-space: nowrap;
-	}
-
-	.rate :global(.trigger) {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		gap: var(--space-3);
-		width: 100%;
-		cursor: pointer;
-	}
-
-	.rate :global(.chev) {
-		flex: none;
-		color: var(--text-muted);
-	}
-
 	/* The currency symbol stays while the amount is edited, smaller and muted like the read state. */
 	.amount :global(.prefix) {
 		font-size: 0.55em;
 		font-weight: 500;
-	}
-
-	.staged {
-		padding: 0 var(--space-4) var(--space-3);
-		color: var(--negative);
-		font-size: var(--font-size-sm);
 	}
 
 	.hint {

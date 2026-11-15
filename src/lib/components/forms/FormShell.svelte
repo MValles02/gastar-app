@@ -17,9 +17,11 @@
 	 */
 	let {
 		action,
+		id,
 		variant = 'page',
 		inPlace = false,
 		errors,
+		validate,
 		onsubmit,
 		onfailure,
 		onsaved,
@@ -30,16 +32,22 @@
 		canSave = true,
 		danger = false,
 		scroll = false,
+		bar = true,
 		style,
 		mounted = $bindable(false),
+		submitting = $bindable(false),
 		children
 	}: {
 		action: string;
+		/** The form's `id`, for a submit button outside it (`form=`). */
+		id?: string;
 		variant?: 'page' | 'drawer';
 		/** Handle failures and errors here on the page too, like the drawer does. */
 		inPlace?: boolean;
 		/** Page: the server-rendered field errors. */
 		errors?: object;
+		/** Checked before posting: false cancels the submit and focuses the first invalid field. */
+		validate?: () => boolean;
 		onsubmit?: () => void;
 		onfailure?: (data: Partial<Failure>) => void;
 		/** Drawer: the action redirected to `location` (the save succeeded). */
@@ -56,9 +64,13 @@
 		danger?: boolean;
 		/** Fields in a scroll area above a pinned drawer bar: always, or only in the drawer. */
 		scroll?: boolean | 'drawer';
+		/** false: no action bar; the fields bring their own submit. */
+		bar?: boolean;
 		/** Layout overrides: `--form-gap`, `--form-pb`, `--actions-mt`. */
 		style?: string;
 		mounted?: boolean;
+		/** True while a submit is in flight. */
+		submitting?: boolean;
 		children: Snippet;
 	} = $props();
 
@@ -66,14 +78,18 @@
 	const local = $derived(drawer || inPlace);
 	const wrap = $derived(scroll === true || (scroll === 'drawer' && drawer));
 	let form = $state<HTMLFormElement>();
-	let submitting = $state(false);
 	onMount(() => (mounted = true));
 
 	$effect(() => {
 		if (errors && Object.values(errors).some(Boolean)) focusFirstError(form);
 	});
 
-	const submit: SubmitFunction = () => {
+	const submit: SubmitFunction = ({ cancel }) => {
+		if (validate && !validate()) {
+			cancel();
+			focusFirstError(form);
+			return;
+		}
 		submitting = true;
 		onsubmit?.();
 		return async (input) => {
@@ -91,6 +107,7 @@
 
 <form
 	bind:this={form}
+	{id}
 	method="POST"
 	{action}
 	class="form"
@@ -107,7 +124,9 @@
 		{@render children()}
 	{/if}
 
-	{#if drawer}
+	{#if !bar}
+		<!-- The fields bring their own submit. -->
+	{:else if drawer}
 		<div class="actions">
 			<Button
 				type="button"

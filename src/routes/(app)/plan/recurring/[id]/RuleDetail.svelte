@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { autosave } from '#lib/autosave.ts';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
-	import { formatAmountInput, formatMoney } from '#lib/money.ts';
+	import { formatMoney } from '#lib/money.ts';
+	import { categoriesFor } from '#lib/movement.ts';
 	import { dueTone } from '#lib/plan.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import DayOfMonthPicker from '#lib/components/DayOfMonthPicker.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
 	import Money from '#lib/components/Money.svelte';
@@ -29,21 +30,16 @@
 	const wizardQuery = $derived(data.wizard ? `&wizard=${data.wizard}` : '');
 	const path = $derived(resolve(`plan/recurring/${r.id}`));
 
-	// What the update action stores, as the strings it takes.
-	const values = $derived<Record<string, string>>({
-		description: r.description,
-		amount: formatAmountInput(r.amount, currency),
-		accountId: r.account.id,
-		categoryId: r.category.id,
-		dayOfMonth: String(r.dayOfMonth)
-	});
+	// What the update action stores, as the strings it takes (the server's `toFormValues`).
+	const values = $derived<Record<string, string>>(r.values);
 
 	const archived = (name: string, is: boolean) => (is ? `${name} · Archivada` : name);
 	const accounts = $derived(r.accounts.map((a) => ({ ...a, name: archived(a.name, a.archived) })));
 	const categories = $derived(
-		r.categories
-			.filter((c) => c.kind === null || c.kind === r.type)
-			.map((c) => ({ ...c, name: archived(c.name, c.archived) }))
+		categoriesFor(r.categories, r.type, null).map((c) => ({
+			...c,
+			name: archived(c.name, c.archived)
+		}))
 	);
 
 	// Picker rows report their error here, keyed by field.
@@ -152,13 +148,13 @@
 
 	<div class="actions">
 		{#if r.archived}
-			<form method="POST" action="?/archive" use:enhance>
+			<FormShell action="?/archive" bar={false}>
 				<Button type="submit" class="w-full">Activar</Button>
-			</form>
+			</FormShell>
 		{:else}
-			<form method="POST" action="?/archive" use:enhance>
+			<FormShell action="?/archive" bar={false}>
 				<Button type="submit" variant="outline" class="w-full">Desactivar</Button>
-			</form>
+			</FormShell>
 		{/if}
 		<ConfirmDialog
 			triggerLabel="Eliminar"
