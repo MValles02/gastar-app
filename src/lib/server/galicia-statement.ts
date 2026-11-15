@@ -45,6 +45,8 @@ export class StatementError extends Error {
 }
 
 export const MAX_PAGES = 20;
+/** Deadline for PDF text extraction (loading + all pages); a crafted PDF cannot keep the server busy longer. */
+const PARSE_TIMEOUT_MS = 5000;
 const GALICIA_CUIT = '30-50000173-5';
 
 type Token = { x: number; s: string };
@@ -87,17 +89,29 @@ export function parseAmount(s: string): number | null {
 
 /** Text items of every page, grouped into visual lines (top to bottom, page order). */
 async function readLines(bytes: Uint8Array): Promise<Line[]> {
+	// One deadline for loading + all pages; every pdfjs await races it, the finally destroys the task.
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	const deadline = new Promise<never>((_, reject) => {
+		timer = setTimeout(() => reject(new StatementError('unreadable')), PARSE_TIMEOUT_MS);
+	});
+	deadline.catch(() => {});
+	const within = <T>(p: Promise<T>) => Promise.race([p, deadline]);
 	let pdf;
+	const loading = getDocumentProxy(bytes);
 	try {
-		pdf = await getDocumentProxy(bytes);
+		pdf = await within(loading);
 	} catch {
+		clearTimeout(timer);
+		// Timed out while loading: release the task once pdfjs settles.
+		loading.then((d) => d.loadingTask.destroy()).catch(() => {});
 		throw new StatementError('unreadable');
 	}
 	try {
 		if (pdf.numPages > MAX_PAGES) throw new StatementError('too_many_pages');
 		const lines: Line[] = [];
 		for (let p = 1; p <= pdf.numPages; p++) {
-			const content = await (await pdf.getPage(p)).getTextContent();
+			const page = await within(pdf.getPage(p));
+			const content = await within(page.getTextContent());
 			const items: { x: number; y: number; s: string }[] = [];
 			for (const it of content.items) {
 				if (!('str' in it) || !it.str.trim()) continue;
@@ -121,6 +135,7 @@ async function readLines(bytes: Uint8Array): Promise<Line[]> {
 		if (e instanceof StatementError) throw e;
 		throw new StatementError('unreadable');
 	} finally {
+		clearTimeout(timer);
 		await pdf.loadingTask.destroy();
 	}
 }
