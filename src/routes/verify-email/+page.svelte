@@ -5,8 +5,7 @@
 	import AuthPage from '$lib/components/AuthPage.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import CheckEmail from '$lib/components/CheckEmail.svelte';
-	import * as Field from '$lib/components/ui/field/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
+	import EmailField from '$lib/components/EmailField.svelte';
 	import { readPendingEmail } from '$lib/pending-email';
 	import type { ActionData } from './$types';
 
@@ -34,23 +33,7 @@
 		description="El enlace para confirmar tu cuenta venció. Pedí uno nuevo."
 	>
 		<AuthForm action="?/resend" submitLabel="Reenviar">
-			<Field.Field>
-				<Field.Label for="email">Email</Field.Label>
-				<Input
-					id="email"
-					type="email"
-					name="email"
-					autocomplete="username"
-					autocapitalize="none"
-					bind:value={email}
-					required
-					aria-invalid={form?.emailError ? true : undefined}
-					aria-describedby={form?.emailError ? 'email-error' : undefined}
-				/>
-				{#if form?.emailError}
-					<Field.Error id="email-error">{form.emailError}</Field.Error>
-				{/if}
-			</Field.Field>
+			<EmailField bind:value={email} error={form?.emailError} />
 			{#snippet after()}
 				<Button href={resolve('/login')} variant="outline" class="w-full">Ir a Ingresar</Button>
 			{/snippet}
