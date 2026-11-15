@@ -10,6 +10,7 @@ import {
 import { db } from './db';
 import { financialAccounts, mpConnections, mpImportItems, mpSyncState } from './db/schema';
 import { mpApiBaseUrl } from './mp-env';
+import { DAY_MS } from '$lib/dates';
 import { localDay } from './month';
 
 const DEFAULT_AUTH_BASE_URL = 'https://auth.mercadopago.com';
@@ -20,7 +21,7 @@ const FORMAT = 'v1:';
 
 export const OAUTH_COOKIE = 'mp_oauth';
 export const OAUTH_PATH = '/profile/mercado-pago';
-export const CALLBACK_PATH = `${OAUTH_PATH}/callback`;
+const CALLBACK_PATH = `${OAUTH_PATH}/callback`;
 
 /** The feature is on only when the client id, client secret and token key are all set. */
 export function mpOauthEnabled(): boolean {
@@ -55,7 +56,7 @@ export function decryptToken(stored: string, userId: string): string {
 
 const b64url = (buf: Buffer) => buf.toString('base64url');
 
-export const redirectUri = (origin: string) => origin + CALLBACK_PATH;
+const redirectUri = (origin: string) => origin + CALLBACK_PATH;
 
 /** New PKCE verifier and CSRF state, plus the authorization URL for them. */
 export function startAuthorization(origin: string) {
@@ -164,7 +165,7 @@ export async function exchangeCode(
 	return true;
 }
 
-export type RefreshOutcome = 'ok' | 'reconnect' | 'error';
+type RefreshOutcome = 'ok' | 'reconnect' | 'error';
 
 /**
  * Rotates the user's tokens. Call it only while holding the account lease. 'reconnect' means the row now has
@@ -218,7 +219,7 @@ export async function refreshConnection(userId: string): Promise<RefreshOutcome>
 
 // --- Connection queries (tokens never leave this module except through getAccessToken) ---
 
-export type MpConnectionInfo = {
+type MpConnectionInfo = {
 	accountId: string | null;
 	accountName: string | null;
 	needsReconnect: boolean;
@@ -328,7 +329,7 @@ export async function getImportFromDay(userId: string, accountId: string): Promi
 		.select({ at: min(mpImportItems.occurredAt) })
 		.from(mpImportItems)
 		.where(and(canAccessImport(userId), eq(mpImportItems.accountId, accountId)));
-	return localDay(first?.at ?? new Date(Date.now() - DEFAULT_BACKFILL_DAYS * 86_400_000));
+	return localDay(first?.at ?? new Date(Date.now() - DEFAULT_BACKFILL_DAYS * DAY_MS));
 }
 
 /** Saves "importar desde" and drops the pending items of the account before it (approved and rejected ones stay). */

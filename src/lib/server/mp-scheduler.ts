@@ -1,11 +1,12 @@
 import { pgErrorCode } from './db/errors';
-import { dayStart, localDay, TZ } from './month';
+import { DAY_MS } from '$lib/dates';
+import { APP_TZ } from '$lib/locale';
+import { dayStart, localDay } from './month';
 import { syncIntervalHours } from './mp-env';
 import { listUsableConnections, mpOauthEnabled } from './mp-oauth';
 import { syncScheduled } from './mp-sync';
 
 const HOUR_MS = 3_600_000;
-const DAY_MS = 24 * HOUR_MS;
 /** Buenos Aires hour of the daily release report: MP mails the account owner every time one is ready. */
 const REPORT_HOUR = 8;
 /** First run after a start: payments, plus the day's report if it was missed while the server was down. */
@@ -13,7 +14,11 @@ const START_DELAY_MS = 60_000;
 
 /** True during the Buenos Aires hour the scheduler requests the daily release report. */
 function isReportHour(now: Date): boolean {
-	const hour = new Intl.DateTimeFormat('en-US', { timeZone: TZ, hour: 'numeric', hourCycle: 'h23' })
+	const hour = new Intl.DateTimeFormat('en-US', {
+		timeZone: APP_TZ,
+		hour: 'numeric',
+		hourCycle: 'h23'
+	})
 		.formatToParts(now)
 		.find((p) => p.type === 'hour')?.value;
 	return Number(hour) === REPORT_HOUR;

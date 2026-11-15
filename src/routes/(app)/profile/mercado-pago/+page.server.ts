@@ -2,6 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
 import { dev } from '$app/environment';
 import { accountOption } from '$lib/server/account-options';
+import { DAY_MS } from '$lib/dates';
 import { dayStart, localDay } from '$lib/server/month';
 import {
 	deleteConnection,
@@ -26,7 +27,6 @@ const FLASHES = {
 	exchange: 'Mercado Pago no respondió. Probá de nuevo.'
 } as const;
 
-const DAY_MS = 86_400_000;
 const BACKFILL_DAYS = 365;
 const earliestDay = () => localDay(new Date(Date.now() - BACKFILL_DAYS * DAY_MS));
 

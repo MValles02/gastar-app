@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
-import { NAME_MAX_LENGTH } from '$lib/limits';
+import { NAME_MAX_LENGTH } from '$lib/fields';
+import { CATEGORY_KINDS, KIND_LABEL, kindFits } from '$lib/movement';
 import { CURRENCIES, type Currency } from '$lib/money';
 import {
 	categoryMonthTotals,
@@ -10,17 +11,15 @@ import { currentMonth, monthRange } from '$lib/server/month';
 import { requireUser } from '$lib/server/require-user';
 
 const KIND_GROUPS = [
-	['outcome', 'Gastos'],
-	['income', 'Ingresos'],
-	[null, 'Ambos']
-] as const;
+	...CATEGORY_KINDS.map((k) => [k, KIND_LABEL[k]] as const),
+	[null, 'Ambos'] as const
+];
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
 	const q = (url.searchParams.get('q') ?? '').trim().slice(0, NAME_MAX_LENGTH);
 	const archived = url.searchParams.get('archived') === '1';
-	const kind =
-		(['outcome', 'income'] as const).find((k) => k === url.searchParams.get('kind')) ?? '';
+	const kind = CATEGORY_KINDS.find((k) => k === url.searchParams.get('kind')) ?? '';
 	// ARS by default (like Home); `both` lists each currency's total, never summed.
 	const param = url.searchParams.get('currency');
 	const currency: Currency | 'both' =
@@ -41,9 +40,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	}));
 	const categories = all.filter(
 		(c) =>
-			(archived || c.archivedAt === null) &&
-			(!kind || c.kind === kind || c.kind === null) &&
-			matches(c.name)
+			(archived || c.archivedAt === null) && (!kind || kindFits(c.kind, kind)) && matches(c.name)
 	);
 
 	// Month net (income - outcome) per category and currency, computed at read time.

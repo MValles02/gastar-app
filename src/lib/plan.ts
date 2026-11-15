@@ -1,5 +1,11 @@
 /** Plan vocabulary shared by the server and the screens: statuses, their tones and labels. */
 
+/** The plan is always in pesos; USD items convert at the plan rate. */
+export const PLAN_CURRENCY = 'ARS' as const;
+
+/** Savings percent is stored as percent x 100 (1000 = 10 %), at most 100 %. */
+export const SAVINGS_PERCENT_MAX = 10000;
+
 /** Visual tone shared by every status pill. */
 export type StatusTone = 'ok' | 'warning' | 'bad' | 'neutral';
 
@@ -57,4 +63,19 @@ export function inactiveReason(r: RuleState): string | null {
 export function limitPace(spent: number, limit: number, elapsedShare: number) {
 	const share = limit > 0 ? spent / limit : 0;
 	return { share, over: spent > limit, fast: spent <= limit && share > elapsedShare };
+}
+
+/** Whole units (ARS has no decimals), rounded down, in cents. `p` is percent x 100 (1000 = 10 %). */
+export function savingsFromPercent(income: number, p: number): number {
+	return Number((BigInt(income) * BigInt(p)) / 1_000_000n) * 100;
+}
+
+/** The plan's savings for `income`: the percentage of it when set, else the fixed amount. */
+export function effectiveSavings(
+	plan: { savings: number; savingsPercent: number | null },
+	income: number
+): number {
+	return plan.savingsPercent != null
+		? savingsFromPercent(income, plan.savingsPercent)
+		: plan.savings;
 }

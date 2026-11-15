@@ -19,7 +19,7 @@
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import { stripFlags } from '$lib/nav-stack.svelte';
 	import { openShallow } from '$lib/open-shallow';
-	import { PLAN_TONE } from '$lib/plan';
+	import { PLAN_CURRENCY, PLAN_TONE } from '$lib/plan';
 	import LimitList from './LimitList.svelte';
 	import RecurringRow from './RecurringRow.svelte';
 	import type { PageData } from './$types';
@@ -98,9 +98,9 @@
 							<CardEyebrow as="h2" id="summary-heading">Disponible</CardEyebrow>
 							<StatusPill tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
 						</div>
-						<HeroAmount cents={s.available} currency="ARS" />
+						<HeroAmount cents={s.available} currency={PLAN_CURRENCY} />
 						<p class="per-day">
-							<Money cents={s.perDay} currency="ARS" /> por día · {s.daysLeft === 1
+							<Money cents={s.perDay} currency={PLAN_CURRENCY} /> por día · {s.daysLeft === 1
 								? 'queda 1 día'
 								: `quedan ${s.daysLeft} días`}
 						</p>
@@ -109,13 +109,18 @@
 						<div class="kv">
 							<dt>Ingresos</dt>
 							<dd>
-								<Money cents={s.income} currency="ARS" tone="flow" direction="income" />
+								<Money cents={s.income} currency={PLAN_CURRENCY} tone="flow" direction="income" />
 							</dd>
 						</div>
 						<div class="kv">
 							<dt>Pagos fijos</dt>
 							<dd>
-								<Money cents={-s.pendingBills} currency="ARS" tone="flow" direction="outcome" />
+								<Money
+									cents={-s.pendingBills}
+									currency={PLAN_CURRENCY}
+									tone="flow"
+									direction="outcome"
+								/>
 							</dd>
 						</div>
 						<div class="kv link">
@@ -126,12 +131,12 @@
 									>Ahorro<span aria-hidden="true">&nbsp;›</span></a
 								>
 							</dt>
-							<dd><Money cents={s.savings} currency="ARS" /></dd>
+							<dd><Money cents={s.savings} currency={PLAN_CURRENCY} /></dd>
 						</div>
 						<div class="kv">
 							<dt>Gastado</dt>
 							<dd>
-								<Money cents={-s.spent} currency="ARS" tone="flow" direction="outcome" />
+								<Money cents={-s.spent} currency={PLAN_CURRENCY} tone="flow" direction="outcome" />
 							</dd>
 						</div>
 					</dl>

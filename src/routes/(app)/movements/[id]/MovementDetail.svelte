@@ -5,7 +5,8 @@
 	import { refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { autosave, submitAction } from '$lib/autosave';
-	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
+	import { MIN_DAY } from '$lib/dates';
+	import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
 	import { navigateUp, upOnClick } from '$lib/nav-stack.svelte';
 	import { formatAmountInput, formatMoney } from '$lib/money';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
@@ -252,7 +253,6 @@
 	<ul class="card">
 		<li>
 			<OptionPicker
-				variant="row"
 				name="type"
 				legend="Tipo"
 				title="Tipo"
@@ -268,7 +268,7 @@
 				<MovementDatePicker
 					name="occurredAt"
 					label="Fecha"
-					min="2000-01-01"
+					min={MIN_DAY}
 					bind:value={() => values.occurredAt, (v) => void saveField('occurredAt', v)}
 					plain
 					nested={drawer}
@@ -280,7 +280,6 @@
 		<li>
 			<fieldset class="lock" disabled={typeStaged}>
 				<OptionPicker
-					variant="row"
 					name="accountId"
 					legend={isTransfer ? 'Desde' : 'Cuenta'}
 					title={isTransfer ? 'Desde' : 'Cuenta'}
@@ -297,7 +296,6 @@
 		{#if isTransfer}
 			<li data-row="destination">
 				<OptionPicker
-					variant="row"
 					name="destinationAccountId"
 					legend="Hacia"
 					title="Hacia"
@@ -354,7 +352,6 @@
 		{:else}
 			<li data-row="category">
 				<OptionPicker
-					variant="row"
 					name="categoryId"
 					legend="Categoría"
 					title="Categoría"
@@ -370,7 +367,6 @@
 			{#if !typeStaged && (rules.length || m.recurringId)}
 				<li data-row="rule">
 					<OptionPicker
-						variant="row"
 						name="recurringId"
 						legend={effType === 'income' ? 'Ingreso fijo' : 'Pago fijo'}
 						title={effType === 'income' ? 'Ingreso fijo' : 'Pago fijo'}

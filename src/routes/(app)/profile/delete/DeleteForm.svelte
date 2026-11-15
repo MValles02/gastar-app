@@ -3,7 +3,7 @@
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
 	import { followRedirect } from '$lib/nav-stack.svelte';
-	import { PASSWORD_MAX_LENGTH } from '$lib/limits';
+	import { PASSWORD_MAX_LENGTH } from '$lib/fields';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import FormActions from '$lib/components/FormActions.svelte';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';

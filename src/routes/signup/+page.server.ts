@@ -1,4 +1,5 @@
 import { fail } from '@sveltejs/kit';
+import { PASSWORD_MIN_MESSAGE } from '$lib/fields';
 import { auth } from '$lib/server/auth';
 import {
 	EMAIL_RE,
@@ -30,7 +31,7 @@ export const actions: Actions = {
 		const errors: { name?: string; email?: string; password?: string } = {};
 		errors.name = userNameError(name);
 		if (!EMAIL_RE.test(email)) errors.email = 'Email inválido.';
-		if (!isValidPasswordLength(password)) errors.password = 'Mínimo 8 caracteres.';
+		if (!isValidPasswordLength(password)) errors.password = PASSWORD_MIN_MESSAGE;
 		if (errors.name || errors.email || errors.password) {
 			return fail(400, { name, email, errors });
 		}

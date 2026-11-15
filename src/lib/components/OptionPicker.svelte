@@ -33,7 +33,6 @@
 		error,
 		errorId,
 		excludeId,
-		variant = 'field',
 		nested = false,
 		extra
 	}: {
@@ -47,8 +46,6 @@
 		error?: string;
 		errorId?: string;
 		excludeId?: string;
-		/** `row`: a full-width list row (label left, value right) for grouped cards. */
-		variant?: 'field' | 'row';
 		/** Opens the list as a drawer stacked over the one this picker is rendered in. */
 		nested?: boolean;
 		/** Extra last row of the list; gets a function that closes it. */
@@ -64,7 +61,6 @@
 
 	onMount(() => (mounted = true));
 
-	const isRow = $derived(variant === 'row');
 	const visible = $derived(items.filter((item) => item.id !== excludeId));
 	// An empty value is the "none" placeholder: never shows an icon, even if an item has id ''.
 	const selected = $derived(value ? visible.find((item) => item.id === value) : undefined);
@@ -105,10 +101,6 @@
 	}
 </script>
 
-{#snippet label()}
-	<span class="label" id={labelId}>{legend}</span>
-{/snippet}
-
 {#snippet option(item: Item)}
 	<IconBadge icon={item.icon} color={item.color} />
 	<span class="name">{item.name}</span>
@@ -120,7 +112,7 @@
 {#snippet current()}
 	<span id="{labelId}-value" class="current" class:placeholder={!selected}>
 		{#if selected}
-			<IconBadge icon={selected.icon} color={selected.color} size={isRow ? '1.625rem' : '2rem'} />
+			<IconBadge icon={selected.icon} color={selected.color} size="1.625rem" />
 			<span class="name">{selected.name}</span>
 		{:else}
 			{placeholder}
@@ -131,23 +123,19 @@
 {#if visible.length === 0}
 	{@render empty()}
 {:else if mounted}
-	<div class="field" class:row={isRow}>
-		<!-- The row variant puts the label inside the trigger, the field variant above it. -->
-		{#if !isRow}{@render label()}{/if}
+	<div class="field row">
 		<Button
-			variant={isRow ? 'ghost' : 'outline'}
-			class={isRow
-				? 'trigger h-14 w-full scroll-mb-24 justify-between gap-3 rounded-none px-4'
-				: 'trigger h-11 w-full justify-start rounded-lg px-2.5 text-sm font-medium'}
+			variant="ghost"
+			class="trigger h-14 w-full scroll-mb-24 justify-between gap-3 rounded-none px-4"
 			aria-haspopup="dialog"
 			aria-labelledby="{labelId} {labelId}-value"
 			aria-describedby={error ? errorId : undefined}
 			bind:ref={trigger}
 			onclick={openSheet}
 		>
-			{#if isRow}{@render label()}{/if}
+			<span class="label" id={labelId}>{legend}</span>
 			{@render current()}
-			{#if isRow}<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="chev" />{/if}
+			<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="chev" />
 		</Button>
 		<!-- The Drawer is portaled out of the form, so the value submits through this input. -->
 		<input type="hidden" {name} {value} disabled={!value} bind:this={hidden} />
@@ -232,7 +220,7 @@
 		min-width: 0;
 	}
 
-	/* Row variant: label left, value right (trigger is a 56px ghost button; the card draws the border). */
+	/* Label left, value right (trigger is a 56px ghost button; the card draws the border). */
 	.row {
 		gap: 0;
 	}

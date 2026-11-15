@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
 import { APIError } from 'better-auth/api';
+import { PASSWORD_MIN_MESSAGE } from '$lib/fields';
 import { auth } from '$lib/server/auth';
 import { isValidPasswordLength } from '$lib/server/auth-forms';
 import { isBlocked, record } from '$lib/server/rate-limit';
@@ -20,7 +21,7 @@ export const actions: Actions = {
 
 		const errors: { current?: string; next?: string } = {};
 		if (!currentPassword) errors.current = 'Ingresá tu contraseña actual.';
-		if (!isValidPasswordLength(newPassword)) errors.next = 'Mínimo 8 caracteres.';
+		if (!isValidPasswordLength(newPassword)) errors.next = PASSWORD_MIN_MESSAGE;
 		if (errors.current || errors.next) return formFail(400, { errors });
 
 		try {

@@ -1,4 +1,4 @@
-import { PLAN_STATUS_LABEL, PLAN_TONE, type StatusTone } from '$lib/plan';
+import { PLAN_CURRENCY, PLAN_STATUS_LABEL, PLAN_TONE, type StatusTone } from '$lib/plan';
 import {
 	toCategoryIconKey,
 	toSwatchKey,
@@ -7,7 +7,6 @@ import {
 } from '../appearance';
 import { formatMoney } from '../money';
 import { accountSummary } from './dashboard-queries';
-import { PLAN_CURRENCY } from './plan';
 import { monthPlan, type MonthPlan } from './plan-view';
 
 export type AlertItem = {

@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gt, inArray, isNotNull, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { formatDay, LOCALE } from '$lib/locale';
+import { APP_TZ, formatDay, LOCALE } from '$lib/locale';
 import { db } from './db';
 import {
 	categories,
@@ -17,11 +17,11 @@ import {
 	canAccessMovement,
 	importRuleOwnedBy
 } from './access';
-import type { MovementType } from './dashboard';
+import { kindFits, type MovementType } from '$lib/movement';
 import type { MovementRow } from './movements';
 import { createMovement, deleteMovement } from './movements-queries';
 import { importSource, kindSpec } from './import-sources';
-import { localDay, TZ } from './month';
+import { localDay } from './month';
 
 const pending = (userId: string) =>
 	and(canAccessImport(userId), eq(mpImportItems.status, 'pending'));
@@ -111,7 +111,7 @@ export function importTitle(i: TitleFields): string {
 export function importDateLabel(source: string, d: Date): string {
 	if (!importSource(source).timed) return formatDay(localDay(d));
 	const time = new Intl.DateTimeFormat(LOCALE, {
-		timeZone: TZ,
+		timeZone: APP_TZ,
 		hour: '2-digit',
 		minute: '2-digit',
 		hourCycle: 'h23'
@@ -134,7 +134,7 @@ type ImportKeyFields = {
 };
 
 /** The rule keys an item can match, strongest first. */
-export function importRuleKeys(i: ImportKeyFields): ImportRuleKey[] {
+function importRuleKeys(i: ImportKeyFields): ImportRuleKey[] {
 	const { learns, kindKey } = kindSpec(i.source, i.kind);
 	if (learns === 'never' || (learns === 'debit' && i.isCredit)) return [];
 	const keys: ImportRuleKey[] = [];
@@ -201,7 +201,7 @@ export function listImportRules(userId: string) {
 
 type ImportRule = Awaited<ReturnType<typeof listImportRules>>[number];
 
-export type ImportPrefill = {
+type ImportPrefill = {
 	type: MovementType;
 	categoryId: string;
 	counterAccountId: string;
@@ -233,9 +233,7 @@ export function importPrefill(
 		const target =
 			rule.type === 'transfer'
 				? accounts.find((a) => a.id === rule.counterAccountId)
-				: categories.find(
-						(c) => c.id === rule.categoryId && (c.kind === null || c.kind === rule.type)
-					);
+				: categories.find((c) => c.id === rule.categoryId && kindFits(c.kind, rule.type));
 		if (target)
 			return {
 				type: rule.type,
@@ -260,7 +258,7 @@ export function importPrefill(
 	};
 }
 
-export type ApproveRule = {
+type ApproveRule = {
 	type: MovementType;
 	categoryId: string | null;
 	counterAccountId: string | null;

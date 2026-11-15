@@ -1,6 +1,5 @@
 import { alerts } from '$lib/server/alerts';
-import { LOCALE } from '$lib/locale';
-import { TZ } from '$lib/server/month';
+import { APP_TZ, LOCALE } from '$lib/locale';
 import { requireUser } from '$lib/server/require-user';
 import type { LayoutServerLoad } from './$types';
 
@@ -8,7 +7,7 @@ const dayFmt = new Intl.DateTimeFormat(LOCALE, {
 	weekday: 'long',
 	day: 'numeric',
 	month: 'long',
-	timeZone: TZ
+	timeZone: APP_TZ
 });
 
 export const load: LayoutServerLoad = async ({ locals }) => {

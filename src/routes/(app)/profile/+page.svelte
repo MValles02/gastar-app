@@ -10,13 +10,11 @@
 	import InlineText from '$lib/components/InlineText.svelte';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { themeColors } from '$lib/theme';
+	import { USER_NAME_MAX_LENGTH } from '$lib/fields';
+	import { applyTheme, THEME_OPTIONS } from '$lib/theme';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
-
-	/** Same cap as the server's user-name rule. */
-	const NAME_MAX = 80;
 
 	// A save sets the name at once; a reload (Deshacer) brings the stored one back in.
 	let name = $derived(data.user.name);
@@ -31,12 +29,6 @@
 	let selected = $derived(data.theme);
 	let themeForm: HTMLFormElement;
 
-	const themeOptions = [
-		{ value: 'light', label: 'Claro' },
-		{ value: 'dark', label: 'Oscuro' },
-		{ value: 'system', label: 'Sistema' }
-	];
-
 	async function saveName(next: string) {
 		if (next.trim() === name) return null;
 		return autosave<{ name: string }>({
@@ -45,21 +37,6 @@
 			previous: { name },
 			apply: (res) => (name = res.name)
 		});
-	}
-
-	function applyTheme(value: string) {
-		if (value === 'light' || value === 'dark') {
-			document.documentElement.dataset.theme = value;
-		} else {
-			delete document.documentElement.dataset.theme;
-		}
-		const colors = themeColors(value);
-		document
-			.querySelector('meta[name="theme-color"][media*="light"]')
-			?.setAttribute('content', colors.light);
-		document
-			.querySelector('meta[name="theme-color"][media*="dark"]')
-			?.setAttribute('content', colors.dark);
 	}
 </script>
 
@@ -85,7 +62,7 @@
 	{#snippet categoriesCount()}<span class="val">{data.counts.categories}</span>{/snippet}
 	{#snippet nameValue()}
 		<span class="name-edit">
-			<InlineText label="Nombre" value={name} maxlength={NAME_MAX} onsave={saveName}>
+			<InlineText label="Nombre" value={name} maxlength={USER_NAME_MAX_LENGTH} onsave={saveName}>
 				{#snippet display()}<span class="val">{name}</span>{/snippet}
 			</InlineText>
 		</span>
@@ -142,7 +119,7 @@
 				<div class="seg">
 					<SegmentedControl
 						name="theme"
-						options={themeOptions}
+						options={THEME_OPTIONS}
 						bind:value={selected}
 						labelledby="theme-heading"
 						onchange={() => themeForm.requestSubmit()}

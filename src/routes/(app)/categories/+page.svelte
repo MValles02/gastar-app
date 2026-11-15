@@ -18,6 +18,7 @@
 	import SwitchRow from '$lib/components/SwitchRow.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { CURRENCIES, type Currency } from '$lib/money';
+	import { KIND_OPTIONS } from '$lib/movement';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -65,11 +66,7 @@
 		const present = CURRENCIES.filter((c) => totals[c] !== undefined);
 		return present.length > 0 ? present : ['ARS'];
 	};
-	const kindOptions = [
-		{ value: '', label: 'Todas' },
-		{ value: 'outcome', label: 'Gastos' },
-		{ value: 'income', label: 'Ingresos' }
-	];
+	const kindOptions = [{ value: '', label: 'Todas' }, ...KIND_OPTIONS];
 </script>
 
 {#snippet archivedMeta()}Archivada{/snippet}

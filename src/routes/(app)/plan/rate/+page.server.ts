@@ -2,7 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
 import type { Actions, PageServerLoad } from './$types';
 import { formatAmountInput, isValidRate, parseAmount } from '$lib/money';
-import { MOVEMENT_MESSAGES } from '$lib/movement-messages';
+import { MOVEMENT_MESSAGES } from '$lib/movement';
 import { currentPlan, latestTransferRate, updatePlan } from '$lib/server/plan-queries';
 import { planView } from '$lib/server/plan-view';
 import { requireUser } from '$lib/server/require-user';

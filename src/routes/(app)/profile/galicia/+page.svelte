@@ -71,7 +71,6 @@
 			<form method="POST" action="?/account">
 				<input type="hidden" name="currency" value="ARS" />
 				<OptionPicker
-					variant="row"
 					name="accountId"
 					legend="Pesos"
 					title="Cuenta de los consumos en pesos"
@@ -94,7 +93,6 @@
 			<form method="POST" action="?/account">
 				<input type="hidden" name="currency" value="USD" />
 				<OptionPicker
-					variant="row"
 					name="accountId"
 					legend="Dólares"
 					title="Cuenta de los consumos en dólares"

@@ -1,14 +1,15 @@
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
-import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
-import { CURRENCIES, convertAmount, type Currency } from '$lib/money';
+import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
+import { CURRENCIES, convertAmount, roundToStep, type Currency } from '$lib/money';
 import {
 	dueLabel,
 	inactiveReason,
+	effectiveSavings,
 	isRecurringActive,
 	MAX_DAY_OF_MONTH,
+	PLAN_CURRENCY,
 	PLAN_STATUS_LABEL
 } from '$lib/plan';
-import { effectiveSavings } from '$lib/savings';
 import { listAccounts } from './accounts-queries';
 import { listCategories } from './categories-queries';
 import { memoPerRequest } from './dashboard-queries';
@@ -166,7 +167,7 @@ const ruleRow = (r: RecurringRule, rate: number | null) => ({
 	description: r.description,
 	amount: r.amount,
 	currency: r.currency,
-	converted: r.currency === 'ARS' ? null : toPlan(r.amount, r.currency, rate),
+	converted: r.currency === PLAN_CURRENCY ? null : toPlan(r.amount, r.currency, rate),
 	accountName: r.accountName,
 	day: r.dayOfMonth,
 	categoryIcon: toCategoryIconKey(r.categoryIcon),
@@ -232,7 +233,7 @@ export async function recurringSuggestions(userId: string) {
 			description: c.description,
 			currency: c.currency,
 			// Averages are not always whole; ARS rules are whole pesos.
-			amount: c.currency === 'ARS' ? Math.floor((c.amount + 50) / 100) * 100 : c.amount,
+			amount: roundToStep(c.amount, c.currency),
 			dayOfMonth: Math.min(Math.max(c.dayOfMonth, 1), MAX_DAY_OF_MONTH),
 			accountId: c.accountId,
 			categoryId: c.categoryId!,

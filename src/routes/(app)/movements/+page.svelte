@@ -94,7 +94,6 @@
 			items={data.accounts}
 			bind:value={account}
 			placeholder="Todas"
-			variant="row"
 		>
 			{#snippet empty()}{/snippet}
 		</OptionPicker>
@@ -105,11 +104,10 @@
 			items={data.categories}
 			bind:value={category}
 			placeholder="Todas"
-			variant="row"
 		>
 			{#snippet empty()}{/snippet}
 		</OptionPicker>
-		<DateRangePicker legend="Fechas" bind:from bind:to />
+		<DateRangePicker bind:from bind:to />
 	</div>
 {/snippet}
 

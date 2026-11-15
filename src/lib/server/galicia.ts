@@ -55,7 +55,7 @@ export async function setGaliciaAccount(
 	return true;
 }
 
-export type StatementImport =
+type StatementImport =
 	{ ok: true; created: number; autoApproved: number } | { ok: false; missing: Currency };
 
 /**

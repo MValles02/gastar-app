@@ -97,7 +97,6 @@
 			<div role="listitem">
 				<form method="POST" action="?/account">
 					<OptionPicker
-						variant="row"
 						name="accountId"
 						legend="Entra en"
 						title="Cuenta que recibe los movimientos"

@@ -19,7 +19,6 @@
 	<SavingsOptions
 		mode="autosave"
 		income={data.income}
-		currency={data.currency}
 		initial={data}
 		base={data.base}
 		daysLeft={data.daysLeft}

@@ -6,15 +6,14 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import { RangeCalendar } from '$lib/components/ui/range-calendar/index.js';
-	import { formatDay } from '$lib/locale';
+	import { thisMonth } from '$lib/dates';
+	import { APP_TZ, formatDay } from '$lib/locale';
 
 	let {
-		legend = 'Fechas',
 		from = $bindable(''),
 		to = $bindable(''),
 		nested = false
 	}: {
-		legend?: string;
 		/** `YYYY-MM-DD`, or '' when empty. */
 		from?: string;
 		/** `YYYY-MM-DD`, or '' when empty. */
@@ -42,22 +41,19 @@
 	const presets = [
 		{
 			label: 'Este mes',
-			range: () => {
-				const t = today('America/Argentina/Buenos_Aires');
-				return [startOfMonth(t), t];
-			}
+			range: thisMonth
 		},
 		{
 			label: 'Mes pasado',
 			range: () => {
-				const prev = startOfMonth(today('America/Argentina/Buenos_Aires')).subtract({ months: 1 });
+				const prev = startOfMonth(today(APP_TZ)).subtract({ months: 1 });
 				return [prev, endOfMonth(prev)];
 			}
 		},
 		{
 			label: 'Últimos 30 días',
 			range: () => {
-				const t = today('America/Argentina/Buenos_Aires');
+				const t = today(APP_TZ);
 				return [t.subtract({ days: 29 }), t];
 			}
 		}
@@ -112,7 +108,7 @@
 			bind:ref={trigger}
 			onclick={openSheet}
 		>
-			<span class="label" id={labelId}>{legend}</span>
+			<span class="label" id={labelId}>Fechas</span>
 			<span id="{labelId}-value" class="current" class:placeholder={!summary}>
 				{summary || 'Todas'}
 			</span>
@@ -167,7 +163,7 @@
 	</BottomDrawer>
 {:else}
 	<fieldset class="native">
-		<legend>{legend}</legend>
+		<legend>Fechas</legend>
 		<label>Desde <input type="date" name="from" bind:value={from} /></label>
 		<label>Hasta <input type="date" name="to" bind:value={to} /></label>
 	</fieldset>

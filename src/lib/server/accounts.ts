@@ -1,4 +1,4 @@
-import { NAME_MAX_LENGTH } from '$lib/limits';
+import { NAME_MAX_LENGTH, tooLongMessage } from '$lib/fields';
 import {
 	AMOUNT_EXAMPLE,
 	ARS_WHOLE_MESSAGE,
@@ -8,10 +8,9 @@ import {
 	type Currency
 } from '$lib/money';
 import { ACCOUNT_ICONS, SWATCHES } from '$lib/appearance';
-import { totalBalance, type MovementType } from './dashboard';
+import type { MovementType } from '$lib/movement';
+import { totalBalance } from './dashboard';
 
-export const CURRENCY_LOCKED_MESSAGE =
-	'No podés cambiar la moneda porque la cuenta tiene movimientos.';
 export const DELETE_REFERENCED_MESSAGE = 'Esta cuenta tiene movimientos. Podés archivarla.';
 
 export type AccountData = {
@@ -46,7 +45,7 @@ export function parseAccountForm(fd: FormData, mode: 'create' | 'edit'): Account
 	const name = values.name.trim();
 	if (!name) errors.name = 'Ingresá un nombre.';
 	else if (name.length > NAME_MAX_LENGTH)
-		errors.name = `El nombre puede tener hasta ${NAME_MAX_LENGTH} caracteres.`;
+		errors.name = tooLongMessage('El nombre', NAME_MAX_LENGTH);
 
 	const currency = CURRENCIES.find((c) => c === values.currency);
 	// A locked currency control is disabled, so edit submits none: the stored currency stays.

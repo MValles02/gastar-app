@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { ComponentProps } from 'svelte';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
-	import { startOfMonth, today } from '@internationalized/date';
 	import { resolve } from '$app/paths';
+	import { thisMonth } from '$lib/dates';
 	import { replaceGoto } from '$lib/nav-stack.svelte';
 	import BottomDrawer from './BottomDrawer.svelte';
 	import DateRangePicker from './DateRangePicker.svelte';
@@ -45,12 +45,6 @@
 		{ value: 'income', label: 'Ingresos' },
 		{ value: 'transfer', label: 'Transf.' }
 	];
-
-	/** "Este mes", the default date range (same as the picker's preset). */
-	const thisMonth = () => {
-		const t = today('America/Argentina/Buenos_Aires');
-		return [startOfMonth(t).toString(), t.toString()];
-	};
 
 	let currency = $state('');
 	let type = $state('');
@@ -154,7 +148,7 @@
 			labelledby="f-type-label"
 		/>
 		<div class="group">
-			<DateRangePicker legend="Fechas" nested bind:from bind:to />
+			<DateRangePicker nested bind:from bind:to />
 			<MultiPicker
 				legend="Cuenta"
 				title="Cuenta"

@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { autosave } from '$lib/autosave';
-	import { DESCRIPTION_MAX_LENGTH } from '$lib/limits';
+	import { DESCRIPTION_MAX_LENGTH } from '$lib/fields';
 	import { formatAmountInput, formatMoney } from '$lib/money';
 	import { dueTone } from '$lib/plan';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
@@ -115,7 +115,6 @@
 		</li>
 		<li>
 			<OptionPicker
-				variant="row"
 				name="accountId"
 				legend="Cuenta"
 				title="Elegí la cuenta"
@@ -129,7 +128,6 @@
 		</li>
 		<li>
 			<OptionPicker
-				variant="row"
 				name="categoryId"
 				legend="Categoría"
 				title="Elegí la categoría"

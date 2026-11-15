@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { MIN_DAY } from '$lib/dates';
 	import type { Currency } from '$lib/money';
-	import { MOVEMENT_MESSAGES } from '$lib/movement-messages';
+	import { MOVEMENT_MESSAGES } from '$lib/movement';
 	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
@@ -239,7 +240,6 @@
 		{#snippet account()}
 			<li class:bad={shown.accountId}>
 				<OptionPicker
-					variant="row"
 					name="accountId"
 					legend={isTransfer ? 'Desde' : 'Cuenta'}
 					title={isTransfer ? 'Desde' : 'Cuenta'}
@@ -286,7 +286,7 @@
 				<MovementDatePicker
 					name="occurredAt"
 					label="Fecha"
-					min="2000-01-01"
+					min={MIN_DAY}
 					bind:value={occurredAt}
 					nested={drawer}
 					error={shown.occurredAt}

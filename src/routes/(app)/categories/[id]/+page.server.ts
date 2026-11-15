@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
-import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/validation';
+import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
 import { notFoundHelpers } from '$lib/server/not-found';
 import { accountActions } from '$lib/server/accounts';
@@ -10,7 +10,6 @@ import {
 	DUPLICATE_NAME_MESSAGE,
 	KIND_LOCKED_MESSAGE,
 	NOT_FOUND_MESSAGE,
-	kindAllowed,
 	parseCategoryForm,
 	toCurrencyNets
 } from '$lib/server/categories';
@@ -26,6 +25,7 @@ import {
 } from '$lib/server/categories-queries';
 import { currentMonth, monthLabel, monthRange, parseMonth } from '$lib/server/month';
 import { requireUser } from '$lib/server/require-user';
+import { CATEGORY_KINDS, kindFits } from '$lib/movement';
 
 const { notFound, requireId } = notFoundHelpers(NOT_FOUND_MESSAGE);
 
@@ -37,9 +37,9 @@ async function categoryOf(userId: string, id: string) {
 	const [category] = await getCategory(userId, id);
 	if (!category) notFound();
 	const types = (await categoryMovementTypes(userId, id)).map((r) => r.type);
-	// The saved kind stays selectable; every other blocked kind is disabled.
-	const disabledKinds = (['outcome', 'income'] as const).filter(
-		(k) => k !== category.kind && !kindAllowed(k, types)
+	// A kind is allowed only when every movement fits it; the saved kind stays selectable, every other blocked kind is disabled.
+	const disabledKinds = CATEGORY_KINDS.filter(
+		(k) => k !== category.kind && !types.every((t) => kindFits(k, t))
 	);
 	const { archivedAt, ...rest } = category;
 	return { category: { ...rest, archived: archivedAt !== null }, disabledKinds };
@@ -103,7 +103,7 @@ export const actions: Actions = {
 		// ponytail: the check and the update are not atomic (unlikely race); wrap both in a transaction if it matters.
 		if (parsed.data.kind !== current.kind) {
 			const types = (await categoryMovementTypes(userId, params.id)).map((r) => r.type);
-			if (!kindAllowed(parsed.data.kind, types))
+			if (!types.every((t) => kindFits(parsed.data.kind, t)))
 				return formFail(400, { values: parsed.data, errors: { kind: KIND_LOCKED_MESSAGE } });
 		}
 		const rows = await writeIfNameFree(
