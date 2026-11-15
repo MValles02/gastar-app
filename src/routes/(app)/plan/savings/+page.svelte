@@ -3,6 +3,7 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { upOnClick } from '#lib/nav-stack.svelte.ts';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import { PLAN_CURRENCY } from '#lib/plan.ts';
 	import SavingsOptions from '../SavingsOptions.svelte';
 	import type { PageData } from './$types';
 
@@ -18,6 +19,8 @@
 <div class="page">
 	<SavingsOptions
 		mode="autosave"
+		path="/plan/savings?/update"
+		currency={PLAN_CURRENCY}
 		income={data.income}
 		initial={data}
 		base={data.base}

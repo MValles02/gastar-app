@@ -2,58 +2,47 @@
 	import { untrack } from 'svelte';
 	import Check from '@lucide/svelte/icons/check';
 	import { autosave } from '#lib/autosave.ts';
+	import { formatMoney, type Currency } from '#lib/money.ts';
 	import {
-		currencyStep,
-		formatAmountInput,
-		formatMoney,
-		parseAmount,
-		type Currency
-	} from '#lib/money.ts';
-	import { formatPercentInput } from '#lib/locale.ts';
-	import { PLAN_CURRENCY, SAVINGS_PERCENT_MAX, savingsFromPercent } from '#lib/plan.ts';
+		otherSavings,
+		perDayLeft,
+		presetPercent,
+		SAVINGS_FIELDS,
+		savingsChoice,
+		savingsFromPercent,
+		type PlanSavings,
+		type SavingsChoice
+	} from '#lib/plan.ts';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import TextRow from '#lib/components/TextRow.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 
 	/**
 	 * The Ahorro choice as a list: Nada, 10 %, 20 %, Otro (a percentage or a fixed amount), each row showing
-	 * what it saves and what is left per day. `autosave`: every pick saves on its own
-	 * (`/plan/savings?/update`) with a Deshacer toast. `form` (the wizard): nothing saves here; the choice
-	 * posts with the surrounding form as hidden `savingsOption` plus the "Otro" fields.
+	 * what it saves and what is left per day. `autosave`: every pick saves on its own (to `path`) with a
+	 * Deshacer toast. `form` (the wizard): nothing saves here; the choice posts with the surrounding form
+	 * as hidden `savingsOption` plus the "Otro" fields.
 	 */
 	let {
 		income,
 		initial,
 		error,
-		mode = 'form',
-		base = 0,
-		daysLeft = 1,
-		path = '/plan/savings?/update'
+		mode,
+		path,
+		currency,
+		base,
+		daysLeft
 	}: {
 		income: number;
-		initial: { savings: number; savingsPercent: number | null };
+		initial: PlanSavings;
 		error?: string;
-		mode?: 'form' | 'autosave';
+		currency: Currency;
 		/** What the month has left before any savings, and the days left in it. */
-		base?: number;
-		daysLeft?: number;
-		path?: string;
-	} = $props();
+		base: number;
+		daysLeft: number;
+	} & ({ mode: 'form'; path?: never } | { mode: 'autosave'; path: string }) = $props();
 
-	const currency = PLAN_CURRENCY as Currency;
-
-	/** The option, unit and value text a stored plan maps to. */
-	function fromStored(savings: number, p: number | null) {
-		if (p === 1000) return { option: '10', unit: 'percent', value: '' };
-		if (p === 2000) return { option: '20', unit: 'percent', value: '' };
-		if (p != null && p > 0)
-			return { option: 'other', unit: 'percent', value: formatPercentInput(p) };
-		if (p == null && savings > 0)
-			return { option: 'other', unit: 'amount', value: formatAmountInput(savings, currency) };
-		return { option: 'none', unit: 'percent', value: '' };
-	}
-
-	const start = untrack(() => fromStored(initial.savings, initial.savingsPercent));
+	const start = untrack(() => savingsChoice(initial, currency));
 
 	let option = $state(start.option);
 	let unit = $state(start.unit);
@@ -70,40 +59,21 @@
 	let editing = $state(false);
 	let message = $state('');
 
-	/** Left to spend per day with `savings` set aside; rounds like the plan's own per-day figure. */
-	const perDay = (savings: number) => {
-		const step = currencyStep(currency);
-		const left = base - savings;
-		return left > 0 ? Math.floor(left / daysLeft / step) * step : 0;
-	};
 	const meta = (savings: number) =>
-		`${formatMoney(savings, currency)} · quedan ${formatMoney(perDay(savings), currency)} por día`;
+		`${formatMoney(savings, currency)} · quedan ${formatMoney(perDayLeft(base - savings, daysLeft, currency), currency)} por día`;
 
 	// Form mode: what the typed "Otro" value saves, or null while it is not valid yet.
-	const formOther = $derived.by(() => {
-		const v = parseAmount(value);
-		if (v === null || v < 0) return null;
-		if (unit === 'percent')
-			return v > 0 && v <= SAVINGS_PERCENT_MAX ? savingsFromPercent(income, v) : null;
-		return v;
-	});
+	const formOther = $derived(otherSavings(unit, value, income)?.savings ?? null);
 
 	const current = $derived(mode === 'form' ? option : editing ? 'other' : stored.option);
 	/** What each row saves; null for "Otro" until it has a value. */
-	const savingsOf = (key: string) =>
-		key === '10'
-			? savingsFromPercent(income, 1000)
-			: key === '20'
-				? savingsFromPercent(income, 2000)
-				: key === 'other'
-					? mode === 'form'
-						? option === 'other'
-							? formOther
-							: null
-						: stored.option === 'other'
-							? storedSavings
-							: null
-					: 0;
+	function savingsOf(key: string) {
+		const preset = presetPercent(key);
+		if (preset !== null) return savingsFromPercent(income, preset);
+		if (key !== 'other') return 0;
+		if (mode === 'form') return option === 'other' ? formOther : null;
+		return stored.option === 'other' ? storedSavings : null;
+	}
 
 	const rows = [
 		{ key: 'none', label: 'Nada' },
@@ -112,23 +82,22 @@
 		{ key: 'other', label: 'Otro' }
 	];
 
-	async function save(fields: { option: string; unit: string; value: string }) {
+	const toFields = (c: SavingsChoice) => ({
+		[SAVINGS_FIELDS.option]: c.option,
+		[SAVINGS_FIELDS.unit]: c.unit,
+		[SAVINGS_FIELDS.value]: c.value
+	});
+
+	async function save(next: SavingsChoice) {
 		const before = stored;
-		const error = await autosave<{ savings: number; savingsPercent: number | null }>({
-			path,
-			fields: {
-				savingsOption: fields.option,
-				savingsUnit: fields.unit,
-				savingsValue: fields.value
-			},
-			previous: {
-				savingsOption: before.option,
-				savingsUnit: before.unit,
-				savingsValue: before.value
-			},
+		const error = await autosave<PlanSavings>({
+			// Only autosave mode saves, and it always has a path.
+			path: path!,
+			fields: toFields(next),
+			previous: toFields(before),
 			apply: (res) => {
 				storedSavings = res.savings;
-				stored = fromStored(res.savings, res.savingsPercent);
+				stored = savingsChoice(res, currency);
 				option = stored.option;
 				unit = stored.unit;
 				value = stored.value;
@@ -158,7 +127,7 @@
 		<li class:bad={msg}>
 			<TextRow
 				id="savings-value"
-				name="savingsValue"
+				name={SAVINGS_FIELDS.value}
 				label="Ahorro"
 				bind:value
 				placeholder="0"
@@ -170,7 +139,7 @@
 				{#snippet end()}
 					<span id="savings-unit-label" class="visually-hidden">Unidad</span>
 					<SegmentedControl
-						name="savingsUnit"
+						name={SAVINGS_FIELDS.unit}
 						options={units}
 						bind:value={unit}
 						labelledby="savings-unit-label"
@@ -183,7 +152,7 @@
 {/snippet}
 
 <div class="list">
-	{#if mode === 'form'}<input type="hidden" name="savingsOption" value={option} />{/if}
+	{#if mode === 'form'}<input type="hidden" name={SAVINGS_FIELDS.option} value={option} />{/if}
 	<div class="opts" class:boxed={mode === 'autosave'}>
 		{#each rows as row (row.key)}
 			{@const on = row.key === current}

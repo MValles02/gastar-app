@@ -1,4 +1,13 @@
-/** Plan vocabulary shared by the server and the screens: statuses, their tones and labels. */
+/** Plan vocabulary shared by the server and the screens: statuses, their tones and labels, savings rules. */
+import { formatPercentInput } from './locale';
+import {
+	ARS_WHOLE_MESSAGE,
+	currencyStep,
+	formatAmountInput,
+	isWholeFor,
+	parseAmount,
+	type Currency
+} from './money';
 
 /** The plan is always in pesos; USD items convert at the plan rate. */
 export const PLAN_CURRENCY = 'ARS' as const;
@@ -71,16 +80,95 @@ export function limitPace(spent: number, limit: number, elapsedShare: number) {
 	return { share, over: spent > limit, fast: spent <= limit && fast };
 }
 
+/** Why a rule does not count in the plan now; null when it does (or when the rule itself is deactivated). */
+export function cannotRegister(r: RuleState): string | null {
+	if (r.archivedAt) return null;
+	if (r.accountArchivedAt) return 'No cuenta en el plan mientras la cuenta esté archivada.';
+	if (r.categoryArchivedAt) return 'No cuenta en el plan mientras la categoría esté archivada.';
+	return null;
+}
+
+/** Whole percent of a limit spent, rounded down (0 without a limit). */
+export const limitPercent = (spent: number, limit: number) =>
+	limit > 0 ? Math.floor((spent * 100) / limit) : 0;
+
+/** Left to spend per day, rounded down to the currency step (0 when nothing is left). */
+export function perDayLeft(available: number, daysLeft: number, currency: Currency): number {
+	const step = currencyStep(currency);
+	return available > 0 ? Math.floor(available / daysLeft / step) * step : 0;
+}
+
 /** Whole units (ARS has no decimals), rounded down, in cents. `p` is percent x 100 (1000 = 10 %). */
 export function savingsFromPercent(income: number, p: number): number {
 	return Number((BigInt(income) * BigInt(p)) / 1_000_000n) * 100;
 }
 
+/** The savings form fields: `option` none|10|20|other; for "other", `value` in `unit` percent|amount. */
+export const SAVINGS_FIELDS = {
+	option: 'savingsOption',
+	unit: 'savingsUnit',
+	value: 'savingsValue'
+} as const;
+
+export type SavingsChoice = { option: string; unit: string; value: string };
+export type PlanSavings = { savings: number; savingsPercent: number | null };
+
+/** The preset options' percent (x 100); null for none and other. */
+export const presetPercent = (option: string) =>
+	option === '10' || option === '20' ? Number(option) * 100 : null;
+
+/** The choice a stored plan maps to. */
+export function savingsChoice(
+	{ savings, savingsPercent: p }: PlanSavings,
+	currency: Currency
+): SavingsChoice {
+	if (p === 1000 || p === 2000) return { option: String(p / 100), unit: 'percent', value: '' };
+	if (p != null && p > 0) return { option: 'other', unit: 'percent', value: formatPercentInput(p) };
+	if (p == null && savings > 0)
+		return { option: 'other', unit: 'amount', value: formatAmountInput(savings, currency) };
+	return { option: 'none', unit: 'percent', value: '' };
+}
+
+/** What an "Otro" value saves for `income`; null while it is not a valid percent or amount. */
+export function otherSavings(unit: string, raw: string, income: number): PlanSavings | null {
+	const v = parseAmount(raw);
+	if (unit === 'percent')
+		return v !== null && v > 0 && v <= SAVINGS_PERCENT_MAX
+			? { savings: savingsFromPercent(income, v), savingsPercent: v }
+			: null;
+	return v !== null && v >= 0 ? { savings: v, savingsPercent: null } : null;
+}
+
+/**
+ * A savings choice as the plan stores it. A percentage is stored too (percent x 100) so savings follows
+ * income; `savings` always holds the amount it gives for `income`.
+ */
+export function readSavings(
+	c: SavingsChoice,
+	income: number,
+	currency: Currency
+): ({ ok: true } & PlanSavings) | { ok: false; message: string } {
+	const preset = presetPercent(c.option);
+	if (preset !== null)
+		return { ok: true, savings: savingsFromPercent(income, preset), savingsPercent: preset };
+	if (c.option !== 'other') return { ok: true, savings: 0, savingsPercent: null };
+
+	const percent = c.unit === 'percent';
+	const other = otherSavings(c.unit, c.value, income);
+	if (!other)
+		return {
+			ok: false,
+			message: percent
+				? 'Ingresá un porcentaje entre 0 y 100.'
+				: 'Ingresá un monto de ahorro válido.'
+		};
+	if (!percent && !isWholeFor(other.savings, currency))
+		return { ok: false, message: `Revisá “Monto a ahorrar”: ${ARS_WHOLE_MESSAGE}` };
+	return { ok: true, ...other };
+}
+
 /** The plan's savings for `income`: the percentage of it when set, else the fixed amount. */
-export function effectiveSavings(
-	plan: { savings: number; savingsPercent: number | null },
-	income: number
-): number {
+export function effectiveSavings(plan: PlanSavings, income: number): number {
 	return plan.savingsPercent != null
 		? savingsFromPercent(income, plan.savingsPercent)
 		: plan.savings;

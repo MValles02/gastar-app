@@ -1,9 +1,10 @@
-import { convertAmount, currencyStep, type Currency } from '#lib/money.ts';
+import { convertAmount, type Currency } from '#lib/money.ts';
 import {
 	isRecurringActive,
 	PLAN_CURRENCY,
 	limitPace,
 	paceOf,
+	perDayLeft,
 	type PlanStatus,
 	type RecurringStatus,
 	type RuleState
@@ -91,7 +92,6 @@ export function planSummary<L extends { amount: number; spent: number; currency:
 	const elapsed = elapsedDays(p.ym, p.todayYmd);
 	// Today still counts as a day to spend in.
 	const daysLeft = daysLeftIn(p.ym, p.todayYmd);
-	const step = currencyStep(PLAN_CURRENCY);
 	const elapsedShare = elapsed / days;
 	// Pace is variable spending against what variable spending could reach (paid bills are already settled).
 	const pace = paceOf(p.variableSpent, available + p.variableSpent, elapsedShare);
@@ -106,7 +106,7 @@ export function planSummary<L extends { amount: number; spent: number; currency:
 		forSpending,
 		spent: p.spent,
 		available,
-		perDay: available > 0 ? Math.floor(available / daysLeft / step) * step : 0,
+		perDay: perDayLeft(available, daysLeft, PLAN_CURRENCY),
 		daysLeft,
 		elapsed,
 		days,

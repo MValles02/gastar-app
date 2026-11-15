@@ -8,6 +8,7 @@
 	import Money from '#lib/components/Money.svelte';
 	import { formatMoney, type Currency } from '#lib/money.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
+	import { limitPercent } from '#lib/plan.ts';
 
 	type Limit = {
 		categoryId: string;
@@ -38,7 +39,7 @@
 {#if limits.length}
 	<ListCard>
 		{#each limits as l (l.categoryId)}
-			{@const pct = l.amount > 0 ? Math.floor((l.spent * 100) / l.amount) : 0}
+			{@const pct = limitPercent(l.spent, l.amount)}
 			{#snippet value()}
 				<span class="inline"
 					><span class="pct" class:over={l.over}>{pct}%</span><Money

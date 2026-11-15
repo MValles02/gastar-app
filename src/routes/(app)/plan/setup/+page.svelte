@@ -34,11 +34,8 @@
 	];
 	const stepHref = (n: number) => `/plan/setup?step=${n}`;
 
-	let repeat = $state(untrack(() => data.repeats));
-	// In plan pesos: ARS as is, USD at the plan rate (left out without one).
-	const total = $derived(
-		data.active.reduce((a, r) => a + (r.currency === 'ARS' ? r.amount : (r.converted ?? 0)), 0)
-	);
+	// Steps share this component, so the switch starts on until step 5 is the first one loaded.
+	let repeat = $state(untrack(() => data.repeats ?? true));
 	const perDay = $derived(data.summary?.perDay ?? 0);
 	const newRule = (type: 'income' | 'outcome') =>
 		`/plan/recurring/new?type=${type}&wizard=${data.step}`;
@@ -89,7 +86,7 @@
 		Plan · paso {data.step} de {WIZARD_STEPS}
 	</CardEyebrow>
 
-	{#if data.step <= 2}
+	{#if data.step === 1 || data.step === 2}
 		{@const income = data.step === 1}
 		{@render question()}
 		<section class="group">
@@ -105,7 +102,7 @@
 				<p class="total">
 					<span>Total</span>
 					<Money
-						cents={income ? total : -total}
+						cents={income ? data.total : -data.total}
 						currency={PLAN_CURRENCY}
 						tone="flow"
 						direction={income ? 'income' : 'outcome'}
@@ -159,6 +156,8 @@
 		>
 			<Card.Root class="gap-0 py-2">
 				<SavingsOptions
+					mode="form"
+					currency={PLAN_CURRENCY}
 					income={data.income}
 					initial={data.savings}
 					base={data.savingsBase.base}
