@@ -10,7 +10,6 @@ import {
 	OTHER_EMAIL,
 	pick,
 	postDelete,
-	setCurrencyCookie,
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
@@ -178,7 +177,6 @@ test("another user's rule is a 404, and so is the old edit route", async ({
 	try {
 		const otherPage = await otherContext.newPage();
 		await login(otherPage, OTHER_EMAIL);
-		await setCurrencyCookie(otherPage, baseURL!, 'USD');
 		await otherPage.goto('/plan');
 		id = await linkId(otherPage.getByRole('link', { name: /Regla ajena/ }).first());
 	} finally {

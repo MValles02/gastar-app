@@ -5,7 +5,6 @@ import {
 	fillMovement,
 	login,
 	OTHER_EMAIL,
-	setCurrencyCookie,
 	todayInAppTz,
 	WHOLE_PESOS_ERROR
 } from './helpers';
@@ -188,29 +187,4 @@ test('ARS decimals with the switch on: message, nothing written, switch kept', a
 	} finally {
 		await cleanup(page, baseURL!, description);
 	}
-});
-
-test('Inicio with a plan shows the same Disponible as /plan and links to it', async ({
-	page,
-	baseURL
-}) => {
-	// otro's USD plan is mutated by no spec.
-	await login(page, OTHER_EMAIL);
-	await setCurrencyCookie(page, baseURL!, 'USD');
-	await page.goto('/');
-	const card = page.getByRole('region', { name: 'Disponible', exact: true });
-	await expect(card).toBeVisible();
-	await expect(card.getByText(/Vas bien|Vas rápido|Te pasaste/)).toBeVisible();
-	const onHome = await card.locator('.available-amount').innerText();
-
-	await page
-		.getByRole('navigation', { name: 'Navegación principal' })
-		.getByRole('link', { name: 'Plan', exact: true })
-		.click();
-	await expect(page).toHaveURL(/\/plan$/);
-	const summary = page.getByRole('region', { name: /^Disponible$/ });
-	// Inicio renders a negative amount as "-" + newline + amount: compare without whitespace.
-	expect((await summary.locator('.hero').innerText()).replace(/\s/g, '')).toBe(
-		onHome.replace(/\s/g, '')
-	);
 });

@@ -6,28 +6,24 @@ import {
 	login,
 	OTHER_EMAIL,
 	pick,
-	postDelete,
-	setCurrencyCookie
+	postDelete
 } from './helpers';
 
 // Every test that writes runs as `otro` (ARS account "Otra cuenta pesos", category "Ajena"). Other specs
 // change his data too, so every assertion is about one uniquely named row, never a count.
 test.describe.configure({ timeout: 60_000 });
 
-const pesos = (page: Page) => page.getByRole('region', { name: 'Pesos' });
-const alertRow = (page: Page, text: string) =>
-	pesos(page).locator('[role="listitem"]', { hasText: text });
+const alertRow = (page: Page, text: string) => page.locator('[role="listitem"]', { hasText: text });
 
-test('a plan alert opens /plan in its currency, and the page works without JS', async ({
+test('a plan alert opens /plan, and the page works without JS', async ({
 	page,
 	browser,
 	baseURL
 }) => {
 	await login(page, OTHER_EMAIL);
-	await setCurrencyCookie(page, baseURL!, 'ARS');
 	// Fail loudly if another spec gave otro an ARS plan: this test must own it to delete it.
 	await page.goto('/plan');
-	await expect(page.getByText('Sin plan en pesos')).toBeVisible();
+	await expect(page.getByText('Sin plan')).toBeVisible();
 	let created = false;
 	try {
 		// Savings far above any income his ARS rules could add: over from the first day.
@@ -40,7 +36,7 @@ test('a plan alert opens /plan in its currency, and the page works without JS', 
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Plan guardado.')).toBeVisible();
 
-		// No JS: the server-rendered page carries plain links and a form that sets the currency.
+		// No JS: the server-rendered page carries plain links.
 		const noJs = await browser.newContext({
 			baseURL,
 			javaScriptEnabled: false,
@@ -52,42 +48,26 @@ test('a plan alert opens /plan in its currency, and the page works without JS', 
 			const planAlert = alertRow(bare, 'Tu ahorro y tus pagos fijos superan tus ingresos por');
 			await expect(planAlert).toBeVisible();
 			await expect(planAlert).toContainText('Te pasaste');
-			const form = pesos(bare)
-				.locator('form')
-				.filter({ hasText: 'Tu ahorro y tus pagos fijos superan tus ingresos por' });
-			await expect(form).toHaveAttribute('method', 'POST');
-			await expect(form).toHaveAttribute('action', /\/currency$/);
-			await expect(form.locator('input[name="redirectTo"]')).toHaveValue('/plan');
+			await expect(planAlert.getByRole('link')).toHaveAttribute('href', '/plan');
 		} finally {
 			await noJs.close();
 		}
 
-		// The cookie says USD; the alert's form switches it to ARS.
-		await setCurrencyCookie(page, baseURL!, 'USD');
 		await page.goto('/notifications');
 		const row = alertRow(page, 'Tu ahorro y tus pagos fijos superan tus ingresos por');
 		await expect(row).toContainText('Te pasaste');
-		await row.getByRole('button').click();
+		await row.getByRole('link').click();
 		await expect(page).toHaveURL(/\/plan$/);
-		await expect(page.getByRole('button', { name: 'Pesos' })).toHaveAttribute(
-			'aria-pressed',
-			'true'
-		);
 	} finally {
-		await setCurrencyCookie(page, baseURL!, 'ARS');
 		if (created) await postDelete(page, baseURL!, `${baseURL}/plan`);
 	}
 });
 
-test('a limit alert explains itself and opens its drawer in its currency', async ({
-	page,
-	baseURL
-}) => {
+test('a limit alert explains itself and opens its drawer', async ({ page, baseURL }) => {
 	await login(page, OTHER_EMAIL);
-	await setCurrencyCookie(page, baseURL!, 'ARS');
 	// Fail loudly if another spec gave otro an ARS plan: this test must own it to delete it.
 	await page.goto('/plan');
-	await expect(page.getByText('Sin plan en pesos')).toBeVisible();
+	await expect(page.getByText('Sin plan')).toBeVisible();
 	const description = `Límite aviso e2e ${Date.now()}`;
 	let created = false;
 	try {
@@ -116,19 +96,16 @@ test('a limit alert explains itself and opens its drawer in its currency', async
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 
-		// The cookie says USD; the limit alert's form switches it to ARS before opening the page.
-		await setCurrencyCookie(page, baseURL!, 'USD');
 		await page.goto('/notifications');
 		const row = alertRow(page, '$1 sobre el límite de $1');
 		await expect(row).toContainText('Ajena');
 		// The message does not repeat the pill's "Te pasaste".
 		await expect(row.locator('.row-meta')).toHaveText('$1 sobre el límite de $1');
-		await row.getByRole('button').click();
+		await row.getByRole('link').click();
 		// The limit opens as a drawer over /plan, and the flag leaves the URL.
 		await expect(page.getByRole('dialog', { name: 'Límite de Ajena' })).toBeVisible();
 		await expect(page).toHaveURL(/\/plan$/);
 	} finally {
-		await setCurrencyCookie(page, baseURL!, 'ARS');
 		await deleteMovements(page, baseURL!, description);
 		if (created) await postDelete(page, baseURL!, `${baseURL}/plan`);
 	}

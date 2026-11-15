@@ -8,6 +8,7 @@
 	import FormActions from '$lib/components/FormActions.svelte';
 	import OptionPicker from '$lib/components/OptionPicker.svelte';
 	import AmountHero from '$lib/components/AmountHero.svelte';
+	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
@@ -17,7 +18,6 @@
 	 * reports the result instead of navigating). `page`: the full page.
 	 */
 	let {
-		currency,
 		action = '',
 		cancelHref = '/plan',
 		categories = [],
@@ -27,14 +27,13 @@
 		onsaved,
 		onclose
 	}: {
-		currency: Currency;
 		/** Page: the form's action. Drawer: the query (e.g. `?wizard=4`) added to /plan/limits/new. */
 		action?: string;
 		cancelHref?: string;
 		/** The categories on offer (none has a limit yet), each with its suggested limit. */
-		categories?: (Picker & { suggested: number })[];
-		initial: { categoryId: string; amount: string };
-		errors?: { categoryId?: string; amount?: string };
+		categories?: (Picker & { suggested: Record<Currency, number> })[];
+		initial: { categoryId: string; amount: string; currency: Currency };
+		errors?: { categoryId?: string; amount?: string; currency?: string };
 		variant?: 'page' | 'drawer';
 		/** Drawer: the save succeeded. */
 		onsaved?: () => void;
@@ -45,14 +44,19 @@
 	const drawer = $derived(variant === 'drawer');
 	let categoryId = $state(untrack(() => initial.categoryId));
 	let amount = $state(untrack(() => initial.amount));
+	let currency = $state<Currency>(untrack(() => initial.currency));
+	const currencyOptions = [
+		{ value: 'ARS', label: 'Pesos' },
+		{ value: 'USD', label: 'Dólares' }
+	];
 	let mounted = $state(false);
 	let submitting = $state(false);
 	onMount(() => (mounted = true));
 
 	// Errors from the drawer's post; the page shows the server-rendered `errors` instead.
-	let fieldErrors = $state<{ categoryId?: string; amount?: string }>({});
+	let fieldErrors = $state<{ categoryId?: string; amount?: string; currency?: string }>({});
 	const shown = $derived({ ...errors, ...fieldErrors });
-	const suggested = $derived(categories.find((c) => c.id === categoryId)?.suggested ?? 0);
+	const suggested = $derived(categories.find((c) => c.id === categoryId)?.suggested[currency] ?? 0);
 	const canSave = $derived(categoryId !== '' && isPositiveAmount(amount));
 
 	const focusFirstError = () =>
@@ -111,6 +115,17 @@
 				</OptionPicker>
 			</li>
 		</ul>
+
+		<div class="field">
+			<span id="lcurrency-label" class="label">Moneda</span>
+			<SegmentedControl
+				name="currency"
+				options={currencyOptions}
+				bind:value={currency}
+				labelledby="lcurrency-label"
+			/>
+			{#if shown.currency}<p class="error" role="alert">{shown.currency}</p>{/if}
+		</div>
 
 		<AmountHero bind:value={amount} {currency} error={shown.amount} id="lamount" />
 
@@ -207,6 +222,23 @@
 
 	.card > li.bad {
 		box-shadow: inset 3px 0 0 var(--negative);
+	}
+
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
+	.label {
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: var(--text-muted);
+	}
+
+	.error {
+		color: var(--negative);
+		font-size: var(--font-size-sm);
 	}
 
 	.hint {

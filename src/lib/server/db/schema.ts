@@ -210,6 +210,8 @@ export const spendingPlans = pgTable(
 		savingsPercent: integer('savings_percent'),
 		// NULL = every month; 'YYYY-MM' = that month only.
 		month: varchar('month', { length: 7 }),
+		// Manual plan rate (rate x 100, whole pesos); NULL = the latest ARS<->USD transfer rate.
+		exchangeRate: bigint('exchange_rate', { mode: 'number' }),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp('updated_at', { withTimezone: true })
 			.defaultNow()
@@ -222,6 +224,10 @@ export const spendingPlans = pgTable(
 		check(
 			'spending_plans_savings_percent_check',
 			sql`${table.savingsPercent} IS NULL OR ${table.savingsPercent} BETWEEN 0 AND 10000`
+		),
+		check(
+			'spending_plans_exchange_rate_positive_check',
+			sql`${table.exchangeRate} IS NULL OR ${table.exchangeRate} > 0`
 		),
 		check(
 			'spending_plans_month_check',
@@ -239,7 +245,9 @@ export const planCategoryLimits = pgTable(
 		categoryId: uuid('category_id')
 			.notNull()
 			.references(() => categories.id, { onDelete: 'cascade' }),
-		amount: bigint('amount', { mode: 'number' }).notNull()
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		// The limit's own currency (the plan itself is in ARS).
+		currency: currencyEnum('currency').default('ARS').notNull()
 	},
 	(table) => [
 		primaryKey({ columns: [table.planId, table.categoryId] }),

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { CURRENCY_NAME, formatMoney } from '$lib/money';
+	import { formatMoney } from '$lib/money';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import { enhance } from '$app/forms';
 	import { followRedirect } from '$lib/nav-stack.svelte';
@@ -34,7 +34,10 @@
 	const stepHref = (n: number) => `/plan/setup?step=${n}`;
 
 	let repeat = $state(untrack(() => data.repeats));
-	const total = $derived(data.active.reduce((a, r) => a + r.amount, 0));
+	// In plan pesos: ARS as is, USD at the plan rate (left out without one).
+	const total = $derived(
+		data.active.reduce((a, r) => a + (r.currency === 'ARS' ? r.amount : (r.converted ?? 0)), 0)
+	);
 	const perDay = $derived(data.summary?.perDay ?? 0);
 	const newRule = (type: 'income' | 'outcome') =>
 		`/plan/recurring/new?type=${type}&wizard=${data.step}`;
@@ -82,7 +85,7 @@
 		{/each}
 	</ol>
 	<CardEyebrow>
-		Plan en {CURRENCY_NAME[data.currency]} · paso {data.step} de {WIZARD_STEPS}
+		Plan · paso {data.step} de {WIZARD_STEPS}
 	</CardEyebrow>
 
 	{#if data.step <= 2}
@@ -92,7 +95,7 @@
 			<SectionHeader level={3} title={income ? 'Ingresos fijos' : 'Pagos fijos'} aside={addRule} />
 			<ListCard>
 				{#each data.active as r (r.id)}
-					<RecurringRow row={r} currency={data.currency} wizard={data.step} />
+					<RecurringRow row={r} wizard={data.step} />
 				{:else}
 					<p class="empty">{income ? 'Sin ingresos fijos.' : 'Sin pagos fijos.'}</p>
 				{/each}
@@ -113,7 +116,7 @@
 			<SectionHeader level={3} title="Inactivos" />
 			<ListCard>
 				{#each data.inactive as r (r.id)}
-					<RecurringRow row={r} currency={data.currency} wizard={data.step} />
+					<RecurringRow row={r} wizard={data.step} />
 				{/each}
 			</ListCard>
 		{/if}
@@ -135,7 +138,7 @@
 							title={s.description}
 						>
 							{#snippet value()}
-								<Money cents={-s.amount} currency={data.currency} tone="flow" direction="outcome" />
+								<Money cents={-s.amount} currency={s.currency} tone="flow" direction="outcome" />
 							{/snippet}
 							{#snippet meta()}Día {s.dayOfMonth} · {s.accountName}{/snippet}
 						</ListRow>
@@ -180,7 +183,7 @@
 		{/if}
 		<section class="group">
 			<SectionHeader level={3} title="Límites" aside={addLimit} />
-			<LimitList limits={data.limits} currency={data.currency} wizard={4} />
+			<LimitList limits={data.limits} wizard={4} />
 		</section>
 		{@render bar('Siguiente', stepHref(5))}
 	{:else}
@@ -207,7 +210,7 @@
 				{#each s.limits as l (l.categoryId)}
 					<div class="kv">
 						<dt>Límite · {l.name}</dt>
-						<dd><Money cents={l.amount} currency={data.currency} /></dd>
+						<dd><Money cents={l.amount} currency={l.currency} /></dd>
 					</div>
 				{:else}
 					<div class="kv">

@@ -3,7 +3,6 @@
 	import ListCard from '$lib/components/ListCard.svelte';
 	import ListRow from '$lib/components/ListRow.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
-	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
@@ -21,53 +20,31 @@
 />
 
 <div class="page">
-	{#if data.groups.length === 0}
+	{#if data.items.length === 0}
 		<EmptyState
 			icon="bell"
 			description="Estás al día. Acá vas a ver los límites o el plan cuando vayan rápido o se pasen."
 		/>
 	{:else}
-		{#each data.groups as g (g.currency)}
-			<section aria-labelledby="alerts-{g.currency}">
-				<SectionHeader
-					id="alerts-{g.currency}"
-					title={g.currency === 'ARS' ? 'Pesos' : 'Dólares'}
-					variant="group"
+		<ListCard>
+			{#each data.items as n (n.id)}
+				{#snippet message()}{n.message}{/snippet}
+				{#snippet statusPill()}
+					<StatusPill tone={n.status.tone} label={n.status.label} />
+				{/snippet}
+				<ListRow
+					href={n.href}
+					lead={n.kind === 'plan'
+						? { icon: 'plan', color: null }
+						: n.icon
+							? { icon: n.icon, color: n.color }
+							: { letter: n.name.charAt(0).toUpperCase(), color: n.color }}
+					title={n.name}
+					value={statusPill}
+					meta={message}
 				/>
-				<ListCard>
-					{#each g.items as n (n.id)}
-						{#snippet message()}{n.message}{/snippet}
-						{#snippet statusPill()}
-							<StatusPill tone={n.status.tone} label={n.status.label} />
-						{/snippet}
-						{#snippet row(submit: boolean)}
-							<ListRow
-								href={submit ? undefined : n.href}
-								{submit}
-								lead={n.kind === 'plan'
-									? { icon: 'plan', color: null }
-									: n.icon
-										? { icon: n.icon, color: n.color }
-										: { letter: n.name.charAt(0).toUpperCase(), color: n.color }}
-								title={n.name}
-								value={statusPill}
-								meta={message}
-							/>
-						{/snippet}
-						{#if !n.switchCurrency}
-							{@render row(false)}
-						{:else}
-							<!-- Plan and limit pages read the currency from the cookie, so switch it first. -->
-							<form method="POST" action={resolve('/currency')} class="contents">
-								<input type="hidden" name="currency" value={g.currency} />
-								<input type="hidden" name="redirectTo" value={n.href} />
-								{@render row(true)}
-							</form>
-						{/if}
-					{/each}
-				</ListCard>
-			</section>
-		{/each}
+			{/each}
+		</ListCard>
 	{/if}
 </div>
 

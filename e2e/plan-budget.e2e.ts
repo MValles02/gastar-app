@@ -8,7 +8,6 @@ import {
 	OTHER_EMAIL,
 	pick,
 	postDelete,
-	setCurrencyCookie,
 	signUpVerified,
 	todayInAppTz
 } from './helpers';
@@ -44,7 +43,7 @@ test.beforeAll(async ({ browser, baseURL }) => {
 				color: 'green'
 			});
 		const usd = await account('Otra cuenta', 'USD');
-		await account('Otra cuenta pesos', 'ARS');
+		const ars = await account('Otra cuenta pesos', 'ARS');
 		const category = await create('/categories/new', { name: 'Ajena', color: 'blue', kind: '' });
 		await create('/plan/recurring/new', {
 			type: 'outcome',
@@ -55,8 +54,18 @@ test.beforeAll(async ({ browser, baseURL }) => {
 			categoryId: category
 		});
 
-		// A quick USD plan through the wizard: no savings, no limits.
-		await setCurrencyCookie(page, baseURL!, 'USD');
+		// The plan counts USD at the last ARS->USD transfer's rate: 1 USD = $1.000.
+		await create('/movements/new', {
+			type: 'transfer',
+			amount: '100.000',
+			description: 'Compra de dólares',
+			accountId: ars,
+			destinationAccountId: usd,
+			exchangeRate: '1.000',
+			occurredAt: todayInAppTz()
+		});
+
+		// A quick plan through the wizard: no savings, no limits.
 		await page.goto('/plan/setup?step=3');
 		await fillSavings(page, { option: 'Nada' });
 		await page.getByRole('button', { name: 'Siguiente' }).click();
@@ -78,7 +87,6 @@ async function foreignIds(browser: Browser, baseURL: string) {
 		await login(page, OTHER_EMAIL);
 		await page.goto('/categories');
 		const category = await linkId(page.getByRole('link', { name: /Ajena/ }));
-		await setCurrencyCookie(page, baseURL, 'USD');
 		await page.goto('/plan');
 		const rule = await linkId(page.getByRole('link', { name: /Regla ajena/ }).first());
 		return { category, rule };
@@ -147,7 +155,7 @@ async function figures(page: Page) {
 	return out;
 }
 
-/** The limit edit links on /plan, i.e. which categories have a limit in the cookie's currency. */
+/** The limit edit links on /plan, i.e. which categories have a limit. */
 async function limitHrefs(page: Page) {
 	await page.goto('/plan');
 	return page
@@ -162,7 +170,6 @@ async function limitHrefs(page: Page) {
  * plan behind. Logged in as the demo user.
  */
 async function restoreDemoPlan(page: Page, baseURL: string) {
-	await setCurrencyCookie(page, baseURL, 'ARS');
 	await post(page, baseURL, '/plan/savings?/update', {
 		savingsOption: 'other',
 		savingsUnit: 'amount',
@@ -172,7 +179,11 @@ async function restoreDemoPlan(page: Page, baseURL: string) {
 	const superId = await linkId(page.getByRole('link', { name: /Supermercado/ }).first());
 	const edit = await post(page, baseURL, `/plan/limits/${superId}?/update`, { amount: '300.000' });
 	if (edit.status() === 404)
-		await post(page, baseURL, '/plan/limits/new', { categoryId: superId, amount: '300.000' });
+		await post(page, baseURL, '/plan/limits/new', {
+			categoryId: superId,
+			amount: '300.000',
+			currency: 'ARS'
+		});
 }
 
 /** The Supermercado limit's meter on /plan; its value text carries "<spent> de <limit>". */
@@ -197,7 +208,6 @@ test("another user's category and rule never leak or get written", async ({
 }) => {
 	const { category, rule } = await foreignIds(browser, baseURL!);
 	await login(page);
-	await setCurrencyCookie(page, baseURL!, 'ARS');
 
 	// hydration guard: the drawer and picker need JavaScript.
 	await page.goto('/plan/limits/new', { waitUntil: 'networkidle' });
@@ -206,7 +216,11 @@ test("another user's category and rule never leak or get written", async ({
 	await expect(dialog.getByText('Servicios', { exact: true })).toBeVisible();
 	await expect(dialog.getByText('Ajena')).toHaveCount(0);
 
-	const res = await post(page, baseURL!, '/plan/limits/new', { categoryId: category, amount: '5' });
+	const res = await post(page, baseURL!, '/plan/limits/new', {
+		categoryId: category,
+		amount: '5',
+		currency: 'ARS'
+	});
 	expect(res.status()).toBe(400);
 	expect(await res.text()).toContain(NOT_OFFERED);
 	expect((await page.goto(`/plan/limits/${category}`))!.status()).toBe(404);
@@ -234,12 +248,12 @@ test("another user cannot attach a limit to the demo user's category", async ({
 	try {
 		const other = await context.newPage();
 		await context.addCookies(cookies);
-		await setCurrencyCookie(other, baseURL!, 'USD');
 		const limits = () => limitHrefs(other);
 		const before = await limits();
 		const res = await post(other, baseURL!, '/plan/limits/new', {
 			categoryId: superId,
-			amount: '5'
+			amount: '5',
+			currency: 'ARS'
 		});
 		expect(res.status()).toBe(400);
 		expect(await res.text()).toContain(NOT_OFFERED);
@@ -308,7 +322,11 @@ test('a limit on an archived category is rejected and nothing is written', async
 	await restoreDemoPlan(page, baseURL!);
 	await page.goto('/categories?archived=1');
 	const archived = await linkId(page.getByRole('link', { name: /Gimnasio/ }).first());
-	const res = await post(page, baseURL!, '/plan/limits/new', { categoryId: archived, amount: '5' });
+	const res = await post(page, baseURL!, '/plan/limits/new', {
+		categoryId: archived,
+		amount: '5',
+		currency: 'ARS'
+	});
 	expect(res.status()).toBe(400);
 	expect(await res.text()).toContain(NOT_OFFERED);
 	await page.goto('/plan');
@@ -431,39 +449,70 @@ test('Disponible = Ingresos - Ahorro - Pagos fijos - Gastado on one page load', 
 // The tests that create movements run as this file's own user: they cannot disturb the demo user's
 // totals (currency.e2e.ts) or Disponible.
 test.describe('as another user', () => {
-	test.beforeEach(async ({ page, baseURL }) => {
+	test.beforeEach(async ({ page }) => {
 		await page.context().addCookies(cookies);
-		await setCurrencyCookie(page, baseURL!, 'USD');
 	});
 
-	test('a USD outcome lowers the USD Disponible by exactly that amount', async ({
+	test('the plan counts USD in pesos at the last purchase rate; a manual rate overrides it', async ({
 		page,
 		baseURL
 	}) => {
-		const before = await figures(page);
-		await withOutcome(
-			page,
-			baseURL!,
-			{ amount: '10,00', account: 'Otra cuenta', currency: 'USD' },
-			async () => {
-				const after = await figures(page);
-				expect(after['Disponible']).toBe(before['Disponible'] - 1000);
-				expect(after['Gastado']).toBe(before['Gastado'] + 1000);
-			}
-		);
-	});
+		const [, month, day] = todayInAppTz().split('-');
+		const ruleRow = page.locator('.rule', { hasText: 'Regla ajena' });
+		try {
+			await page.goto('/plan');
+			await expect(page.getByRole('link', { name: /^Cotización:/ })).toContainText(
+				`Cotización: $1.000 (última compra, ${day}/${month})`
+			);
+			await expect(ruleRow).toContainText('≈ $50.000');
 
-	test('USD Gastado on Plan equals Gastos on Reportes', async ({ page }) => {
-		await expect(async () => {
-			const { Gastado } = await figures(page);
-			await page.goto('/reports');
-			const gastos = page.locator('dl.totals > div').filter({ hasText: 'Gastos' }).locator('dd');
-			// Without movements in the last six months Reportes shows no totals: spending is zero.
-			const shown = (await gastos.count())
-				? Number((await gastos.innerText()).replace(/\D/g, ''))
-				: 0;
-			expect(shown).toBe(Gastado);
-		}).toPass({ timeout: 30_000 });
+			const before = await figures(page);
+			await withOutcome(
+				page,
+				baseURL!,
+				{ amount: '10,00', account: 'Otra cuenta', currency: 'USD' },
+				async () => {
+					const after = await figures(page);
+					expect(after['Disponible']).toBe(before['Disponible'] - 10_000);
+					expect(after['Gastado']).toBe(before['Gastado'] + 10_000);
+				}
+			);
+
+			// Inicio shows the same Disponible as the plan.
+			await page.goto('/');
+			const home = await page
+				.getByRole('region', { name: 'Disponible', exact: true })
+				.locator('.available-amount')
+				.innerText();
+			await page.goto('/plan');
+			const hero = await page
+				.getByRole('region', { name: /^Disponible$/ })
+				.locator('.hero')
+				.innerText();
+			expect(hero.replace(/\s/g, '')).toBe(home.replace(/\s/g, ''));
+
+			// hydration guard: the drawer needs JavaScript.
+			await page.goto('/plan', { waitUntil: 'networkidle' });
+			await page.getByRole('link', { name: /^Cotización:/ }).click();
+			const drawer = page.getByRole('dialog', { name: 'Cotización del plan' });
+			await drawer.getByLabel('Monto').fill('1.200');
+			await drawer.getByRole('button', { name: 'Guardar', exact: true }).click();
+			await expect(page.getByRole('link', { name: /^Cotización:/ })).toContainText(
+				'Cotización: $1.200 (manual)'
+			);
+			await expect(ruleRow).toContainText('≈ $60.000');
+
+			await page.getByRole('link', { name: /^Cotización:/ }).click();
+			await page
+				.getByRole('dialog', { name: 'Cotización del plan' })
+				.getByRole('button', { name: 'Usar la última compra' })
+				.click();
+			await expect(page.getByRole('link', { name: /^Cotización:/ })).toContainText(
+				'Cotización: $1.000'
+			);
+		} finally {
+			await post(page, baseURL!, '/plan/rate?/auto', {});
+		}
 	});
 
 	test('paying a fixed payment moves it from Pendientes to Gastado; paying more lowers Disponible', async ({
@@ -502,38 +551,24 @@ test.describe('as another user', () => {
 		};
 		try {
 			const open = await figures(page);
-			expect(open['Pagos fijos']).toBeGreaterThanOrEqual(5000);
+			expect(open['Pagos fijos']).toBeGreaterThanOrEqual(50_000);
 
 			await pay('50,00');
 			const exact = await figures(page);
 			expect(exact['Disponible']).toBe(open['Disponible']);
-			expect(exact['Gastado']).toBe(open['Gastado'] + 5000);
-			expect(exact['Pagos fijos']).toBe(open['Pagos fijos'] - 5000);
+			expect(exact['Gastado']).toBe(open['Gastado'] + 50_000);
+			expect(exact['Pagos fijos']).toBe(open['Pagos fijos'] - 50_000);
 
 			await remove();
 			await pay('70,00');
 			const over = await figures(page);
-			expect(over['Disponible']).toBe(open['Disponible'] - 2000);
-			expect(over['Gastado']).toBe(open['Gastado'] + 7000);
-			expect(over['Pagos fijos']).toBe(open['Pagos fijos'] - 5000);
+			expect(over['Disponible']).toBe(open['Disponible'] - 20_000);
+			expect(over['Gastado']).toBe(open['Gastado'] + 70_000);
+			expect(over['Pagos fijos']).toBe(open['Pagos fijos'] - 50_000);
 		} finally {
 			await remove();
 			// A higher charge moved the rule's amount: put it back.
 			await page.request.post(`/plan/recurring/${id}?/update`, { form: { amount: '50' }, headers });
 		}
-	});
-
-	test('an ARS outcome does not change the USD Disponible', async ({ page, baseURL }) => {
-		const before = await figures(page);
-		await withOutcome(
-			page,
-			baseURL!,
-			{ amount: '5.000', account: 'Otra cuenta pesos', currency: 'ARS' },
-			async () => {
-				const after = await figures(page);
-				expect(after['Disponible']).toBe(before['Disponible']);
-				expect(after['Gastado']).toBe(before['Gastado']);
-			}
-		);
 	});
 });

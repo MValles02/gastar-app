@@ -15,6 +15,7 @@
 		color: string | null;
 		icon?: string | null;
 		amount: number;
+		currency: Currency;
 		spent: number;
 		over: boolean;
 		fast: boolean;
@@ -27,10 +28,9 @@
 	 */
 	let {
 		limits,
-		currency,
 		wizard,
 		linked = true
-	}: { limits: Limit[]; currency: Currency; wizard?: number; linked?: boolean } = $props();
+	}: { limits: Limit[]; wizard?: number; linked?: boolean } = $props();
 
 	// An unmodified click opens the drawer (shallow route, URL unchanged); anything else follows the link.
 	async function open(e: MouseEvent, id: string) {
@@ -47,7 +47,7 @@
 				<span class="inline"
 					><span class="pct" class:over={l.over}>{pct}%</span><Money
 						cents={l.spent}
-						{currency}
+						currency={l.currency}
 					/></span
 				>
 			{/snippet}
@@ -56,7 +56,7 @@
 					percent={Math.min(100, pct)}
 					color={l.over ? 'var(--negative)' : swatchVar(l.color)}
 					label="Límite de {l.name}"
-					valueText="{formatMoney(l.spent, currency)} de {formatMoney(l.amount, currency)}"
+					valueText="{formatMoney(l.spent, l.currency)} de {formatMoney(l.amount, l.currency)}"
 				/>
 			{/snippet}
 			<!-- The wrapper only carries the click that opens the drawer; it adds no box. -->
