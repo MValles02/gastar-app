@@ -1,35 +1,32 @@
-import { redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
-import { PG_FOREIGN_KEY_VIOLATION, pgErrorCode } from '$lib/server/db/errors';
 import type { Actions, PageServerLoad } from './$types';
-import { accountActions } from '$lib/server/accounts';
 import { toCategoryIconKey, toSwatchKey } from '$lib/appearance';
 import {
 	DELETE_REFERENCED_MESSAGE,
 	DUPLICATE_NAME_MESSAGE,
+	EDITABLE,
 	KIND_LOCKED_MESSAGE,
 	NOT_FOUND_MESSAGE,
-	parseCategoryForm,
-	toCurrencyNets
-} from '$lib/server/categories';
+	parseCategoryForm
+} from '$lib/server/categories/form';
 import {
 	categoryMonthNet,
 	categoryMovementTypes,
-	categoryReferenced,
 	deleteCategory,
 	getCategory,
+	isCategoryReferenced,
 	setCategoryArchived,
+	toCurrencyNets,
 	updateCategory,
 	writeIfNameFree
-} from '$lib/server/categories-queries';
+} from '$lib/server/categories/queries';
+import { archiveActions, deleteUnlessReferenced, lifecycleState } from '$lib/server/lifecycle';
 import { currentMonth, monthLabel, monthRange, parseMonth } from '$lib/server/month';
 import { notFoundHelpers, requireUser } from '$lib/server/guards';
 import { CATEGORY_KINDS, kindFits } from '$lib/movement';
 
-const { notFound, requireId } = notFoundHelpers(NOT_FOUND_MESSAGE);
-
-/** The only fields `?/update` takes. */
-const EDITABLE = ['name', 'icon', 'color', 'kind'] as const;
+const guards = notFoundHelpers(NOT_FOUND_MESSAGE);
+const { notFound, requireId } = guards;
 
 /** The category as the detail shows it (what the load returns and `update` hands back). */
 async function categoryOf(userId: string, id: string) {
@@ -52,32 +49,16 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const month = parseMonth(url.searchParams.get('month'), new Date());
 	const [rows, referenced] = await Promise.all([
 		categoryMonthNet(userId, params.id, monthRange(month)),
-		categoryReferenced(userId, params.id)
+		isCategoryReferenced(userId, params.id)
 	]);
 
 	return {
 		...detail,
 		month: { label: monthLabel(month), isCurrent: month >= currentMonth(new Date()) },
 		nets: toCurrencyNets(rows),
-		actions: accountActions({
-			referenced: referenced.length > 0,
-			archived: detail.category.archived
-		})
+		actions: lifecycleState({ referenced, archived: detail.category.archived })
 	};
 };
-
-const archiveAction =
-	(archive: boolean): Actions[string] =>
-	async ({ locals, params }) => {
-		requireId(params.id);
-		const rows = await setCategoryArchived(
-			requireUser(locals).id,
-			params.id,
-			archive ? new Date() : null
-		);
-		if (rows.length === 0) notFound();
-		return { done: true };
-	};
 
 export const actions: Actions = {
 	/** Saves the posted subset of fields over the stored values, with the create form's validation. */
@@ -116,23 +97,14 @@ export const actions: Actions = {
 		if (rows.length === 0) notFound();
 		return await categoryOf(userId, params.id);
 	},
-	archive: archiveAction(true),
-	unarchive: archiveAction(false),
-	delete: async ({ locals, params }) => {
-		const userId = requireUser(locals).id;
-		requireId(params.id);
-		const referenced = () => formFail(409, { formError: DELETE_REFERENCED_MESSAGE });
-
-		// Pre-check for the friendly error; ON DELETE RESTRICT still catches a movement added meanwhile.
-		if ((await categoryReferenced(userId, params.id)).length > 0) return referenced();
-		let rows;
-		try {
-			rows = await deleteCategory(userId, params.id);
-		} catch (e) {
-			if (pgErrorCode(e) === PG_FOREIGN_KEY_VIOLATION) return referenced();
-			throw e;
-		}
-		if (rows.length === 0) notFound();
-		redirect(303, '/categories');
-	}
+	...archiveActions(setCategoryArchived, guards),
+	delete: deleteUnlessReferenced(
+		{
+			isReferenced: isCategoryReferenced,
+			remove: deleteCategory,
+			message: DELETE_REFERENCED_MESSAGE,
+			redirectTo: '/categories'
+		},
+		guards
+	)
 };

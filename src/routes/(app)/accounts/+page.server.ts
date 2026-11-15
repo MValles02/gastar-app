@@ -1,8 +1,8 @@
 import type { PageServerLoad } from './$types';
-import { accountSummary } from '$lib/server/dashboard-queries';
-import { hasAccounts } from '$lib/server/dashboard';
-import { accountOriginSums, accountTransfersIn, listAccounts } from '$lib/server/accounts-queries';
-import { withBalances } from '$lib/server/accounts';
+import { accountSummary } from '$lib/server/accounts/queries';
+import { hasAccounts } from '$lib/server/accounts/balance';
+import { accountOriginSums, accountTransfersIn, listAccounts } from '$lib/server/accounts/queries';
+import { withBalances } from '$lib/server/accounts/balance';
 import { requireUser } from '$lib/server/guards';
 import { CURRENCIES } from '$lib/money';
 

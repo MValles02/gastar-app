@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { accountSummary } from '$lib/server/dashboard-queries';
+import { accountSummary } from '$lib/server/accounts/queries';
 import { deletePlan } from '$lib/server/plan-queries';
 import { planView, recurringLists } from '$lib/server/plan-view';
 import { requireUser } from '$lib/server/guards';

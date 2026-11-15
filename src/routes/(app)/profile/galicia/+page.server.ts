@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { formFail } from '$lib/form';
-import { accountOption } from '$lib/server/account-options';
+import { accountOption } from '$lib/server/accounts/queries';
 import {
 	getGaliciaConnection,
 	importStatement,

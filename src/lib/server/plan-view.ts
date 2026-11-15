@@ -10,8 +10,8 @@ import {
 	PLAN_CURRENCY,
 	PLAN_STATUS_LABEL
 } from '$lib/plan';
-import { listAccounts } from './accounts-queries';
-import { listCategories } from './categories-queries';
+import { listAccounts } from './accounts/queries';
+import { listCategories } from './categories/queries';
 import { memoPerRequest } from './request-memo';
 import {
 	currentMonth,

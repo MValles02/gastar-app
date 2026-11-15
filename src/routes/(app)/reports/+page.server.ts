@@ -1,9 +1,9 @@
 import type { PageServerLoad } from './$types';
-import { toCategoryIconKey, toSwatchKey, type CategoryIconKey } from '$lib/appearance';
+import { categoryLook, type CategoryIconKey } from '$lib/appearance';
 import { preferredCurrency } from '$lib/server/currency-pref';
-import { hasAccounts } from '$lib/server/dashboard';
-import { accountSummary, categorySums } from '$lib/server/dashboard-queries';
-
+import { hasAccounts } from '$lib/server/accounts/balance';
+import { accountSummary } from '$lib/server/accounts/queries';
+import { biggestOutcome, categorySums, monthlyFlows } from '$lib/server/dashboard/queries';
 import {
 	currentMonth,
 	dateLabel,
@@ -16,7 +16,6 @@ import {
 	shiftMonth,
 	shortMonth
 } from '$lib/server/month';
-import { biggestOutcome, monthlyFlows } from '$lib/server/reports-queries';
 import { requireUser } from '$lib/server/guards';
 
 const FLOW_MONTHS = 6;
@@ -96,13 +95,16 @@ type CategorySum = {
 /** Net spending per category (integer cents), the top TOP_CATEGORIES plus "Otros". */
 function categorySlices(cats: CategorySum[]) {
 	const spent = cats
-		.map((c) => ({
-			id: c.id,
-			name: c.name,
-			color: toSwatchKey(c.color),
-			icon: toCategoryIconKey(c.icon) ?? ('categories' as CategoryIconKey | null),
-			amount: c.outcome - c.income
-		}))
+		.map((c) => {
+			const look = categoryLook(c);
+			return {
+				id: c.id,
+				name: c.name,
+				color: look.color,
+				icon: look.icon as CategoryIconKey | null,
+				amount: c.outcome - c.income
+			};
+		})
 		.filter((c) => c.amount > 0)
 		.sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, 'es'));
 	const totalSpent = spent.reduce((a, c) => a + c.amount, 0);

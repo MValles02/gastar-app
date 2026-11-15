@@ -8,8 +8,8 @@ import {
 	type ImportItem
 } from './import-queries';
 import { pgErrorCode } from './db/errors';
-import { listAccounts } from './accounts-queries';
-import { listCategories } from './categories-queries';
+import { listAccounts } from './accounts/queries';
+import { listCategories } from './categories/queries';
 import { resolvePostedMovement } from './movement-pickers';
 
 /** Active accounts in the item's currency other than its own: the only valid counter accounts (no exchange rate). */
