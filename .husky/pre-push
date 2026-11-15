@@ -1,0 +1,9 @@
+# Fast local gate before CI (budget: under 9s). ESLint already ran on every
+# committed file in pre-commit (lint-staged), so it is not repeated here.
+# Typecheck uses svelte-check's TS 7 path; CI keeps the default svelte-check.
+base=$(git merge-base HEAD '@{upstream}' 2>/dev/null || git merge-base HEAD origin/develop) || exit 1
+
+fmt=$(git diff --name-only --diff-filter=d "$base" HEAD | grep -E '\.(js|mjs|cjs|ts|svelte|json|css|md|ya?ml)$')
+
+[ -z "$fmt" ] || printf '%s\n' "$fmt" | xargs pnpm exec prettier --check || exit 1
+pnpm typecheck:fast
