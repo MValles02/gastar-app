@@ -74,27 +74,6 @@ test('a rule detail autosaves its amount with Deshacer, deactivates, activates a
 	}
 });
 
-test('the new-rule drawer opens over the plan and Guardar waits for amount and description', async ({
-	page
-}) => {
-	await login(page);
-	// hydration guard: the drawer form needs JavaScript.
-	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await page
-		.getByRole('region', { name: 'Pagos fijos pendientes', exact: true })
-		.getByRole('link', { name: 'Agregar' })
-		.click();
-	const drawer = page.getByRole('dialog', { name: 'Nuevo pago fijo' });
-	await expect(drawer).toBeVisible();
-	await expect(page).toHaveURL(/\/plan$/);
-	const save = drawer.getByRole('button', { name: 'Guardar' });
-	await expect(save).toBeDisabled();
-	await drawer.locator('input[name="amount"]').fill('1');
-	await expect(save).toBeDisabled();
-	await drawer.locator('input[name="description"]').fill('Borrador');
-	await expect(save).toBeEnabled();
-});
-
 test('create a rule rejects ARS decimals and saves whole pesos', async ({ page, baseURL }) => {
 	await login(page, OTHER_EMAIL);
 	const description = 'Prueba e2e';

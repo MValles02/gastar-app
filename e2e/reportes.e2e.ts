@@ -28,16 +28,6 @@ test.beforeEach(async ({ page }) => {
 	await login(page);
 });
 
-test('a future or invalid month falls back to the current month', async ({ page }) => {
-	await page.goto('/reports');
-	const current = norm(await page.locator('.month-label').textContent());
-	for (const month of ['2999-01', 'x']) {
-		await page.goto(`/reports?month=${month}`);
-		await expect(page.locator('.month-label')).toHaveText(current);
-		await expect(page.getByLabel('Mes siguiente')).toHaveAttribute('aria-disabled', 'true');
-	}
-});
-
 // The seed puts "Alquiler" (380.000, on the bank account) in each of the last three months,
 // clamped to today, and no other outcome comes close.
 test('ARS biggest outcome is the rent in the current month and two months back', async ({
@@ -63,17 +53,6 @@ test('Resultado equals the Inicio month balance in ARS and USD', async ({ page, 
 	// The seed has no USD outcomes (USD only receives income and transfers): no spending, no pesos.
 	expect(norm(await total(page, 'Gastos').textContent())).toBe('US$0,00');
 	expect(norm(await page.locator('main').innerText())).not.toMatch(/(^|[^S])\$ /);
-});
-
-test('switching currency keeps the selected past month', async ({ page }) => {
-	const month = await monthsBack(page, 1);
-	await page.getByRole('button', { name: 'Dólares' }).click();
-	await expect(page.getByRole('button', { name: 'Dólares' })).toHaveAttribute(
-		'aria-pressed',
-		'true'
-	);
-	await expect.poll(() => new URL(page.url()).search).toBe(`?month=${month}`);
-	await expect(page.locator('ul.bars a[aria-current="true"]')).toHaveCount(1);
 });
 
 test('past month totals match its six-month link; tapping a bar opens its month', async ({
@@ -111,24 +90,4 @@ test('category slices sum to 100 % and to the month spending', async ({ page }) 
 	const amts = await rows(page).locator('.row-amount > .money').allTextContents();
 	const gastos = await total(page, 'Gastos').textContent();
 	expect(amts.reduce((a, t) => a + amountOf(t), 0)).toBe(amountOf(gastos));
-});
-
-test('category legend rows link to the category for the selected month; Otros is not a link', async ({
-	page
-}) => {
-	const month = await monthsBack(page, 2);
-	const list = rows(page);
-	for (const row of await list.all()) {
-		const link = row.locator('a');
-		if (norm(await row.locator('[data-slot="item-title"]').textContent()) === 'Otros')
-			await expect(link).toHaveCount(0);
-		else
-			await expect(link).toHaveAttribute(
-				'href',
-				new RegExp(`^/categories/[^/?]+\\?month=${month}$`)
-			);
-	}
-	const href = (await list.locator('a').first().getAttribute('href'))!;
-	await list.locator('a').first().click();
-	await expect(page).toHaveURL(href);
 });

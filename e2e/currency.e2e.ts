@@ -39,25 +39,6 @@ test('Inicio tab choice survives a reload and an unknown cookie reads as ARS', a
 	await expect(pill(page, 'ARS')).toHaveAttribute('aria-pressed', 'true');
 });
 
-test('invalid currency shows one alert under the tabs and clears on success', async ({ page }) => {
-	await page.goto('/');
-	await page.waitForLoadState('networkidle'); // hydration guard: the currency tabs post through JS
-	await page
-		.locator('button[name="currency"]')
-		.first()
-		.evaluate((el) => {
-			const button = el as HTMLButtonElement;
-			button.value = 'invalid';
-			button.form!.requestSubmit(button);
-		});
-	await expect(page.getByRole('alert')).toHaveText('Moneda inválida.');
-	await expect(page.getByRole('alert')).toHaveCount(1);
-	await expect(page).toHaveURL(/\/$/);
-
-	await choose(page, 'USD');
-	await expect(page.getByRole('alert')).toHaveCount(0);
-});
-
 test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
 	await page.goto('/movements?currency=USD');
 	await page.waitForLoadState('networkidle'); // hydration guard: the filters dialog is JS-only

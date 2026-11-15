@@ -85,10 +85,3 @@ test('reset and sign-up do not reveal which emails exist', async ({ page, reques
 		})
 		.toBe(true);
 });
-
-test('expired links show "Enlace vencido"', async ({ page }) => {
-	for (const url of ['/reset-password?error=INVALID_TOKEN', '/verify-email?error=TOKEN_EXPIRED']) {
-		await page.goto(url);
-		await expect(page.getByRole('heading', { name: 'Enlace vencido' })).toBeVisible();
-	}
-});

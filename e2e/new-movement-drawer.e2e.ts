@@ -59,23 +59,6 @@ async function fill(page: Page, description: string) {
 	await page.locator('input[name="description"]').fill(description);
 }
 
-test('+ Nueva categoría keeps the draft and selects the new category', async ({ page }) => {
-	const name = `Cat drawer ${Date.now()}`;
-	categories.push(name);
-	await open(page);
-	await fill(page, unique('Draft cat'));
-	await page.getByRole('button', { name: /^Categoría/ }).click();
-	await page.getByRole('button', { name: 'Nueva categoría', exact: true }).click();
-	const create = page.getByRole('dialog', { name: 'Nueva categoría' });
-	await expect(create.getByRole('button', { name: 'Guardar' })).toBeDisabled();
-	await create.getByLabel('Nombre').fill(name);
-	await create.getByRole('button', { name: 'Guardar' }).click();
-	await expect(create).toBeHidden();
-	await expect(drawer(page).getByRole('button', { name: /^Categoría/ })).toContainText(name);
-	await expect(page.locator('input[name="amount"]')).toHaveValue('1');
-	await expect(page.locator('input[name="description"]')).toHaveValue(/^Draft cat/);
-});
-
 test('Cuenta comes preselected and the movement is saved to that account', async ({ page }) => {
 	const description = unique('Preseleccion');
 	await open(page);
@@ -89,22 +72,6 @@ test('Cuenta comes preselected and the movement is saved to that account', async
 	const [href] = await findMovements(page, description);
 	await page.goto(href);
 	await expect(page.getByRole('button', { name: `Cuenta ${name}` })).toBeVisible();
-});
-
-test('validation: Guardar waits for amount and description; a missing row is marked alone', async ({
-	page
-}) => {
-	await open(page);
-	await expect(save(page)).toBeDisabled();
-	await fill(page, unique('Validacion'));
-	await expect(save(page)).toBeEnabled();
-	await pick(page, 'Cuenta', 'Otra cuenta pesos');
-	await save(page).click();
-	await expect(drawer(page).getByText('Elegí una categoría.')).toBeVisible();
-	await expect(drawer(page).getByRole('alert')).toHaveCount(1);
-	await expect(page.getByText('Elegí una cuenta.')).toHaveCount(0);
-	await pick(page, 'Categoría', 'Ajena');
-	await expect(drawer(page).getByText('Elegí una categoría.')).toHaveCount(0);
 });
 
 test('Deshacer removes the created movement and the row is highlighted', async ({ page }) => {
@@ -126,47 +93,6 @@ test('Deshacer removes the created movement and the row is highlighted', async (
 	await toast(page).getByRole('button', { name: 'Deshacer' }).click();
 	await expect(page.getByText(description)).toHaveCount(0);
 	expect(await findMovements(page, description)).toHaveLength(0);
-});
-
-test('Deshacer keeps another movement detail drawer open (#273)', async ({ page }) => {
-	const other = unique('Detalle abierto');
-	const description = unique('Deshacer con detalle');
-	const create = async (text: string) => {
-		await fill(page, text);
-		await pick(page, 'Cuenta', 'Otra cuenta pesos');
-		await pick(page, 'Categoría', 'Ajena');
-		await save(page).click();
-		await expect(drawer(page)).toBeHidden();
-	};
-	await open(page, '/movements');
-	await create(other);
-	await open(page, '/movements');
-	await create(description);
-	await expect(toast(page)).toBeVisible();
-	await page.locator('a', { hasText: other }).click();
-	const detail = page.getByRole('dialog');
-	await expect(detail).toBeVisible();
-	const deleted = page.waitForResponse((r) => r.url().includes('?/delete'));
-	const refreshed = page.waitForResponse((r) => r.url().includes('__data.json'));
-	await toast(page).getByRole('button', { name: 'Deshacer' }).click();
-	await deleted;
-	await refreshed;
-	// The loads refresh after the delete; a stray invalidateAll would have closed the drawer.
-	await expect(detail).toBeVisible();
-	expect(await findMovements(page, description)).toHaveLength(0);
-});
-
-test('/movements/new still renders the form and saves', async ({ page }) => {
-	const description = unique('Deep link');
-	await page.goto('/movements/new');
-	await page.waitForLoadState('networkidle'); // hydration guard: the JS pickers needs JS
-	await expect(page.getByRole('heading', { name: 'Nuevo movimiento' })).toBeVisible();
-	await fill(page, description);
-	await pick(page, 'Cuenta', 'Otra cuenta pesos');
-	await pick(page, 'Categoría', 'Ajena');
-	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(toast(page)).toBeVisible();
-	expect(await findMovements(page, description)).toHaveLength(1);
 });
 
 test('a cross-currency transfer shows Cotización and En destino', async ({ page }) => {

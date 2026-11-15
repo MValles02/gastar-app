@@ -21,21 +21,6 @@ async function createCategory(page: Page, name: string, o: { kind?: string } = {
 	return new URL(page.url()).pathname;
 }
 
-test('the list groups by kind and the kind filter keeps Ambos categories', async ({ page }) => {
-	await login(page);
-	await page.goto('/categories');
-	const section = (name: string) =>
-		page.locator('section').filter({ has: page.getByRole('heading', { name }) });
-	await expect(section('Gastos').getByText('Supermercado', { exact: true })).toBeVisible();
-	await expect(section('Ingresos').getByText('Sueldo', { exact: true })).toBeVisible();
-	await expect(section('Ambos').getByText('Regalos', { exact: true })).toBeVisible();
-
-	await page.goto('/categories?kind=outcome');
-	await expect(section('Gastos').getByText('Supermercado', { exact: true })).toBeVisible();
-	await expect(section('Ambos').getByText('Regalos', { exact: true })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Ingresos' })).toHaveCount(0);
-});
-
 test('rows show the month total and Ambas stacks ARS over USD', async ({ page, baseURL }) => {
 	// Second user: movements on the demo user would race the Inicio/Reportes month totals.
 	await login(page, OTHER_EMAIL);

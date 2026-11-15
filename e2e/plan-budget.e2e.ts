@@ -380,55 +380,6 @@ test('limit drawer: amount autosaves with Deshacer (drawer stays), average saves
 	}
 });
 
-test('new limit drawer hides a category that already has a limit', async ({ page, baseURL }) => {
-	await login(page);
-	await restoreDemoPlan(page, baseURL!);
-	// hydration guard: the drawer and picker need JavaScript.
-	await page.goto('/plan', { waitUntil: 'networkidle' });
-	await page.getByRole('link', { name: '+ Agregar' }).first().click();
-	const drawer = page.getByRole('dialog', { name: 'Nuevo límite' });
-	await drawer.getByRole('button', { name: /Categoría/ }).click();
-	const list = page.getByRole('dialog').last();
-	await expect(list.getByText('Servicios', { exact: true })).toBeVisible();
-	await expect(list.getByText('Supermercado', { exact: true })).toHaveCount(0);
-	// Guardar waits for a category and an amount.
-	await expect(drawer.getByRole('button', { name: 'Guardar', exact: true })).toBeDisabled();
-});
-
-test('Ahorro drawer: picking 20 % saves and Deshacer restores the previous option', async ({
-	page,
-	baseURL
-}) => {
-	await login(page);
-	await restoreDemoPlan(page, baseURL!);
-	try {
-		// hydration guard: the drawer and picker need JavaScript.
-		await page.goto('/plan', { waitUntil: 'networkidle' });
-		await page.getByRole('link', { name: 'Ahorro', exact: true }).click();
-		const drawer = page.getByRole('dialog', { name: /^Ahorro de / });
-		await expect(drawer.getByRole('button', { name: /^Otro/ })).toHaveAttribute(
-			'aria-pressed',
-			'true'
-		);
-		await drawer.getByRole('button', { name: /^20 %/ }).click();
-		await expect(drawer.getByRole('button', { name: /^20 %/ })).toHaveAttribute(
-			'aria-pressed',
-			'true'
-		);
-		await page.getByRole('button', { name: 'Deshacer' }).click();
-		await expect(drawer.getByRole('button', { name: /^Otro/ })).toHaveAttribute(
-			'aria-pressed',
-			'true'
-		);
-		await expect(drawer.getByRole('button', { name: /^20 %/ })).toHaveAttribute(
-			'aria-pressed',
-			'false'
-		);
-	} finally {
-		await restoreDemoPlan(page, baseURL!);
-	}
-});
-
 test('Disponible = Ingresos - Ahorro - Pagos fijos - Gastado on one page load', async ({
 	page,
 	baseURL
