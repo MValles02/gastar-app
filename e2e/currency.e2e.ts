@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { login, openFilters, setCurrencyCookie } from './helpers';
 
 /** Inicio switches currency with the Pesos / Dólares pills (toggle buttons). */
+const USD_AMOUNT = /^\s*US\$\s?[\d.]+,\d{2}\s*$/;
 const PILL = { ARS: 'Pesos', USD: 'Dólares' } as const;
 const pill = (page: Page, label: 'ARS' | 'USD') =>
 	page.getByRole('button', { name: PILL[label], exact: true });
@@ -31,8 +32,10 @@ test('Inicio tab choice survives a reload and an unknown cookie reads as ARS', a
 	await choose(page, 'USD');
 	await page.reload();
 	await expect(pill(page, 'USD')).toHaveAttribute('aria-pressed', 'true');
-	await expect(page.getByText('Saldo total', { exact: true })).toBeVisible();
-	await expect(page.getByText('US$').first()).toBeVisible();
+	// The seed gives demo's USD account random movements: the balance has no fixed literal, only USD format.
+	await expect(page.locator('.col', { hasText: 'Saldo total' }).locator('.am')).toHaveText(
+		USD_AMOUNT
+	);
 
 	await setCurrencyCookie(page, baseURL!, 'EUR');
 	await page.reload();
@@ -66,35 +69,32 @@ test('an account filter on /movements wins over ?currency=USD', async ({ page })
 	const dialog = await openFilters(page);
 	await expect(dialog.getByRole('radio', { name: 'Pesos' })).toBeChecked();
 	await expect(dialog.getByRole('radio', { name: 'Pesos' })).toBeDisabled();
-	await expect(page.getByText('No hay movimientos')).toHaveCount(0);
+	const rows = page.locator('main a[href^="/movements/"]');
+	await page.keyboard.press('Escape');
+	const filtered = await rows.count();
+	expect(filtered).toBeGreaterThan(0);
+	await page.goto(`/movements?account=${id}`);
+	await expect(rows).toHaveCount(filtered);
 });
 
-test('accounts are grouped into Pesos and Dólares, and ?currency=USD shows only Dólares', async ({
+test('accounts are grouped by currency, ?currency=USD shows only Dólares, archived ones only on request', async ({
 	page
 }) => {
 	await page.goto('/accounts');
-	await expect(page.getByRole('heading', { name: 'Pesos', exact: true })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Dólares', exact: true })).toBeVisible();
-	await expect(page.getByText('Efectivo')).toBeVisible();
-	await expect(page.getByText('Ahorro USD')).toBeVisible();
+	const ars = page.locator('section[aria-labelledby="group-ARS"]');
+	const usd = page.locator('section[aria-labelledby="group-USD"]');
+	for (const name of ['Efectivo', 'Banco Galicia', 'Mercado Pago'])
+		await expect(ars).toContainText(name);
+	await expect(usd).toContainText('Ahorro USD');
+	await expect(page.getByText('Cuenta Santander (cerrada)')).toHaveCount(0);
 
 	await page.goto('/accounts?currency=USD');
-	await expect(page.getByRole('heading', { name: 'Dólares', exact: true })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Pesos', exact: true })).toHaveCount(0);
-	await expect(page.getByText('Ahorro USD')).toBeVisible();
-	await expect(page.getByText('Efectivo')).toHaveCount(0);
-});
+	await expect(usd).toContainText('Ahorro USD');
+	await expect(ars).toHaveCount(0);
 
-test('archived accounts are listed without changing the group totals', async ({ page }) => {
-	const totals = async () =>
-		page.locator('.section-head').evaluateAll((els) => els.map((el) => el.textContent?.trim()));
-	// Other workers briefly write the demo user's ARS data: read both pages again until they agree.
-	await expect(async () => {
-		await page.goto('/accounts');
-		await expect(page.getByText('Cuenta Santander (cerrada)')).toHaveCount(0);
-		const before = await totals();
-		await page.goto('/accounts?archived=1');
-		await expect(page.getByText('Cuenta Santander (cerrada)')).toBeVisible();
-		expect(await totals()).toEqual(before);
-	}).toPass({ timeout: 20_000 });
+	await page.goto('/accounts?archived=1');
+	// scripts/seed.js: the archived account's only movement is the 22.000 gym payment.
+	await expect(
+		ars.locator('[role="listitem"]', { hasText: 'Cuenta Santander (cerrada)' })
+	).toContainText('-$22.000');
 });

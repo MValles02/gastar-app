@@ -1,24 +1,20 @@
 import { expect, test, type Page } from '@playwright/test';
 import {
+	createAccount,
 	deleteMovements,
 	fillMovement,
 	fillRate,
 	login,
 	OTHER_EMAIL,
 	postDelete,
+	save,
+	unique,
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
-// Runs as otro: the demo user's current month must stay untouched (Reportes/Inicio compare its totals), and
-// every write is dated in the past so other specs' otro totals are not disturbed either.
-// Descriptions of movements and URLs of accounts this spec may have created; removed in afterEach.
+// Runs as otro, with every write dated in the past so no month total moves.
 const created: string[] = [];
 const createdAccounts: string[] = [];
-const unique = (prefix: string) => {
-	const d = `${prefix} ${Date.now()}`;
-	created.push(d);
-	return d;
-};
 
 test.beforeEach(async ({ page }) => {
 	await login(page, OTHER_EMAIL);
@@ -29,10 +25,6 @@ test.afterEach(async ({ page, baseURL }) => {
 	for (const href of createdAccounts.splice(0)) await postDelete(page, baseURL!, href);
 });
 
-const norm = (s: string | null) => (s ?? '').replace(/[\u00A0\u200B]/g, ' ').trim();
-
-const save = (page: Page) => page.getByRole('button', { name: 'Guardar', exact: true }).click();
-// A row opens the movement drawer over the list (the URL does not change).
 const openDetail = async (page: Page, desc: string, currency: 'ARS' | 'USD' = 'ARS') => {
 	await page.goto(`/movements?q=${encodeURIComponent(desc)}&currency=${currency}&all=1`);
 	await page.getByText(desc).click();
@@ -45,18 +37,18 @@ test('an ARS amount with decimals is rejected and the value kept', async ({ page
 	await fillMovement(page, {
 		type: 'Gasto',
 		amount: '1.500,50',
-		description: unique('ARS decimales'),
+		description: unique(created, 'ARS decimales'),
 		account: 'Otra cuenta pesos',
 		category: 'Ajena'
 	});
-	await save(page);
+	await save(page).click();
 	await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
 	await expect(page.locator('input[name="amount"]')).toHaveValue(/^1\.?500,50$/);
 	await expect(page).toHaveURL(/\/movements\/new$/);
 });
 
 test('USD keeps its cents', async ({ page }) => {
-	const desc = unique('USD centavos');
+	const desc = unique(created, 'USD centavos');
 	await fillMovement(page, {
 		type: 'Ingreso',
 		amount: '12,34',
@@ -65,64 +57,67 @@ test('USD keeps its cents', async ({ page }) => {
 		account: 'Otra cuenta',
 		category: 'Ajena'
 	});
-	await save(page);
+	await save(page).click();
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 	const drawer = await openDetail(page, desc, 'USD');
-	await expect(drawer.getByRole('button', { name: 'Monto: 12,34' })).toContainText(/US\$12,34/);
+	await expect(drawer.getByRole('button', { name: 'Monto: 12,34' })).toContainText('US$12,34');
 });
 
-test('an ARS whole amount shows without decimals everywhere', async ({ page }) => {
-	const desc = unique('ARS entero');
+test('an ARS whole amount shows without decimals in the list, the detail and the balance', async ({
+	page,
+	baseURL
+}) => {
+	const account = `ARS entera ${Date.now()}`;
+	const id = await createAccount(page, baseURL!, account, 'ARS', '10000');
+	createdAccounts.push(`${baseURL}/accounts/${id}`);
+	const desc = unique(created, 'ARS entero');
 	await fillMovement(page, {
 		type: 'Gasto',
 		amount: '1500',
 		date: '2024-02-29',
 		description: desc,
-		account: 'Otra cuenta pesos',
+		account,
 		category: 'Ajena'
 	});
-	await save(page);
+	await save(page).click();
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 
 	await page.goto(`/movements?q=${encodeURIComponent(desc)}&all=1`);
-	const row = page.locator('a', { hasText: desc }).locator('.row-amount');
-	expect(norm(await row.textContent())).toMatch(/^-\$1\.500$/);
-
+	const row = page.locator('a', { hasText: desc });
+	await expect(row).toContainText('-$1.500');
 	await row.click();
-	const drawer = page.getByRole('dialog');
-	await expect(drawer.getByRole('button', { name: 'Monto: 1.500' })).toHaveText(/^\s*\$1\.500\s*$/);
-
-	await page.goto('/');
-	// Optional minus: other workers' transient `otro` outcomes can push the total below zero.
-	expect(norm(await page.locator('.hero-amount').textContent())).toMatch(/^-?\$[\d.]+$/);
+	await expect(page.getByRole('dialog').getByRole('button', { name: 'Monto: 1.500' })).toHaveText(
+		/^\s*\$1\.500\s*$/
+	);
 
 	await page.goto('/accounts');
-	const acct = page
-		.locator('[role="listitem"]', { hasText: 'Otra cuenta pesos' })
-		.locator('.row-amount');
-	expect(norm(await acct.textContent())).toMatch(/^\$[\d.]+$/);
+	await expect(page.locator('[role="listitem"]', { hasText: account })).toContainText('$8.500');
 });
 
 test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate', async ({
 	page
 }) => {
-	const desc = unique('Transferencia entera');
+	const desc = unique(created, 'Transferencia entera');
 	await fillMovement(page, {
 		type: 'Transferencia',
 		amount: '10,01',
 		date: '2024-02-29',
 		description: desc,
 		account: 'Otra cuenta',
-		destination: 'Otra cuenta pesos',
-		rate: '1234,5'
+		destination: 'Otra cuenta pesos'
 	});
-	await save(page);
+	await expect(page.getByRole('button', { name: /^Categoría/ })).toHaveCount(0);
+	const dest = page.locator('p', { hasText: 'En destino' });
+	await expect(dest).toContainText('—');
+	await fillRate(page, '1234,5');
+	await save(page).click();
 	await expect(page.getByText(/en pesos enteros y mayor a cero/)).toBeVisible();
 	await expect(page).toHaveURL(/\/movements\/new$/);
 
 	await fillRate(page, '1234');
-	await expect(page.locator('p', { hasText: 'En destino' })).toContainText('$12.352');
-	await save(page);
+	await expect(dest).toContainText('$12.352');
+	await expect(page.getByRole('button', { name: /^Cotización/ })).toContainText('1 USD = $1.234');
+	await save(page).click();
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 	const drawer = await openDetail(page, desc, 'USD');
 	await expect(drawer.locator('p', { hasText: 'En destino' })).toContainText('$12.352');
@@ -135,7 +130,7 @@ test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate
 		destination: 'Otra cuenta pesos',
 		rate: '50'
 	});
-	await expect(page.locator('p', { hasText: 'En destino' })).toContainText('$1');
+	await expect(dest).toContainText('$1');
 	await fillMovement(page, {
 		type: 'Transferencia',
 		amount: '12352',
@@ -144,7 +139,7 @@ test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate
 		destination: 'Otra cuenta',
 		rate: '1234'
 	});
-	await expect(page.locator('p', { hasText: 'En destino' })).toContainText('US$10,01');
+	await expect(dest).toContainText('US$10,01');
 });
 
 test('account initial balance: ARS whole only, USD keeps cents, edit prefills the stored value', async ({
@@ -172,10 +167,9 @@ test('account initial balance: ARS whole only, USD keeps cents, edit prefills th
 	await page.goto('/accounts');
 	await page.getByRole('link', { name: /Otra cuenta pesos/ }).click();
 	await page.waitForLoadState('networkidle'); // hydration guard: the inline edit needs JS
-	// scripts/seed.js: Otra cuenta pesos starts at 500_000_00 cents; the edit prefills the stored value.
+	// scripts/seed.js: Otra cuenta pesos starts at 500.000.
 	await page.getByRole('button', { name: 'Saldo inicial: 500.000' }).click();
 	await expect(page.getByLabel('Saldo inicial')).toHaveValue('500.000');
-	// The inline edit rejects decimals in pesos and keeps the stored value.
 	await page.getByLabel('Saldo inicial').fill('100,50');
 	await page.keyboard.press('Enter');
 	await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();

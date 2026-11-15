@@ -1,27 +1,23 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import {
 	deleteMovements,
 	deleteRules,
 	fillMovement,
 	fillRule,
 	findMovements,
+	foreignIds,
 	linkId,
 	login,
 	OTHER_EMAIL,
 	pick,
 	postDelete,
+	rule,
 	WHOLE_PESOS_ERROR
 } from './helpers';
 
-const rule = (page: Page, text: string) => page.locator('.rule', { hasText: text });
-
-test('seeded rules: rent is paid and the gym is inactive', async ({ page }) => {
+test('a rule on an archived account is listed under Inactivos', async ({ page }) => {
 	await login(page);
 	await page.goto('/plan');
-	const rent = rule(page, 'Alquiler');
-	await expect(rent).toContainText('Pagado');
-	await expect(rent).toContainText('Día 3');
-
 	const inactive = page.getByRole('region', { name: 'Inactivos' });
 	await expect(inactive).toContainText('Gimnasio');
 	await expect(inactive).toContainText('Cuenta archivada');
@@ -151,16 +147,7 @@ test("another user's rule is a 404, and so is the old edit route", async ({
 	browser,
 	baseURL
 }) => {
-	const otherContext = await browser.newContext({ baseURL });
-	let id: string;
-	try {
-		const otherPage = await otherContext.newPage();
-		await login(otherPage, OTHER_EMAIL);
-		await otherPage.goto('/plan');
-		id = await linkId(otherPage.getByRole('link', { name: /Regla ajena/ }).first());
-	} finally {
-		await otherContext.close();
-	}
+	const { rule: id } = await foreignIds(browser, baseURL!);
 	await login(page);
 	expect((await page.goto(`/plan/recurring/${id}`))!.status()).toBe(404);
 	// A malformed id is a 404 too.

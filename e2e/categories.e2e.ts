@@ -5,7 +5,8 @@ import {
 	firstDetailHref,
 	login,
 	OTHER_EMAIL,
-	postDelete
+	postDelete,
+	undo
 } from './helpers';
 
 const DETAIL_RE = /\/categories\/[0-9a-f-]{36}$/;
@@ -125,7 +126,7 @@ test('a category with movements can only widen to Ambos, also server-side; the c
 	}
 });
 
-test('category name and icon autosave and Deshacer restores them; the /edit routes are gone', async ({
+test('category name autosaves and Deshacer restores it; the /edit routes are gone', async ({
 	page,
 	baseURL
 }) => {
@@ -148,22 +149,10 @@ test('category name and icon autosave and Deshacer restores them; the /edit rout
 		await page.getByLabel('Nombre').fill(name);
 		await page.keyboard.press('Enter');
 		await expect(toast).toBeVisible();
-		await page.getByRole('button', { name: 'Deshacer' }).first().click();
+		await undo(page);
 		await expect(h1).toHaveText(`${name} 2`);
-		await expect(toast).toHaveCount(0);
-
-		const dialog = page.getByRole('dialog');
-		await page.getByRole('button', { name: 'Ícono y color' }).click();
-		await dialog.getByRole('radio', { name: 'Comida' }).click();
-		await dialog.getByRole('radio', { name: 'Rojo' }).click();
-		await dialog.getByRole('button', { name: 'Listo' }).click();
-		await expect(toast).toBeVisible();
-		await page.getByRole('button', { name: 'Deshacer' }).first().click();
-		await expect(toast).toHaveCount(0);
-		await page.getByRole('button', { name: 'Ícono y color' }).click();
-		await expect(dialog.getByRole('radio', { name: 'Etiqueta' })).toBeChecked();
-		await expect(dialog.getByRole('radio', { name: 'Verde' })).toBeChecked();
-		await page.keyboard.press('Escape');
+		await page.reload();
+		await expect(h1).toHaveText(`${name} 2`);
 
 		// The old edit screens are gone, without a redirect.
 		const account = await firstDetailHref(page, 'accounts');

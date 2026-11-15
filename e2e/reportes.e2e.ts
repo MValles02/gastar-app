@@ -1,93 +1,112 @@
-import { expect, test, type Page } from '@playwright/test';
-import { login, setCurrencyCookie } from './helpers';
+import { expect, test, type Cookie, type Page } from '@playwright/test';
+import {
+	createAccount,
+	createVia,
+	monthDay,
+	post,
+	setCurrencyCookie,
+	signUpVerified
+} from './helpers';
 
-const norm = (s: string | null) => (s ?? '').replace(/\s+/g, ' ').trim();
+// One signed-up user (1 sign-up) with known movements, so every figure is a literal.
+// This month: income $100.000, outcomes $30.000 (Comida) and $10.000 (Varios); US$100,00 in, US$25,50 out.
+// Last month: income $50.000, outcome $20.000.
+let cookies: Cookie[] = [];
+
+test.beforeAll(async ({ browser, baseURL }) => {
+	const context = await browser.newContext({ baseURL });
+	try {
+		const page = await context.newPage();
+		await signUpVerified(page, context.request, {
+			email: `e2e+reportes-${Date.now()}@gastar.local`,
+			password: 'e2e-pass-1234',
+			name: 'E2E Reportes'
+		});
+		const ars = await createAccount(page, baseURL!, 'Caja rep', 'ARS');
+		const usd = await createAccount(page, baseURL!, 'Dólares rep', 'USD');
+		const category = (name: string, kind: string) =>
+			createVia(page, baseURL!, '/categories/new', { name, color: 'green', kind });
+		const food = await category('Comida rep', 'outcome');
+		const misc = await category('Varios rep', 'outcome');
+		const pay = await category('Cobro rep', 'income');
+		const thisMonth = monthDay(1, 1);
+		const lastMonth = monthDay(2);
+		for (const [type, amount, description, accountId, categoryId, occurredAt] of [
+			['income', '100.000', 'Sueldo rep', ars, pay, thisMonth],
+			['outcome', '30.000', 'Super rep', ars, food, thisMonth],
+			['outcome', '10.000', 'Kiosco rep', ars, misc, thisMonth],
+			['income', '50.000', 'Sueldo previo rep', ars, pay, lastMonth],
+			['outcome', '20.000', 'Super previo rep', ars, food, lastMonth],
+			['income', '100,00', 'Cobro USD rep', usd, pay, thisMonth],
+			['outcome', '25,50', 'Gasto USD rep', usd, food, thisMonth]
+		]) {
+			const res = await post(page, baseURL!, '/movements/new', {
+				type,
+				amount,
+				description,
+				accountId,
+				categoryId,
+				occurredAt
+			});
+			expect(res.ok()).toBe(true);
+		}
+		cookies = await context.cookies();
+	} finally {
+		await context.close();
+	}
+});
+
+test.beforeEach(async ({ page }) => {
+	await page.context().addCookies(cookies);
+});
 
 /** The value cell of a Reportes month total ("Ingresos", "Gastos", "Resultado"). */
 const total = (page: Page, name: string) =>
 	page.locator('dl.totals > div').filter({ hasText: name }).locator('dd');
 
-const amountOf = (s: string | null) => Number(norm(s).replace(/[^\d]/g, ''));
-
-/** The category rows (ListRow items) under the "Categorías" heading. */
-const rows = (page: Page) =>
-	page.locator('section[aria-labelledby="cat-heading"] [role="listitem"]');
-
-/** Goes `n` months back from the current Reportes month and returns that month (YYYY-MM). */
-async function monthsBack(page: Page, n: number) {
+test('the biggest outcome is the month’s own', async ({ page }) => {
 	await page.goto('/reports');
-	for (let i = 0; i < n; i++) {
-		const before = page.url();
-		await page.getByRole('link', { name: 'Mes anterior' }).click();
-		await expect(page).not.toHaveURL(before);
-	}
-	return new URL(page.url()).searchParams.get('month')!;
-}
+	const card = page.getByRole('link', { name: /Gasto más grande/ });
+	await expect(card).toContainText('$30.000');
+	await expect(card).toContainText('Super rep');
 
-test.beforeEach(async ({ page }) => {
-	await login(page);
+	await page.goto(`/reports?month=${monthDay(2).slice(0, 7)}`);
+	await expect(card).toContainText('$20.000');
+	await expect(card).toContainText('Super previo rep');
 });
 
-// The seed puts "Alquiler" (380.000, on the bank account) in each of the last three months,
-// clamped to today, and no other outcome comes close.
-test('ARS biggest outcome is the rent in the current month and two months back', async ({
-	page
-}) => {
-	for (const url of ['/reports', '/reports?month=' + (await monthsBack(page, 2))]) {
-		await page.goto(url);
-		const card = page.getByRole('link', { name: /Gasto más grande/ });
-		await expect(card).toContainText('$380.000');
-		await expect(card).toContainText('Alquiler');
-	}
+test('month totals in ARS and USD', async ({ page, baseURL }) => {
+	await page.goto('/reports');
+	await expect(total(page, 'Ingresos')).toContainText('$100.000');
+	await expect(total(page, 'Gastos')).toContainText('$40.000');
+	await expect(total(page, 'Resultado')).toContainText('$60.000');
+
+	await setCurrencyCookie(page, baseURL!, 'USD');
+	await page.goto('/reports');
+	await expect(total(page, 'Ingresos')).toContainText('US$100,00');
+	await expect(total(page, 'Gastos')).toContainText('US$25,50');
+	await expect(total(page, 'Resultado')).toContainText('US$74,50');
 });
 
-test('Resultado equals the Inicio month balance in ARS and USD', async ({ page, baseURL }) => {
-	for (const currency of ['ARS', 'USD'] as const) {
-		await setCurrencyCookie(page, baseURL!, currency);
-		// Specs that write current-month movements run as OTHER_EMAIL, so the demo user's month is stable.
-		await page.goto('/');
-		const inicio = norm(await page.locator('.net').textContent());
-		await page.goto('/reports');
-		expect(norm(await total(page, 'Resultado').textContent())).toBe(inicio);
-	}
-	// The seed has no USD outcomes (USD only receives income and transfers): no spending, no pesos.
-	expect(norm(await total(page, 'Gastos').textContent())).toBe('US$0,00');
-	expect(norm(await page.locator('main').innerText())).not.toMatch(/(^|[^S])\$ /);
-});
-
-test('past month totals match its six-month link; tapping a bar opens its month', async ({
-	page
-}) => {
-	await monthsBack(page, 1);
-	const selected = page.locator('ul.bars a[aria-current="true"]');
-	const totalsMatch = async () => {
-		const label = (await selected.getAttribute('aria-label'))!;
-		const [, ingresos, gastos] = /ingresos (.*), gastos (.*)$/.exec(norm(label))!;
-		// Strip the visually hidden sign Money keeps for screen readers.
-		expect(norm(await total(page, 'Ingresos').textContent()).replace(/^\+/, '')).toBe(ingresos);
-		expect(norm(await total(page, 'Gastos').textContent()).replace(/^-/, '')).toBe(gastos);
-	};
-	await totalsMatch();
-
-	// The bar before the selected one: the seed only has data in the last three months, and a
-	// six-month window without movements shows no chart.
-	const href = (await page.locator('ul.bars a').nth(-2).getAttribute('href'))!;
-	const month = new URL(href, page.url()).searchParams.get('month')!;
-	await page.locator(`ul.bars a[href="${href}"]`).click();
-	const bar = page.locator(`ul.bars a[href="${href}"]`);
+test('tapping last month’s bar opens it with its own totals', async ({ page }) => {
+	const month = monthDay(2).slice(0, 7);
+	await page.goto('/reports');
+	const bar = page.locator(`ul.bars a[href$="month=${month}"]`);
+	await bar.click();
 	await expect(page).toHaveURL(new RegExp(`\\?month=${month}$`));
 	await expect(bar).toHaveAttribute('aria-current', 'true');
-	await totalsMatch();
+	await expect(total(page, 'Ingresos')).toContainText('$50.000');
+	await expect(total(page, 'Gastos')).toContainText('$20.000');
 });
 
-// No rounding tolerance needed: the ARS slice amounts are whole pesos (formatMoney shows them exactly) and
-// the percentages use largest-remainder rounding, so they always total exactly 100.
-test('category slices sum to 100 % and to the month spending', async ({ page }) => {
+test('category slices show each share and amount', async ({ page }) => {
 	await page.goto('/reports');
-	const pcts = await rows(page).locator('.pct').allTextContents();
-	expect(pcts.length).toBeGreaterThan(0);
-	expect(pcts.reduce((a, p) => a + amountOf(p), 0)).toBe(100);
-	const amts = await rows(page).locator('.row-amount > .money').allTextContents();
-	const gastos = await total(page, 'Gastos').textContent();
-	expect(amts.reduce((a, t) => a + amountOf(t), 0)).toBe(amountOf(gastos));
+	const row = (name: string) =>
+		page
+			.locator('section[aria-labelledby="cat-heading"] [role="listitem"]')
+			.filter({ hasText: name });
+	await expect(row('Comida rep')).toContainText(/75\s?%/);
+	await expect(row('Comida rep')).toContainText('$30.000');
+	await expect(row('Varios rep')).toContainText(/25\s?%/);
+	await expect(row('Varios rep')).toContainText('$10.000');
 });

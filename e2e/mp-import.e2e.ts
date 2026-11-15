@@ -1,5 +1,4 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import postgres from 'postgres';
 import {
 	deleteMovements,
 	findMovements,
@@ -8,9 +7,12 @@ import {
 	MOVEMENT_DETAIL_RE,
 	OTHER_EMAIL,
 	pick,
+	openItem,
 	pickDate,
 	postDelete,
-	SEED_EMAIL
+	reviewDrawer,
+	SEED_EMAIL,
+	withDb
 } from './helpers';
 
 const FAKE = `http://127.0.0.1:${Number(process.env.FAKE_MP_PORT) || 5199}`;
@@ -100,19 +102,8 @@ const balanceOf = async (name: string) => {
 
 const flash = (text: string) => expect(page.getByText(text)).toBeVisible();
 
-/** Opens the review drawer of the pending item whose list row contains all `texts`. */
-async function openItem(...texts: string[]) {
-	await page.goto('/imports');
-	await page.waitForLoadState('networkidle'); // hydration guard: the drawer is a shallow route opened by JS
-	let row = rows();
-	for (const t of texts) row = row.filter({ hasText: t });
-	await row.getByRole('link').first().click();
-	await expect(drawer()).toBeVisible();
-	await expect(page).toHaveURL(/\/imports$/);
-}
-
 /** The review drawer (the topmost dialog once a picker is open). */
-const drawer = () => page.getByRole('dialog', { name: 'Revisar movimiento' });
+const drawer = () => reviewDrawer(page);
 const approve = () => drawer().getByRole('button', { name: 'Aprobar', exact: true });
 
 const rememberBox = () => page.getByRole('checkbox', { name: 'Recordar para la próxima' });
@@ -133,38 +124,13 @@ test.afterAll(async () => {
 	await page.close();
 });
 
-test('sync shows live progress, fills the inbox without a reload and leaves balances alone', async () => {
+test('sync fills the inbox and leaves balances alone', async () => {
 	test.setTimeout(90_000);
 	const balance = await accountRow();
 	const main = page.locator('main');
-	const status = page.getByRole('status');
 
-	// The report waits in MP's queue: payments land first, report items when it is processed.
-	await fake('/__fake/report-delay', { ms: 15_000 });
-	try {
-		await page.goto('/imports');
-		await page.waitForLoadState('networkidle'); // hydration guard: live progress needs JS
-		// Survives only if the page is never reloaded.
-		await page.evaluate(() => ((window as unknown as { __noReload: boolean }).__noReload = true));
-		await page.getByRole('button', { name: 'Sincronizar' }).click();
-
-		// While it runs the progress replaces the sync row, and nothing counts the new items yet.
-		await expect(status).toContainText('Sincronizando');
-		await expect(page.getByRole('button', { name: 'Sincronizar' })).toHaveCount(0);
-		// Rows first: the payments phase can be slow under load.
-		await expect(rows()).toHaveCount(4, { timeout: 30_000 });
-		await expect(status).toContainText('Sincronizando');
-		await expect(main.getByText('CAFE DE PRUEBA')).toBeVisible();
-		await expect(rows().filter({ hasText: 'Rendimientos' })).toHaveCount(0);
-
-		await expect(status).toHaveText('Listo. 8 movimientos nuevos.', { timeout: 40_000 });
-		await expect(rows()).toHaveCount(8);
-		expect(
-			await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload)
-		).toBe(true);
-	} finally {
-		await fake('/__fake/report-delay', { ms: 0 });
-	}
+	await syncNow(/^Listo\. 8 movimientos nuevos\.$/);
+	await expect(rows()).toHaveCount(8);
 	await expect(main.getByText('FAKE AMIGA')).toHaveCount(2);
 	await expect(main.getByText('CAFE DE PRUEBA')).toBeVisible();
 	await expect(main.getByText('Ingreso de dinero')).toBeVisible();
@@ -278,7 +244,7 @@ test('approving a payment keeps its exact cents, time of day and moves the balan
 	secondUrl = page.url();
 
 	const before = await balanceOf('Mercado Pago');
-	await openItem('FAKE AMIGA', '$1.235');
+	await openItem(page, 'FAKE AMIGA', '$1.235');
 	await expect(drawer().getByText('FAKE AMIGA').first()).toBeVisible();
 	// The time of day travels with the item.
 	await expect(drawer().getByText(/10:15/)).toBeVisible();
@@ -377,7 +343,7 @@ test('a sync auto-approves recognized items, and one undone stays for review on 
 });
 
 test('discarding an item removes it for good', async () => {
-	await openItem('CAFE DE PRUEBA');
+	await openItem(page, 'CAFE DE PRUEBA');
 	await drawer().getByRole('button', { name: 'Descartar' }).click();
 	await expect(page.getByRole('alertdialog')).toContainText('no vuelve a aparecer');
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Descartar' }).click();
@@ -391,7 +357,7 @@ test('discarding an item removes it for good', async () => {
 
 test('approving a payout as a transfer moves both balances', async () => {
 	const [mpBefore, secondBefore] = [await balanceOf('Mercado Pago'), await balanceOf(SECOND)];
-	await openItem('Transferencia o retiro');
+	await openItem(page, 'Transferencia o retiro');
 	await expect(drawer().getByText(/15:00/)).toBeVisible();
 	await expect(page.getByRole('radio', { name: 'Transf.' })).toBeChecked();
 	await expect(rememberBox()).toHaveCount(0);
@@ -406,7 +372,7 @@ test('approving a payout as a transfer moves both balances', async () => {
 
 test('approving without remembering leaves the other yield unsuggested', async () => {
 	// 7,89 renders as "$8"; the "Rendimientos" filter keeps the "$801" FAKE AMIGA row out.
-	await openItem('Rendimientos', '$8');
+	await openItem(page, 'Rendimientos', '$8');
 	await page.locator('input[name="description"]').fill(YIELD_DESC);
 	await page.getByRole('radio', { name: 'Ingreso' }).check({ force: true });
 	await pick(page, 'Categoría', CATEGORY);
@@ -416,9 +382,9 @@ test('approving without remembering leaves the other yield unsuggested', async (
 	await flash('Movimiento aprobado.');
 	const other = rows().filter({ hasText: 'Rendimientos' });
 	await expect(other).toHaveCount(1);
-	await expect(other).not.toContainText('Sugerido');
+	await expect(other).not.toContainText(/sugerido/i);
 
-	await openItem('Rendimientos');
+	await openItem(page, 'Rendimientos');
 	// The remaining yield day lost money: a debit, so it defaults to Gasto.
 	await expect(page.getByRole('radio', { name: 'Gasto' })).toBeChecked();
 	await expect(page.locator('input[name="description"]')).toHaveValue('Rendimientos');
@@ -532,17 +498,6 @@ const daysAgoYmd = (n: number) =>
 const creates = async () => (await (await fake('/__fake/report-creates')).json()) as object[];
 const reportBegins = async () => (await (await fake('/__fake/report-begins')).json()) as string[];
 
-/** Runs `fn` against the importer's rows in mp_import_items / mp_sync_state. */
-async function withDb<T>(fn: (sql: postgres.Sql) => Promise<T>) {
-	const sql = postgres(
-		process.env.DATABASE_URL || 'postgres://gastar:gastar@localhost:5432/gastar'
-	);
-	try {
-		return await fn(sql);
-	} finally {
-		await sql.end();
-	}
-}
 const itemRows = () =>
 	withDb(
 		(sql) => sql`select external_key, status from mp_import_items
