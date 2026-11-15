@@ -6,7 +6,7 @@ import { looksLikeUuid } from './toast-flags';
 
 /**
  * Success toast with a single "Deshacer" action: runs `undo`, then refreshes the loads (`refreshAll`, which keeps a shallow-route drawer open). A failed undo
- * shows an error toast; a successful one adds none.
+ * shows an error toast; a successful one adds none, and a failed refresh after it is ignored.
  */
 export function undoToast(message: string, undo: () => Promise<void>) {
 	toast.success(message, {
@@ -16,10 +16,12 @@ export function undoToast(message: string, undo: () => Promise<void>) {
 			onClick: async () => {
 				try {
 					await undo();
-					await refreshAll();
 				} catch {
 					toast.error('No se pudo deshacer.');
+					return;
 				}
+				// The undo went through: a failed refresh is not an undo failure; the next navigation reloads.
+				await refreshAll().catch(() => {});
 			}
 		}
 	});
