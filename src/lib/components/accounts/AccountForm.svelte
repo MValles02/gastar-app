@@ -1,15 +1,11 @@
 <script lang="ts">
-	import { onMount, tick, untrack } from 'svelte';
-	import { toast } from 'svelte-sonner';
-	import { enhance } from '$app/forms';
+	import { untrack } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { followRedirect } from '#lib/nav-stack.svelte.ts';
 	import { NAME_MAX_LENGTH } from '#lib/fields.ts';
 	import { ACCOUNT_ICONS, type AccountIconKey, type SwatchKey } from '#lib/appearance.ts';
 	import * as Field from '#lib/components/ui/field/index.js';
-	import { Button } from '#lib/components/ui/button/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
-	import FormActions from '#lib/components/FormActions.svelte';
+	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import IconBadge from '#lib/components/IconBadge.svelte';
 	import IconColorDrawer from '#lib/components/IconColorDrawer.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
@@ -17,6 +13,7 @@
 	type Values = Partial<
 		Record<'name' | 'currency' | 'initialBalance' | 'icon' | 'color', string | null>
 	>;
+	type Errors = Partial<Record<keyof Values, string>>;
 
 	/**
 	 * The new-account form. `drawer`: the "Nueva cuenta" drawer (Guardar waits for a name, posts to
@@ -30,7 +27,7 @@
 		onclose
 	}: {
 		initial: Values;
-		errors?: Partial<Record<keyof Values, string>>;
+		errors?: Errors;
 		variant?: 'page' | 'drawer';
 		/** Drawer: the save succeeded. */
 		onsaved?: () => void;
@@ -51,44 +48,22 @@
 	let color = $state(untrack(() => (initial.color ?? 'green') as SwatchKey));
 	let glyphOpen = $state(false);
 	let mounted = $state(false);
-	let submitting = $state(false);
-	onMount(() => (mounted = true));
 
 	// Errors from the drawer's post; the page shows the server-rendered `errors` instead.
-	let fieldErrors = $state<typeof errors>({});
+	let fieldErrors = $state<Errors>({});
 	const shown = $derived({ ...errors, ...fieldErrors });
-
-	// After a failed submit, move focus to the first field marked invalid.
-	const focusFirstError = () =>
-		tick().then(() => document.querySelector<HTMLElement>('form [aria-invalid="true"]')?.focus());
-	$effect(() => {
-		if (Object.values(errors).some(Boolean)) focusFirstError();
-	});
 </script>
 
-<form
-	method="POST"
+<FormShell
 	action={drawer ? resolve('accounts/new') : ''}
-	class="form"
-	class:drawer
-	novalidate
-	use:enhance={() => {
-		submitting = true;
-		return async (input) => {
-			if (!drawer) {
-				await followRedirect(input);
-				submitting = false;
-				return;
-			}
-			const { result } = input;
-			if (result.type === 'redirect') onsaved?.();
-			else if (result.type === 'failure') {
-				fieldErrors = (result.data?.errors ?? {}) as typeof errors;
-				focusFirstError();
-			} else toast.error('No se pudo guardar.');
-			submitting = false;
-		};
-	}}
+	{variant}
+	{errors}
+	onfailure={(data: { errors?: Errors }) => (fieldErrors = data.errors ?? {})}
+	{onsaved}
+	{onclose}
+	cancelHref="/accounts"
+	canSave={!!name.trim()}
+	bind:mounted
 >
 	<div class="head">
 		{#if mounted}
@@ -153,23 +128,7 @@
 			<p class="error" id="balance-error" role="alert">{shown.initialBalance}</p>
 		{/if}
 	</Field.Field>
-
-	{#if drawer}
-		<div class="actions">
-			<Button
-				type="button"
-				variant="outline"
-				class="min-w-0 flex-1 basis-0"
-				onclick={() => onclose?.()}>Cancelar</Button
-			>
-			<Button type="submit" class="min-w-0 flex-1 basis-0" disabled={!name.trim() || submitting}
-				>Guardar</Button
-			>
-		</div>
-	{:else}
-		<FormActions cancelHref="/accounts" submitLabel="Guardar" {submitting} />
-	{/if}
-</form>
+</FormShell>
 
 <IconColorDrawer
 	bind:open={glyphOpen}
@@ -184,13 +143,6 @@
 />
 
 <style>
-	.form {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-		padding-top: var(--space-1);
-	}
-
 	.head {
 		display: flex;
 		align-items: center;
@@ -219,11 +171,6 @@
 		font-size: 0.8125rem;
 		font-weight: 500;
 		color: var(--text-muted);
-	}
-
-	.actions {
-		display: flex;
-		gap: var(--space-3);
 	}
 
 	.error {

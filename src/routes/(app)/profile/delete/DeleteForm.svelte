@@ -1,11 +1,6 @@
 <script lang="ts">
-	import { tick } from 'svelte';
-	import { toast } from 'svelte-sonner';
-	import { enhance } from '$app/forms';
-	import { followRedirect } from '#lib/nav-stack.svelte.ts';
 	import { PASSWORD_MAX_LENGTH } from '#lib/fields.ts';
-	import { Button } from '#lib/components/ui/button/index.js';
-	import FormActions from '#lib/components/FormActions.svelte';
+	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import PasswordInput from '#lib/components/PasswordInput.svelte';
 
 	type Summary = { accounts: number; movements: number; categories: number; hasPlan: boolean };
@@ -27,7 +22,6 @@
 		onclose?: () => void;
 	} = $props();
 
-	const drawer = $derived(variant === 'drawer');
 	const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 	// Only what applies: nothing is listed for an empty user.
@@ -47,34 +41,23 @@
 	});
 
 	let password = $state('');
-	let submitting = $state(false);
 	// The drawer's post reports the failure here; the page shows the server-rendered one.
 	let posted = $state<string | undefined>();
 	const message = $derived(posted ?? error);
 </script>
 
-<form
-	method="POST"
+<FormShell
 	action="/profile/delete?/delete"
-	class="form"
-	novalidate
-	use:enhance={() => {
-		submitting = true;
-		posted = undefined;
-		return async (input) => {
-			const { result } = input;
-			if (result.type === 'failure') {
-				posted = (result.data as { formError?: string } | undefined)?.formError;
-				await tick();
-				document.querySelector<HTMLElement>('form [aria-invalid="true"]')?.focus();
-			} else if (result.type === 'error') {
-				toast.error('No se pudo darte de baja.');
-			} else {
-				await followRedirect(input);
-			}
-			submitting = false;
-		};
-	}}
+	{variant}
+	inPlace
+	onsubmit={() => (posted = undefined)}
+	onfailure={(data: { formError?: string }) => (posted = data.formError)}
+	{onclose}
+	errorToast="No se pudo darte de baja."
+	cancelHref="/profile"
+	submitLabel="Darme de baja"
+	canSave={!!password}
+	danger
 >
 	<div class="warn">
 		<p>Se borran para siempre tu usuario y todos tus datos:</p>
@@ -102,44 +85,9 @@
 	</div>
 
 	<p class="final">No se puede deshacer.</p>
-
-	{#if drawer}
-		<div class="actions">
-			<Button
-				type="button"
-				variant="outline"
-				class="min-w-0 flex-1 basis-0"
-				onclick={() => onclose?.()}>Cancelar</Button
-			>
-			<Button
-				type="submit"
-				variant="danger"
-				class="min-w-0 flex-1 basis-0 whitespace-normal"
-				disabled={!password || submitting}>Darme de baja</Button
-			>
-		</div>
-	{:else}
-		<FormActions cancelHref="/profile" sticky={false}>
-			{#snippet primary()}
-				<Button
-					type="submit"
-					variant="danger"
-					class="min-w-0 flex-1 basis-0 whitespace-normal"
-					disabled={submitting}>Darme de baja</Button
-				>
-			{/snippet}
-		</FormActions>
-	{/if}
-</form>
+</FormShell>
 
 <style>
-	.form {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-		padding-top: var(--space-1);
-	}
-
 	.warn {
 		display: flex;
 		flex-direction: column;
@@ -173,10 +121,5 @@
 	.final {
 		font-size: 0.9375rem;
 		font-weight: 600;
-	}
-
-	.actions {
-		display: flex;
-		gap: var(--space-3);
 	}
 </style>
