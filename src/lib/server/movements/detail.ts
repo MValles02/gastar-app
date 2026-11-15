@@ -1,7 +1,7 @@
 import { formFail } from '#lib/form.ts';
 import type { Currency } from '#lib/money.ts';
 import { NEW_MOVEMENT_PATH } from '#lib/movement.ts';
-import { TOAST_FLAGS } from '#lib/url-flags.ts';
+import { TOAST_FLAGS, withSavedMovement } from '#lib/toast-flags.ts';
 import { dayOfMonth } from '#lib/dates.ts';
 import { withBalances } from '../accounts/balance';
 import { accountOriginSums, accountTransfersIn, listAccounts } from '../accounts/queries';
@@ -86,8 +86,8 @@ export async function detailOf(userId: string, id: string) {
 
 /** What `update` and `link` hand back: the parts of the detail the client replaces. */
 export async function savedSlice(userId: string, id: string) {
-	const { movement, rules } = await detailOf(userId, id);
-	return { movement, rules };
+	const { movement, rules, values } = await detailOf(userId, id);
+	return { movement, rules, values };
 }
 
 /**
@@ -186,8 +186,7 @@ export async function createNewMovement(userId: string, row: MovementRow, fd: Fo
 		[{ id: movementId }] = await createMovement(userId, row);
 	}
 	const back = originPath(fd.get('returnTo'), base);
-	const ruleFlag = ruleId ? `&rule=${ruleId}` : '';
-	if (!back) return `${NEW_MOVEMENT_PATH}?saved=${movementId}${ruleFlag}`;
-	const flags = `movementSaved=${movementId}${ruleFlag}`;
-	return `${back}${back.includes('?') ? '&' : '?'}${flags}`;
+	return back
+		? withSavedMovement(back, 'movementSaved', movementId, ruleId)
+		: withSavedMovement(NEW_MOVEMENT_PATH, 'saved', movementId, ruleId);
 }

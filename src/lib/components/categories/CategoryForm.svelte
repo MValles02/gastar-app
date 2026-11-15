@@ -15,6 +15,7 @@
 	import { resolve } from '$app/paths';
 	import { NAME_MAX_LENGTH } from '#lib/fields.ts';
 	import { KIND_OPTIONS } from '#lib/movement.ts';
+	import { createdId } from '#lib/toast-flags.ts';
 	import { CATEGORY_ICONS, toCategoryIconKey } from '#lib/appearance.ts';
 	import * as Field from '#lib/components/ui/field/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
@@ -64,7 +65,7 @@
 
 	function created(location: string) {
 		oncreated?.({
-			id: location.split('/').pop()!,
+			id: createdId(location),
 			name: name.trim(),
 			icon,
 			color,

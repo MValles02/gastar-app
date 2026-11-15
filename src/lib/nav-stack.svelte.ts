@@ -2,7 +2,7 @@ import type { ActionResult } from '$app/forms';
 /* eslint-disable svelte/prefer-svelte-reactivity -- URLs here are parsed and compared, never mutated or rendered */
 import { goto, refreshAll, type AfterNavigate, type OnNavigate } from '$app/navigation';
 import { isModifiedClick } from '#lib/open-shallow.ts';
-import { TOAST_FLAGS } from '#lib/url-flags.ts';
+import { TOAST_FLAGS } from '#lib/toast-flags.ts';
 
 /**
  * In-memory mirror of this tab's history entries inside the app (pathname + search), so "up"

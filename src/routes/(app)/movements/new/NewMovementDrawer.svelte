@@ -49,16 +49,7 @@
 	{:else}
 		<MovementForm
 			variant="drawer"
-			initial={{
-				type: 'outcome',
-				amount: '',
-				description: '',
-				accountId: data.defaultAccountId,
-				destinationAccountId: '',
-				exchangeRate: '',
-				categoryId: '',
-				occurredAt: data.now
-			}}
+			initial={data.values}
 			accounts={data.accounts}
 			categories={data.categories}
 			submitLabel="Guardar"

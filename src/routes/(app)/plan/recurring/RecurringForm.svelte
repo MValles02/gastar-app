@@ -9,6 +9,7 @@
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
 	import { isPositiveAmount } from '#lib/money.ts';
+	import { categoriesFor } from '#lib/movement.ts';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 	type Fields = 'type' | 'description' | 'amount' | 'accountId' | 'categoryId' | 'dayOfMonth';
@@ -66,11 +67,8 @@
 	const shown = $derived({ ...errors, ...fieldErrors });
 
 	// The rule's own saved category stays pickable.
-	const pickableCategories = $derived(
-		categories.filter(
-			(c) => c.kind === null || c.kind === type || c.id === untrack(() => initial.categoryId)
-		)
-	);
+	const savedCategoryId = untrack(() => initial.categoryId);
+	const pickableCategories = $derived(categoriesFor(categories, type, savedCategoryId));
 	$effect(() => {
 		if (categoryId && !pickableCategories.some((c) => c.id === categoryId)) categoryId = '';
 	});

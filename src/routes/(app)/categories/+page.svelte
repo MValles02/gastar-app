@@ -19,6 +19,7 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import { CURRENCIES, type Currency } from '#lib/money.ts';
 	import { KIND_OPTIONS } from '#lib/movement.ts';
+	import { listRowShown } from '#lib/list-filter.ts';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -35,11 +36,7 @@
 		currency = data.filters.currency;
 	});
 	// Currency only changes which amounts a row shows, not which rows are listed.
-	const count = $derived(
-		data.facets.filter(
-			(c) => c.match && (archived || !c.archived) && (!kind || c.kind === kind || c.kind === null)
-		).length
-	);
+	const count = $derived(data.facets.filter((c) => listRowShown(c, { archived, kind })).length);
 	const clear = () => {
 		archived = false;
 		kind = '';

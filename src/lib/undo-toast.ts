@@ -1,7 +1,7 @@
 import { toast } from 'svelte-sonner';
 import { refreshAll } from '$app/navigation';
 
-const UUID = /^[0-9a-f-]{36}$/;
+import { looksLikeUuid } from './toast-flags';
 
 /**
  * Success toast with a single "Deshacer" action: runs `undo`, then refreshes the loads (`refreshAll`, which keeps a shallow-route drawer open). A failed undo
@@ -38,7 +38,7 @@ async function postAction(path: string) {
 /** "Movimiento guardado." with Deshacer: deletes the movement (and the rule a repeat save created) through the existing delete actions. */
 export function undoMovementSaved(id: string, ruleId?: string | null) {
 	// The rule id comes from the URL: only a UUID reaches the fetch path.
-	const rule = ruleId && UUID.test(ruleId) ? ruleId : null;
+	const rule = ruleId && looksLikeUuid(ruleId) ? ruleId : null;
 	undoToast('Movimiento guardado.', async () => {
 		await postAction(`/movements/${id}?/delete`);
 		if (rule) await postAction(`/plan/recurring/${rule}?/delete`);

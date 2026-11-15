@@ -19,6 +19,7 @@ import { isUuid } from '#lib/server/db/util.ts';
 import { pgErrorCode } from '#lib/server/db/errors.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
+import { IMPORT_DONE } from '#lib/toast-flags.ts';
 
 /** "Recién", "Hace 5 min", "Hace 2 h", "Hace 3 d". */
 function agoLabel(at: Date, now: Date): string {
@@ -28,8 +29,6 @@ function agoLabel(at: Date, now: Date): string {
 	if (min < 24 * 60) return `Hace ${Math.floor(min / 60)} h`;
 	return `Hace ${Math.floor(min / (24 * 60))} d`;
 }
-
-const DONE = ['approved', 'rejected', 'stale'] as const;
 
 const APPROVE_FAILED = 'No se pudo aprobar.';
 
@@ -120,7 +119,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		autoApproved: sync?.autoApproved ?? null,
 		lastError: sync?.lastError ?? null,
 		lastRun: sync?.lastRunAt ? agoLabel(sync.lastRunAt, now) : null,
-		done: DONE.find((d) => d === done) ?? null,
+		done: IMPORT_DONE.find((d) => d === done) ?? null,
 		groups,
 		// Approved automatically in the last 30 days; the line opens their list (/imports/auto).
 		autoCount: autoRows.length

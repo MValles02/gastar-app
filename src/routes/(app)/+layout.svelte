@@ -10,6 +10,7 @@
 	import TabBar from '#lib/components/TabBar.svelte';
 	import { highlightMovement } from '#lib/highlight.svelte.ts';
 	import { undoMovementSaved } from '#lib/undo-toast.ts';
+	import { looksLikeUuid, savedMovement } from '#lib/toast-flags.ts';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -32,7 +33,7 @@
 	// Saving a new movement returns to the screen it was opened from with ?movementSaved=<id>: toast
 	// once (Deshacer deletes it), then strip the flag so a reload does not toast again. Without
 	// JavaScript the server-rendered status stands in until hydration.
-	const movementSaved = $derived(page.url.searchParams.get('movementSaved'));
+	const saved = $derived(savedMovement(page.url.searchParams, 'movementSaved'));
 	let hydrated = $state(false);
 	onMount(() => {
 		hydrated = true;
@@ -48,14 +49,14 @@
 	afterNavigate(({ shallow, type }) => {
 		if (shallow && type === 'goto') return;
 		settleEdgeSwipe();
-		if (!movementSaved) return;
+		const { id, ruleId } = saved;
+		if (!id) return;
 		// Once per saved id, however many navigations land before the flag is stripped.
-		if (movementSaved !== toasted) {
-			toasted = movementSaved;
-			if (/^[0-9a-f-]{36}$/.test(movementSaved))
-				undoMovementSaved(movementSaved, page.url.searchParams.get('rule'));
+		if (id !== toasted) {
+			toasted = id;
+			if (looksLikeUuid(id)) undoMovementSaved(id, ruleId);
 			else toast.success('Movimiento guardado.');
-			highlightMovement(movementSaved);
+			highlightMovement(id);
 		}
 		void stripFlags();
 	});
@@ -63,7 +64,7 @@
 
 <div class="shell">
 	<main class="content" class:with-bar={showBar} use:edgeSwipeBack>
-		{#if movementSaved && !hydrated}
+		{#if saved.id && !hydrated}
 			<p role="status" class="saved">Movimiento guardado.</p>
 		{/if}
 		{@render children()}

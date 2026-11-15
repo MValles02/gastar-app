@@ -1,25 +1,23 @@
 <script lang="ts">
 	import { MIN_DAY } from '#lib/dates.ts';
 	import type { Currency } from '#lib/money.ts';
-	import { MOVEMENT_MESSAGES } from '#lib/movement.ts';
-	import { onMount, tick, untrack, type ComponentProps } from 'svelte';
-	import { toast } from 'svelte-sonner';
-	import { enhance } from '$app/forms';
-	import { followRedirect } from '#lib/nav-stack.svelte.ts';
+	import { categoriesFor, MOVEMENT_MESSAGES, movementNeeds } from '#lib/movement.ts';
+	import { savedMovement } from '#lib/toast-flags.ts';
+	import { untrack, type ComponentProps } from 'svelte';
+	import Plus from '@lucide/svelte/icons/plus';
 	import { resolve } from '$app/paths';
 	import AmountHero from '#lib/components/AmountHero.svelte';
 	import CategoryCreateDrawer from '#lib/components/categories/CategoryCreateDrawer.svelte';
 	import type { CreatedCategory } from '#lib/components/categories/CategoryForm.svelte';
 	import EntryFields from '#lib/components/EntryFields.svelte';
-	import FormActions from '#lib/components/FormActions.svelte';
+	import FormShell from '#lib/components/forms/FormShell.svelte';
+	import CrossCurrencyRows from '#lib/components/movements/CrossCurrencyRows.svelte';
 	import MovementDatePicker from '#lib/components/MovementDatePicker.svelte';
 	import OptionPicker from '#lib/components/OptionPicker.svelte';
 	import SwitchRow from '#lib/components/SwitchRow.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
-	import { Button } from '#lib/components/ui/button/index.js';
+	import TextRow from '#lib/components/TextRow.svelte';
 	import { convertInput, isPositiveAmount, isValidRate, parseAmount } from '#lib/money.ts';
-	import CategoryRow from './CategoryRow.svelte';
-	import TransferRows from './TransferRows.svelte';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 	type Fields =
@@ -31,6 +29,7 @@
 		| 'exchangeRate'
 		| 'categoryId'
 		| 'occurredAt';
+	type Errors = Partial<Record<Fields, string>>;
 
 	let {
 		initial,
@@ -47,7 +46,7 @@
 		onclose
 	}: {
 		initial: Record<Fields, string>;
-		errors?: Partial<Record<Fields, string>>;
+		errors?: Errors;
 		accounts: (Picker & { currency: Currency; balance?: number })[];
 		categories: (Picker & { kind: string | null })[];
 		submitLabel: string;
@@ -89,9 +88,7 @@
 		transfer: 'Ej.: Carga Mercado Pago'
 	} as const;
 
-	let submitting = $state(false);
 	let mounted = $state(false);
-	onMount(() => (mounted = true));
 
 	let type = $state(untrack(() => initial.type || 'outcome'));
 	let accountId = $state(untrack(() => initial.accountId));
@@ -101,10 +98,11 @@
 	let amount = $state(untrack(() => initial.amount));
 	let description = $state(untrack(() => initial.description));
 	let rate = $state(untrack(() => initial.exchangeRate));
+	const savedCategoryId = untrack(() => initial.categoryId);
 
 	// Errors found in the drawer (before posting, or in the action's answer); the page shows the
 	// server-rendered `errors` instead.
-	let fieldErrors = $state<Partial<Record<Fields, string>>>({});
+	let fieldErrors = $state<Errors>({});
 	const shown = $derived({ ...errors, ...fieldErrors });
 	// A row's error goes away as soon as that row gets a different value.
 	const values = $derived<Record<Fields, string>>({
@@ -146,20 +144,6 @@
 	const showTransfer = $derived(!mounted || isTransfer);
 	const showCategory = $derived(!mounted || !isTransfer);
 
-	const focusFirstError = () =>
-		tick().then(() => {
-			document
-				.querySelector<HTMLElement>(
-					'form [aria-invalid="true"], form button[aria-describedby$="-error"]'
-				)
-				?.focus();
-		});
-
-	// After a failed submit, move focus to the first field marked invalid (inputs or picker triggers).
-	$effect(() => {
-		if (Object.values(errors).some(Boolean)) focusFirstError();
-	});
-
 	$effect(() => {
 		if (destinationId && destinationId === accountId) destinationId = '';
 	});
@@ -167,11 +151,7 @@
 	// Without JS the type changes without a reload, so every category is listed (the server validates).
 	// A category already saved on this movement or rule stays pickable.
 	const pickableCategories = $derived(
-		!mounted || isTransfer
-			? allCategories
-			: allCategories.filter(
-					(c) => c.kind === null || c.kind === type || c.id === untrack(() => initial.categoryId)
-				)
+		!mounted || isTransfer ? allCategories : categoriesFor(allCategories, type, savedCategoryId)
 	);
 	$effect(() => {
 		if (categoryId && !pickableCategories.some((c) => c.id === categoryId)) categoryId = '';
@@ -186,13 +166,12 @@
 
 	const originCurrency = $derived(accounts.find((a) => a.id === accountId)?.currency);
 	const destCurrency = $derived(accounts.find((a) => a.id === destinationId)?.currency);
-	const crossCurrency = $derived(
-		!!originCurrency && !!destCurrency && originCurrency !== destCurrency
+	const needs = $derived(
+		movementNeeds(type, { origin: originCurrency, destination: destCurrency })
 	);
-	const showRate = $derived(isTransfer && crossCurrency);
 
 	const converted = $derived(
-		showRate && originCurrency && destCurrency
+		needs.rate && originCurrency && destCurrency
 			? convertInput(amount, rate, originCurrency, destCurrency)
 			: null
 	);
@@ -200,102 +179,25 @@
 	// Drawer: Guardar waits for the two fields every movement needs; the rest is checked on press.
 	const canSave = $derived(isPositiveAmount(amount) && description.trim() !== '');
 
-	/** The rows still missing a value (drawer): same fields and messages as the server. */
-	function missing() {
-		const e: Partial<Record<Fields, string>> = {};
+	/** Drawer: posts only once every row has a value (same fields and messages as the server). */
+	function validate() {
+		const e: Errors = {};
 		if (!accountId) e.accountId = MOVEMENT_MESSAGES.account;
-		if (isTransfer) {
+		if (needs.destination) {
 			if (!destinationId) e.destinationAccountId = MOVEMENT_MESSAGES.destination;
-			if (showRate && !isValidRate(parseAmount(rate))) e.exchangeRate = MOVEMENT_MESSAGES.rate;
-		} else if (!categoryId) e.categoryId = MOVEMENT_MESSAGES.category;
-		return e;
+			if (needs.rate && !isValidRate(parseAmount(rate))) e.exchangeRate = MOVEMENT_MESSAGES.rate;
+		} else if (needs.category && !categoryId) e.categoryId = MOVEMENT_MESSAGES.category;
+		if (Object.keys(e).length === 0) return true;
+		fieldErrors = e;
+		return false;
+	}
+
+	function saved(location: string) {
+		const sp = new URL(location, window.location.href).searchParams;
+		const back = savedMovement(sp, 'movementSaved');
+		onsaved?.({ id: back.id ?? savedMovement(sp, 'saved').id ?? '', ruleId: back.ruleId });
 	}
 </script>
-
-{#snippet fields()}
-	{#if returnTo}<input type="hidden" name="returnTo" value={returnTo} />{/if}
-
-	<div class="field" class:centered={drawer}>
-		<span id="type-label" class="visually-hidden">Tipo</span>
-		<SegmentedControl name="type" options={typeOptions} bind:value={type} labelledby="type-label" />
-		{#if shown.type}<p class="error" role="alert">{shown.type}</p>{/if}
-	</div>
-
-	<AmountHero
-		bind:value={amount}
-		currency={originCurrency}
-		error={shown.amount}
-		autofocus
-		color={drawer ? AMOUNT_COLOR[type as keyof typeof AMOUNT_COLOR] : undefined}
-	/>
-
-	<EntryFields
-		bind:description
-		descriptionId="description"
-		descriptionError={shown.description}
-		placeholder={DESCRIPTION_PLACEHOLDER[type as keyof typeof DESCRIPTION_PLACEHOLDER]}
-		outlineErrors={drawer}
-		extra={repeatable && showCategory ? repeat : undefined}
-	>
-		{#snippet account()}
-			<li class:bad={shown.accountId}>
-				<OptionPicker
-					name="accountId"
-					legend={isTransfer ? 'Desde' : 'Cuenta'}
-					title={isTransfer ? 'Desde' : 'Cuenta'}
-					items={accountItems}
-					bind:value={accountId}
-					nested={drawer}
-					placeholder="Elegir"
-					error={shown.accountId}
-					errorId="account-error"
-				>
-					{#snippet empty()}<p class="hint pad">Todavía no tenés cuentas.</p>{/snippet}
-				</OptionPicker>
-			</li>
-
-			<TransferRows
-				{showTransfer}
-				{showRate}
-				{mounted}
-				{drawer}
-				{accountItems}
-				{accountId}
-				{destCurrency}
-				{converted}
-				{shown}
-				bind:destinationId
-				bind:rate
-			/>
-		{/snippet}
-
-		{#snippet category()}
-			<CategoryRow
-				{showCategory}
-				{mounted}
-				{drawer}
-				{pickableCategories}
-				{shown}
-				bind:categoryId
-				oncreate={() => (createOpen = true)}
-			/>
-		{/snippet}
-
-		{#snippet when()}
-			<li class:bad={shown.occurredAt}>
-				<MovementDatePicker
-					name="occurredAt"
-					label="Fecha"
-					min={MIN_DAY}
-					bind:value={occurredAt}
-					nested={drawer}
-					error={shown.occurredAt}
-					errorId="date-error"
-				/>
-			</li>
-		{/snippet}
-	</EntryFields>
-{/snippet}
 
 {#snippet repeat()}
 	<li>
@@ -303,66 +205,187 @@
 	</li>
 {/snippet}
 
-<form
-	method="POST"
-	action={drawer ? resolve('movements/new') : undefined}
-	class="form"
-	class:drawer
-	class:submitting
-	novalidate
-	use:enhance={({ cancel }) => {
-		if (drawer) {
-			const e = missing();
-			if (Object.keys(e).length > 0) {
-				cancel();
-				fieldErrors = e;
-				focusFirstError();
-				return;
-			}
-		}
-		submitting = true;
-		return async (input) => {
-			if (!drawer) {
-				await followRedirect(input);
-				submitting = false;
-				return;
-			}
-			const { result } = input;
-			if (result.type === 'redirect') {
-				const flags = new URL(result.location, location.href).searchParams;
-				onsaved?.({
-					id: flags.get('movementSaved') ?? flags.get('saved') ?? '',
-					ruleId: flags.get('rule')
-				});
-			} else if (result.type === 'failure') {
-				fieldErrors = (result.data?.errors ?? {}) as typeof fieldErrors;
-				focusFirstError();
-			} else toast.error('No se pudo guardar el movimiento.');
-			submitting = false;
-		};
-	}}
+{#snippet newCategoryRow(close: () => void)}
+	<button
+		type="button"
+		class="new-category"
+		onclick={() => {
+			close();
+			createOpen = true;
+		}}><Plus size={18} strokeWidth={2} aria-hidden="true" />Nueva categoría</button
+	>
+{/snippet}
+
+<FormShell
+	action={drawer ? resolve('movements/new') : ''}
+	{variant}
+	{errors}
+	validate={drawer ? validate : undefined}
+	onfailure={(data: { errors?: Errors }) => (fieldErrors = data.errors ?? {})}
+	onsaved={drawer ? saved : undefined}
+	{onclose}
+	errorToast="No se pudo guardar el movimiento."
+	{cancelHref}
+	{submitLabel}
+	{canSave}
+	scroll="drawer"
+	style="--form-gap: var(--space-5)"
+	bind:mounted
 >
-	{#if drawer}
-		<div class="scroll">{@render fields()}</div>
-		<div class="actions">
-			<Button
-				type="button"
-				variant="outline"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0 rounded-full"
-				onclick={() => onclose?.()}>Cancelar</Button
-			>
-			<Button
-				type="submit"
-				class="h-auto min-h-11 min-w-0 flex-1 basis-0 rounded-full"
-				disabled={mounted && (!canSave || submitting)}
-				aria-busy={submitting ? 'true' : undefined}>{submitLabel}</Button
-			>
+	<div class="fields">
+		{#if returnTo}<input type="hidden" name="returnTo" value={returnTo} />{/if}
+
+		<div class="field" class:centered={drawer}>
+			<span id="type-label" class="visually-hidden">Tipo</span>
+			<SegmentedControl
+				name="type"
+				options={typeOptions}
+				bind:value={type}
+				labelledby="type-label"
+			/>
+			{#if shown.type}<p class="error" role="alert">{shown.type}</p>{/if}
 		</div>
-	{:else}
-		{@render fields()}
-		<FormActions {cancelHref} {submitLabel} {submitting} />
-	{/if}
-</form>
+
+		<AmountHero
+			bind:value={amount}
+			currency={originCurrency}
+			error={shown.amount}
+			autofocus
+			color={drawer ? AMOUNT_COLOR[type as keyof typeof AMOUNT_COLOR] : undefined}
+		/>
+
+		<EntryFields
+			bind:description
+			descriptionId="description"
+			descriptionError={shown.description}
+			placeholder={DESCRIPTION_PLACEHOLDER[type as keyof typeof DESCRIPTION_PLACEHOLDER]}
+			outlineErrors={drawer}
+			extra={repeatable && showCategory ? repeat : undefined}
+		>
+			{#snippet account()}
+				<li class:bad={shown.accountId}>
+					<OptionPicker
+						name="accountId"
+						legend={isTransfer ? 'Desde' : 'Cuenta'}
+						title={isTransfer ? 'Desde' : 'Cuenta'}
+						items={accountItems}
+						bind:value={accountId}
+						nested={drawer}
+						placeholder="Elegir"
+						error={shown.accountId}
+						errorId="account-error"
+					>
+						{#snippet empty()}<p class="hint pad">Todavía no tenés cuentas.</p>{/snippet}
+					</OptionPicker>
+				</li>
+
+				{#if showTransfer}
+					<li class:bad={shown.destinationAccountId}>
+						{#if !mounted}<p class="hint pad">Solo para transferencias</p>{/if}
+						<OptionPicker
+							name="destinationAccountId"
+							legend="Hacia"
+							title="Hacia"
+							items={accountItems}
+							bind:value={destinationId}
+							excludeId={mounted ? accountId : undefined}
+							nested={drawer}
+							placeholder="Elegir"
+							error={shown.destinationAccountId}
+							errorId="destination-error"
+						>
+							{#snippet empty()}<p class="hint pad">
+									Necesitás otra cuenta para transferir.
+								</p>{/snippet}
+						</OptionPicker>
+					</li>
+				{/if}
+
+				{#if !mounted}
+					<li class:bad={shown.exchangeRate}>
+						<p class="hint pad">Solo para transferencias entre monedas distintas</p>
+						<TextRow
+							id="exchangeRate"
+							name="exchangeRate"
+							label="Cotización"
+							bind:value={rate}
+							placeholder="0"
+							inputmode="numeric"
+							prefix="1 USD = $"
+							amount
+							error={shown.exchangeRate}
+							errorId="rate-error"
+						/>
+					</li>
+				{:else if needs.rate}
+					<CrossCurrencyRows
+						{rate}
+						rateCents={parseAmount(rate)}
+						onsave={async (next) => {
+							rate = next;
+							return null;
+						}}
+						required
+						error={shown.exchangeRate}
+						errorId="rate-error"
+						converted={converted !== null && destCurrency
+							? { cents: converted, currency: destCurrency }
+							: null}
+					>
+						{#snippet hidden()}<input type="hidden" name="exchangeRate" value={rate} />{/snippet}
+					</CrossCurrencyRows>
+				{/if}
+			{/snippet}
+
+			{#snippet category()}
+				{#if showCategory}
+					<li class:bad={shown.categoryId}>
+						{#if !mounted}<p class="hint pad">Solo para ingresos y gastos</p>{/if}
+						<OptionPicker
+							name="categoryId"
+							legend="Categoría"
+							title="Categoría"
+							items={pickableCategories}
+							bind:value={categoryId}
+							nested={drawer}
+							extra={drawer ? newCategoryRow : undefined}
+							placeholder="Elegir"
+							error={shown.categoryId}
+							errorId="category-error"
+						>
+							{#snippet empty()}
+								{#if drawer}
+									<button type="button" class="new-category" onclick={() => (createOpen = true)}
+										><Plus size={18} strokeWidth={2} aria-hidden="true" />Nueva categoría</button
+									>
+								{:else}
+									<p class="hint pad">
+										Todavía no tenés categorías.
+										<a href={resolve('categories/new')}>Crear categoría</a>
+									</p>
+								{/if}
+							{/snippet}
+						</OptionPicker>
+					</li>
+				{/if}
+			{/snippet}
+
+			{#snippet when()}
+				<li class:bad={shown.occurredAt}>
+					<MovementDatePicker
+						name="occurredAt"
+						label="Fecha"
+						min={MIN_DAY}
+						bind:value={occurredAt}
+						nested={drawer}
+						error={shown.occurredAt}
+						errorId="date-error"
+					/>
+				</li>
+			{/snippet}
+		</EntryFields>
+	</div>
+</FormShell>
 
 {#if drawer}
 	<CategoryCreateDrawer
@@ -373,43 +396,15 @@
 {/if}
 
 <style>
-	.form {
+	.fields {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-		padding-top: var(--space-1);
 	}
 
-	.form.submitting > :not(:global(.bar)):not(.scroll):not(.actions) {
+	/* The page dims the fields while saving (the drawer dims its scroll area). */
+	:global(form.submitting) > .fields {
 		opacity: 0.55;
-	}
-
-	.form.drawer {
-		flex: 1;
-		min-height: 0;
-		gap: 0;
-		padding-top: 0;
-	}
-
-	/* The fields scroll; the actions stay pinned below them. */
-	.scroll {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-5);
-		min-height: 0;
-		overflow-y: auto;
-		padding: var(--space-1) var(--space-4) var(--space-4);
-	}
-
-	.form.submitting .scroll {
-		opacity: 0.55;
-	}
-
-	.actions {
-		display: flex;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
-		background: var(--popover);
 	}
 
 	.field {
@@ -420,6 +415,24 @@
 
 	.centered {
 		align-items: stretch;
+	}
+
+	/* Below the category card: a left-aligned, bold link-coloured row with a plus. */
+	.new-category {
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		gap: 10px;
+		width: 100%;
+		min-height: 52px;
+		margin-top: var(--space-1);
+		padding: 0 var(--space-4);
+		border: 0;
+		background: transparent;
+		text-align: left;
+		font-size: var(--font-size-base);
+		font-weight: 600;
+		color: var(--link);
 	}
 
 	.hint {
