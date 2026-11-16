@@ -17,6 +17,7 @@ import {
 } from 'drizzle-orm/pg-core';
 // Relative imports only: drizzle-kit loads this file outside SvelteKit, so the #lib alias does not resolve.
 import { MONTH_RE } from '../../dates';
+import { SOURCE_LABELS } from '../../imports';
 import { CURRENCIES } from '../../money';
 import { MOVEMENT_TYPES } from '../../movement';
 import { MAX_DAY_OF_MONTH, SAVINGS_PERCENT_MAX } from '../../plan';
@@ -390,7 +391,11 @@ export const mpImportItems = pgTable(
 		),
 		check(
 			'mp_import_items_source_check',
-			sql`${table.source} IN ('mercado_pago', 'galicia_visa', 'galicia_mastercard')`
+			sql`${table.source} IN (${sql.raw(
+				Object.keys(SOURCE_LABELS)
+					.map((s) => `'${s}'`)
+					.join(', ')
+			)})`
 		)
 	]
 );

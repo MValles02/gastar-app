@@ -11,7 +11,8 @@
 
 	let { form }: { form: ActionData } = $props();
 
-	let email = $state('');
+	// A rejected resend (no JS) comes back with the typed address.
+	let email = $derived(form?.email ?? '');
 
 	// The address we sent the link to, when this browser knows it: asking for a new one is one tap.
 	onMount(() => {

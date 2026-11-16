@@ -440,18 +440,6 @@ try {
 				(${planId}, ${cat.out.id}, ${outLimit}),
 				(${planId}, ${cat.transport.id}, ${transportLimit})
 		`;
-		// Legacy USD plan rows are the pre-0018 shape (one plan per currency); the app ignores them and
-		// migration 0018 copies their limits onto the ARS plan (the ARS limit wins on Salidas).
-		const legacyUsdPlanId = randomUUID();
-		await tx`
-			insert into spending_plans (id, user_id, currency, savings)
-			values (${legacyUsdPlanId}, ${userId}, 'USD', ${20_00})
-		`;
-		await tx`
-			insert into plan_category_limits (plan_id, category_id, amount)
-			values (${legacyUsdPlanId}, ${cat.out.id}, ${50_00}),
-				(${legacyUsdPlanId}, ${cat.bills.id}, ${30_00})
-		`;
 
 		if (existingEmail) return;
 
@@ -481,16 +469,6 @@ try {
 		await tx`
 			insert into categories (id, user_id, name, color)
 			values (${otherCategoryId}, ${otherId}, 'Ajena', 'blue')
-		`;
-		// Legacy USD-only plan (pre-0018 shape).
-		const otherPlanId = randomUUID();
-		await tx`
-			insert into spending_plans (id, user_id, currency, savings)
-			values (${otherPlanId}, ${otherId}, 'USD', 0)
-		`;
-		await tx`
-			insert into plan_category_limits (plan_id, category_id, amount)
-			values (${otherPlanId}, ${otherCategoryId}, ${100_00})
 		`;
 		await tx`
 			insert into recurring_movements (id, user_id, type, description, amount, account_id, category_id, day_of_month)
