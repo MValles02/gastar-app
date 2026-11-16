@@ -94,9 +94,7 @@ test('an ARS whole amount shows without decimals in the list, the detail and the
 	await expect(page.locator('[role="listitem"]', { hasText: account })).toContainText('$8.500');
 });
 
-test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate', async ({
-	page
-}) => {
+test('a USD to ARS transfer rejects a non-whole rate and saves a whole one', async ({ page }) => {
 	const desc = unique(created, 'Transferencia entera');
 	await fillMovement(page, {
 		type: 'Transferencia',
@@ -121,7 +119,10 @@ test('a USD to ARS transfer converts to whole pesos and rejects a non-whole rate
 	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 	const drawer = await openDetail(page, desc, 'USD');
 	await expect(drawer.locator('p', { hasText: 'En destino' })).toContainText('$12.352');
-	// The preview rounds half up into ARS and keeps cents into USD.
+});
+
+test('the transfer preview rounds half up into ARS and keeps cents into USD', async ({ page }) => {
+	const dest = page.locator('p', { hasText: 'En destino' });
 	await fillMovement(page, {
 		type: 'Transferencia',
 		amount: '0,01',
