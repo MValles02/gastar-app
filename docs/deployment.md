@@ -4,10 +4,10 @@ Gastar-specific deployment details. The shared pipeline, CI gate and script cont
 
 ## Environments
 
-| Environment   | Branch    | GitHub environment | URL                    | Image tag                                  |
-| ------------- | --------- | ------------------ | ---------------------- | ------------------------------------------ |
-| `development` | `develop` | `development`      | https://dev.gastar.app | `ghcr.io/mvalles02-org/gastar-app:develop` |
-| `production`  | `main`    | `production`       | https://web.gastar.app | `ghcr.io/mvalles02-org/gastar-app:latest`  |
+| Environment   | Branch    | GitHub environment | URL                    | Image tag                           |
+| ------------- | --------- | ------------------ | ---------------------- | ----------------------------------- |
+| `development` | `develop` | `development`      | https://dev.gastar.app | `ghcr.io/mvalles02/gastar-app:develop` |
+| `production`  | `main`    | `production`       | https://web.gastar.app | `ghcr.io/mvalles02/gastar-app:latest`  |
 
 Every push to `develop` auto-deploys dev; every merge to `main` auto-deploys production (skipped for doc-only changes). Environment branch policies limit `production` to `main` and `development` to `develop`. Dependabot PRs target `develop`.
 
@@ -30,13 +30,13 @@ Required GitHub variables:
 
 Production app:
 
-- Image: `ghcr.io/mvalles02-org/gastar-app:latest`, pulled with registry credentials for private GHCR.
+- Image: `ghcr.io/mvalles02/gastar-app:latest`, pulled with registry credentials for private GHCR.
 - Health check path: `/health`.
 - Rollbacks enabled.
 
 Development uses a separate Dokploy app, `gastar-app-dev`:
 
-- Image: `ghcr.io/mvalles02-org/gastar-app:develop`.
+- Image: `ghcr.io/mvalles02/gastar-app:develop`.
 - Its own Postgres database, never the production DB.
 - Domain `dev.gastar.app`; `BETTER_AUTH_URL` and `ORIGIN` are `https://dev.gastar.app`.
 - Its own `BETTER_AUTH_SECRET`; other env vars as in the README.
