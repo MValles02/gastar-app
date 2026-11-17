@@ -89,8 +89,11 @@ async function linkGmail(page: Page, baseURL: string, mailbox: string) {
 /** Answers the "Tarjeta Visa ••NNNN: elegí qué es" row of /imports: debit with a pesos account (and a dollar one). */
 async function setUpDebit(page: Page, last4: string, pesos: string, dollars?: string) {
 	await page.goto('/imports');
-	await page.getByRole('link', { name: `Tarjeta Visa ••${last4}: elegí qué es` }).click();
-	await page.waitForLoadState('networkidle'); // hydration guard: the pickers need JavaScript
+	// A full load (not a client-side click) so the hydration guard below waits for this page.
+	const href = await page
+		.getByRole('link', { name: `Tarjeta Visa ••${last4}: elegí qué es` })
+		.getAttribute('href');
+	await page.goto(href!, { waitUntil: 'networkidle' }); // hydration guard: the pickers need JavaScript
 	await page.getByRole('radio', { name: 'Débito' }).check({ force: true });
 	await pick(page, 'Cuenta en pesos', pesos);
 	if (dollars) await pick(page, 'Cuenta en dólares', dollars);
