@@ -24,5 +24,11 @@ export function checkEnv(env: Record<string, string | undefined>): void {
 		problems.push('ADDRESS_HEADER must be CF-Connecting-IP');
 	if (env.MP_TOKEN_KEY && Buffer.from(env.MP_TOKEN_KEY, 'base64').length !== 32)
 		problems.push('MP_TOKEN_KEY must be base64 of 32 bytes');
+	if (env.GMAIL_TOKEN_KEY && Buffer.from(env.GMAIL_TOKEN_KEY, 'base64').length !== 32)
+		problems.push('GMAIL_TOKEN_KEY must be base64 of 32 bytes');
+	if (new Set([!!env.GMAIL_CLIENT_ID, !!env.GMAIL_CLIENT_SECRET, !!env.GMAIL_TOKEN_KEY]).size > 1)
+		problems.push('set all of GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET and GMAIL_TOKEN_KEY or none');
+	if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET))
+		problems.push('set both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET or neither');
 	if (problems.length) throw new Error(`Invalid environment: ${problems.join('; ')}`);
 }

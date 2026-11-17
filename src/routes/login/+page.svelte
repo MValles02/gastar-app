@@ -7,15 +7,26 @@
 	import CheckEmail from '#lib/components/CheckEmail.svelte';
 	import EmailField from '#lib/components/EmailField.svelte';
 	import * as Field from '#lib/components/ui/field/index.js';
+	import GoogleButton from '#lib/components/GoogleButton.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import PasswordField from '#lib/components/PasswordField.svelte';
-	import type { ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 
-	let { form }: { form: ActionData } = $props();
+	let { form, data }: { form: ActionData; data: PageData } = $props();
 
 	let password = $state('');
 
 	const reset = $derived(page.url.searchParams.get('reset') === '1');
+
+	// Better Auth's `?error=<code>` after a Google sign-in; the raw code is never shown.
+	const googleError = $derived.by(() => {
+		const code = page.url.searchParams.get('error');
+		if (!code) return undefined;
+		if (code === 'account_not_linked')
+			return 'Ya hay una cuenta con ese email sin verificar. Entrá con tu contraseña y verificá el email.';
+		if (code === 'access_denied') return 'Cancelaste el ingreso con Google.';
+		return 'No pudimos entrar con Google. Probá de nuevo.';
+	});
 </script>
 
 <svelte:head>
@@ -32,6 +43,14 @@
 			<p class="note" role="status">
 				<Icon name="check" size="1.25rem" />Contraseña actualizada.
 			</p>
+		{/if}
+
+		{#if googleError && !form}
+			<Field.Error>{googleError}</Field.Error>
+		{/if}
+
+		{#if data.googleEnabled}
+			<GoogleButton />
 		{/if}
 
 		<AuthForm action="?/login" submitLabel="Ingresar" onupdated={() => (password = '')}>

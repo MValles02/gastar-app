@@ -4,6 +4,7 @@ import { userNameError } from '#lib/server/auth-forms.ts';
 import { PREFERENCE_COOKIE_OPTIONS, THEME_COOKIE } from '#lib/server/cookies.ts';
 import { profileCounts } from '#lib/server/profile-queries.ts';
 import { requireUser } from '#lib/server/guards.ts';
+import { hasPassword } from '#lib/server/reauth.ts';
 import { isTheme, type Theme } from '#lib/theme.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -14,7 +15,8 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	return {
 		user: { name: user.name, email: user.email },
 		theme: parseTheme(cookies.get(THEME_COOKIE)),
-		counts: await profileCounts(user.id)
+		counts: await profileCounts(user.id),
+		hasPassword: await hasPassword(user.id)
 	};
 };
 

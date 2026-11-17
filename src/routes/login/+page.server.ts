@@ -1,9 +1,11 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
-import { auth } from '#lib/server/auth.ts';
-import { resendAction, VERIFY_EMAIL_PATH } from '#lib/server/auth-forms.ts';
+import { auth, googleEnabled } from '#lib/server/auth.ts';
+import { googleAction, resendAction, VERIFY_EMAIL_PATH } from '#lib/server/auth-forms.ts';
 import { isBlocked, record } from '#lib/server/rate-limit.ts';
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
+
+export const load: PageServerLoad = () => ({ googleEnabled });
 
 export const actions: Actions = {
 	login: async ({ request, getClientAddress }) => {
@@ -43,6 +45,8 @@ export const actions: Actions = {
 
 		redirect(303, '/');
 	},
+
+	google: googleAction,
 
 	resend: resendAction
 };

@@ -1,8 +1,9 @@
 import { fail } from '@sveltejs/kit';
 import { PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
-import { auth } from '#lib/server/auth.ts';
+import { auth, googleEnabled } from '#lib/server/auth.ts';
 import {
 	EMAIL_RE,
+	googleAction,
 	ignoreApiError,
 	isValidPasswordLength,
 	resendAction,
@@ -10,7 +11,9 @@ import {
 	VERIFY_EMAIL_PATH
 } from '#lib/server/auth-forms.ts';
 import { isBlocked, record } from '#lib/server/rate-limit.ts';
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
+
+export const load: PageServerLoad = () => ({ googleEnabled });
 
 export const actions: Actions = {
 	signup: async ({ request, getClientAddress }) => {
@@ -47,6 +50,8 @@ export const actions: Actions = {
 		);
 		return { checkEmail: email };
 	},
+
+	google: googleAction,
 
 	resend: resendAction
 };

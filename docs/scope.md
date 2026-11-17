@@ -25,7 +25,7 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ## Auth
 
-- Email + password only. Public sign-up; email verification is required before sign-in.
+- Email + password, or "Continuar con Google" above the form on Ingresar / Crear cuenta (on only when the server has `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`). Public sign-up; email verification is required before sign-in with a password. A Google profile whose email Google has not verified is refused (no user, no session, no email). A Google user with an existing account of the same email joins it only when both emails are verified; an unverified password account is refused and Ingresar shows "Ya hay una cuenta con ese email sin verificar. Entrá con tu contraseña y verificá el email." Cancelling at Google shows "Cancelaste el ingreso con Google.", any other failure "No pudimos entrar con Google. Probá de nuevo." Only name and email are used; the Google picture is not stored.
 - Single user at launch; family/friends may be added later (small scale).
 - Phone OTP: future, not MVP.
 - Password reset: by emailed link (sent through Resend). Links last 24 hours (verification) and 1 hour (reset).
@@ -48,9 +48,9 @@ Personal finance PWA for Argentina. Answers two questions:
 - Bottom nav: Inicio | Movimientos | Create movement (center "+") | Plan | Reportes.
 - Profile page (back to Inicio): the user's initial, name and email, then four groups:
   - What the user manages: "Cuentas" and "Categorías" (with the number of active ones) and "Vinculaciones" (leads to `/profile/vinculaciones`, which lists the connections: Mercado Pago, only when its OAuth app is configured, with value "Vincular", "Vinculado" or "Reconectar", leading to `/profile/mercado-pago`; and Banco Galicia, always, with value "Configurar" or "Configurado", leading to `/profile/galicia`; the inbox is reached only from the Home imports pill, shown while Mercado Pago is linked or a Galicia pesos account is chosen).
-  - Identity: "Nombre", edited in place (Enter or blur saves, with a Deshacer toast; an empty or too long name is not saved and keeps the old one), and "Contraseña", a "Cambiar contraseña" drawer over Profile (current + new password, min 8; revokes all other sessions, this one stays signed in). `/profile/password` is the same form as a page.
+  - Identity: "Nombre", edited in place (Enter or blur saves, with a Deshacer toast; an empty or too long name is not saved and keeps the old one), and "Contraseña", a "Cambiar contraseña" drawer over Profile (current + new password, min 8; revokes all other sessions, this one stays signed in). `/profile/password` is the same form as a page. A user who signed up with Google has no password: the row reads "Crear contraseña" and asks only for the new one, allowed when the session is at most 5 minutes old; an older session shows "Confirmar con Google" (a fresh Google sign-in that returns to the same screen) instead of the form.
   - "Tema" (light / dark / system) as its own card.
-  - "Cerrar sesión", and a quiet red "Darme de baja" link at the end: the "¿Darte de baja?" drawer lists what is erased with real counts (accounts and movements, categories, plan and fixed payments; only what applies), asks for the password and warns it cannot be undone; see Deletion. `/profile/delete` is the same as a page. Financial accounts keep "Eliminar cuenta".
+  - "Cerrar sesión", and a quiet red "Darme de baja" link at the end: the "¿Darte de baja?" drawer lists what is erased with real counts (accounts and movements, categories, plan and fixed payments; only what applies), asks for the password (a user without one confirms with Google instead and sees which account is being deleted) and warns it cannot be undone; see Deletion. `/profile/delete` is the same as a page. Financial accounts keep "Eliminar cuenta".
 
 ## Design
 
@@ -174,7 +174,7 @@ Personal finance PWA for Argentina. Answers two questions:
   - Archived items: cannot be selected for new movements; movements that already reference them keep showing them and can be edited without losing the reference; can be unarchived.
   - Archived accounts still count toward total balance.
   - Movements: hard delete, with confirmation.
-  - User account: hard delete, immediate and irreversible, of the user and all their data (movements, recurring rules, plans and limits, categories, accounts, sessions) in one transaction; then sign-out to the login page.
+  - User account: hard delete, immediate and irreversible, of the user and all their data (movements, recurring rules, plans and limits, categories, accounts, sessions) in one transaction; then sign-out to the login page. A user without a password confirms by signing in with Google again: deleting needs a session at most 5 minutes old, otherwise "Confirmar con Google" returns to the same screen; picking another Google account lands on that account page and never deletes the first.
 
 ## Mercado Pago import
 
@@ -193,6 +193,12 @@ Personal finance PWA for Argentina. Answers two questions:
 - Yields are one item per day, with the exact net amount: gains minus losses of that Buenos Aires day. A positive day is a credit; a negative day is a debit (pre-filled Gasto, and it does not share the remembered rule of positive yields); a day that nets zero has no item.
 - Review: a one-line summary (amount, date and time, the original description below, ellipsized) is read-only and, for an item no rule suggests, "No sabemos qué es: elegí el tipo."; the user edits type (a credit offers Ingreso / Transf., a debit Gasto / Transf.), description, category (income/outcome) or counter account (transfer: an active account of the item's currency, not the item's own). A debit transfer goes from Mercado Pago to the counter account; a credit transfer comes from it. The description is required (prefilled from the original; "Aprobar" is disabled while empty). "Aprobar" creates the movement and returns to the inbox (no auto-advance); "Descartar" asks "¿Descartar movimiento?" and rejects the item for good (the sync never re-imports it). Both confirm with a toast.
 - Learning: approving remembers the choice (type, category or counter account, description as alias) under the strongest key of the item: counterparty (transfers), then merchant, then kind (yields, each payout label, account funds); refunds teach nothing. The next matching pending item is pre-filled and shows "… · sugerido" in the list. Only the first matching rule is used, and only while its category or account is still active; otherwise the item gets defaults (payments by direction; yields income (a negative-yield day outcome); "Pago en comercio" outcome; other payouts and account funds transfer; anything else asks to review the type). Categories are never created automatically. When the review has a fixed payment picked ("Es el pago fijo" / "Es el ingreso fijo") and "Recordar para …" is on, that link is stored on the rule too: later matching items, automatic approval included, link to that rule even when the description differs (still at most one linked movement per rule per month; a deleted rule just stops linking).
+
+## Gmail connection
+
+- Optional, per user: on only when the server has `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET` and `GMAIL_TOKEN_KEY` (off: the Vinculaciones row is hidden and the Gmail routes answer 404). It uses its own Google Cloud client, never the sign-in one. Connection only: nothing is imported yet.
+- Profile → "Vinculaciones" → "Gmail" (value "Vincular", "Vinculado" or "Reconectar") leads to `/profile/gmail`. Not linked: a card saying that only the Visa purchase-alert emails are read, that the purchase data is stored and never the email, a note that Google shows "Google no verificó esta app" (continue with "Configuración avanzada" → "Ir a Gastar (no seguro)"), and "Vincular Gmail" (OAuth with PKCE, read-only `gmail.readonly`, offline access, consent every time so a refresh token always comes back). Linked: the Gmail address, "Vinculado" and "Desvincular" (revokes the access at Google; items already imported stay). When Google no longer accepts the saved access, "Reconectar".
+- If the user does not grant mail access, the link is rejected, the grant is revoked and nothing is stored ("Para vincular Gmail tenés que permitir que Gastar lea tus mails.").
 
 ## Banco Galicia statements
 

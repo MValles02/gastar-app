@@ -8,5 +8,12 @@
 </script>
 
 <BottomDrawer title="¿Darte de baja?" open {onclose}>
-	<DeleteForm variant="drawer" summary={data.summary} {onclose} />
+	<DeleteForm
+		variant="drawer"
+		summary={data.summary}
+		hasPassword={data.hasPassword}
+		recent={data.recent}
+		email={data.email}
+		{onclose}
+	/>
 </BottomDrawer>

@@ -1,9 +1,11 @@
 import { eq, inArray } from 'drizzle-orm';
 import { allMovementsOf, canAccessAccount, canAccessOwn } from './access';
 import { db } from './db';
+import { revokeGmail } from './imports/gmail/oauth';
 import {
 	categories,
 	financialAccounts,
+	gmailConnections,
 	galiciaConnections,
 	movements,
 	mpConnections,
@@ -23,9 +25,12 @@ import {
  * (sessions and credential accounts cascade). Irreversible.
  */
 export async function deleteUserAndData(userId: string): Promise<void> {
+	// Best effort and outside the transaction: a slow or failing Google must not block the deletion.
+	await revokeGmail(userId);
 	await db.transaction(async (tx) => {
 		await tx.delete(mpConnections).where(canAccessOwn(userId, mpConnections));
 		await tx.delete(galiciaConnections).where(canAccessOwn(userId, galiciaConnections));
+		await tx.delete(gmailConnections).where(canAccessOwn(userId, gmailConnections));
 		await tx.delete(mpImportItems).where(canAccessOwn(userId, mpImportItems));
 		await tx.delete(mpImportRules).where(canAccessOwn(userId, mpImportRules));
 		const ownAccounts = tx

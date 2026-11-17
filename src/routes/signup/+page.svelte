@@ -7,11 +7,12 @@
 	import CheckEmail from '#lib/components/CheckEmail.svelte';
 	import EmailField from '#lib/components/EmailField.svelte';
 	import * as Field from '#lib/components/ui/field/index.js';
+	import GoogleButton from '#lib/components/GoogleButton.svelte';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import PasswordField from '#lib/components/PasswordField.svelte';
-	import type { ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 
-	let { form }: { form: ActionData } = $props();
+	let { form, data }: { form: ActionData; data: PageData } = $props();
 
 	let password = $state('');
 </script>
@@ -25,6 +26,10 @@
 {:else}
 	<AuthPage>
 		<AuthTabs current="signup" />
+
+		{#if data.googleEnabled}
+			<GoogleButton />
+		{/if}
 
 		<AuthForm action="?/signup" submitLabel="Crear cuenta">
 			<Field.Field>
