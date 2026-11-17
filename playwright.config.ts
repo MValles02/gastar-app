@@ -69,6 +69,7 @@ export default defineConfig({
 				MP_AUTH_BASE_URL: MP_URL,
 				MP_API_BASE_URL: MP_URL,
 				MP_REPORT_POLL_MS: '100',
+				MP_REPORT_TIMEOUT_MS: '5000',
 				// Scheduler off so e2e stays deterministic (syncs only via "Sincronizar ahora").
 				MP_SYNC_INTERVAL_HOURS: '0',
 				// Must match the fake's defaults (e2e/fake-google.js).

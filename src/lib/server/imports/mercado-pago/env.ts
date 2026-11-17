@@ -6,6 +6,9 @@ export const mpApiBaseUrl = () => env.MP_API_BASE_URL || 'https://api.mercadopag
 /** Milliseconds between report-ready checks; tests shorten it. */
 export const reportPollMs = () => Number(env.MP_REPORT_POLL_MS) || 15_000;
 
+/** Milliseconds to wait for a report before giving up; tests shorten it. */
+export const reportTimeoutMs = () => Number(env.MP_REPORT_TIMEOUT_MS) || 5 * 60_000;
+
 /** Whole hours between automatic payment syncs: 1 when unset, 0 = off, null when the value is invalid. */
 export function syncIntervalHours(): number | null {
 	const raw = env.MP_SYNC_INTERVAL_HOURS;

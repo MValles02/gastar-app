@@ -23,6 +23,7 @@ export const variables = defineEnvVars({
 	MP_CLIENT_ID: optional,
 	MP_CLIENT_SECRET: optional,
 	MP_REPORT_POLL_MS: optional,
+	MP_REPORT_TIMEOUT_MS: optional,
 	MP_SYNC_INTERVAL_HOURS: optional,
 	MP_TOKEN_KEY: optional,
 	RESEND_API_KEY: optional
