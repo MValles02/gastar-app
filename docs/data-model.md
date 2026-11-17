@@ -217,13 +217,14 @@ One row per synced account.
 | Column | Type | Notes |
 |---|---|---|
 | `account_id` | pk, fk → `financial_accounts.id` | ON DELETE CASCADE |
-| `synced_until` | timestamptz, nullable | |
+| `synced_until` | timestamptz, nullable | report cursor; a successful report run (backfills included) raises it to the report end, never lowers it |
 | `running_since` | timestamptz, nullable | |
 | `last_run_at` | timestamptz, nullable | |
 | `last_error` | text, nullable | error code only |
 | `phase` | text, nullable | step of the running sync |
 | `new_items` | integer, nullable | items the current/last run stored |
 | `auto_approved` | integer, nullable | items the last run approved automatically |
+| `covered_from` | timestamptz, nullable | earliest instant from which payments and the report have been read at least once; a report-due run reads from the "Importar desde" day whenever that day is earlier than this (or this is null), then lowers it; a failed run leaves it, so the next report-due run retries |
 
 ### `galicia_connections`
 

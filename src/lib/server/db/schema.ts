@@ -458,7 +458,9 @@ export const mpSyncState = pgTable('mp_sync_state', {
 	// Items the current (or last) run stored: payments first, report items added when it lands.
 	newItems: integer('new_items'),
 	// Items the last run approved automatically; null while running or before the first run that recorded it.
-	autoApproved: integer('auto_approved')
+	autoApproved: integer('auto_approved'),
+	// Earliest instant from which payments and report have been read by a successful run; a run backfills while the chosen floor is earlier.
+	coveredFrom: timestamp('covered_from', { withTimezone: true })
 });
 
 // Tokens are AES-256-GCM ciphertext ("v1:" + base64(iv | tag | ct), AAD = user_id), never plaintext.

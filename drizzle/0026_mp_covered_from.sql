@@ -1,0 +1,1 @@
+ALTER TABLE "mp_sync_state" ADD COLUMN "covered_from" timestamp with time zone;
