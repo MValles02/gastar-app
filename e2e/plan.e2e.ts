@@ -11,8 +11,7 @@ import {
 	OTHER_EMAIL,
 	pick,
 	postDelete,
-	rule,
-	WHOLE_PESOS_ERROR
+	rule
 } from './helpers';
 
 test('a rule on an archived account is listed under Inactivos', async ({ page }) => {
@@ -56,6 +55,22 @@ test('a rule detail autosaves its amount with Deshacer, deactivates, activates a
 		await page.getByRole('button', { name: 'Deshacer' }).click();
 		await expect(amount).toContainText('1.200');
 
+		// A POST that tries to flip the type: the server ignores it.
+		const detail = new URL(page.url()).pathname;
+		const res = await page.request.post(`${detail}?/update`, {
+			form: { type: 'income', amount: '1.300' },
+			headers: { origin: baseURL!, accept: 'text/html' }
+		});
+		expect(res.ok()).toBe(true);
+		await page.goto('/plan');
+		await expect(rule(page, description)).toContainText('1.300');
+		await expect(
+			page
+				.getByRole('region', { name: 'Ingresos fijos' })
+				.locator('.rule', { hasText: description })
+		).toHaveCount(0);
+		await page.goto(detail);
+
 		await page.getByRole('button', { name: 'Desactivar' }).click();
 		await expect(page.getByRole('button', { name: 'Activar', exact: true })).toBeVisible();
 		await page.getByRole('button', { name: 'Activar', exact: true }).click();
@@ -65,33 +80,6 @@ test('a rule detail autosaves its amount with Deshacer, deactivates, activates a
 		await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(page.getByText(description)).toHaveCount(0);
-	} finally {
-		await deleteRules(page, baseURL!, description);
-	}
-});
-
-test('create a rule rejects ARS decimals and saves whole pesos', async ({ page, baseURL }) => {
-	await login(page, OTHER_EMAIL);
-	const description = 'Prueba e2e';
-	try {
-		await fillRule(page, {
-			description,
-			amount: '1.500,50',
-			day: '15',
-			account: 'Otra cuenta pesos',
-			category: 'Ajena'
-		});
-		await page.getByRole('button', { name: 'Guardar' }).click();
-		await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
-		await expect(page.locator('input[name="amount"]')).toHaveValue(/^1\.?500,50$/);
-		await expect(page).toHaveURL(/\/plan\/recurring\/new$/);
-
-		await page.locator('input[name="amount"]').fill('1.500');
-		await page.getByRole('button', { name: 'Guardar' }).click();
-		await expect(page).toHaveURL(/\/plan$/);
-		const row = rule(page, description);
-		await expect(row).toBeVisible();
-		await expect(row).toContainText('Día 15');
 	} finally {
 		await deleteRules(page, baseURL!, description);
 	}

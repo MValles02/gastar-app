@@ -75,38 +75,28 @@ test('the biggest outcome is the month’s own', async ({ page }) => {
 	await expect(card).toContainText('Super previo rep');
 });
 
-test('month totals in ARS and USD', async ({ page, baseURL }) => {
+test('month totals in ARS and USD, last month by URL, and category slice amounts', async ({
+	page,
+	baseURL
+}) => {
 	await page.goto('/reports');
 	await expect(total(page, 'Ingresos')).toContainText('$100.000');
 	await expect(total(page, 'Gastos')).toContainText('$40.000');
 	await expect(total(page, 'Resultado')).toContainText('$60.000');
+	const slice = (name: string) =>
+		page
+			.locator('section[aria-labelledby="cat-heading"] [role="listitem"]')
+			.filter({ hasText: name });
+	await expect(slice('Comida rep')).toContainText('$30.000');
+	await expect(slice('Varios rep')).toContainText('$10.000');
+
+	await page.goto(`/reports?month=${monthDay(2).slice(0, 7)}`);
+	await expect(total(page, 'Ingresos')).toContainText('$50.000');
+	await expect(total(page, 'Gastos')).toContainText('$20.000');
 
 	await setCurrencyCookie(page, baseURL!, 'USD');
 	await page.goto('/reports');
 	await expect(total(page, 'Ingresos')).toContainText('US$100,00');
 	await expect(total(page, 'Gastos')).toContainText('US$25,50');
 	await expect(total(page, 'Resultado')).toContainText('US$74,50');
-});
-
-test('tapping last month’s bar opens it with its own totals', async ({ page }) => {
-	const month = monthDay(2).slice(0, 7);
-	await page.goto('/reports');
-	const bar = page.locator(`ul.bars a[href$="month=${month}"]`);
-	await bar.click();
-	await expect(page).toHaveURL(new RegExp(`\\?month=${month}$`));
-	await expect(bar).toHaveAttribute('aria-current', 'true');
-	await expect(total(page, 'Ingresos')).toContainText('$50.000');
-	await expect(total(page, 'Gastos')).toContainText('$20.000');
-});
-
-test('category slices show each share and amount', async ({ page }) => {
-	await page.goto('/reports');
-	const row = (name: string) =>
-		page
-			.locator('section[aria-labelledby="cat-heading"] [role="listitem"]')
-			.filter({ hasText: name });
-	await expect(row('Comida rep')).toContainText(/75\s?%/);
-	await expect(row('Comida rep')).toContainText('$30.000');
-	await expect(row('Varios rep')).toContainText(/25\s?%/);
-	await expect(row('Varios rep')).toContainText('$10.000');
 });

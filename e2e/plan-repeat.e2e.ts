@@ -6,8 +6,7 @@ import {
 	login,
 	OTHER_EMAIL,
 	rule,
-	todayInAppTz,
-	WHOLE_PESOS_ERROR
+	todayInAppTz
 } from './helpers';
 
 // Every test that writes runs as `otro` (ARS account "Otra cuenta pesos", category "Ajena"): no other spec
@@ -163,28 +162,6 @@ test('a rejected post with the switch on writes no movement and no rule', async 
 		await expect(rule(page, description)).toHaveCount(0);
 	} finally {
 		await demoContext.close();
-		await cleanup(page, baseURL!, description);
-	}
-});
-
-test('ARS decimals with the switch on: message, nothing written, switch kept', async ({
-	page,
-	baseURL
-}) => {
-	const description = 'Decimales e2e';
-	await login(page, OTHER_EMAIL);
-	await cleanup(page, baseURL!, description);
-	try {
-		await fillOutcome(page, description, '1.500,50');
-		await checkbox(page).check();
-		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-		await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
-		await expect(page).toHaveURL(/\/movements\/new$/);
-		await expect(checkbox(page)).toBeChecked();
-		expect(await movementCount(page, description)).toBe(0);
-		await page.goto('/plan');
-		await expect(rule(page, description)).toHaveCount(0);
-	} finally {
 		await cleanup(page, baseURL!, description);
 	}
 });

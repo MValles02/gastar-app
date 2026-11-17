@@ -61,19 +61,16 @@ test('Cuenta comes preselected and the movement is saved to that account', async
 	const [href] = await findMovements(page, description);
 	await page.goto(href);
 	await expect(page.getByRole('button', { name: `Cuenta ${name}` })).toBeVisible();
-});
 
-test('Deshacer removes the created movement', async ({ page }) => {
-	const description = unique(created, 'Deshacer');
+	// Deshacer on the saved toast removes the created movement.
+	const undone = unique(created, 'Deshacer');
 	await open(page, '/movements');
-	await fill(page, description);
-	await pick(page, 'Cuenta', 'Otra cuenta pesos');
+	await fill(page, undone);
 	await pick(page, 'Categoría', 'Ajena');
 	await save(drawer(page)).click();
 	await expect(drawer(page)).toBeHidden();
-	await expect(page).toHaveURL(/\/movements$/);
-	await expect(page.getByText(description)).toBeVisible();
+	await expect(page.getByText(undone)).toBeVisible();
 	await toast(page).getByRole('button', { name: 'Deshacer' }).click();
-	await expect(page.getByText(description)).toHaveCount(0);
-	expect(await findMovements(page, description)).toHaveLength(0);
+	await expect(page.getByText(undone)).toHaveCount(0);
+	expect(await findMovements(page, undone)).toHaveLength(0);
 });

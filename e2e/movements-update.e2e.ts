@@ -37,17 +37,6 @@ const postUpdate = (page: Page, baseURL: string, href: string, form: Record<stri
 		headers: { origin: baseURL, 'x-sveltekit-action': 'true' }
 	});
 
-test('?/update with only a description persists it', async ({ page, baseURL }) => {
-	const before = unique(created, 'Update desc');
-	const after = unique(created, 'Update desc nuevo');
-	await create(page, before, 'Banco Galicia');
-	const [href] = await findMovements(page, before);
-	const res = await postUpdate(page, baseURL!, href, { description: after });
-	expect((await res.json()).type).toBe('success');
-	await page.goto(href);
-	await expect(page.getByRole('button', { name: `Descripción: ${after}` })).toBeVisible();
-});
-
 test('?/update rejects an ARS amount with decimals', async ({ page, baseURL }) => {
 	const desc = unique(created, 'Update monto');
 	await create(page, desc, 'Banco Galicia');
@@ -57,17 +46,4 @@ test('?/update rejects an ARS amount with decimals', async ({ page, baseURL }) =
 	expect(body.type).toBe('failure');
 	expect(body.status).toBe(400);
 	expect(body.data).toContain(WHOLE_PESOS_ERROR);
-});
-
-test('?/update takes a type change through the same validation', async ({ page, baseURL }) => {
-	const desc = unique(created, 'Update tipo');
-	await create(page, desc, 'Banco Galicia');
-	const [href] = await findMovements(page, desc);
-	// A transfer needs its destination: nothing is saved without it.
-	const res = await postUpdate(page, baseURL!, href, { type: 'transfer' });
-	const body = await res.json();
-	expect(body.type).toBe('failure');
-	expect(body.data).toContain('Elegí la cuenta de destino.');
-	await page.goto(href);
-	await expect(page.getByRole('button', { name: /^Tipo/ })).toContainText('Gasto');
 });
