@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { cardAlerts, importCards, mpImportItems } from '../../db/schema';
@@ -129,7 +129,17 @@ async function convertLocked(userId: string) {
 		.set({
 			importItemId: sql`(select ${mpImportItems.id} from ${mpImportItems} where ${mpImportItems.userId} = ${cardAlerts.userId} and ${mpImportItems.externalKey} = 'alert:' || ${cardAlerts.gmailMessageId})`
 		})
-		.where(and(canAccessOwn(userId, cardAlerts), isNull(cardAlerts.importItemId), fromFloor));
+		.where(
+			and(
+				canAccessOwn(userId, cardAlerts),
+				isNull(cardAlerts.importItemId),
+				fromFloor,
+				inArray(
+					cardAlerts.gmailMessageId,
+					waiting.map((a) => a.messageId)
+				)
+			)
+		);
 	return result;
 }
 

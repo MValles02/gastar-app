@@ -181,9 +181,8 @@ test('grouping is case-insensitive, any category kind is suggested, the amount a
 test("another user's repeated outcome is never suggested", async ({ page }) => {
 	await suggestions(page);
 	await expect(row(page, 'Aislado sug e2e')).toHaveCount(0);
-});
 
-test('the rule form with another user suggestion id is empty', async ({ page }) => {
+	// The rule form with another user's suggestion id is empty.
 	await page.goto(`/plan/recurring/new?type=outcome&wizard=2&suggestion=${foreignSuggestionId}`);
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nuevo pago fijo');
 	await expect(page.locator('input[name="description"]')).toHaveValue('');

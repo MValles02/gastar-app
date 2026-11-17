@@ -42,6 +42,7 @@ type Lease = {
 	accountId: string;
 	currency: string;
 	syncedUntil: Date | null;
+	coveredFrom: Date | null;
 	floor: Date | null;
 };
 
@@ -87,13 +88,14 @@ async function acquire(userId: string): Promise<Lease | null> {
 					)
 				)
 			)
-			.returning({ syncedUntil: mpSyncState.syncedUntil });
+			.returning({ syncedUntil: mpSyncState.syncedUntil, coveredFrom: mpSyncState.coveredFrom });
 		return lease
 			? {
 					userId,
 					accountId,
 					currency: conn.currency,
 					syncedUntil: lease.syncedUntil,
+					coveredFrom: lease.coveredFrom,
 					floor: await getChosenImportFrom(userId)
 				}
 			: null;
@@ -180,7 +182,16 @@ async function release(
 						runningSince: null,
 						phase: null,
 						lastError: null,
-						...(end && !from ? { syncedUntil: end } : {}),
+						...(end
+							? {
+									syncedUntil: sql`greatest(${mpSyncState.syncedUntil}, ${end.toISOString()}::timestamptz)`
+								}
+							: {}),
+						...(from
+							? {
+									coveredFrom: sql`least(${mpSyncState.coveredFrom}, ${from.toISOString()}::timestamptz)`
+								}
+							: {}),
 						lastRunAt: sql`now()`,
 						autoApproved
 					}
@@ -194,8 +205,9 @@ async function release(
 
 /**
  * Runs payments, then (with `report`) the release report, under a held lease and releases it. Never throws.
- * synced_until is the report cursor: only a report run moves it, and a backfill (`from`, both windows start
- * there) leaves it alone. Each stored batch auto-approves what a rule recognizes (also after a failed run:
+ * synced_until is the report cursor: only a report run moves it (never backwards, also a backfill, whose
+ * window from `from` reaches the report end continuously). A successful run with `from` lowers covered_from to it; a failed one leaves it, so
+ * the next run retries the backfill. Each stored batch auto-approves what a rule recognizes (also after a failed run:
  * items stored earlier still count), so the inbox reads the count with 'Listo'.
  */
 async function execute(l: Lease, { from, report }: { from?: Date; report: boolean }) {
@@ -226,18 +238,29 @@ async function execute(l: Lease, { from, report }: { from?: Date; report: boolea
 export type MpSyncOptions = {
 	/** Also pull the release report; a function decides from the account's report cursor. */
 	report: boolean | ((syncedUntil: Date | null) => boolean);
-	/** "Traer movimientos desde": both windows start here and synced_until stays as it is. */
+	/** "Traer movimientos desde": both windows start here; a report run still advances synced_until. */
 	from?: Date;
 	/** Return once the lease is held; the run continues while the inbox polls the progress. */
 	background?: boolean;
 };
 
-/** Takes the user's lease (false when off or held elsewhere) and runs the sync; the scheduler waits for it. */
+/**
+ * Takes the user's lease (false when off or held elsewhere) and runs the sync; the scheduler waits for it.
+ * Without a `from`, a run that is due to pull the report (per `report`, so the scheduler's guard still applies)
+ * backfills from the chosen "Importar desde" while covered_from is null or later than it, so a failed backfill
+ * is retried by the next due run. Payments-only runs never backfill.
+ */
 export async function runMpSync(userId: string, opts: MpSyncOptions): Promise<boolean> {
 	const lease = await acquire(userId);
 	if (!lease) return false;
 	const report = typeof opts.report === 'function' ? opts.report(lease.syncedUntil) : opts.report;
-	const run = execute(lease, { from: opts.from, report });
+	const backfill =
+		report &&
+		!opts.from &&
+		!!lease.floor &&
+		(!lease.coveredFrom || lease.coveredFrom > lease.floor);
+	const from = backfill ? (lease.floor ?? undefined) : opts.from;
+	const run = execute(lease, { from, report });
 	if (opts.background) void run;
 	else await run;
 	return true;

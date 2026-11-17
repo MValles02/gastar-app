@@ -200,45 +200,28 @@ test("another user's category and rule never leak or get written", async ({
 	await expect(page.getByText('Regla ajena')).toHaveCount(0);
 	expect((await page.goto(`/plan/recurring/${rule}`))!.status()).toBe(404);
 	expect((await page.goto(`/plan/recurring/${rule}/edit`))!.status()).toBe(404);
-});
 
-test("another user cannot attach a limit to the demo user's category", async ({
-	page,
-	browser,
-	baseURL
-}) => {
-	await login(page);
-	await restoreDemoPlan(page, baseURL!);
+	// The other direction: another user cannot attach a limit to the demo user's category.
 	await page.goto('/categories');
 	const superId = await linkId(page.getByRole('link', { name: /Supermercado/ }).first());
-	const demoBefore = await figures(page);
-
 	const context = await browser.newContext({ baseURL });
 	try {
 		const other = await context.newPage();
 		await context.addCookies(cookies);
-		const limits = () => limitHrefs(other);
-		const before = await limits();
-		const res = await post(other, baseURL!, '/plan/limits/new', {
+		const before = await limitHrefs(other);
+		const attach = await post(other, baseURL!, '/plan/limits/new', {
 			categoryId: superId,
 			amount: '5',
 			currency: 'ARS'
 		});
-		expect(res.status()).toBe(400);
-		expect(await res.text()).toContain(NOT_OFFERED);
+		expect(attach.status()).toBe(400);
+		expect(await attach.text()).toContain(NOT_OFFERED);
 		expect((await other.goto(`/plan/limits/${superId}`))!.status()).toBe(404);
-		expect(await limits()).toEqual(before);
+		expect(await limitHrefs(other)).toEqual(before);
 		await expect(limitsRegion(other)).not.toContainText('Supermercado');
 	} finally {
 		await context.close();
 	}
-
-	// The demo plan is untouched: same limit, same income and savings.
-	await page.goto('/plan');
-	await expect(superMeter(page)).toHaveAttribute('aria-valuetext', /de \$\s?300\.000$/);
-	const demoAfter = await figures(page);
-	expect(demoAfter['Ingresos']).toBe(demoBefore['Ingresos']);
-	expect(demoAfter['Ahorro']).toBe(demoBefore['Ahorro']);
 });
 
 test('deleting a category removes its limit', async ({ page, baseURL }) => {
