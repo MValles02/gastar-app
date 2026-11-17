@@ -4,6 +4,7 @@ import { db } from '../db';
 import {
 	categories,
 	financialAccounts,
+	importSettings,
 	movements,
 	mpImportItems,
 	mpImportRules,
@@ -62,6 +63,7 @@ export function deleteImportData(userId: string) {
 	return db.transaction(async (tx) => {
 		await tx.delete(mpImportItems).where(canAccessOwn(userId, mpImportItems));
 		await tx.delete(mpImportRules).where(canAccessOwn(userId, mpImportRules));
+		await tx.delete(importSettings).where(canAccessOwn(userId, importSettings));
 		await tx
 			.delete(mpSyncState)
 			.where(

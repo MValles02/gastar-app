@@ -2,7 +2,6 @@
 	import { resolve } from '$app/paths';
 	import { autosave, submitAction } from '#lib/autosave.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import DatePicker from '#lib/components/pickers/DatePicker.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
@@ -15,8 +14,7 @@
 
 	// A save sets the value at once; a reload (Deshacer) brings the stored one back in.
 	let accountId = $derived(data.connection?.accountId ?? '');
-	let importFrom = $derived(data.importFrom ?? '');
-	let errors = $state<{ accountId?: string; from?: string }>({});
+	let errors = $state<{ accountId?: string }>({});
 
 	async function saveAccount(next: string) {
 		if (!next || next === accountId) return;
@@ -37,17 +35,6 @@
 				fields: { accountId: next },
 				previous: { accountId },
 				apply: (res) => (accountId = res.accountId)
-			})) ?? undefined;
-	}
-
-	async function saveFrom(next: string) {
-		if (!next || next === importFrom) return;
-		errors.from =
-			(await autosave<{ from: string }>({
-				path: '?/importFrom',
-				fields: { from: next },
-				previous: { from: importFrom },
-				apply: (res) => (importFrom = res.from)
 			})) ?? undefined;
 	}
 </script>
@@ -115,29 +102,13 @@
 					<noscript><Button type="submit" variant="outline">Guardar</Button></noscript>
 				</form>
 			</div>
-			{#if data.connection.accountId && data.importFrom}
-				<div role="listitem">
-					<form method="POST" action="?/importFrom" novalidate>
-						<fieldset disabled={data.running}>
-							<DatePicker
-								name="from"
-								label="Importar desde"
-								bind:value={() => importFrom, (v) => void saveFrom(v)}
-								min={data.earliest}
-								max={data.today}
-								error={errors.from}
-								errorId="from-error"
-							/>
-						</fieldset>
-						<noscript><Button type="submit" variant="outline">Guardar fecha</Button></noscript>
-					</form>
-				</div>
-			{/if}
 		</ListCard>
-		{#if data.running}
-			<p class="hint">Hay una sincronización en curso. Podés cambiar la fecha cuando termine.</p>
-		{:else if data.connection.accountId}
-			<p class="hint">Es la fecha mínima de cada sincronización. Hasta 12 meses para atrás.</p>
+		{#if data.connection.accountId}
+			<p class="hint">
+				La fecha desde la que se importa está en <a href={resolve('profile/vinculaciones')}
+					>Vinculaciones</a
+				>.
+			</p>
 		{/if}
 	{/if}
 
@@ -198,13 +169,6 @@
 
 	.card form {
 		padding-top: var(--space-2);
-	}
-
-	fieldset {
-		min-width: 0;
-		margin: 0;
-		padding: 0;
-		border: 0;
 	}
 
 	.flash {
