@@ -1,12 +1,13 @@
 import { CURRENCIES, type Currency } from '#lib/money.ts';
 import { db } from '../../db';
-import { galiciaConnections } from '../../db/schema';
+import { cardStatements, galiciaConnections } from '../../db/schema';
 import { userOwned } from '../../access';
 import { dayStart } from '../../month';
 import { getGaliciaConnection, isActiveAccountIn } from '../connections';
 import { type ImportRow, ingestImportItems } from '../ingest';
 import { GALICIA_SOURCE, KIND, kindSpec } from '../sources';
-import { StatementError, type Statement } from './statement';
+import { matchStatement, withMatchLock } from './matching';
+import { StatementError, type Statement, type StatementLine } from './statement';
 
 type GaliciaConnection = Awaited<ReturnType<typeof getGaliciaConnection>>;
 
@@ -64,7 +65,7 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 	}));
 
 	const seen = new Map<string, number>();
-	const rows: ImportRow[] = [];
+	const lines: { key: string; line: StatementLine; row: ImportRow }[] = [];
 	for (const l of s.consumos) {
 		if (l.cents === 0) continue;
 		const base = [
@@ -79,9 +80,10 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 		// Identical lines in one statement stay distinct items; the same statement again maps 1:1.
 		const n = (seen.get(base) ?? 0) + 1;
 		seen.set(base, n);
-		rows.push({
+		const key = n === 1 ? base : `${base}#${n}`;
+		const row: ImportRow = {
 			accountId: accounts[l.currency]!,
-			externalKey: n === 1 ? base : `${base}#${n}`,
+			externalKey: key,
 			kind: l.installment ? KIND.cardInstallment : KIND.cardPurchase,
 			occurredAt: day(l.installment ? s.closing : l.date),
 			amount: Math.abs(l.cents),
@@ -90,8 +92,19 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 			rawDescription: l.installment ? `${l.reference} ${l.installment}` : l.reference,
 			merchant: l.reference,
 			installment: l.installment
-		});
+		};
+		lines.push({ key, line: l, row });
 	}
-	const { created, autoApproved } = await ingestImportItems(userId, source, [...rows, ...taxes]);
+	// After the reconciliation (the parser already threw if the statement does not add up).
+	// Under the user's matching lock, so a concurrent upload or alert conversion cannot claim or insert in between.
+	const { created, autoApproved } = await withMatchLock(userId, async () => {
+		const { rows, diffs } = await matchStatement(userId, source, s.closing, lines);
+		const result = await ingestImportItems(userId, source, [...rows, ...diffs, ...taxes]);
+		await db
+			.insert(cardStatements)
+			.values({ ...userOwned(userId), source, numberHash: s.numberHash, closing: s.closing })
+			.onConflictDoNothing();
+		return result;
+	});
 	return { ok: true, created, autoApproved };
 }

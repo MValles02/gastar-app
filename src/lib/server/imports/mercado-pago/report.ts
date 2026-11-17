@@ -23,13 +23,12 @@ import {
 	isAuthError,
 	mpCode
 } from './client';
-import { reportPollMs } from './env';
+import { reportPollMs, reportTimeoutMs } from './env';
 
 // Release report ("Liquidaciones"): yields and payouts, minutes in MP's queue.
 
 const CHUNK_DAYS = 31; // MP report range limit is unverified: single constant
 const END_LAG_MS = 5 * 60_000;
-const POLL_TIMEOUT_MS = 5 * 60_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -158,47 +157,80 @@ async function ensureReportConfig(auth: Auth): Promise<void> {
 	}
 }
 
-async function downloadReport(begin: Date, end: Date, auth: Auth): Promise<string> {
-	const res = await api(REPORT, auth, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({
-			// Reports reject milliseconds: send YYYY-MM-DDTHH:MM:SSZ.
-			begin_date: begin.toISOString().replace(/\.\d{3}Z$/, 'Z'),
-			end_date: end.toISOString().replace(/\.\d{3}Z$/, 'Z')
-		})
-	});
-	let created: unknown;
-	try {
-		created = await res.json();
-	} catch {
-		throw fail('parse');
-	}
-	const id = str(obj(created).id);
-	if (!id) throw fail('parse');
-	const pollMs = reportPollMs();
-	const deadline = Date.now() + POLL_TIMEOUT_MS;
+/**
+ * The task of each account's last chunk that timed out in MP's queue. The next run reuses it instead of
+ * queueing a new report behind it. In memory: a restart just requests a new report.
+ */
+const pending = new Map<string, { id: string; begin: number; end: number; at: number }>();
+const PENDING_TTL_MS = 60 * 60_000;
+
+/** `reuse`: a task already queued for this range (`end` is its own); it is polled, not created. */
+async function downloadReport(
+	accountId: string,
+	begin: Date,
+	end: Date,
+	auth: Auth,
+	reuse?: { id: string; at: number }
+): Promise<string> {
 	let doneWithoutFile = false;
-	while (Date.now() < deadline) {
-		await sleep(pollMs);
-		const t = obj(await apiJson(`${REPORT}/task/${encodeURIComponent(id)}`, auth));
-		const status = str(t.status)?.toLowerCase() ?? '';
-		if (TASK_FAILED.has(status)) throw fail('parse');
-		if (!TASK_DONE.has(status)) continue;
-		const file = taskFile(t);
-		if (!file) {
-			// The file may lag the status by a poll; if it never shows, the shape is not what we expect.
-			doneWithoutFile = true;
-			continue;
+	let id = reuse?.id ?? '';
+	try {
+		if (!reuse) {
+			const res = await api(REPORT, auth, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					// Reports reject milliseconds: send YYYY-MM-DDTHH:MM:SSZ.
+					begin_date: begin.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+					end_date: end.toISOString().replace(/\.\d{3}Z$/, 'Z')
+				})
+			});
+			let created: unknown;
+			try {
+				created = await res.json();
+			} catch {
+				throw fail('parse');
+			}
+			id = str(obj(created).id) ?? '';
+			if (!id) throw fail('parse');
 		}
-		const res = await api(`${REPORT}/${encodeURIComponent(file)}`, auth);
-		try {
-			return await res.text();
-		} catch {
-			throw fail('network');
+		const pollMs = reportPollMs();
+		const deadline = Date.now() + reportTimeoutMs();
+		let wait = !reuse; // a reused task has been queued for a while: check it right away
+		while (Date.now() < deadline) {
+			if (wait) await sleep(pollMs);
+			wait = true;
+			const t = obj(await apiJson(`${REPORT}/task/${encodeURIComponent(id)}`, auth));
+			const status = str(t.status)?.toLowerCase() ?? '';
+			if (TASK_FAILED.has(status)) throw fail('parse');
+			if (!TASK_DONE.has(status)) continue;
+			const file = taskFile(t);
+			if (!file) {
+				// The file may lag the status by a poll; if it never shows, the shape is not what we expect.
+				doneWithoutFile = true;
+				continue;
+			}
+			const res = await api(`${REPORT}/${encodeURIComponent(file)}`, auth);
+			try {
+				const csv = await res.text();
+				pending.delete(accountId);
+				return csv;
+			} catch {
+				throw fail('network');
+			}
 		}
+		if (doneWithoutFile) throw fail('parse');
+	} catch (e) {
+		pending.delete(accountId);
+		throw e;
 	}
-	throw fail(doneWithoutFile ? 'parse' : 'report_timeout');
+	pending.set(accountId, {
+		id,
+		begin: begin.getTime(),
+		end: end.getTime(),
+		at: reuse?.at ?? Date.now()
+	});
+	throw fail('report_timeout');
 }
 
 /** A ready task reports `processed` (the documented list status; `available` is the old report's word). */
@@ -296,11 +328,29 @@ export async function syncReport(
 	await ensureReportConfig(auth);
 	// Yield rows sharing a day (across all chunks) are netted before any write (gains minus losses); the first row's fields stay.
 	const items = new Map<string, NonNullable<ReturnType<typeof reportItem>>>();
+	let reportEnd = end;
 	for (let from = begin.getTime(); from < end.getTime(); from += CHUNK_DAYS * DAY_MS) {
 		const next = from + CHUNK_DAYS * DAY_MS;
 		// Half-open ranges: a row stamped on a boundary belongs to the next chunk only.
 		const to = new Date(next < end.getTime() ? next - 1 : end.getTime());
-		const csv = await downloadReport(new Date(from), to, auth);
+		const last = next >= end.getTime();
+		const p = pending.get(accountId);
+		const reuse =
+			p &&
+			p.begin === from &&
+			now - p.at < PENDING_TTL_MS &&
+			(p.end === to.getTime() || (last && p.end <= end.getTime()))
+				? p
+				: null;
+		// A reused report stops at its own end: the cursor must not claim more than it covered.
+		if (reuse && last) reportEnd = new Date(reuse.end);
+		const csv = await downloadReport(
+			accountId,
+			new Date(from),
+			reuse ? new Date(reuse.end) : to,
+			auth,
+			reuse ?? undefined
+		);
 		// Each chunk can wait minutes in MP's queue: renew the lease so a long backfill keeps it.
 		await db
 			.update(mpSyncState)
@@ -334,5 +384,5 @@ export async function syncReport(
 	const rows = [...items.values()]
 		.filter((item) => item.amount !== 0)
 		.map((item) => ({ ...item, accountId }));
-	return { end, rows };
+	return { end: reportEnd, rows };
 }

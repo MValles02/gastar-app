@@ -219,6 +219,22 @@ test('a second sync searches from the last payment and keeps the same items', as
 	expect(age).toBeLessThan(15 * DAY_MS);
 });
 
+test('a sync that times out in MP queue is retried on the same report, not a new one', async () => {
+	test.setTimeout(60_000);
+	const before = await reportRequests();
+	// Ready 8s after its creation: past the 5s report wait of the first sync, before the second one ends.
+	await fake('/__fake/report-delay', { ms: 8_000 });
+	try {
+		await syncNow(/Mercado Pago tardó demasiado en generar el reporte/);
+		await fake('/__fake/report-delay', { ms: 0 });
+		await syncNow();
+	} finally {
+		await fake('/__fake/report-delay', { ms: 0 });
+	}
+	expect(await reportRequests()).toBe(before + 1);
+	await expect(rows()).toHaveCount(8);
+});
+
 test('every MP call carries a token the fake issued, and no page shows it', async () => {
 	const all = await calls();
 	expect(all.length).toBeGreaterThan(0);

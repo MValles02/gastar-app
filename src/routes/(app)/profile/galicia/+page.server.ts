@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { accountOption } from '#lib/server/accounts/queries.ts';
 import { activeAccountsIn, getGaliciaConnection } from '#lib/server/imports/connections.ts';
+import { convertWaitingAlerts } from '#lib/server/imports/gmail/cards.ts';
 import { importStatement, setGaliciaAccount } from '#lib/server/imports/galicia/import.ts';
 import {
 	parseGaliciaStatement,
@@ -45,6 +46,8 @@ export const actions: Actions = {
 		if (!(await setGaliciaAccount(requireUser(locals).id, currency, accountId))) {
 			return formFail(400, { errors: { accountId: ACCOUNT_ERRORS[currency] } });
 		}
+		// Credit alerts that waited for the Banco Galicia accounts become items now.
+		await convertWaitingAlerts(requireUser(locals).id);
 		return { currency, accountId };
 	},
 

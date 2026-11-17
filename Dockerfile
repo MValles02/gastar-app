@@ -27,6 +27,7 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY drizzle ./drizzle
 COPY scripts/migrate.js ./scripts/migrate.js
+COPY scripts/sync-dev-user.js ./scripts/sync-dev-user.js
 COPY scripts/create-user.js ./scripts/create-user.js
 ARG GIT_SHA
 ENV GIT_SHA=$GIT_SHA

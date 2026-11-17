@@ -1,5 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { dev } from '$app/env';
+import { listCards } from '#lib/server/imports/gmail/cards.ts';
 import {
 	gmailOauthEnabled,
 	gmailSummary,
@@ -23,8 +24,11 @@ const FLASHES = {
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!gmailOauthEnabled()) error(404);
 	const code = url.searchParams.get('error');
+	const userId = requireUser(locals).id;
+	const connection = await gmailSummary(userId);
 	return {
-		connection: await gmailSummary(requireUser(locals).id),
+		connection,
+		cards: connection ? await listCards(userId) : [],
 		linked: url.searchParams.get('linked') === '1',
 		flash: code && code in FLASHES ? FLASHES[code as keyof typeof FLASHES] : null
 	};

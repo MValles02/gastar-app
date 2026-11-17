@@ -3,6 +3,7 @@ import {
 	bigint,
 	boolean,
 	check,
+	date,
 	index,
 	integer,
 	pgEnum,
@@ -366,6 +367,10 @@ export const mpImportItems = pgTable(
 		poiType: text('poi_type'),
 		// Card statements: the cuota as printed (`05/12`) of an installment line; null otherwise.
 		installment: text('installment'),
+		// Card alert and statement line of one purchase: the key of the other side of the match (one item for both).
+		aliasKey: text('alias_key'),
+		// "No apareció en el resumen": the user chose to keep an unmatched alert item.
+		unmatchedKeptAt: timestamp('unmatched_kept_at', { withTimezone: true }),
 		movementId: uuid('movement_id').references(() => movements.id, { onDelete: 'set null' }),
 		// Set when the approval was automatic (a learned rule after an import); cleared by an undo.
 		autoApprovedAt: timestamp('auto_approved_at', { withTimezone: true }),
@@ -379,6 +384,7 @@ export const mpImportItems = pgTable(
 	},
 	(table) => [
 		uniqueIndex('mp_import_items_user_id_external_key_idx').on(table.userId, table.externalKey),
+		uniqueIndex('mp_import_items_user_id_alias_key_idx').on(table.userId, table.aliasKey),
 		index('mp_import_items_user_id_status_occurred_at_idx').on(
 			table.userId,
 			table.status,
@@ -387,7 +393,7 @@ export const mpImportItems = pgTable(
 		check('mp_import_items_amount_positive_check', sql`${table.amount} > 0`),
 		check(
 			'mp_import_items_kind_check',
-			sql`${table.kind} IN ('payment', 'account_fund', 'yield', 'payout', 'merchant_payout', 'refund', 'other', 'card_purchase', 'card_installment', 'card_taxes')`
+			sql`${table.kind} IN ('payment', 'account_fund', 'yield', 'payout', 'merchant_payout', 'refund', 'other', 'card_purchase', 'card_installment', 'card_taxes', 'card_adjustment')`
 		),
 		check(
 			'mp_import_items_source_check',
@@ -476,7 +482,7 @@ export const mpConnections = pgTable('mp_connections', {
 		.notNull()
 });
 
-// Gmail link for card alerts (connection only for now). Tokens are encrypted like mp_connections (GMAIL_TOKEN_KEY).
+// Gmail link for card alerts. Tokens are encrypted like mp_connections (GMAIL_TOKEN_KEY).
 export const gmailConnections = pgTable('gmail_connections', {
 	userId: text('user_id')
 		.primaryKey()
@@ -488,6 +494,8 @@ export const gmailConnections = pgTable('gmail_connections', {
 	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
 	needsReconnect: boolean('needs_reconnect').default(false).notNull(),
 	syncCursor: timestamp('sync_cursor', { withTimezone: true }),
+	// Lease of a running sync (the Mercado Pago pattern): a later run may take over after 15 minutes.
+	syncRunningSince: timestamp('sync_running_since', { withTimezone: true }),
 	lastRunAt: timestamp('last_run_at', { withTimezone: true }),
 	lastErrorCode: text('last_error_code'),
 	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -516,3 +524,100 @@ export const galiciaConnections = pgTable('galicia_connections', {
 		.$onUpdate(() => new Date())
 		.notNull()
 });
+
+// One row per statement uploaded: how many closed after an alert tells whether the alert never appeared.
+export const cardStatements = pgTable(
+	'card_statements',
+	{
+		id: uuid('id').defaultRandom().primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		source: text('source').notNull(),
+		// SHA-256 prefix of the statement number (Statement.numberHash).
+		numberHash: text('number_hash').notNull(),
+		closing: date('closing', { mode: 'string' }).notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+	},
+	(table) => [
+		uniqueIndex('card_statements_user_id_source_number_hash_idx').on(
+			table.userId,
+			table.source,
+			table.numberHash
+		),
+		check(
+			'card_statements_source_check',
+			sql`${table.source} IN ('galicia_visa', 'galicia_mastercard')`
+		)
+	]
+);
+
+// A card seen in Gmail alerts: what it is decides whether its alerts become import items (debit) or wait (credit).
+export const importCards = pgTable(
+	'import_cards',
+	{
+		id: uuid('id').defaultRandom().primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		network: text('network').notNull(),
+		last4: text('last4').notNull(),
+		type: text('type').notNull(),
+		arsAccountId: uuid('ars_account_id').references(() => financialAccounts.id, {
+			onDelete: 'set null'
+		}),
+		usdAccountId: uuid('usd_account_id').references(() => financialAccounts.id, {
+			onDelete: 'set null'
+		}),
+		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp('updated_at', { withTimezone: true })
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull()
+	},
+	(table) => [
+		uniqueIndex('import_cards_user_id_network_last4_idx').on(
+			table.userId,
+			table.network,
+			table.last4
+		),
+		check('import_cards_network_check', sql`${table.network} IN ('visa')`),
+		check('import_cards_last4_check', sql`${table.last4} ~ '^[0-9]{4}$'`),
+		check('import_cards_type_check', sql`${table.type} IN ('credit', 'debit')`)
+	]
+);
+
+// One row per card-alert email: only the parsed fields, never the email itself.
+export const cardAlerts = pgTable(
+	'card_alerts',
+	{
+		id: uuid('id').defaultRandom().primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		gmailMessageId: text('gmail_message_id').notNull(),
+		network: text('network').notNull(),
+		last4: text('last4').notNull(),
+		merchant: text('merchant').notNull(),
+		country: text('country').notNull(),
+		currency: text('currency').notNull(),
+		// Minor units of `currency`.
+		amount: bigint('amount', { mode: 'number' }).notNull(),
+		foreign: boolean('foreign').notNull(),
+		transactionType: text('transaction_type').notNull(),
+		receivedAt: timestamp('received_at', { withTimezone: true }).notNull(),
+		// The item this alert became; null while it waits (unknown or credit card) or after the item is gone.
+		importItemId: uuid('import_item_id').references(() => mpImportItems.id, {
+			onDelete: 'set null'
+		}),
+		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+	},
+	(table) => [
+		uniqueIndex('card_alerts_user_id_gmail_message_id_idx').on(table.userId, table.gmailMessageId),
+		index('card_alerts_user_id_network_last4_idx').on(table.userId, table.network, table.last4),
+		check('card_alerts_network_check', sql`${table.network} IN ('visa')`),
+		check('card_alerts_last4_check', sql`${table.last4} ~ '^[0-9]{4}$'`),
+		check('card_alerts_currency_check', sql`${table.currency} IN ('ARS', 'USD')`),
+		check('card_alerts_amount_positive_check', sql`${table.amount} > 0`)
+	]
+);

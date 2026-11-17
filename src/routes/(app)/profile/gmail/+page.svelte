@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import ListCard from '#lib/components/ListCard.svelte';
+	import ListRow from '#lib/components/ListRow.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import type { PageData } from './$types';
@@ -60,6 +62,19 @@
 				nunca el mail.
 			</p>
 		</section>
+	{/if}
+
+	{#if data.cards.length > 0}
+		<ListCard aria-label="Tarjetas">
+			{#each data.cards as c (c.network + c.last4)}
+				<ListRow
+					href={resolve(`profile/gmail/cards/${c.network}-${c.last4}`)}
+					lead={{ icon: 'card', color: null }}
+					title="Visa ••{c.last4} · {c.type === 'debit' ? 'Débito' : 'Crédito'}"
+					chevron
+				/>
+			{/each}
+		</ListCard>
 	{/if}
 
 	{#if data.connection}

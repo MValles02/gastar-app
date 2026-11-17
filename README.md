@@ -26,6 +26,7 @@ Env vars required at runtime:
 | `MP_SYNC_INTERVAL_HOURS` | Optional. Whole hours between automatic payment syncs run inside the server process, on the full hour (default `1`, `0` = no automatic sync at all). The release report runs automatically only once a day, at 08:00 Buenos Aires (Mercado Pago emails the account owner each time). The first run is ~1 minute after start and also requests the day's report if it was missed. Only active when the Mercado Pago link is on. E2E sets it to `0`. |
 | `MP_API_BASE_URL`     | Optional, tests only. Mercado Pago API base URL (default `https://api.mercadopago.com`) |
 | `MP_REPORT_POLL_MS`   | Optional, tests only. Milliseconds between report-ready checks (default `15000`) |
+| `MP_REPORT_TIMEOUT_MS` | Optional, tests only. Milliseconds to wait for a report before giving up (default `300000`) |
 | `GOOGLE_CLIENT_ID`    | Optional. Google OAuth client id. "Continuar con Google" is on only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are both set; setting just one makes the app refuse to start in production. The Google client must list `https://<host>/api/auth/callback/google` as an authorized redirect URI |
 | `GOOGLE_CLIENT_SECRET` | Optional. Google OAuth client secret (secret, never commit or log it) |
 | `GOOGLE_DISCOVERY_URL` | Optional, tests only. OpenID discovery document URL (default `https://accounts.google.com/.well-known/openid-configuration`) |
@@ -33,7 +34,11 @@ Env vars required at runtime:
 | `GMAIL_CLIENT_SECRET` | Optional. Gmail OAuth client secret (secret, never commit or log it) |
 | `GMAIL_TOKEN_KEY`     | Optional. Key that encrypts users' Gmail tokens (secret): base64 of 32 bytes, generated like `MP_TOKEN_KEY` (`node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`). The app refuses to start in production if it is set with another length. If it is lost or changed, every user must link again |
 | `GMAIL_AUTH_BASE_URL` | Optional, tests only. Google authorization base URL (default `https://accounts.google.com`) |
-| `GMAIL_API_BASE_URL`  | Optional, tests only. Google token/revoke (and later Gmail API) base URL (default `https://oauth2.googleapis.com`) |
+| `GMAIL_API_BASE_URL`  | Optional, tests only. Google token/revoke base URL (default `https://oauth2.googleapis.com`); also the Gmail API base URL of the card-alert sync (default `https://gmail.googleapis.com`) |
+| `GMAIL_SYNC_INTERVAL_MINUTES` | Optional. Minutes between automatic Gmail card-alert syncs run inside the server process (default `15`, `0` = no automatic sync). The first run is ~1 minute after start. Only active when the Gmail link is on. E2E sets it to `0`. |
+| `PROD_READONLY_DATABASE_URL` | Dev app only. Read-only connection string to the production DB (secret), used by `scripts/sync-dev-user.js`; see `docs/deployment.md` "Dev data sync" |
+| `DEV_SYNC_EMAIL`      | Dev app only. Email of the prod user whose data is copied to dev |
+| `DEV_SYNC_TARGET_EMAIL` | Dev app only, optional. Email of the dev user that receives the copy (default `DEV_SYNC_EMAIL`) |
 | `PORT`                | Port to listen on (default `3000`)                    |
 
 `CF-Connecting-IP` is trustworthy only because the origin accepts Cloudflare IPs only (firewall ipset); if the origin is ever exposed directly, the header is spoofable.
