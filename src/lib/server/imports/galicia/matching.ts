@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, like, gte, lt } from 'drizzle-orm';
+import { and, eq, inArray, isNull, like, gte, lt, or, type SQL } from 'drizzle-orm';
 import type { Currency } from '#lib/money.ts';
 import { canAccessAccount, canAccessOwn } from '../../access';
 import { db } from '../../db';
@@ -93,6 +93,36 @@ export function pickMatch<C extends Candidate>(
 		if (order < 0) best = { c, key };
 	}
 	return best?.c ?? null;
+}
+
+/** Whether `key` is already an item's external key or alias key of the user (`mine` is their ownership filter). */
+async function keyTaken(mine: SQL, key: string): Promise<boolean> {
+	const found = await db
+		.select({ id: mpImportItems.id })
+		.from(mpImportItems)
+		.where(and(mine, or(eq(mpImportItems.aliasKey, key), eq(mpImportItems.externalKey, key))))
+		.limit(1);
+	return found.length > 0;
+}
+
+/**
+ * Runs `fn` holding a per-user Postgres advisory lock, so two matching runs of one user (a Gmail sync and a
+ * card save, two uploads of one statement) never interleave their claim and insert. Session-level on one
+ * reserved connection, not a transaction lock: ingestImportItems (and its auto-approval) use the shared
+ * pool and must stay outside any transaction. Not reentrant across calls: never nest it.
+ */
+export async function withMatchLock<T>(userId: string, fn: () => Promise<T>): Promise<T> {
+	const conn = await db.$client.reserve();
+	try {
+		await conn`select pg_advisory_lock(hashtext(${'card-match:' + userId}))`;
+		try {
+			return await fn();
+		} finally {
+			await conn`select pg_advisory_unlock(hashtext(${'card-match:' + userId}))`;
+		}
+	} finally {
+		conn.release();
+	}
 }
 
 const cleaned = (source: SourceId, merchant: string | null) =>
@@ -205,7 +235,8 @@ export async function matchStatement(
 					.where(and(eq(mpImportItems.id, found.id), mine, eq(mpImportItems.status, 'pending')));
 				return true;
 			});
-			if (claimed) matched.add(l.key);
+			// A lost claim: if the line is meanwhile an alias (or an item), it must not be imported again.
+			if (claimed || (await keyTaken(mine, l.key))) matched.add(l.key);
 		}
 	}
 
@@ -324,7 +355,7 @@ export async function matchWaitingAlerts(
 				.where(and(canAccessOwn(userId, cardAlerts), eq(cardAlerts.gmailMessageId, a.messageId)));
 			return true;
 		});
-		if (claimed) consumed.add(a.messageId);
+		if (claimed || (await keyTaken(mine, `alert:${a.messageId}`))) consumed.add(a.messageId);
 	}
 	return consumed;
 }

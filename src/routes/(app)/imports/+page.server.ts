@@ -202,7 +202,7 @@ export const actions: Actions = {
 	keepUnmatched: async ({ locals, request }) => {
 		const id = String((await request.formData()).get('id') ?? '');
 		if (!isUuid(id) || !(await keepUnmatched(requireUser(locals).id, id))) {
-			return fail(409, { message: DISCARD_FAILED });
+			return fail(409, { message: 'No se pudo guardar.' });
 		}
 		return { keptId: id };
 	},

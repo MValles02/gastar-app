@@ -6,7 +6,7 @@ import { dayStart } from '../../month';
 import { getGaliciaConnection, isActiveAccountIn } from '../connections';
 import { type ImportRow, ingestImportItems } from '../ingest';
 import { GALICIA_SOURCE, KIND, kindSpec } from '../sources';
-import { matchStatement } from './matching';
+import { matchStatement, withMatchLock } from './matching';
 import { StatementError, type Statement, type StatementLine } from './statement';
 
 type GaliciaConnection = Awaited<ReturnType<typeof getGaliciaConnection>>;
@@ -96,15 +96,15 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 		lines.push({ key, line: l, row });
 	}
 	// After the reconciliation (the parser already threw if the statement does not add up).
-	const { rows, diffs } = await matchStatement(userId, source, s.closing, lines);
-	const { created, autoApproved } = await ingestImportItems(userId, source, [
-		...rows,
-		...diffs,
-		...taxes
-	]);
-	await db
-		.insert(cardStatements)
-		.values({ ...userOwned(userId), source, numberHash: s.numberHash, closing: s.closing })
-		.onConflictDoNothing();
+	// Under the user's matching lock, so a concurrent upload or alert conversion cannot claim or insert in between.
+	const { created, autoApproved } = await withMatchLock(userId, async () => {
+		const { rows, diffs } = await matchStatement(userId, source, s.closing, lines);
+		const result = await ingestImportItems(userId, source, [...rows, ...diffs, ...taxes]);
+		await db
+			.insert(cardStatements)
+			.values({ ...userOwned(userId), source, numberHash: s.numberHash, closing: s.closing })
+			.onConflictDoNothing();
+		return result;
+	});
 	return { ok: true, created, autoApproved };
 }

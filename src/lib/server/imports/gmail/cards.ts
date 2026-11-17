@@ -4,7 +4,8 @@ import { db } from '../../db';
 import { cardAlerts, importCards, mpImportItems } from '../../db/schema';
 import { activeAccountsIn, getGaliciaConnection, isActiveAccountIn } from '../connections';
 import { setGaliciaAccount } from '../galicia/import';
-import { matchWaitingAlerts } from '../galicia/matching';
+import { matchWaitingAlerts, withMatchLock } from '../galicia/matching';
+import { pgErrorCode } from '../../db/errors';
 import { type ImportRow, ingestImportItems } from '../ingest';
 import { GALICIA_SOURCE, KIND, SOURCE, type SourceId } from '../sources';
 import type { Currency } from '#lib/money.ts';
@@ -28,7 +29,10 @@ const PURCHASE = 'Compra';
  * and a purchase whose statement line was already imported creates nothing (it is matched to that item).
  * Unknown cards create nothing. The only caller of ingestImportItems for Gmail alerts.
  */
-export async function convertWaitingAlerts(userId: string) {
+export const convertWaitingAlerts = (userId: string) =>
+	withMatchLock(userId, () => convertLocked(userId));
+
+async function convertLocked(userId: string) {
 	const waiting = await db
 		.select({
 			messageId: cardAlerts.gmailMessageId,
@@ -63,13 +67,21 @@ export async function convertWaitingAlerts(userId: string) {
 		? await getGaliciaConnection(userId)
 		: undefined;
 	// Statement first, alert later: the statement item already stands for the purchase.
-	const matched = await matchWaitingAlerts(
-		userId,
-		GALICIA_SOURCE.visa,
-		waiting
-			.filter((a) => a.type === 'credit' && a.transactionType === PURCHASE)
-			.map((a) => ({ ...a, currency: a.currency as Currency }))
-	);
+	// A failure here must not block the debit conversion: the credit alerts just wait for the next run.
+	let matched = new Set<string>();
+	let creditFailed = false;
+	try {
+		matched = await matchWaitingAlerts(
+			userId,
+			GALICIA_SOURCE.visa,
+			waiting
+				.filter((a) => a.type === 'credit' && a.transactionType === PURCHASE)
+				.map((a) => ({ ...a, currency: a.currency as Currency }))
+		);
+	} catch (e) {
+		creditFailed = true;
+		console.error('[gmail] credit alert matching failed', pgErrorCode(e) ?? 'unknown');
+	}
 
 	// Only the user's own active accounts can receive an item.
 	const [ars, usd] = await Promise.all([
@@ -80,6 +92,8 @@ export async function convertWaitingAlerts(userId: string) {
 	const rowsBySource = new Map<SourceId, ImportRow[]>();
 	for (const a of waiting) {
 		if (matched.has(a.messageId)) continue;
+		// Without a matching result, a credit purchase must not be inserted next to a statement item.
+		if (creditFailed && a.type === 'credit' && a.transactionType === PURCHASE) continue;
 		const accounts = a.type === 'credit' ? galicia : a;
 		const accountId = a.currency === 'ARS' ? accounts?.arsAccountId : accounts?.usdAccountId;
 		if (!accountId || !usable.has(accountId)) continue;
