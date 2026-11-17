@@ -49,7 +49,8 @@ Backups: enable Dokploy's Postgres backups before the first production deploy. R
 
 1. In Dokploy, roll back the application to the previous image tag (`sha-<full sha>`).
 2. Because migrations are backward-compatible, the old image keeps working against the current schema, so no database rollback is needed.
-3. Only restore a database backup if data itself was corrupted, and treat that as a separate, deliberate operation.
+3. Exception: migration 0021 added the `visa_debit` import source (Gmail Visa debit alerts). Rolling back past it requires deleting the `visa_debit` rows of `mp_import_items` first (and, if wanted, the movements they created), because the older release does not know that source.
+4. Only restore a database backup if data itself was corrupted, and treat that as a separate, deliberate operation.
 
 ## Promotion checks
 

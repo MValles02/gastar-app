@@ -17,6 +17,7 @@ export const variables = defineEnvVars({
 	GMAIL_AUTH_BASE_URL: optional,
 	GMAIL_CLIENT_ID: optional,
 	GMAIL_CLIENT_SECRET: optional,
+	GMAIL_SYNC_INTERVAL_MINUTES: optional,
 	GMAIL_TOKEN_KEY: optional,
 	MP_API_BASE_URL: optional,
 	MP_AUTH_BASE_URL: optional,

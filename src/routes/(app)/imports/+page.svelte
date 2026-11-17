@@ -14,6 +14,7 @@
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
+	import ListRow from '#lib/components/ListRow.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import ImportRow from './ImportRow.svelte';
 	import type { PageData } from './$types';
@@ -27,6 +28,13 @@
 		parse: 'reporte con formato inesperado',
 		config: 'revisá la cuenta configurada',
 		reconnect: 'hay que volver a vincular Mercado Pago'
+	};
+
+	const GMAIL_ERROR_LABELS: Record<string, string> = {
+		reconnect: 'hay que volver a vincular Gmail',
+		network: 'sin conexión con Gmail',
+		api: 'Gmail respondió con un error',
+		parse: 'algún mail de Visa no se pudo leer'
 	};
 
 	const errorLabel = (code: string) =>
@@ -103,6 +111,13 @@
 					? `Listo. ${newLabel(data.newItems)}${data.autoApproved ? `, ${autoLabel(data.autoApproved)}` : ''}.`
 					: (data.lastRun ?? 'Todavía no se sincronizó')
 	);
+
+	// Gmail's failure shows next to Mercado Pago's result, never instead of it.
+	const gmailStatus = $derived(
+		data.gmailError
+			? `No se pudo sincronizar Gmail (${GMAIL_ERROR_LABELS[data.gmailError] ?? data.gmailError})`
+			: null
+	);
 </script>
 
 <svelte:head>
@@ -121,7 +136,7 @@
 			{uploadMessage}
 		</p>{/if}
 
-	<!-- The sync line is Mercado Pago's: without a link only the pending items show. -->
+	<!-- The sync line is Mercado Pago's and Gmail's: without a link only the pending items show. -->
 	{#if data.mpLinked && data.running}
 		<section class="sync running" role="status" aria-label="Sincronización">
 			<LoaderCircle class="spin" aria-hidden="true" />
@@ -130,11 +145,14 @@
 				<span class="detail">Puede tardar unos minutos.</span>
 			</p>
 		</section>
-	{:else if data.mpLinked}
+	{:else if data.mpLinked || data.gmailLinked}
 		<section class="sync" aria-label="Sincronización">
-			<p class="status" class:error={data.needsReconnect || !!data.lastError} role="status">
-				{status}
-			</p>
+			<div class="messages">
+				<p class="status" class:error={data.needsReconnect || !!data.lastError} role="status">
+					{status}
+				</p>
+				{#if gmailStatus}<p class="status error" role="status">{gmailStatus}</p>{/if}
+			</div>
 			{#if data.needsReconnect}
 				<Button
 					href={resolve('profile/mercado-pago')}
@@ -149,6 +167,19 @@
 				</form>
 			{/if}
 		</section>
+	{/if}
+
+	{#if data.unknownCards.length > 0}
+		<ListCard aria-label="Tarjetas por definir">
+			{#each data.unknownCards as c (c.network + c.last4)}
+				<ListRow
+					href={resolve(`profile/gmail/cards/${c.network}-${c.last4}`)}
+					lead={{ icon: 'card', color: null }}
+					title="Tarjeta Visa ••{c.last4}: elegí qué es"
+					chevron
+				/>
+			{/each}
+		</ListCard>
 	{/if}
 
 	{#if data.autoCount > 0}
@@ -219,8 +250,12 @@
 		box-shadow: var(--shadow-1);
 	}
 
-	.status {
+	.messages {
 		flex: 1;
+		min-width: 0;
+	}
+
+	.status {
 		min-width: 0;
 		margin: 0;
 		font-size: var(--font-size-sm);

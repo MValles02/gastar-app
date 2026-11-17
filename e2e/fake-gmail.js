@@ -1,7 +1,12 @@
-// Tiny fake of Google's OAuth endpoints for the "Vincular Gmail" E2E (the Gmail API itself is not faked yet).
+// Tiny fake of Google's OAuth endpoints and the Gmail messages API for the Gmail E2Es.
 // /o/oauth2/v2/auth approves at once and redirects back with code and state; the profile it answers for is the
 // one set through /__fake/account. Like Google, refresh tokens are not rotated and a revoked one gets
-// 400 invalid_grant. Control: /__fake/{health,reset,revoke,omit-scope,account,requests}.
+// 400 invalid_grant. The consent answers for `login_hint` when the authorize URL carries one (parallel specs
+// link different mailboxes without sharing /__fake/account). Each access token belongs to the mailbox it was
+// issued for; GET /gmail/v1/users/me/messages[/:id] serve that mailbox. Control:
+// /__fake/{health,reset,revoke,omit-scope,account,requests} and /__fake/alert?email=&last4=&merchant=&amount=
+// &currency=&type=&foreign=&dkim=pass|fail (adds a synthetic Visa alert, dated now), /__fake/mailbox-reset?email=.
+// The global reset leaves mailboxes and access tokens alone, so a spec resetting it does not disturb another.
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 
@@ -16,6 +21,10 @@ let codes = new Map();
 let refreshTokens = new Map();
 let requests = [];
 let issued = 0;
+// access token -> mailbox email; email -> messages (oldest first).
+const accessTokens = new Map();
+const mailboxes = new Map();
+let lastDate = 0;
 let omitScope = false;
 let email = DEFAULT_EMAIL;
 
@@ -37,6 +46,75 @@ const reset = () => {
 	omitScope = false;
 	email = DEFAULT_EMAIL;
 };
+
+const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+// The alert body Visa sends: one <p> of "Label: value<br>" lines (all values synthetic).
+function alertHtml(a) {
+	const intro = a.foreign
+		? 'Su tarjeta Visa con terminaci&oacute;n ' +
+			a.last4 +
+			' se acaba de usar en el exterior para la siguiente transacci&oacute;n:'
+		: 'Su tarjeta Visa con terminaci&oacute;n ' +
+			a.last4 +
+			' se acaba de usar para la siguiente transacci&oacute;n:';
+	const suffix = a.foreign ? '' : '(puede haber una diferencia en el monto real)';
+	return (
+		'<html><body><p>' +
+		intro +
+		'<br><br>' +
+		'Comercio: ' +
+		escapeHtml(a.merchant) +
+		'<br>' +
+		'Pa&iacute;s: ' +
+		(a.foreign ? 'USA' : 'ARG') +
+		'<br>' +
+		'Ciudad:  CIUDAD EJEMPLO<br>' +
+		'Tarjeta: ' +
+		a.last4 +
+		'<br>' +
+		'Referencia: ' +
+		(a.foreign ? 'False' : 'True') +
+		'<br>' +
+		'Tipo de transacci&oacute;n: ' +
+		escapeHtml(a.type) +
+		'<br>' +
+		'Moneda: ' +
+		a.currency +
+		'<br>' +
+		'Monto: ' +
+		a.amount +
+		suffix +
+		'<br><br>' +
+		'Si no reconoce esta transacci&oacute;n, comun&iacute;quese con su banco.</p></body></html>'
+	);
+}
+
+function gmailMessage(m) {
+	return {
+		id: m.id,
+		threadId: m.id,
+		internalDate: String(m.internalDate),
+		payload: {
+			mimeType: 'text/html',
+			headers: [
+				{ name: 'From', value: 'Visa <DoNotReplyAlertadeComprasVisa@visa.com>' },
+				{ name: 'Subject', value: 'Alerta de Compras Visa' },
+				{ name: 'Date', value: new Date(m.internalDate).toUTCString() },
+				{
+					name: 'Authentication-Results',
+					value:
+						'mx.google.com; dkim=' +
+						m.dkim +
+						' header.i=@visa.com header.s=cportal; ' +
+						'spf=pass smtp.mailfrom=DoNotReplyAlertadeComprasVisa@visa.com; ' +
+						'dmarc=pass (p=QUARANTINE) header.from=visa.com'
+				}
+			],
+			body: { data: Buffer.from(m.html, 'utf8').toString('base64url') }
+		}
+	};
+}
 
 // Unsigned JWT: the app reads sub and email without checking a signature.
 const idToken = (address) =>
@@ -63,6 +141,48 @@ createServer(async (req, res) => {
 		return send(res, 200, { ok: true });
 	}
 	if (path === '/__fake/requests') return send(res, 200, requests);
+	if (path === '/__fake/alert') {
+		const q = url.searchParams;
+		const to = q.get('email') || DEFAULT_EMAIL;
+		lastDate = Math.max(Date.now(), lastDate + 1);
+		const id = 'fake-msg-' + ++issued;
+		const html = alertHtml({
+			last4: q.get('last4') || '1234',
+			merchant: q.get('merchant') || 'COMERCIO EJEMPLO',
+			amount: q.get('amount') || '100.00',
+			currency: q.get('currency') || 'ARS',
+			type: q.get('type') || 'Compra',
+			foreign: q.get('foreign') === '1' || q.get('foreign') === 'true'
+		});
+		const list = mailboxes.get(to) ?? [];
+		list.push({
+			id,
+			internalDate: lastDate,
+			dkim: q.get('dkim') === 'fail' ? 'fail' : 'pass',
+			html
+		});
+		mailboxes.set(to, list);
+		return send(res, 200, { id });
+	}
+	if (path === '/__fake/mailbox-reset') {
+		mailboxes.delete(url.searchParams.get('email') || DEFAULT_EMAIL);
+		return send(res, 200, { ok: true });
+	}
+	if (path.startsWith('/gmail/v1/users/me/messages')) {
+		const token = (req.headers.authorization ?? '').replace(/^Bearer /, '');
+		const owner = accessTokens.get(token);
+		if (!owner) return send(res, 401, { error: { code: 401, status: 'UNAUTHENTICATED' } });
+		const list = mailboxes.get(owner) ?? [];
+		if (path === '/gmail/v1/users/me/messages') {
+			const after = Number(/after:(\d+)/.exec(url.searchParams.get('q') ?? '')?.[1] ?? 0);
+			const messages = list
+				.filter((m) => m.internalDate / 1000 > after)
+				.map((m) => ({ id: m.id, threadId: m.id }));
+			return send(res, 200, { messages, resultSizeEstimate: messages.length });
+		}
+		const found = list.find((m) => path === '/gmail/v1/users/me/messages/' + m.id);
+		return found ? send(res, 200, gmailMessage(found)) : send(res, 404, { error: { code: 404 } });
+	}
 	if (path === '/__fake/omit-scope') {
 		omitScope = true; // the next consent leaves gmail.readonly out of the granted scope
 		return send(res, 200, { ok: true });
@@ -95,7 +215,12 @@ createServer(async (req, res) => {
 		const granted = omitScope ? 'openid email' : scope;
 		omitScope = false;
 		const code = `fake-gmail-code-${++issued}`;
-		codes.set(code, { email, scope: granted, challenge: q.get('code_challenge'), redirectUri });
+		codes.set(code, {
+			email: q.get('login_hint') || email,
+			scope: granted,
+			challenge: q.get('code_challenge'),
+			redirectUri
+		});
 		const back = new URL(redirectUri);
 		back.searchParams.set('code', code);
 		if (q.get('state')) back.searchParams.set('state', q.get('state'));
@@ -113,6 +238,7 @@ createServer(async (req, res) => {
 		if (form.get('grant_type') === 'refresh_token') {
 			const entry = refreshTokens.get(form.get('refresh_token'));
 			if (!entry || entry.revoked) return bad('invalid_grant');
+			accessTokens.set(access, entry.email);
 			return send(res, 200, {
 				access_token: access,
 				token_type: 'Bearer',
@@ -131,7 +257,8 @@ createServer(async (req, res) => {
 		);
 		if (hash !== entry.challenge) return bad('invalid_grant');
 		const refresh = `fake-gmail-refresh-${++issued}`;
-		refreshTokens.set(refresh, { revoked: false, scope: entry.scope });
+		refreshTokens.set(refresh, { revoked: false, scope: entry.scope, email: entry.email });
+		accessTokens.set(access, entry.email);
 		return send(res, 200, {
 			access_token: access,
 			refresh_token: refresh,
