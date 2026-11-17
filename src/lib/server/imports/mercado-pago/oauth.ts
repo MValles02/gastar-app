@@ -1,14 +1,14 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import * as env from '$app/env/private';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { mpConnections, mpSyncState } from '../../db/schema';
+import { decryptToken as decryptWith, encryptToken as encryptWith } from '../token-crypto';
 import { mpApiBaseUrl } from './env';
 
 const DEFAULT_AUTH_BASE_URL = 'https://auth.mercadopago.com';
 const TOKEN_TIMEOUT_MS = 15_000;
-const FORMAT = 'v1:';
 
 export const OAUTH_COOKIE = 'mp_oauth';
 export const OAUTH_PATH = '/profile/mercado-pago';
@@ -19,29 +19,11 @@ export function mpOauthEnabled(): boolean {
 	return !!(env.MP_CLIENT_ID && env.MP_CLIENT_SECRET && env.MP_TOKEN_KEY);
 }
 
-// --- Token encryption: "v1:" + base64(iv(12) | tag(16) | ct), AES-256-GCM, AAD = user id ---
-
-const key = () => Buffer.from(env.MP_TOKEN_KEY ?? '', 'base64');
-
-export function encryptToken(plain: string, userId: string): string {
-	const iv = randomBytes(12);
-	const cipher = createCipheriv('aes-256-gcm', key(), iv);
-	cipher.setAAD(Buffer.from(userId));
-	const ct = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
-	return FORMAT + Buffer.concat([iv, cipher.getAuthTag(), ct]).toString('base64');
-}
-
-export function decryptToken(stored: string, userId: string): string {
-	if (!stored.startsWith(FORMAT)) throw new Error('mp token: unknown format');
-	const raw = Buffer.from(stored.slice(FORMAT.length), 'base64');
-	if (raw.length < 28) throw new Error('mp token: too short');
-	const decipher = createDecipheriv('aes-256-gcm', key(), raw.subarray(0, 12), {
-		authTagLength: 16
-	});
-	decipher.setAAD(Buffer.from(userId));
-	decipher.setAuthTag(raw.subarray(12, 28));
-	return Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString('utf8');
-}
+// Tokens: AES-256-GCM with MP_TOKEN_KEY (format in ../token-crypto.ts).
+export const encryptToken = (plain: string, userId: string) =>
+	encryptWith(plain, userId, env.MP_TOKEN_KEY);
+export const decryptToken = (stored: string, userId: string) =>
+	decryptWith(stored, userId, env.MP_TOKEN_KEY);
 
 const b64url = (buf: Buffer) => buf.toString('base64url');
 

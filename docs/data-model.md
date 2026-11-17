@@ -254,6 +254,25 @@ One row per user who linked Mercado Pago (OAuth).
 
 Encryption: tokens are AES-256-GCM ciphertext, `v1:` + base64(iv(12) | tag(16) | ct), with AAD = `user_id`, keyed by `MP_TOKEN_KEY`. They are never logged or sent to the client.
 
+### `gmail_connections`
+
+One row per user who linked Gmail (OAuth, own Google client; connection only, nothing is read yet).
+
+| Column | Type | Notes |
+|---|---|---|
+| `user_id` | pk, fk → `user.id` | ON DELETE CASCADE |
+| `google_account_id` | text | `sub` of the id_token |
+| `email` | text | address of the linked Google account (id_token) |
+| `access_token` | text | encrypted |
+| `refresh_token` | text | encrypted; Google does not rotate it |
+| `expires_at` | timestamptz | |
+| `needs_reconnect` | boolean | default false; set when Google answers `invalid_grant` or the token cannot be decrypted |
+| `sync_cursor`, `last_run_at` | timestamptz, nullable | reserved for the sync (not used yet) |
+| `last_error_code` | text, nullable | reserved for the sync (not used yet) |
+| `created_at`, `updated_at` | timestamptz | |
+
+Encryption: same format as `mp_connections` (shared helper), keyed by `GMAIL_TOKEN_KEY`. Unlinking revokes the refresh token at Google (best effort) and deletes the row; deleting the account does the same before its transaction deletes the row.
+
 ## Derived formulas
 
 ### Plan figures (one plan in ARS, per month; computed in `src/lib/server/plan/summary.ts` and `plan/month-plan.ts`)
@@ -301,7 +320,7 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 - `ownedBy(userId)`: insert-side counterpart, sets `owner_id`.
 - `canAccessMovement(userId, origin = financialAccounts)`: `movements.user_id = userId` AND `canAccessAccount(userId, origin)`. The caller must inner-join the origin account.
 - `movementOwnedBy(userId)`: insert-side counterpart, sets `movements.user_id`.
-- `canAccessOwn(userId, table)` and `userOwned(userId)`: the same pair for every other table with a `user_id` owner column: `categories`, `recurring_movements`, `spending_plans`, `mp_import_items`, `mp_import_rules`, `mp_connections`, `galicia_connections`. `table` may be an alias. Category limits have no owner column; they are reached only by joining their plan. `mp_sync_state` has no owner column; it is reached only by joining its account.
+- `canAccessOwn(userId, table)` and `userOwned(userId)`: the same pair for every other table with a `user_id` owner column: `categories`, `recurring_movements`, `spending_plans`, `mp_import_items`, `mp_import_rules`, `mp_connections`, `gmail_connections`, `galicia_connections`. `table` may be an alias. Category limits have no owner column; they are reached only by joining their plan. `mp_sync_state` has no owner column; it is reached only by joining its account.
 - `allMovementsOf(userId)`: `movements.user_id = userId`, the single path for bulk operations over every movement a user owns (account deletion).
 
 Shared server infrastructure each has one home: SQL fragments (`Range`, `inRange`, `sumOfType`, `total`, `isIncomeOrOutcome`, the `dest` alias, `localMonth`, `exists`) in `src/lib/server/db/sql.ts`; the `Tx`/`DbExecutor` types in `src/lib/server/db/index.ts`; the per-request memo (`memoPerRequest`, the only `getRequestEvent` reader) in `src/lib/server/request-memo.ts`; `requireUser` and the 404 helpers in `src/lib/server/guards.ts`; archive, unarchive and delete-unless-referenced actions (plus `catchForeignKey`) in `src/lib/server/lifecycle.ts`; the stored icon/colour → key mapping (`accountLook`, `categoryLook`) in `src/lib/appearance.ts`.

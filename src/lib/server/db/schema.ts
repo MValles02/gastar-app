@@ -476,6 +476,27 @@ export const mpConnections = pgTable('mp_connections', {
 		.notNull()
 });
 
+// Gmail link for card alerts (connection only for now). Tokens are encrypted like mp_connections (GMAIL_TOKEN_KEY).
+export const gmailConnections = pgTable('gmail_connections', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	googleAccountId: text('google_account_id').notNull(),
+	email: text('email').notNull(),
+	accessToken: text('access_token').notNull(),
+	refreshToken: text('refresh_token').notNull(),
+	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+	needsReconnect: boolean('needs_reconnect').default(false).notNull(),
+	syncCursor: timestamp('sync_cursor', { withTimezone: true }),
+	lastRunAt: timestamp('last_run_at', { withTimezone: true }),
+	lastErrorCode: text('last_error_code'),
+	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true })
+		.defaultNow()
+		.$onUpdate(() => new Date())
+		.notNull()
+});
+
 // Banco Galicia card statements land on the user's own bank accounts (no card accounts).
 export const galiciaConnections = pgTable('galicia_connections', {
 	userId: text('user_id')

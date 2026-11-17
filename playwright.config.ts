@@ -6,6 +6,8 @@ const MP_PORT = Number(process.env.FAKE_MP_PORT) || 5199;
 const MP_URL = `http://127.0.0.1:${MP_PORT}`;
 const GOOGLE_PORT = Number(process.env.FAKE_GOOGLE_PORT) || 5198;
 const GOOGLE_URL = `http://127.0.0.1:${GOOGLE_PORT}`;
+const GMAIL_PORT = Number(process.env.FAKE_GMAIL_PORT) || 5197;
+const GMAIL_URL = `http://127.0.0.1:${GMAIL_PORT}`;
 
 export default defineConfig({
 	testDir: 'e2e',
@@ -37,9 +39,15 @@ export default defineConfig({
 			reuseExistingServer: !process.env.CI,
 			env: { FAKE_GOOGLE_PORT: String(GOOGLE_PORT) }
 		},
-		// Locally reuses an already running `pnpm dev` (and its .env); a reused server must have the same MP and Google env.
+		{
+			command: 'node e2e/fake-gmail.js',
+			url: `${GMAIL_URL}/__fake/health`,
+			reuseExistingServer: !process.env.CI,
+			env: { FAKE_GMAIL_PORT: String(GMAIL_PORT) }
+		},
+		// Locally reuses an already running `pnpm dev` (and its .env); a reused server must have the same MP, Google and Gmail env.
 		// Without one (CI), builds with VITE_E2E=1 (enables the test-only routes) and serves `node build`.
-		// Set E2E_PORT, FAKE_MP_PORT and FAKE_GOOGLE_PORT to unique values per worktree so a run never reuses another checkout's servers.
+		// Set E2E_PORT, FAKE_MP_PORT, FAKE_GOOGLE_PORT and FAKE_GMAIL_PORT to unique values per worktree so a run never reuses another checkout's servers.
 		{
 			command: `pnpm build && node --env-file-if-exists=.env build`,
 			url: `${BASE_URL}/health`,
@@ -66,7 +74,13 @@ export default defineConfig({
 				// Must match the fake's defaults (e2e/fake-google.js).
 				GOOGLE_CLIENT_ID: 'test-google-client-id',
 				GOOGLE_CLIENT_SECRET: 'test-google-client-secret',
-				GOOGLE_DISCOVERY_URL: `${GOOGLE_URL}/.well-known/openid-configuration`
+				GOOGLE_DISCOVERY_URL: `${GOOGLE_URL}/.well-known/openid-configuration`,
+				// Must match the fake's defaults (e2e/fake-gmail.js).
+				GMAIL_CLIENT_ID: 'test-gmail-client-id',
+				GMAIL_CLIENT_SECRET: 'test-gmail-client-secret',
+				GMAIL_TOKEN_KEY: Buffer.from('fedcba9876543210fedcba9876543210').toString('base64'),
+				GMAIL_AUTH_BASE_URL: GMAIL_URL,
+				GMAIL_API_BASE_URL: GMAIL_URL
 			}
 		}
 	]
