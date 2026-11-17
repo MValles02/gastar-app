@@ -86,7 +86,12 @@ export const actions: Actions = {
 				return busy();
 			}
 			// Before the Gmail conversion, so its floor does not drop the backfilled alerts.
-			await setImportFrom(userId, from);
+			try {
+				await setImportFrom(userId, from);
+			} catch (error) {
+				await lease?.release();
+				throw error;
+			}
 			// Runs on in the background; the lease is released when it ends.
 			void lease?.run(from).then(() => lease.release());
 			return { from: ymd };
