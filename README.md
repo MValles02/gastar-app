@@ -29,6 +29,11 @@ Env vars required at runtime:
 | `GOOGLE_CLIENT_ID`    | Optional. Google OAuth client id. "Continuar con Google" is on only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are both set; setting just one makes the app refuse to start in production. The Google client must list `https://<host>/api/auth/callback/google` as an authorized redirect URI |
 | `GOOGLE_CLIENT_SECRET` | Optional. Google OAuth client secret (secret, never commit or log it) |
 | `GOOGLE_DISCOVERY_URL` | Optional, tests only. OpenID discovery document URL (default `https://accounts.google.com/.well-known/openid-configuration`) |
+| `GMAIL_CLIENT_ID`     | Optional. Client id of a separate Google Cloud project/OAuth client for the Gmail link (never the sign-in `GOOGLE_*` client). The Gmail link is on only when `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET` and `GMAIL_TOKEN_KEY` are all set. The client must list `https://<host>/profile/gmail/callback` as an authorized redirect URI and the `gmail.readonly` scope; while the app is unverified, Google warns users ("Google no verificó esta app") |
+| `GMAIL_CLIENT_SECRET` | Optional. Gmail OAuth client secret (secret, never commit or log it) |
+| `GMAIL_TOKEN_KEY`     | Optional. Key that encrypts users' Gmail tokens (secret): base64 of 32 bytes, generated like `MP_TOKEN_KEY` (`node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`). The app refuses to start in production if it is set with another length. If it is lost or changed, every user must link again |
+| `GMAIL_AUTH_BASE_URL` | Optional, tests only. Google authorization base URL (default `https://accounts.google.com`) |
+| `GMAIL_API_BASE_URL`  | Optional, tests only. Google token/revoke (and later Gmail API) base URL (default `https://oauth2.googleapis.com`) |
 | `PORT`                | Port to listen on (default `3000`)                    |
 
 `CF-Connecting-IP` is trustworthy only because the origin accepts Cloudflare IPs only (firewall ipset); if the origin is ever exposed directly, the header is spoofable.

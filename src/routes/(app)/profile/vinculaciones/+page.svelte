@@ -26,6 +26,14 @@
 					: 'Vincular'}</span
 		>{/snippet}
 
+	{#snippet gmailState()}<span class="val"
+			>{data.gmail === 'linked'
+				? 'Vinculado'
+				: data.gmail === 'reconnect'
+					? 'Reconectar'
+					: 'Vincular'}</span
+		>{/snippet}
+
 	{#snippet galiciaState()}<span class="val"
 			>{data.galiciaReady ? 'Configurado' : 'Configurar'}</span
 		>{/snippet}
@@ -37,6 +45,15 @@
 				lead={{ icon: 'phone', color: null }}
 				title="Mercado Pago"
 				value={mpState}
+				chevron
+			/>
+		{/if}
+		{#if data.gmail !== undefined}
+			<ListRow
+				href={resolve('profile/gmail')}
+				lead={{ icon: 'mail', color: null }}
+				title="Gmail"
+				value={gmailState}
 				chevron
 			/>
 		{/if}
