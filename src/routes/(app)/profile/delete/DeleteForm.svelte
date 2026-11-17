@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { PASSWORD_MAX_LENGTH } from '#lib/fields.ts';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import PasswordInput from '#lib/components/PasswordInput.svelte';
 
 	type Summary = { accounts: number; movements: number; categories: number; hasPlan: boolean };
@@ -12,11 +13,23 @@
 	let {
 		summary,
 		error,
+		hasPassword = true,
+		recent = true,
+		reauth = false,
+		email = '',
 		variant = 'page',
 		onclose
 	}: {
 		summary: Summary;
 		error?: string;
+		/** false: a Google-only user, who confirms by signing in with Google again. */
+		hasPassword?: boolean;
+		/** Whether the session is recent enough to delete without a password. */
+		recent?: boolean;
+		/** The last post asked to confirm with Google. */
+		reauth?: boolean;
+		/** The account being deleted, shown to a user without a password. */
+		email?: string;
 		variant?: 'page' | 'drawer';
 		/** Drawer: Cancelar. */
 		onclose?: () => void;
@@ -42,23 +55,12 @@
 
 	let password = $state('');
 	// The drawer's post reports the failure here; the page shows the server-rendered one.
-	let posted = $state<string | undefined>();
-	const message = $derived(posted ?? error);
+	let posted = $state<{ formError?: string; reauth?: boolean } | undefined>();
+	const message = $derived(posted ? posted.formError : error);
+	const needsGoogle = $derived(!hasPassword && (!recent || !!posted?.reauth || reauth));
 </script>
 
-<FormShell
-	action="/profile/delete?/delete"
-	{variant}
-	inPlace
-	onsubmit={() => (posted = undefined)}
-	onfailure={(data: { formError?: string }) => (posted = data.formError)}
-	{onclose}
-	errorToast="No se pudo darte de baja."
-	cancelHref="/profile"
-	submitLabel="Darme de baja"
-	canSave={!!password}
-	danger
->
+{#snippet warn()}
 	<div class="warn">
 		<p>Se borran para siempre tu usuario y todos tus datos:</p>
 		{#if items.length}
@@ -66,26 +68,55 @@
 				{#each items as item (item)}<li>{item}</li>{/each}
 			</ul>
 		{/if}
+		{#if !hasPassword}<p>Cuenta: {email}</p>{/if}
 	</div>
+{/snippet}
 
-	<div class="field">
-		<label for="delete-password">Contraseña</label>
-		<PasswordInput
-			outlined
-			id="delete-password"
-			name="password"
-			bind:value={password}
-			autocomplete="current-password"
-			maxlength={PASSWORD_MAX_LENGTH}
-			required={false}
-			invalid={!!message}
-			describedby={message ? 'delete-error' : undefined}
-		/>
-		{#if message}<p class="error" id="delete-error" role="alert">{message}</p>{/if}
-	</div>
+{#if needsGoogle}
+	{@render warn()}
+	<p>Para confirmar, volvé a entrar con Google.</p>
+	{#if message}<p class="error" role="alert">{message}</p>{/if}
+	<!-- Plain form: it leaves for Google with a full navigation. -->
+	<form method="POST" action="/profile/delete?/google">
+		<Button type="submit">Confirmar con Google</Button>
+	</form>
+{:else}
+	<FormShell
+		action="/profile/delete?/delete"
+		{variant}
+		inPlace
+		onsubmit={() => (posted = undefined)}
+		onfailure={(data: { formError?: string; reauth?: boolean }) => (posted = data)}
+		{onclose}
+		errorToast="No se pudo darte de baja."
+		cancelHref="/profile"
+		submitLabel="Darme de baja"
+		canSave={!hasPassword || !!password}
+		danger
+	>
+		{@render warn()}
 
-	<p class="final">No se puede deshacer.</p>
-</FormShell>
+		{#if hasPassword}
+			<div class="field">
+				<label for="delete-password">Contraseña</label>
+				<PasswordInput
+					outlined
+					id="delete-password"
+					name="password"
+					bind:value={password}
+					autocomplete="current-password"
+					maxlength={PASSWORD_MAX_LENGTH}
+					required={false}
+					invalid={!!message}
+					describedby={message ? 'delete-error' : undefined}
+				/>
+				{#if message}<p class="error" id="delete-error" role="alert">{message}</p>{/if}
+			</div>
+		{/if}
+
+		<p class="final">No se puede deshacer.</p>
+	</FormShell>
+{/if}
 
 <style>
 	.warn {

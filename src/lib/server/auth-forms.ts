@@ -38,34 +38,77 @@ export async function resendVerification(email: string, ip: string): Promise<voi
 	);
 }
 
+type GoogleStart = {
+	/** Where the browser goes when rate limited. */
+	blocked: string;
+	/** Where it goes when Google gives no URL. */
+	unavailable: string;
+	callbackURL: string;
+	newUserCallbackURL: string;
+	errorCallbackURL: string;
+	/** Force a fresh Google login (re-authentication). */
+	reauth?: boolean;
+};
+
 /**
- * `google` action of /login and /signup: sends the browser to Google. Better Auth's state and PKCE
- * cookies ride along on the 303 (sveltekitCookies); the callback lands on / or /login?error=<code>.
+ * Sends the browser to Google. Better Auth's state and PKCE cookies ride along on the 303
+ * (sveltekitCookies); the callback lands on the given URLs.
  */
-export async function googleAction({ request, getClientAddress }: RequestEvent) {
+async function startGoogle(
+	{ request, getClientAddress }: RequestEvent,
+	{ blocked, unavailable, reauth, ...urls }: GoogleStart
+) {
 	const ip = getClientAddress();
-	if (isBlocked('oauthStart', ip)) redirect(303, '/login?error=rate_limited');
+	if (isBlocked('oauthStart', ip)) redirect(303, blocked);
 	record('oauthStart', ip);
 
 	let url: string | undefined;
 	try {
 		({ url } = await auth.api.signInSocial({
-			body: {
-				provider: 'google',
-				callbackURL: '/',
-				newUserCallbackURL: '/',
-				errorCallbackURL: '/login',
-				disableRedirect: true
-			},
+			body: { provider: 'google', ...urls, disableRedirect: true },
 			headers: request.headers
 		}));
 	} catch (err) {
 		if (!(err instanceof APIError)) throw err;
 	}
-	if (!url) redirect(303, '/login?error=unavailable');
+	if (!url) redirect(303, unavailable);
+	if (reauth) {
+		// select_account forces the account picker (Google rejects prompt=login) and max_age=0 asks for a
+		// fresh login; the server-side recent-session check is what actually guards.
+		const next = new URL(url);
+		next.searchParams.set('prompt', 'select_account');
+		next.searchParams.set('max_age', '0');
+		url = next.toString();
+	}
 	// Google's authorization page: the only external redirect, allowed by origin.
 	redirect(303, url, { external: [new URL(url).origin] });
 }
+
+/** `google` action of /login and /signup: the callback lands on / or /login?error=<code>. */
+export const googleAction = (event: RequestEvent) =>
+	startGoogle(event, {
+		blocked: '/login?error=rate_limited',
+		unavailable: '/login?error=unavailable',
+		callbackURL: '/',
+		newUserCallbackURL: '/',
+		errorCallbackURL: '/login'
+	});
+
+/**
+ * `google` action of the password-less pages: a fresh Google sign-in that lands back on `returnTo`
+ * (a Google account with no user here goes to / and never to a delete page).
+ */
+export const googleReauthAction = (returnTo: '/profile/delete' | '/profile/password') => {
+	return (event: RequestEvent) =>
+		startGoogle(event, {
+			blocked: returnTo,
+			unavailable: returnTo,
+			callbackURL: returnTo,
+			newUserCallbackURL: '/',
+			errorCallbackURL: returnTo,
+			reauth: true
+		});
+};
 
 /**
  * `resend` action for pages that render CheckEmail (it posts the email in a hidden field).

@@ -93,3 +93,87 @@ test('Google with an unverified email creates nothing', async ({ page }) => {
 	const rows = await withDb((sql) => sql`select 1 from "user" where email = ${email}`);
 	expect(rows).toHaveLength(0);
 });
+
+/** Answers the fake Google consent page that "Confirmar con Google" leads to. */
+async function answerGoogle(page: Page, email: string) {
+	await page.getByLabel('Email', { exact: true }).fill(email);
+	await page.getByLabel('Name', { exact: true }).fill('Google E2E');
+	await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+}
+
+/** Makes the user's sessions look 10 minutes old, past the 5 minutes a password-less user may act in. */
+const ageSession = (email: string) =>
+	withDb(
+		(sql) => sql`update session set created_at = now() - interval '10 minutes'
+			where user_id = (select id from "user" where email = ${email})`
+	);
+
+test('a Google-only user creates a password after confirming with Google and then signs in with it', async ({
+	page
+}) => {
+	const email = uniqueEmail();
+	await continueWithGoogle(page, { email });
+	await expectHome(page);
+
+	await page.goto('/profile/password');
+	await expect(page.getByRole('heading', { name: 'Crear contraseña' })).toBeVisible();
+	await ageSession(email);
+	await page.getByLabel('Contraseña nueva').fill(password);
+	await page.getByRole('button', { name: 'Guardar' }).click();
+
+	await expect(page.getByRole('alert')).toContainText('confirmá con Google antes de crear');
+	const credentials = await withDb(
+		(sql) => sql`select 1 from account a join "user" u on u.id = a.user_id
+			where u.email = ${email} and a.provider_id = 'credential'`
+	);
+	expect(credentials).toHaveLength(0);
+
+	await page.getByRole('button', { name: 'Confirmar con Google' }).click();
+	await answerGoogle(page, email);
+	await expect(page).toHaveURL(/\/profile\/password$/);
+	await page.getByLabel('Contraseña nueva').fill(password);
+	await page.getByRole('button', { name: 'Guardar' }).click();
+	await expect(page).toHaveURL(/\/profile$/);
+
+	await page.context().clearCookies();
+	await submitLogin(page, email, password);
+	await expectHome(page);
+});
+
+test('a Google-only user deletes the account only after confirming with Google', async ({
+	page,
+	baseURL
+}) => {
+	const email = uniqueEmail();
+	await continueWithGoogle(page, { email });
+	await expectHome(page);
+	await createAccount(page, baseURL!, `Cuenta baja ${Date.now()}`, 'ARS');
+	const [{ id: userId }] = await withDb((sql) => sql`select id from "user" where email = ${email}`);
+
+	await page.goto('/profile/delete');
+	await expect(page.getByText(`Cuenta: ${email}`)).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Darme de baja' })).toBeEnabled();
+	await ageSession(email);
+	await page.getByRole('button', { name: 'Darme de baja' }).click();
+
+	await expect(page.getByRole('alert')).toContainText('Pasaron más de 5 minutos');
+	const kept = await withDb(
+		(sql) => sql`select
+			(select count(*) from "user" where id = ${userId})::int as users,
+			(select count(*) from financial_accounts where owner_id = ${userId})::int as accounts`
+	);
+	expect(kept).toEqual([{ users: 1, accounts: 1 }]);
+
+	await page.getByRole('button', { name: 'Confirmar con Google' }).click();
+	await answerGoogle(page, email);
+	await expect(page).toHaveURL(/\/profile\/delete$/);
+	await page.getByRole('button', { name: 'Darme de baja' }).click();
+	await expect(page).toHaveURL(/\/login/);
+
+	const left = await withDb(
+		(sql) => sql`select
+			(select count(*) from "user" where id = ${userId})::int as users,
+			(select count(*) from financial_accounts where owner_id = ${userId})::int as accounts`
+	);
+	expect(left).toEqual([{ users: 0, accounts: 0 }]);
+});

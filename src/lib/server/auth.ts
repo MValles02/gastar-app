@@ -106,7 +106,7 @@ export const auth = betterAuth({
 			// e2e builds sign up many test users from one IP.
 			'/sign-up/email': { window: HOUR, max: E2E ? 50 : 10 },
 			'/verify-email': { window: MINUTE, max: 10 },
-			'/sign-in/social': { window: MINUTE, max: 10 },
+			'/sign-in/social': { window: MINUTE, max: E2E ? 50 : 10 },
 			'/callback/*': { window: MINUTE, max: E2E ? 50 : 10 }
 		}
 	},

@@ -96,7 +96,7 @@
 		<ListRow
 			href={resolve('profile/password')}
 			lead={{ icon: 'lock', color: null }}
-			title="Contraseña"
+			title={data.hasPassword ? 'Contraseña' : 'Crear contraseña'}
 			chevron
 			onclick={(e: MouseEvent) => openShallow(e, resolve('profile/password'), 'password')}
 		/>
