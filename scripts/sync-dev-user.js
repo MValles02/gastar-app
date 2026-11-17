@@ -68,8 +68,13 @@ try {
 }
 if (devEmail.endsWith('@gastar.local')) abort('guard target email');
 
-const src = postgres(prodUrl, { max: 1, connection: { default_transaction_read_only: 'on' } });
-const dst = postgres(devUrl, { max: 1 });
+// onnotice: false, because notices carry detail text.
+const src = postgres(prodUrl, {
+	max: 1,
+	onnotice: false,
+	connection: { default_transaction_read_only: 'on' }
+});
+const dst = postgres(devUrl, { max: 1, onnotice: false });
 
 const columnsOf = async (sql) => {
 	const rows = await sql`
@@ -93,7 +98,8 @@ const notScopeWhere = (t, p) => {
 try {
 	stage = 'guard';
 	const idOf = async (sql) => {
-		const [r] = await sql`select current_database() || '|' || pg_postmaster_start_time() as id`;
+		const [r] =
+			await sql`select current_database() || '|' || extract(epoch from pg_postmaster_start_time()) as id`;
 		return r.id;
 	};
 	if ((await idOf(src)) === (await idOf(dst))) throw fail('guard same server');
@@ -170,6 +176,41 @@ try {
 			);
 			others[t] = r.n;
 		}
+
+		// Deleting must not SET NULL / cascade into other users' rows: check every FK into the copied tables.
+		stage = 'guard';
+		const fks = await tx`
+			select cl.relname as ref_table, a.attname as ref_col, t.relname as target, ta.attname as target_col,
+				array_length(c.conkey, 1) as n
+			from pg_constraint c
+			join pg_class cl on cl.oid = c.conrelid
+			join pg_class t on t.oid = c.confrelid
+			join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+			join pg_attribute ta on ta.attrelid = c.confrelid and ta.attnum = c.confkey[1]
+			where c.contype = 'f' and cl.relnamespace = current_schema()::regnamespace
+				and t.relnamespace = current_schema()::regnamespace
+				and t.relname in ${tx(TABLES.map(([n]) => n))}`;
+		const OWN = {
+			mp_connections: '"user_id" = $1',
+			gmail_connections: '"user_id" = $1',
+			galicia_connections: '"user_id" = $1',
+			mp_sync_state: 'account_id in (select id from financial_accounts where owner_id = $1)'
+		};
+		for (const f of fks) {
+			where = `${f.ref_table}.${f.ref_col}`;
+			if (f.n !== 1) throw fail('foreign reference composite');
+			const own =
+				OWN[f.ref_table] ||
+				(TABLES.some(([n]) => n === f.ref_table) ? scopeWhere(f.ref_table, '$1') : null);
+			if (!own) throw fail('foreign reference unknown table');
+			const [{ n }] = await tx.unsafe(
+				`select count(*)::int as n from ${q(f.ref_table)} where ${q(f.ref_col)} in
+				 (select ${q(f.target_col)} from ${q(f.target)} where ${scopeWhere(f.target, '$1')}) and not (${own})`,
+				[dev]
+			);
+			if (n) throw fail('foreign reference');
+		}
+		where = '';
 
 		stage = 'delete';
 		for (const [t] of [...TABLES].reverse()) {
