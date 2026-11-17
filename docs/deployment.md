@@ -66,6 +66,8 @@ ALTER ROLE gastar_dev_sync SET default_transaction_read_only = on;
 
 A NEW table that should be copied later needs its own `GRANT SELECT` plus an update of the table list in the script.
 
+A copied table that does not exist on prod yet (develop is ahead of main) is skipped: dev's rows in it are kept (logged as `prod=absent`), and their links to copied accounts or import items are restored when the targets still exist. When a migration adds a copied table to prod, run `GRANT SELECT ON <table> TO gastar_dev_sync;` on prod. Until then the job fails with `schema <table> no grant`, by design.
+
 Env vars on the dev app only:
 
 - `PROD_READONLY_DATABASE_URL` (secret): `postgres://gastar_dev_sync:<password>@gastarapp-database-hmi1zv:5432/gastar`.

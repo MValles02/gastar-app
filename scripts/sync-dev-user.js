@@ -110,9 +110,19 @@ try {
 		if (!u) throw fail('user missing');
 		const cols = await columnsOf(tx);
 		const data = {};
+		const absent = new Set(); // not on prod yet: dev keeps its rows
 		for (const [t] of TABLES) {
 			where = t;
-			if (!cols[t].length) throw fail('table missing');
+			if (!cols[t].length) {
+				const [{ reg }] =
+					await tx`select to_regclass(quote_ident(current_schema()) || '.' || quote_ident(${t})) as reg`;
+				if (reg) {
+					stage = 'schema';
+					throw fail('no grant');
+				}
+				absent.add(t);
+				continue;
+			}
 			const list = cols[t].map((c) => q(c.column_name)).join(', ');
 			const [r] = await tx.unsafe(
 				`select coalesce(json_agg(t), '[]')::text as j from (select ${list} from ${q(t)} where ${scopeWhere(t, '$1')}) t`,
@@ -120,7 +130,7 @@ try {
 			);
 			data[t] = r.j;
 		}
-		return { cols, data };
+		return { cols, data, absent };
 	});
 	where = '';
 
@@ -144,6 +154,7 @@ try {
 		for (const [t] of TABLES) {
 			where = t;
 			if (!devCols[t].length) throw fail('table missing');
+			if (snap.absent.has(t)) continue;
 			const have = new Set(devCols[t].map((c) => c.column_name));
 			const prodNames = new Set(snap.cols[t].map((c) => c.column_name));
 			for (const c of snap.cols[t]) {
@@ -181,7 +192,7 @@ try {
 		stage = 'guard';
 		const fks = await tx`
 			select cl.relname as ref_table, a.attname as ref_col, t.relname as target, ta.attname as target_col,
-				array_length(c.conkey, 1) as n
+				array_length(c.conkey, 1) as n, c.confdeltype as del
 			from pg_constraint c
 			join pg_class cl on cl.oid = c.conrelid
 			join pg_class t on t.oid = c.confrelid
@@ -190,6 +201,7 @@ try {
 			where c.contype = 'f' and cl.relnamespace = current_schema()::regnamespace
 				and t.relnamespace = current_schema()::regnamespace
 				and t.relname in ${tx(TABLES.map(([n]) => n))}`;
+		const kept = []; // dev rows of kept tables whose ON DELETE SET NULL FK the delete would null
 		const OWN = {
 			mp_connections: '"user_id" = $1',
 			gmail_connections: '"user_id" = $1',
@@ -199,6 +211,16 @@ try {
 		for (const f of fks) {
 			where = `${f.ref_table}.${f.ref_col}`;
 			if (f.n !== 1) throw fail('foreign reference composite');
+			if (snap.absent.has(f.target)) continue; // nothing of it is deleted
+			if (snap.absent.has(f.ref_table)) {
+				const rows = await tx.unsafe(
+					`select id, ${q(f.ref_col)} as v from ${q(f.ref_table)} where ${scopeWhere(f.ref_table, '$1')}
+					 and ${q(f.ref_col)} in (select ${q(f.target_col)} from ${q(f.target)} where ${scopeWhere(f.target, '$1')})`,
+					[dev]
+				);
+				if (rows.length && f.del !== 'n') throw fail('kept reference');
+				for (const r of rows) kept.push({ id: r.id, v: r.v, f });
+			}
 			const own =
 				OWN[f.ref_table] ||
 				(TABLES.some(([n]) => n === f.ref_table) ? scopeWhere(f.ref_table, '$1') : null);
@@ -215,12 +237,14 @@ try {
 		stage = 'delete';
 		for (const [t] of [...TABLES].reverse()) {
 			where = t;
+			if (snap.absent.has(t)) continue;
 			await tx.unsafe(`delete from ${q(t)} where ${scopeWhere(t, '$1')}`, [dev]);
 		}
 
 		stage = 'insert';
 		for (const [t, s] of TABLES) {
 			where = t;
+			if (snap.absent.has(t)) continue;
 			const list = plan[t].map(q).join(', ');
 			const sel = plan[t].map((n) => (n === s ? '$2::text' : q(n))).join(', ');
 			await tx.unsafe(
@@ -250,6 +274,20 @@ try {
 				]);
 			else out.push(`dev-sync: galicia_connections.${col} cleared`);
 		}
+		const cleared = {};
+		for (const { id, v, f } of kept) {
+			const key = `${f.ref_table}.${f.ref_col}`;
+			where = key;
+			cleared[key] ??= 0;
+			const res = await tx.unsafe(
+				`update ${q(f.ref_table)} set ${q(f.ref_col)} = $1 where id = $2 and exists
+				 (select 1 from ${q(f.target)} where ${q(f.target_col)} = $1 and ${scopeWhere(f.target, '$3')})`,
+				[v, id, dev]
+			);
+			if (res.count === 0) cleared[key]++;
+		}
+		for (const [key, n] of Object.entries(cleared))
+			if (n) out.push(`dev-sync: ${key} cleared ${n}`);
 		where = 'mp_sync_state';
 		await tx`insert into mp_sync_state
 			select * from json_populate_recordset(null::mp_sync_state, ${syncState}::text::json)
@@ -263,8 +301,8 @@ try {
 				`select count(*)::int as n from ${q(t)} where ${scopeWhere(t, '$1')}`,
 				[dev]
 			);
-			const prod = JSON.parse(snap.data[t]).length;
-			if (n !== prod) throw fail('count mismatch');
+			const prod = snap.absent.has(t) ? 'absent' : JSON.parse(snap.data[t]).length;
+			if (prod !== 'absent' && n !== prod) throw fail('count mismatch');
 			const [{ n: o }] = await tx.unsafe(
 				`select count(*)::int as n from ${q(t)} where ${notScopeWhere(t, '$1')}`,
 				[dev]
