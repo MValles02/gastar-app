@@ -525,6 +525,20 @@ export const galiciaConnections = pgTable('galicia_connections', {
 		.notNull()
 });
 
+// The user's "Importar desde": the minimum date of every automatic import (Mercado Pago and Gmail alerts).
+// A row exists only once a date is chosen. Galicia statements are never filtered by it.
+export const importSettings = pgTable('import_settings', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	// Local day start.
+	importFrom: timestamp('import_from', { withTimezone: true }).notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true })
+		.defaultNow()
+		.$onUpdate(() => new Date())
+		.notNull()
+});
+
 // One row per statement uploaded: how many closed after an alert tells whether the alert never appeared.
 export const cardStatements = pgTable(
 	'card_statements',

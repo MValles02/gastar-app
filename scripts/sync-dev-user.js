@@ -17,7 +17,8 @@ const TABLES = [
 	['mp_import_items', 'user_id'],
 	['card_statements', 'user_id'],
 	['import_cards', 'user_id'],
-	['card_alerts', 'user_id']
+	['card_alerts', 'user_id'],
+	['import_settings', 'user_id']
 ];
 // [table, fk column, target table]: every copied FK must point at the dev user's own rows.
 const FKS = [

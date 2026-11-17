@@ -2,13 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { dev } from '$app/env';
 import { accountOption } from '#lib/server/accounts/queries.ts';
-import { DAY_MS } from '#lib/dates.ts';
-import { dayStart, localDay } from '#lib/server/month.ts';
-import {
-	activeAccountsIn,
-	getConnectionInfo,
-	getMpImportAccount
-} from '#lib/server/imports/connections.ts';
+import { activeAccountsIn, getConnectionInfo } from '#lib/server/imports/connections.ts';
 import {
 	deleteConnection,
 	mpOauthEnabled,
@@ -16,13 +10,7 @@ import {
 	OAUTH_PATH,
 	startAuthorization
 } from '#lib/server/imports/mercado-pago/oauth.ts';
-import {
-	getImportFromDay,
-	MP_CURRENCY,
-	setImportFrom,
-	setReceivingAccount
-} from '#lib/server/imports/mercado-pago/settings.ts';
-import { getSyncState, leaseActive, runMpSync } from '#lib/server/imports/mercado-pago/sync.ts';
+import { MP_CURRENCY, setReceivingAccount } from '#lib/server/imports/mercado-pago/settings.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -32,23 +20,14 @@ const FLASHES = {
 	exchange: 'Mercado Pago no respondió. Probá de nuevo.'
 } as const;
 
-const BACKFILL_DAYS = 365;
-const earliestDay = () => localDay(new Date(Date.now() - BACKFILL_DAYS * DAY_MS));
-
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!mpOauthEnabled()) error(404);
 	const userId = requireUser(locals).id;
 	const code = url.searchParams.get('error');
 	const connection = await getConnectionInfo(userId);
-	const account = connection?.accountId ? await getMpImportAccount(userId) : null;
 	return {
 		connection,
 		accounts: (await activeAccountsIn(userId, MP_CURRENCY)).map(accountOption),
-		// The minimum date of every sync; only once an account receives the movements.
-		importFrom: account ? await getImportFromDay(userId, account.id) : null,
-		today: localDay(new Date()),
-		earliest: earliestDay(),
-		running: account ? leaseActive((await getSyncState(userId, account.id))?.runningSince) : false,
 		linked: url.searchParams.get('linked') === '1',
 		flash: code && code in FLASHES ? FLASHES[code as keyof typeof FLASHES] : null
 	};
@@ -77,38 +56,6 @@ export const actions: Actions = {
 			return formFail(400, { errors: { accountId: 'Elegí una cuenta en pesos.' } });
 		}
 		return { accountId };
-	},
-
-	/** Autosaved "Importar desde": the minimum date of every sync. */
-	importFrom: async ({ locals, request }) => {
-		if (!mpOauthEnabled()) error(404);
-		const userId = requireUser(locals).id;
-		const account = await getMpImportAccount(userId);
-		if (!account) return formFail(400, { errors: { from: 'Elegí primero la cuenta.' } });
-		const ymd = String((await request.formData()).get('from') ?? '');
-		const from = dayStart(ymd);
-		if (!from || ymd > localDay(new Date())) {
-			return formFail(400, { errors: { from: 'Elegí una fecha válida.' } });
-		}
-		if (ymd < earliestDay()) {
-			return formFail(400, { errors: { from: 'Podés traer hasta 12 meses para atrás.' } });
-		}
-		if ((await getConnectionInfo(userId))?.needsReconnect) {
-			return formFail(400, { errors: { from: 'Reconectá Mercado Pago primero.' } });
-		}
-		// Moving earlier fetches the gap; same or later only trims what is already here.
-		const earlier = ymd < (await getImportFromDay(userId, account.id));
-		// Trimming while a run holds the lease would let it re-insert what was just deleted.
-		const busy = earlier
-			? !(await runMpSync(userId, { from, report: true, background: true }))
-			: leaseActive((await getSyncState(userId, account.id))?.runningSince);
-		if (busy) {
-			return formFail(409, {
-				errors: { from: 'Ya hay una sincronización en curso. Probá en unos minutos.' }
-			});
-		}
-		await setImportFrom(userId, account.id, from);
-		return { from: ymd };
 	},
 
 	disconnect: async ({ locals }) => {

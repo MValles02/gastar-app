@@ -18,6 +18,7 @@ import {
 const FAKE = `http://127.0.0.1:${Number(process.env.FAKE_MP_PORT) || 5199}`;
 const BEARER_RE = /^Bearer APP_USR-fake-\d+$/;
 const MP_PATH = '/profile/mercado-pago';
+const LINKS_PATH = '/profile/vinculaciones';
 const DAY_MS = 86_400_000;
 
 test.describe.configure({ mode: 'serial' });
@@ -527,9 +528,9 @@ const syncedUntil = () =>
 		return (r.synced_until as Date).getTime();
 	});
 
-/** Sets "Importar desde" to `ymd` in the Mercado Pago settings; the picker saves on its own. */
+/** Sets "Importar desde" to `ymd` in Vinculaciones; the picker saves on its own. */
 async function importFrom(ymd: string) {
-	await page.goto(MP_PATH);
+	await page.goto(LINKS_PATH);
 	await page.waitForLoadState('networkidle'); // hydration guard: the date picker is JS-only
 	await pickDate(page, 'Importar desde', ymd);
 	await expect(page.getByText('Cambio guardado.')).toBeVisible();
@@ -581,7 +582,7 @@ test('moving "Importar desde" earlier searches from the chosen date, keeps synce
 	expect(await itemRows()).toEqual(decided);
 	await page.goto('/imports');
 	await expect(rows()).toHaveCount(3);
-	await page.goto(MP_PATH);
+	await page.goto(LINKS_PATH);
 	await expect(page.locator('input[name="from"]')).toHaveValue(daysAgoYmd(90));
 });
 
@@ -633,7 +634,7 @@ test('a date out of range is refused and starts no sync', async () => {
 		[daysAgoYmd(-2), 'Elegí una fecha válida.']
 	]) {
 		// The calendar cannot reach these days: post the action the way the picker would.
-		const res = await page.request.post(`${MP_PATH}?/importFrom`, {
+		const res = await page.request.post(`${LINKS_PATH}?/importFrom`, {
 			headers: { origin, accept: 'application/json' },
 			form: { from: ymd }
 		});

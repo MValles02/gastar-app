@@ -47,7 +47,7 @@ Backups: enable Dokploy's Postgres backups before the first production deploy. R
 
 ## Dev data sync
 
-A daily job copies the owner's production financial data over his user on dev, so import features can be tested on dev instead of prod. This is the one approved exception to "prod data never leaves prod": only that user's financial data moves (accounts, categories, recurring movements, movements, plans and limits, import rules/items, card statements/cards/alerts), never auth data (`user`, `session`, `account`, `verification`) or connection tokens (`mp_connections`, `gmail_connections`, `galicia_connections`, `mp_sync_state`).
+A daily job copies the owner's production financial data over his user on dev, so import features can be tested on dev instead of prod. This is the one approved exception to "prod data never leaves prod": only that user's financial data moves (accounts, categories, recurring movements, movements, plans and limits, import rules/items, card statements/cards/alerts, the "Importar desde" setting in `import_settings`), never auth data (`user`, `session`, `account`, `verification`) or connection tokens (`mp_connections`, `gmail_connections`, `galicia_connections`, `mp_sync_state`).
 
 `scripts/sync-dev-user.js` reads one consistent read-only snapshot from prod, then in a single dev transaction deletes the dev user's data, inserts the prod data (same UUIDs, scoped to the dev user id), restores dev's Mercado Pago and Galicia account links and verifies counts and foreign keys. Any failure rolls back and exits 1. It refuses to run if both URLs point at the same database or server, if the target email ends in `@gastar.local`, or if a sync that started less than 15 minutes ago is still running. Logs never contain error messages, row values, URLs or emails.
 
@@ -58,7 +58,8 @@ CREATE ROLE gastar_dev_sync LOGIN PASSWORD '<generated>';
 GRANT CONNECT ON DATABASE gastar TO gastar_dev_sync;
 GRANT USAGE ON SCHEMA public TO gastar_dev_sync;
 GRANT SELECT ON financial_accounts, categories, recurring_movements, movements, spending_plans,
-  plan_category_limits, mp_import_rules, mp_import_items, card_statements, import_cards, card_alerts
+  plan_category_limits, mp_import_rules, mp_import_items, card_statements, import_cards, card_alerts,
+  import_settings
   TO gastar_dev_sync;
 GRANT SELECT (id, email) ON "user" TO gastar_dev_sync;
 ALTER ROLE gastar_dev_sync SET default_transaction_read_only = on;

@@ -6,6 +6,7 @@ import { financialAccounts, mpConnections, mpSyncState } from '../../db/schema';
 import { canAccessAccount, canAccessOwn } from '../../access';
 import { autoApprovePending } from '../approve';
 import { type ImportRow, ingestImportItems } from '../ingest';
+import { getChosenImportFrom } from '../settings';
 import { SOURCE } from '../sources';
 import { DAY_MS } from '#lib/dates.ts';
 import {
@@ -56,8 +57,7 @@ async function acquire(userId: string): Promise<Lease | null> {
 		const [conn] = await db
 			.select({
 				accountId: financialAccounts.id,
-				currency: financialAccounts.currency,
-				floor: mpConnections.importFrom
+				currency: financialAccounts.currency
 			})
 			.from(mpConnections)
 			.innerJoin(financialAccounts, eq(financialAccounts.id, mpConnections.accountId))
@@ -94,7 +94,7 @@ async function acquire(userId: string): Promise<Lease | null> {
 					accountId,
 					currency: conn.currency,
 					syncedUntil: lease.syncedUntil,
-					floor: conn.floor
+					floor: await getChosenImportFrom(userId)
 				}
 			: null;
 	} catch (e) {
