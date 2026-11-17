@@ -1,11 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
-import { login, OTHER_EMAIL, post, signUpVerified } from './helpers';
+import { GALICIA_EMAIL, login, OTHER_EMAIL, post } from './helpers';
 
-// Google is the fake in e2e/fake-gmail.js. This spec uses 1 sign-up (see signUpVerified for the suite's budget).
+// Google is the fake in e2e/fake-gmail.js. User A is the seeded Galicia user (no other spec links Gmail),
+// so the spec adds no sign-up or email verification to the suite's rate-limit budget.
 const FAKE = `http://127.0.0.1:${Number(process.env.FAKE_GMAIL_PORT) || 5197}`;
 const GMAIL_PATH = '/profile/gmail';
 const stamp = Date.now();
-const emailA = `e2e+gmail-${stamp}@gastar.local`;
 const gmailA = `gmail-a-${stamp}@gastar.local`;
 
 test.describe.configure({ mode: 'serial' });
@@ -18,17 +18,17 @@ const revokeCalls = async () =>
 		(r) => r.path === '/revoke'
 	).length;
 const gmailRow = (p: Page) => p.getByRole('link', { name: /Gmail/ });
+// "Vincular" without matching "Vinculado".
+const UNLINKED = /Vincular(?!do)/;
 
 test.beforeAll(async ({ browser, baseURL }) => {
 	await fake('/__fake/reset');
 	await fake(`/__fake/account?email=${encodeURIComponent(gmailA)}`);
 	const context = await browser.newContext({ baseURL });
 	page = await context.newPage();
-	await signUpVerified(page, context.request, {
-		email: emailA,
-		password: 'e2e-pass-1234',
-		name: 'Gmail E2E'
-	});
+	await login(page, GALICIA_EMAIL);
+	// A rerun on a reused DB starts unlinked (the unlink action is a no-op without a row).
+	await post(page, baseURL!, `${GMAIL_PATH}?/disconnect`, {});
 });
 
 test.afterAll(async () => {
@@ -44,7 +44,7 @@ async function link(buttonName: string) {
 
 test('linking shows Vinculado and the address; unlinking revokes at Google', async () => {
 	await page.goto('/profile/vinculaciones');
-	await expect(gmailRow(page)).toContainText('Vincular');
+	await expect(gmailRow(page)).toContainText(UNLINKED);
 
 	await link('Vincular Gmail');
 	await expect(page.getByText(gmailA)).toBeVisible();
@@ -58,7 +58,7 @@ test('linking shows Vinculado and the address; unlinking revokes at Google', asy
 	await expect(page.getByRole('button', { name: 'Vincular Gmail' })).toBeVisible();
 	expect(await revokeCalls()).toBe(1);
 	await page.goto('/profile/vinculaciones');
-	await expect(gmailRow(page)).toContainText('Vincular');
+	await expect(gmailRow(page)).toContainText(UNLINKED);
 });
 
 test('a revoked grant asks to reconnect, and reconnecting links again', async ({ baseURL }) => {
@@ -101,7 +101,7 @@ test("another user sees their own state and cannot touch the first user's link",
 		const other = await ctx.newPage();
 		await login(other, OTHER_EMAIL);
 		await other.goto('/profile/vinculaciones');
-		await expect(gmailRow(other)).toContainText('Vincular');
+		await expect(gmailRow(other)).toContainText(UNLINKED);
 		await other.goto(GMAIL_PATH);
 		await expect(other.getByText(gmailA)).toHaveCount(0);
 		expect(await (await post(other, baseURL!, '/dev/gmail-refresh', {})).text()).toBe('reconnect');
