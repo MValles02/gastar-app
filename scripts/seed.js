@@ -303,8 +303,12 @@ async function deleteAppData(tx, id) {
 	await tx`delete from categories where user_id = ${id}`;
 	await tx`delete from galicia_connections where user_id = ${id}`;
 	await tx`delete from card_statements where user_id = ${id}`;
+	await tx`delete from card_alerts where user_id = ${id}`;
 	await tx`delete from mp_import_items where user_id = ${id}`;
+	await tx`delete from import_cards where user_id = ${id}`;
+	await tx`delete from gmail_connections where user_id = ${id}`;
 	await tx`delete from mp_import_rules where user_id = ${id}`;
+	await tx`delete from import_settings where user_id = ${id}`;
 	await tx`delete from mp_sync_state where account_id in (select id from financial_accounts where owner_id = ${id})`;
 	await tx`delete from financial_accounts where owner_id = ${id}`;
 }
