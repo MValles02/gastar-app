@@ -1,0 +1,1 @@
+ALTER TABLE "gmail_connections" ADD COLUMN "covered_from" timestamp with time zone;

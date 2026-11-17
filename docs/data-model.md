@@ -296,7 +296,8 @@ One row per user who linked Gmail (OAuth, own Google client; the sync reads Visa
 | `refresh_token` | text | encrypted; Google does not rotate it |
 | `expires_at` | timestamptz | |
 | `needs_reconnect` | boolean | default false; set when Google answers `invalid_grant` or the token cannot be decrypted |
-| `sync_cursor` | timestamptz, nullable | newest mail date seen; null until the first run, which reads from the "Importar desde" day; never moves backwards; each run re-reads 60 s before it |
+| `sync_cursor` | timestamptz, nullable | newest mail date seen; null until the first run; never moves backwards; each run re-reads 60 s before it |
+| `covered_from` | timestamptz, nullable | earliest instant from which mail has been read at least once; a run reads from the "Importar desde" day whenever that day is earlier than this (or this is null), then lowers it; moving the day later leaves it (trimming deletes pending items only, `card_alerts` stay) |
 | `sync_running_since` | timestamptz, nullable | the run's lease (taken in one UPDATE; a later run may take over after 15 minutes) |
 | `last_run_at` | timestamptz, nullable | |
 | `last_error_code` | text, nullable | `reconnect`, `network`, `api` or `parse` (a mail from Visa that did not parse); code only |

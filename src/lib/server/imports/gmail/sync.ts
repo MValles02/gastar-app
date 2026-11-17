@@ -35,7 +35,9 @@ const errorDetail = (e: unknown) => pgErrorCode(e) ?? (e as Error)?.name ?? 'unk
 const obj = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
 
 /** Takes the user's lease and returns the cursor (null until the first run); null when off or held. */
-async function acquire(userId: string): Promise<{ cursor: Date | null } | null> {
+async function acquire(
+	userId: string
+): Promise<{ cursor: Date | null; coveredFrom: Date | null } | null> {
 	try {
 		const [lease] = await db
 			.update(gmailConnections)
@@ -53,8 +55,11 @@ async function acquire(userId: string): Promise<{ cursor: Date | null } | null> 
 					)
 				)
 			)
-			.returning({ cursor: gmailConnections.syncCursor });
-		return lease ? { cursor: lease.cursor } : null;
+			.returning({
+				cursor: gmailConnections.syncCursor,
+				coveredFrom: gmailConnections.coveredFrom
+			});
+		return lease ? { cursor: lease.cursor, coveredFrom: lease.coveredFrom } : null;
 	} catch (e) {
 		console.error('gmail sync failed: db', errorDetail(e));
 		return null;
@@ -110,7 +115,7 @@ async function gmailClient(userId: string) {
 	};
 }
 
-/** Ids of the matching messages newer than the bound (minus the overlap), all pages. */
+/** Ids of the matching messages newer than the bound (minus the overlap), and whether every page was listed. */
 async function listMessageIds(api: (url: string) => Promise<unknown>, bound: Date) {
 	const from = VISA_SENDERS.join(' OR ');
 	const after = Math.floor(bound.getTime() / 1000) - OVERLAP_S;
@@ -125,13 +130,13 @@ async function listMessageIds(api: (url: string) => Promise<unknown>, bound: Dat
 		pageToken = typeof json.nextPageToken === 'string' ? json.nextPageToken : undefined;
 		if (!pageToken) break;
 	}
-	return ids;
+	return { ids, complete: !pageToken };
 }
 
-/** Fetches and stores the alerts after the bound; returns how many messages were invalid and the newest date seen (at least `base`). */
+/** Fetches and stores the alerts after the bound; returns how many messages were invalid, the newest date seen (at least `base`) and whether the listing was complete. */
 async function pull(userId: string, bound: Date, base: Date) {
 	const api = await gmailClient(userId);
-	const ids = await listMessageIds(api, bound);
+	const { ids, complete } = await listMessageIds(api, bound);
 	const known = new Set<string>();
 	for (const batch of batches(ids)) {
 		const rows = await db
@@ -157,23 +162,34 @@ async function pull(userId: string, bound: Date, base: Date) {
 				.onConflictDoNothing({ target: [cardAlerts.userId, cardAlerts.gmailMessageId] });
 		}
 	}
-	return { invalid, newest: new Date(newest) };
+	return { invalid, newest: new Date(newest), complete };
 }
 
 /**
- * Reads from `from` (else the cursor, else the "Importar desde" day) and turns the Visa purchase alerts into
- * pending items. Never throws and logs only codes: the mail itself is never stored or logged. The cursor is
- * the forward cursor: it never moves backwards (a backfill from an earlier `from` leaves it where it was)
- * and also moves past messages that did not parse (visible as the `parse` code). Does not release the lease.
+ * Reads from the "Importar desde" day when it is earlier than `coveredFrom` (or nothing was read yet: a
+ * backfill), else from the cursor, and turns the Visa purchase alerts into pending items. Never throws and
+ * logs only codes: the mail itself is never stored or logged. The cursor is the forward cursor: it never moves
+ * backwards (a backfill leaves it where it was) and also moves past messages that did not parse (visible as
+ * the `parse` code). A complete backfill listing lowers `coveredFrom`; a failed or truncated one retries on
+ * the next run. Moving the day later leaves `coveredFrom`: trimming deletes pending items only, card_alerts stay
+ * and convertWaitingAlerts reconverts them if the day moves earlier again. Does not release the lease.
  */
-async function execute(userId: string, cursor: Date | null, from?: Date): Promise<void> {
+async function execute(
+	userId: string,
+	cursor: Date | null,
+	coveredFrom: Date | null
+): Promise<void> {
 	let code: GmailSyncError | null = null;
 	let next = cursor;
+	let covered: Date | null = null;
 	try {
-		const bound = from ?? cursor ?? dayStart(await getImportFromDay(userId)) ?? new Date();
+		const importDay = dayStart(await getImportFromDay(userId)) ?? new Date();
+		const backfill = cursor === null || coveredFrom === null || importDay < coveredFrom;
+		const bound = backfill ? importDay : cursor;
 		const base = cursor ?? bound;
-		const { invalid, newest } = await pull(userId, bound, base);
+		const { invalid, newest, complete } = await pull(userId, bound, base);
 		next = newest;
+		if (backfill && complete) covered = bound;
 		if (invalid > 0) code = 'parse';
 	} catch (e) {
 		code = e instanceof SyncError ? e.code : 'network';
@@ -191,7 +207,13 @@ async function execute(userId: string, cursor: Date | null, from?: Date): Promis
 				lastRunAt: sql`now()`,
 				lastErrorCode: code,
 				// A failed run leaves the cursor: stored alerts are deduplicated by message id.
-				...((code === null || code === 'parse') && next ? { syncCursor: next } : {})
+				...((code === null || code === 'parse') && next ? { syncCursor: next } : {}),
+				// PG least() ignores NULL, so a legacy row takes the bound.
+				...((code === null || code === 'parse') && covered
+					? {
+							coveredFrom: sql`least(${gmailConnections.coveredFrom}, ${covered.toISOString()}::timestamptz)`
+						}
+					: {})
 			})
 			.where(canAccessOwn(userId, gmailConnections));
 	} catch (e) {
@@ -213,13 +235,13 @@ async function releaseLease(userId: string) {
 
 /**
  * Takes the user's lease (null when Gmail is not linked, needs a reconnect, or another sync holds it) so the
- * caller can `run` once, optionally from an earlier day (a backfill), then must `release`. `run` never throws.
+ * caller can `run` once (it backfills from the "Importar desde" day when that is not covered yet), then must `release`. `run` never throws.
  */
 export async function acquireGmailSync(userId: string) {
 	const lease = await acquire(userId);
 	if (!lease) return null;
 	return {
-		run: (from?: Date) => execute(userId, lease.cursor, from),
+		run: () => execute(userId, lease.cursor, lease.coveredFrom),
 		release: () => releaseLease(userId)
 	};
 }

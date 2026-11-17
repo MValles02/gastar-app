@@ -176,6 +176,13 @@
       "when": 1794943207174,
       "tag": "0024_copy_mp_import_from",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794948991620,
+      "tag": "0025_gmail_covered_from",
+      "breakpoints": true
     }
   ]
 }
