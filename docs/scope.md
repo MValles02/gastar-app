@@ -48,9 +48,9 @@ Personal finance PWA for Argentina. Answers two questions:
 - Bottom nav: Inicio | Movimientos | Create movement (center "+") | Plan | Reportes.
 - Profile page (back to Inicio): the user's initial, name and email, then four groups:
   - What the user manages: "Cuentas" and "Categorías" (with the number of active ones) and "Vinculaciones" (leads to `/profile/vinculaciones`, which lists the connections: Mercado Pago, only when its OAuth app is configured, with value "Vincular", "Vinculado" or "Reconectar", leading to `/profile/mercado-pago`; and Banco Galicia, always, with value "Configurar" or "Configurado", leading to `/profile/galicia`; the inbox is reached only from the Home imports pill, shown while Mercado Pago is linked or a Galicia pesos account is chosen).
-  - Identity: "Nombre", edited in place (Enter or blur saves, with a Deshacer toast; an empty or too long name is not saved and keeps the old one), and "Contraseña", a "Cambiar contraseña" drawer over Profile (current + new password, min 8; revokes all other sessions, this one stays signed in). `/profile/password` is the same form as a page.
+  - Identity: "Nombre", edited in place (Enter or blur saves, with a Deshacer toast; an empty or too long name is not saved and keeps the old one), and "Contraseña", a "Cambiar contraseña" drawer over Profile (current + new password, min 8; revokes all other sessions, this one stays signed in). `/profile/password` is the same form as a page. A user who signed up with Google has no password: the row reads "Crear contraseña" and asks only for the new one, allowed when the session is at most 5 minutes old; an older session shows "Confirmar con Google" (a fresh Google sign-in that returns to the same screen) instead of the form.
   - "Tema" (light / dark / system) as its own card.
-  - "Cerrar sesión", and a quiet red "Darme de baja" link at the end: the "¿Darte de baja?" drawer lists what is erased with real counts (accounts and movements, categories, plan and fixed payments; only what applies), asks for the password and warns it cannot be undone; see Deletion. `/profile/delete` is the same as a page. Financial accounts keep "Eliminar cuenta".
+  - "Cerrar sesión", and a quiet red "Darme de baja" link at the end: the "¿Darte de baja?" drawer lists what is erased with real counts (accounts and movements, categories, plan and fixed payments; only what applies), asks for the password (a user without one confirms with Google instead and sees which account is being deleted) and warns it cannot be undone; see Deletion. `/profile/delete` is the same as a page. Financial accounts keep "Eliminar cuenta".
 
 ## Design
 
@@ -174,7 +174,7 @@ Personal finance PWA for Argentina. Answers two questions:
   - Archived items: cannot be selected for new movements; movements that already reference them keep showing them and can be edited without losing the reference; can be unarchived.
   - Archived accounts still count toward total balance.
   - Movements: hard delete, with confirmation.
-  - User account: hard delete, immediate and irreversible, of the user and all their data (movements, recurring rules, plans and limits, categories, accounts, sessions) in one transaction; then sign-out to the login page.
+  - User account: hard delete, immediate and irreversible, of the user and all their data (movements, recurring rules, plans and limits, categories, accounts, sessions) in one transaction; then sign-out to the login page. A user without a password confirms by signing in with Google again: deleting needs a session at most 5 minutes old, otherwise "Confirmar con Google" returns to the same screen; picking another Google account lands on that account page and never deletes the first.
 
 ## Mercado Pago import
 

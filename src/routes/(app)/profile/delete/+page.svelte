@@ -13,4 +13,11 @@
 
 <PageHeader title="¿Darte de baja?" close={{ href: resolve('profile'), label: 'Cerrar' }} />
 
-<DeleteForm summary={data.summary} error={form?.formError} />
+<DeleteForm
+	summary={data.summary}
+	error={form?.formError}
+	hasPassword={data.hasPassword}
+	recent={data.recent}
+	reauth={!!form?.reauth}
+	email={data.email}
+/>

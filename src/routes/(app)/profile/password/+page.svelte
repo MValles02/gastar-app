@@ -2,15 +2,22 @@
 	import { resolve } from '$app/paths';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import PasswordForm from './PasswordForm.svelte';
-	import type { ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 
-	let { form }: { form: ActionData } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const title = $derived(data.hasPassword ? 'Cambiar contraseña' : 'Crear contraseña');
 </script>
 
 <svelte:head>
-	<title>Cambiar contraseña · Gastar</title>
+	<title>{title} · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Cambiar contraseña" close={{ href: resolve('profile'), label: 'Cerrar' }} />
+<PageHeader {title} close={{ href: resolve('profile'), label: 'Cerrar' }} />
 
-<PasswordForm errors={form?.errors} formError={form?.formError} />
+<PasswordForm
+	errors={form?.errors}
+	formError={form?.formError}
+	hasPassword={data.hasPassword}
+	recent={data.recent}
+	reauth={!!form?.reauth}
+/>
