@@ -62,6 +62,56 @@ const detailHeader = (y: number): Text[] => [
 	[542, y, 'DÓLARES']
 ];
 
+const toCents = (amount: string) => Number(amount.replace(/[.,]/g, ''));
+const fromCents = (cents: number) =>
+	`${String(Math.floor(cents / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${String(cents % 100).padStart(2, '0')}`;
+
+/**
+ * A statement of only consumo lines: no previous balance, payments or charges, so TOTAL A PAGAR is the
+ * sum of the lines per currency and it always reconciles. Dates are `DD-MM-YY`, amounts `1.234,56`
+ * (`ars` or `usd` per line); `cuota` (`01/06`) marks an installment line.
+ */
+export function statementOf(o: {
+	number: string;
+	closing: string;
+	lines: {
+		date: string;
+		reference: string;
+		cuota?: string;
+		voucher: string;
+		ars?: string;
+		usd?: string;
+	}[];
+}): Buffer {
+	const rows: Text[] = [];
+	let y = 380;
+	for (const l of o.lines) {
+		rows.push([23, y, l.date], [86, y, l.reference], [365, y, l.voucher]);
+		if (l.cuota) rows.push([325, y, l.cuota]);
+		if (l.ars) rows.push([450, y, l.ars]);
+		if (l.usd) rows.push([550, y, l.usd]);
+		y -= 16;
+	}
+	const sum = (k: 'ars' | 'usd') =>
+		fromCents(o.lines.reduce((s, l) => s + (l[k] ? toCents(l[k]) : 0), 0));
+	return pdf([
+		[
+			...header(o.number),
+			[227, 572, '01-01-26'],
+			[284, 572, '02-01-26'],
+			[340, 572, o.closing],
+			[397, 572, '03-01-26'],
+			[453, 572, '04-01-26'],
+			[510, 572, '05-01-26'],
+			...detailHeader(400),
+			...rows,
+			[38, y - 8, 'TOTAL A PAGAR'],
+			[450, y - 8, sum('ars')],
+			[550, y - 8, sum('usd')]
+		]
+	]);
+}
+
 /**
  * Closing 29-Sep-26. Pesos: 100.000,00 previous balance paid in full, a 100,00 RG 5617 refund, consumos
  * 10.000,00 (cuota 03/06) + 2.500,50 - 500,00 (a credit), charges 120,00 + 30,00 + 15,00 (RG 5617), so

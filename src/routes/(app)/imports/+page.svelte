@@ -15,6 +15,8 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
+	import Money from '#lib/components/Money.svelte';
+	import { formatDay } from '#lib/locale.ts';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import ImportRow from './ImportRow.svelte';
 	import type { PageData } from './$types';
@@ -182,6 +184,54 @@
 		</ListCard>
 	{/if}
 
+	{#if data.unmatched.length > 0}
+		<section aria-labelledby="unmatched-title">
+			<h2 id="unmatched-title">No apareció en el resumen</h2>
+			<ListCard>
+				{#each data.unmatched as item (item.id)}
+					<div role="listitem" class="unmatched">
+						<div class="text">
+							<span class="title">{item.title}</span>
+							<span class="meta">
+								{formatDay(item.day)} ·
+								<Money
+									cents={item.amount}
+									currency={item.currency}
+									tone="flow"
+									direction="outcome"
+								/>
+							</span>
+						</div>
+						{#each [{ action: 'discardUnmatched', label: 'Descartar', failed: 'No se pudo descartar.' }, { action: 'keepUnmatched', label: 'Dejar', failed: 'No se pudo guardar.' }] as a (a.action)}
+							<form
+								method="POST"
+								action="?/{a.action}"
+								use:enhance={() =>
+									async ({ result, update }) => {
+										if (result.type === 'success') {
+											toast.success(
+												a.action === 'discardUnmatched' ? 'Movimiento descartado.' : 'Listo.'
+											);
+										} else if (result.type === 'failure') {
+											toast.error(
+												(result.data as { message?: string } | undefined)?.message ?? a.failed
+											);
+										} else {
+											toast.error(a.failed);
+										}
+										await update();
+									}}
+							>
+								<input type="hidden" name="id" value={item.id} />
+								<button type="submit" class="pill">{a.label}</button>
+							</form>
+						{/each}
+					</div>
+				{/each}
+			</ListCard>
+		</section>
+	{/if}
+
 	{#if data.autoCount > 0}
 		<a class="auto" href={resolve('imports/auto')}>
 			<span class="label">{autoLabel(data.autoCount)}</span>
@@ -335,6 +385,54 @@
 		outline: 2px solid var(--primary);
 		outline-offset: 2px;
 		border-radius: var(--radius-card);
+	}
+
+	/* An alert without a statement line: its text and the two choices. */
+	.unmatched {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-height: 4rem;
+		padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+	}
+
+	.unmatched .text {
+		display: flex;
+		flex: 1;
+		flex-direction: column;
+		gap: 0.125rem;
+		min-width: 0;
+	}
+
+	.unmatched .title {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-weight: 500;
+	}
+
+	.unmatched .meta {
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
+	}
+
+	.pill {
+		display: inline-flex;
+		align-items: center;
+		height: 2rem;
+		padding: 0 0.75rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-pill);
+		background: var(--surface);
+		color: var(--text);
+		font-size: var(--font-size-xs);
+		font-weight: 500;
+		cursor: pointer;
+	}
+
+	.pill:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: 2px;
 	}
 
 	.groups {

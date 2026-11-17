@@ -9,6 +9,11 @@ import {
 	suggestionContext
 } from '#lib/server/imports/approve.ts';
 import { getMpImportAccount, importLinks } from '#lib/server/imports/connections.ts';
+import {
+	discardUnmatched,
+	keepUnmatched,
+	listUnmatchedAlerts
+} from '#lib/server/imports/galicia/unmatched.ts';
 import { listUnknownCards } from '#lib/server/imports/gmail/cards.ts';
 import { gmailLinkState } from '#lib/server/imports/gmail/oauth.ts';
 import { gmailSyncState, runGmailSync } from '#lib/server/imports/gmail/sync.ts';
@@ -34,18 +39,20 @@ function agoLabel(at: Date, now: Date): string {
 }
 
 const APPROVE_FAILED = 'No se pudo aprobar.';
+const DISCARD_FAILED = 'No se pudo descartar.';
 
 const countParam = (v: string | null) => (v !== null && /^\d{1,9}$/.test(v) ? Number(v) : null);
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
-	const [{ mpAccount: mp, needsReconnect, galiciaReady }, items, ctx, autoRows, gmail] =
+	const [{ mpAccount: mp, needsReconnect, galiciaReady }, items, ctx, autoRows, gmail, unmatched] =
 		await Promise.all([
 			importLinks(userId),
 			listPendingImports(userId),
 			suggestionContext(userId),
 			listAutoApproved(userId),
-			gmailLinkState(userId)
+			gmailLinkState(userId),
+			listUnmatchedAlerts(userId)
 		]);
 	// Nothing to review and no source linked: send the user to the connections.
 	if (!mp && !galiciaReady && !gmail && items.length === 0 && autoRows.length === 0) {
@@ -116,6 +123,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		gmailLinked: gmail === 'linked',
 		// Cards with alerts whose type the user has not said yet.
 		unknownCards,
+		// Credit-card alerts still without a statement line after two statements.
+		unmatched: unmatched.map((i) => ({
+			id: i.id,
+			title: importTitle(i),
+			amount: i.amount,
+			currency: i.currency,
+			day: localDay(i.occurredAt)
+		})),
 		gmailError: gmailState?.lastErrorCode ?? null,
 		suggested,
 		bulk: approved === null ? null : { approved, skipped: skipped ?? 0 },
@@ -169,6 +184,28 @@ export const actions: Actions = {
 	},
 
 	undoApprove: undoApprovalAction,
+
+	/** "Descartar" of an alert that never appeared in a statement: undoes its movement and rejects the item. */
+	discardUnmatched: async ({ locals, request }) => {
+		const userId = requireUser(locals).id;
+		const id = String((await request.formData()).get('id') ?? '');
+		if (!isUuid(id)) return fail(400, { message: DISCARD_FAILED });
+		const result = await discardUnmatched(userId, id);
+		if (result === 'changed') {
+			return fail(409, { message: 'No se pudo descartar: el movimiento ya cambió.' });
+		}
+		if (result === 'stale') return fail(409, { message: DISCARD_FAILED });
+		return { discardedId: id };
+	},
+
+	/** "Dejar": keeps the alert's movement and drops it from the list. */
+	keepUnmatched: async ({ locals, request }) => {
+		const id = String((await request.formData()).get('id') ?? '');
+		if (!isUuid(id) || !(await keepUnmatched(requireUser(locals).id, id))) {
+			return fail(409, { message: DISCARD_FAILED });
+		}
+		return { keptId: id };
+	},
 
 	approveSuggested: async ({ locals }) => {
 		const userId = requireUser(locals).id;

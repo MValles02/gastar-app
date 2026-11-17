@@ -155,6 +155,13 @@
       "when": 1794918318079,
       "tag": "0021_visa_card_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794925150059,
+      "tag": "0022_normal_madelyne_pryor",
+      "breakpoints": true
     }
   ]
 }

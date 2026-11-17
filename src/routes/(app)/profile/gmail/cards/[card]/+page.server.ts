@@ -2,7 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { readFields } from '#lib/server/forms.ts';
 import { accountOption } from '#lib/server/accounts/queries.ts';
-import { activeAccountsIn } from '#lib/server/imports/connections.ts';
+import { activeAccountsIn, getGaliciaConnection } from '#lib/server/imports/connections.ts';
 import { getCard, saveCard } from '#lib/server/imports/gmail/cards.ts';
 import { gmailOauthEnabled } from '#lib/server/imports/gmail/oauth.ts';
 import { requireUser } from '#lib/server/guards.ts';
@@ -21,16 +21,19 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const { network, last4 } = parseCard(params.card);
 	const card = await getCard(userId, network, last4);
 	if (!card) error(404, 'Tarjeta no encontrada.');
-	const [ars, usd] = await Promise.all([
+	const [ars, usd, galicia] = await Promise.all([
 		activeAccountsIn(userId, 'ARS'),
-		activeAccountsIn(userId, 'USD')
+		activeAccountsIn(userId, 'USD'),
+		getGaliciaConnection(userId)
 	]);
+	// A credit card's accounts are the Banco Galicia ones; a card not saved yet starts from them too.
+	const accounts = card.type === 'credit' ? galicia : card;
 	return {
 		last4,
 		initial: {
 			type: card.type ?? '',
-			arsAccountId: card.arsAccountId ?? '',
-			usdAccountId: card.usdAccountId ?? ''
+			arsAccountId: accounts?.arsAccountId ?? galicia?.arsAccountId ?? '',
+			usdAccountId: accounts?.usdAccountId ?? galicia?.usdAccountId ?? ''
 		},
 		arsAccounts: ars.map(accountOption),
 		usdAccounts: usd.map(accountOption)

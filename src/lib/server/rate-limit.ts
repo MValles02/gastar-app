@@ -17,7 +17,7 @@ const LIMITS = {
 	// e2e builds start many from one IP.
 	oauthStart: { max: import.meta.env.VITE_E2E === '1' ? 50 : 10, windowMs: MINUTE_MS },
 	// PDF parsing is the heaviest request a user can send.
-	statementUpload: { max: 10, windowMs: 15 * MINUTE_MS }
+	statementUpload: { max: import.meta.env.VITE_E2E === '1' ? 50 : 10, windowMs: 15 * MINUTE_MS }
 } as const;
 
 /** A key idle for the longest window holds no hits that count in any bucket. */

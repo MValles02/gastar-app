@@ -2,9 +2,12 @@ import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { cardAlerts, importCards, mpImportItems } from '../../db/schema';
-import { activeAccountsIn, isActiveAccountIn } from '../connections';
+import { activeAccountsIn, getGaliciaConnection, isActiveAccountIn } from '../connections';
+import { setGaliciaAccount } from '../galicia/import';
+import { matchWaitingAlerts } from '../galicia/matching';
 import { type ImportRow, ingestImportItems } from '../ingest';
-import { KIND, SOURCE } from '../sources';
+import { GALICIA_SOURCE, KIND, SOURCE, type SourceId } from '../sources';
+import type { Currency } from '#lib/money.ts';
 
 export type CardType = 'credit' | 'debit';
 export type CardInput = {
@@ -19,9 +22,11 @@ export type CardErrors = Partial<Record<'type' | 'arsAccountId' | 'usdAccountId'
 const PURCHASE = 'Compra';
 
 /**
- * Turns the waiting alerts of the user's debit cards into pending items of the card's account for the alert
- * currency (a USD alert goes to the dollar account as it is), then links each alert to its item. Credit
- * cards and unknown cards create nothing. The only caller of ingestImportItems for Gmail alerts.
+ * Turns the waiting alerts of the user's cards into pending items of the account for the alert currency (a
+ * USD alert goes to the dollar account as it is), then links each alert to its item. A debit card's items
+ * use the card's accounts; a credit card's use the Banco Galicia accounts, the same its statements land on,
+ * and a purchase whose statement line was already imported creates nothing (it is matched to that item).
+ * Unknown cards create nothing. The only caller of ingestImportItems for Gmail alerts.
  */
 export async function convertWaitingAlerts(userId: string) {
 	const waiting = await db
@@ -32,6 +37,7 @@ export async function convertWaitingAlerts(userId: string) {
 			merchant: cardAlerts.merchant,
 			transactionType: cardAlerts.transactionType,
 			receivedAt: cardAlerts.receivedAt,
+			type: importCards.type,
 			arsAccountId: importCards.arsAccountId,
 			usdAccountId: importCards.usdAccountId
 		})
@@ -48,11 +54,22 @@ export async function convertWaitingAlerts(userId: string) {
 			and(
 				canAccessOwn(userId, cardAlerts),
 				canAccessOwn(userId, importCards),
-				isNull(cardAlerts.importItemId),
-				eq(importCards.type, 'debit')
+				isNull(cardAlerts.importItemId)
 			)
 		);
 	if (waiting.length === 0) return { created: 0, autoApproved: 0 };
+
+	const galicia = waiting.some((a) => a.type === 'credit')
+		? await getGaliciaConnection(userId)
+		: undefined;
+	// Statement first, alert later: the statement item already stands for the purchase.
+	const matched = await matchWaitingAlerts(
+		userId,
+		GALICIA_SOURCE.visa,
+		waiting
+			.filter((a) => a.type === 'credit' && a.transactionType === PURCHASE)
+			.map((a) => ({ ...a, currency: a.currency as Currency }))
+	);
 
 	// Only the user's own active accounts can receive an item.
 	const [ars, usd] = await Promise.all([
@@ -60,10 +77,15 @@ export async function convertWaitingAlerts(userId: string) {
 		activeAccountsIn(userId, 'USD')
 	]);
 	const usable = new Set([...ars, ...usd].map((a) => a.id));
-	const rows: ImportRow[] = [];
+	const rowsBySource = new Map<SourceId, ImportRow[]>();
 	for (const a of waiting) {
-		const accountId = a.currency === 'ARS' ? a.arsAccountId : a.usdAccountId;
+		if (matched.has(a.messageId)) continue;
+		const accounts = a.type === 'credit' ? galicia : a;
+		const accountId = a.currency === 'ARS' ? accounts?.arsAccountId : accounts?.usdAccountId;
 		if (!accountId || !usable.has(accountId)) continue;
+		const source = a.type === 'credit' ? GALICIA_SOURCE.visa : SOURCE.visaDebit;
+		const rows = rowsBySource.get(source) ?? [];
+		rowsBySource.set(source, rows);
 		rows.push({
 			externalKey: `alert:${a.messageId}`,
 			accountId,
@@ -76,13 +98,17 @@ export async function convertWaitingAlerts(userId: string) {
 			merchant: a.merchant
 		});
 	}
-	if (rows.length === 0) return { created: 0, autoApproved: 0 };
-
-	const result = await ingestImportItems(userId, SOURCE.visaDebit, rows);
+	const result = { created: 0, autoApproved: 0 };
+	for (const [source, rows] of rowsBySource) {
+		const r = await ingestImportItems(userId, source, rows);
+		result.created += r.created;
+		result.autoApproved += r.autoApproved;
+	}
+	// An external key is unique per user, whatever the source.
 	await db
 		.update(cardAlerts)
 		.set({
-			importItemId: sql`(select ${mpImportItems.id} from ${mpImportItems} where ${mpImportItems.userId} = ${cardAlerts.userId} and ${mpImportItems.source} = ${SOURCE.visaDebit} and ${mpImportItems.externalKey} = 'alert:' || ${cardAlerts.gmailMessageId})`
+			importItemId: sql`(select ${mpImportItems.id} from ${mpImportItems} where ${mpImportItems.userId} = ${cardAlerts.userId} and ${mpImportItems.externalKey} = 'alert:' || ${cardAlerts.gmailMessageId})`
 		})
 		.where(and(canAccessOwn(userId, cardAlerts), isNull(cardAlerts.importItemId)));
 	return result;
@@ -158,9 +184,8 @@ export async function saveCard(
 	const errors: CardErrors = {};
 	if (input.type !== 'credit' && input.type !== 'debit') errors.type = 'Elegí crédito o débito.';
 	const { arsAccountId, usdAccountId } = input;
-	if (
-		arsAccountId ? !(await isActiveAccountIn(userId, 'ARS', arsAccountId)) : input.type === 'debit'
-	)
+	// A credit card's accounts are the Banco Galicia ones, so the pesos account is required for both types.
+	if (!arsAccountId || !(await isActiveAccountIn(userId, 'ARS', arsAccountId)))
 		errors.arsAccountId = 'Elegí una cuenta en pesos.';
 	if (usdAccountId && !(await isActiveAccountIn(userId, 'USD', usdAccountId)))
 		errors.usdAccountId = 'Elegí una cuenta en dólares.';
@@ -178,6 +203,10 @@ export async function saveCard(
 			target: [importCards.userId, importCards.network, importCards.last4],
 			set: values
 		});
+	if (input.type === 'credit') {
+		await setGaliciaAccount(userId, 'ARS', arsAccountId);
+		if (usdAccountId) await setGaliciaAccount(userId, 'USD', usdAccountId);
+	}
 	await convertWaitingAlerts(userId);
 	return { ok: true };
 }

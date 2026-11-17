@@ -165,7 +165,7 @@ Approval inbox for imported activity (Mercado Pago, Banco Galicia card statement
 | `account_id` | fk → `financial_accounts.id` | ON DELETE RESTRICT |
 | `external_key` | text | idempotency key from the source; Galicia: `galicia:<network>:<comprobante>:<cuota>:<date>:<currency>:<signed cents>` (`#n` for the nth identical line of one statement), taxes `galicia:<network>:taxes:<sha256(statement number), 16 hex>:<currency>` |
 | `source` | text, default 'mercado_pago' | CHECK in ('mercado_pago','galicia_visa','galicia_mastercard','visa_debit') |
-| `kind` | text | CHECK in ('payment','account_fund','yield','payout','merchant_payout','refund','other','card_purchase','card_installment','card_taxes'); `merchant_payout` is a payout with an `EXTERNAL_REFERENCE` (payment at a merchant), `payout` one without (transfer or withdrawal); the `card_*` kinds come from Galicia statements |
+| `kind` | text | CHECK in ('payment','account_fund','yield','payout','merchant_payout','refund','other','card_purchase','card_installment','card_taxes','card_adjustment'); `merchant_payout` is a payout with an `EXTERNAL_REFERENCE` (payment at a merchant), `payout` one without (transfer or withdrawal); the `card_*` kinds come from Galicia statements (`card_adjustment`: the "Diferencia con el resumen" item of a matched alert, key `diff:<statement line key>`); a credit-card alert is an item of source `galicia_visa`, kind `card_purchase`, key `alert:<gmail message id>` |
 | `status` | enum('pending','approved','rejected') | default 'pending' |
 | `occurred_at` | timestamptz | |
 | `amount` | bigint, > 0 | exact net, minor units |
@@ -174,13 +174,15 @@ Approval inbox for imported activity (Mercado Pago, Banco Galicia card statement
 | `raw_description` | text | |
 | `counterparty_id`, `counterparty_nickname`, `merchant`, `operation_type`, `poi_type` | text, nullable | Galicia: `merchant` is the raw reference (its rule key is the cleaned name, see Rules) and `source_id` the comprobante (or '') |
 | `installment` | text, nullable | Galicia installment lines: the cuota as printed (`05/12`) |
+| `alias_key` | text, nullable | the key of the other side of a match between a credit-card alert and a statement line: on the alert item the statement line's key, on a statement item the alert's key (`alert:<id>`); UNIQUE with `user_id` |
+| `unmatched_kept_at` | timestamptz, nullable | "Dejar" on "No apareció en el resumen": the alert item leaves that list |
 | `movement_id` | fk → `movements.id`, nullable | ON DELETE SET NULL |
 | `auto_approved_at` | timestamptz, nullable | set when the approval was automatic; cleared by an undo |
 | `auto_approve_blocked` | boolean, default false | the user undid an automatic approval: never auto-approved again |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
 
-Constraints: `UNIQUE (user_id, external_key)`. Index: `(user_id, status, occurred_at)`.
+Constraints: `UNIQUE (user_id, external_key)`, `UNIQUE (user_id, alias_key)` (several nulls allowed). Index: `(user_id, status, occurred_at)`.
 
 Approving is one transaction: a conditional `pending` → `approved` update (zero rows = already handled, nothing written), the movement insert, `movement_id`, and the rule upsert. Rejecting is a conditional `pending` → `rejected` update; the row stays so its external key is never re-imported.
 
@@ -235,6 +237,21 @@ One row per user who chose an account for Banco Galicia statements (created on t
 | `created_at`, `updated_at` | timestamptz | |
 
 An upload writes all its items in one insert (`ON CONFLICT (user_id, external_key) DO NOTHING`), then runs `autoApprovePending`.
+
+### `card_statements`
+
+One row per Banco Galicia statement uploaded (no PDF content): how many statements of a network closed after an alert tells whether it is "No apareció en el resumen".
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid pk | |
+| `user_id` | fk → `user.id` | ON DELETE CASCADE |
+| `source` | text | CHECK in ('galicia_visa','galicia_mastercard') |
+| `number_hash` | text | SHA-256 prefix of the statement number, as in the taxes key |
+| `closing` | date | the statement closing date |
+| `created_at` | timestamptz | |
+
+Constraint: `UNIQUE (user_id, source, number_hash)`; an upload inserts it with `ON CONFLICT DO NOTHING` after its items.
 
 ### `mp_connections`
 
@@ -311,7 +328,7 @@ What a card of the alerts is. UNIQUE `(user_id, network, last4)`.
 | `ars_account_id`, `usd_account_id` | fk → `financial_accounts.id`, nullable | ON DELETE SET NULL; a debit card needs the pesos account |
 | `created_at`, `updated_at` | timestamptz | |
 
-Only a debit card's alerts become items: source `visa_debit` ("Visa Débito"), kind `card_purchase` (transaction type "Compra") or `other` (any other type: always a review, learns nothing, never auto-approved), external key `alert:<gmail message id>`, account = the card's account of the alert currency, `merchant` = `raw_description` = the alert's merchant, `occurred_at` = `received_at`. Credit-card and unknown-card alerts stay in `card_alerts` until the card is set up.
+A debit card's alerts become items of the source `visa_debit` ("Visa Débito"), kind `card_purchase` (transaction type "Compra") or `other` (any other type: always a review, learns nothing, never auto-approved), external key `alert:<gmail message id>`, account = the card's account of the alert currency, `merchant` = `raw_description` = the alert's merchant, `occurred_at` = `received_at`. A credit card's alerts become items of the source `galicia_visa` on the accounts of `galicia_connections` (a credit card's own account columns are not used). A credit alert whose statement line is already imported creates no item: its key is stored as that statement item's `alias_key` and `import_item_id` points at the statement item; otherwise the later statement line fills the alert item's `alias_key` (see `docs/scope.md`, "Banco Galicia statements"). Alerts of unknown cards stay in `card_alerts` until the card is set up.
 
 ## Derived formulas
 
@@ -360,7 +377,7 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 - `ownedBy(userId)`: insert-side counterpart, sets `owner_id`.
 - `canAccessMovement(userId, origin = financialAccounts)`: `movements.user_id = userId` AND `canAccessAccount(userId, origin)`. The caller must inner-join the origin account.
 - `movementOwnedBy(userId)`: insert-side counterpart, sets `movements.user_id`.
-- `canAccessOwn(userId, table)` and `userOwned(userId)`: the same pair for every other table with a `user_id` owner column: `categories`, `recurring_movements`, `spending_plans`, `mp_import_items`, `mp_import_rules`, `mp_connections`, `gmail_connections`, `galicia_connections`, `card_alerts`, `import_cards`. `table` may be an alias. Category limits have no owner column; they are reached only by joining their plan. `mp_sync_state` has no owner column; it is reached only by joining its account.
+- `canAccessOwn(userId, table)` and `userOwned(userId)`: the same pair for every other table with a `user_id` owner column: `categories`, `recurring_movements`, `spending_plans`, `mp_import_items`, `mp_import_rules`, `mp_connections`, `gmail_connections`, `galicia_connections`, `card_alerts`, `card_statements`, `import_cards`. `table` may be an alias. Category limits have no owner column; they are reached only by joining their plan. `mp_sync_state` has no owner column; it is reached only by joining its account.
 - `allMovementsOf(userId)`: `movements.user_id = userId`, the single path for bulk operations over every movement a user owns (account deletion).
 
 Shared server infrastructure each has one home: SQL fragments (`Range`, `inRange`, `sumOfType`, `total`, `isIncomeOrOutcome`, the `dest` alias, `localMonth`, `exists`) in `src/lib/server/db/sql.ts`; the `Tx`/`DbExecutor` types in `src/lib/server/db/index.ts`; the per-request memo (`memoPerRequest`, the only `getRequestEvent` reader) in `src/lib/server/request-memo.ts`; `requireUser` and the 404 helpers in `src/lib/server/guards.ts`; archive, unarchive and delete-unless-referenced actions (plus `catchForeignKey`) in `src/lib/server/lifecycle.ts`; the stored icon/colour → key mapping (`accountLook`, `categoryLook`) in `src/lib/appearance.ts`.

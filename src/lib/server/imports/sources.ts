@@ -16,7 +16,8 @@ export const KIND = {
 	other: 'other',
 	cardPurchase: 'card_purchase',
 	cardInstallment: 'card_installment',
-	cardTaxes: 'card_taxes'
+	cardTaxes: 'card_taxes',
+	cardAdjustment: 'card_adjustment'
 } as const;
 export type Kind = (typeof KIND)[keyof typeof KIND];
 
@@ -97,7 +98,15 @@ const cardKinds: SourceSpec['kinds'] = {
 	// A credit line is a reversed purchase: learning from it would overwrite the purchase's rule.
 	[KIND.cardPurchase]: { learns: 'debit' },
 	[KIND.cardInstallment]: { learns: 'debit' },
-	[KIND.cardTaxes]: { title: 'Impuestos y percepciones', kindKey: 'always' }
+	[KIND.cardTaxes]: { title: 'Impuestos y percepciones', kindKey: 'always' },
+	// The difference between a card alert and its statement line: a debit reuses the merchant's rule, a credit waits.
+	[KIND.cardAdjustment]: {
+		title: 'Diferencia con el resumen',
+		titleWithWho: true,
+		learns: 'debit'
+	},
+	// A credit alert whose type is not "Compra" is only a guess: it asks for a review and learns nothing.
+	[KIND.other]: { review: true, learns: 'never' }
 };
 
 const card = (id: SourceId): SourceSpec => ({
