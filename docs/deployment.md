@@ -34,7 +34,7 @@ Production app:
 - Health check path: `/health`.
 - Rollbacks enabled.
 
-Development uses a separate Dokploy app, `gastar-app-dev`:
+Development uses a separate Dokploy app, `gastarapp-web-b3u4nb`:
 
 - Image: `ghcr.io/mvalles02/gastar-app:develop`.
 - Its own Postgres database, never the production DB.
@@ -44,6 +44,39 @@ Development uses a separate Dokploy app, `gastar-app-dev`:
 Migrations run automatically at container start (see `Dockerfile`, `scripts/migrate.js`).
 
 Backups: enable Dokploy's Postgres backups before the first production deploy. Restoring from a backup is a manual, deliberate operation, not part of the automated rollback path.
+
+## Dev data sync
+
+A daily job copies the owner's production financial data over his user on dev, so import features can be tested on dev instead of prod. This is the one approved exception to "prod data never leaves prod": only that user's financial data moves (accounts, categories, recurring movements, movements, plans and limits, import rules/items, card statements/cards/alerts), never auth data (`user`, `session`, `account`, `verification`) or connection tokens (`mp_connections`, `gmail_connections`, `galicia_connections`, `mp_sync_state`).
+
+`scripts/sync-dev-user.js` reads one consistent read-only snapshot from prod, then in a single dev transaction deletes the dev user's data, inserts the prod data (same UUIDs, scoped to the dev user id), restores dev's Mercado Pago and Galicia account links and verifies counts and foreign keys. Any failure rolls back and exits 1. It refuses to run if both URLs point at the same database or server, if the target email ends in `@gastar.local`, or if a sync that started less than 15 minutes ago is still running. Logs never contain error messages, row values, URLs or emails.
+
+One-time role on the prod DB, run as the `gastar` superuser:
+
+```sql
+CREATE ROLE gastar_dev_sync LOGIN PASSWORD '<generated>';
+GRANT CONNECT ON DATABASE gastar TO gastar_dev_sync;
+GRANT USAGE ON SCHEMA public TO gastar_dev_sync;
+GRANT SELECT ON financial_accounts, categories, recurring_movements, movements, spending_plans,
+  plan_category_limits, mp_import_rules, mp_import_items, card_statements, import_cards, card_alerts
+  TO gastar_dev_sync;
+GRANT SELECT (id, email) ON "user" TO gastar_dev_sync;
+ALTER ROLE gastar_dev_sync SET default_transaction_read_only = on;
+```
+
+A NEW table that should be copied later needs its own `GRANT SELECT` plus an update of the table list in the script.
+
+Env vars on the dev app only:
+
+- `PROD_READONLY_DATABASE_URL` (secret): `postgres://gastar_dev_sync:<password>@gastarapp-database-hmi1zv:5432/gastar`.
+- `DEV_SYNC_EMAIL`: the prod user's email.
+- `DEV_SYNC_TARGET_EMAIL` (optional): the dev user's email, if it differs.
+
+Schedule: a Dokploy Schedule on the dev app (`gastarapp-web-b3u4nb`), command `node scripts/sync-dev-user.js`, cron `30 9 * * *` (UTC, 06:30 ART).
+
+The first run clears dev's Mercado Pago and Galicia account picks once (the account ids change to the prod ones); pick them again on dev. Later runs keep them.
+
+Manual run: `docker exec <dev web container> node scripts/sync-dev-user.js`.
 
 ## Rollback
 

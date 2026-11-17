@@ -36,6 +36,9 @@ Env vars required at runtime:
 | `GMAIL_AUTH_BASE_URL` | Optional, tests only. Google authorization base URL (default `https://accounts.google.com`) |
 | `GMAIL_API_BASE_URL`  | Optional, tests only. Google token/revoke base URL (default `https://oauth2.googleapis.com`); also the Gmail API base URL of the card-alert sync (default `https://gmail.googleapis.com`) |
 | `GMAIL_SYNC_INTERVAL_MINUTES` | Optional. Minutes between automatic Gmail card-alert syncs run inside the server process (default `15`, `0` = no automatic sync). The first run is ~1 minute after start. Only active when the Gmail link is on. E2E sets it to `0`. |
+| `PROD_READONLY_DATABASE_URL` | Dev app only. Read-only connection string to the production DB (secret), used by `scripts/sync-dev-user.js`; see `docs/deployment.md` "Dev data sync" |
+| `DEV_SYNC_EMAIL`      | Dev app only. Email of the prod user whose data is copied to dev |
+| `DEV_SYNC_TARGET_EMAIL` | Dev app only, optional. Email of the dev user that receives the copy (default `DEV_SYNC_EMAIL`) |
 | `PORT`                | Port to listen on (default `3000`)                    |
 
 `CF-Connecting-IP` is trustworthy only because the origin accepts Cloudflare IPs only (firewall ipset); if the origin is ever exposed directly, the header is spoofable.
