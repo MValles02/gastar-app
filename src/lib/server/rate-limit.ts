@@ -6,12 +6,16 @@ const MINUTE_MS = 60_000;
 
 const LIMITS = {
 	signIn: { max: 5, windowMs: MINUTE_MS },
-	signUp: { max: 10, windowMs: 60 * MINUTE_MS },
+	// e2e builds sign up many test users from one IP (matches Better Auth's /sign-up/email rule).
+	signUp: { max: import.meta.env.VITE_E2E === '1' ? 50 : 10, windowMs: 60 * MINUTE_MS },
 	resetRequestIp: { max: 5, windowMs: 15 * MINUTE_MS },
 	resetRequestEmail: { max: 3, windowMs: 15 * MINUTE_MS },
 	resend: { max: 5, windowMs: 15 * MINUTE_MS },
 	changePassword: { max: 5, windowMs: 15 * MINUTE_MS },
 	deleteAccount: { max: 5, windowMs: 15 * MINUTE_MS },
+	// Starting a Google sign-in (the form action calls auth.api, which skips Better Auth's limiter).
+	// e2e builds start many from one IP.
+	oauthStart: { max: import.meta.env.VITE_E2E === '1' ? 50 : 10, windowMs: MINUTE_MS },
 	// PDF parsing is the heaviest request a user can send.
 	statementUpload: { max: 10, windowMs: 15 * MINUTE_MS }
 } as const;

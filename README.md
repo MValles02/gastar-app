@@ -26,6 +26,9 @@ Env vars required at runtime:
 | `MP_SYNC_INTERVAL_HOURS` | Optional. Whole hours between automatic payment syncs run inside the server process, on the full hour (default `1`, `0` = no automatic sync at all). The release report runs automatically only once a day, at 08:00 Buenos Aires (Mercado Pago emails the account owner each time). The first run is ~1 minute after start and also requests the day's report if it was missed. Only active when the Mercado Pago link is on. E2E sets it to `0`. |
 | `MP_API_BASE_URL`     | Optional, tests only. Mercado Pago API base URL (default `https://api.mercadopago.com`) |
 | `MP_REPORT_POLL_MS`   | Optional, tests only. Milliseconds between report-ready checks (default `15000`) |
+| `GOOGLE_CLIENT_ID`    | Optional. Google OAuth client id. "Continuar con Google" is on only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are both set; setting just one makes the app refuse to start in production. The Google client must list `https://<host>/api/auth/callback/google` as an authorized redirect URI |
+| `GOOGLE_CLIENT_SECRET` | Optional. Google OAuth client secret (secret, never commit or log it) |
+| `GOOGLE_DISCOVERY_URL` | Optional, tests only. OpenID discovery document URL (default `https://accounts.google.com/.well-known/openid-configuration`) |
 | `PORT`                | Port to listen on (default `3000`)                    |
 
 `CF-Connecting-IP` is trustworthy only because the origin accepts Cloudflare IPs only (firewall ipset); if the origin is ever exposed directly, the header is spoofable.

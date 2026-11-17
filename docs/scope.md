@@ -25,7 +25,7 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ## Auth
 
-- Email + password only. Public sign-up; email verification is required before sign-in.
+- Email + password, or "Continuar con Google" above the form on Ingresar / Crear cuenta (on only when the server has `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`). Public sign-up; email verification is required before sign-in with a password. A Google profile whose email Google has not verified is refused (no user, no session, no email). A Google user with an existing account of the same email joins it only when both emails are verified; an unverified password account is refused and Ingresar shows "Ya hay una cuenta con ese email sin verificar. Entrá con tu contraseña y verificá el email." Cancelling at Google shows "Cancelaste el ingreso con Google.", any other failure "No pudimos entrar con Google. Probá de nuevo." Only name and email are used; the Google picture is not stored.
 - Single user at launch; family/friends may be added later (small scale).
 - Phone OTP: future, not MVP.
 - Password reset: by emailed link (sent through Resend). Links last 24 hours (verification) and 1 hour (reset).
