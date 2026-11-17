@@ -26,7 +26,8 @@ export const PAYMENT_KINDS: Kind[] = [KIND.payment, KIND.accountFund, KIND.refun
 export const SOURCE = {
 	mercadoPago: 'mercado_pago',
 	galiciaVisa: 'galicia_visa',
-	galiciaMastercard: 'galicia_mastercard'
+	galiciaMastercard: 'galicia_mastercard',
+	visaDebit: 'visa_debit'
 } as const;
 export type SourceId = (typeof SOURCE)[keyof typeof SOURCE];
 
@@ -65,9 +66,10 @@ type SourceSpec = {
 /**
  * The stable name of a card statement reference, in its original casing ('' when nothing is left).
  * Drops: leading Visa markers (*, K, E); an embedded "USD 1.234,56" amount; NN/NN installment tokens;
- * a leading "MERPAGO*"; trailing per-transaction codes (5+ digits, or letters+digits of 6+ chars; a
- * code glued to 3+ letters keeps the letters). The last remaining token is always kept. Trailing
- * whitespace and , ; : * - / go; a trailing period and inner punctuation stay.
+ * a leading "MERPAGO*"; a trailing run of 3+ masking lowercase x (Visa alerts: "MABERONxxxx");
+ * trailing per-transaction codes (5+ digits, or letters+digits of 6+ chars; a code glued to 3+ letters
+ * keeps the letters). The last remaining token is always kept. Trailing whitespace and , ; : * - / go;
+ * a trailing period and inner punctuation stay.
  */
 function cardMerchantName(reference: string | null): string {
 	const text = (reference ?? '')
@@ -75,7 +77,8 @@ function cardMerchantName(reference: string | null): string {
 		.replace(/^(?:[*KE]\s+)+/, '')
 		.replace(/\s*USD\s*\d[\d.]*,\d{2}/gi, '')
 		.replace(/(^|\s)\d{2}\/\d{2}(?=\s|$)/g, '$1')
-		.replace(/^\s*MERPAGO\s*\*\s*/i, '');
+		.replace(/^\s*MERPAGO\s*\*\s*/i, '')
+		.replace(/(?<=\S)x{3,}$/, '');
 	const tokens = text.split(/\s+/).filter(Boolean);
 	while (tokens.length > 1) {
 		const last = tokens[tokens.length - 1];
@@ -125,7 +128,19 @@ const SOURCES: Record<SourceId, SourceSpec> = {
 		}
 	},
 	[SOURCE.galiciaVisa]: card(SOURCE.galiciaVisa),
-	[SOURCE.galiciaMastercard]: card(SOURCE.galiciaMastercard)
+	[SOURCE.galiciaMastercard]: card(SOURCE.galiciaMastercard),
+	// Gmail alerts of a debit card, timed. A type other than "Compra" is only a guess: it asks for a review
+	// and learns nothing, so no rule suggests it and it is never auto-approved.
+	[SOURCE.visaDebit]: {
+		label: SOURCE_LABELS[SOURCE.visaDebit],
+		conflict: 'skip',
+		timed: true,
+		merchantName: cardMerchantName,
+		kinds: {
+			[KIND.cardPurchase]: { learns: 'debit' },
+			[KIND.other]: { review: true, learns: 'never' }
+		}
+	}
 };
 
 export const importSource = (source: SourceId): SourceSpec => SOURCES[source];

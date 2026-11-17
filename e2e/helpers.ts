@@ -20,6 +20,11 @@ export const IMPORT_EMAIL = 'importa@gastar.local';
 /** Fourth seeded user, same password: ARS "Caja pesos" and USD "Caja dólares", for the Banco Galicia statements. */
 export const GALICIA_EMAIL = 'galicia@gastar.local';
 
+/** Fifth seeded user, same password: ARS "Pesos Visa A", USD "Dolares Visa A" and expense category "Compras Visa" (gmail-alerts.e2e.ts only). */
+export const ALERTS_EMAIL = 'alertas@gastar.local';
+/** Sixth seeded user, same password: ARS "Pesos Visa B" (gmail-alerts.e2e.ts only). */
+export const ALERTS_B_EMAIL = 'alertas-b@gastar.local';
+
 export const PHONE = { width: 390, height: 844 };
 
 /** `test.use` options for a spec block that runs without JavaScript. */

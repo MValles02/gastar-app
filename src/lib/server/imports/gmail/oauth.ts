@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import * as env from '$app/env/private';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
@@ -178,8 +178,12 @@ export async function exchangeCode(
 	};
 	await db
 		.insert(gmailConnections)
-		.values({ ...userOwned(userId), ...tokens })
-		.onConflictDoUpdate({ target: gmailConnections.userId, set: tokens });
+		// The sync starts at the moment of linking (no backfill): a relink keeps the existing cursor.
+		.values({ ...userOwned(userId), ...tokens, syncCursor: new Date() })
+		.onConflictDoUpdate({
+			target: gmailConnections.userId,
+			set: { ...tokens, syncCursor: sql`coalesce(${gmailConnections.syncCursor}, now())` }
+		});
 	return 'ok';
 }
 

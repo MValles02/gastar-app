@@ -164,7 +164,7 @@ Approval inbox for imported activity (Mercado Pago, Banco Galicia card statement
 | `user_id` | fk → `user.id` | |
 | `account_id` | fk → `financial_accounts.id` | ON DELETE RESTRICT |
 | `external_key` | text | idempotency key from the source; Galicia: `galicia:<network>:<comprobante>:<cuota>:<date>:<currency>:<signed cents>` (`#n` for the nth identical line of one statement), taxes `galicia:<network>:taxes:<sha256(statement number), 16 hex>:<currency>` |
-| `source` | text, default 'mercado_pago' | CHECK in ('mercado_pago','galicia_visa','galicia_mastercard') |
+| `source` | text, default 'mercado_pago' | CHECK in ('mercado_pago','galicia_visa','galicia_mastercard','visa_debit') |
 | `kind` | text | CHECK in ('payment','account_fund','yield','payout','merchant_payout','refund','other','card_purchase','card_installment','card_taxes'); `merchant_payout` is a payout with an `EXTERNAL_REFERENCE` (payment at a merchant), `payout` one without (transfer or withdrawal); the `card_*` kinds come from Galicia statements |
 | `status` | enum('pending','approved','rejected') | default 'pending' |
 | `occurred_at` | timestamptz | |
@@ -256,7 +256,7 @@ Encryption: tokens are AES-256-GCM ciphertext, `v1:` + base64(iv(12) | tag(16) |
 
 ### `gmail_connections`
 
-One row per user who linked Gmail (OAuth, own Google client; connection only, nothing is read yet).
+One row per user who linked Gmail (OAuth, own Google client; the sync reads Visa purchase alerts).
 
 | Column | Type | Notes |
 |---|---|---|
@@ -267,11 +267,51 @@ One row per user who linked Gmail (OAuth, own Google client; connection only, no
 | `refresh_token` | text | encrypted; Google does not rotate it |
 | `expires_at` | timestamptz | |
 | `needs_reconnect` | boolean | default false; set when Google answers `invalid_grant` or the token cannot be decrypted |
-| `sync_cursor`, `last_run_at` | timestamptz, nullable | reserved for the sync (not used yet) |
-| `last_error_code` | text, nullable | reserved for the sync (not used yet) |
+| `sync_cursor` | timestamptz, nullable | newest mail date seen; set to the linking time (a relink keeps it), never moves backwards; each run re-reads 60 s before it |
+| `sync_running_since` | timestamptz, nullable | the run's lease (taken in one UPDATE; a later run may take over after 15 minutes) |
+| `last_run_at` | timestamptz, nullable | |
+| `last_error_code` | text, nullable | `reconnect`, `network`, `api` or `parse` (a mail from Visa that did not parse); code only |
 | `created_at`, `updated_at` | timestamptz | |
 
 Encryption: same format as `mp_connections` (shared helper), keyed by `GMAIL_TOKEN_KEY`. Unlinking revokes the refresh token at Google (best effort) and deletes the row; deleting the account does the same before its transaction deletes the row.
+
+### `card_alerts`
+
+One row per Visa purchase-alert email, only the parsed fields: the email body, subject, headers and links are never stored or logged.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid pk | |
+| `user_id` | fk → `user.id` | ON DELETE CASCADE |
+| `gmail_message_id` | text | UNIQUE with `user_id` |
+| `network` | text | CHECK 'visa' |
+| `last4` | text | CHECK 4 digits |
+| `merchant`, `country` | text | |
+| `currency` | text | CHECK in ('ARS','USD') |
+| `amount` | bigint | minor units of `currency`, > 0 |
+| `foreign` | boolean | |
+| `transaction_type` | text | "Compra" or another label |
+| `received_at` | timestamptz | the message's `internalDate` |
+| `import_item_id` | fk → `mp_import_items.id`, nullable | ON DELETE SET NULL; null while the alert waits (unknown or credit card) |
+| `created_at` | timestamptz | |
+
+Index `(user_id, network, last4)`.
+
+### `import_cards`
+
+What a card of the alerts is. UNIQUE `(user_id, network, last4)`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid pk | |
+| `user_id` | fk → `user.id` | ON DELETE CASCADE |
+| `network` | text | CHECK 'visa' |
+| `last4` | text | CHECK 4 digits |
+| `type` | text | CHECK in ('credit','debit') |
+| `ars_account_id`, `usd_account_id` | fk → `financial_accounts.id`, nullable | ON DELETE SET NULL; a debit card needs the pesos account |
+| `created_at`, `updated_at` | timestamptz | |
+
+Only a debit card's alerts become items: source `visa_debit` ("Visa Débito"), kind `card_purchase` (transaction type "Compra") or `other` (any other type: always a review, learns nothing, never auto-approved), external key `alert:<gmail message id>`, account = the card's account of the alert currency, `merchant` = `raw_description` = the alert's merchant, `occurred_at` = `received_at`. Credit-card and unknown-card alerts stay in `card_alerts` until the card is set up.
 
 ## Derived formulas
 
@@ -320,7 +360,7 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 - `ownedBy(userId)`: insert-side counterpart, sets `owner_id`.
 - `canAccessMovement(userId, origin = financialAccounts)`: `movements.user_id = userId` AND `canAccessAccount(userId, origin)`. The caller must inner-join the origin account.
 - `movementOwnedBy(userId)`: insert-side counterpart, sets `movements.user_id`.
-- `canAccessOwn(userId, table)` and `userOwned(userId)`: the same pair for every other table with a `user_id` owner column: `categories`, `recurring_movements`, `spending_plans`, `mp_import_items`, `mp_import_rules`, `mp_connections`, `gmail_connections`, `galicia_connections`. `table` may be an alias. Category limits have no owner column; they are reached only by joining their plan. `mp_sync_state` has no owner column; it is reached only by joining its account.
+- `canAccessOwn(userId, table)` and `userOwned(userId)`: the same pair for every other table with a `user_id` owner column: `categories`, `recurring_movements`, `spending_plans`, `mp_import_items`, `mp_import_rules`, `mp_connections`, `gmail_connections`, `galicia_connections`, `card_alerts`, `import_cards`. `table` may be an alias. Category limits have no owner column; they are reached only by joining their plan. `mp_sync_state` has no owner column; it is reached only by joining its account.
 - `allMovementsOf(userId)`: `movements.user_id = userId`, the single path for bulk operations over every movement a user owns (account deletion).
 
 Shared server infrastructure each has one home: SQL fragments (`Range`, `inRange`, `sumOfType`, `total`, `isIncomeOrOutcome`, the `dest` alias, `localMonth`, `exists`) in `src/lib/server/db/sql.ts`; the `Tx`/`DbExecutor` types in `src/lib/server/db/index.ts`; the per-request memo (`memoPerRequest`, the only `getRequestEvent` reader) in `src/lib/server/request-memo.ts`; `requireUser` and the 404 helpers in `src/lib/server/guards.ts`; archive, unarchive and delete-unless-referenced actions (plus `catchForeignKey`) in `src/lib/server/lifecycle.ts`; the stored icon/colour → key mapping (`accountLook`, `categoryLook`) in `src/lib/appearance.ts`.

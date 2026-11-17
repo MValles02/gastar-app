@@ -8,5 +8,6 @@ export type SyncPhase = 'payments' | 'report';
 export const SOURCE_LABELS = {
 	mercado_pago: 'Mercado Pago',
 	galicia_visa: 'Galicia Visa',
-	galicia_mastercard: 'Galicia Mastercard'
+	galicia_mastercard: 'Galicia Mastercard',
+	visa_debit: 'Visa Débito'
 } as const;

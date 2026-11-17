@@ -81,7 +81,9 @@ export default defineConfig({
 				GMAIL_CLIENT_SECRET: 'test-gmail-client-secret',
 				GMAIL_TOKEN_KEY: Buffer.from('fedcba9876543210fedcba9876543210').toString('base64'),
 				GMAIL_AUTH_BASE_URL: GMAIL_URL,
-				GMAIL_API_BASE_URL: GMAIL_URL
+				GMAIL_API_BASE_URL: GMAIL_URL,
+				// Scheduler off so e2e stays deterministic (syncs only via "Sincronizar").
+				GMAIL_SYNC_INTERVAL_MINUTES: '0'
 			}
 		}
 	]

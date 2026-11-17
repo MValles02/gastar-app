@@ -511,6 +511,43 @@ try {
 			values (${randomUUID()}, ${cardholderId}, 'Caja pesos', 'ARS', ${1_000_000_00}, 'bank', 'blue'),
 				(${randomUUID()}, ${cardholderId}, 'Caja dólares', 'USD', ${5_000_00}, 'dollar', 'green')
 		`;
+
+		// Fifth and sixth users for the Gmail Visa alert E2E: A has pesos and dollar accounts and an expense category, B a pesos account.
+		for (const [alertEmail, name, accounts] of [
+			[
+				'alertas@gastar.local',
+				'Alertas A',
+				[
+					['Pesos Visa A', 'ARS', 'bank', 'blue'],
+					['Dolares Visa A', 'USD', 'dollar', 'green']
+				]
+			],
+			['alertas-b@gastar.local', 'Alertas B', [['Pesos Visa B', 'ARS', 'bank', 'blue']]]
+		]) {
+			const [old] = await tx`select id from "user" where email = ${alertEmail}`;
+			if (old) await deleteUserData(tx, old.id);
+			const alertId = randomUUID();
+			await tx`
+				insert into "user" (id, name, email, email_verified, created_at, updated_at)
+				values (${alertId}, ${name}, ${alertEmail}, true, now(), now())
+			`;
+			await tx`
+				insert into "account" (id, account_id, provider_id, user_id, password, created_at, updated_at)
+				values (${randomUUID()}, ${alertId}, 'credential', ${alertId}, ${passwordHash}, now(), now())
+			`;
+			for (const [accountName, currency, icon, color] of accounts) {
+				await tx`
+					insert into financial_accounts (id, owner_id, name, currency, initial_balance, icon, color)
+					values (${randomUUID()}, ${alertId}, ${accountName}, ${currency}, ${1_000_000_00}, ${icon}, ${color})
+				`;
+			}
+			if (alertEmail === 'alertas@gastar.local') {
+				await tx`
+					insert into categories (id, user_id, name, kind, color)
+					values (${randomUUID()}, ${alertId}, 'Compras Visa', 'outcome', 'blue')
+				`;
+			}
+		}
 	});
 
 	const n = (t) => movements.filter((x) => x.type === t).length;

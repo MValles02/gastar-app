@@ -34,7 +34,8 @@ Env vars required at runtime:
 | `GMAIL_CLIENT_SECRET` | Optional. Gmail OAuth client secret (secret, never commit or log it) |
 | `GMAIL_TOKEN_KEY`     | Optional. Key that encrypts users' Gmail tokens (secret): base64 of 32 bytes, generated like `MP_TOKEN_KEY` (`node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`). The app refuses to start in production if it is set with another length. If it is lost or changed, every user must link again |
 | `GMAIL_AUTH_BASE_URL` | Optional, tests only. Google authorization base URL (default `https://accounts.google.com`) |
-| `GMAIL_API_BASE_URL`  | Optional, tests only. Google token/revoke (and later Gmail API) base URL (default `https://oauth2.googleapis.com`) |
+| `GMAIL_API_BASE_URL`  | Optional, tests only. Google token/revoke base URL (default `https://oauth2.googleapis.com`); also the Gmail API base URL of the card-alert sync (default `https://gmail.googleapis.com`) |
+| `GMAIL_SYNC_INTERVAL_MINUTES` | Optional. Minutes between automatic Gmail card-alert syncs run inside the server process (default `15`, `0` = no automatic sync). The first run is ~1 minute after start. Only active when the Gmail link is on. E2E sets it to `0`. |
 | `PORT`                | Port to listen on (default `3000`)                    |
 
 `CF-Connecting-IP` is trustworthy only because the origin accepts Cloudflare IPs only (firewall ipset); if the origin is ever exposed directly, the header is spoofable.

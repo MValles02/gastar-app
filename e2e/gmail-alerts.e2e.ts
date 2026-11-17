@@ -1,0 +1,232 @@
+import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import {
+	ALERTS_B_EMAIL,
+	ALERTS_EMAIL,
+	login,
+	openItem,
+	pick,
+	post,
+	reviewDrawer,
+	withDb
+} from './helpers';
+
+// Gmail is the fake in e2e/fake-gmail.js. Two seeded users (used by no other spec) with their own mailboxes (the consent answers for the
+// `login_hint` this spec adds to the authorize URL, so it never shares /__fake/account with gmail-link.e2e.ts,
+// and it never calls the global reset). beforeAll clears the users' Gmail-import state, so reruns on a reused
+// DB start clean and merchants and cards need no stamps.
+const FAKE = `http://127.0.0.1:${Number(process.env.FAKE_GMAIL_PORT) || 5197}`;
+const stamp = Date.now();
+const A = {
+	email: ALERTS_EMAIL,
+	mailbox: `alerts-a-${stamp}@gastar.local`
+};
+const B = {
+	email: ALERTS_B_EMAIL,
+	mailbox: `alerts-b-${stamp}@gastar.local`
+};
+
+test.describe.configure({ mode: 'serial' });
+
+let ctxA: BrowserContext;
+let ctxB: BrowserContext;
+let pageA: Page;
+let pageB: Page;
+
+type Alert = {
+	merchant: string;
+	amount: string;
+	currency?: 'ARS' | 'USD';
+	last4?: string;
+	type?: string;
+	foreign?: boolean;
+	dkim?: 'pass' | 'fail';
+};
+
+/** Puts a synthetic Visa alert in the mailbox. */
+async function alert(mailbox: string, o: Alert) {
+	const q = new URLSearchParams({
+		email: mailbox,
+		last4: o.last4 ?? '5678',
+		merchant: o.merchant,
+		amount: o.amount,
+		currency: o.currency ?? 'ARS',
+		type: o.type ?? 'Compra',
+		foreign: o.foreign ? '1' : '0',
+		dkim: o.dkim ?? 'pass'
+	});
+	expect((await fetch(`${FAKE}/__fake/alert?${q}`)).ok).toBe(true);
+}
+
+/** Runs the sync through the "Sincronizar" action of /imports (the Gmail part runs before it answers). */
+async function sync(page: Page, baseURL: string) {
+	expect((await post(page, baseURL, '/imports?/sync', {})).ok()).toBe(true);
+}
+
+/** Visa Débito items of a user, with the account each landed on. */
+const items = (email: string) =>
+	withDb(
+		(sql) => sql`
+			select i.merchant, i.amount::int as amount, i.status, i.kind, a.name as account,
+				i.auto_approved_at is not null as auto
+			from mp_import_items i join financial_accounts a on a.id = i.account_id
+			where i.source = 'visa_debit' and i.user_id = (select id from "user" where email = ${email})
+			order by i.merchant, i.amount`
+	);
+
+/** Links Gmail as `mailbox`: starts the link without following the redirect, so the consent can be asked for that login_hint. */
+async function linkGmail(page: Page, baseURL: string, mailbox: string) {
+	const start = await page.request.post('/profile/gmail?/connect', {
+		form: {},
+		headers: { origin: baseURL, accept: 'text/html' },
+		maxRedirects: 0
+	});
+	const authorize = new URL(start.headers()['location']);
+	authorize.searchParams.set('login_hint', mailbox);
+	await page.goto(authorize.toString());
+	await expect(page).toHaveURL(/\/profile\/gmail\?linked=1$/);
+}
+
+/** Answers the "Tarjeta Visa ••NNNN: elegí qué es" row of /imports: debit with a pesos account (and a dollar one). */
+async function setUpDebit(page: Page, last4: string, pesos: string, dollars?: string) {
+	await page.goto('/imports');
+	await page.getByRole('link', { name: `Tarjeta Visa ••${last4}: elegí qué es` }).click();
+	await page.waitForLoadState('networkidle'); // hydration guard: the pickers need JavaScript
+	await page.getByRole('radio', { name: 'Débito' }).check({ force: true });
+	await pick(page, 'Cuenta en pesos', pesos);
+	if (dollars) await pick(page, 'Cuenta en dólares', dollars);
+	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(page).toHaveURL(/\/imports$/);
+}
+
+/** Removes what an earlier run left of these users' Gmail import: alerts, cards, visa_debit items with their movements, rules and the link. */
+function resetGmailState(emails: string[]) {
+	return withDb(async (sql) => {
+		const ids = (await sql`select id from "user" where email in ${sql(emails)}`).map((u) => u.id);
+		await sql`delete from movements where id in (
+			select movement_id from mp_import_items
+			where source = 'visa_debit' and movement_id is not null and user_id in ${sql(ids)})`;
+		await sql`delete from card_alerts where user_id in ${sql(ids)}`;
+		await sql`delete from import_cards where user_id in ${sql(ids)}`;
+		await sql`delete from mp_import_items where source = 'visa_debit' and user_id in ${sql(ids)}`;
+		await sql`delete from mp_import_rules where user_id in ${sql(ids)}`;
+		await sql`delete from gmail_connections where user_id in ${sql(ids)}`;
+	});
+}
+
+test.beforeAll(async ({ browser, baseURL }) => {
+	ctxA = await browser.newContext({ baseURL });
+	ctxB = await browser.newContext({ baseURL });
+	pageA = await ctxA.newPage();
+	pageB = await ctxB.newPage();
+	await resetGmailState([A.email, B.email]);
+	await login(pageA, A.email);
+	await login(pageB, B.email);
+	await linkGmail(pageA, baseURL!, A.mailbox);
+	await linkGmail(pageB, baseURL!, B.mailbox);
+});
+
+test.afterAll(async () => {
+	await ctxA.close();
+	await ctxB.close();
+});
+
+test('an alert of an unknown card creates no item until the card is set up', async ({
+	baseURL
+}) => {
+	await alert(A.mailbox, { merchant: 'LIBRERIA EJEMPLO', amount: '2500.00' });
+	await sync(pageA, baseURL!);
+	expect(await items(A.email)).toEqual([]);
+	await pageA.goto('/imports');
+	await expect(
+		pageA.getByRole('link', { name: 'Tarjeta Visa ••5678: elegí qué es' })
+	).toBeVisible();
+
+	await setUpDebit(pageA, '5678', 'Pesos Visa A', 'Dolares Visa A');
+	expect(await items(A.email)).toEqual([
+		{
+			merchant: 'LIBRERIA EJEMPLO',
+			amount: 250000,
+			status: 'pending',
+			kind: 'card_purchase',
+			account: 'Pesos Visa A',
+			auto: false
+		}
+	]);
+});
+
+test('debit alerts in pesos and dollars land on the right accounts and a second sync adds nothing', async ({
+	baseURL
+}) => {
+	await alert(A.mailbox, { merchant: 'TIENDA ARS', amount: '12345.67' });
+	await alert(A.mailbox, {
+		merchant: 'TIENDA USD',
+		amount: '9.99',
+		currency: 'USD',
+		foreign: true
+	});
+	await sync(pageA, baseURL!);
+	const expected = [
+		{ merchant: 'LIBRERIA EJEMPLO', amount: 250000, account: 'Pesos Visa A', status: 'pending' },
+		{ merchant: 'TIENDA ARS', amount: 1234567, account: 'Pesos Visa A', status: 'pending' },
+		{ merchant: 'TIENDA USD', amount: 999, account: 'Dolares Visa A', status: 'pending' }
+	];
+	const rows = async () =>
+		(await items(A.email)).map(({ merchant, amount, account, status }) => ({
+			merchant,
+			amount,
+			account,
+			status
+		}));
+	expect(await rows()).toEqual(expected);
+
+	await sync(pageA, baseURL!);
+	expect(await rows()).toEqual(expected);
+});
+
+test('an email that fails the DKIM check creates nothing', async ({ baseURL }) => {
+	await alert(A.mailbox, { merchant: 'FALSA EJEMPLO', amount: '100.00', dkim: 'fail' });
+	await sync(pageA, baseURL!);
+	expect((await items(A.email)).map((i) => i.merchant)).not.toContain('FALSA EJEMPLO');
+	const stored = await withDb(
+		(sql) => sql`select count(*)::int as n from card_alerts where merchant = 'FALSA EJEMPLO'`
+	);
+	expect(stored[0].n).toBe(0);
+});
+
+test('a learned merchant rule auto-approves the next debit alert of that merchant', async ({
+	baseURL
+}) => {
+	await alert(A.mailbox, { merchant: 'KIOSCO EJEMPLOxxxx', amount: '500.00' });
+	await sync(pageA, baseURL!);
+	await openItem(pageA, 'KIOSCO EJEMPLO');
+	await pick(pageA, 'Categoría', 'Compras Visa');
+	await pageA.getByRole('checkbox', { name: 'Recordar para la próxima' }).check();
+	await reviewDrawer(pageA).getByRole('button', { name: 'Aprobar', exact: true }).click();
+	await expect(reviewDrawer(pageA)).toHaveCount(0);
+
+	await alert(A.mailbox, { merchant: 'KIOSCO EJEMPLOxxxx', amount: '600.00' });
+	await sync(pageA, baseURL!);
+	const kiosco = (await items(A.email)).filter((i) => i.merchant === 'KIOSCO EJEMPLOxxxx');
+	expect(kiosco.map(({ amount, status, auto }) => ({ amount, status, auto }))).toEqual([
+		{ amount: 50000, status: 'approved', auto: false },
+		{ amount: 60000, status: 'approved', auto: true }
+	]);
+});
+
+test("a user's sync never writes to another user", async ({ baseURL }) => {
+	await alert(B.mailbox, { merchant: 'TIENDA DE B', amount: '77.00' });
+	await sync(pageB, baseURL!);
+	await setUpDebit(pageB, '5678', 'Pesos Visa B');
+	// Same card number as user A's: only B's own alert can reach B.
+	await alert(A.mailbox, { merchant: 'SOLO DE A', amount: '88.00' });
+	await sync(pageA, baseURL!);
+
+	const mine = (await items(A.email)).map((i) => i.merchant);
+	const theirs = (await items(B.email)).map((i) => i.merchant);
+	expect(mine).toContain('SOLO DE A');
+	expect(mine).not.toContain('TIENDA DE B');
+	expect(theirs).toEqual(['TIENDA DE B']);
+
+	await sync(pageB, baseURL!);
+	expect((await items(B.email)).map((i) => i.merchant)).toEqual(['TIENDA DE B']);
+});
