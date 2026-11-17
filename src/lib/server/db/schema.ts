@@ -494,6 +494,8 @@ export const gmailConnections = pgTable('gmail_connections', {
 	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
 	needsReconnect: boolean('needs_reconnect').default(false).notNull(),
 	syncCursor: timestamp('sync_cursor', { withTimezone: true }),
+	// Earliest instant from which mail has been read at least once (null = not yet, or a legacy row).
+	coveredFrom: timestamp('covered_from', { withTimezone: true }),
 	// Lease of a running sync (the Mercado Pago pattern): a later run may take over after 15 minutes.
 	syncRunningSince: timestamp('sync_running_since', { withTimezone: true }),
 	lastRunAt: timestamp('last_run_at', { withTimezone: true }),

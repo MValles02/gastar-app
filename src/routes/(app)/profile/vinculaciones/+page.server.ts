@@ -93,7 +93,7 @@ export const actions: Actions = {
 				throw error;
 			}
 			// Runs on in the background; the lease is released when it ends.
-			void lease?.run(from).then(() => lease.release());
+			void lease?.run().then(() => lease.release());
 			return { from: ymd };
 		}
 		// Trimming while a run holds a lease would let it re-insert what was just deleted.
