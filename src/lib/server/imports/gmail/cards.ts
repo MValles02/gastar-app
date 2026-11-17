@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, isNull, sql } from 'drizzle-orm';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { cardAlerts, importCards, mpImportItems } from '../../db/schema';
@@ -7,6 +7,7 @@ import { setGaliciaAccount } from '../galicia/import';
 import { matchWaitingAlerts, withMatchLock } from '../galicia/matching';
 import { pgErrorCode } from '../../db/errors';
 import { type ImportRow, ingestImportItems } from '../ingest';
+import { getChosenImportFrom } from '../settings';
 import { GALICIA_SOURCE, KIND, SOURCE, type SourceId } from '../sources';
 import type { Currency } from '#lib/money.ts';
 
@@ -33,6 +34,9 @@ export const convertWaitingAlerts = (userId: string) =>
 	withMatchLock(userId, () => convertLocked(userId));
 
 async function convertLocked(userId: string) {
+	// Alerts before the chosen "Importar desde" wait unconverted (a trim stays trimmed); an earlier date converts them.
+	const floor = await getChosenImportFrom(userId);
+	const fromFloor = floor ? gte(cardAlerts.receivedAt, floor) : undefined;
 	const waiting = await db
 		.select({
 			messageId: cardAlerts.gmailMessageId,
@@ -58,7 +62,8 @@ async function convertLocked(userId: string) {
 			and(
 				canAccessOwn(userId, cardAlerts),
 				canAccessOwn(userId, importCards),
-				isNull(cardAlerts.importItemId)
+				isNull(cardAlerts.importItemId),
+				fromFloor
 			)
 		);
 	if (waiting.length === 0) return { created: 0, autoApproved: 0 };
@@ -124,7 +129,7 @@ async function convertLocked(userId: string) {
 		.set({
 			importItemId: sql`(select ${mpImportItems.id} from ${mpImportItems} where ${mpImportItems.userId} = ${cardAlerts.userId} and ${mpImportItems.externalKey} = 'alert:' || ${cardAlerts.gmailMessageId})`
 		})
-		.where(and(canAccessOwn(userId, cardAlerts), isNull(cardAlerts.importItemId)));
+		.where(and(canAccessOwn(userId, cardAlerts), isNull(cardAlerts.importItemId), fromFloor));
 	return result;
 }
 

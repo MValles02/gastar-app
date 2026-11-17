@@ -2,8 +2,10 @@ import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { pgErrorCode } from '../../db/errors';
+import { dayStart } from '../../month';
 import { cardAlerts, gmailConnections } from '../../db/schema';
 import { batches } from '../ingest';
+import { getImportFromDay } from '../settings';
 import { convertWaitingAlerts } from './cards';
 import { gmailDataBaseUrl } from './env';
 import { getAccessToken, refreshConnection } from './oauth';
@@ -32,15 +34,14 @@ const errorDetail = (e: unknown) => pgErrorCode(e) ?? (e as Error)?.name ?? 'unk
 
 const obj = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
 
-/** Takes the user's lease and returns the cursor (set to now when there is none yet); null when off or held. */
-async function acquire(userId: string): Promise<Date | null> {
+/** Takes the user's lease and returns the cursor (null until the first run); null when off or held. */
+async function acquire(
+	userId: string
+): Promise<{ cursor: Date | null; coveredFrom: Date | null } | null> {
 	try {
 		const [lease] = await db
 			.update(gmailConnections)
-			.set({
-				syncRunningSince: sql`now()`,
-				syncCursor: sql`coalesce(${gmailConnections.syncCursor}, now())`
-			})
+			.set({ syncRunningSince: sql`now()` })
 			.where(
 				and(
 					canAccessOwn(userId, gmailConnections),
@@ -54,8 +55,11 @@ async function acquire(userId: string): Promise<Date | null> {
 					)
 				)
 			)
-			.returning({ cursor: gmailConnections.syncCursor });
-		return lease?.cursor ?? null;
+			.returning({
+				cursor: gmailConnections.syncCursor,
+				coveredFrom: gmailConnections.coveredFrom
+			});
+		return lease ? { cursor: lease.cursor, coveredFrom: lease.coveredFrom } : null;
 	} catch (e) {
 		console.error('gmail sync failed: db', errorDetail(e));
 		return null;
@@ -111,10 +115,10 @@ async function gmailClient(userId: string) {
 	};
 }
 
-/** Ids of the matching messages newer than the cursor (minus the overlap), all pages. */
-async function listMessageIds(api: (url: string) => Promise<unknown>, cursor: Date) {
+/** Ids of the matching messages newer than the bound (minus the overlap), and whether every page was listed. */
+async function listMessageIds(api: (url: string) => Promise<unknown>, bound: Date) {
 	const from = VISA_SENDERS.join(' OR ');
-	const after = Math.floor(cursor.getTime() / 1000) - OVERLAP_S;
+	const after = Math.floor(bound.getTime() / 1000) - OVERLAP_S;
 	const ids: string[] = [];
 	let pageToken: string | undefined;
 	for (let page = 0; page < MAX_PAGES; page++) {
@@ -126,13 +130,13 @@ async function listMessageIds(api: (url: string) => Promise<unknown>, cursor: Da
 		pageToken = typeof json.nextPageToken === 'string' ? json.nextPageToken : undefined;
 		if (!pageToken) break;
 	}
-	return ids;
+	return { ids, complete: !pageToken };
 }
 
-/** Fetches and stores the new alerts; returns how many messages were invalid and the newest date seen. */
-async function pull(userId: string, cursor: Date) {
+/** Fetches and stores the alerts after the bound; returns how many messages were invalid, the newest date seen (at least `base`) and whether the listing was complete. */
+async function pull(userId: string, bound: Date, base: Date) {
 	const api = await gmailClient(userId);
-	const ids = await listMessageIds(api, cursor);
+	const { ids, complete } = await listMessageIds(api, bound);
 	const known = new Set<string>();
 	for (const batch of batches(ids)) {
 		const rows = await db
@@ -142,7 +146,7 @@ async function pull(userId: string, cursor: Date) {
 		for (const r of rows) known.add(r.id);
 	}
 	let invalid = 0;
-	let newest = cursor.getTime();
+	let newest = base.getTime();
 	for (const id of ids.filter((i) => !known.has(i))) {
 		const message = await api(
 			`${gmailDataBaseUrl()}/gmail/v1/users/me/messages/${encodeURIComponent(id)}?format=full`
@@ -158,23 +162,34 @@ async function pull(userId: string, cursor: Date) {
 				.onConflictDoNothing({ target: [cardAlerts.userId, cardAlerts.gmailMessageId] });
 		}
 	}
-	return { invalid, newest: new Date(newest) };
+	return { invalid, newest: new Date(newest), complete };
 }
 
 /**
- * Reads the user's new Visa purchase alerts and turns the ones of debit cards into pending items, under a
- * held lease; false when Gmail is not linked, needs a reconnect, or another sync holds the lease. Never
- * throws and logs only codes: the mail itself is never stored or logged. The cursor starts at the moment of
- * linking, never moves backwards and also moves past messages that did not parse (visible as the `parse` code).
+ * Reads from the "Importar desde" day when it is earlier than `coveredFrom` (or nothing was read yet: a
+ * backfill), else from the cursor, and turns the Visa purchase alerts into pending items. Never throws and
+ * logs only codes: the mail itself is never stored or logged. The cursor is the forward cursor: it never moves
+ * backwards (a backfill leaves it where it was) and also moves past messages that did not parse (visible as
+ * the `parse` code). A complete backfill listing lowers `coveredFrom`; a failed or truncated one retries on
+ * the next run. Moving the day later leaves `coveredFrom`: trimming deletes pending items only, card_alerts stay
+ * and convertWaitingAlerts reconverts them if the day moves earlier again. Does not release the lease.
  */
-export async function runGmailSync(userId: string): Promise<boolean> {
-	const cursor = await acquire(userId);
-	if (!cursor) return false;
+async function execute(
+	userId: string,
+	cursor: Date | null,
+	coveredFrom: Date | null
+): Promise<void> {
 	let code: GmailSyncError | null = null;
 	let next = cursor;
+	let covered: Date | null = null;
 	try {
-		const { invalid, newest } = await pull(userId, cursor);
+		const importDay = dayStart(await getImportFromDay(userId)) ?? new Date();
+		const backfill = cursor === null || coveredFrom === null || importDay < coveredFrom;
+		const bound = backfill ? importDay : cursor;
+		const base = cursor ?? bound;
+		const { invalid, newest, complete } = await pull(userId, bound, base);
 		next = newest;
+		if (backfill && complete) covered = bound;
 		if (invalid > 0) code = 'parse';
 	} catch (e) {
 		code = e instanceof SyncError ? e.code : 'network';
@@ -189,17 +204,54 @@ export async function runGmailSync(userId: string): Promise<boolean> {
 		await db
 			.update(gmailConnections)
 			.set({
-				syncRunningSince: null,
 				lastRunAt: sql`now()`,
 				lastErrorCode: code,
 				// A failed run leaves the cursor: stored alerts are deduplicated by message id.
-				...(code === null || code === 'parse' ? { syncCursor: next } : {})
+				...((code === null || code === 'parse') && next ? { syncCursor: next } : {}),
+				// PG least() ignores NULL, so a legacy row takes the bound.
+				...((code === null || code === 'parse') && covered
+					? {
+							coveredFrom: sql`least(${gmailConnections.coveredFrom}, ${covered.toISOString()}::timestamptz)`
+						}
+					: {})
 			})
 			.where(canAccessOwn(userId, gmailConnections));
 	} catch (e) {
-		// A failed final write leaves the lease set; it expires after LEASE_MINUTES.
 		console.error('gmail sync failed: db', errorDetail(e));
 	}
+}
+
+async function releaseLease(userId: string) {
+	try {
+		await db
+			.update(gmailConnections)
+			.set({ syncRunningSince: null })
+			.where(canAccessOwn(userId, gmailConnections));
+	} catch (e) {
+		// A failed write leaves the lease set; it expires after LEASE_MINUTES.
+		console.error('gmail sync failed: db', errorDetail(e));
+	}
+}
+
+/**
+ * Takes the user's lease (null when Gmail is not linked, needs a reconnect, or another sync holds it) so the
+ * caller can `run` once (it backfills from the "Importar desde" day when that is not covered yet), then must `release`. `run` never throws.
+ */
+export async function acquireGmailSync(userId: string) {
+	const lease = await acquire(userId);
+	if (!lease) return null;
+	return {
+		run: () => execute(userId, lease.cursor, lease.coveredFrom),
+		release: () => releaseLease(userId)
+	};
+}
+
+/** Acquires the lease, runs one sync and releases it; false when Gmail is not linked, needs a reconnect, or another sync holds the lease. */
+export async function runGmailSync(userId: string): Promise<boolean> {
+	const lease = await acquireGmailSync(userId);
+	if (!lease) return false;
+	await lease.run();
+	await lease.release();
 	return true;
 }
 
@@ -208,7 +260,8 @@ export async function gmailSyncState(userId: string) {
 	const [row] = await db
 		.select({
 			lastRunAt: gmailConnections.lastRunAt,
-			lastErrorCode: gmailConnections.lastErrorCode
+			lastErrorCode: gmailConnections.lastErrorCode,
+			runningSince: gmailConnections.syncRunningSince
 		})
 		.from(gmailConnections)
 		.where(canAccessOwn(userId, gmailConnections))

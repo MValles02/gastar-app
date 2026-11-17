@@ -5,8 +5,9 @@
 // link different mailboxes without sharing /__fake/account). Each access token belongs to the mailbox it was
 // issued for; GET /gmail/v1/users/me/messages[/:id] serve that mailbox. Control:
 // /__fake/{health,reset,revoke,omit-scope,account,requests} and /__fake/alert?email=&last4=&merchant=&amount=
-// &currency=&type=&foreign=&dkim=pass|fail[&date=<ISO>] (adds a synthetic Visa alert, dated now or at `date`; the
-// listing goes by arrival, so a backdated alert is still listed after the cursor), /__fake/mailbox-reset?email=.
+// &currency=&type=&foreign=&dkim=pass|fail[&date=<ISO>][&listed=date] (adds a synthetic Visa alert, dated now or at `date`; the
+// listing goes by arrival, so a backdated alert is still listed after the cursor, unless `listed=date`: then it is
+// listed at `date`, as real Gmail's `after:` goes by the message date), /__fake/mailbox-reset?email=.
 // The global reset leaves mailboxes and access tokens alone, so a spec resetting it does not disturb another.
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
@@ -160,7 +161,7 @@ createServer(async (req, res) => {
 		list.push({
 			id,
 			internalDate: Number.isNaN(date) ? lastDate : date,
-			listedAt: lastDate,
+			listedAt: q.get('listed') === 'date' && !Number.isNaN(date) ? date : lastDate,
 			dkim: q.get('dkim') === 'fail' ? 'fail' : 'pass',
 			html
 		});

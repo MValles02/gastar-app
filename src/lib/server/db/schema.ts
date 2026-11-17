@@ -494,6 +494,8 @@ export const gmailConnections = pgTable('gmail_connections', {
 	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
 	needsReconnect: boolean('needs_reconnect').default(false).notNull(),
 	syncCursor: timestamp('sync_cursor', { withTimezone: true }),
+	// Earliest instant from which mail has been read at least once (null = not yet, or a legacy row).
+	coveredFrom: timestamp('covered_from', { withTimezone: true }),
 	// Lease of a running sync (the Mercado Pago pattern): a later run may take over after 15 minutes.
 	syncRunningSince: timestamp('sync_running_since', { withTimezone: true }),
 	lastRunAt: timestamp('last_run_at', { withTimezone: true }),
@@ -519,6 +521,20 @@ export const galiciaConnections = pgTable('galicia_connections', {
 		onDelete: 'set null'
 	}),
 	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true })
+		.defaultNow()
+		.$onUpdate(() => new Date())
+		.notNull()
+});
+
+// The user's "Importar desde": the minimum date of every automatic import (Mercado Pago and Gmail alerts).
+// A row exists only once a date is chosen. Galicia statements are never filtered by it.
+export const importSettings = pgTable('import_settings', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	// Local day start.
+	importFrom: timestamp('import_from', { withTimezone: true }).notNull(),
 	updatedAt: timestamp('updated_at', { withTimezone: true })
 		.defaultNow()
 		.$onUpdate(() => new Date())

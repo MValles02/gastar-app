@@ -397,6 +397,8 @@ type FakeAlert = {
 	dkim?: 'pass' | 'fail';
 	/** ISO date the alert is dated at (default: now). */
 	date?: string;
+	/** List the alert at `date` (as Gmail's `after:` does) instead of at its arrival. */
+	listedAtDate?: boolean;
 };
 
 /** Puts a synthetic Visa alert in the fake Gmail mailbox. */
@@ -412,6 +414,7 @@ export async function fakeAlert(mailbox: string, o: FakeAlert) {
 		dkim: o.dkim ?? 'pass'
 	});
 	if (o.date) q.set('date', o.date);
+	if (o.listedAtDate) q.set('listed', 'date');
 	expect((await fetch(`${FAKE_GMAIL}/__fake/alert?${q}`)).ok).toBe(true);
 }
 

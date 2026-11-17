@@ -162,6 +162,27 @@
       "when": 1794925150059,
       "tag": "0022_normal_madelyne_pryor",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794943205244,
+      "tag": "0023_import_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794943207174,
+      "tag": "0024_copy_mp_import_from",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794948991620,
+      "tag": "0025_gmail_covered_from",
+      "breakpoints": true
     }
   ]
 }
