@@ -59,4 +59,5 @@ Before promoting `develop` to `main`, verify on https://dev.gastar.app:
 - Accounts: create and edit an account; balances are correct.
 - Movements: create income, expense and transfer; category net and the monthly view update.
 - Mercado Pago import, if the change touches it.
+- Google sign-in, if the change touches it: sign in and sign up with Google. The production `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` stay UNSET until phase 2 (accounts without a password) is merged; only dev sets them.
 - `/health` reports the deployed commit SHA.

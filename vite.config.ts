@@ -35,8 +35,8 @@ export default defineConfig({
 					'font-src': ['self'],
 					'connect-src': ['self'],
 					'base-uri': ['self'],
-					// ?/connect on /profile/mercado-pago answers with a 303 to Mercado Pago's OAuth page.
-					'form-action': ['self', 'https://auth.mercadopago.com'],
+					// ?/connect on /profile/mercado-pago answers with a 303 to Mercado Pago's OAuth page, ?/google on /login and /signup to Google's.
+					'form-action': ['self', 'https://auth.mercadopago.com', 'https://accounts.google.com'],
 					'report-uri': ['/csp-report']
 				}
 			}

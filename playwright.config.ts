@@ -4,6 +4,8 @@ const PORT = Number(process.env.E2E_PORT) || 5173;
 const BASE_URL = `http://localhost:${PORT}`;
 const MP_PORT = Number(process.env.FAKE_MP_PORT) || 5199;
 const MP_URL = `http://127.0.0.1:${MP_PORT}`;
+const GOOGLE_PORT = Number(process.env.FAKE_GOOGLE_PORT) || 5198;
+const GOOGLE_URL = `http://127.0.0.1:${GOOGLE_PORT}`;
 
 export default defineConfig({
 	testDir: 'e2e',
@@ -29,9 +31,15 @@ export default defineConfig({
 			reuseExistingServer: !process.env.CI,
 			env: { FAKE_MP_PORT: String(MP_PORT) }
 		},
-		// Locally reuses an already running `pnpm dev` (and its .env); a reused server must have the same MP env.
+		{
+			command: 'node e2e/fake-google.js',
+			url: `${GOOGLE_URL}/__fake/health`,
+			reuseExistingServer: !process.env.CI,
+			env: { FAKE_GOOGLE_PORT: String(GOOGLE_PORT) }
+		},
+		// Locally reuses an already running `pnpm dev` (and its .env); a reused server must have the same MP and Google env.
 		// Without one (CI), builds with VITE_E2E=1 (enables the test-only routes) and serves `node build`.
-		// Set E2E_PORT and FAKE_MP_PORT to unique values per worktree so a run never reuses another checkout's servers.
+		// Set E2E_PORT, FAKE_MP_PORT and FAKE_GOOGLE_PORT to unique values per worktree so a run never reuses another checkout's servers.
 		{
 			command: `pnpm build && node --env-file-if-exists=.env build`,
 			url: `${BASE_URL}/health`,
@@ -54,7 +62,11 @@ export default defineConfig({
 				MP_API_BASE_URL: MP_URL,
 				MP_REPORT_POLL_MS: '100',
 				// Scheduler off so e2e stays deterministic (syncs only via "Sincronizar ahora").
-				MP_SYNC_INTERVAL_HOURS: '0'
+				MP_SYNC_INTERVAL_HOURS: '0',
+				// Must match the fake's defaults (e2e/fake-google.js).
+				GOOGLE_CLIENT_ID: 'test-google-client-id',
+				GOOGLE_CLIENT_SECRET: 'test-google-client-secret',
+				GOOGLE_DISCOVERY_URL: `${GOOGLE_URL}/.well-known/openid-configuration`
 			}
 		}
 	]

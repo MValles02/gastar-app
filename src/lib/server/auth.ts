@@ -1,6 +1,7 @@
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '#lib/fields.ts';
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USER_NAME_MAX_LENGTH } from '#lib/fields.ts';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { genericOAuth } from 'better-auth/plugins';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { requestEvent } from './request-memo';
 import * as env from '$app/env/private';
@@ -16,8 +17,31 @@ const DEV_BASE_URL = 'http://localhost:5173';
 // Better Auth takes seconds. The email copy in auth-emails.ts states the token lifetimes.
 const MINUTE = 60;
 const HOUR = 60 * MINUTE;
+const E2E = import.meta.env.VITE_E2E === '1';
 const RESET_PASSWORD_TOKEN_TTL = HOUR;
 const VERIFY_EMAIL_TOKEN_TTL = 24 * HOUR;
+
+/** "Continuar con Google" is on only when both credentials are set (env-check.ts rejects just one). */
+export const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+
+/**
+ * Profile of a Google sign-in, read from the ID token (the plugin has already verified its signature,
+ * issuer, audience and nonce). null (sign-in ends on /login?error=unable_to_get_user_info) unless
+ * Google vouches for the email, so no user, account or email is created for an unverified one.
+ */
+async function googleProfile({ idToken }: { idToken?: string }) {
+	if (!idToken) return null;
+	const claims = JSON.parse(Buffer.from(idToken.split('.')[1] ?? '', 'base64url').toString());
+	if (claims.email_verified !== true || typeof claims.email !== 'string') return null;
+	const name = typeof claims.name === 'string' ? claims.name.trim() : '';
+	return {
+		sub: claims.sub,
+		email: claims.email,
+		emailVerified: true,
+		// The picture is not stored.
+		name: (name || claims.email.split('@')[0]).slice(0, USER_NAME_MAX_LENGTH)
+	};
+}
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, { provider: 'pg', schema }),
@@ -54,6 +78,17 @@ export const auth = betterAuth({
 			await sendEmail({ to: user.email, link: url, ...verifyEmail(user.name, url) });
 		}
 	},
+	// Google tokens are never used after sign-in, but they are stored encrypted anyway.
+	account: { encryptOAuthTokens: true },
+	// The id_token (email, name, picture) is never needed after sign-in: do not persist it.
+	databaseHooks: {
+		account: {
+			create: { before: async (account) => ({ data: { ...account, idToken: null } }) },
+			update: { before: async (account) => ({ data: { ...account, idToken: null } }) }
+		}
+	},
+	// State errors (lost or mismatched cookie) end on /login like the other Google errors.
+	onAPIError: { errorURL: `${new URL(env.BETTER_AUTH_URL ?? DEV_BASE_URL).origin}/login` },
 	logger: { level: 'warn' },
 	secret: env.BETTER_AUTH_SECRET,
 	baseURL: env.BETTER_AUTH_URL,
@@ -69,9 +104,33 @@ export const auth = betterAuth({
 			'/send-verification-email': { window: 15 * MINUTE, max: 3 },
 			'/request-password-reset': { window: 15 * MINUTE, max: 3 },
 			// e2e builds sign up many test users from one IP.
-			'/sign-up/email': { window: HOUR, max: import.meta.env.VITE_E2E === '1' ? 50 : 10 },
-			'/verify-email': { window: MINUTE, max: 10 }
+			'/sign-up/email': { window: HOUR, max: E2E ? 50 : 10 },
+			'/verify-email': { window: MINUTE, max: 10 },
+			'/sign-in/social': { window: MINUTE, max: 10 },
+			'/callback/*': { window: MINUTE, max: E2E ? 50 : 10 }
 		}
 	},
-	plugins: [sveltekitCookies(requestEvent)]
+	plugins: [
+		...(googleEnabled
+			? [
+					genericOAuth({
+						config: [
+							{
+								providerId: 'google',
+								clientId: env.GOOGLE_CLIENT_ID!,
+								clientSecret: env.GOOGLE_CLIENT_SECRET,
+								discoveryUrl:
+									env.GOOGLE_DISCOVERY_URL ??
+									'https://accounts.google.com/.well-known/openid-configuration',
+								requireIdTokenVerification: true,
+								scopes: ['openid', 'email', 'profile'],
+								pkce: true,
+								getUserInfo: googleProfile
+							}
+						]
+					})
+				]
+			: []),
+		sveltekitCookies(requestEvent)
+	]
 });

@@ -1,4 +1,4 @@
-import { fail, type RequestEvent } from '@sveltejs/kit';
+import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USER_NAME_MAX_LENGTH } from '#lib/fields.ts';
 import { auth } from './auth';
@@ -36,6 +36,35 @@ export async function resendVerification(email: string, ip: string): Promise<voi
 	await ignoreApiError(() =>
 		auth.api.sendVerificationEmail({ body: { email, callbackURL: VERIFY_EMAIL_PATH } })
 	);
+}
+
+/**
+ * `google` action of /login and /signup: sends the browser to Google. Better Auth's state and PKCE
+ * cookies ride along on the 303 (sveltekitCookies); the callback lands on / or /login?error=<code>.
+ */
+export async function googleAction({ request, getClientAddress }: RequestEvent) {
+	const ip = getClientAddress();
+	if (isBlocked('oauthStart', ip)) redirect(303, '/login?error=rate_limited');
+	record('oauthStart', ip);
+
+	let url: string | undefined;
+	try {
+		({ url } = await auth.api.signInSocial({
+			body: {
+				provider: 'google',
+				callbackURL: '/',
+				newUserCallbackURL: '/',
+				errorCallbackURL: '/login',
+				disableRedirect: true
+			},
+			headers: request.headers
+		}));
+	} catch (err) {
+		if (!(err instanceof APIError)) throw err;
+	}
+	if (!url) redirect(303, '/login?error=unavailable');
+	// Google's authorization page: the only external redirect, allowed by origin.
+	redirect(303, url, { external: [new URL(url).origin] });
 }
 
 /**

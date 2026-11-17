@@ -12,6 +12,9 @@ const LIMITS = {
 	resend: { max: 5, windowMs: 15 * MINUTE_MS },
 	changePassword: { max: 5, windowMs: 15 * MINUTE_MS },
 	deleteAccount: { max: 5, windowMs: 15 * MINUTE_MS },
+	// Starting a Google sign-in (the form action calls auth.api, which skips Better Auth's limiter).
+	// e2e builds start many from one IP.
+	oauthStart: { max: import.meta.env.VITE_E2E === '1' ? 50 : 10, windowMs: MINUTE_MS },
 	// PDF parsing is the heaviest request a user can send.
 	statementUpload: { max: 10, windowMs: 15 * MINUTE_MS }
 } as const;
