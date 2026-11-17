@@ -31,7 +31,8 @@
 <div class="page">
 	<p class="lead">
 		Con una tarjeta de débito, cada compra de la alerta entra como un movimiento de tu cuenta para
-		revisar. Las de crédito todavía no crean nada.
+		revisar. Con una de crédito, las compras entran en las cuentas de Banco Galicia, las mismas que
+		usa el resumen, y el resumen las confirma sin duplicarlas.
 	</p>
 
 	<FormShell action="?/save" {errors} cancelHref="profile/gmail" submitLabel="Guardar">

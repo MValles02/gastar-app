@@ -2,10 +2,12 @@ import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import {
 	ALERTS_B_EMAIL,
 	ALERTS_EMAIL,
+	fakeAlert as alert,
+	gmailSync as sync,
+	linkGmail,
 	login,
 	openItem,
 	pick,
-	post,
 	reviewDrawer,
 	withDb
 } from './helpers';
@@ -14,7 +16,6 @@ import {
 // `login_hint` this spec adds to the authorize URL, so it never shares /__fake/account with gmail-link.e2e.ts,
 // and it never calls the global reset). beforeAll clears the users' Gmail-import state, so reruns on a reused
 // DB start clean and merchants and cards need no stamps.
-const FAKE = `http://127.0.0.1:${Number(process.env.FAKE_GMAIL_PORT) || 5197}`;
 const stamp = Date.now();
 const A = {
 	email: ALERTS_EMAIL,
@@ -32,36 +33,6 @@ let ctxB: BrowserContext;
 let pageA: Page;
 let pageB: Page;
 
-type Alert = {
-	merchant: string;
-	amount: string;
-	currency?: 'ARS' | 'USD';
-	last4?: string;
-	type?: string;
-	foreign?: boolean;
-	dkim?: 'pass' | 'fail';
-};
-
-/** Puts a synthetic Visa alert in the mailbox. */
-async function alert(mailbox: string, o: Alert) {
-	const q = new URLSearchParams({
-		email: mailbox,
-		last4: o.last4 ?? '5678',
-		merchant: o.merchant,
-		amount: o.amount,
-		currency: o.currency ?? 'ARS',
-		type: o.type ?? 'Compra',
-		foreign: o.foreign ? '1' : '0',
-		dkim: o.dkim ?? 'pass'
-	});
-	expect((await fetch(`${FAKE}/__fake/alert?${q}`)).ok).toBe(true);
-}
-
-/** Runs the sync through the "Sincronizar" action of /imports (the Gmail part runs before it answers). */
-async function sync(page: Page, baseURL: string) {
-	expect((await post(page, baseURL, '/imports?/sync', {})).ok()).toBe(true);
-}
-
 /** Visa Débito items of a user, with the account each landed on. */
 const items = (email: string) =>
 	withDb(
@@ -72,19 +43,6 @@ const items = (email: string) =>
 			where i.source = 'visa_debit' and i.user_id = (select id from "user" where email = ${email})
 			order by i.merchant, i.amount`
 	);
-
-/** Links Gmail as `mailbox`: starts the link without following the redirect, so the consent can be asked for that login_hint. */
-async function linkGmail(page: Page, baseURL: string, mailbox: string) {
-	const start = await page.request.post('/profile/gmail?/connect', {
-		form: {},
-		headers: { origin: baseURL, accept: 'text/html' },
-		maxRedirects: 0
-	});
-	const authorize = new URL(start.headers()['location']);
-	authorize.searchParams.set('login_hint', mailbox);
-	await page.goto(authorize.toString());
-	await expect(page).toHaveURL(/\/profile\/gmail\?linked=1$/);
-}
 
 /** Answers the "Tarjeta Visa ••NNNN: elegí qué es" row of /imports: debit with a pesos account (and a dollar one). */
 async function setUpDebit(page: Page, last4: string, pesos: string, dollars?: string) {

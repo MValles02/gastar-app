@@ -3,6 +3,7 @@ import {
 	bigint,
 	boolean,
 	check,
+	date,
 	index,
 	integer,
 	pgEnum,
@@ -366,6 +367,10 @@ export const mpImportItems = pgTable(
 		poiType: text('poi_type'),
 		// Card statements: the cuota as printed (`05/12`) of an installment line; null otherwise.
 		installment: text('installment'),
+		// Card alert and statement line of one purchase: the key of the other side of the match (one item for both).
+		aliasKey: text('alias_key'),
+		// "No apareció en el resumen": the user chose to keep an unmatched alert item.
+		unmatchedKeptAt: timestamp('unmatched_kept_at', { withTimezone: true }),
 		movementId: uuid('movement_id').references(() => movements.id, { onDelete: 'set null' }),
 		// Set when the approval was automatic (a learned rule after an import); cleared by an undo.
 		autoApprovedAt: timestamp('auto_approved_at', { withTimezone: true }),
@@ -379,6 +384,7 @@ export const mpImportItems = pgTable(
 	},
 	(table) => [
 		uniqueIndex('mp_import_items_user_id_external_key_idx').on(table.userId, table.externalKey),
+		uniqueIndex('mp_import_items_user_id_alias_key_idx').on(table.userId, table.aliasKey),
 		index('mp_import_items_user_id_status_occurred_at_idx').on(
 			table.userId,
 			table.status,
@@ -387,7 +393,7 @@ export const mpImportItems = pgTable(
 		check('mp_import_items_amount_positive_check', sql`${table.amount} > 0`),
 		check(
 			'mp_import_items_kind_check',
-			sql`${table.kind} IN ('payment', 'account_fund', 'yield', 'payout', 'merchant_payout', 'refund', 'other', 'card_purchase', 'card_installment', 'card_taxes')`
+			sql`${table.kind} IN ('payment', 'account_fund', 'yield', 'payout', 'merchant_payout', 'refund', 'other', 'card_purchase', 'card_installment', 'card_taxes', 'card_adjustment')`
 		),
 		check(
 			'mp_import_items_source_check',
@@ -518,6 +524,33 @@ export const galiciaConnections = pgTable('galicia_connections', {
 		.$onUpdate(() => new Date())
 		.notNull()
 });
+
+// One row per statement uploaded: how many closed after an alert tells whether the alert never appeared.
+export const cardStatements = pgTable(
+	'card_statements',
+	{
+		id: uuid('id').defaultRandom().primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		source: text('source').notNull(),
+		// SHA-256 prefix of the statement number (Statement.numberHash).
+		numberHash: text('number_hash').notNull(),
+		closing: date('closing', { mode: 'string' }).notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+	},
+	(table) => [
+		uniqueIndex('card_statements_user_id_source_number_hash_idx').on(
+			table.userId,
+			table.source,
+			table.numberHash
+		),
+		check(
+			'card_statements_source_check',
+			sql`${table.source} IN ('galicia_visa', 'galicia_mastercard')`
+		)
+	]
+);
 
 // A card seen in Gmail alerts: what it is decides whether its alerts become import items (debit) or wait (credit).
 export const importCards = pgTable(

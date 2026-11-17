@@ -5,7 +5,8 @@
 // link different mailboxes without sharing /__fake/account). Each access token belongs to the mailbox it was
 // issued for; GET /gmail/v1/users/me/messages[/:id] serve that mailbox. Control:
 // /__fake/{health,reset,revoke,omit-scope,account,requests} and /__fake/alert?email=&last4=&merchant=&amount=
-// &currency=&type=&foreign=&dkim=pass|fail (adds a synthetic Visa alert, dated now), /__fake/mailbox-reset?email=.
+// &currency=&type=&foreign=&dkim=pass|fail[&date=<ISO>] (adds a synthetic Visa alert, dated now or at `date`; the
+// listing goes by arrival, so a backdated alert is still listed after the cursor), /__fake/mailbox-reset?email=.
 // The global reset leaves mailboxes and access tokens alone, so a spec resetting it does not disturb another.
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
@@ -146,6 +147,7 @@ createServer(async (req, res) => {
 		const to = q.get('email') || DEFAULT_EMAIL;
 		lastDate = Math.max(Date.now(), lastDate + 1);
 		const id = 'fake-msg-' + ++issued;
+		const date = Date.parse(q.get('date') ?? '');
 		const html = alertHtml({
 			last4: q.get('last4') || '1234',
 			merchant: q.get('merchant') || 'COMERCIO EJEMPLO',
@@ -157,7 +159,8 @@ createServer(async (req, res) => {
 		const list = mailboxes.get(to) ?? [];
 		list.push({
 			id,
-			internalDate: lastDate,
+			internalDate: Number.isNaN(date) ? lastDate : date,
+			listedAt: lastDate,
 			dkim: q.get('dkim') === 'fail' ? 'fail' : 'pass',
 			html
 		});
@@ -176,7 +179,7 @@ createServer(async (req, res) => {
 		if (path === '/gmail/v1/users/me/messages') {
 			const after = Number(/after:(\d+)/.exec(url.searchParams.get('q') ?? '')?.[1] ?? 0);
 			const messages = list
-				.filter((m) => m.internalDate / 1000 > after)
+				.filter((m) => m.listedAt / 1000 > after)
 				.map((m) => ({ id: m.id, threadId: m.id }));
 			return send(res, 200, { messages, resultSizeEstimate: messages.length });
 		}

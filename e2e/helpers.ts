@@ -24,6 +24,8 @@ export const GALICIA_EMAIL = 'galicia@gastar.local';
 export const ALERTS_EMAIL = 'alertas@gastar.local';
 /** Sixth seeded user, same password: ARS "Pesos Visa B" (gmail-alerts.e2e.ts only). */
 export const ALERTS_B_EMAIL = 'alertas-b@gastar.local';
+/** Seventh seeded user, same password: ARS "Pesos Tarjeta", USD "Dolares Tarjeta" and expense category "Compras Tarjeta" (card-matching.e2e.ts only). */
+export const CARD_EMAIL = 'tarjeta@gastar.local';
 
 export const PHONE = { width: 390, height: 844 };
 
@@ -381,6 +383,54 @@ export async function upload(page: Page, pdf: Buffer) {
 		.locator('input[name="statement"]')
 		.setInputFiles({ name: 'resumen.pdf', mimeType: 'application/pdf', buffer: pdf });
 	await page.getByRole('button', { name: 'Subir resumen' }).click();
+}
+
+const FAKE_GMAIL = `http://127.0.0.1:${Number(process.env.FAKE_GMAIL_PORT) || 5197}`;
+
+type FakeAlert = {
+	merchant: string;
+	amount: string;
+	currency?: 'ARS' | 'USD';
+	last4?: string;
+	type?: string;
+	foreign?: boolean;
+	dkim?: 'pass' | 'fail';
+	/** ISO date the alert is dated at (default: now). */
+	date?: string;
+};
+
+/** Puts a synthetic Visa alert in the fake Gmail mailbox. */
+export async function fakeAlert(mailbox: string, o: FakeAlert) {
+	const q = new URLSearchParams({
+		email: mailbox,
+		last4: o.last4 ?? '5678',
+		merchant: o.merchant,
+		amount: o.amount,
+		currency: o.currency ?? 'ARS',
+		type: o.type ?? 'Compra',
+		foreign: o.foreign ? '1' : '0',
+		dkim: o.dkim ?? 'pass'
+	});
+	if (o.date) q.set('date', o.date);
+	expect((await fetch(`${FAKE_GMAIL}/__fake/alert?${q}`)).ok).toBe(true);
+}
+
+/** Runs the sync through the "Sincronizar" action of /imports (the Gmail part runs before it answers). */
+export async function gmailSync(page: Page, baseURL: string) {
+	expect((await post(page, baseURL, '/imports?/sync', {})).ok()).toBe(true);
+}
+
+/** Links Gmail as `mailbox`: starts the link without following the redirect, so the consent can be asked for that login_hint. */
+export async function linkGmail(page: Page, baseURL: string, mailbox: string) {
+	const start = await page.request.post('/profile/gmail?/connect', {
+		form: {},
+		headers: { origin: baseURL, accept: 'text/html' },
+		maxRedirects: 0
+	});
+	const authorize = new URL(start.headers()['location']);
+	authorize.searchParams.set('login_hint', mailbox);
+	await page.goto(authorize.toString());
+	await expect(page).toHaveURL(/\/profile\/gmail\?linked=1$/);
 }
 
 /** The review drawer of an imported item. */

@@ -302,6 +302,7 @@ async function deleteAppData(tx, id) {
 	await tx`delete from recurring_movements where user_id = ${id}`;
 	await tx`delete from categories where user_id = ${id}`;
 	await tx`delete from galicia_connections where user_id = ${id}`;
+	await tx`delete from card_statements where user_id = ${id}`;
 	await tx`delete from mp_import_items where user_id = ${id}`;
 	await tx`delete from mp_import_rules where user_id = ${id}`;
 	await tx`delete from mp_sync_state where account_id in (select id from financial_accounts where owner_id = ${id})`;
@@ -522,7 +523,16 @@ try {
 					['Dolares Visa A', 'USD', 'dollar', 'green']
 				]
 			],
-			['alertas-b@gastar.local', 'Alertas B', [['Pesos Visa B', 'ARS', 'bank', 'blue']]]
+			['alertas-b@gastar.local', 'Alertas B', [['Pesos Visa B', 'ARS', 'bank', 'blue']]],
+			// Seventh user, for the credit-card matching E2E.
+			[
+				'tarjeta@gastar.local',
+				'Tarjeta',
+				[
+					['Pesos Tarjeta', 'ARS', 'bank', 'blue'],
+					['Dolares Tarjeta', 'USD', 'dollar', 'green']
+				]
+			]
 		]) {
 			const [old] = await tx`select id from "user" where email = ${alertEmail}`;
 			if (old) await deleteUserData(tx, old.id);
@@ -541,10 +551,14 @@ try {
 					values (${randomUUID()}, ${alertId}, ${accountName}, ${currency}, ${1_000_000_00}, ${icon}, ${color})
 				`;
 			}
-			if (alertEmail === 'alertas@gastar.local') {
+			const purchases = {
+				'alertas@gastar.local': 'Compras Visa',
+				'tarjeta@gastar.local': 'Compras Tarjeta'
+			}[alertEmail];
+			if (purchases) {
 				await tx`
 					insert into categories (id, user_id, name, kind, color)
-					values (${randomUUID()}, ${alertId}, 'Compras Visa', 'outcome', 'blue')
+					values (${randomUUID()}, ${alertId}, ${purchases}, 'outcome', 'blue')
 				`;
 			}
 		}
