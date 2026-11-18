@@ -3,6 +3,7 @@ import { APIError } from 'better-auth/api';
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USER_NAME_MAX_LENGTH } from '#lib/fields.ts';
 import { auth } from './auth';
 import { isBlocked, record } from './rate-limit';
+import { GOOGLE_PROVIDER_ID } from './reauth';
 
 /** Page that verification links land on (Better Auth `callbackURL`). */
 export const VERIFY_EMAIL_PATH = '/verify-email';
@@ -20,12 +21,26 @@ export function isValidPasswordLength(password: string): boolean {
 	return password.length >= PASSWORD_MIN_LENGTH && password.length <= PASSWORD_MAX_LENGTH;
 }
 
+/** Better Auth error codes the forms branch on. */
+export const INVALID_PASSWORD = 'INVALID_PASSWORD';
+export const EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED';
+
+/** Whether `err` is a Better Auth API error, optionally with the given `code`. */
+export function isApiError(err: unknown, code?: string): err is APIError {
+	return err instanceof APIError && (code === undefined || err.body?.code === code);
+}
+
+/** Rate-limit message for form actions. */
+export function tooManyAttempts(when: 'minuto' | 'rato'): string {
+	return `Demasiados intentos. Probá de nuevo en un ${when}.`;
+}
+
 /** Runs a Better Auth call, swallowing its API errors (unknown email, failed send...). */
 export async function ignoreApiError(call: () => Promise<unknown>): Promise<void> {
 	try {
 		await call();
 	} catch (err) {
-		if (!(err instanceof APIError)) throw err;
+		if (!isApiError(err)) throw err;
 	}
 }
 
@@ -65,11 +80,11 @@ async function startGoogle(
 	let url: string | undefined;
 	try {
 		({ url } = await auth.api.signInSocial({
-			body: { provider: 'google', ...urls, disableRedirect: true },
+			body: { provider: GOOGLE_PROVIDER_ID, ...urls, disableRedirect: true },
 			headers: request.headers
 		}));
 	} catch (err) {
-		if (!(err instanceof APIError)) throw err;
+		if (!isApiError(err)) throw err;
 	}
 	if (!url) redirect(303, unavailable);
 	if (reauth) {

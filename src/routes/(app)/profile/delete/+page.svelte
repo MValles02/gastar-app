@@ -16,8 +16,7 @@
 <DeleteForm
 	summary={data.summary}
 	error={form?.formError}
-	hasPassword={data.hasPassword}
-	recent={data.recent}
+	reauthMode={data.reauthMode}
 	reauth={!!form?.reauth}
 	email={data.email}
 />

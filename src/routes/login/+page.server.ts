@@ -1,7 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { APIError } from 'better-auth/api';
 import { auth, googleEnabled } from '#lib/server/auth.ts';
-import { googleAction, resendAction, VERIFY_EMAIL_PATH } from '#lib/server/auth-forms.ts';
+import {
+	EMAIL_NOT_VERIFIED,
+	googleAction,
+	isApiError,
+	resendAction,
+	tooManyAttempts,
+	VERIFY_EMAIL_PATH
+} from '#lib/server/auth-forms.ts';
 import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -17,7 +23,7 @@ export const actions: Actions = {
 		if (isBlocked('signIn', ip)) {
 			return fail(429, {
 				email: typeof email === 'string' ? email : '',
-				formError: 'Demasiados intentos. Probá de nuevo en un minuto.'
+				formError: tooManyAttempts('minuto')
 			});
 		}
 
@@ -34,13 +40,11 @@ export const actions: Actions = {
 				headers: request.headers
 			});
 		} catch (err) {
-			if (err instanceof APIError) {
-				// Correct password, unverified email: Better Auth already re-sent the link.
-				if (err.body?.code === 'EMAIL_NOT_VERIFIED') return { checkEmail: email };
-				record('signIn', ip);
-				return fail(400, { email, passwordError: 'Email o contraseña incorrectos.' });
-			}
-			throw err;
+			// Correct password, unverified email: Better Auth already re-sent the link.
+			if (isApiError(err, EMAIL_NOT_VERIFIED)) return { checkEmail: email };
+			if (!isApiError(err)) throw err;
+			record('signIn', ip);
+			return fail(400, { email, passwordError: 'Email o contraseña incorrectos.' });
 		}
 
 		redirect(303, '/');
