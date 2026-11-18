@@ -11,8 +11,7 @@
 	<DeleteForm
 		variant="drawer"
 		summary={data.summary}
-		hasPassword={data.hasPassword}
-		recent={data.recent}
+		reauthMode={data.reauthMode}
 		email={data.email}
 		{onclose}
 	/>

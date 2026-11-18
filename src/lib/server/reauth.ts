@@ -2,6 +2,9 @@ import { and, eq, isNotNull } from 'drizzle-orm';
 import { db } from './db';
 import { account } from './db/schema';
 
+export const GOOGLE_PROVIDER_ID = 'google';
+export const CREDENTIAL_PROVIDER_ID = 'credential';
+
 /** Whether the user has a password (Google-only users do not). */
 export async function hasPassword(userId: string): Promise<boolean> {
 	const rows = await db
@@ -10,7 +13,7 @@ export async function hasPassword(userId: string): Promise<boolean> {
 		.where(
 			and(
 				eq(account.userId, userId),
-				eq(account.providerId, 'credential'),
+				eq(account.providerId, CREDENTIAL_PROVIDER_ID),
 				isNotNull(account.password)
 			)
 		)
@@ -21,6 +24,17 @@ export async function hasPassword(userId: string): Promise<boolean> {
 /** How long after signing in a password-less user may still create a password or delete the account. */
 export const RECENT_SESSION_MS = 5 * 60_000;
 
-export function isRecentSession(session: { createdAt: Date | string } | null): boolean {
+function isRecentSession(session: { createdAt: Date | string } | null): boolean {
 	return !!session && Date.now() - new Date(session.createdAt).getTime() <= RECENT_SESSION_MS;
+}
+
+export type ReauthMode = 'password' | 'recent' | 'stale';
+
+/** How the user proves identity for a sensitive action: password, a recent sign-in, or a fresh Google sign-in. */
+export async function reauthMode(
+	userId: string,
+	session: { createdAt: Date | string } | null
+): Promise<ReauthMode> {
+	if (await hasPassword(userId)) return 'password';
+	return isRecentSession(session) ? 'recent' : 'stale';
 }

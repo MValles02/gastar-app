@@ -3,6 +3,7 @@
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import PasswordInput from '#lib/components/PasswordInput.svelte';
+	import type { ReauthMode } from '#lib/server/reauth.ts';
 
 	type Errors = { current?: string; next?: string };
 
@@ -13,8 +14,7 @@
 	let {
 		errors = {},
 		formError,
-		hasPassword = true,
-		recent = true,
+		reauthMode = 'password',
 		reauth = false,
 		variant = 'page',
 		onsaved,
@@ -22,10 +22,8 @@
 	}: {
 		errors?: Errors;
 		formError?: string;
-		/** false: a Google-only user, who creates a password (no current one to ask for). */
-		hasPassword?: boolean;
-		/** Whether the session is recent enough to create the password. */
-		recent?: boolean;
+		/** 'password': changes it. Otherwise a Google-only user, who creates a password (no current one to ask for; 'recent': the session is recent enough). */
+		reauthMode?: ReauthMode;
 		/** The last post asked to confirm with Google. */
 		reauth?: boolean;
 		variant?: 'page' | 'drawer';
@@ -41,7 +39,10 @@
 	let posted = $state<{ errors: Errors; formError?: string; reauth?: boolean }>({ errors: {} });
 	const shown = $derived({ ...errors, ...posted.errors });
 	const message = $derived(posted.formError ?? formError);
-	const needsGoogle = $derived(!hasPassword && (!recent || posted.reauth || reauth));
+	const hasPassword = $derived(reauthMode === 'password');
+	const needsGoogle = $derived(
+		reauthMode === 'stale' || (reauthMode === 'recent' && (!!posted.reauth || reauth))
+	);
 </script>
 
 {#if needsGoogle}

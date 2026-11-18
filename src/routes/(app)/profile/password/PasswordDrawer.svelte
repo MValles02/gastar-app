@@ -8,14 +8,17 @@
 	let { data, onclose }: { data: PageData; onclose: () => void } = $props();
 </script>
 
-<BottomDrawer title={data.hasPassword ? 'Cambiar contraseña' : 'Crear contraseña'} open {onclose}>
+<BottomDrawer
+	title={data.reauthMode === 'password' ? 'Cambiar contraseña' : 'Crear contraseña'}
+	open
+	{onclose}
+>
 	<PasswordForm
 		variant="drawer"
-		hasPassword={data.hasPassword}
-		recent={data.recent}
+		reauthMode={data.reauthMode}
 		onsaved={closeAfterSave(
 			onclose,
-			data.hasPassword ? 'Contraseña cambiada.' : 'Contraseña creada.'
+			data.reauthMode === 'password' ? 'Contraseña cambiada.' : 'Contraseña creada.'
 		)}
 		{onclose}
 	/>

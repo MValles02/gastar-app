@@ -3,6 +3,7 @@
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import PasswordInput from '#lib/components/PasswordInput.svelte';
+	import type { ReauthMode } from '#lib/server/reauth.ts';
 
 	type Summary = { accounts: number; movements: number; categories: number; hasPlan: boolean };
 
@@ -13,8 +14,7 @@
 	let {
 		summary,
 		error,
-		hasPassword = true,
-		recent = true,
+		reauthMode = 'password',
 		reauth = false,
 		email = '',
 		variant = 'page',
@@ -22,10 +22,8 @@
 	}: {
 		summary: Summary;
 		error?: string;
-		/** false: a Google-only user, who confirms by signing in with Google again. */
-		hasPassword?: boolean;
-		/** Whether the session is recent enough to delete without a password. */
-		recent?: boolean;
+		/** 'password': confirms with it. Otherwise a Google-only user, who confirms by signing in with Google again ('recent': the session is recent enough to delete without it). */
+		reauthMode?: ReauthMode;
 		/** The last post asked to confirm with Google. */
 		reauth?: boolean;
 		/** The account being deleted, shown to a user without a password. */
@@ -57,7 +55,10 @@
 	// The drawer's post reports the failure here; the page shows the server-rendered one.
 	let posted = $state<{ formError?: string; reauth?: boolean } | undefined>();
 	const message = $derived(posted ? posted.formError : error);
-	const needsGoogle = $derived(!hasPassword && (!recent || !!posted?.reauth || reauth));
+	const hasPassword = $derived(reauthMode === 'password');
+	const needsGoogle = $derived(
+		reauthMode === 'stale' || (reauthMode === 'recent' && (!!posted?.reauth || reauth))
+	);
 </script>
 
 {#snippet warn()}
