@@ -1,4 +1,4 @@
-import { convertAmount, type Currency } from '#lib/money.ts';
+import { convertAmount, CURRENCIES, type Currency } from '#lib/money.ts';
 import {
 	isRecurringActive,
 	PLAN_CURRENCY,
@@ -7,8 +7,10 @@ import {
 	perDayLeft,
 	type PlanStatus,
 	type RecurringStatus,
+	type RecurringType,
 	type RuleState
 } from '#lib/plan.ts';
+import type { MovementType } from '#lib/movement.ts';
 import { daysInMonth, daysLeftIn, elapsedDays } from '../month';
 
 /** `amount` from `from` into `to` at the plan rate; null across currencies when there is no rate. */
@@ -32,10 +34,35 @@ export function recurringStatus(dayOfMonth: number, paid: boolean, ym: string) {
 	return { day: Math.min(dayOfMonth, daysInMonth(ym)), status };
 }
 
-export function activeTotal(rules: (RuleState & { type: string; amount: number })[], type: string) {
+type TotalRule = RuleState & { type: MovementType; amount: number };
+
+export function activeTotal(rules: TotalRule[], type: RecurringType) {
 	return rules
 		.filter((r) => r.type === type && isRecurringActive(r))
 		.reduce((a, r) => a + r.amount, 0);
+}
+
+/**
+ * Active recurring income in plan pesos: summed per currency, then converted once (USD at `rate`, left
+ * out without one).
+ */
+export function recurringIncomeInPesos(
+	rules: (TotalRule & { currency: Currency })[],
+	rate: number | null
+) {
+	return CURRENCIES.reduce(
+		(sum, cur) =>
+			sum +
+			(toPlanCurrency(
+				activeTotal(
+					rules.filter((r) => r.currency === cur),
+					'income'
+				),
+				cur,
+				rate
+			) ?? 0),
+		0
+	);
 }
 
 /** A plan for another month (not repeating) counts as no plan. */

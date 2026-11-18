@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { notFoundHelpers } from '../guards';
+import { setupStepHref, wizardStep, type WizardStepName } from '#lib/plan-wizard.ts';
 import { currentPlan, planLimits, PlanRejected } from './queries';
 
 export function toPlan(): never {
@@ -10,6 +11,25 @@ export function toPlan(): never {
 /** The user's current plan; a `/plan/*` route without one goes back to /plan. */
 export async function requirePlan(userId: string) {
 	return (await currentPlan(userId)) ?? toPlan();
+}
+
+type Plan = NonNullable<Awaited<ReturnType<typeof currentPlan>>>;
+
+/** The wizard steps that work on the plan the savings step creates. */
+const PLAN_STEPS = ['limits', 'summary'] as const satisfies readonly WizardStepName[];
+type PlanStep = (typeof PLAN_STEPS)[number];
+
+/**
+ * The user's current plan at wizard step `step` (null before one exists). A step in `PLAN_STEPS`
+ * without a plan goes back to the savings step.
+ */
+export async function requireWizardStep(userId: string, step: PlanStep): Promise<Plan>;
+export async function requireWizardStep(userId: string, step: WizardStepName): Promise<Plan | null>;
+export async function requireWizardStep(userId: string, step: WizardStepName) {
+	const plan = await currentPlan(userId);
+	if (!plan && (PLAN_STEPS as readonly WizardStepName[]).includes(step))
+		redirect(303, setupStepHref(wizardStep('savings')));
+	return plan;
 }
 
 const { notFound, requireId } = notFoundHelpers('Límite no encontrado.');

@@ -33,6 +33,7 @@ import {
 	isCurrentPlan,
 	planSpent,
 	planSummary,
+	recurringIncomeInPesos,
 	recurringStatus,
 	toPlanCurrency
 } from './summary';
@@ -72,7 +73,6 @@ async function computeMonthPlan(userId: string) {
 		const own = active.filter((r) => r.currency === cur);
 		return {
 			cur,
-			income: activeTotal(own, 'income'),
 			bills: activeTotal(own, 'outcome'),
 			pendingBills: own
 				.filter((r) => r.type === 'outcome' && !paidIds.has(r.id))
@@ -85,7 +85,7 @@ async function computeMonthPlan(userId: string) {
 	});
 	const toPesos = (pick: (p: (typeof perCurrency)[number]) => number) =>
 		perCurrency.reduce((a, p) => a + (toPlanCurrency(pick(p), p.cur, rate.value) ?? 0), 0);
-	const recurringIncome = toPesos((p) => p.income);
+	const recurringIncome = recurringIncomeInPesos(rules, rate.value);
 
 	// A limit's spending: its own currency plus the other one converted into it (left out without a rate).
 	const limits = (current ? limitRows : []).map((l) => {

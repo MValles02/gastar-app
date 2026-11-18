@@ -17,21 +17,19 @@
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import { PLAN_CURRENCY } from '#lib/plan.ts';
-	import { setupStepHref, WIZARD_STEPS, withWizard } from '#lib/plan-wizard.ts';
+	import {
+		setupStepHref,
+		WIZARD_STEPS,
+		WIZARD_TITLES,
+		withWizard,
+		wizardStep
+	} from '#lib/plan-wizard.ts';
 	import LimitList from '../LimitList.svelte';
 	import RecurringRow from '../RecurringRow.svelte';
 	import SavingsOptions from '../SavingsOptions.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
-
-	const titles = [
-		'¿Cuánto cobrás por mes?',
-		'¿Qué pagos fijos tenés?',
-		'¿Cuánto querés ahorrar?',
-		'¿Dónde querés cuidar el gasto?',
-		'Tu plan'
-	];
 
 	// Steps share this component, so the switch starts on until step 5 is the first one loaded.
 	let repeat = $state(untrack(() => data.repeats ?? true));
@@ -54,7 +52,7 @@
 {/snippet}
 
 {#snippet question()}
-	<h1 class="question">{titles[data.step - 1]}</h1>
+	<h1 class="question">{WIZARD_TITLES[data.step - 1]}</h1>
 {/snippet}
 
 {#snippet add(href: string, key: 'newRule' | 'newLimit')}
@@ -62,16 +60,16 @@
 {/snippet}
 
 {#snippet addRule()}
-	{@render add(newRule(data.step === 1 ? 'income' : 'outcome'), 'newRule')}
+	{@render add(newRule(data.step === wizardStep('income') ? 'income' : 'outcome'), 'newRule')}
 {/snippet}
 
 {#snippet addLimit()}
-	{@render add(withWizard('/plan/limits/new', 4), 'newLimit')}
+	{@render add(withWizard('/plan/limits/new', wizardStep('limits')), 'newLimit')}
 {/snippet}
 
 <div class="wizard root">
 	<ol class="steps" aria-label="Pasos">
-		{#each titles as label, i (label)}
+		{#each WIZARD_TITLES as label, i (label)}
 			<li
 				class:done={i + 1 < data.step}
 				class:current={i + 1 === data.step}
@@ -82,7 +80,7 @@
 		{/each}
 	</ol>
 	<CardEyebrow>
-		Plan · paso {data.step} de {WIZARD_STEPS}
+		Plan · paso {data.step} de {WIZARD_STEPS.length}
 	</CardEyebrow>
 
 	{#if data.step === 1 || data.step === 2}
@@ -122,7 +120,7 @@
 			<p class="muted small">Tocá uno para agregarlo como pago fijo.</p>
 			<ListCard>
 				{#each data.suggestions as s (s.id)}
-					{@const href = `${withWizard('/plan/recurring/new?type=outcome', 2)}&suggestion=${s.id}`}
+					{@const href = `${withWizard('/plan/recurring/new?type=outcome', wizardStep('bills'))}&suggestion=${s.id}`}
 					<!-- The wrapper only carries the click that opens the drawer; it adds no box. -->
 					<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 					<div
@@ -181,12 +179,12 @@
 		{/if}
 		<section class="group">
 			<SectionHeader level={3} title="Límites" aside={addLimit} />
-			<LimitList limits={data.limits} wizard={4} />
+			<LimitList limits={data.limits} wizard={wizardStep('limits')} />
 		</section>
-		{@render bar('Siguiente', setupStepHref(5))}
+		{@render bar('Siguiente', setupStepHref(wizardStep('summary')))}
 	{:else}
 		{@const s = data.summary!}
-		<h1 class="question">{titles[4]} para {data.monthName}</h1>
+		<h1 class="question">{WIZARD_TITLES[data.step - 1]} para {data.monthName}</h1>
 		<Card.Root class="gap-0 overflow-hidden py-0">
 			<dl class="figures">
 				<div class="kv">
@@ -305,7 +303,9 @@
 		margin: 0;
 		padding: 0;
 		display: grid;
-		grid-template-columns: repeat(5, 1fr);
+		/* One equal column per step. */
+		grid-auto-flow: column;
+		grid-auto-columns: 1fr;
 		gap: 4px;
 	}
 
