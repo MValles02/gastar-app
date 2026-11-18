@@ -9,11 +9,11 @@ import {
 } from '../db/schema';
 import { exists, inRange, type Range } from '../db/sql';
 import { canAccessMovement, canAccessOwn, userOwned } from '../access';
-import { CURRENCIES, type Currency } from '#lib/money.ts';
-import { PLAN_CURRENCY } from '#lib/plan.ts';
+import type { Currency } from '#lib/money.ts';
+import { PLAN_CURRENCY, type PlanSavings } from '#lib/plan.ts';
 import { currentMonth, localDay } from '../month';
 import { listRecurring } from '../recurring/queries';
-import { activeTotal, isCurrentPlan, toPlanCurrency } from './summary';
+import { isCurrentPlan, recurringIncomeInPesos } from './summary';
 
 /** Whether the user has a spending plan (first-run checklist); legacy USD rows do not count. */
 export function hasAnyPlan(userId: string) {
@@ -140,24 +140,13 @@ export function deletePlan(userId: string) {
 /** Active recurring income in plan pesos: ARS rules plus USD rules at the plan rate (left out without one). */
 export async function planIncome(userId: string) {
 	const [rules, rate] = await Promise.all([listRecurring(userId), planRate(userId)]);
-	return CURRENCIES.reduce(
-		(sum, cur) =>
-			sum +
-			(toPlanCurrency(
-				activeTotal(
-					rules.filter((r) => r.currency === cur),
-					'income'
-				),
-				cur,
-				rate.value
-			) ?? 0),
-		0
-	);
+	return recurringIncomeInPesos(rules, rate.value);
 }
 
-export type PlanSavings = { savings: number; savingsPercent: number | null; month: string | null };
+/** The plan's month: null when it repeats every month. */
+type PlanMonth = { month: string | null };
 
-export function upsertPlan(userId: string, v: PlanSavings) {
+export function upsertPlan(userId: string, v: PlanSavings & PlanMonth) {
 	return db
 		.insert(spendingPlans)
 		.values({ ...v, currency: PLAN_CURRENCY, ...userOwned(userId) })
@@ -170,7 +159,7 @@ export function upsertPlan(userId: string, v: PlanSavings) {
 
 export function updatePlan(
 	userId: string,
-	patch: Partial<PlanSavings & { exchangeRate: number | null }>
+	patch: Partial<PlanSavings & PlanMonth & { exchangeRate: number | null }>
 ) {
 	return db
 		.update(spendingPlans)

@@ -8,10 +8,13 @@
 		perDayLeft,
 		presetPercent,
 		SAVINGS_FIELDS,
+		SAVINGS_PRESETS,
 		savingsChoice,
 		savingsFromPercent,
 		type PlanSavings,
-		type SavingsChoice
+		type SavingsChoice,
+		type SavingsOption,
+		type SavingsUnit
 	} from '#lib/plan.ts';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import TextRow from '#lib/components/TextRow.svelte';
@@ -48,7 +51,7 @@
 	let unit = $state(start.unit);
 	let value = $state(start.value);
 
-	const units = $derived([
+	const units: { value: SavingsUnit; label: string }[] = $derived([
 		{ value: 'percent', label: '%' },
 		{ value: 'amount', label: currency === 'USD' ? 'US$' : '$' }
 	]);
@@ -67,7 +70,7 @@
 
 	const current = $derived(mode === 'form' ? option : editing ? 'other' : stored.option);
 	/** What each row saves; null for "Otro" until it has a value. */
-	function savingsOf(key: string) {
+	function savingsOf(key: SavingsOption) {
 		const preset = presetPercent(key);
 		if (preset !== null) return savingsFromPercent(income, preset);
 		if (key !== 'other') return 0;
@@ -75,10 +78,9 @@
 		return stored.option === 'other' ? storedSavings : null;
 	}
 
-	const rows = [
+	const rows: { key: SavingsOption; label: string }[] = [
 		{ key: 'none', label: 'Nada' },
-		{ key: '10', label: '10 %' },
-		{ key: '20', label: '20 %' },
+		...SAVINGS_PRESETS.map((n) => ({ key: `${n}` as const, label: `${n} %` })),
 		{ key: 'other', label: 'Otro' }
 	];
 
@@ -107,7 +109,7 @@
 		message = error ?? '';
 	}
 
-	function pick(key: string) {
+	function pick(key: SavingsOption) {
 		if (mode === 'form') {
 			option = key;
 			return;

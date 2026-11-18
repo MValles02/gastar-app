@@ -1,12 +1,33 @@
 import { ARS_WHOLE_MESSAGE, isWholeFor, parseAmount, type Currency } from './money';
 
-/** Steps of the plan setup wizard (`/plan/setup?step=N`). */
-export const WIZARD_STEPS = 5;
+/**
+ * The plan setup wizard's steps in order: step N (`/plan/setup?step=N`) is entry N - 1, with the question
+ * it asks (the last one titles the summary).
+ */
+export const WIZARD_STEPS = [
+	{ name: 'income', title: '¿Cuánto cobrás por mes?' },
+	{ name: 'bills', title: '¿Qué pagos fijos tenés?' },
+	{ name: 'savings', title: '¿Cuánto querés ahorrar?' },
+	{ name: 'limits', title: '¿Dónde querés cuidar el gasto?' },
+	{ name: 'summary', title: 'Tu plan' }
+] as const;
 
-/** The wizard step in a `?step=` / `?wizard=` value: digits 1 to `WIZARD_STEPS` only, else null. */
-export function parseStep(raw: string | null): 1 | 2 | 3 | 4 | 5 | null {
-	if (raw === null || !/^[1-5]$/.test(raw)) return null;
-	return Number(raw) as 1 | 2 | 3 | 4 | 5;
+/** A wizard step number, 1 to `WIZARD_STEPS.length` (a partial tuple's lengths, minus 0). */
+export type WizardStep = Exclude<Partial<typeof WIZARD_STEPS>['length'], 0>;
+
+export type WizardStepName = (typeof WIZARD_STEPS)[number]['name'];
+
+/** Each step's question, in step order. */
+export const WIZARD_TITLES = WIZARD_STEPS.map((s) => s.title);
+
+/** The number of the step called `name`. */
+export const wizardStep = (name: WizardStepName) =>
+	(WIZARD_STEPS.findIndex((s) => s.name === name) + 1) as WizardStep;
+
+/** The wizard step in a `?step=` / `?wizard=` value: a step number written as is, else null. */
+export function parseStep(raw: string | null): WizardStep | null {
+	const i = WIZARD_STEPS.findIndex((_, i) => String(i + 1) === raw);
+	return i < 0 ? null : ((i + 1) as WizardStep);
 }
 
 /** The wizard's step `n` (`/plan/setup?step=N`). */

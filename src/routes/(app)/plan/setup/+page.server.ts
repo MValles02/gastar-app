@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { parseStep, setupStepHref } from '#lib/plan-wizard.ts';
+import { parseStep, setupStepHref, WIZARD_STEPS, wizardStep } from '#lib/plan-wizard.ts';
 import { PLAN_SAVED_HREF } from '#lib/toast-flags.ts';
 import { listAccounts } from '#lib/server/accounts/queries.ts';
 import { currentMonth } from '#lib/server/month.ts';
@@ -21,7 +21,7 @@ import {
 	recurringSuggestions,
 	savingsBaseline
 } from '#lib/server/plan/month-plan.ts';
-import { toPlan } from '#lib/server/plan/guard.ts';
+import { requireWizardStep, toPlan } from '#lib/server/plan/guard.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import { parseSavingsForm } from '#lib/server/plan/savings-form.ts';
 
@@ -45,12 +45,11 @@ async function applicableSuggestions(userId: string, planId: string | null) {
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
 	const param = parseStep(url.searchParams.get('step'));
-	const step = param ?? 1;
+	const step = param ?? wizardStep('income');
 
-	const [accounts, plan] = await Promise.all([listAccounts(userId), currentPlan(userId)]);
-	if (accounts.length === 0) toPlan();
+	if ((await listAccounts(userId)).length === 0) toPlan();
+	const plan = await requireWizardStep(userId, WIZARD_STEPS[step - 1].name);
 	if (!param && plan) toPlan();
-	if (step >= 4 && !plan) redirect(303, setupStepHref(3));
 
 	if (step === 1 || step === 2) {
 		const [lists, suggestions] = await Promise.all([
@@ -103,19 +102,18 @@ export const actions: Actions = {
 			savingsPercent: r.savingsPercent,
 			month: plan ? plan.month : null
 		});
-		redirect(303, setupStepHref(4));
+		redirect(303, setupStepHref(wizardStep('limits')));
 	},
 	suggested: async ({ locals }) => {
 		const userId = requireUser(locals).id;
-		const plan = await currentPlan(userId);
-		if (!plan) redirect(303, setupStepHref(3));
+		const plan = await requireWizardStep(userId, 'limits');
 		const limits = await applicableSuggestions(userId, plan.id);
 		if (limits.length > 0) await upsertLimits(userId, plan.id, limits);
-		redirect(303, setupStepHref(4));
+		redirect(303, setupStepHref(wizardStep('limits')));
 	},
 	finish: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
-		if (!(await currentPlan(userId))) redirect(303, setupStepHref(3));
+		await requireWizardStep(userId, 'summary');
 		const repeat = (await request.formData()).get('repeat') === 'on';
 		await updatePlan(userId, { month: repeat ? null : currentMonth(new Date()) });
 		redirect(303, PLAN_SAVED_HREF);
