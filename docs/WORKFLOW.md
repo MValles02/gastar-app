@@ -63,7 +63,7 @@ CI appends the `ci:env` output to `$GITHUB_ENV` after `DATABASE_URL`, so a later
 
 ## Migrations
 
-Deploys are start-first: the old and new containers overlap on the same database. Every migration is backward compatible with the previous release (expand/contract). Destructive changes (drop, rename) ship in a later release, after no running version uses the old shape. Never edit an applied migration.
+Deploys are start-first: the old and new containers overlap on the same database. Every migration is backward compatible with the previous release (expand/contract). Destructive changes (drop, rename) ship in a later release, after no running version uses the old shape. Never edit an applied migration or a generated one; the only hand-written SQL is a fresh `pnpm db:generate --custom` migration, for what drizzle-kit can't express (views, data backfills).
 
 ## Required checks are not strict
 

@@ -48,7 +48,7 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 		occurredAt: day(s.closing),
 		amount: Math.abs(s.charges[c]),
 		isCredit: s.charges[c] < 0,
-		sourceId: '',
+		sourceId: null,
 		rawDescription: kindSpec(source, KIND.cardTaxes).title as string
 	}));
 
@@ -69,7 +69,7 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 			occurredAt: day(l.installment ? s.closing : l.date),
 			amount: Math.abs(l.cents),
 			isCredit: l.cents < 0,
-			sourceId: l.voucher ?? '',
+			sourceId: l.voucher ?? null,
 			rawDescription: l.installment ? `${l.reference} ${l.installment}` : l.reference,
 			merchant: l.reference,
 			installment: l.installment

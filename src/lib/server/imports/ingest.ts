@@ -15,8 +15,12 @@ export const batches = <T>(xs: T[]) =>
 
 export type ImportRow = Omit<typeof mpImportItems.$inferInsert, 'userId' | 'source'>;
 
-/** In an upsert's RETURNING: true when the row was inserted, false when an existing one was updated. */
-const INSERTED = sql<boolean>`xmax = 0`;
+/**
+ * In an upsert's RETURNING: true when the row was inserted, false when an existing one was updated.
+ * An insert sets created_at and updated_at to the same now(); the conflict update sets updated_at = now()
+ * on a row created in an earlier transaction, so they differ.
+ */
+const INSERTED = sql<boolean>`${mpImportItems.createdAt} = ${mpImportItems.updatedAt}`;
 
 /**
  * The only writer of import items, and the only place that auto-approves afterwards: stores the rows as
