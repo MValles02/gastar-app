@@ -3,6 +3,7 @@ import { canAccessAccount, canAccessOwn } from '../../access';
 import { db } from '../../db';
 import { appTz } from '../../db/sql';
 import { cardStatements, financialAccounts, mpImportItems } from '../../db/schema';
+import { ALERT_KEYS } from '../keys';
 import { GALICIA_SOURCE, type Kind, type SourceId } from '../sources';
 import { rejectImport, undoApproval } from '../store';
 import { UNMATCHED_AFTER_STATEMENTS } from './matching';
@@ -15,7 +16,7 @@ const unmatched = (userId: string) =>
 	and(
 		canAccessOwn(userId, mpImportItems),
 		inArray(mpImportItems.source, Object.values(GALICIA_SOURCE)),
-		like(mpImportItems.externalKey, 'alert:%'),
+		like(mpImportItems.externalKey, ALERT_KEYS),
 		isNull(mpImportItems.aliasKey),
 		isNull(mpImportItems.unmatchedKeptAt),
 		ne(mpImportItems.status, 'rejected'),

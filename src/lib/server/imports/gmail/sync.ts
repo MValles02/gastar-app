@@ -1,18 +1,16 @@
-import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
-import { pgErrorCode } from '../../db/errors';
 import { dayStart } from '../../month';
 import { cardAlerts, gmailConnections } from '../../db/schema';
 import { batches } from '../ingest';
 import { getImportFromDay } from '../settings';
+import { errorDetail, freshToken, leaseFree } from '../sync-kit';
 import { convertWaitingAlerts } from './cards';
 import { gmailDataBaseUrl } from './env';
 import { getAccessToken, refreshConnection } from './oauth';
 import { VISA_SENDERS, parseVisaAlert } from './visa-alert';
 
-/** A sync holds its lease this long without renewing it; a later one may take over. */
-const LEASE_MINUTES = 15;
 /** Refresh the access token when it expires within this window (Google's last an hour). */
 const REFRESH_WINDOW_MS = 5 * 60_000;
 const HTTP_TIMEOUT_MS = 15_000;
@@ -29,9 +27,6 @@ class SyncError extends Error {
 	}
 }
 
-/** Log-safe failure detail: PG error code or error name, never messages. */
-const errorDetail = (e: unknown) => pgErrorCode(e) ?? (e as Error)?.name ?? 'unknown';
-
 const obj = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
 
 /** Takes the user's lease and returns the cursor (null until the first run); null when off or held. */
@@ -46,13 +41,7 @@ async function acquire(
 				and(
 					canAccessOwn(userId, gmailConnections),
 					eq(gmailConnections.needsReconnect, false),
-					or(
-						isNull(gmailConnections.syncRunningSince),
-						lt(
-							gmailConnections.syncRunningSince,
-							sql`now() - interval '${sql.raw(String(LEASE_MINUTES))} minutes'`
-						)
-					)
+					leaseFree(gmailConnections.syncRunningSince)
 				)
 			)
 			.returning({
@@ -68,26 +57,13 @@ async function acquire(
 
 /** The access token, refreshed when it is about to expire; calls the API and retries once after a 401. */
 async function gmailClient(userId: string) {
-	const refresh = async () => {
-		const outcome = await refreshConnection(userId);
-		if (outcome === 'reconnect') throw new SyncError('reconnect');
-		if (outcome === 'error') throw new SyncError('network');
-		const fresh = await getAccessToken(userId);
-		if (!fresh) throw new SyncError('reconnect');
-		return fresh.token;
-	};
-	const stored = await getAccessToken(userId);
-	if (!stored) throw new SyncError('reconnect');
-	let token = stored.token;
-	if (stored.expiresAt.getTime() < Date.now() + REFRESH_WINDOW_MS) {
-		try {
-			token = await refresh();
-		} catch (e) {
-			// Google unreachable: the current token may still work until it expires.
-			if ((e as SyncError).code === 'reconnect' || stored.expiresAt.getTime() <= Date.now())
-				throw e;
-		}
-	}
+	const auth = await freshToken(userId, {
+		getAccessToken,
+		refreshConnection,
+		windowMs: REFRESH_WINDOW_MS,
+		fail: (code) => new SyncError(code)
+	});
+	let token = auth.token;
 	const get = (url: string) =>
 		fetch(url, {
 			headers: { authorization: `Bearer ${token}`, accept: 'application/json' },
@@ -99,7 +75,7 @@ async function gmailClient(userId: string) {
 		try {
 			res = await get(url);
 			if (res.status === 401) {
-				token = await refresh();
+				token = await auth.refresh();
 				res = await get(url);
 			}
 		} catch (e) {

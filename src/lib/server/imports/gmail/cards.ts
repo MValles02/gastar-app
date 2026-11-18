@@ -4,9 +4,11 @@ import { db } from '../../db';
 import { cardAlerts, importCards, mpImportItems } from '../../db/schema';
 import { activeAccountsIn, getGaliciaConnection, isActiveAccountIn } from '../connections';
 import { setGaliciaAccount } from '../galicia/import';
-import { matchWaitingAlerts, withMatchLock } from '../galicia/matching';
+import { matchWaitingAlerts } from '../galicia/matching';
 import { pgErrorCode } from '../../db/errors';
 import { type ImportRow, ingestImportItems } from '../ingest';
+import { alertKey, alertKeySql } from '../keys';
+import { withMatchLock } from '../match-lock';
 import { getChosenImportFrom } from '../settings';
 import { GALICIA_SOURCE, KIND, SOURCE, type SourceId } from '../sources';
 import type { Currency } from '#lib/money.ts';
@@ -106,7 +108,7 @@ async function convertLocked(userId: string) {
 		const rows = rowsBySource.get(source) ?? [];
 		rowsBySource.set(source, rows);
 		rows.push({
-			externalKey: `alert:${a.messageId}`,
+			externalKey: alertKey(a.messageId),
 			accountId,
 			kind: a.transactionType === PURCHASE ? KIND.cardPurchase : KIND.other,
 			occurredAt: a.receivedAt,
@@ -127,7 +129,7 @@ async function convertLocked(userId: string) {
 	await db
 		.update(cardAlerts)
 		.set({
-			importItemId: sql`(select ${mpImportItems.id} from ${mpImportItems} where ${mpImportItems.userId} = ${cardAlerts.userId} and ${mpImportItems.externalKey} = 'alert:' || ${cardAlerts.gmailMessageId})`
+			importItemId: sql`(select ${mpImportItems.id} from ${mpImportItems} where ${mpImportItems.userId} = ${cardAlerts.userId} and ${mpImportItems.externalKey} = ${alertKeySql(cardAlerts.gmailMessageId)})`
 		})
 		.where(
 			and(

@@ -1,7 +1,4 @@
-import { DAY_MS } from '#lib/dates.ts';
-import { dayStart, localDay } from '../../month';
 import { mpApiBaseUrl } from './env';
-import { DEFAULT_BACKFILL_DAYS } from './settings';
 
 /** Stored in mp_sync_state.last_error: a code only, never a message or payload. */
 export type MpSyncError =
@@ -134,13 +131,6 @@ export function parseCsv(text: string): Row[] {
 	if (!header) return [];
 	const keys = header.map((h) => h.trim().toUpperCase());
 	return body.map((r) => Object.fromEntries(keys.map((k, i) => [k, (r[i] ?? '').trim()])));
-}
-
-/** First-sync start: the user's "importar desde" floor, else DEFAULT_BACKFILL_DAYS ago. */
-export function backfillStart(now: number, floor: Date | null): Date {
-	const begin = floor ?? dayStart(localDay(new Date(now - DEFAULT_BACKFILL_DAYS * DAY_MS)));
-	if (!begin) throw fail('config');
-	return begin;
 }
 
 export const atLeast = (d: Date, floor: Date | null) => (floor && floor > d ? floor : d);

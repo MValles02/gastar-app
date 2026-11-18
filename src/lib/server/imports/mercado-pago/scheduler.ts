@@ -1,7 +1,7 @@
-import { pgErrorCode } from '../../db/errors';
 import { DAY_MS } from '#lib/dates.ts';
 import { APP_TZ } from '#lib/locale.ts';
 import { dayStart, localDay } from '../../month';
+import { runEach, START_DELAY_MS } from '../sync-kit';
 import { syncIntervalHours } from './env';
 import { listUsableConnections, mpOauthEnabled } from './oauth';
 import { runMpSync } from './sync';
@@ -9,8 +9,6 @@ import { runMpSync } from './sync';
 const HOUR_MS = 3_600_000;
 /** Buenos Aires hour of the daily release report: MP mails the account owner every time one is ready. */
 const REPORT_HOUR = 8;
-/** First run after a start: payments, plus the day's report if it was missed while the server was down. */
-const START_DELAY_MS = 60_000;
 
 /** True during the Buenos Aires hour the scheduler requests the daily release report. */
 function isReportHour(now: Date): boolean {
@@ -37,32 +35,20 @@ function reportDue(syncedUntil: Date | null, now: Date): boolean {
 	return syncedUntil.getTime() < last - HOUR_MS;
 }
 
-/** Error name or DB code: enough to diagnose, never a message that could carry data. */
-const errorDetail = (e: unknown) => pgErrorCode(e) ?? (e as Error)?.name ?? 'unknown';
-
 /**
  * Syncs every usable connection one after another. Never throws; one user failing does not stop the rest.
  * Payments always; the release report only with `report` and when the account has not had one since the
  * last REPORT_HOUR (so a restart or a second container never requests it twice a day).
  */
-async function runAll(report: boolean): Promise<void> {
-	let users: string[];
-	try {
-		users = await listUsableConnections();
-	} catch (e) {
-		console.error('mp sync failed: network', errorDetail(e));
-		return;
-	}
-	for (const userId of users) {
-		try {
-			await runMpSync(userId, {
+const runAll = (report: boolean) =>
+	runEach(
+		listUsableConnections,
+		(userId) =>
+			runMpSync(userId, {
 				report: (syncedUntil) => report && reportDue(syncedUntil, new Date())
-			});
-		} catch (e) {
-			console.error('mp sync failed: network', errorDetail(e));
-		}
-	}
-}
+			}),
+		'mp'
+	);
 
 /**
  * Starts the automatic sync when Mercado Pago is configured: no extra lock, because the DB lease inside
@@ -78,6 +64,7 @@ export function startMpScheduler(): void {
 	}
 	if (hours === 0) return;
 	const run = (report: boolean) => void runAll(report);
+	// First run after a start: payments, plus the day's report if it was missed while the server was down.
 	setTimeout(() => run(true), START_DELAY_MS).unref();
 	// Buenos Aires is a whole-hour offset, so every full hour is a full local hour: payments every `hours`
 	// hours, the release report only at REPORT_HOUR.

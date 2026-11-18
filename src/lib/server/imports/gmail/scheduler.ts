@@ -1,37 +1,24 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
-import { pgErrorCode } from '../../db/errors';
 import { gmailConnections } from '../../db/schema';
+import { runEach, START_DELAY_MS } from '../sync-kit';
 import { gmailSyncIntervalMinutes } from './env';
 import { gmailOauthEnabled } from './oauth';
 import { runGmailSync } from './sync';
 
-/** First run after a start. */
-const START_DELAY_MS = 60_000;
-
-/** Error name or DB code: enough to diagnose, never a message that could carry data. */
-const errorDetail = (e: unknown) => pgErrorCode(e) ?? (e as Error)?.name ?? 'unknown';
-
 /** Syncs every usable connection one after another. Never throws; one user failing does not stop the rest. */
-async function runAll(): Promise<void> {
-	let users: { userId: string }[];
-	try {
-		users = await db
-			.select({ userId: gmailConnections.userId })
-			.from(gmailConnections)
-			.where(eq(gmailConnections.needsReconnect, false));
-	} catch (e) {
-		console.error('gmail sync failed: db', errorDetail(e));
-		return;
-	}
-	for (const { userId } of users) {
-		try {
-			await runGmailSync(userId);
-		} catch (e) {
-			console.error('gmail sync failed: network', errorDetail(e));
-		}
-	}
-}
+const runAll = () =>
+	runEach(
+		async () =>
+			(
+				await db
+					.select({ userId: gmailConnections.userId })
+					.from(gmailConnections)
+					.where(eq(gmailConnections.needsReconnect, false))
+			).map((r) => r.userId),
+		runGmailSync,
+		'gmail'
+	);
 
 /**
  * Starts the automatic sync when the Gmail link is configured: no extra lock, because the DB lease inside
