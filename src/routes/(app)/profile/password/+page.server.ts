@@ -1,32 +1,37 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
-import { APIError } from 'better-auth/api';
 import { PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
 import { auth } from '#lib/server/auth.ts';
-import { googleReauthAction, isValidPasswordLength } from '#lib/server/auth-forms.ts';
+import {
+	googleReauthAction,
+	INVALID_PASSWORD,
+	isApiError,
+	isValidPasswordLength,
+	tooManyAttempts
+} from '#lib/server/auth-forms.ts';
 import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import { requireUser } from '#lib/server/guards.ts';
-import { hasPassword, isRecentSession } from '#lib/server/reauth.ts';
+import { reauthMode } from '#lib/server/reauth.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** A Google-only user creates a password instead of changing one, after a recent sign-in. */
 export const load: PageServerLoad = async ({ locals }) => ({
-	hasPassword: await hasPassword(requireUser(locals).id),
-	recent: isRecentSession(locals.session)
+	reauthMode: await reauthMode(requireUser(locals).id, locals.session)
 });
 
 export const actions: Actions = {
 	save: async ({ request, locals }) => {
 		const userId = requireUser(locals).id;
 		if (isBlocked('changePassword', userId)) {
-			return formFail(429, { formError: 'Demasiados intentos. Probá de nuevo en un rato.' });
+			return formFail(429, { formError: tooManyAttempts('rato') });
 		}
 
 		const data = await request.formData();
 		const newPassword = String(data.get('newPassword') ?? '');
 
-		if (!(await hasPassword(userId))) {
-			if (!isRecentSession(locals.session)) {
+		const mode = await reauthMode(userId, locals.session);
+		if (mode !== 'password') {
+			if (mode === 'stale') {
 				return fail(400, {
 					formError: 'Por seguridad, confirmá con Google antes de crear la contraseña.',
 					reauth: true
@@ -38,7 +43,7 @@ export const actions: Actions = {
 			try {
 				await auth.api.setPassword({ body: { newPassword }, headers: request.headers });
 			} catch (err) {
-				if (!(err instanceof APIError)) throw err;
+				if (!isApiError(err)) throw err;
 				return formFail(400, { formError: 'No pudimos crear la contraseña. Probá de nuevo.' });
 			}
 			redirect(303, '/profile');
@@ -57,8 +62,8 @@ export const actions: Actions = {
 				headers: request.headers
 			});
 		} catch (err) {
-			if (!(err instanceof APIError)) throw err;
-			if (err.body?.code === 'INVALID_PASSWORD') {
+			if (!isApiError(err)) throw err;
+			if (isApiError(err, INVALID_PASSWORD)) {
 				record('changePassword', userId);
 				errors.current = 'La contraseña actual no es correcta.';
 				return formFail(400, { errors });

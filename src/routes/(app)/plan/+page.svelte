@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatMoney } from '#lib/money.ts';
+	import { formatMoney, RATE_CURRENCY } from '#lib/money.ts';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { afterNavigate } from '$app/navigation';
@@ -40,7 +40,7 @@
 	const rateLabel = (r: { value: number | null; manual: boolean; date: string | null }) =>
 		r.value === null
 			? 'Sin cotización'
-			: `Cotización: ${formatMoney(r.value, 'ARS')} (${r.manual ? 'manual' : `última compra, ${r.date}`})`;
+			: `Cotización: ${formatMoney(r.value, RATE_CURRENCY)} (${r.manual ? 'manual' : `última compra, ${r.date}`})`;
 
 	afterNavigate(({ shallow, type }) => {
 		if (shallow && type === 'goto') return;

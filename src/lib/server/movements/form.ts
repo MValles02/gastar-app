@@ -1,12 +1,19 @@
 import { MIN_DAY } from '#lib/dates.ts';
 import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
-import { MOVEMENT_MESSAGES as MSG, MOVEMENT_TYPES, type MovementType } from '#lib/movement.ts';
+import {
+	type CategoryKind,
+	MOVEMENT_MESSAGES as MSG,
+	MOVEMENT_TYPES,
+	type MovementType,
+	refError
+} from '#lib/movement.ts';
 import {
 	convertAmount,
 	type Currency,
 	formatAmountInput,
 	isValidRate,
-	parseAmount
+	parseAmount,
+	RATE_CURRENCY
 } from '#lib/money.ts';
 import { isUuid } from '../db/util';
 import { amountFor, editFormData, readFields, requiredText } from '../forms';
@@ -89,7 +96,7 @@ export const toFormValues = (m: {
 	amount: formatAmountInput(m.amount, m.accountCurrency),
 	accountId: m.accountId,
 	destinationAccountId: m.destinationAccountId ?? '',
-	exchangeRate: m.exchangeRate !== null ? formatAmountInput(m.exchangeRate, 'ARS') : '',
+	exchangeRate: m.exchangeRate !== null ? formatAmountInput(m.exchangeRate, RATE_CURRENCY) : '',
 	categoryId: m.categoryId ?? ''
 });
 
@@ -173,13 +180,12 @@ export function resolveMovement(
 	const errors: MovementFormErrors = {};
 	const { origin, destination, category } = rows;
 	const base = { ...data, destinationAccountId: null, categoryId: null, exchangeRate: null };
+	// Kept: the ref the movement already has, or one an undo restores (archivedOk).
+	const kept = (id: string, own: boolean) => own || !!keep.archivedOk?.includes(id);
+	const keptAccount = (id: string) => kept(id, keep.accountIds.includes(id));
 
 	if (!origin) errors.accountId = MSG.account;
-	else if (
-		origin.archivedAt &&
-		!keep.accountIds.includes(origin.id) &&
-		!keep.archivedOk?.includes(origin.id)
-	)
+	else if (refError(origin, { kept: keptAccount(origin.id) }))
 		errors.accountId = MSG.archivedAccount;
 	else if (!(keep.amount != null && data.amount === keep.amount)) {
 		const whole = amountFor(origin.currency)(data.amount);
@@ -188,18 +194,17 @@ export function resolveMovement(
 
 	if (data.type !== 'transfer') {
 		if (!category) errors.categoryId = MSG.category;
-		else if (
-			category.archivedAt &&
-			category.id !== keep.categoryId &&
-			!keep.archivedOk?.includes(category.id)
-		)
-			errors.categoryId = MSG.archivedCategory;
-		else if (
-			(category.kind === 'income' || category.kind === 'outcome') &&
-			category.kind !== data.type &&
-			category.id !== keep.categoryId
-		)
-			errors.categoryId = MSG.kindMismatch[category.kind];
+		else {
+			// The movement's own category is exempt from the kind check; an undo-restored one isn't.
+			const own = category.id === keep.categoryId;
+			const error = refError(category, {
+				kept: kept(category.id, own),
+				kindFor: own ? undefined : data.type
+			});
+			if (error === 'archived') errors.categoryId = MSG.archivedCategory;
+			else if (error === 'kind')
+				errors.categoryId = MSG.kindMismatch[category.kind as CategoryKind];
+		}
 		if (Object.keys(errors).length > 0) return { ok: false, errors };
 		return {
 			ok: true,
@@ -209,11 +214,7 @@ export function resolveMovement(
 
 	if (!destination) errors.destinationAccountId = MSG.destination;
 	else if (origin && destination.id === origin.id) errors.destinationAccountId = MSG.sameAccount;
-	else if (
-		destination.archivedAt &&
-		!keep.accountIds.includes(destination.id) &&
-		!keep.archivedOk?.includes(destination.id)
-	)
+	else if (refError(destination, { kept: keptAccount(destination.id) }))
 		errors.destinationAccountId = MSG.archivedAccount;
 	if (Object.keys(errors).length > 0) return { ok: false, errors };
 

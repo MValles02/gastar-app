@@ -4,7 +4,7 @@ import { and, asc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { financialAccounts, movements } from '../db/schema';
 import { dest, total } from '../db/sql';
-import { canAccessAccount, canAccessMovement, ownedBy } from '../access';
+import { canAccessAccount, canAccessMovement, ownedBy, ownedDestination } from '../access';
 import { memoPerRequest } from '../request-memo';
 import type { AccountData } from './form';
 import { escapeLike } from '../db/util';
@@ -78,14 +78,8 @@ export function accountTransfersIn(userId: string, id?: string) {
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.innerJoin(dest, eq(movements.destinationAccountId, dest.id))
-		.where(
-			and(
-				canAccessMovement(userId),
-				canAccessAccount(userId, dest),
-				id ? eq(movements.destinationAccountId, id) : undefined
-			)
-		)
+		.innerJoin(dest, ownedDestination(userId))
+		.where(and(canAccessMovement(userId), id ? eq(movements.destinationAccountId, id) : undefined))
 		.groupBy(movements.destinationAccountId);
 }
 

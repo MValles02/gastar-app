@@ -11,7 +11,7 @@ import {
 	total,
 	type Range
 } from '../db/sql';
-import { canAccessAccount, canAccessMovement, canAccessOwn } from '../access';
+import { canAccessMovement, canAccessOwn, ownedDestination } from '../access';
 
 /** Movements listed under "Movimientos" on the home screen. */
 const RECENT_LIMIT = 10;
@@ -30,8 +30,8 @@ export function transfersInSum(userId: string, cur: Currency) {
 		.select({ amount: total(movements.destinationAmount) })
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.innerJoin(dest, eq(movements.destinationAccountId, dest.id))
-		.where(and(canAccessMovement(userId), canAccessAccount(userId, dest), eq(dest.currency, cur)));
+		.innerJoin(dest, ownedDestination(userId))
+		.where(and(canAccessMovement(userId), eq(dest.currency, cur)));
 }
 
 export function categorySums(userId: string, cur: Currency, range: Range) {
@@ -78,10 +78,7 @@ export function recentMovements(userId: string, cur?: Currency) {
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.leftJoin(
-			dest,
-			and(eq(movements.destinationAccountId, dest.id), canAccessAccount(userId, dest))
-		)
+		.leftJoin(dest, ownedDestination(userId))
 		.leftJoin(
 			categories,
 			and(eq(movements.categoryId, categories.id), canAccessOwn(userId, categories))

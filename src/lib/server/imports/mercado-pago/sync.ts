@@ -1,13 +1,13 @@
-import { and, eq, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { db } from '../../db';
-import { pgErrorCode } from '../../db/errors';
 import { financialAccounts, mpConnections, mpSyncState } from '../../db/schema';
 import { canAccessAccount, canAccessOwn } from '../../access';
 import { autoApprovePending } from '../approve';
 import { type ImportRow, ingestImportItems } from '../ingest';
 import { getChosenImportFrom } from '../settings';
 import { SOURCE } from '../sources';
+import { errorDetail, freshToken, leaseFree } from '../sync-kit';
 import { DAY_MS } from '#lib/dates.ts';
 import {
 	apiJson,
@@ -26,22 +26,14 @@ import { MP_CURRENCY } from './settings';
 
 /** Refresh the token when it expires within this window (MP tokens last 180 days). */
 const REFRESH_WINDOW_MS = 30 * DAY_MS;
-/** A sync holds its lease this long without renewing it; a later one may take over. */
-const LEASE_MINUTES = 15;
-/** Log-safe failure detail: PG error code or error name, never messages. */
-const errorDetail = (e: unknown) => pgErrorCode(e) ?? (e as Error)?.name ?? 'unknown';
-
-const LEASE_MS = LEASE_MINUTES * 60_000;
-
-/** Whether a sync that took its lease at `since` is still running. */
-export const leaseActive = (since: Date | null | undefined) =>
-	!!since && Date.now() - since.getTime() < LEASE_MS;
+export { leaseActive } from '../sync-kit';
 
 type Lease = {
 	userId: string;
 	accountId: string;
 	currency: string;
 	syncedUntil: Date | null;
+	coveredFrom: Date | null;
 	floor: Date | null;
 };
 
@@ -75,25 +67,15 @@ async function acquire(userId: string): Promise<Lease | null> {
 		const [lease] = await db
 			.update(mpSyncState)
 			.set({ runningSince: sql`now()`, phase: 'payments', newItems: null, autoApproved: null })
-			.where(
-				and(
-					eq(mpSyncState.accountId, accountId),
-					or(
-						isNull(mpSyncState.runningSince),
-						lt(
-							mpSyncState.runningSince,
-							sql`now() - interval '${sql.raw(String(LEASE_MINUTES))} minutes'`
-						)
-					)
-				)
-			)
-			.returning({ syncedUntil: mpSyncState.syncedUntil });
+			.where(and(eq(mpSyncState.accountId, accountId), leaseFree(mpSyncState.runningSince)))
+			.returning({ syncedUntil: mpSyncState.syncedUntil, coveredFrom: mpSyncState.coveredFrom });
 		return lease
 			? {
 					userId,
 					accountId,
 					currency: conn.currency,
 					syncedUntil: lease.syncedUntil,
+					coveredFrom: lease.coveredFrom,
 					floor: await getChosenImportFrom(userId)
 				}
 			: null;
@@ -103,39 +85,22 @@ async function acquire(userId: string): Promise<Lease | null> {
 	}
 }
 
-async function refreshed(userId: string): Promise<Auth> {
-	const outcome = await refreshConnection(userId);
-	if (outcome === 'reconnect') throw fail('reconnect');
-	if (outcome === 'error') throw fail('network');
-	const fresh = await getAccessToken(userId);
-	if (!fresh) throw fail('reconnect');
-	return { token: fresh.token };
-}
-
-async function currentAuth(userId: string): Promise<Auth> {
-	const stored = await getAccessToken(userId);
-	if (!stored) throw fail('reconnect');
-	let auth: Auth = { token: stored.token };
-	// Refresh ahead of expiry; if MP is unreachable the current token may still work.
-	if (stored.expiresAt.getTime() < Date.now() + REFRESH_WINDOW_MS) {
-		try {
-			auth = await refreshed(userId);
-		} catch (e) {
-			if (mpCode(e) === 'reconnect' || stored.expiresAt.getTime() <= Date.now()) throw e;
-		}
-	}
-	return auth;
-}
+/** The user's token, refreshed ahead of expiry; if MP is unreachable the current token may still work. */
+const currentToken = (userId: string) =>
+	freshToken(userId, { getAccessToken, refreshConnection, windowMs: REFRESH_WINDOW_MS, fail });
 
 /** The MP user id behind the token, with the token that worked. */
-async function whoAmI(userId: string, auth: Auth): Promise<{ auth: Auth; me: string }> {
+async function whoAmI(
+	current: Awaited<ReturnType<typeof currentToken>>
+): Promise<{ auth: Auth; me: string }> {
+	let auth: Auth = { token: current.token };
 	let meJson: unknown;
 	try {
 		meJson = await apiJson('/users/me', auth);
 	} catch (e) {
 		// A 401 here means the token died early: refresh once and retry the run once.
 		if (!isAuthError(e)) throw e;
-		auth = await refreshed(userId);
+		auth = { token: await current.refresh() };
 		meJson = await apiJson('/users/me', auth);
 	}
 	const me = str(obj(meJson).id);
@@ -180,7 +145,16 @@ async function release(
 						runningSince: null,
 						phase: null,
 						lastError: null,
-						...(end && !from ? { syncedUntil: end } : {}),
+						...(end
+							? {
+									syncedUntil: sql`greatest(${mpSyncState.syncedUntil}, ${end.toISOString()}::timestamptz)`
+								}
+							: {}),
+						...(from
+							? {
+									coveredFrom: sql`least(${mpSyncState.coveredFrom}, ${from.toISOString()}::timestamptz)`
+								}
+							: {}),
 						lastRunAt: sql`now()`,
 						autoApproved
 					}
@@ -194,8 +168,9 @@ async function release(
 
 /**
  * Runs payments, then (with `report`) the release report, under a held lease and releases it. Never throws.
- * synced_until is the report cursor: only a report run moves it, and a backfill (`from`, both windows start
- * there) leaves it alone. Each stored batch auto-approves what a rule recognizes (also after a failed run:
+ * synced_until is the report cursor: only a report run moves it (never backwards, also a backfill, whose
+ * window from `from` reaches the report end continuously). A successful run with `from` lowers covered_from to it; a failed one leaves it, so
+ * the next run retries the backfill. Each stored batch auto-approves what a rule recognizes (also after a failed run:
  * items stored earlier still count), so the inbox reads the count with 'Listo'.
  */
 async function execute(l: Lease, { from, report }: { from?: Date; report: boolean }) {
@@ -210,7 +185,7 @@ async function execute(l: Lease, { from, report }: { from?: Date; report: boolea
 	};
 	try {
 		if (l.currency !== MP_CURRENCY) throw fail('config');
-		const { auth, me } = await whoAmI(l.userId, await currentAuth(l.userId));
+		const { auth, me } = await whoAmI(await currentToken(l.userId));
 		await paymentsStep(l, me, auth, { from, report }, ingest);
 		if (report) end = await reportStep(l, auth, from, ingest);
 		ok = true;
@@ -226,18 +201,29 @@ async function execute(l: Lease, { from, report }: { from?: Date; report: boolea
 export type MpSyncOptions = {
 	/** Also pull the release report; a function decides from the account's report cursor. */
 	report: boolean | ((syncedUntil: Date | null) => boolean);
-	/** "Traer movimientos desde": both windows start here and synced_until stays as it is. */
+	/** "Traer movimientos desde": both windows start here; a report run still advances synced_until. */
 	from?: Date;
 	/** Return once the lease is held; the run continues while the inbox polls the progress. */
 	background?: boolean;
 };
 
-/** Takes the user's lease (false when off or held elsewhere) and runs the sync; the scheduler waits for it. */
+/**
+ * Takes the user's lease (false when off or held elsewhere) and runs the sync; the scheduler waits for it.
+ * Without a `from`, a run that is due to pull the report (per `report`, so the scheduler's guard still applies)
+ * backfills from the chosen "Importar desde" while covered_from is null or later than it, so a failed backfill
+ * is retried by the next due run. Payments-only runs never backfill.
+ */
 export async function runMpSync(userId: string, opts: MpSyncOptions): Promise<boolean> {
 	const lease = await acquire(userId);
 	if (!lease) return false;
 	const report = typeof opts.report === 'function' ? opts.report(lease.syncedUntil) : opts.report;
-	const run = execute(lease, { from: opts.from, report });
+	const backfill =
+		report &&
+		!opts.from &&
+		!!lease.floor &&
+		(!lease.coveredFrom || lease.coveredFrom > lease.floor);
+	const from = backfill ? (lease.floor ?? undefined) : opts.from;
+	const run = execute(lease, { from, report });
 	if (opts.background) void run;
 	else await run;
 	return true;

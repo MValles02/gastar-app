@@ -1,15 +1,17 @@
-import { and, asc, eq, gte, isNull, sql } from 'drizzle-orm';
-import { canAccessOwn, userOwned } from '../../access';
-import { db } from '../../db';
-import { cardAlerts, importCards, mpImportItems } from '../../db/schema';
-import { activeAccountsIn, getGaliciaConnection, isActiveAccountIn } from '../connections';
-import { setGaliciaAccount } from '../galicia/import';
-import { matchWaitingAlerts, withMatchLock } from '../galicia/matching';
-import { pgErrorCode } from '../../db/errors';
-import { type ImportRow, ingestImportItems } from '../ingest';
-import { getChosenImportFrom } from '../settings';
-import { GALICIA_SOURCE, KIND, SOURCE, type SourceId } from '../sources';
-import type { Currency } from '#lib/money.ts';
+import { and, asc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
+import { canAccessOwn, userOwned } from '../access';
+import { db } from '../db';
+import { cardAlerts, importCards, mpImportItems } from '../db/schema';
+import { pgErrorCode } from '../db/errors';
+import { activeAccountsIn, isActiveAccountIn } from './connections';
+import { getGaliciaConnection, setGaliciaAccount } from './galicia/connection';
+import { matchWaitingAlerts } from './galicia/matching';
+import { type ImportRow, ingestImportItems } from './ingest';
+import { alertKey, alertKeySql } from './keys';
+import { withMatchLock } from './match-lock';
+import { getChosenImportFrom } from './settings';
+import { GALICIA_SOURCE, KIND, SOURCE, type SourceId } from './sources';
+import { CURRENCIES, CURRENCY_NAME, type Currency } from '#lib/money.ts';
 
 export type CardType = 'credit' | 'debit';
 export type CardInput = {
@@ -22,6 +24,23 @@ export type CardInput = {
 export type CardErrors = Partial<Record<'type' | 'arsAccountId' | 'usdAccountId', string>>;
 
 const PURCHASE = 'Compra';
+
+/** The error of an account picker that needs an active account of that currency (Galicia, Mercado Pago, card pages). */
+export const ACCOUNT_ERRORS = Object.fromEntries(
+	CURRENCIES.map((c) => [c, `Elegí una cuenta en ${CURRENCY_NAME[c]}.`])
+) as Record<Currency, string>;
+
+/** A card's URL segment: `visa-0515`. */
+export const cardSlug = (network: string, last4: string) => `${network}-${last4}`;
+
+/** `visa-0515` into its network and last 4; null for anything else. */
+export function parseCardSlug(param: string) {
+	const m = /^(visa)-(\d{4})$/.exec(param);
+	return m ? { network: m[1], last4: m[2] } : null;
+}
+
+const withSlug = <T extends { network: string; last4: string }>(rows: T[]) =>
+	rows.map((r) => ({ ...r, slug: cardSlug(r.network, r.last4) }));
 
 /**
  * Turns the waiting alerts of the user's cards into pending items of the account for the alert currency (a
@@ -106,7 +125,7 @@ async function convertLocked(userId: string) {
 		const rows = rowsBySource.get(source) ?? [];
 		rowsBySource.set(source, rows);
 		rows.push({
-			externalKey: `alert:${a.messageId}`,
+			externalKey: alertKey(a.messageId),
 			accountId,
 			kind: a.transactionType === PURCHASE ? KIND.cardPurchase : KIND.other,
 			occurredAt: a.receivedAt,
@@ -127,9 +146,19 @@ async function convertLocked(userId: string) {
 	await db
 		.update(cardAlerts)
 		.set({
-			importItemId: sql`(select ${mpImportItems.id} from ${mpImportItems} where ${mpImportItems.userId} = ${cardAlerts.userId} and ${mpImportItems.externalKey} = 'alert:' || ${cardAlerts.gmailMessageId})`
+			importItemId: sql`(select ${mpImportItems.id} from ${mpImportItems} where ${mpImportItems.userId} = ${cardAlerts.userId} and ${mpImportItems.externalKey} = ${alertKeySql(cardAlerts.gmailMessageId)})`
 		})
-		.where(and(canAccessOwn(userId, cardAlerts), isNull(cardAlerts.importItemId), fromFloor));
+		.where(
+			and(
+				canAccessOwn(userId, cardAlerts),
+				isNull(cardAlerts.importItemId),
+				fromFloor,
+				inArray(
+					cardAlerts.gmailMessageId,
+					waiting.map((a) => a.messageId)
+				)
+			)
+		);
 	return result;
 }
 
@@ -147,7 +176,8 @@ export function listUnknownCards(userId: string) {
 			)
 		)
 		.where(and(canAccessOwn(userId, cardAlerts), isNull(importCards.id)))
-		.orderBy(asc(cardAlerts.last4));
+		.orderBy(asc(cardAlerts.last4))
+		.then(withSlug);
 }
 
 export function listCards(userId: string) {
@@ -155,14 +185,15 @@ export function listCards(userId: string) {
 		.select({ network: importCards.network, last4: importCards.last4, type: importCards.type })
 		.from(importCards)
 		.where(canAccessOwn(userId, importCards))
-		.orderBy(asc(importCards.network), asc(importCards.last4));
+		.orderBy(asc(importCards.network), asc(importCards.last4))
+		.then(withSlug);
 }
 
 /**
  * The saved card's settings (`type` null while it is still unknown), or null when the user has neither a
  * card row nor an alert for it: a card is never created for an arbitrary number.
  */
-export async function getCard(userId: string, network: string, last4: string) {
+async function getCard(userId: string, network: string, last4: string) {
 	const [card] = await db
 		.select({
 			type: importCards.type,
@@ -193,6 +224,29 @@ export async function getCard(userId: string, network: string, last4: string) {
 	return alert ? { type: null, arsAccountId: null, usdAccountId: null } : null;
 }
 
+/**
+ * The card form's start values, or null when the card is not one of the user's (see getCard). A credit
+ * card's accounts are the Banco Galicia ones; a card not saved yet starts from them too.
+ */
+export async function getCardForm(userId: string, network: string, last4: string) {
+	const card = await getCard(userId, network, last4);
+	if (!card) return null;
+	const galicia = await getGaliciaConnection(userId);
+	const accounts = card.type === 'credit' ? galicia : card;
+	return {
+		type: card.type ?? '',
+		arsAccountId: accounts?.arsAccountId ?? galicia?.arsAccountId ?? '',
+		usdAccountId: accounts?.usdAccountId ?? galicia?.usdAccountId ?? ''
+	};
+}
+
+/** Saves the Banco Galicia pesos or dollar account, then converts the credit alerts that waited for it. */
+export async function chooseGaliciaAccount(userId: string, currency: Currency, accountId: string) {
+	if (!(await setGaliciaAccount(userId, currency, accountId))) return false;
+	await convertWaitingAlerts(userId);
+	return true;
+}
+
 /** Saves what a card is and its accounts, then converts the alerts that were waiting for it. */
 export async function saveCard(
 	userId: string,
@@ -205,9 +259,9 @@ export async function saveCard(
 	const { arsAccountId, usdAccountId } = input;
 	// A credit card's accounts are the Banco Galicia ones, so the pesos account is required for both types.
 	if (!arsAccountId || !(await isActiveAccountIn(userId, 'ARS', arsAccountId)))
-		errors.arsAccountId = 'Elegí una cuenta en pesos.';
+		errors.arsAccountId = ACCOUNT_ERRORS.ARS;
 	if (usdAccountId && !(await isActiveAccountIn(userId, 'USD', usdAccountId)))
-		errors.usdAccountId = 'Elegí una cuenta en dólares.';
+		errors.usdAccountId = ACCOUNT_ERRORS.USD;
 	if (Object.keys(errors).length > 0) return { ok: false, errors };
 
 	const values = {

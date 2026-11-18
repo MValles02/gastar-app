@@ -7,6 +7,7 @@ import {
 	ignoreApiError,
 	isValidPasswordLength,
 	resendAction,
+	tooManyAttempts,
 	userNameError,
 	VERIFY_EMAIL_PATH
 } from '#lib/server/auth-forms.ts';
@@ -27,7 +28,7 @@ export const actions: Actions = {
 			return fail(429, {
 				name,
 				email,
-				formError: 'Demasiados intentos. Probá de nuevo en un rato.'
+				formError: tooManyAttempts('rato')
 			});
 		}
 

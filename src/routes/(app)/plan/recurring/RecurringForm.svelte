@@ -8,7 +8,7 @@
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
-	import { isPositiveAmount } from '#lib/money.ts';
+	import { isPositiveAmount, toCurrency } from '#lib/money.ts';
 	import { categoriesFor } from '#lib/movement.ts';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
@@ -75,7 +75,7 @@
 
 	const currency = $derived.by(() => {
 		const meta = accounts.find((a) => a.id === accountId)?.meta;
-		return meta === 'USD' ? 'USD' : meta === 'ARS' ? 'ARS' : undefined;
+		return meta === undefined ? undefined : toCurrency(meta);
 	});
 </script>
 

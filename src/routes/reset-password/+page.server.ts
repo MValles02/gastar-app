@@ -1,8 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { APIError } from 'better-auth/api';
 import { PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
 import { auth } from '#lib/server/auth.ts';
-import { isValidPasswordLength } from '#lib/server/auth-forms.ts';
+import { isApiError, isValidPasswordLength } from '#lib/server/auth-forms.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ url }) => {
@@ -24,7 +23,7 @@ export const actions: Actions = {
 		try {
 			await auth.api.resetPassword({ body: { newPassword: password, token } });
 		} catch (err) {
-			if (!(err instanceof APIError)) throw err;
+			if (!isApiError(err)) throw err;
 			// Invalid, expired or already used token.
 			return fail(400, { expired: true });
 		}

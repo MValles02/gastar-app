@@ -2,6 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { dev } from '$app/env';
 import { accountOption } from '#lib/server/accounts/queries.ts';
+import { ACCOUNT_ERRORS } from '#lib/server/imports/card-alerts.ts';
 import { activeAccountsIn, getConnectionInfo } from '#lib/server/imports/connections.ts';
 import {
 	deleteConnection,
@@ -53,7 +54,7 @@ export const actions: Actions = {
 		if (!mpOauthEnabled()) error(404);
 		const accountId = String((await request.formData()).get('accountId') ?? '');
 		if (!(await setReceivingAccount(requireUser(locals).id, accountId))) {
-			return formFail(400, { errors: { accountId: 'Elegí una cuenta en pesos.' } });
+			return formFail(400, { errors: { accountId: ACCOUNT_ERRORS[MP_CURRENCY] } });
 		}
 		return { accountId };
 	},

@@ -9,6 +9,24 @@ export const CURRENCY_NAME = { ARS: 'pesos', USD: 'dólares' } as const satisfie
 	string
 >;
 
+/** Capitalised name used as a label (pickers, tabs, group headings, detail rows). */
+export const CURRENCY_LABEL = { ARS: 'Pesos', USD: 'Dólares' } as const satisfies Record<
+	Currency,
+	string
+>;
+
+/** Currency choices in display order, for segmented controls and filter drawers. */
+export const CURRENCY_OPTIONS: { value: Currency; label: string }[] = CURRENCIES.map((value) => ({
+	value,
+	label: CURRENCY_LABEL[value]
+}));
+
+/** Exchange rates are quoted in this currency ("1 USD = X ARS"). */
+export const RATE_CURRENCY = 'ARS' satisfies Currency;
+
+/** Narrows a stored or posted value to a Currency: 'USD' is USD, anything else ARS. */
+export const toCurrency = (value: unknown): Currency => (value === 'USD' ? 'USD' : 'ARS');
+
 const intFmt = new Intl.NumberFormat(LOCALE);
 
 /** Smallest unit shown and entered, in cents: whole pesos in ARS, the cent in USD. */
@@ -39,7 +57,7 @@ export const isWholeFor = (cents: number, currency: Currency) =>
 
 /** True for a usable exchange rate: positive and whole pesos (integer hundredths of "1 USD = X ARS"). */
 export const isValidRate = (rate: number | null): rate is number =>
-	rate !== null && rate > 0 && isWholeFor(rate, 'ARS');
+	rate !== null && rate > 0 && isWholeFor(rate, RATE_CURRENCY);
 
 const AMOUNT_RE = /^(-?)(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}))?$/;
 /** Integer digits accepted by parseAmount; keeps the cents within Number.MAX_SAFE_INTEGER. */

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { PLAN_CURRENCY } from '#lib/plan.ts';
 	import { planReturn, withWizard } from '#lib/plan-wizard.ts';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import LimitForm from '../LimitForm.svelte';
@@ -24,7 +25,7 @@
 	initial={{
 		categoryId: form?.values?.categoryId ?? '',
 		amount: form?.values?.amount ?? '',
-		currency: form?.values?.currency ?? 'ARS'
+		currency: form?.values?.currency ?? PLAN_CURRENCY
 	}}
 	errors={form?.errors}
 />

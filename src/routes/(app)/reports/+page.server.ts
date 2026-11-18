@@ -16,6 +16,7 @@ import {
 	shortMonth
 } from '#lib/server/month.ts';
 import { requireUser } from '#lib/server/guards.ts';
+import { rankSpending } from '#lib/server/categories/spending.ts';
 
 const FLOW_MONTHS = 6;
 /** Categories listed as their own row; the rest are summed into "Otros". */
@@ -86,22 +87,17 @@ type CategorySum = {
 
 /** Net spending per category (integer cents), the top TOP_CATEGORIES plus "Otros". */
 function categorySlices(cats: CategorySum[]) {
-	const spent = cats
-		.map((c) => {
-			const look = categoryLook(c);
-			return {
-				id: c.id,
-				name: c.name,
-				color: look.color,
-				icon: look.icon as CategoryIconKey | null,
-				amount: c.outcome - c.income
-			};
-		})
-		.filter((c) => c.amount > 0)
-		.sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, 'es'));
-	const totalSpent = spent.reduce((a, c) => a + c.amount, 0);
-	const slices = spent.slice(0, TOP_CATEGORIES);
-	const rest = spent.slice(TOP_CATEGORIES).reduce((a, c) => a + c.amount, 0);
+	const { top, rest, total: totalSpent } = rankSpending(cats, TOP_CATEGORIES);
+	const slices = top.map((c) => {
+		const look = categoryLook(c);
+		return {
+			id: c.id,
+			name: c.name,
+			color: look.color,
+			icon: look.icon as CategoryIconKey | null,
+			amount: c.net
+		};
+	});
 	if (rest > 0) slices.push({ id: 'other', name: 'Otros', color: null, icon: null, amount: rest });
 
 	const percents = wholePercents(

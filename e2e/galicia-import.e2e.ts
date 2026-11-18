@@ -18,10 +18,11 @@ const items = () =>
 	);
 
 test.beforeAll(async ({ browser }) => {
-	// Local DBs are reused between runs: start from no items and no connection.
+	// Local DBs are reused between runs: start from no items, no connection and no remembered MOVISTAR rule.
 	await withDb(
 		(sql) => sql`with u as (select id from "user" where email = ${GALICIA_EMAIL})
 			, d as (delete from mp_import_items where user_id in (select id from u))
+			, r as (delete from mp_import_rules where user_id in (select id from u) and match_value ilike 'MOVISTAR%')
 			delete from galicia_connections where user_id in (select id from u)`
 	);
 	page = await browser.newPage();
@@ -121,8 +122,9 @@ test('a statement that does not add up to its total is rejected with nothing wri
 });
 
 test('a remembered merchant matches the same merchant with another reference code next month', async () => {
+	const category = `Servicios Galicia ${Date.now()}`;
 	await page.goto('/categories/new');
-	await page.locator('input[name="name"]').fill('Servicios Galicia');
+	await page.locator('input[name="name"]').fill(category);
 	await page.getByRole('radio', { name: 'Gastos' }).check({ force: true });
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
@@ -143,7 +145,7 @@ test('a remembered merchant matches the same merchant with another reference cod
 		.click();
 	const drawer = page.getByRole('dialog', { name: 'Revisar movimiento' });
 	await expect(drawer).toBeVisible();
-	await pick(page, 'Categoría', 'Servicios Galicia');
+	await pick(page, 'Categoría', category);
 	await page.getByRole('checkbox', { name: 'Recordar para la próxima' }).check();
 	await drawer.getByRole('button', { name: 'Aprobar', exact: true }).click();
 	await expect(drawer).toHaveCount(0);
@@ -164,7 +166,7 @@ test('a remembered merchant matches the same merchant with another reference cod
 			where i.merchant = 'MOVISTAR DA 000000600111222'
 				and i.user_id = (select id from "user" where email = ${GALICIA_EMAIL})`
 	);
-	expect(rows).toEqual([{ status: 'approved', category: 'Servicios Galicia' }]);
+	expect(rows).toEqual([{ status: 'approved', category }]);
 });
 
 test('another user cannot open the imported items', async ({ browser }) => {

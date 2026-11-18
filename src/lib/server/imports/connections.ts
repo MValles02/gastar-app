@@ -3,9 +3,14 @@ import type { Currency } from '#lib/money.ts';
 import { canAccessAccount, canAccessOwn } from '../access';
 import { db } from '../db';
 import { isUuid } from '../db/util';
-import { financialAccounts, galiciaConnections, mpConnections } from '../db/schema';
+import { financialAccounts, gmailConnections, importCards, mpConnections } from '../db/schema';
+import { getGaliciaConnection } from './galicia/connection';
+import { gmailOauthEnabled } from './gmail/oauth';
 import { mpOauthEnabled } from './mercado-pago/oauth';
 import { pendingImportCount } from './store';
+
+// The profile Vinculaciones page still reads it from here.
+export { getGaliciaConnection };
 
 /** The user's active accounts of one currency, by name: the only ones an import source can feed. */
 export function activeAccountsIn(userId: string, currency: Currency) {
@@ -75,27 +80,33 @@ export async function mpLinkState(userId: string): Promise<'linked' | 'reconnect
 	return 'unlinked';
 }
 
-export async function getGaliciaConnection(userId: string) {
-	const [row] = await db
-		.select({
-			arsAccountId: galiciaConnections.arsAccountId,
-			usdAccountId: galiciaConnections.usdAccountId
-		})
-		.from(galiciaConnections)
-		.where(canAccessOwn(userId, galiciaConnections))
-		.limit(1);
-	return row;
-}
-
 /**
  * The home imports pill: pending items in both currencies, for a user with a source set up (Mercado
- * Pago linked, also while a reconnect is pending, or a Banco Galicia account chosen); else null.
+ * Pago linked, also while a reconnect is pending, a Banco Galicia account chosen, or Gmail linked with
+ * at least one configured card); else null.
  */
 export async function importsPending(userId: string): Promise<number | null> {
 	return (mpOauthEnabled() && (await getMpImportAccount(userId))) ||
-		(await getGaliciaConnection(userId))?.arsAccountId
+		(await getGaliciaConnection(userId))?.arsAccountId ||
+		(gmailOauthEnabled() && (await hasGmailCards(userId)))
 		? await pendingImportCount(userId)
 		: null;
+}
+
+async function hasGmailCards(userId: string) {
+	const [[conn], [card]] = await Promise.all([
+		db
+			.select({ id: gmailConnections.userId })
+			.from(gmailConnections)
+			.where(canAccessOwn(userId, gmailConnections))
+			.limit(1),
+		db
+			.select({ id: importCards.id })
+			.from(importCards)
+			.where(canAccessOwn(userId, importCards))
+			.limit(1)
+	]);
+	return !!conn && !!card;
 }
 
 /**

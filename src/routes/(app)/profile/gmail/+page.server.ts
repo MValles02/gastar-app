@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { dev } from '$app/env';
-import { listCards } from '#lib/server/imports/gmail/cards.ts';
+import { listCards } from '#lib/server/imports/card-alerts.ts';
 import {
 	gmailOauthEnabled,
 	gmailSummary,

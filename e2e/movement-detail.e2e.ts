@@ -254,6 +254,22 @@ test('Gasto to Ingreso asks for an Ingreso category, saves once, and Deshacer re
 	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toContainText('Gasto');
 	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
 	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('-$1.000');
+
+	// A transfer needs its destination: nothing is saved without it.
+	const href = await rowOf(page, desc).getAttribute('href');
+	const res = await page.request.post(`${href}?/update`, {
+		form: { type: 'transfer' },
+		headers: { origin: baseURL!, 'x-sveltekit-action': 'true' }
+	});
+	const body = await res.json();
+	expect(body.type).toBe('failure');
+	expect(body.data).toContain('Elegí la cuenta de destino.');
+	await page.reload();
+	await page.waitForLoadState('networkidle'); // hydration guard: the detail drawer needs JS
+	await rowOf(page, desc).click();
+	await expect(page.getByRole('dialog').getByRole('button', { name: /^Tipo/ })).toContainText(
+		'Gasto'
+	);
 });
 
 test('Transferencia to Gasto asks for a category; Deshacer restores type, destination, rate and amount', async ({
@@ -294,9 +310,13 @@ async function archive(page: Page, baseURL: string, path: string) {
 	expect((await post(page, baseURL, `${path}?/archive`, {})).ok()).toBe(true);
 }
 
-test('Deshacer restores an archived category the movement had', async ({ page, baseURL }) => {
+test('Deshacer restores an archived category or account the movement had; a normal update to one is rejected', async ({
+	page,
+	baseURL
+}) => {
 	const desc = await arrange(page, baseURL!);
 	await archive(page, baseURL!, `/categories/${fixture.c1}`);
+	await archive(page, baseURL!, `/accounts/${fixture.A}`);
 	const drawer = await openDrawer(page, desc);
 
 	await pick(page, 'Categoría', `${desc} C2`);
@@ -312,12 +332,6 @@ test('Deshacer restores an archived category the movement had', async ({ page, b
 	await expect(page.getByRole('dialog').getByRole('button', { name: /^Categoría/ })).toContainText(
 		`${desc} C1`
 	);
-});
-
-test('Deshacer restores an archived account the movement had', async ({ page, baseURL }) => {
-	const desc = await arrange(page, baseURL!);
-	await archive(page, baseURL!, `/accounts/${fixture.A}`);
-	const drawer = await openDrawer(page, desc);
 
 	await pick(page, 'Cuenta', `${desc} B`);
 	await expect(saved(page)).toBeVisible();
@@ -332,16 +346,10 @@ test('Deshacer restores an archived account the movement had', async ({ page, ba
 	await expect(page.getByRole('dialog').getByRole('button', { name: /^Cuenta/ })).toContainText(
 		`${desc} A`
 	);
-});
 
-test('a normal update to an archived category or account is still rejected', async ({
-	page,
-	baseURL
-}) => {
-	const desc = await arrange(page, baseURL!);
+	// A normal update to an archived category or account is still rejected.
 	await archive(page, baseURL!, `/categories/${fixture.c2}`);
 	await archive(page, baseURL!, `/accounts/${fixture.B}`);
-	await page.goto(listUrl(desc));
 	const href = await rowOf(page, desc).getAttribute('href');
 	const update = async (form: Record<string, string>) => {
 		const res = await page.request.post(`${href}?/update`, {

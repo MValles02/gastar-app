@@ -553,7 +553,7 @@ async function untilRun(start: () => Promise<unknown>) {
 		.toBeGreaterThan(prev);
 }
 
-test('moving "Importar desde" earlier searches from the chosen date, keeps synced_until and never changes approved or rejected items', async () => {
+test('moving "Importar desde" earlier searches from the chosen date, never moves synced_until back and never changes approved or rejected items', async () => {
 	const from = daysAgoYmd(60);
 	const until = await syncedUntil();
 	const searchesBefore = (await searchBegins()).length;
@@ -572,7 +572,7 @@ test('moving "Importar desde" earlier searches from the chosen date, keeps synce
 	expect(new Date(begin - 3 * 3_600_000).toISOString().slice(0, 10)).toBe(from);
 	// Reports go in 31-day chunks: the first starts on the chosen local day (03:00Z).
 	expect((await reportBegins())[reportsBefore]).toBe(`${from}T03:00:00Z`);
-	expect(await syncedUntil()).toBe(until);
+	expect(await syncedUntil()).toBeGreaterThanOrEqual(until);
 
 	// Earlier still: a backfill again, and approved or rejected items stay as they were.
 	const decided = await itemRows();

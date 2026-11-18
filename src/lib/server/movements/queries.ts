@@ -2,7 +2,7 @@ import { and, desc, eq, gte, ilike, inArray, isNotNull, lt, or, sql } from 'driz
 import { db, type Tx } from '../db';
 import { categories, financialAccounts, movements } from '../db/schema';
 import { dest, exists, sumOfType } from '../db/sql';
-import { canAccessAccount, canAccessMovement, canAccessOwn, userOwned } from '../access';
+import { canAccessMovement, canAccessOwn, ownedDestination, userOwned } from '../access';
 import { linkRuleFor, lockRules, unlinkRevert } from '../recurring/link';
 import { escapeLike } from '../db/util';
 import { dayStart, nextDay } from '../month';
@@ -135,10 +135,7 @@ export function listMovements(userId: string, query: MovementFilterQuery, page: 
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.leftJoin(
-			dest,
-			and(eq(movements.destinationAccountId, dest.id), canAccessAccount(userId, dest))
-		)
+		.leftJoin(dest, ownedDestination(userId))
 		.leftJoin(
 			categories,
 			and(eq(movements.categoryId, categories.id), canAccessOwn(userId, categories))
@@ -183,10 +180,7 @@ export function getMovement(userId: string, id: string) {
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.leftJoin(
-			dest,
-			and(eq(movements.destinationAccountId, dest.id), canAccessAccount(userId, dest))
-		)
+		.leftJoin(dest, ownedDestination(userId))
 		.leftJoin(
 			categories,
 			and(eq(movements.categoryId, categories.id), canAccessOwn(userId, categories))
@@ -238,10 +232,7 @@ export function summarizeMovements(userId: string, query: MovementFilterQuery) {
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.leftJoin(
-			dest,
-			and(eq(movements.destinationAccountId, dest.id), canAccessAccount(userId, dest))
-		)
+		.leftJoin(dest, ownedDestination(userId))
 		.leftJoin(
 			categories,
 			and(eq(movements.categoryId, categories.id), canAccessOwn(userId, categories))

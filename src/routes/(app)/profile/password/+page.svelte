@@ -5,7 +5,9 @@
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
-	const title = $derived(data.hasPassword ? 'Cambiar contraseña' : 'Crear contraseña');
+	const title = $derived(
+		data.reauthMode === 'password' ? 'Cambiar contraseña' : 'Crear contraseña'
+	);
 </script>
 
 <svelte:head>
@@ -17,7 +19,6 @@
 <PasswordForm
 	errors={form?.errors}
 	formError={form?.formError}
-	hasPassword={data.hasPassword}
-	recent={data.recent}
+	reauthMode={data.reauthMode}
 	reauth={!!form?.reauth}
 />

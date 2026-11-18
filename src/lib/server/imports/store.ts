@@ -15,6 +15,7 @@ import type { MovementType } from '#lib/movement.ts';
 import type { MovementRow } from '../movements/form';
 import { createMovement, deleteMovement } from '../movements/queries';
 import { rememberKey } from './rules';
+import { AUTO_APPROVED_DAYS } from './settings';
 import type { Kind, SourceId } from './sources';
 
 // The columns are CHECK-constrained to the SOURCE ids and KIND values: the one cast from text.
@@ -278,7 +279,10 @@ export function listAutoApproved(userId: string) {
 				canAccessAccount(userId, itemAccount),
 				eq(mpImportItems.status, 'approved'),
 				isNotNull(mpImportItems.autoApprovedAt),
-				gt(mpImportItems.autoApprovedAt, sql`now() - interval '30 days'`)
+				gt(
+					mpImportItems.autoApprovedAt,
+					sql`now() - interval '${sql.raw(String(AUTO_APPROVED_DAYS))} days'`
+				)
 			)
 		)
 		.orderBy(desc(mpImportItems.autoApprovedAt), desc(mpImportItems.occurredAt));

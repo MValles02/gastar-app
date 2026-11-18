@@ -217,13 +217,14 @@ One row per synced account.
 | Column | Type | Notes |
 |---|---|---|
 | `account_id` | pk, fk → `financial_accounts.id` | ON DELETE CASCADE |
-| `synced_until` | timestamptz, nullable | |
+| `synced_until` | timestamptz, nullable | report cursor; a successful report run (backfills included) raises it to the report end, never lowers it |
 | `running_since` | timestamptz, nullable | |
 | `last_run_at` | timestamptz, nullable | |
 | `last_error` | text, nullable | error code only |
 | `phase` | text, nullable | step of the running sync |
 | `new_items` | integer, nullable | items the current/last run stored |
 | `auto_approved` | integer, nullable | items the last run approved automatically |
+| `covered_from` | timestamptz, nullable | earliest instant from which payments and the report have been read at least once; a report-due run reads from the "Importar desde" day whenever that day is earlier than this (or this is null), then lowers it; a failed run leaves it, so the next report-due run retries |
 
 ### `galicia_connections`
 
@@ -278,7 +279,7 @@ One row per user who linked Mercado Pago (OAuth).
 | `refresh_token` | text, nullable | encrypted; null when MP grants no `offline_access` |
 | `expires_at` | timestamptz | |
 | `needs_reconnect` | boolean | default false |
-| `import_from` | timestamptz, nullable | legacy: dual-written with `import_settings.import_from` and read as a fallback; dropped in a follow-up |
+| `import_from` | timestamptz, nullable | legacy: no longer read or written (`import_settings.import_from` replaced it); dropped in a later release |
 | `created_at`, `updated_at` | timestamptz | |
 
 Encryption: tokens are AES-256-GCM ciphertext, `v1:` + base64(iv(12) | tag(16) | ct), with AAD = `user_id`, keyed by `MP_TOKEN_KEY`. They are never logged or sent to the client.

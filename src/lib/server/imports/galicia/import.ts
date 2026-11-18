@@ -1,33 +1,21 @@
 import { CURRENCIES, type Currency } from '#lib/money.ts';
 import { db } from '../../db';
-import { cardStatements, galiciaConnections } from '../../db/schema';
+import { cardStatements } from '../../db/schema';
 import { userOwned } from '../../access';
 import { dayStart } from '../../month';
-import { getGaliciaConnection, isActiveAccountIn } from '../connections';
+import { isActiveAccountIn } from '../connections';
 import { type ImportRow, ingestImportItems } from '../ingest';
+import { statementLineKey, statementTaxesKey } from '../keys';
+import { withMatchLock } from '../match-lock';
 import { GALICIA_SOURCE, KIND, kindSpec } from '../sources';
-import { matchStatement, withMatchLock } from './matching';
+import { getGaliciaConnection } from './connection';
+import { matchStatement } from './matching';
 import { StatementError, type Statement, type StatementLine } from './statement';
 
 type GaliciaConnection = Awaited<ReturnType<typeof getGaliciaConnection>>;
 
 const accountFor = (conn: GaliciaConnection, c: Currency) =>
 	({ ARS: conn?.arsAccountId, USD: conn?.usdAccountId })[c];
-
-/** Saves the pesos or dollar account (creating the connection). False unless it is the user's, active and of that currency. */
-export async function setGaliciaAccount(
-	userId: string,
-	currency: Currency,
-	accountId: string
-): Promise<boolean> {
-	if (!(await isActiveAccountIn(userId, currency, accountId))) return false;
-	const set = { ARS: { arsAccountId: accountId }, USD: { usdAccountId: accountId } }[currency];
-	await db
-		.insert(galiciaConnections)
-		.values({ ...userOwned(userId), ...set })
-		.onConflictDoUpdate({ target: galiciaConnections.userId, set });
-	return true;
-}
 
 type StatementImport =
 	{ ok: true; created: number; autoApproved: number } | { ok: false; missing: Currency };
@@ -55,7 +43,7 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 	}
 	const taxes: ImportRow[] = CURRENCIES.filter((c) => s.charges[c] !== 0).map((c) => ({
 		accountId: accounts[c],
-		externalKey: ['galicia', s.network, 'taxes', s.numberHash, c].join(':'),
+		externalKey: statementTaxesKey(s.network, s.numberHash, c),
 		kind: KIND.cardTaxes,
 		occurredAt: day(s.closing),
 		amount: Math.abs(s.charges[c]),
@@ -68,19 +56,12 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 	const lines: { key: string; line: StatementLine; row: ImportRow }[] = [];
 	for (const l of s.consumos) {
 		if (l.cents === 0) continue;
-		const base = [
-			'galicia',
-			s.network,
-			l.voucher ?? '',
-			l.installment ?? '',
-			l.date,
-			l.currency,
-			l.cents
-		].join(':');
+		const parts = { network: s.network, ...l };
+		const base = statementLineKey(parts, 1);
 		// Identical lines in one statement stay distinct items; the same statement again maps 1:1.
 		const n = (seen.get(base) ?? 0) + 1;
 		seen.set(base, n);
-		const key = n === 1 ? base : `${base}#${n}`;
+		const key = statementLineKey(parts, n);
 		const row: ImportRow = {
 			accountId: accounts[l.currency]!,
 			externalKey: key,

@@ -21,6 +21,9 @@ const gmailRow = (p: Page) => p.getByRole('link', { name: /Gmail/ });
 // "Vincular" without matching "Vinculado".
 const UNLINKED = /Vincular(?!do)/;
 
+// Revokes before the first test: a rerun's leftover link revokes at the fake when beforeAll unlinks it.
+let revokesBefore = 0;
+
 test.beforeAll(async ({ browser, baseURL }) => {
 	await fake('/__fake/reset');
 	await fake(`/__fake/account?email=${encodeURIComponent(gmailA)}`);
@@ -29,6 +32,7 @@ test.beforeAll(async ({ browser, baseURL }) => {
 	await login(page, GALICIA_EMAIL);
 	// A rerun on a reused DB starts unlinked (the unlink action is a no-op without a row).
 	await post(page, baseURL!, `${GMAIL_PATH}?/disconnect`, {});
+	revokesBefore = await revokeCalls();
 });
 
 test.afterAll(async () => {
@@ -56,7 +60,7 @@ test('linking shows Vinculado and the address; unlinking revokes at Google', asy
 	await page.getByRole('button', { name: 'Desvincular' }).click();
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Desvincular' }).click();
 	await expect(page.getByRole('button', { name: 'Vincular Gmail' })).toBeVisible();
-	expect(await revokeCalls()).toBe(1);
+	expect(await revokeCalls()).toBe(revokesBefore + 1);
 	await page.goto('/profile/vinculaciones');
 	await expect(gmailRow(page)).toContainText(UNLINKED);
 });

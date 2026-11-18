@@ -1,5 +1,6 @@
 import { and, eq, type AnyColumn, type SQL } from 'drizzle-orm';
 import { financialAccounts, movements } from './db/schema';
+import { dest } from './db/sql';
 
 /** The single ownership check for accounts (and, through them, movements). Accepts an alias. */
 export function canAccessAccount(
@@ -7,6 +8,11 @@ export function canAccessAccount(
 	account: { ownerId: AnyColumn } = financialAccounts
 ): SQL {
 	return eq(account.ownerId, userId);
+}
+
+/** Join condition for a movement's destination account (the `dest` alias), only when the user owns it. */
+export function ownedDestination(userId: string): SQL {
+	return and(eq(movements.destinationAccountId, dest.id), canAccessAccount(userId, dest))!;
 }
 
 /** Spread into `values()` to set an account's owner. */

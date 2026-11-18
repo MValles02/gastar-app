@@ -17,7 +17,13 @@
 	import SwitchRow from '#lib/components/SwitchRow.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import TextRow from '#lib/components/TextRow.svelte';
-	import { convertInput, isPositiveAmount, isValidRate, parseAmount } from '#lib/money.ts';
+	import {
+		convertInput,
+		CURRENCY_LABEL,
+		isPositiveAmount,
+		isValidRate,
+		parseAmount
+	} from '#lib/money.ts';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
 	type Fields =
@@ -159,9 +165,7 @@
 
 	// The drawer's account rows show the currency written out under the name.
 	const accountItems = $derived(
-		accounts.map((a) =>
-			a.balance === undefined ? a : { ...a, meta: a.currency === 'USD' ? 'Dólares' : 'Pesos' }
-		)
+		accounts.map((a) => (a.balance === undefined ? a : { ...a, meta: CURRENCY_LABEL[a.currency] }))
 	);
 
 	const originCurrency = $derived(accounts.find((a) => a.id === accountId)?.currency);

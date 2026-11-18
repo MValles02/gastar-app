@@ -2,6 +2,8 @@ import { eq, sql } from 'drizzle-orm';
 import { db } from '../../db';
 import { mpSyncState } from '../../db/schema';
 import type { ImportRow } from '../ingest';
+import { payoutKey, yieldKey } from '../keys';
+import { backfillStart } from '../settings';
 import { KIND } from '../sources';
 import { DAY_MS } from '#lib/dates.ts';
 import { dayStart, localDay } from '../../month';
@@ -10,7 +12,6 @@ import {
 	apiJson,
 	atLeast,
 	type Auth,
-	backfillStart,
 	cents,
 	date,
 	fail,
@@ -277,7 +278,7 @@ function reportItem(r: Row): Omit<ImportRow, 'accountId'> | null {
 		const base = { occurredAt, amount: Math.abs(signed), isCredit: signed > 0 };
 		return {
 			...base,
-			externalKey: `yield:${day}`,
+			externalKey: yieldKey(day),
 			kind: KIND.yield,
 			sourceId: day,
 			rawDescription: 'asset_management'
@@ -288,7 +289,7 @@ function reportItem(r: Row): Omit<ImportRow, 'accountId'> | null {
 	// A payout only takes; a credit under that description (a reversal) is not one.
 	if (signed > 0) return null;
 	return {
-		externalKey: `payout:${id}:out`,
+		externalKey: payoutKey(id),
 		kind: r.EXTERNAL_REFERENCE ? KIND.merchantPayout : KIND.payout,
 		sourceId: id,
 		occurredAt,

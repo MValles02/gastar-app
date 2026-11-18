@@ -3,7 +3,7 @@
 	import { ACCOUNT_ICONS, toIconKey, toSwatchKey } from '#lib/appearance.ts';
 	import { autosaveChanged } from '#lib/autosave.ts';
 	import { NAME_MAX_LENGTH } from '#lib/fields.ts';
-	import { formatAmountInput } from '#lib/money.ts';
+	import { CURRENCY_LABEL, formatAmountInput } from '#lib/money.ts';
 	import DetailCard from '#lib/components/DetailCard.svelte';
 	import DetailHero from '#lib/components/DetailHero.svelte';
 	import DetailLifecycle from '#lib/components/DetailLifecycle.svelte';
@@ -90,7 +90,7 @@
 				{/snippet}
 			</InlineText>
 		</DetailRow>
-		<DetailRow label="Moneda">{a.currency === 'USD' ? 'Dólares' : 'Pesos'}</DetailRow>
+		<DetailRow label="Moneda">{CURRENCY_LABEL[a.currency]}</DetailRow>
 	</DetailCard>
 
 	<DetailLifecycle
