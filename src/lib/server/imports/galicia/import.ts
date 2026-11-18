@@ -5,8 +5,10 @@ import { userOwned } from '../../access';
 import { dayStart } from '../../month';
 import { getGaliciaConnection, isActiveAccountIn } from '../connections';
 import { type ImportRow, ingestImportItems } from '../ingest';
+import { statementLineKey, statementTaxesKey } from '../keys';
+import { withMatchLock } from '../match-lock';
 import { GALICIA_SOURCE, KIND, kindSpec } from '../sources';
-import { matchStatement, withMatchLock } from './matching';
+import { matchStatement } from './matching';
 import { StatementError, type Statement, type StatementLine } from './statement';
 
 type GaliciaConnection = Awaited<ReturnType<typeof getGaliciaConnection>>;
@@ -55,7 +57,7 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 	}
 	const taxes: ImportRow[] = CURRENCIES.filter((c) => s.charges[c] !== 0).map((c) => ({
 		accountId: accounts[c],
-		externalKey: ['galicia', s.network, 'taxes', s.numberHash, c].join(':'),
+		externalKey: statementTaxesKey(s.network, s.numberHash, c),
 		kind: KIND.cardTaxes,
 		occurredAt: day(s.closing),
 		amount: Math.abs(s.charges[c]),
@@ -68,19 +70,12 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 	const lines: { key: string; line: StatementLine; row: ImportRow }[] = [];
 	for (const l of s.consumos) {
 		if (l.cents === 0) continue;
-		const base = [
-			'galicia',
-			s.network,
-			l.voucher ?? '',
-			l.installment ?? '',
-			l.date,
-			l.currency,
-			l.cents
-		].join(':');
+		const parts = { network: s.network, ...l };
+		const base = statementLineKey(parts, 1);
 		// Identical lines in one statement stay distinct items; the same statement again maps 1:1.
 		const n = (seen.get(base) ?? 0) + 1;
 		seen.set(base, n);
-		const key = n === 1 ? base : `${base}#${n}`;
+		const key = statementLineKey(parts, n);
 		const row: ImportRow = {
 			accountId: accounts[l.currency]!,
 			externalKey: key,

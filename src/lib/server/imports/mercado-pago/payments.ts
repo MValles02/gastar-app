@@ -3,13 +3,14 @@ import { db } from '../../db';
 import { mpImportItems } from '../../db/schema';
 import { canAccessOwn } from '../../access';
 import { batches, type ImportRow } from '../ingest';
+import { paymentKey, refundKey } from '../keys';
+import { backfillStart } from '../settings';
 import { KIND, PAYMENT_KINDS } from '../sources';
 import { DAY_MS } from '#lib/dates.ts';
 import {
 	apiJson,
 	atLeast,
 	type Auth,
-	backfillStart,
 	date,
 	fail,
 	jsonCents,
@@ -97,6 +98,7 @@ export async function syncPayments(
 		(last?.at
 			? atLeast(new Date(last.at.getTime() - PAYMENTS_OVERLAP_MS), floor)
 			: backfillStart(now, floor));
+	if (!begin) throw fail('config');
 	const payments = (await searchPayments(begin, new Date(now), auth)).filter(
 		(p) => str(p.payment_type_id) !== 'credit_card'
 	);
@@ -134,8 +136,8 @@ export async function syncPayments(
 		const collectorId = str(p.collector_id) ?? str(obj(p.collector).id);
 		const isCredit = collectorId === me;
 		if (!isCredit && payerId !== me) continue;
-		const key = `payment:${id}:${isCredit ? 'in' : 'out'}`;
-		const refundKey = `refund:${id}:${isCredit ? 'out' : 'in'}`;
+		const key = paymentKey(id, isCredit);
+		const refundOf = refundKey(id, isCredit);
 		const status = str(p.status);
 		// Incoming: what reached the balance after MP fees; outgoing: what left it.
 		const amount =
@@ -148,8 +150,8 @@ export async function syncPayments(
 		const wantRefund =
 			refunded > 0 &&
 			(status === 'approved' || (known !== undefined && known !== 'rejected')) &&
-			existing.get(refundKey) !== 'approved' &&
-			existing.get(refundKey) !== 'rejected';
+			existing.get(refundOf) !== 'approved' &&
+			existing.get(refundOf) !== 'rejected';
 		if (!wantMain && !wantRefund) continue;
 
 		const counterpartyId = isCredit ? (payerId !== me ? payerId : null) : collectorId;
@@ -182,7 +184,7 @@ export async function syncPayments(
 		if (wantRefund)
 			items.push({
 				...base,
-				externalKey: refundKey,
+				externalKey: refundOf,
 				kind: KIND.refund,
 				occurredAt: date(p.date_last_updated),
 				amount: refunded,

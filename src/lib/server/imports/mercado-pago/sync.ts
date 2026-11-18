@@ -1,13 +1,13 @@
-import { and, eq, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { db } from '../../db';
-import { pgErrorCode } from '../../db/errors';
 import { financialAccounts, mpConnections, mpSyncState } from '../../db/schema';
 import { canAccessAccount, canAccessOwn } from '../../access';
 import { autoApprovePending } from '../approve';
 import { type ImportRow, ingestImportItems } from '../ingest';
 import { getChosenImportFrom } from '../settings';
 import { SOURCE } from '../sources';
+import { errorDetail, freshToken, leaseFree } from '../sync-kit';
 import { DAY_MS } from '#lib/dates.ts';
 import {
 	apiJson,
@@ -26,16 +26,7 @@ import { MP_CURRENCY } from './settings';
 
 /** Refresh the token when it expires within this window (MP tokens last 180 days). */
 const REFRESH_WINDOW_MS = 30 * DAY_MS;
-/** A sync holds its lease this long without renewing it; a later one may take over. */
-const LEASE_MINUTES = 15;
-/** Log-safe failure detail: PG error code or error name, never messages. */
-const errorDetail = (e: unknown) => pgErrorCode(e) ?? (e as Error)?.name ?? 'unknown';
-
-const LEASE_MS = LEASE_MINUTES * 60_000;
-
-/** Whether a sync that took its lease at `since` is still running. */
-export const leaseActive = (since: Date | null | undefined) =>
-	!!since && Date.now() - since.getTime() < LEASE_MS;
+export { leaseActive } from '../sync-kit';
 
 type Lease = {
 	userId: string;
@@ -76,18 +67,7 @@ async function acquire(userId: string): Promise<Lease | null> {
 		const [lease] = await db
 			.update(mpSyncState)
 			.set({ runningSince: sql`now()`, phase: 'payments', newItems: null, autoApproved: null })
-			.where(
-				and(
-					eq(mpSyncState.accountId, accountId),
-					or(
-						isNull(mpSyncState.runningSince),
-						lt(
-							mpSyncState.runningSince,
-							sql`now() - interval '${sql.raw(String(LEASE_MINUTES))} minutes'`
-						)
-					)
-				)
-			)
+			.where(and(eq(mpSyncState.accountId, accountId), leaseFree(mpSyncState.runningSince)))
 			.returning({ syncedUntil: mpSyncState.syncedUntil, coveredFrom: mpSyncState.coveredFrom });
 		return lease
 			? {
@@ -105,39 +85,22 @@ async function acquire(userId: string): Promise<Lease | null> {
 	}
 }
 
-async function refreshed(userId: string): Promise<Auth> {
-	const outcome = await refreshConnection(userId);
-	if (outcome === 'reconnect') throw fail('reconnect');
-	if (outcome === 'error') throw fail('network');
-	const fresh = await getAccessToken(userId);
-	if (!fresh) throw fail('reconnect');
-	return { token: fresh.token };
-}
-
-async function currentAuth(userId: string): Promise<Auth> {
-	const stored = await getAccessToken(userId);
-	if (!stored) throw fail('reconnect');
-	let auth: Auth = { token: stored.token };
-	// Refresh ahead of expiry; if MP is unreachable the current token may still work.
-	if (stored.expiresAt.getTime() < Date.now() + REFRESH_WINDOW_MS) {
-		try {
-			auth = await refreshed(userId);
-		} catch (e) {
-			if (mpCode(e) === 'reconnect' || stored.expiresAt.getTime() <= Date.now()) throw e;
-		}
-	}
-	return auth;
-}
+/** The user's token, refreshed ahead of expiry; if MP is unreachable the current token may still work. */
+const currentToken = (userId: string) =>
+	freshToken(userId, { getAccessToken, refreshConnection, windowMs: REFRESH_WINDOW_MS, fail });
 
 /** The MP user id behind the token, with the token that worked. */
-async function whoAmI(userId: string, auth: Auth): Promise<{ auth: Auth; me: string }> {
+async function whoAmI(
+	current: Awaited<ReturnType<typeof currentToken>>
+): Promise<{ auth: Auth; me: string }> {
+	let auth: Auth = { token: current.token };
 	let meJson: unknown;
 	try {
 		meJson = await apiJson('/users/me', auth);
 	} catch (e) {
 		// A 401 here means the token died early: refresh once and retry the run once.
 		if (!isAuthError(e)) throw e;
-		auth = await refreshed(userId);
+		auth = { token: await current.refresh() };
 		meJson = await apiJson('/users/me', auth);
 	}
 	const me = str(obj(meJson).id);
@@ -222,7 +185,7 @@ async function execute(l: Lease, { from, report }: { from?: Date; report: boolea
 	};
 	try {
 		if (l.currency !== MP_CURRENCY) throw fail('config');
-		const { auth, me } = await whoAmI(l.userId, await currentAuth(l.userId));
+		const { auth, me } = await whoAmI(await currentToken(l.userId));
 		await paymentsStep(l, me, auth, { from, report }, ingest);
 		if (report) end = await reportStep(l, auth, from, ingest);
 		ok = true;
