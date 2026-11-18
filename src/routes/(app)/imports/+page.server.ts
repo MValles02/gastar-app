@@ -14,7 +14,7 @@ import {
 	keepUnmatched,
 	listUnmatchedAlerts
 } from '#lib/server/imports/galicia/unmatched.ts';
-import { listUnknownCards } from '#lib/server/imports/gmail/cards.ts';
+import { listUnknownCards } from '#lib/server/imports/card-alerts.ts';
 import { gmailLinkState } from '#lib/server/imports/gmail/oauth.ts';
 import { gmailSyncState, runGmailSync } from '#lib/server/imports/gmail/sync.ts';
 import { mpOauthEnabled } from '#lib/server/imports/mercado-pago/oauth.ts';

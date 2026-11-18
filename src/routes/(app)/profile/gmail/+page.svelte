@@ -68,7 +68,7 @@
 		<ListCard aria-label="Tarjetas">
 			{#each data.cards as c (c.network + c.last4)}
 				<ListRow
-					href={resolve(`profile/gmail/cards/${c.network}-${c.last4}`)}
+					href={resolve(`profile/gmail/cards/${c.slug}`)}
 					lead={{ icon: 'card', color: null }}
 					title="Visa ••{c.last4} · {c.type === 'debit' ? 'Débito' : 'Crédito'}"
 					chevron

@@ -6,7 +6,7 @@ import { cardAlerts, gmailConnections } from '../../db/schema';
 import { batches } from '../ingest';
 import { getImportFromDay } from '../settings';
 import { errorDetail, freshToken, leaseFree } from '../sync-kit';
-import { convertWaitingAlerts } from './cards';
+import { convertWaitingAlerts } from '../card-alerts';
 import { gmailDataBaseUrl } from './env';
 import { getAccessToken, refreshConnection } from './oauth';
 import { VISA_SENDERS, parseVisaAlert } from './visa-alert';
