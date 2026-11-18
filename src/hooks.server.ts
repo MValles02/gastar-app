@@ -4,18 +4,14 @@ import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { building } from '$app/env';
 import { auth } from '#lib/server/auth.ts';
 import { checkEnv } from '#lib/server/env-check.ts';
-import { startGmailScheduler } from '#lib/server/imports/gmail/scheduler.ts';
-import { startMpScheduler } from '#lib/server/imports/mercado-pago/scheduler.ts';
+import { startImportSchedulers } from '#lib/server/imports/automatic.ts';
 import { themeColors } from '#lib/theme.ts';
 import { THEME_COOKIE } from '#lib/server/cookies.ts';
 
 if (!building && process.env.NODE_ENV === 'production') checkEnv(process.env);
 
 export const init: ServerInit = () => {
-	if (!building) {
-		startMpScheduler();
-		startGmailScheduler();
-	}
+	if (!building) startImportSchedulers();
 };
 
 const AUTH_API_PREFIX = '/api/auth/';

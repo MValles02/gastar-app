@@ -1,9 +1,10 @@
-import { createHash, randomBytes } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import * as env from '$app/env/private';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { account, gmailConnections } from '../../db/schema';
+import { GOOGLE_PROVIDER_ID } from '../../reauth';
+import { callbackUrl, type OAuthLink, pkce } from '../oauth-link';
 import { decryptToken as decryptWith, encryptToken as encryptWith } from '../token-crypto';
 import { gmailApiBaseUrl, gmailAuthBaseUrl } from './env';
 
@@ -11,9 +12,7 @@ const TOKEN_TIMEOUT_MS = 15_000;
 const SCOPE_READONLY = 'https://www.googleapis.com/auth/gmail.readonly';
 
 // Gmail has its own Google Cloud client and key: never the sign-in GOOGLE_* client or Better Auth.
-export const OAUTH_COOKIE = 'gmail_oauth';
-export const OAUTH_PATH = '/profile/gmail';
-const CALLBACK_PATH = `${OAUTH_PATH}/callback`;
+const LINK_PATH = '/profile/gmail';
 
 /** The feature is on only when the client id, client secret and token key are all set. */
 export function gmailOauthEnabled(): boolean {
@@ -26,24 +25,21 @@ const encryptToken = (plain: string, userId: string) =>
 const decryptToken = (stored: string, userId: string) =>
 	decryptWith(stored, userId, env.GMAIL_TOKEN_KEY);
 
-const b64url = (buf: Buffer) => buf.toString('base64url');
-
-const redirectUri = (origin: string) => origin + CALLBACK_PATH;
+const redirectUri = (origin: string) => callbackUrl(LINK_PATH, origin);
 
 /** True when the user also signs in with Google (Better Auth `account` row), so the email is a safe hint. */
 async function usesGoogleSignIn(userId: string): Promise<boolean> {
 	const [row] = await db
 		.select({ id: account.id })
 		.from(account)
-		.where(and(canAccessOwn(userId, account), eq(account.providerId, 'google')))
+		.where(and(canAccessOwn(userId, account), eq(account.providerId, GOOGLE_PROVIDER_ID)))
 		.limit(1);
 	return !!row;
 }
 
 /** New PKCE verifier and CSRF state, plus the authorization URL for them. */
-export async function startAuthorization(origin: string, user: { id: string; email: string }) {
-	const state = b64url(randomBytes(32));
-	const verifier = b64url(randomBytes(32));
+async function startAuthorization(origin: string, user: { id: string; email: string }) {
+	const { state, verifier, challenge } = pkce();
 	const params = new URLSearchParams({
 		client_id: env.GMAIL_CLIENT_ID ?? '',
 		response_type: 'code',
@@ -53,7 +49,7 @@ export async function startAuthorization(origin: string, user: { id: string; ema
 		// Every link must return a refresh token.
 		prompt: 'consent',
 		state,
-		code_challenge: b64url(createHash('sha256').update(verifier).digest()),
+		code_challenge: challenge,
 		code_challenge_method: 'S256'
 	});
 	if (await usesGoogleSignIn(user.id)) params.set('login_hint', user.email);
@@ -145,7 +141,7 @@ function readIdToken(idToken: string): { sub: string; email: string } | null {
  * Exchanges the authorization code and stores the connection (a relink replaces it and clears
  * needs_reconnect). 'scope': the user did not allow reading mail; the grant is revoked and nothing is stored.
  */
-export async function exchangeCode(
+async function exchangeCode(
 	userId: string,
 	code: string,
 	verifier: string,
@@ -258,20 +254,23 @@ export async function getAccessToken(userId: string) {
 	}
 }
 
-/** The linked address and whether a reconnect is pending, or null when not linked. No token. */
-export async function gmailSummary(userId: string) {
+/**
+ * The user's connection without any token: the linked address, whether a reconnect is pending, and the last
+ * sync (when it ended, its error code, its lease); null when not linked.
+ */
+export async function gmailConnection(userId: string) {
 	const [row] = await db
-		.select({ email: gmailConnections.email, needsReconnect: gmailConnections.needsReconnect })
+		.select({
+			email: gmailConnections.email,
+			needsReconnect: gmailConnections.needsReconnect,
+			lastRunAt: gmailConnections.lastRunAt,
+			lastErrorCode: gmailConnections.lastErrorCode,
+			runningSince: gmailConnections.syncRunningSince
+		})
 		.from(gmailConnections)
 		.where(canAccessOwn(userId, gmailConnections))
 		.limit(1);
 	return row ?? null;
-}
-
-/** How the user's Gmail connection stands: linked, needing a reconnect, or not linked (null). */
-export async function gmailLinkState(userId: string): Promise<'linked' | 'reconnect' | null> {
-	const conn = await gmailSummary(userId);
-	return conn ? (conn.needsReconnect ? 'reconnect' : 'linked') : null;
 }
 
 /** Best-effort revoke of the user's grant at Google. Never throws; the row stays. */
@@ -289,7 +288,21 @@ export async function revokeGmail(userId: string): Promise<void> {
 }
 
 /** Revokes the grant at Google (best effort), then deletes the connection. */
-export async function unlinkGmail(userId: string): Promise<void> {
+async function unlinkGmail(userId: string): Promise<void> {
 	await revokeGmail(userId);
 	await db.delete(gmailConnections).where(canAccessOwn(userId, gmailConnections));
 }
+
+export const GMAIL_LINK: OAuthLink<'scope'> = {
+	path: LINK_PATH,
+	cookie: 'gmail_oauth',
+	enabled: gmailOauthEnabled,
+	flashes: {
+		scope: 'Para vincular Gmail tenés que permitir que Gastar lea tus mails.',
+		exchange: 'Google no respondió. Probá de nuevo.'
+	},
+	limitStart: true,
+	start: startAuthorization,
+	exchange: exchangeCode,
+	unlink: unlinkGmail
+};

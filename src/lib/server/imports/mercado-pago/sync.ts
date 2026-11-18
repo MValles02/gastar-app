@@ -26,7 +26,6 @@ import { MP_CURRENCY } from './settings';
 
 /** Refresh the token when it expires within this window (MP tokens last 180 days). */
 const REFRESH_WINDOW_MS = 30 * DAY_MS;
-export { leaseActive } from '../sync-kit';
 
 type Lease = {
 	userId: string;

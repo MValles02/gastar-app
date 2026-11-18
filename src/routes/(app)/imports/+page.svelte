@@ -23,25 +23,6 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const ERROR_LABELS: Record<string, string> = {
-		auth: 'token inválido o vencido',
-		report_timeout: 'Mercado Pago tardó demasiado en generar el reporte',
-		network: 'sin conexión con Mercado Pago',
-		parse: 'reporte con formato inesperado',
-		config: 'revisá la cuenta configurada',
-		reconnect: 'hay que volver a vincular Mercado Pago'
-	};
-
-	const GMAIL_ERROR_LABELS: Record<string, string> = {
-		reconnect: 'hay que volver a vincular Gmail',
-		network: 'sin conexión con Gmail',
-		api: 'Gmail respondió con un error',
-		parse: 'algún mail de Visa no se pudo leer'
-	};
-
-	const errorLabel = (code: string) =>
-		ERROR_LABELS[code] ?? `error ${code.replace(/^mp_/, '')} de Mercado Pago`;
-
 	const DONE_MESSAGES = {
 		approved: 'Movimiento aprobado.',
 		rejected: 'Movimiento descartado.',
@@ -108,7 +89,7 @@
 		data.needsReconnect
 			? 'Hay que volver a vincular Mercado Pago.'
 			: data.lastError
-				? `No se pudo sincronizar (${errorLabel(data.lastError)})`
+				? `No se pudo sincronizar (${data.lastError})`
 				: watched && data.newItems !== null
 					? `Listo. ${newLabel(data.newItems)}${data.autoApproved ? `, ${autoLabel(data.autoApproved)}` : ''}.`
 					: (data.lastRun ?? 'Todavía no se sincronizó')
@@ -116,9 +97,7 @@
 
 	// Gmail's failure shows next to Mercado Pago's result, never instead of it.
 	const gmailStatus = $derived(
-		data.gmailError
-			? `No se pudo sincronizar Gmail (${GMAIL_ERROR_LABELS[data.gmailError] ?? data.gmailError})`
-			: null
+		data.gmailError ? `No se pudo sincronizar Gmail (${data.gmailError})` : null
 	);
 </script>
 
