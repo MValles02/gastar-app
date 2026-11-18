@@ -22,7 +22,6 @@ const HOUR = 60 * MINUTE;
 const RESET_PASSWORD_TOKEN_TTL = HOUR;
 const VERIFY_EMAIL_TOKEN_TTL = 24 * HOUR;
 
-/** A rate-limit bucket as a Better Auth rule (seconds). */
 const rule = ({ max, windowMs }: { max: number; windowMs: number }) => ({
 	window: windowMs / 1000,
 	max

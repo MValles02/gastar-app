@@ -13,7 +13,6 @@ import {
 } from '../db/sql';
 import { canAccessMovement, canAccessOwn, ownedDestination } from '../access';
 
-/** Movements listed under "Movimientos" on the home screen. */
 const RECENT_LIMIT = 10;
 
 export function originTypeSums(userId: string, cur: Currency, range?: Range) {

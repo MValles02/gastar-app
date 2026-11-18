@@ -25,7 +25,6 @@ import { MAX_DAY_OF_MONTH, SAVINGS_PERCENT_MAX } from '../../plan';
 
 const inList = (xs: readonly string[]) => sql.raw(xs.map((x) => `'${x}'`).join(', '));
 
-// --- Better Auth core tables (email+password only) ---
 // Generated with `npx @better-auth/cli generate` against better-auth 1.7.6.
 
 export const user = pgTable('user', {
@@ -112,8 +111,6 @@ export const sessionRelations = relations(session, ({ one }) => ({
 export const accountRelations = relations(account, ({ one }) => ({
 	user: one(user, { fields: [account.userId], references: [user.id] })
 }));
-
-// --- Finance domain tables (see docs/data-model.md) ---
 
 export const currencyEnum = pgEnum('currency', CURRENCIES);
 export const movementTypeEnum = pgEnum('movement_type', MOVEMENT_TYPES);
@@ -331,8 +328,6 @@ export const movements = pgTable(
 		)
 	]
 );
-
-// --- Mercado Pago import staging (see docs/data-model.md) ---
 
 export const importStatusEnum = pgEnum('import_status', ['pending', 'approved', 'rejected']);
 export const importRuleMatchKindEnum = pgEnum('import_rule_match_kind', [

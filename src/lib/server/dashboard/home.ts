@@ -11,7 +11,6 @@ import { currentMonth, dayHeading, localDay, monthLabel, monthRange } from '../m
 import { planView } from '../plan/month-plan';
 import { importsPending } from '../imports/connections';
 
-/** How many categories the home screen ranks. */
 const TOP_CATEGORIES = 3;
 
 export function topCategories(

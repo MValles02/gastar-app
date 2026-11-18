@@ -6,11 +6,9 @@ export const str = (fd: FormData, key: string) => {
 	return typeof v === 'string' ? v : '';
 };
 
-/** The posted strings of `keys`, for parsing and for re-rendering the form after a failure. */
 export const readFields = <K extends string>(fd: FormData, keys: readonly K[]) =>
 	Object.fromEntries(keys.map((k) => [k, str(fd, k)])) as Record<K, string>;
 
-/** Trimmed required text of at most `max` characters: `{ value }`, or `{ error }`. */
 export const requiredText =
 	(max: number, msgs: { empty: string; long: string }) =>
 	(raw: string): { value: string; error?: string } => {
@@ -20,7 +18,6 @@ export const requiredText =
 		return { value };
 	};
 
-/** The whole-amount check of `currency` (ARS takes whole pesos): its error message, or undefined. */
 export const amountFor = (currency: Currency) => (cents: number) =>
 	isWholeFor(cents, currency) ? undefined : ARS_WHOLE_MESSAGE;
 

@@ -9,7 +9,6 @@ export const DELETE_REFERENCED_MESSAGE = 'Esta categoría tiene movimientos. Pod
 export const KIND_LOCKED_MESSAGE = 'Tiene movimientos, solo se puede cambiar a Ambos.';
 
 export const FIELDS = ['name', 'color', 'icon', 'kind'] as const;
-/** The only fields `?/update` takes. */
 export const EDITABLE = ['name', 'icon', 'color', 'kind'] as const;
 
 export type CategoryData = {
@@ -28,7 +27,6 @@ const nameField = requiredText(NAME_MAX_LENGTH, {
 	long: tooLongMessage('El nombre', NAME_MAX_LENGTH)
 });
 
-/** The stored category as the form's strings (what `parseCategoryForm` takes back). */
 export const toFormValues = (c: {
 	name: string;
 	icon: string | null;
@@ -41,7 +39,6 @@ export const toFormValues = (c: {
 	kind: c.kind ?? ''
 });
 
-/** The form `?/update` validates: `row`'s stored values with the posted EDITABLE fields over them. */
 export const editedForm = (row: Parameters<typeof toFormValues>[0], posted: FormData) =>
 	editFormData(toFormValues(row), posted, EDITABLE);
 
