@@ -2,7 +2,7 @@ import { and, eq, inArray, isNull, like, gte, lt, or, type SQL } from 'drizzle-o
 import type { Currency } from '#lib/money.ts';
 import { canAccessAccount, canAccessOwn } from '../../access';
 import { db } from '../../db';
-import { cardAlerts, financialAccounts, mpImportItems } from '../../db/schema';
+import { cardAlerts, financialAccounts, importItems } from '../../db/schema';
 import { dayStart, localDay } from '../../month';
 import { batches, type ImportRow } from '../ingest';
 import { ALERT_KEYS, alertKey, diffKey, STATEMENT_KEYS, statementPurchaseDay } from '../keys';
@@ -99,9 +99,9 @@ export function pickMatch<C extends Candidate>(
 /** Whether `key` is already an item's external key or alias key of the user (`mine` is their ownership filter). */
 async function keyTaken(mine: SQL, key: string): Promise<boolean> {
 	const found = await db
-		.select({ id: mpImportItems.id })
-		.from(mpImportItems)
-		.where(and(mine, or(eq(mpImportItems.aliasKey, key), eq(mpImportItems.externalKey, key))))
+		.select({ id: importItems.id })
+		.from(importItems)
+		.where(and(mine, or(eq(importItems.aliasKey, key), eq(importItems.externalKey, key))))
 		.limit(1);
 	return found.length > 0;
 }
@@ -125,21 +125,19 @@ export async function matchStatement(
 	lines: StatementLineRow[]
 ): Promise<{ rows: ImportRow[]; diffs: ImportRow[] }> {
 	const keys = lines.map((l) => l.key);
-	const mine = canAccessOwn(userId, mpImportItems);
+	const mine = canAccessOwn(userId, importItems);
 	const existing = new Set<string>();
 	const aliased = new Set<string>();
 	for (const batch of batches(keys)) {
 		const found = await db
-			.select({ externalKey: mpImportItems.externalKey, aliasKey: mpImportItems.aliasKey })
-			.from(mpImportItems)
-			.where(
-				and(mine, eq(mpImportItems.source, source), inArray(mpImportItems.externalKey, batch))
-			);
+			.select({ externalKey: importItems.externalKey, aliasKey: importItems.aliasKey })
+			.from(importItems)
+			.where(and(mine, eq(importItems.source, source), inArray(importItems.externalKey, batch)));
 		for (const f of found) existing.add(f.externalKey);
 		const viaAlias = await db
-			.select({ aliasKey: mpImportItems.aliasKey })
-			.from(mpImportItems)
-			.where(and(mine, inArray(mpImportItems.aliasKey, batch)));
+			.select({ aliasKey: importItems.aliasKey })
+			.from(importItems)
+			.where(and(mine, inArray(importItems.aliasKey, batch)));
 		for (const f of viaAlias) aliased.add(f.aliasKey!);
 	}
 
@@ -158,24 +156,24 @@ export async function matchStatement(
 		const to = dayStart(shiftDay(days[days.length - 1], MATCH_DAYS_AFTER + 1))!;
 		const rows = await db
 			.select({
-				id: mpImportItems.id,
-				occurredAt: mpImportItems.occurredAt,
-				amount: mpImportItems.amount,
-				merchant: mpImportItems.merchant,
+				id: importItems.id,
+				occurredAt: importItems.occurredAt,
+				amount: importItems.amount,
+				merchant: importItems.merchant,
 				currency: financialAccounts.currency
 			})
-			.from(mpImportItems)
-			.innerJoin(financialAccounts, eq(financialAccounts.id, mpImportItems.accountId))
+			.from(importItems)
+			.innerJoin(financialAccounts, eq(financialAccounts.id, importItems.accountId))
 			.where(
 				and(
 					mine,
 					canAccessAccount(userId),
-					eq(mpImportItems.source, source),
-					like(mpImportItems.externalKey, ALERT_KEYS),
-					eq(mpImportItems.kind, KIND.cardPurchase),
-					isNull(mpImportItems.aliasKey),
-					gte(mpImportItems.occurredAt, from),
-					lt(mpImportItems.occurredAt, to)
+					eq(importItems.source, source),
+					like(importItems.externalKey, ALERT_KEYS),
+					eq(importItems.kind, KIND.cardPurchase),
+					isNull(importItems.aliasKey),
+					gte(importItems.occurredAt, from),
+					lt(importItems.occurredAt, to)
 				)
 			);
 		let pool = rows.map((r) => ({
@@ -201,19 +199,19 @@ export async function matchStatement(
 			pool = pool.filter((c) => c.id !== found.id);
 			const claimed = await db.transaction(async (tx) => {
 				const [row] = await tx
-					.update(mpImportItems)
+					.update(importItems)
 					.set({ aliasKey: l.key })
-					.where(and(eq(mpImportItems.id, found.id), mine, isNull(mpImportItems.aliasKey)))
-					.returning({ id: mpImportItems.id });
+					.where(and(eq(importItems.id, found.id), mine, isNull(importItems.aliasKey)))
+					.returning({ id: importItems.id });
 				if (!row) return false;
 				// A pending alert item becomes what the statement says (the cuota, for an installment).
 				await tx
-					.update(mpImportItems)
+					.update(importItems)
 					.set({
 						amount: l.line.cents,
 						...(l.line.installment ? { installment: l.line.installment } : {})
 					})
-					.where(and(eq(mpImportItems.id, found.id), mine, eq(mpImportItems.status, 'pending')));
+					.where(and(eq(importItems.id, found.id), mine, eq(importItems.status, 'pending')));
 				return true;
 			});
 			// A lost claim: if the line is meanwhile an alias (or an item), it must not be imported again.
@@ -227,15 +225,15 @@ export async function matchStatement(
 	for (const batch of batches([...aliased, ...matched])) {
 		const items = await db
 			.select({
-				aliasKey: mpImportItems.aliasKey,
-				status: mpImportItems.status,
-				amount: mpImportItems.amount,
-				accountId: mpImportItems.accountId,
-				merchant: mpImportItems.merchant,
-				rawDescription: mpImportItems.rawDescription
+				aliasKey: importItems.aliasKey,
+				status: importItems.status,
+				amount: importItems.amount,
+				accountId: importItems.accountId,
+				merchant: importItems.merchant,
+				rawDescription: importItems.rawDescription
 			})
-			.from(mpImportItems)
-			.where(and(mine, inArray(mpImportItems.aliasKey, batch)));
+			.from(importItems)
+			.where(and(mine, inArray(importItems.aliasKey, batch)));
 		for (const item of items) {
 			const line = byKey.get(item.aliasKey!)!;
 			const d = line.line.cents - item.amount;
@@ -279,29 +277,29 @@ export async function matchWaitingAlerts(
 ): Promise<Set<string>> {
 	const consumed = new Set<string>();
 	if (alerts.length === 0) return consumed;
-	const mine = canAccessOwn(userId, mpImportItems);
+	const mine = canAccessOwn(userId, importItems);
 	const earliest = alerts.map((a) => localDay(a.receivedAt)).sort()[0];
 	const rows = await db
 		.select({
-			id: mpImportItems.id,
-			externalKey: mpImportItems.externalKey,
-			amount: mpImportItems.amount,
-			merchant: mpImportItems.merchant,
-			installment: mpImportItems.installment,
+			id: importItems.id,
+			externalKey: importItems.externalKey,
+			amount: importItems.amount,
+			merchant: importItems.merchant,
+			installment: importItems.installment,
 			currency: financialAccounts.currency
 		})
-		.from(mpImportItems)
-		.innerJoin(financialAccounts, eq(financialAccounts.id, mpImportItems.accountId))
+		.from(importItems)
+		.innerJoin(financialAccounts, eq(financialAccounts.id, importItems.accountId))
 		.where(
 			and(
 				mine,
 				canAccessAccount(userId),
-				eq(mpImportItems.source, source),
-				like(mpImportItems.externalKey, STATEMENT_KEYS),
-				inArray(mpImportItems.kind, [KIND.cardPurchase, KIND.cardInstallment]),
-				eq(mpImportItems.isCredit, false),
-				isNull(mpImportItems.aliasKey),
-				gte(mpImportItems.occurredAt, dayStart(shiftDay(earliest, -MATCH_DAYS_BEFORE))!)
+				eq(importItems.source, source),
+				like(importItems.externalKey, STATEMENT_KEYS),
+				inArray(importItems.kind, [KIND.cardPurchase, KIND.cardInstallment]),
+				eq(importItems.isCredit, false),
+				isNull(importItems.aliasKey),
+				gte(importItems.occurredAt, dayStart(shiftDay(earliest, -MATCH_DAYS_BEFORE))!)
 			)
 		);
 	let pool = rows.map((r) => ({
@@ -324,10 +322,10 @@ export async function matchWaitingAlerts(
 		pool = pool.filter((c) => c.id !== found.id);
 		const claimed = await db.transaction(async (tx) => {
 			const [row] = await tx
-				.update(mpImportItems)
+				.update(importItems)
 				.set({ aliasKey: alertKey(a.messageId) })
-				.where(and(eq(mpImportItems.id, found.id), mine, isNull(mpImportItems.aliasKey)))
-				.returning({ id: mpImportItems.id });
+				.where(and(eq(importItems.id, found.id), mine, isNull(importItems.aliasKey)))
+				.returning({ id: importItems.id });
 			if (!row) return false;
 			await tx
 				.update(cardAlerts)

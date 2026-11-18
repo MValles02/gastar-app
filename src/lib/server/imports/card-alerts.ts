@@ -1,7 +1,7 @@
 import { and, asc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 import { canAccessOwn, userOwned } from '../access';
 import { db } from '../db';
-import { cardAlerts, importCards, mpImportItems } from '../db/schema';
+import { cardAlerts, importCards, importItems } from '../db/schema';
 import { pgErrorCode } from '../db/errors';
 import { activeAccountsIn, isActiveAccountIn } from './connections';
 import { getGaliciaConnection, setGaliciaAccount } from './galicia/connection';
@@ -146,7 +146,7 @@ async function convertLocked(userId: string) {
 	await db
 		.update(cardAlerts)
 		.set({
-			importItemId: sql`(select ${mpImportItems.id} from ${mpImportItems} where ${mpImportItems.userId} = ${cardAlerts.userId} and ${mpImportItems.externalKey} = ${alertKeySql(cardAlerts.gmailMessageId)})`
+			importItemId: sql`(select ${importItems.id} from ${importItems} where ${importItems.userId} = ${cardAlerts.userId} and ${importItems.externalKey} = ${alertKeySql(cardAlerts.gmailMessageId)})`
 		})
 		.where(
 			and(

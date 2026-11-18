@@ -341,7 +341,7 @@ export const importRuleMatchKindEnum = pgEnum('import_rule_match_kind', [
 	'kind'
 ]);
 
-export const mpImportItems = pgTable(
+export const importItems = pgTable(
 	'mp_import_items',
 	{
 		id: uuid('id').defaultRandom().primaryKey(),
@@ -402,7 +402,7 @@ export const mpImportItems = pgTable(
 	]
 );
 
-export const mpImportRules = pgTable(
+export const importRules = pgTable(
 	'mp_import_rules',
 	{
 		id: uuid('id').defaultRandom().primaryKey(),
@@ -621,7 +621,7 @@ export const cardAlerts = pgTable(
 		transactionType: text('transaction_type').notNull(),
 		receivedAt: timestamp('received_at', { withTimezone: true }).notNull(),
 		// The item this alert became; null while it waits (unknown or credit card) or after the item is gone.
-		importItemId: uuid('import_item_id').references(() => mpImportItems.id, {
+		importItemId: uuid('import_item_id').references(() => importItems.id, {
 			onDelete: 'set null'
 		}),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
