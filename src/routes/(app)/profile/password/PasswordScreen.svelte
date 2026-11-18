@@ -5,7 +5,6 @@
 	import PasswordForm from './PasswordForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
-	// "Cambiar contraseña": the /profile/password page, or (`onclose`) the drawer opened over Perfil.
 	let { data, form, onclose }: { data: PageData; form?: ActionData; onclose?: () => void } =
 		$props();
 
