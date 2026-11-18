@@ -14,10 +14,7 @@
 		initial,
 		manual,
 		hasTransfer,
-		error,
-		variant = 'page',
-		onsaved,
-		onclose
+		error
 	}: {
 		/** The rate shown to edit (es-AR input). */
 		initial: string;
@@ -25,11 +22,6 @@
 		manual: boolean;
 		hasTransfer: boolean;
 		error?: string;
-		variant?: 'page' | 'drawer';
-		/** Drawer: the save succeeded. */
-		onsaved?: () => void;
-		/** Drawer: Cancelar. */
-		onclose?: () => void;
 	} = $props();
 
 	const path = resolve('plan/rate');
@@ -40,10 +32,7 @@
 
 <FormShell
 	action="{path}?/set"
-	{variant}
 	onfailure={(data: { errors?: { rate?: string } }) => (fieldError = data.errors?.rate)}
-	{onsaved}
-	{onclose}
 	cancelHref="/plan"
 	canSave={isPositiveAmount(rate)}
 	scroll

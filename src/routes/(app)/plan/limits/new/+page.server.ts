@@ -25,7 +25,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			color: toSwatchKey(c.color),
 			suggested: suggestions.get(c.id) ?? { ARS: 0, USD: 0 }
 		})),
-		wizard: parseStep(url.searchParams.get('wizard'))
+		wizard: parseStep(url.searchParams.get('wizard')),
+		initial: { categoryId: '', amount: '', currency: PLAN_CURRENCY }
 	};
 };
 

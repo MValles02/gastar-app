@@ -1,21 +1,21 @@
 import type { Component } from 'svelte';
 
 // Routes that also open as a drawer over the current screen (shallow routing, `openShallow`): key ->
-// the drawer component, rendered by the (app) layout with `data` (the route's preloaded load) and
-// `onclose`. Adding one is a route folder plus a line here. `App.PageState` derives from this.
+// the route's screen (a page, or a drawer when given `onclose`), rendered by the (app) layout with
+// `data` (the route's preloaded load) and `onclose`. Adding one is a route folder plus a line here. `App.PageState` derives from this.
 export const drawers = {
-	newMovement: () => import('./movements/new/NewMovementDrawer.svelte'),
-	movement: () => import('./movements/[id]/MovementDetailDrawer.svelte'),
-	newRule: () => import('./plan/recurring/new/NewRuleDrawer.svelte'),
-	limit: () => import('./plan/limits/[categoryId]/LimitDetail.svelte'),
-	newLimit: () => import('./plan/limits/new/NewLimitDrawer.svelte'),
-	rate: () => import('./plan/rate/RateDrawer.svelte'),
-	savings: () => import('./plan/savings/SavingsDrawer.svelte'),
-	newAccount: () => import('./accounts/new/NewAccountDrawer.svelte'),
-	newCategory: () => import('#lib/components/categories/CategoryCreateDrawer.svelte'),
-	password: () => import('./profile/password/PasswordDrawer.svelte'),
-	deleteAccount: () => import('./profile/delete/DeleteAccountDrawer.svelte'),
-	importItem: () => import('./imports/[id]/ImportItemDrawer.svelte')
+	newMovement: () => import('./movements/new/NewMovementScreen.svelte'),
+	movement: () => import('./movements/[id]/MovementScreen.svelte'),
+	newRule: () => import('./plan/recurring/new/NewRuleScreen.svelte'),
+	limit: () => import('./plan/limits/[categoryId]/LimitScreen.svelte'),
+	newLimit: () => import('./plan/limits/new/NewLimitScreen.svelte'),
+	rate: () => import('./plan/rate/RateScreen.svelte'),
+	savings: () => import('./plan/savings/SavingsScreen.svelte'),
+	newAccount: () => import('./accounts/new/NewAccountScreen.svelte'),
+	newCategory: () => import('./categories/new/NewCategoryScreen.svelte'),
+	password: () => import('./profile/password/PasswordScreen.svelte'),
+	deleteAccount: () => import('./profile/delete/DeleteAccountScreen.svelte'),
+	importItem: () => import('./imports/[id]/ImportItemScreen.svelte')
 } satisfies Record<string, () => Promise<{ default: Component<any> }>>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export type DrawerKey = keyof typeof drawers;

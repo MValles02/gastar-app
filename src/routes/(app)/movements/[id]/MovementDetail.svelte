@@ -9,6 +9,7 @@
 	import { categoriesFor, kindFits, MOVEMENT_MESSAGES, movementNeeds } from '#lib/movement.ts';
 	import { upOnClick } from '#lib/nav-stack.svelte.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import InlineText from '#lib/components/InlineText.svelte';
 	import Money from '#lib/components/Money.svelte';
 	import CrossCurrencyRows from '#lib/components/movements/CrossCurrencyRows.svelte';
@@ -19,18 +20,16 @@
 
 	/**
 	 * A movement's detail and edit in one: tapping a field changes it, and every change saves on its own
-	 * (`?/update`) with a Deshacer toast. `drawer` lives over the list (shallow route); `page` is the
-	 * full /movements/<id> page. A type change that needs a field the movement lacks (category, Hacia,
+	 * (`?/update`) with a Deshacer toast. Lives over the list as a drawer (shallow route) or as the
+	 * full /movements/<id> page (the enclosing FormScreen). A type change that needs a field the movement lacks (category, Hacia,
 	 * Cotización) stays staged until that field is picked, then everything saves in one post.
 	 */
-	let {
-		data,
-		variant,
-		onclose
-	}: { data: PageData; variant: 'page' | 'drawer'; onclose?: () => void } = $props();
+	let { data }: { data: PageData } = $props();
 
 	type Movement = PageData['movement'];
-	const drawer = $derived(variant === 'drawer');
+	const screen = formScreen();
+	const drawer = screen.variant === 'drawer';
+	const onclose = () => screen.onclose?.();
 
 	let m = $state<Movement>(untrack(() => data.movement));
 	// Fixed payments the movement can link to; they depend on its type and account currency, so every save refreshes them.

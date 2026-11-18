@@ -7,10 +7,11 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import { resolve } from '$app/paths';
 	import AmountInput from '#lib/components/AmountInput.svelte';
-	import CategoryCreateDrawer from '#lib/components/categories/CategoryCreateDrawer.svelte';
+	import NewCategoryScreen from '../categories/new/NewCategoryScreen.svelte';
 	import type { CreatedCategory } from '#lib/components/categories/CategoryForm.svelte';
 	import EntryFields from '#lib/components/EntryFields.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
+	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import CrossCurrencyRows from '#lib/components/movements/CrossCurrencyRows.svelte';
 	import DatePicker from '#lib/components/pickers/DatePicker.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
@@ -42,39 +43,29 @@
 		errors = {},
 		accounts,
 		categories,
-		submitLabel,
-		cancelHref,
 		returnTo,
 		repeatable = false,
 		repeatChecked = false,
-		variant = 'page',
-		onsaved,
-		onclose
+		onsaved
 	}: {
 		initial: Record<Fields, string>;
 		errors?: Errors;
 		accounts: (Picker & { currency: Currency; balance?: number })[];
 		categories: (Picker & { kind: string | null })[];
-		submitLabel: string;
-		cancelHref: string;
 		/** Where saving returns to (validated by the action); none keeps the user on the form. */
 		returnTo?: string | null;
 		/** Offer "Repetir todos los meses" (new incomes and outcomes only). */
 		repeatable?: boolean;
 		/** Initial state of the "Repetir todos los meses" switch (kept when the form is shown again with errors). */
 		repeatChecked?: boolean;
-		/**
-		 * `drawer`: the new-movement drawer (stacked pickers, per-row validation, actions pinned below,
-		 * posts to /movements/new and reports the result instead of navigating). `page`: a full page.
-		 */
-		variant?: 'page' | 'drawer';
 		/** Drawer: the save succeeded; ids come from the action's redirect flags. */
 		onsaved?: (saved: { id: string; ruleId: string | null }) => void;
-		/** Drawer: Cancelar. */
-		onclose?: () => void;
 	} = $props();
 
-	const drawer = $derived(variant === 'drawer');
+	// In a FormScreen drawer: stacked pickers, per-row validation, actions pinned below, posts to
+	// /movements/new and reports the result instead of navigating.
+	const screen = formScreen();
+	const drawer = $derived(screen.variant === 'drawer');
 
 	const typeOptions = [
 		{ value: 'outcome', label: 'Gasto' },
@@ -163,10 +154,8 @@
 		if (categoryId && !pickableCategories.some((c) => c.id === categoryId)) categoryId = '';
 	});
 
-	// The drawer's account rows show the currency written out under the name.
-	const accountItems = $derived(
-		accounts.map((a) => (a.balance === undefined ? a : { ...a, meta: CURRENCY_LABEL[a.currency] }))
-	);
+	// The account rows show the currency written out under the name.
+	const accountItems = $derived(accounts.map((a) => ({ ...a, meta: CURRENCY_LABEL[a.currency] })));
 
 	const originCurrency = $derived(accounts.find((a) => a.id === accountId)?.currency);
 	const destCurrency = $derived(accounts.find((a) => a.id === destinationId)?.currency);
@@ -222,15 +211,11 @@
 
 <FormShell
 	action={drawer ? resolve('movements/new') : ''}
-	{variant}
 	{errors}
 	validate={drawer ? validate : undefined}
 	onfailure={(data: { errors?: Errors }) => (fieldErrors = data.errors ?? {})}
 	onsaved={drawer ? saved : undefined}
-	{onclose}
 	errorToast="No se pudo guardar el movimiento."
-	{cancelHref}
-	{submitLabel}
 	{canSave}
 	scroll="drawer"
 	style="--form-gap: var(--space-5)"
@@ -393,7 +378,7 @@
 </FormShell>
 
 {#if drawer}
-	<CategoryCreateDrawer
+	<NewCategoryScreen
 		bind:open={createOpen}
 		defaultKind={type === 'income' ? 'income' : 'outcome'}
 		oncreated={categoryCreated}

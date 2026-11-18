@@ -16,9 +16,7 @@
 		error,
 		reauthMode = 'password',
 		reauth = false,
-		email = '',
-		variant = 'page',
-		onclose
+		email = ''
 	}: {
 		summary: Summary;
 		error?: string;
@@ -28,9 +26,6 @@
 		reauth?: boolean;
 		/** The account being deleted, shown to a user without a password. */
 		email?: string;
-		variant?: 'page' | 'drawer';
-		/** Drawer: Cancelar. */
-		onclose?: () => void;
 	} = $props();
 
 	const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -84,11 +79,9 @@
 {:else}
 	<FormShell
 		action="/profile/delete?/delete"
-		{variant}
 		inPlace
 		onsubmit={() => (posted = undefined)}
 		onfailure={(data: { formError?: string; reauth?: boolean }) => (posted = data)}
-		{onclose}
 		errorToast="No se pudo darte de baja."
 		cancelHref="/profile"
 		submitLabel="Darme de baja"

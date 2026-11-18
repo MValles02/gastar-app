@@ -6,6 +6,7 @@
 	import { submitAction } from '#lib/autosave.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
+	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import Money from '#lib/components/Money.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
@@ -20,25 +21,23 @@
 	import type { PageData } from './$types';
 
 	/**
-	 * Reviews one pending Mercado Pago item. `drawer` lives over the inbox (shallow route): it posts to
-	 * the page's own actions and reports the outcome through `ondone`. `page` is /imports/<id>, where
-	 * the actions redirect back to the inbox with `?done=`.
+	 * Reviews one pending Mercado Pago item. As a drawer over the inbox (shallow route) it posts to the
+	 * page's own actions and reports the outcome through `ondone`; as the /imports/<id> page the
+	 * actions redirect back to the inbox with `?done=`.
 	 */
 	let {
 		data,
-		variant,
 		form = null,
 		ondone
 	}: {
 		data: PageData;
-		variant: 'page' | 'drawer';
 		/** Page: the failed action's result (values and errors). */
 		form?: { values?: Record<string, string>; errors?: Record<string, string | undefined> } | null;
 		/** Drawer: the item was approved, discarded or was already reviewed. */
 		ondone?: (done: ImportDone) => void;
 	} = $props();
 
-	const drawer = $derived(variant === 'drawer');
+	const drawer = formScreen().variant === 'drawer';
 	const item = $derived(data.item);
 	const path = $derived(resolve(`imports/${item.id}`));
 
@@ -121,7 +120,6 @@
 	<FormShell
 		id="import-form"
 		action={drawer ? `${path}?/approve` : '?/approve'}
-		{variant}
 		bar={false}
 		errors={form?.errors}
 		onfailure={(d: { errors?: Record<string, string | undefined> }) => (posted = d.errors ?? {})}

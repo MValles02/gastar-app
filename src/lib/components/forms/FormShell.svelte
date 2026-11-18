@@ -5,7 +5,7 @@
 	import { followRedirect } from '#lib/nav-stack.svelte.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import FormActions from '#lib/components/FormActions.svelte';
-	import { focusFirstError } from './form-enhance.ts';
+	import { focusFirstError, formScreen } from './form-enhance.ts';
 
 	/**
 	 * The `<form>` every create/edit form renders: progressive enhancement, the submitting state and
@@ -13,12 +13,13 @@
 	 * (`errors` refocuses the first invalid field). `drawer`: a redirect calls `onsaved` (follows it
 	 * when unset), a failure hands its data to `onfailure` and refocuses, anything else toasts
 	 * `errorToast`; the bar is Cancelar (`onclose`) and the submit, disabled once hydrated until
-	 * `canSave`. `bind:mounted` tells the fields when JS is running.
+	 * `canSave`. `bind:mounted` tells the fields when JS is running. `variant`, `onsaved`, `onclose` and
+	 * `cancelHref` default to the enclosing FormScreen's; an explicit prop wins.
 	 */
 	let {
 		action,
 		id,
-		variant = 'page',
+		variant,
 		inPlace = false,
 		errors,
 		validate,
@@ -27,7 +28,7 @@
 		onsaved,
 		onclose,
 		errorToast = 'No se pudo guardar.',
-		cancelHref = '/',
+		cancelHref,
 		submitLabel = 'Guardar',
 		canSave = true,
 		danger = false,
@@ -73,7 +74,11 @@
 		children: Snippet;
 	} = $props();
 
-	const drawer = $derived(variant === 'drawer');
+	const screen = formScreen();
+	const drawer = $derived((variant ?? screen.variant) === 'drawer');
+	const saved = $derived(onsaved ?? screen.onsaved);
+	const close = $derived(onclose ?? screen.onclose);
+	const cancelTo = $derived(cancelHref ?? screen.cancelHref ?? '/');
 	const local = $derived(drawer || inPlace);
 	const wrap = $derived(scroll === true || (scroll === 'drawer' && drawer));
 	let form = $state<HTMLFormElement>();
@@ -93,7 +98,7 @@
 		onsubmit?.();
 		return async (input) => {
 			const { result } = input;
-			if (result.type === 'redirect' && onsaved) onsaved(result.location);
+			if (result.type === 'redirect' && saved) saved(result.location);
 			else if (local && result.type === 'failure') {
 				onfailure?.((result.data ?? {}) as Partial<Failure>);
 				focusFirstError(form);
@@ -131,7 +136,7 @@
 				type="button"
 				variant="outline"
 				class="min-w-0 flex-1 basis-0"
-				onclick={() => onclose?.()}>Cancelar</Button
+				onclick={() => close?.()}>Cancelar</Button
 			>
 			<Button
 				type="submit"
@@ -142,7 +147,7 @@
 			>
 		</div>
 	{:else if danger}
-		<FormActions {cancelHref} sticky={false}>
+		<FormActions cancelHref={cancelTo} sticky={false}>
 			{#snippet primary()}
 				<Button
 					type="submit"
@@ -153,7 +158,7 @@
 			{/snippet}
 		</FormActions>
 	{:else}
-		<FormActions {cancelHref} {submitLabel} {submitting} />
+		<FormActions cancelHref={cancelTo} {submitLabel} {submitting} />
 	{/if}
 </form>
 

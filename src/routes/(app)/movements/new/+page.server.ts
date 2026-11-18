@@ -32,7 +32,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url, request }) =>
 		formKey: crypto.randomUUID(),
 		from: refererPath(request, url),
 		defaultAccountId,
-		values: emptyMovementValues(defaultAccountId, now)
+		initial: emptyMovementValues(defaultAccountId, now)
 	};
 };
 
