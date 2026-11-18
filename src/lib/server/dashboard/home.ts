@@ -1,8 +1,9 @@
 import { categoryLook, type CategoryIconKey, type SwatchKey } from '#lib/appearance.ts';
 import { CURRENCY_NAME, type Currency } from '#lib/money.ts';
-import { signOf, type MovementType } from '#lib/movement.ts';
 import { accountSummary } from '../accounts/queries';
 import { hasAccounts, monthNet, totalBalance } from '../accounts/balance';
+import { rankSpending } from '../categories/spending';
+import { toRecentItem } from '../movements/recent';
 import { categorySums, originTypeSums, recentMovements, transfersInSum } from './queries';
 import { hasAnyMovement } from '../movements/queries';
 import { hasAnyPlan } from '../plan/queries';
@@ -16,50 +17,8 @@ const TOP_CATEGORIES = 3;
 export function topCategories(
 	rows: { id: string; name: string; outcome: number; income: number }[]
 ): { id: string; name: string; net: number; share: number }[] {
-	const positive = rows
-		.map((r) => ({ id: r.id, name: r.name, net: r.outcome - r.income }))
-		.filter((r) => r.net > 0);
-	const total = positive.reduce((a, r) => a + r.net, 0);
-	return positive
-		.sort((a, b) => b.net - a.net || a.name.localeCompare(b.name))
-		.slice(0, TOP_CATEGORIES)
-		.map((r) => ({ ...r, share: r.net / total }));
-}
-
-export type RecentRow = {
-	id: string;
-	type: MovementType;
-	description: string;
-	occurredAt: Date;
-	amount: number;
-	destinationAmount: number | null;
-	accountName: string;
-	accountCurrency: Currency;
-	destinationAccountName: string | null;
-	categoryIcon: string | null;
-	categoryColor: string | null;
-};
-
-export function toRecentItem(row: RecentRow, currency: Currency) {
-	const raw =
-		row.type === 'transfer' && row.accountCurrency !== currency
-			? (row.destinationAmount ?? row.amount)
-			: row.amount;
-	const sign = signOf(row.type);
-	const look = categoryLook({ icon: row.categoryIcon, color: row.categoryColor }, null);
-	return {
-		id: row.id,
-		type: row.type,
-		description: row.description,
-		accountName: row.accountName,
-		categoryIcon: look.icon,
-		categoryColor: look.color,
-		destinationAccountName: row.destinationAccountName,
-		occurredAt: row.occurredAt,
-		currency,
-		amount: sign === 'negative' ? -raw : raw,
-		sign
-	};
+	const { top, total } = rankSpending(rows, TOP_CATEGORIES);
+	return top.map((r) => ({ id: r.id, name: r.name, net: r.net, share: r.net / total }));
 }
 
 type TopCategory = ReturnType<typeof topCategories>[number] & {

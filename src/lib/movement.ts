@@ -75,3 +75,22 @@ export const MOVEMENT_MESSAGES = {
 		outcome: 'Esa categoría es de gastos. Elegí otra.'
 	}
 };
+
+/**
+ * Why a picked account or category can't be used, or null: archived (unless `kept`: the ref it
+ * already had, or one an undo restores), or a category whose kind doesn't fit `kindFor` (omit it
+ * where the kind is exempt or doesn't apply). Each form maps the reason to its own message.
+ */
+export function refError(
+	ref: { archivedAt: Date | null; kind?: string | null },
+	{ kept, kindFor }: { kept: boolean; kindFor?: string }
+): 'archived' | 'kind' | null {
+	if (ref.archivedAt && !kept) return 'archived';
+	if (
+		kindFor !== undefined &&
+		(ref.kind === 'income' || ref.kind === 'outcome') &&
+		ref.kind !== kindFor
+	)
+		return 'kind';
+	return null;
+}

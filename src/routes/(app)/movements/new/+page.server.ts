@@ -7,13 +7,8 @@ import type { Actions, PageServerLoad } from './$types';
 import { localDay } from '#lib/server/month.ts';
 import { emptyMovementValues, parseMovementForm } from '#lib/server/movements/form.ts';
 import { requireUser } from '#lib/server/guards.ts';
-import {
-	createNewMovement,
-	drawerPickers,
-	failIfUnavailable,
-	newMovementExtras,
-	refererPath
-} from '#lib/server/movements/detail.ts';
+import { drawerPickers, failIfUnavailable } from '#lib/server/movements/detail.ts';
+import { createNewMovement, newMovementExtras, refererPath } from '#lib/server/movements/create.ts';
 import { resolvePostedMovement } from '#lib/server/movements/pickers.ts';
 
 /** Remembers the account of the last saved movement as the next form's default. */

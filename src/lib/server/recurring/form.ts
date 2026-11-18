@@ -1,6 +1,11 @@
 import { formFail } from '#lib/form.ts';
 import { formatAmountInput, parseAmount, type Currency } from '#lib/money.ts';
-import { MOVEMENT_MESSAGES as MSG, type MovementType } from '#lib/movement.ts';
+import {
+	type CategoryKind,
+	MOVEMENT_MESSAGES as MSG,
+	type MovementType,
+	refError
+} from '#lib/movement.ts';
 import { MAX_DAY_OF_MONTH } from '#lib/plan.ts';
 import { getAccount } from '../accounts/queries';
 import { getCategory } from '../categories/queries';
@@ -105,20 +110,23 @@ export async function readRecurringForm(
 	const errors: Record<string, string> = {};
 	// An edit may keep the rule's own account/category even if archived since; an undo may restore archived ones.
 	const keeps = (id: string, own?: string) => id === own || !!current?.archivedOk?.includes(id);
-	if (!account || (account.archivedAt && !keeps(account.id, current?.accountId)))
+	if (!account || refError(account, { kept: keeps(account.id, current?.accountId) }))
 		errors.accountId = 'Elegí una cuenta activa.';
 	else {
 		const whole = amountFor(account.currency)(parsed.data.amount);
 		if (whole) errors.amount = whole;
 	}
-	if (!category || (category.archivedAt && !keeps(category.id, current?.categoryId)))
-		errors.categoryId = 'Elegí una categoría activa.';
-	else if (
-		(category.kind === 'income' || category.kind === 'outcome') &&
-		category.kind !== parsed.data.type &&
-		!keeps(category.id, current?.categoryId)
-	)
-		errors.categoryId = kindMismatchMessage(category.kind);
+	// A kept category (the rule's own, or undo-restored) is also exempt from the kind check.
+	const keptCategory = !!category && keeps(category.id, current?.categoryId);
+	const categoryError =
+		category &&
+		refError(category, {
+			kept: keptCategory,
+			kindFor: keptCategory ? undefined : parsed.data.type
+		});
+	if (!category || categoryError === 'archived') errors.categoryId = 'Elegí una categoría activa.';
+	else if (categoryError === 'kind')
+		errors.categoryId = kindMismatchMessage(category.kind as CategoryKind);
 	if (Object.keys(errors).length > 0)
 		return { failure: formFail(400, { values: parsed.values, errors }) };
 	return { data: parsed.data };

@@ -2,7 +2,7 @@ import type { PageServerLoad } from './$types';
 import { listAccounts } from '#lib/server/accounts/queries.ts';
 import { listCategories } from '#lib/server/categories/queries.ts';
 import type { Currency } from '#lib/money.ts';
-import { toRecentItem } from '#lib/server/dashboard/home.ts';
+import { toRecentItem } from '#lib/server/movements/recent.ts';
 import { dayHeading, localDay, monthHeading } from '#lib/server/month.ts';
 import { countMovements, movementQueryFromUrl } from '#lib/server/movements/filters.ts';
 import { listMovements, PAGE_SIZE } from '#lib/server/movements/queries.ts';
