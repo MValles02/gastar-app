@@ -13,6 +13,7 @@ import {
 import { pgErrorCode } from '#lib/server/db/errors.ts';
 import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import { requireUser } from '#lib/server/guards.ts';
+import { importUploadHref } from '#lib/toast-flags.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** Upload cap; the real statements are well under 1 MB. BODY_SIZE_LIMIT (Dockerfile) sits above it. */
@@ -80,6 +81,6 @@ export const actions: Actions = {
 						: 'Elegí la cuenta en pesos antes de subir el resumen.'
 			});
 		}
-		redirect(303, `/imports?imported=${result.created}&auto=${result.autoApproved}`);
+		redirect(303, importUploadHref(result.created, result.autoApproved));
 	}
 };
