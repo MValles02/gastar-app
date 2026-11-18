@@ -247,7 +247,7 @@ export async function matchStatement(
 				occurredAt: dayStart(closing)!,
 				amount: Math.abs(d),
 				isCredit: d < 0,
-				sourceId: '',
+				sourceId: null,
 				rawDescription: item.rawDescription,
 				merchant: item.merchant
 			});

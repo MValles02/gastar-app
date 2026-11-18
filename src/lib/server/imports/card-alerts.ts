@@ -13,7 +13,7 @@ import { getChosenImportFrom } from './settings';
 import { GALICIA_SOURCE, KIND, SOURCE, type SourceId } from './sources';
 import { CURRENCIES, CURRENCY_NAME, type Currency } from '#lib/money.ts';
 
-export type CardType = 'credit' | 'debit';
+export type { CardType } from '#lib/imports.ts';
 export type CardInput = {
 	network: string;
 	last4: string;

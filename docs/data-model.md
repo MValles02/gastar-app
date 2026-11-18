@@ -77,6 +77,8 @@ Constraints: `UNIQUE (user_id, name)`.
 
 #### DB-level CHECK constraints
 
+The `IN (...)` lists of the import tables' checks are built from the constants in `src/lib/imports.ts` (`KIND`, `SOURCE`, `GALICIA_SOURCE`, `CARD_TYPES`) and `CURRENCIES`, so they cannot drift from the code.
+
 - `type IN ('income','outcome')` ⇒ `category_id IS NOT NULL` AND `destination_account_id IS NULL` AND `destination_amount IS NULL` AND `exchange_rate IS NULL`.
 - `type = 'transfer'` ⇒ `category_id IS NULL` AND `destination_account_id IS NOT NULL` AND `destination_account_id <> account_id` AND `destination_amount IS NOT NULL`.
 
@@ -170,9 +172,9 @@ Approval inbox for imported activity (Mercado Pago, Banco Galicia card statement
 | `occurred_at` | timestamptz | |
 | `amount` | bigint, > 0 | exact net, minor units |
 | `is_credit` | boolean | direction of the money |
-| `source_id` | text | |
+| `source_id` | text, nullable | the source's own id; null when it has none (Galicia taxes and adjustments, lines without a comprobante) |
 | `raw_description` | text | |
-| `counterparty_id`, `counterparty_nickname`, `merchant`, `operation_type`, `poi_type` | text, nullable | Galicia: `merchant` is the raw reference (its rule key is the cleaned name, see Rules) and `source_id` the comprobante (or '') |
+| `counterparty_id`, `counterparty_nickname`, `merchant`, `operation_type`, `poi_type` | text, nullable | Galicia: `merchant` is the raw reference (its rule key is the cleaned name, see Rules) and `source_id` the comprobante, or null |
 | `installment` | text, nullable | Galicia installment lines: the cuota as printed (`05/12`) |
 | `alias_key` | text, nullable | the key of the other side of a match between a credit-card alert and a statement line: on the alert item the statement line's key, on a statement item the alert's key (`alert:<id>`); UNIQUE with `user_id` |
 | `unmatched_kept_at` | timestamptz, nullable | "Dejar" on "No apareció en el resumen": the alert item leaves that list |

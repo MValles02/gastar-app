@@ -1,4 +1,13 @@
-import { SOURCE_LABELS } from '#lib/imports.ts';
+import {
+	GALICIA_SOURCE,
+	KIND,
+	SOURCE,
+	SOURCE_LABELS,
+	type Kind,
+	type SourceId
+} from '#lib/imports.ts';
+
+export { GALICIA_SOURCE, KIND, SOURCE, type Kind, type SourceId };
 
 /**
  * What each import source (Mercado Pago, a Banco Galicia card network) says about its items: the kinds it
@@ -6,37 +15,8 @@ import { SOURCE_LABELS } from '#lib/imports.ts';
  * Everything that varies by source or kind lives here; callers ask, they never compare literals.
  */
 
-export const KIND = {
-	payment: 'payment',
-	accountFund: 'account_fund',
-	yield: 'yield',
-	payout: 'payout',
-	merchantPayout: 'merchant_payout',
-	refund: 'refund',
-	other: 'other',
-	cardPurchase: 'card_purchase',
-	cardInstallment: 'card_installment',
-	cardTaxes: 'card_taxes',
-	cardAdjustment: 'card_adjustment'
-} as const;
-export type Kind = (typeof KIND)[keyof typeof KIND];
-
 /** Kinds whose items come from payments/search; their latest date is where the next search starts. */
 export const PAYMENT_KINDS: Kind[] = [KIND.payment, KIND.accountFund, KIND.refund];
-
-export const SOURCE = {
-	mercadoPago: 'mercado_pago',
-	galiciaVisa: 'galicia_visa',
-	galiciaMastercard: 'galicia_mastercard',
-	visaDebit: 'visa_debit'
-} as const;
-export type SourceId = (typeof SOURCE)[keyof typeof SOURCE];
-
-/** The Banco Galicia source of a card network's statements. */
-export const GALICIA_SOURCE = {
-	visa: SOURCE.galiciaVisa,
-	mastercard: SOURCE.galiciaMastercard
-} as const;
 
 type KindSpec = {
 	/** Title when the item has no counterparty or merchant (else the raw description). */

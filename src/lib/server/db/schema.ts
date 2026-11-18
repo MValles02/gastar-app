@@ -18,10 +18,12 @@ import {
 } from 'drizzle-orm/pg-core';
 // Relative imports only: drizzle-kit loads this file outside SvelteKit, so the #lib alias does not resolve.
 import { MONTH_RE } from '../../dates';
-import { SOURCE_LABELS } from '../../imports';
+import { CARD_TYPES, GALICIA_SOURCE, KIND, SOURCE } from '../../imports';
 import { CURRENCIES } from '../../money';
 import { MOVEMENT_TYPES } from '../../movement';
 import { MAX_DAY_OF_MONTH, SAVINGS_PERCENT_MAX } from '../../plan';
+
+const inList = (xs: readonly string[]) => sql.raw(xs.map((x) => `'${x}'`).join(', '));
 
 // --- Better Auth core tables (email+password only) ---
 // Generated with `npx @better-auth/cli generate` against better-auth 1.7.6.
@@ -358,7 +360,8 @@ export const mpImportItems = pgTable(
 		// Exact net amount in minor units; direction is `isCredit`.
 		amount: bigint('amount', { mode: 'number' }).notNull(),
 		isCredit: boolean('is_credit').notNull(),
-		sourceId: text('source_id').notNull(),
+		// Null when the source has no id (e.g. Galicia taxes/adjustments, lines without a comprobante).
+		sourceId: text('source_id'),
 		rawDescription: text('raw_description').notNull(),
 		counterpartyId: text('counterparty_id'),
 		counterpartyNickname: text('counterparty_nickname'),
@@ -391,17 +394,10 @@ export const mpImportItems = pgTable(
 			table.occurredAt
 		),
 		check('mp_import_items_amount_positive_check', sql`${table.amount} > 0`),
-		check(
-			'mp_import_items_kind_check',
-			sql`${table.kind} IN ('payment', 'account_fund', 'yield', 'payout', 'merchant_payout', 'refund', 'other', 'card_purchase', 'card_installment', 'card_taxes', 'card_adjustment')`
-		),
+		check('mp_import_items_kind_check', sql`${table.kind} IN (${inList(Object.values(KIND))})`),
 		check(
 			'mp_import_items_source_check',
-			sql`${table.source} IN (${sql.raw(
-				Object.keys(SOURCE_LABELS)
-					.map((s) => `'${s}'`)
-					.join(', ')
-			)})`
+			sql`${table.source} IN (${inList(Object.values(SOURCE))})`
 		)
 	]
 );
@@ -565,7 +561,7 @@ export const cardStatements = pgTable(
 		),
 		check(
 			'card_statements_source_check',
-			sql`${table.source} IN ('galicia_visa', 'galicia_mastercard')`
+			sql`${table.source} IN (${inList(Object.values(GALICIA_SOURCE))})`
 		)
 	]
 );
@@ -601,7 +597,7 @@ export const importCards = pgTable(
 		),
 		check('import_cards_network_check', sql`${table.network} IN ('visa')`),
 		check('import_cards_last4_check', sql`${table.last4} ~ '^[0-9]{4}$'`),
-		check('import_cards_type_check', sql`${table.type} IN ('credit', 'debit')`)
+		check('import_cards_type_check', sql`${table.type} IN (${inList(CARD_TYPES)})`)
 	]
 );
 
@@ -635,7 +631,7 @@ export const cardAlerts = pgTable(
 		index('card_alerts_user_id_network_last4_idx').on(table.userId, table.network, table.last4),
 		check('card_alerts_network_check', sql`${table.network} IN ('visa')`),
 		check('card_alerts_last4_check', sql`${table.last4} ~ '^[0-9]{4}$'`),
-		check('card_alerts_currency_check', sql`${table.currency} IN ('ARS', 'USD')`),
+		check('card_alerts_currency_check', sql`${table.currency} IN (${inList(CURRENCIES)})`),
 		check('card_alerts_amount_positive_check', sql`${table.amount} > 0`)
 	]
 );

@@ -1,0 +1,1 @@
+ALTER TABLE "mp_import_items" ALTER COLUMN "source_id" DROP NOT NULL;
