@@ -57,7 +57,6 @@
 					valueText="{formatMoney(l.spent, l.currency)} de {formatMoney(l.amount, l.currency)}"
 				/>
 			{/snippet}
-			<!-- The wrapper only carries the click that opens the drawer; it adds no box. -->
 			<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 			<div onclick={(e) => open(e, l.categoryId)}>
 				<ListRow

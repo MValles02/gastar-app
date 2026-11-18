@@ -20,7 +20,6 @@ export type MovementFilterQuery = {
 	currency: Currency | '';
 };
 
-/** Pure: normalises URL search params; any invalid value becomes empty/default. */
 export function parseMovementFilters(sp: URLSearchParams) {
 	const get = (k: string) => sp.get(k) ?? '';
 	const day = (k: string) => (validDay(get(k)) ? get(k) : '');
@@ -99,7 +98,6 @@ export function movementQueryFromUrl(url: URL, today = localDay(new Date())) {
 	};
 }
 
-/** How many movements `query` matches (the list's total and the drawer's "Ver N movimientos"). */
 export async function countMovements(userId: string, query: MovementFilterQuery) {
 	const rows = await summarizeMovements(userId, query);
 	return rows.reduce((a, r) => a + r.count, 0);

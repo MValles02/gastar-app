@@ -115,7 +115,6 @@ async function paymentsStep(
 	ingest: Ingest
 ): Promise<void> {
 	const paid = await ingest(await syncPayments(l.accountId, l.userId, me, auth, l.floor, from));
-	// Progress for the inbox: payments are stored, the report is next (if any).
 	await progress(l.accountId, { phase: report ? 'report' : 'payments', newItems: paid });
 }
 

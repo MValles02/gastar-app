@@ -41,7 +41,6 @@ export function refererPath(request: Request, base: URL) {
 	}
 }
 
-/** The new-movement form's own fields, echoed into `values` so a failed submit keeps them. */
 export function newMovementExtras(fd: FormData, values: Record<string, string>) {
 	// Keeps the checkbox state when the form is shown again with errors.
 	if (fd.get('repeat') === 'on') values.repeat = 'on';

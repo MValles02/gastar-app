@@ -5,7 +5,6 @@
 	import { closeAfterSave } from '#lib/components/forms/form-enhance.ts';
 	import type { ActionData } from './$types';
 
-	// "Nueva cuenta": the /accounts/new page, or (`onclose`) the drawer opened over the Cuentas list.
 	let { form, onclose }: { form?: ActionData; onclose?: () => void } = $props();
 </script>
 

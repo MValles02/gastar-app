@@ -185,8 +185,6 @@ export async function refreshConnection(userId: string): Promise<RefreshOutcome>
 	return 'ok';
 }
 
-// --- Stored tokens (they never leave this module except through getAccessToken) ---
-
 /**
  * Decrypted access token and expiry for the sync, or null when not linked or the token cannot be decrypted
  * (wrong or rotated MP_TOKEN_KEY, corrupt data): then the connection is flagged needs_reconnect.

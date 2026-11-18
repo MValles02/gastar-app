@@ -9,7 +9,6 @@ import {
 	spendingPlans
 } from './db/schema';
 
-/** Runs named count queries as scalar subqueries of one statement; counts come back as numbers. */
 const counts = async <K extends string>(q: Record<K, SQLWrapper>) => {
 	const parts = Object.entries<SQLWrapper>(q).map(([k, v]) => sql`${v} as ${sql.identifier(k)}`);
 	const [row] = await db.execute<Record<K, string | number>>(
@@ -21,7 +20,6 @@ const counts = async <K extends string>(q: Record<K, SQLWrapper>) => {
 	>;
 };
 
-/** Active accounts and categories, as the Perfil rows count them (archived ones are hidden by default). */
 export async function profileCounts(userId: string) {
 	const row = await counts({
 		accounts: db
@@ -36,7 +34,6 @@ export async function profileCounts(userId: string) {
 	return row;
 }
 
-/** What "Darme de baja" erases, counted through the same access helpers (archived included). */
 export async function deletionSummary(userId: string) {
 	const row = await counts({
 		accounts: db.select({ n: count() }).from(financialAccounts).where(canAccessAccount(userId)),

@@ -4,7 +4,6 @@
 	import * as Item from '#lib/components/ui/item/index.js';
 	import { cn } from '#lib/utils.js';
 
-	/** Bordered card holding a list of ListRow. */
 	let {
 		class: className,
 		children,

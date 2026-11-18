@@ -23,7 +23,6 @@ import {
 
 // Payments: /v1/payments/search, both sides, in seconds.
 
-// Days, not hours: items from the old release-report sync carry day-start times, and dedupe makes overlap cheap.
 const PAYMENTS_OVERLAP_MS = OVERLAP_DAYS * DAY_MS;
 const PAGE = 1000; // payments/search max limit
 

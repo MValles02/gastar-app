@@ -20,7 +20,6 @@ export type WizardStepName = (typeof WIZARD_STEPS)[number]['name'];
 /** Each step's question, in step order. */
 export const WIZARD_TITLES = WIZARD_STEPS.map((s) => s.title);
 
-/** The number of the step called `name`. */
 export const wizardStep = (name: WizardStepName) =>
 	(WIZARD_STEPS.findIndex((s) => s.name === name) + 1) as WizardStep;
 
@@ -30,7 +29,6 @@ export function parseStep(raw: string | null): WizardStep | null {
 	return i < 0 ? null : ((i + 1) as WizardStep);
 }
 
-/** The wizard's step `n` (`/plan/setup?step=N`). */
 export const setupStepHref = (n: number) => `/plan/setup?step=${n}`;
 
 /** `href` opened from wizard step `step` (`?wizard=N`, or `&wizard=N` after a query); as is without one. */

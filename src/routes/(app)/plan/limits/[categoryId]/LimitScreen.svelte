@@ -5,7 +5,6 @@
 	import LimitDetail from './LimitDetail.svelte';
 	import type { PageData } from './$types';
 
-	// A category limit's detail and edit: the /plan/limits/<id> page, or (`onclose`) a drawer over the plan.
 	let { data, onclose }: { data: PageData; onclose?: () => void } = $props();
 
 	const back = $derived(planReturn(data.wizard ? String(data.wizard) : null));

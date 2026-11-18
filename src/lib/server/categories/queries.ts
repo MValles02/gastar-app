@@ -43,7 +43,6 @@ export function getCategory(userId: string, id: string) {
 		.limit(1);
 }
 
-/** Whether any movement uses the category. */
 export async function isCategoryReferenced(userId: string, id: string) {
 	const rows = await db
 		.select({ id: movements.id })
@@ -142,7 +141,6 @@ export function categoryMonthTotals(userId: string, range: Range) {
 		.groupBy(movements.categoryId, financialAccounts.currency);
 }
 
-/** Distinct income/outcome movement types recorded on a category (empty when it has none). */
 export function categoryMovementTypes(userId: string, id: string) {
 	return db
 		.selectDistinct({ type: movements.type })

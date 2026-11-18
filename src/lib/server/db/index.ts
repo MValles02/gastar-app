@@ -24,6 +24,5 @@ export const lockClient = (g.__gastarLockPg ??= postgres(env.DATABASE_URL ?? '',
 
 export const db = drizzle(client, { schema });
 
-/** The db or a transaction callback's handle. */
 export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 export type DbExecutor = Tx | typeof db;

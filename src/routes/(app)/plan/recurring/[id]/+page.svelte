@@ -7,7 +7,6 @@
 
 	let { data }: { data: PageData } = $props();
 
-	// Back to the plan, or to the wizard step the rule was opened from.
 	const back = $derived(planReturn(data.wizard ? String(data.wizard) : null));
 </script>
 

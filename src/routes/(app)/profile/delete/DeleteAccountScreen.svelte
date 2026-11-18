@@ -4,7 +4,6 @@
 	import DeleteForm from './DeleteForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
-	// "¿Darte de baja?": the /profile/delete page, or (`onclose`) the drawer opened over Perfil.
 	let { data, form, onclose }: { data: PageData; form?: ActionData; onclose?: () => void } =
 		$props();
 </script>

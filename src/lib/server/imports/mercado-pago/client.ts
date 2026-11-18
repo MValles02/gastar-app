@@ -19,6 +19,7 @@ export const mpErrorLabel = (code: string) =>
 	MP_ERROR_LABELS[code] ?? `error ${code.replace(/^mp_/, '')} de Mercado Pago`;
 
 const HTTP_TIMEOUT_MS = 30_000;
+// Days, not hours: items from the old release-report sync carry day-start times, and dedupe makes overlap cheap.
 export const OVERLAP_DAYS = 3;
 const AMOUNT_RE = /^-?\d+(?:[.,]\d{1,2})?$/;
 

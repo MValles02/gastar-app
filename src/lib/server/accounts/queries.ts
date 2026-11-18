@@ -27,7 +27,6 @@ export const accountSummary = memoPerRequest('accounts', (userId: string) =>
 		.groupBy(financialAccounts.currency)
 );
 
-/** The base picker option of an account row; callers spread it and add their own extra fields. */
 export const accountOption = (a: {
 	id: string;
 	name: string;
@@ -83,7 +82,6 @@ export function accountTransfersIn(userId: string, id?: string) {
 		.groupBy(movements.destinationAccountId);
 }
 
-/** Whether any movement uses the account as origin or destination. */
 export async function isAccountReferenced(userId: string, id: string) {
 	const rows = await db
 		.select({ id: movements.id })

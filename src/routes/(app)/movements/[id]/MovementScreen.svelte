@@ -4,8 +4,6 @@
 	import MovementDetail from './MovementDetail.svelte';
 	import type { PageData } from './$types';
 
-	// A movement's detail and edit: the /movements/<id> page, or (`onclose`) a drawer over the list so
-	// scroll and filters survive.
 	let { data, onclose }: { data: PageData; onclose?: () => void } = $props();
 </script>
 

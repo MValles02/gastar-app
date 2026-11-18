@@ -10,7 +10,6 @@ export const VERIFY_EMAIL_PATH = '/verify-email';
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Error for an invalid (already trimmed) person name, or undefined when valid. */
 export function userNameError(name: string): string | undefined {
 	if (!name) return 'Falta el nombre.';
 	if (name.length > USER_NAME_MAX_LENGTH)
@@ -21,16 +20,13 @@ export function isValidPasswordLength(password: string): boolean {
 	return password.length >= PASSWORD_MIN_LENGTH && password.length <= PASSWORD_MAX_LENGTH;
 }
 
-/** Better Auth error codes the forms branch on. */
 export const INVALID_PASSWORD = 'INVALID_PASSWORD';
 export const EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED';
 
-/** Whether `err` is a Better Auth API error, optionally with the given `code`. */
 export function isApiError(err: unknown, code?: string): err is APIError {
 	return err instanceof APIError && (code === undefined || err.body?.code === code);
 }
 
-/** Rate-limit message for form actions. */
 export function tooManyAttempts(when: 'minuto' | 'rato'): string {
 	return `Demasiados intentos. Probá de nuevo en un ${when}.`;
 }
@@ -44,7 +40,6 @@ export async function ignoreApiError(call: () => Promise<unknown>): Promise<void
 	}
 }
 
-/** Re-sends the verification link unless `ip` is over the resend limit. */
 export async function resendVerification(email: string, ip: string): Promise<void> {
 	if (isBlocked('resend', ip)) return;
 	record('resend', ip);
@@ -99,7 +94,6 @@ async function startGoogle(
 	redirect(303, url, { external: [new URL(url).origin] });
 }
 
-/** `google` action of /login and /signup: the callback lands on / or /login?error=<code>. */
 export const googleAction = (event: RequestEvent) =>
 	startGoogle(event, {
 		blocked: '/login?error=rate_limited',

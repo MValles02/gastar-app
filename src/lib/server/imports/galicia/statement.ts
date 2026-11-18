@@ -97,7 +97,6 @@ export function parseAmount(s: string): number | null {
 
 /** Text items of every page, grouped into visual lines (top to bottom, page order). */
 async function readLines(bytes: Uint8Array): Promise<Line[]> {
-	// One deadline for loading + all pages; every pdfjs await races it, the finally destroys the task.
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	const deadline = new Promise<never>((_, reject) => {
 		timer = setTimeout(() => reject(new StatementError('unreadable')), PARSE_TIMEOUT_MS);

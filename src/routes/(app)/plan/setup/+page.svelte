@@ -121,7 +121,6 @@
 			<ListCard>
 				{#each data.suggestions as s (s.id)}
 					{@const href = `${withWizard('/plan/recurring/new?type=outcome', wizardStep('bills'))}&suggestion=${s.id}`}
-					<!-- The wrapper only carries the click that opens the drawer; it adds no box. -->
 					<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 					<div
 						onclick={(e) =>

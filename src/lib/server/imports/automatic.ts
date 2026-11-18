@@ -136,7 +136,6 @@ export async function changeImportFrom(
 	return { ok: true };
 }
 
-/** Starts the Mercado Pago and Gmail schedulers (each only when configured). */
 export function startImportSchedulers(): void {
 	startMpScheduler();
 	startGmailScheduler();

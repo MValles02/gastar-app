@@ -7,7 +7,6 @@ import { type KeptRefs, type MovementData, resolveMovement } from './form';
 
 type Row = { id: string; name: string; icon: string | null; color: string | null };
 
-/** An account as a picker item; `meta` is the shown label, `currency` the one to compute with. */
 export const accountItem = (a: Row & { currency: Currency; archivedAt: Date | null }) => ({
 	...accountOption(a),
 	meta: a.currency,
@@ -24,7 +23,6 @@ export const categoryItem = (c: Row & { kind: MovementType | null; archivedAt: D
 	archived: c.archivedAt !== null
 });
 
-/** Picker items: active accounts and categories, plus the archived ones in `keep` (edit). */
 export async function movementPickers(userId: string, keep?: KeptRefs) {
 	const opts = { archived: keep !== undefined };
 	const [accountRows, categoryRows] = await Promise.all([
@@ -41,7 +39,6 @@ export async function movementPickers(userId: string, keep?: KeptRefs) {
 	};
 }
 
-/** Looks up the posted account(s) and category (owner-checked) and resolves the row to save. */
 export async function resolvePostedMovement(userId: string, data: MovementData, keep?: KeptRefs) {
 	const [[origin], [destination], [category]] = await Promise.all([
 		getAccount(userId, data.accountId),

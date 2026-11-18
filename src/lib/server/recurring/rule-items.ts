@@ -3,7 +3,6 @@ import type { Currency } from '#lib/money.ts';
 import { isRecurringActive } from '#lib/plan.ts';
 import { listRecurring, type RecurringRule } from './queries';
 
-/** A rule as a picker item (linking a movement to a fixed payment). */
 export const ruleItem = (r: RecurringRule) => ({
 	id: r.id,
 	name: r.description,

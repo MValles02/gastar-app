@@ -35,7 +35,6 @@ const nameField = requiredText(NAME_MAX_LENGTH, {
 	long: tooLongMessage('El nombre', NAME_MAX_LENGTH)
 });
 
-/** The stored account as the form's strings (what `parseAccountForm` takes back). */
 export const toFormValues = (a: {
 	name: string;
 	currency: Currency;
@@ -50,7 +49,6 @@ export const toFormValues = (a: {
 	color: toSwatchKey(a.color) ?? 'green'
 });
 
-/** The form `?/update` validates: `row`'s stored values with the posted EDITABLE fields over them. */
 export const editedForm = (row: Parameters<typeof toFormValues>[0], posted: FormData) =>
 	editFormData(toFormValues(row), posted, EDITABLE);
 

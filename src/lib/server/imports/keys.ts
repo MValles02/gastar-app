@@ -7,7 +7,6 @@ import { sql, type AnyColumn } from 'drizzle-orm';
 export const alertKey = (messageId: string) => `alert:${messageId}`;
 /** LIKE pattern of every alert key. */
 export const ALERT_KEYS = 'alert:%';
-/** alertKey in SQL, for a message id column. */
 export const alertKeySql = (messageId: AnyColumn) => sql`'alert:' || ${messageId}`;
 
 type StatementLineParts = {

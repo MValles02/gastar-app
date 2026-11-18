@@ -6,7 +6,6 @@
 	import LimitForm from '../LimitForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
-	// "Nuevo límite": the page, or (`onclose`) the drawer opened over the plan or the wizard.
 	let { data, form, onclose }: { data: PageData; form?: ActionData; onclose?: () => void } =
 		$props();
 
