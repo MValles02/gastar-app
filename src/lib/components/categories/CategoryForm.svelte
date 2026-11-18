@@ -20,6 +20,7 @@
 	import * as Field from '#lib/components/ui/field/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
+	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import IconBadge from '#lib/components/IconBadge.svelte';
 	import IconColorDrawer from '#lib/components/IconColorDrawer.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
@@ -28,27 +29,25 @@
 	type Errors = Partial<Record<keyof Values, string>>;
 
 	/**
-	 * The new-category form. `drawer`: inside a drawer (Guardar waits for a name, posts to
-	 * /categories/new and hands the created category to `oncreated` instead of navigating). `page`: the
-	 * /categories/new page.
+	 * The new-category form. In a drawer (the enclosing FormScreen's context), Guardar waits for a
+	 * name, posts to /categories/new and hands the created category to `oncreated` instead of
+	 * navigating. Otherwise it is the /categories/new page.
 	 */
 	let {
 		initial = {},
 		errors = {},
-		variant = 'page',
 		oncreated,
 		onclose
 	}: {
 		initial?: Values;
 		errors?: Errors;
-		variant?: 'page' | 'drawer';
 		/** Drawer: the category was created. */
 		oncreated?: (category: CreatedCategory) => void;
 		/** Drawer: Cancelar. */
 		onclose?: () => void;
 	} = $props();
 
-	const drawer = $derived(variant === 'drawer');
+	const drawer = formScreen().variant === 'drawer';
 	const kindOptions = [...KIND_OPTIONS, { value: '', label: 'Ambos' }];
 
 	let name = $state(untrack(() => initial.name ?? ''));
@@ -76,7 +75,6 @@
 
 <FormShell
 	action={drawer ? resolve('categories/new') : ''}
-	{variant}
 	{errors}
 	onsubmit={() => (fieldErrors = {})}
 	onfailure={(data: { errors?: Errors }) => (fieldErrors = data.errors ?? {})}

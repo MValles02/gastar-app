@@ -18,18 +18,29 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		id && type === 'outcome'
 			? (await recurringSuggestions(userId)).find((c) => c.id === id)
 			: undefined;
+	const pickers = await movementPickers(userId);
 	return {
-		...(await movementPickers(userId)),
+		...pickers,
 		returnHref: planReturn(url.searchParams.get('wizard')),
 		type,
-		suggested: s && {
-			type: 'outcome',
-			description: s.description,
-			amount: formatAmountInput(s.amount, s.currency),
-			accountId: s.accountId,
-			categoryId: s.categoryId,
-			dayOfMonth: String(s.dayOfMonth)
-		}
+		// The form's start values: the suggestion, else a blank rule (the only account preselected).
+		initial: s
+			? {
+					type: 'outcome',
+					description: s.description,
+					amount: formatAmountInput(s.amount, s.currency),
+					accountId: s.accountId,
+					categoryId: s.categoryId,
+					dayOfMonth: String(s.dayOfMonth)
+				}
+			: {
+					type: type as string,
+					description: '',
+					amount: '',
+					accountId: pickers.accounts.length === 1 ? pickers.accounts[0].id : '',
+					categoryId: '',
+					dayOfMonth: ''
+				}
 	};
 };
 

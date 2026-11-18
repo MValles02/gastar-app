@@ -7,6 +7,7 @@
 	import * as Field from '#lib/components/ui/field/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
+	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import IconBadge from '#lib/components/IconBadge.svelte';
 	import IconColorDrawer from '#lib/components/IconColorDrawer.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
@@ -23,20 +24,18 @@
 	let {
 		initial,
 		errors = {},
-		variant = 'page',
 		onsaved,
 		onclose
 	}: {
 		initial: Values;
 		errors?: Errors;
-		variant?: 'page' | 'drawer';
 		/** Drawer: the save succeeded. */
 		onsaved?: () => void;
 		/** Drawer: Cancelar. */
 		onclose?: () => void;
 	} = $props();
 
-	const drawer = $derived(variant === 'drawer');
+	const drawer = formScreen().variant === 'drawer';
 	const currencyOptions = CURRENCY_OPTIONS;
 
 	let name = $state(untrack(() => initial.name ?? ''));
@@ -54,7 +53,6 @@
 
 <FormShell
 	action={drawer ? resolve('accounts/new') : ''}
-	{variant}
 	{errors}
 	onfailure={(data: { errors?: Errors }) => (fieldErrors = data.errors ?? {})}
 	{onsaved}

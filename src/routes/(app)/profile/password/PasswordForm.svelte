@@ -15,10 +15,7 @@
 		errors = {},
 		formError,
 		reauthMode = 'password',
-		reauth = false,
-		variant = 'page',
-		onsaved,
-		onclose
+		reauth = false
 	}: {
 		errors?: Errors;
 		formError?: string;
@@ -26,11 +23,6 @@
 		reauthMode?: ReauthMode;
 		/** The last post asked to confirm with Google. */
 		reauth?: boolean;
-		variant?: 'page' | 'drawer';
-		/** Drawer: the password changed. */
-		onsaved?: () => void;
-		/** Drawer: Cancelar. */
-		onclose?: () => void;
 	} = $props();
 
 	let current = $state('');
@@ -57,11 +49,8 @@
 {:else}
 	<FormShell
 		action="/profile/password?/save"
-		{variant}
 		onfailure={(data: { errors?: Errors; formError?: string; reauth?: boolean }) =>
 			(posted = { errors: data.errors ?? {}, formError: data.formError, reauth: data.reauth })}
-		{onsaved}
-		{onclose}
 		cancelHref="/profile"
 		canSave={(!hasPassword || !!current) && !!next}
 		style="--form-gap: 0.875rem; --actions-mt: var(--space-2)"

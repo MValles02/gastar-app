@@ -1,16 +1,8 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
-	import PageHeader from '#lib/components/PageHeader.svelte';
-	import CategoryForm from '#lib/components/categories/CategoryForm.svelte';
+	import NewCategoryScreen from './NewCategoryScreen.svelte';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
 </script>
 
-<svelte:head>
-	<title>Nueva categoría · Gastar</title>
-</svelte:head>
-
-<PageHeader title="Nueva categoría" close={{ href: resolve('categories'), label: 'Cerrar' }} />
-
-<CategoryForm initial={form?.values ?? {}} errors={form?.errors} />
+<NewCategoryScreen {form} />
