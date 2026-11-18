@@ -64,7 +64,6 @@ export function startMpScheduler(): void {
 	}
 	if (hours === 0) return;
 	const run = (report: boolean) => void runAll(report);
-	// First run after a start: payments, plus the day's report if it was missed while the server was down.
 	setTimeout(() => run(true), START_DELAY_MS).unref();
 	// Buenos Aires is a whole-hour offset, so every full hour is a full local hour: payments every `hours`
 	// hours, the release report only at REPORT_HOUR.

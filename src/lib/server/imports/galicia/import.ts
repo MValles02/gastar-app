@@ -76,8 +76,6 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 		};
 		lines.push({ key, line: l, row });
 	}
-	// After the reconciliation (the parser already threw if the statement does not add up).
-	// Under the user's matching lock, so a concurrent upload or alert conversion cannot claim or insert in between.
 	const { created, autoApproved } = await withMatchLock(userId, async () => {
 		const { rows, diffs } = await matchStatement(userId, source, s.closing, lines);
 		const result = await ingestImportItems(userId, source, [...rows, ...diffs, ...taxes]);

@@ -11,14 +11,12 @@ const LEASE_MS = LEASE_MINUTES * 60_000;
 /** First scheduled run after a start. */
 export const START_DELAY_MS = 60_000;
 
-/** The lease column is free: never taken, or taken more than LEASE_MINUTES ago. */
 export const leaseFree = (runningSince: AnyColumn) =>
 	or(
 		isNull(runningSince),
 		lt(runningSince, sql`now() - interval '${sql.raw(String(LEASE_MINUTES))} minutes'`)
 	);
 
-/** Whether a sync that took its lease at `since` is still running. */
 export const leaseActive = (since: Date | null | undefined) =>
 	!!since && Date.now() - since.getTime() < LEASE_MS;
 

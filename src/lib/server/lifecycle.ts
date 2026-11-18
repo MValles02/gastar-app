@@ -6,7 +6,6 @@ import { requireUser, type Guards } from './guards';
 type IdEvent = { locals: App.Locals; params: { id: string } };
 type Write = (userId: string, id: string) => Promise<unknown[]>;
 
-/** Which lifecycle buttons a detail page shows. */
 export const lifecycleState = ({
 	referenced,
 	archived
@@ -19,7 +18,6 @@ export const lifecycleState = ({
 	canUnarchive: archived
 });
 
-/** Runs `write`; null when a foreign key blocks it (a reference added after the pre-check). */
 export async function catchForeignKey<T>(write: () => Promise<T>): Promise<T | null> {
 	try {
 		return await write();

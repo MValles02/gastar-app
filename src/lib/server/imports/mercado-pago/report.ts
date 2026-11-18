@@ -327,7 +327,6 @@ export async function syncReport(
 	if (!begin) throw fail('config');
 
 	await ensureReportConfig(auth);
-	// Yield rows sharing a day (across all chunks) are netted before any write (gains minus losses); the first row's fields stay.
 	const items = new Map<string, NonNullable<ReturnType<typeof reportItem>>>();
 	let reportEnd = end;
 	for (let from = begin.getTime(); from < end.getTime(); from += CHUNK_DAYS * DAY_MS) {
@@ -381,7 +380,6 @@ export async function syncReport(
 		}
 	}
 
-	// A day whose gains and losses cancel out has nothing to import.
 	const rows = [...items.values()]
 		.filter((item) => item.amount !== 0)
 		.map((item) => ({ ...item, accountId }));

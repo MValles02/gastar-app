@@ -43,7 +43,6 @@ export async function approveSuggestion(
 	);
 	// Only rows that show "Aprobar" have a suggestion; the rest go through the review form.
 	if (prefill.suggestion === null) return 'none';
-	// The values come from the rule itself: nothing new to remember.
 	const out = await approveWithValues(userId, item, prefill, false, auto);
 	return 'result' in out && out.result === 'approved' ? 'approved' : 'stale';
 }
@@ -116,7 +115,6 @@ export async function approveWithValues(
 		categoryId: isTransfer ? null : values.categoryId,
 		exchangeRate: null
 	};
-	// The imported amount keeps its exact cents (keep.amount).
 	const { resolved } = await resolvePostedMovement(userId, data, {
 		accountIds: [],
 		categoryId: null,

@@ -48,7 +48,6 @@ export function pkce() {
 	};
 }
 
-/** The redirect URI the provider sends the user back to. */
 export const callbackUrl = (path: string, origin: string) => `${origin}${path}/callback`;
 
 /** The link page's notices from its URL: `?linked=1` and the message of a known `?error=` code. */
@@ -87,7 +86,6 @@ export function connectAction(link: OAuthLink) {
 	};
 }
 
-/** The `disconnect` form action. */
 export function disconnectAction(link: OAuthLink) {
 	return async ({ locals }: RequestEvent) => {
 		if (!link.enabled()) error(404);
