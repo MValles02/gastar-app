@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { autosave, submitAction } from '#lib/autosave.ts';
-	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { refreshAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
+	import OAuthLinkPage from '../OAuthLinkPage.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -39,45 +38,17 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Mercado Pago · Gastar</title>
-</svelte:head>
-
-<PageHeader
-	title="Mercado Pago"
-	back={{
-		href: resolve('profile/vinculaciones'),
-		label: 'Volver a Vinculaciones',
-		text: 'Vinculaciones'
-	}}
-/>
-
-<div class="page">
-	{#if data.flash}<p class="flash bad" role="alert">{data.flash}</p>{/if}
-	{#if data.linked}<p class="flash" role="status">Mercado Pago vinculado.</p>{/if}
-
-	{#if !data.connection}
-		<section class="card" aria-labelledby="intro">
-			<h2 id="intro">Traé tus pagos sin tipearlos</h2>
-			<p>
-				Importamos pagos, cobros y rendimientos. Lo que reconocemos se aprueba solo; el resto lo
-				revisás vos.
-			</p>
-			<form method="POST" action="?/connect">
-				<Button type="submit" class="w-full">Vincular Mercado Pago</Button>
-			</form>
-		</section>
-	{:else if data.connection.needsReconnect}
-		<section class="card" aria-labelledby="intro">
-			<h2 id="intro">Hay que volver a vincular</h2>
-			<p>
-				Mercado Pago ya no acepta el acceso guardado. Reconectá para seguir importando tus pagos.
-			</p>
-			<form method="POST" action="?/connect">
-				<Button type="submit" class="w-full">Reconectar</Button>
-			</form>
-		</section>
-	{:else}
+<OAuthLinkPage name="Mercado Pago" {data} introTitle="Traé tus pagos sin tipearlos">
+	{#snippet intro()}
+		<p>
+			Importamos pagos, cobros y rendimientos. Lo que reconocemos se aprueba solo; el resto lo
+			revisás vos.
+		</p>
+	{/snippet}
+	{#snippet reconnect()}
+		<p>Mercado Pago ya no acepta el acceso guardado. Reconectá para seguir importando tus pagos.</p>
+	{/snippet}
+	{#snippet linked()}
 		<p class="lead">Tu cuenta de Mercado Pago está vinculada.</p>
 
 		<ListCard aria-label="Ajustes">
@@ -103,37 +74,21 @@
 				</form>
 			</div>
 		</ListCard>
-		{#if data.connection.accountId}
+		{#if data.connection?.accountId}
 			<p class="hint">
 				La fecha desde la que se importa está en <a href={resolve('profile/vinculaciones')}
 					>Vinculaciones</a
 				>.
 			</p>
 		{/if}
-	{/if}
-
-	{#if data.connection}
-		<ConfirmDialog
-			triggerLabel="Desvincular"
-			triggerClass="w-full"
-			title="¿Desvincular Mercado Pago?"
-			confirmLabel="Desvincular"
-			action="?/disconnect"
-		>
-			Dejamos de importar tus pagos. Lo que ya importaste queda como está. También podés revocar el
-			acceso desde tu cuenta de Mercado Pago.
-		</ConfirmDialog>
-	{/if}
-</div>
+	{/snippet}
+	{#snippet disconnectNote()}
+		Dejamos de importar tus pagos. Lo que ya importaste queda como está. También podés revocar el
+		acceso desde tu cuenta de Mercado Pago.
+	{/snippet}
+</OAuthLinkPage>
 
 <style>
-	.page {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-5);
-		padding-top: var(--space-1);
-	}
-
 	.lead,
 	.hint {
 		margin: 0;
@@ -143,43 +98,5 @@
 	.hint {
 		padding-inline: var(--space-4);
 		font-size: var(--font-size-sm);
-	}
-
-	.card {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-		padding: var(--space-5) var(--space-4);
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-card);
-		box-shadow: var(--shadow-1);
-	}
-
-	.card h2 {
-		margin: 0;
-		font-size: var(--font-size-lg);
-		font-weight: 600;
-	}
-
-	.card p {
-		margin: 0;
-		color: var(--text-muted);
-	}
-
-	.card form {
-		padding-top: var(--space-2);
-	}
-
-	.flash {
-		margin: 0;
-		padding: var(--space-3) var(--space-4);
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-card);
-	}
-
-	.flash.bad {
-		color: var(--negative);
 	}
 </style>

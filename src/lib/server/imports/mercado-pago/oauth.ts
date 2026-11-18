@@ -1,18 +1,16 @@
-import { createHash, randomBytes } from 'node:crypto';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import * as env from '$app/env/private';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { mpConnections, mpSyncState } from '../../db/schema';
+import { callbackUrl, type OAuthLink, pkce } from '../oauth-link';
 import { decryptToken as decryptWith, encryptToken as encryptWith } from '../token-crypto';
 import { mpApiBaseUrl } from './env';
 
 const DEFAULT_AUTH_BASE_URL = 'https://auth.mercadopago.com';
 const TOKEN_TIMEOUT_MS = 15_000;
 
-export const OAUTH_COOKIE = 'mp_oauth';
-export const OAUTH_PATH = '/profile/mercado-pago';
-const CALLBACK_PATH = `${OAUTH_PATH}/callback`;
+const LINK_PATH = '/profile/mercado-pago';
 
 /** The feature is on only when the client id, client secret and token key are all set. */
 export function mpOauthEnabled(): boolean {
@@ -25,21 +23,18 @@ export const encryptToken = (plain: string, userId: string) =>
 export const decryptToken = (stored: string, userId: string) =>
 	decryptWith(stored, userId, env.MP_TOKEN_KEY);
 
-const b64url = (buf: Buffer) => buf.toString('base64url');
-
-const redirectUri = (origin: string) => origin + CALLBACK_PATH;
+const redirectUri = (origin: string) => callbackUrl(LINK_PATH, origin);
 
 /** New PKCE verifier and CSRF state, plus the authorization URL for them. */
-export function startAuthorization(origin: string) {
-	const state = b64url(randomBytes(32));
-	const verifier = b64url(randomBytes(32));
+function startAuthorization(origin: string) {
+	const { state, verifier, challenge } = pkce();
 	const params = new URLSearchParams({
 		client_id: env.MP_CLIENT_ID ?? '',
 		response_type: 'code',
 		platform_id: 'mp',
 		state,
 		redirect_uri: redirectUri(origin),
-		code_challenge: b64url(createHash('sha256').update(verifier).digest()),
+		code_challenge: challenge,
 		code_challenge_method: 'S256'
 	});
 	const base = env.MP_AUTH_BASE_URL || DEFAULT_AUTH_BASE_URL;
@@ -95,20 +90,20 @@ async function requestToken(body: Record<string, string>): Promise<TokenResult> 
 	}
 }
 
-/** Exchanges the authorization code and stores the connection (keeps the chosen account). Returns false on any failure. */
-export async function exchangeCode(
+/** Exchanges the authorization code and stores the connection (keeps the chosen account). 'exchange' on any failure. */
+async function exchangeCode(
 	userId: string,
 	code: string,
 	verifier: string,
 	origin: string
-): Promise<boolean> {
+): Promise<'ok' | 'exchange'> {
 	const r = await requestToken({
 		grant_type: 'authorization_code',
 		code,
 		redirect_uri: redirectUri(origin),
 		code_verifier: verifier
 	});
-	if (!r.ok) return false;
+	if (!r.ok) return 'exchange';
 	const { grant } = r;
 	const tokens = {
 		mpUserId: grant.mpUserId,
@@ -133,7 +128,7 @@ export async function exchangeCode(
 					);
 			}
 		});
-	return true;
+	return 'ok';
 }
 
 type RefreshOutcome = 'ok' | 'reconnect' | 'error';
@@ -217,6 +212,16 @@ export async function getAccessToken(userId: string) {
 	}
 }
 
+/** The user's connection without any token (the account it feeds, also while a reconnect is pending), or null when not linked. */
+export async function mpConnection(userId: string) {
+	const [row] = await db
+		.select({ accountId: mpConnections.accountId, needsReconnect: mpConnections.needsReconnect })
+		.from(mpConnections)
+		.where(canAccessOwn(userId, mpConnections))
+		.limit(1);
+	return row ?? null;
+}
+
 /** Users whose connection can sync: an account is chosen and no reconnect is pending. */
 export async function listUsableConnections(): Promise<string[]> {
 	const rows = await db
@@ -227,6 +232,17 @@ export async function listUsableConnections(): Promise<string[]> {
 }
 
 /** Deletes the connection. Items, rules and sync state stay. */
-export async function deleteConnection(userId: string): Promise<void> {
+async function deleteConnection(userId: string): Promise<void> {
 	await db.delete(mpConnections).where(canAccessOwn(userId, mpConnections));
 }
+
+export const MP_LINK: OAuthLink<never> = {
+	path: LINK_PATH,
+	cookie: 'mp_oauth',
+	enabled: mpOauthEnabled,
+	flashes: { exchange: 'Mercado Pago no respondió. Probá de nuevo.' },
+	limitStart: true,
+	start: async (origin) => startAuthorization(origin),
+	exchange: exchangeCode,
+	unlink: deleteConnection
+};

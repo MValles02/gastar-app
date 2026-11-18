@@ -21,6 +21,17 @@ const MAX_PAGES = 50;
 /** Stored in gmail_connections.last_error_code: a code only, never a message or payload. */
 type GmailSyncError = 'reconnect' | 'network' | 'api' | 'parse';
 
+/** What the inbox says after "No se pudo sincronizar Gmail" for each stored code. */
+export const GMAIL_ERROR_LABELS: Record<string, string> = {
+	reconnect: 'hay que volver a vincular Gmail',
+	network: 'sin conexión con Gmail',
+	api: 'Gmail respondió con un error',
+	parse: 'algún mail de Visa no se pudo leer'
+};
+
+/** The inbox label of a stored code (an unknown code shows as is). */
+export const gmailErrorLabel = (code: string) => GMAIL_ERROR_LABELS[code] ?? code;
+
 class SyncError extends Error {
 	constructor(readonly code: GmailSyncError) {
 		super(code);
@@ -210,37 +221,18 @@ async function releaseLease(userId: string) {
 }
 
 /**
- * Takes the user's lease (null when Gmail is not linked, needs a reconnect, or another sync holds it) so the
- * caller can `run` once (it backfills from the "Importar desde" day when that is not covered yet), then must `release`. `run` never throws.
+ * The one entry to a Gmail sync: takes the user's lease (null when Gmail is not linked, needs a reconnect, or
+ * another sync holds it). `run` syncs once (it backfills from the "Importar desde" day when that is not
+ * covered yet) and then releases the lease; it never throws. A caller that does not run must `release`.
  */
 export async function acquireGmailSync(userId: string) {
 	const lease = await acquire(userId);
 	if (!lease) return null;
 	return {
-		run: () => execute(userId, lease.cursor, lease.coveredFrom),
+		run: async () => {
+			await execute(userId, lease.cursor, lease.coveredFrom);
+			await releaseLease(userId);
+		},
 		release: () => releaseLease(userId)
 	};
-}
-
-/** Acquires the lease, runs one sync and releases it; false when Gmail is not linked, needs a reconnect, or another sync holds the lease. */
-export async function runGmailSync(userId: string): Promise<boolean> {
-	const lease = await acquireGmailSync(userId);
-	if (!lease) return false;
-	await lease.run();
-	await lease.release();
-	return true;
-}
-
-/** The last run of the user's connection: when it ended and its error code, or null when not linked. */
-export async function gmailSyncState(userId: string) {
-	const [row] = await db
-		.select({
-			lastRunAt: gmailConnections.lastRunAt,
-			lastErrorCode: gmailConnections.lastErrorCode,
-			runningSince: gmailConnections.syncRunningSince
-		})
-		.from(gmailConnections)
-		.where(canAccessOwn(userId, gmailConnections))
-		.limit(1);
-	return row ?? null;
 }
