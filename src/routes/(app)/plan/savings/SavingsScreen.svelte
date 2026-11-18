@@ -8,7 +8,6 @@
 	import SavingsOptions from '../SavingsOptions.svelte';
 	import type { PageData } from './$types';
 
-	// "Ahorro": the /plan/savings page, or (`onclose`) the drawer opened over the plan. Every pick saves on its own.
 	let { data, onclose }: { data: PageData; onclose?: () => void } = $props();
 </script>
 

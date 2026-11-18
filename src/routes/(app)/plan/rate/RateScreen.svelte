@@ -5,7 +5,6 @@
 	import RateForm from './RateForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
-	// "Cotización": the /plan/rate page, or (`onclose`) the drawer opened over the plan.
 	let { data, form, onclose }: { data: PageData; form?: ActionData; onclose?: () => void } =
 		$props();
 </script>

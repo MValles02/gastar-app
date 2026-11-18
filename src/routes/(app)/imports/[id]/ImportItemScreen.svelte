@@ -7,7 +7,6 @@
 	import ImportItemForm from './ImportItemForm.svelte';
 	import type { ActionData, PageData } from './$types';
 
-	// Review of one Mercado Pago item: the /imports/<id> page, or (`onclose`) the drawer opened over the inbox.
 	let { data, form, onclose }: { data: PageData; form?: ActionData; onclose?: () => void } =
 		$props();
 

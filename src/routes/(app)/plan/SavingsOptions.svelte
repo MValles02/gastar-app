@@ -56,7 +56,6 @@
 		{ value: 'amount', label: currency === 'USD' ? 'US$' : '$' }
 	]);
 
-	// --- autosave mode ---
 	let stored = $state(start);
 	let storedSavings = $state(untrack(() => initial.savings));
 	let editing = $state(false);
@@ -93,7 +92,6 @@
 	async function save(next: SavingsChoice) {
 		const before = stored;
 		const error = await autosave<PlanSavings>({
-			// Only autosave mode saves, and it always has a path.
 			path: path!,
 			fields: toFields(next),
 			previous: toFields(before),

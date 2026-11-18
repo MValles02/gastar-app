@@ -51,7 +51,6 @@
 
 {#snippet meta()}Día {r.day} · {r.reason ?? r.accountName}{/snippet}
 
-<!-- Each row opens the rule detail. -->
 <ListRow
 	class="rule"
 	href={withWizard(resolve(`plan/recurring/${r.id}`), wizard)}
