@@ -6,7 +6,8 @@ import {
 	type Currency,
 	formatAmountInput,
 	isValidRate,
-	parseAmount
+	parseAmount,
+	RATE_CURRENCY
 } from '#lib/money.ts';
 import { isUuid } from '../db/util';
 import { amountFor, editFormData, readFields, requiredText } from '../forms';
@@ -89,7 +90,7 @@ export const toFormValues = (m: {
 	amount: formatAmountInput(m.amount, m.accountCurrency),
 	accountId: m.accountId,
 	destinationAccountId: m.destinationAccountId ?? '',
-	exchangeRate: m.exchangeRate !== null ? formatAmountInput(m.exchangeRate, 'ARS') : '',
+	exchangeRate: m.exchangeRate !== null ? formatAmountInput(m.exchangeRate, RATE_CURRENCY) : '',
 	categoryId: m.categoryId ?? ''
 });
 

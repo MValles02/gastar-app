@@ -35,7 +35,7 @@ async function applicableSuggestions(userId: string, planId: string | null) {
 		.map((c) => {
 			const avg = suggestions.get(c.id);
 			// The pesos average wins; with no pesos spending the limit is in dollars.
-			const currency = avg && avg.ARS > 0 ? ('ARS' as const) : ('USD' as const);
+			const currency = avg && avg[PLAN_CURRENCY] > 0 ? PLAN_CURRENCY : ('USD' as const);
 			return { categoryId: c.id, amount: avg?.[currency] ?? 0, currency };
 		})
 		.filter((l) => l.amount > 0);

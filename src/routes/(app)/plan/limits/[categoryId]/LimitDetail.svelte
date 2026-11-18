@@ -4,7 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { autosave, submitAction } from '#lib/autosave.ts';
 	import { swatchVar } from '#lib/appearance.ts';
-	import { formatAmountInput, formatMoney } from '#lib/money.ts';
+	import { CURRENCY_LABEL, formatAmountInput, formatMoney } from '#lib/money.ts';
 	import { navigateUp, upOnClick } from '#lib/nav-stack.svelte.ts';
 	import { limitPace, limitPercent, PLAN_STATUS_LABEL, PLAN_TONE } from '#lib/plan.ts';
 	import { withWizard } from '#lib/plan-wizard.ts';
@@ -132,7 +132,7 @@
 			</li>
 			<li class="static">
 				<span>Moneda</span>
-				<span class="value">{currency === 'USD' ? 'Dólares' : 'Pesos'}</span>
+				<span class="value">{CURRENCY_LABEL[currency]}</span>
 			</li>
 		</ul>
 

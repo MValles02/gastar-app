@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { autosave } from '#lib/autosave.ts';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
-	import { formatMoney } from '#lib/money.ts';
+	import { formatMoney, toCurrency } from '#lib/money.ts';
 	import { categoriesFor } from '#lib/movement.ts';
 	import { dueTone } from '#lib/plan.ts';
 	import { withWizard } from '#lib/plan-wizard.ts';
@@ -27,7 +27,7 @@
 	let r = $derived(data);
 
 	const income = $derived(r.type === 'income');
-	const currency = $derived(r.currency === 'USD' ? 'USD' : 'ARS');
+	const currency = $derived(toCurrency(r.currency));
 	const path = $derived(resolve(`plan/recurring/${r.id}`));
 
 	// What the update action stores, as the strings it takes (the server's `toFormValues`).

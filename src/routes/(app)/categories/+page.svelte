@@ -13,7 +13,7 @@
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import Icon from '#lib/components/Icon.svelte';
-	import { CURRENCIES, type Currency } from '#lib/money.ts';
+	import { CURRENCIES, CURRENCY_OPTIONS, type Currency } from '#lib/money.ts';
 	import { KIND_OPTIONS } from '#lib/movement.ts';
 	import { activeListFilters } from '#lib/list-filter.ts';
 	import type { PageData } from './$types';
@@ -129,11 +129,7 @@
 	filters={data.filters}
 	facets={data.facets}
 	currencyDefault="ARS"
-	currencyOptions={[
-		{ value: 'both', label: 'Ambas' },
-		{ value: 'ARS', label: 'Pesos' },
-		{ value: 'USD', label: 'Dólares' }
-	]}
+	currencyOptions={[{ value: 'both', label: 'Ambas' }, ...CURRENCY_OPTIONS]}
 	currencyCounts={false}
 	{kindOptions}
 	noun={['categoría', 'categorías']}

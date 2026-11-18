@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { isPositiveAmount } from '#lib/money.ts';
+	import { isPositiveAmount, RATE_CURRENCY } from '#lib/money.ts';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import AmountInput from '#lib/components/AmountInput.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -50,7 +50,7 @@
 	style="--form-gap: var(--space-3); --form-pb: var(--space-3)"
 >
 	<p class="label">1 USD =</p>
-	<AmountInput bind:value={rate} currency="ARS" name="rate" id="rrate" error={shown} />
+	<AmountInput bind:value={rate} currency={RATE_CURRENCY} name="rate" id="rrate" error={shown} />
 	{#if manual && hasTransfer}
 		<Button
 			type="submit"

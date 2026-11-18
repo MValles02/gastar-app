@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { CURRENCY_OPTIONS } from '#lib/money.ts';
 	import { untrack } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { NAME_MAX_LENGTH } from '#lib/fields.ts';
@@ -36,10 +37,7 @@
 	} = $props();
 
 	const drawer = $derived(variant === 'drawer');
-	const currencyOptions = [
-		{ value: 'ARS', label: 'Pesos' },
-		{ value: 'USD', label: 'Dólares' }
-	];
+	const currencyOptions = CURRENCY_OPTIONS;
 
 	let name = $state(untrack(() => initial.name ?? ''));
 	let initialBalance = $state(untrack(() => initial.initialBalance ?? ''));

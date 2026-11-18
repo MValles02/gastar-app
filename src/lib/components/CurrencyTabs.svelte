@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { CURRENCIES, type Currency } from '#lib/money.ts';
+	import { CURRENCIES, CURRENCY_OPTIONS, type Currency } from '#lib/money.ts';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { replaceGoto } from '#lib/nav-stack.svelte.ts';
@@ -16,10 +16,7 @@
 	let form: HTMLFormElement;
 	let error = $state('');
 	const options = CURRENCIES.map((currency) => ({ value: currency, label: currency }));
-	const pills: { value: Currency; label: string }[] = [
-		{ value: 'ARS', label: 'Pesos' },
-		{ value: 'USD', label: 'Dólares' }
-	];
+	const pills = CURRENCY_OPTIONS;
 </script>
 
 <form
