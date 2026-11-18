@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { CURRENCY_OPTIONS } from '#lib/money.ts';
 	import Plus from '@lucide/svelte/icons/plus';
 	import { resolve } from '$app/paths';
 	import { toIconKey, toSwatchKey } from '#lib/appearance.ts';
@@ -112,11 +113,7 @@
 	filters={data.filters}
 	facets={data.facets}
 	currencyDefault=""
-	currencyOptions={[
-		{ value: '', label: 'Ambas' },
-		{ value: 'ARS', label: 'Pesos' },
-		{ value: 'USD', label: 'Dólares' }
-	]}
+	currencyOptions={[{ value: '', label: 'Ambas' }, ...CURRENCY_OPTIONS]}
 	currencyCounts
 	noun={['cuenta', 'cuentas']}
 />

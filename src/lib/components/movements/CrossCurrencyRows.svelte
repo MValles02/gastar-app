@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import InlineText from '#lib/components/InlineText.svelte';
-	import { formatMoney, type Currency } from '#lib/money.ts';
+	import { formatMoney, RATE_CURRENCY, type Currency } from '#lib/money.ts';
 
 	/**
 	 * A cross-currency transfer's Cotización and En destino rows (`<li>`s of a card), shared by the
@@ -56,7 +56,9 @@
 				>
 					{#snippet display()}
 						<span class:placeholder={rateCents === null}
-							>{rateCents !== null ? `1 USD = ${formatMoney(rateCents, 'ARS')}` : 'Ingresar'}</span
+							>{rateCents !== null
+								? `1 USD = ${formatMoney(rateCents, RATE_CURRENCY)}`
+								: 'Ingresar'}</span
 						>
 						<ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" class="chev" />
 					{/snippet}

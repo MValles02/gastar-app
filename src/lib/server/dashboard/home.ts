@@ -1,5 +1,5 @@
 import { categoryLook, type CategoryIconKey, type SwatchKey } from '#lib/appearance.ts';
-import type { Currency } from '#lib/money.ts';
+import { CURRENCY_NAME, type Currency } from '#lib/money.ts';
 import { signOf, type MovementType } from '#lib/movement.ts';
 import { accountSummary } from '../accounts/queries';
 import { hasAccounts, monthNet, totalBalance } from '../accounts/balance';
@@ -89,7 +89,7 @@ export async function homeView(userId: string, currency: Currency, now: Date) {
 		/** Done state of the first-run checklist steps. */
 		steps: { account: hasAnyAccount, movement: hasMovement, plan: hasPlan },
 		firstRunDone: hasAnyAccount && hasMovement && hasPlan,
-		currencyWord: currency === 'ARS' ? 'pesos' : 'dólares',
+		currencyWord: CURRENCY_NAME[currency],
 		/** Pending Mercado Pago items; null when not linked or the feature is off. */
 		mpPending: mpPendingCount
 	};

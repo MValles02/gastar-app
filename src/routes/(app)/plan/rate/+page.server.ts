@@ -1,6 +1,6 @@
 import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { formatAmountInput, isValidRate, parseAmount } from '#lib/money.ts';
+import { formatAmountInput, isValidRate, parseAmount, RATE_CURRENCY } from '#lib/money.ts';
 import { MOVEMENT_MESSAGES } from '#lib/movement.ts';
 import { latestTransferRate, updatePlan } from '#lib/server/plan/queries.ts';
 import { planView } from '#lib/server/plan/month-plan.ts';
@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	await requirePlan(userId);
 	const [{ rate }, transfer] = await Promise.all([planView(userId), latestTransferRate(userId)]);
 	return {
-		amount: rate.value === null ? '' : formatAmountInput(rate.value, 'ARS'),
+		amount: rate.value === null ? '' : formatAmountInput(rate.value, RATE_CURRENCY),
 		manual: rate.manual,
 		hasTransfer: transfer !== null
 	};

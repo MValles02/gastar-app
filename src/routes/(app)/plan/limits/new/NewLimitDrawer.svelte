@@ -1,6 +1,7 @@
 <script lang="ts">
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import { closeAfterSave } from '#lib/components/forms/form-enhance.ts';
+	import { PLAN_CURRENCY } from '#lib/plan.ts';
 	import LimitForm from '../LimitForm.svelte';
 	import type { PageData } from './$types';
 
@@ -12,7 +13,7 @@
 	<LimitForm
 		variant="drawer"
 		categories={data.categories}
-		initial={{ categoryId: '', amount: '', currency: 'ARS' }}
+		initial={{ categoryId: '', amount: '', currency: PLAN_CURRENCY }}
 		onsaved={closeAfterSave(onclose)}
 		{onclose}
 	/>

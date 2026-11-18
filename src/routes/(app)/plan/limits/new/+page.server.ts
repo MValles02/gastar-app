@@ -3,6 +3,7 @@ import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 import { CURRENCIES } from '#lib/money.ts';
+import { PLAN_CURRENCY } from '#lib/plan.ts';
 import { parseStep, planReturn } from '#lib/plan-wizard.ts';
 import { saveLimit } from '#lib/server/plan/limit-form.ts';
 import { limitCandidates, limitSuggestions } from '#lib/server/plan/month-plan.ts';
@@ -36,7 +37,7 @@ export const actions: Actions = {
 		const categoryId = String(fd.get('categoryId') ?? '');
 		const amount = String(fd.get('amount') ?? '');
 		const currency = CURRENCIES.find((c) => c === fd.get('currency'));
-		const values = { categoryId, amount, currency: currency ?? 'ARS' };
+		const values = { categoryId, amount, currency: currency ?? PLAN_CURRENCY };
 		const reject = (errors: { categoryId?: string; amount?: string; currency?: string }) =>
 			formFail(400, { values, errors });
 

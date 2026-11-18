@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { CURRENCY_OPTIONS } from '#lib/money.ts';
 	import type { ComponentProps } from 'svelte';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
@@ -34,11 +35,7 @@
 		categories: Picks;
 	} = $props();
 
-	const currencyOptions = [
-		{ value: '', label: 'Ambas' },
-		{ value: 'ARS', label: 'Pesos' },
-		{ value: 'USD', label: 'Dólares' }
-	];
+	const currencyOptions = [{ value: '', label: 'Ambas' }, ...CURRENCY_OPTIONS];
 	const typeOptions = [
 		{ value: '', label: 'Todos' },
 		{ value: 'outcome', label: 'Gastos' },

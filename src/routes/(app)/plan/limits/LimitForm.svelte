@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { untrack, type ComponentProps } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { formatAmountInput, formatMoney, isPositiveAmount, type Currency } from '#lib/money.ts';
+	import {
+		CURRENCY_OPTIONS,
+		formatAmountInput,
+		formatMoney,
+		isPositiveAmount,
+		type Currency
+	} from '#lib/money.ts';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import AmountInput from '#lib/components/AmountInput.svelte';
@@ -43,10 +49,7 @@
 	let categoryId = $state(untrack(() => initial.categoryId));
 	let amount = $state(untrack(() => initial.amount));
 	let currency = $state<Currency>(untrack(() => initial.currency));
-	const currencyOptions = [
-		{ value: 'ARS', label: 'Pesos' },
-		{ value: 'USD', label: 'Dólares' }
-	];
+	const currencyOptions = CURRENCY_OPTIONS;
 
 	// Errors from the drawer's post; the page shows the server-rendered `errors` instead.
 	let fieldErrors = $state<Errors>({});

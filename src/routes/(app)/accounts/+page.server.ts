@@ -9,12 +9,9 @@ import {
 import { withBalances } from '#lib/server/accounts/balance.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import { listRowShown, matchesQuery, parseListFilter } from '#lib/list-filter.ts';
+import { CURRENCY_OPTIONS } from '#lib/money.ts';
 
 const SEARCH_MAX_LENGTH = 40;
-const CURRENCY_GROUPS = [
-	['ARS', 'Pesos'],
-	['USD', 'Dólares']
-] as const;
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
@@ -39,7 +36,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	}));
 	const accounts = all.filter((_, i) => listRowShown(facets[i], filters));
 	const accountsWithBalance = withBalances(accounts, sums, ins);
-	const groups = CURRENCY_GROUPS.flatMap(([cur, label]) => {
+	const groups = CURRENCY_OPTIONS.flatMap(({ value: cur, label }) => {
 		const items = accountsWithBalance.filter((a) => a.currency === cur);
 		if (items.length === 0) return [];
 		const total = items.filter((a) => a.archivedAt === null).reduce((s, a) => s + a.balance, 0);
