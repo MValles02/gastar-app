@@ -1,9 +1,10 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { accountOption } from '#lib/server/accounts/queries.ts';
-import { activeAccountsIn, getGaliciaConnection } from '#lib/server/imports/connections.ts';
-import { convertWaitingAlerts } from '#lib/server/imports/gmail/cards.ts';
-import { importStatement, setGaliciaAccount } from '#lib/server/imports/galicia/import.ts';
+import { ACCOUNT_ERRORS, chooseGaliciaAccount } from '#lib/server/imports/card-alerts.ts';
+import { activeAccountsIn } from '#lib/server/imports/connections.ts';
+import { getGaliciaConnection } from '#lib/server/imports/galicia/connection.ts';
+import { importStatement } from '#lib/server/imports/galicia/import.ts';
 import {
 	parseGaliciaStatement,
 	STATEMENT_ERRORS,
@@ -16,11 +17,6 @@ import type { Actions, PageServerLoad } from './$types';
 
 /** Upload cap; the real statements are well under 1 MB. BODY_SIZE_LIMIT (Dockerfile) sits above it. */
 const MAX_BYTES = 5 * 1024 * 1024;
-
-const ACCOUNT_ERRORS = {
-	ARS: 'Elegí una cuenta en pesos.',
-	USD: 'Elegí una cuenta en dólares.'
-} as const;
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const userId = requireUser(locals).id;
@@ -43,11 +39,10 @@ export const actions: Actions = {
 		const fd = await request.formData();
 		const currency = fd.get('currency') === 'USD' ? 'USD' : 'ARS';
 		const accountId = String(fd.get('accountId') ?? '');
-		if (!(await setGaliciaAccount(requireUser(locals).id, currency, accountId))) {
+		// Credit alerts that waited for the Banco Galicia accounts become items now.
+		if (!(await chooseGaliciaAccount(requireUser(locals).id, currency, accountId))) {
 			return formFail(400, { errors: { accountId: ACCOUNT_ERRORS[currency] } });
 		}
-		// Credit alerts that waited for the Banco Galicia accounts become items now.
-		await convertWaitingAlerts(requireUser(locals).id);
 		return { currency, accountId };
 	},
 

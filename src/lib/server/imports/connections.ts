@@ -3,16 +3,14 @@ import type { Currency } from '#lib/money.ts';
 import { canAccessAccount, canAccessOwn } from '../access';
 import { db } from '../db';
 import { isUuid } from '../db/util';
-import {
-	financialAccounts,
-	galiciaConnections,
-	gmailConnections,
-	importCards,
-	mpConnections
-} from '../db/schema';
+import { financialAccounts, gmailConnections, importCards, mpConnections } from '../db/schema';
+import { getGaliciaConnection } from './galicia/connection';
 import { gmailOauthEnabled } from './gmail/oauth';
 import { mpOauthEnabled } from './mercado-pago/oauth';
 import { pendingImportCount } from './store';
+
+// The profile Vinculaciones page still reads it from here.
+export { getGaliciaConnection };
 
 /** The user's active accounts of one currency, by name: the only ones an import source can feed. */
 export function activeAccountsIn(userId: string, currency: Currency) {
@@ -80,18 +78,6 @@ export async function mpLinkState(userId: string): Promise<'linked' | 'reconnect
 	if (conn?.needsReconnect) return 'reconnect';
 	if (conn?.accountId) return 'linked';
 	return 'unlinked';
-}
-
-export async function getGaliciaConnection(userId: string) {
-	const [row] = await db
-		.select({
-			arsAccountId: galiciaConnections.arsAccountId,
-			usdAccountId: galiciaConnections.usdAccountId
-		})
-		.from(galiciaConnections)
-		.where(canAccessOwn(userId, galiciaConnections))
-		.limit(1);
-	return row;
 }
 
 /**

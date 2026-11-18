@@ -1,13 +1,14 @@
 import { CURRENCIES, type Currency } from '#lib/money.ts';
 import { db } from '../../db';
-import { cardStatements, galiciaConnections } from '../../db/schema';
+import { cardStatements } from '../../db/schema';
 import { userOwned } from '../../access';
 import { dayStart } from '../../month';
-import { getGaliciaConnection, isActiveAccountIn } from '../connections';
+import { isActiveAccountIn } from '../connections';
 import { type ImportRow, ingestImportItems } from '../ingest';
 import { statementLineKey, statementTaxesKey } from '../keys';
 import { withMatchLock } from '../match-lock';
 import { GALICIA_SOURCE, KIND, kindSpec } from '../sources';
+import { getGaliciaConnection } from './connection';
 import { matchStatement } from './matching';
 import { StatementError, type Statement, type StatementLine } from './statement';
 
@@ -15,21 +16,6 @@ type GaliciaConnection = Awaited<ReturnType<typeof getGaliciaConnection>>;
 
 const accountFor = (conn: GaliciaConnection, c: Currency) =>
 	({ ARS: conn?.arsAccountId, USD: conn?.usdAccountId })[c];
-
-/** Saves the pesos or dollar account (creating the connection). False unless it is the user's, active and of that currency. */
-export async function setGaliciaAccount(
-	userId: string,
-	currency: Currency,
-	accountId: string
-): Promise<boolean> {
-	if (!(await isActiveAccountIn(userId, currency, accountId))) return false;
-	const set = { ARS: { arsAccountId: accountId }, USD: { usdAccountId: accountId } }[currency];
-	await db
-		.insert(galiciaConnections)
-		.values({ ...userOwned(userId), ...set })
-		.onConflictDoUpdate({ target: galiciaConnections.userId, set });
-	return true;
-}
 
 type StatementImport =
 	{ ok: true; created: number; autoApproved: number } | { ok: false; missing: Currency };

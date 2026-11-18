@@ -175,7 +175,7 @@
 		<ListCard aria-label="Tarjetas por definir">
 			{#each data.unknownCards as c (c.network + c.last4)}
 				<ListRow
-					href={resolve(`profile/gmail/cards/${c.network}-${c.last4}`)}
+					href={resolve(`profile/gmail/cards/${c.slug}`)}
 					lead={{ icon: 'card', color: null }}
 					title="Tarjeta Visa ••{c.last4}: elegí qué es"
 					chevron

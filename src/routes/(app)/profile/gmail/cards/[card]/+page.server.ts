@@ -2,39 +2,32 @@ import { error, redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { readFields } from '#lib/server/forms.ts';
 import { accountOption } from '#lib/server/accounts/queries.ts';
-import { activeAccountsIn, getGaliciaConnection } from '#lib/server/imports/connections.ts';
-import { getCard, saveCard } from '#lib/server/imports/gmail/cards.ts';
+import { getCardForm, parseCardSlug, saveCard } from '#lib/server/imports/card-alerts.ts';
+import { activeAccountsIn } from '#lib/server/imports/connections.ts';
 import { gmailOauthEnabled } from '#lib/server/imports/gmail/oauth.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** `visa-0515` into its network and last 4; 404 for anything else. */
 function parseCard(param: string) {
-	const m = /^(visa)-(\d{4})$/.exec(param);
-	if (!m) error(404, 'Tarjeta no encontrada.');
-	return { network: m[1], last4: m[2] };
+	const card = parseCardSlug(param);
+	if (!card) error(404, 'Tarjeta no encontrada.');
+	return card;
 }
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!gmailOauthEnabled()) error(404);
 	const userId = requireUser(locals).id;
 	const { network, last4 } = parseCard(params.card);
-	const card = await getCard(userId, network, last4);
-	if (!card) error(404, 'Tarjeta no encontrada.');
-	const [ars, usd, galicia] = await Promise.all([
+	const initial = await getCardForm(userId, network, last4);
+	if (!initial) error(404, 'Tarjeta no encontrada.');
+	const [ars, usd] = await Promise.all([
 		activeAccountsIn(userId, 'ARS'),
-		activeAccountsIn(userId, 'USD'),
-		getGaliciaConnection(userId)
+		activeAccountsIn(userId, 'USD')
 	]);
-	// A credit card's accounts are the Banco Galicia ones; a card not saved yet starts from them too.
-	const accounts = card.type === 'credit' ? galicia : card;
 	return {
 		last4,
-		initial: {
-			type: card.type ?? '',
-			arsAccountId: accounts?.arsAccountId ?? galicia?.arsAccountId ?? '',
-			usdAccountId: accounts?.usdAccountId ?? galicia?.usdAccountId ?? ''
-		},
+		initial,
 		arsAccounts: ars.map(accountOption),
 		usdAccounts: usd.map(accountOption)
 	};
