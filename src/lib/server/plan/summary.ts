@@ -62,6 +62,7 @@ export function recurringIncomeInPesos(
 	);
 }
 
+/** A plan for another month (not repeating) counts as no plan. */
 export const isCurrentPlan = (plan: { month: string | null }, ym: string) =>
 	plan.month === null || plan.month === ym;
 

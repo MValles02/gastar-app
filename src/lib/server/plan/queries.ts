@@ -25,6 +25,7 @@ export function hasAnyPlan(userId: string) {
 	);
 }
 
+/** The user's plan when it is the current one (a plan for another month counts as none). */
 export async function currentPlan(userId: string) {
 	const [plan] = await getPlan(userId);
 	return plan && isCurrentPlan(plan, currentMonth(new Date())) ? plan : null;
