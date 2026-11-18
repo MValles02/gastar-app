@@ -166,7 +166,6 @@ const ruleRow = (r: RecurringRule, rate: number | null) => ({
 	categoryColor: toSwatchKey(r.categoryColor)
 });
 
-/** Recurring rules as /plan lists them: active incomes and outcomes (with due status) and inactive ones. */
 export async function recurringLists(userId: string) {
 	const m = await monthPlan(userId);
 	const active = m.active.map((r) => {
@@ -225,7 +224,6 @@ export async function recurringSuggestions(userId: string) {
 		.sort((a, b) => a.description.localeCompare(b.description));
 }
 
-/** Monthly average of a `HISTORY_MONTHS` total, rounded half up to whole units (integer math). */
 const monthlyAverage = (total: number) =>
 	Math.floor((total + 50 * HISTORY_MONTHS) / (100 * HISTORY_MONTHS)) * 100;
 
@@ -253,7 +251,6 @@ export async function limitSuggestions(
 	return out;
 }
 
-/** The categories a limit can go on: active expense (or both) categories with no limit on the plan yet. */
 export async function limitCandidates(userId: string, planId: string | null) {
 	const [categories, limits] = await Promise.all([
 		listCategories(userId),
@@ -263,7 +260,6 @@ export async function limitCandidates(userId: string, planId: string | null) {
 	return categories.filter((c) => c.kind !== 'income' && !limited.has(c.id));
 }
 
-/** A category limit's detail: its progress this month, amount and suggestion. No plan → /plan; no limit → 404. */
 export async function limitView(userId: string, categoryId: string) {
 	const plan = await requirePlan(userId);
 	const limit = await requireLimit(userId, plan.id, categoryId);

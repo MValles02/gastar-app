@@ -13,7 +13,6 @@ import {
 import type { MovementType } from '#lib/movement.ts';
 import { daysInMonth, daysLeftIn, elapsedDays } from '../month';
 
-/** `amount` from `from` into `to` at the plan rate; null across currencies when there is no rate. */
 export function convertTo(
 	amount: number,
 	from: Currency,
@@ -24,11 +23,9 @@ export function convertTo(
 	return rate === null ? null : convertAmount(amount, rate, from, to);
 }
 
-/** `amount` in plan pesos; null for a USD amount when there is no rate. */
 export const toPlanCurrency = (amount: number, cur: Currency, rate: number | null) =>
 	convertTo(amount, cur, PLAN_CURRENCY, rate);
 
-/** Due day clamped to the month (31 → 30 in September). */
 export function recurringStatus(dayOfMonth: number, paid: boolean, ym: string) {
 	const status: RecurringStatus = paid ? 'paid' : 'pending';
 	return { day: Math.min(dayOfMonth, daysInMonth(ym)), status };
@@ -65,7 +62,6 @@ export function recurringIncomeInPesos(
 	);
 }
 
-/** A plan for another month (not repeating) counts as no plan. */
 export const isCurrentPlan = (plan: { month: string | null }, ym: string) =>
 	plan.month === null || plan.month === ym;
 

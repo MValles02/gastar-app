@@ -5,7 +5,6 @@ import { account } from './db/schema';
 export const GOOGLE_PROVIDER_ID = 'google';
 export const CREDENTIAL_PROVIDER_ID = 'credential';
 
-/** Whether the user has a password (Google-only users do not). */
 export async function hasPassword(userId: string): Promise<boolean> {
 	const rows = await db
 		.select({ id: account.id })

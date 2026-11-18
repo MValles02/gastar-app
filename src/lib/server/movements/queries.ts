@@ -11,7 +11,6 @@ import type { MovementRow } from './form';
 
 export const PAGE_SIZE = 50;
 
-/** Whether the user has any movement, in any currency (first-run checklist). */
 export function hasAnyMovement(userId: string) {
 	return exists(
 		db
@@ -82,7 +81,6 @@ export function setMovementRule(
 	});
 }
 
-/** Movements per category (all time), for ranking the category picker by use. */
 export function categoryUsage(userId: string) {
 	return db
 		.select({ categoryId: movements.categoryId, uses: sql<number>`count(*)`.mapWith(Number) })
@@ -92,7 +90,6 @@ export function categoryUsage(userId: string) {
 		.groupBy(movements.categoryId);
 }
 
-/** Single filter predicate shared by the list and its summary (same joins: account, dest, categories). */
 function filterWhere(userId: string, query: MovementFilterQuery) {
 	const { q, from, to, type, account, category, currency } = query;
 	const fromStart = from ? dayStart(from) : null;

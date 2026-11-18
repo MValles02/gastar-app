@@ -24,7 +24,6 @@ export function monthParam(url: URL, opts: { clamp: boolean }, now = new Date())
 	return opts.clamp && ym > current ? current : ym;
 }
 
-/** A month header's navigation: its label, the months either side, and whether it is (or is past) the current one. */
 export function monthNav(ym: string, now = new Date()) {
 	return {
 		ym,
@@ -35,7 +34,6 @@ export function monthNav(ym: string, now = new Date()) {
 	};
 }
 
-/** UTC offset of APP_TZ at the given instant, e.g. "-03:00". */
 function offsetAt(probe: Date): string {
 	const name = new Intl.DateTimeFormat('en-US', { timeZone: APP_TZ, timeZoneName: 'longOffset' })
 		.formatToParts(probe)
@@ -49,7 +47,6 @@ export function shiftMonth(ym: string, delta: 1 | -1): string {
 	return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
-/** n months ending at ym, oldest first. */
 export function lastMonths(ym: string, n: number): string[] {
 	const out = [ym];
 	while (out.length < n) out.unshift(shiftMonth(out[0], -1));
@@ -82,7 +79,6 @@ export function monthRange(ym: string): { start: Date; end: Date } {
 /** Full months of history behind suggested rules and limits; a suggested rule appears in each of them. */
 export const HISTORY_MONTHS = 3;
 
-/** The `HISTORY_MONTHS` full months before `ym`, as a range (the window for suggested rules and limits). */
 export function lastFullMonths(ym: string) {
 	const [oldest] = lastMonths(shiftMonth(ym, -1), HISTORY_MONTHS);
 	return { start: monthRange(oldest).start, end: monthRange(ym).start };
@@ -135,7 +131,6 @@ export function dayStart(ymd: string): Date | null {
 	return null;
 }
 
-/** "YYYY-MM-DD" of a Date in APP_TZ. */
 export function localDay(d: Date): string {
 	return new Intl.DateTimeFormat('en-CA', {
 		timeZone: APP_TZ,
@@ -170,7 +165,6 @@ export function dayHeading(ymd: string, todayYmd: string, short = false): string
 	);
 }
 
-/** The "YYYY-MM-DD" after `ymd` (calendar arithmetic, no time zone). */
 export function nextDay(ymd: string): string {
 	const [y, m, d] = ymd.split('-').map(Number);
 	return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
