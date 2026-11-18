@@ -10,7 +10,6 @@ export type FormFailure<V extends object = Record<string, string>, E = Record<st
 	formError?: string;
 };
 
-/** `fail(status, data)` restricted to the shared FormFailure shape. */
 export const formFail = <V extends object, E extends object>(
 	status: number,
 	data: FormFailure<V, E>

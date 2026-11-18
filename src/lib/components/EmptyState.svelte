@@ -3,7 +3,6 @@
 	import * as Empty from '#lib/components/ui/empty/index.js';
 	import Icon from '#lib/components/Icon.svelte';
 
-	/** Empty placeholder: icon, one line of text and optional actions (`children`). */
 	let {
 		icon,
 		description,

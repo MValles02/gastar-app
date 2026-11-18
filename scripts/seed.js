@@ -36,7 +36,6 @@ if (!password && !existingEmail) {
 	process.exit(1);
 }
 
-// Deterministic PRNG (mulberry32) so output is reproducible.
 let seed = 20240601;
 function rand() {
 	seed = (seed + 0x6d2b79f5) | 0;
@@ -48,7 +47,7 @@ const between = (min, max) => min + Math.floor(rand() * (max - min + 1));
 const pick = (arr) => arr[Math.floor(rand() * arr.length)];
 
 const now = new Date();
-let userId = randomUUID(); // replaced by the existing user's id when SEED_EXISTING_USER is set
+let userId = randomUUID();
 
 const accountDefs = [
 	// color and icon are keys from src/lib/appearance.ts (SWATCHES, ACCOUNT_ICONS), not hex
@@ -121,7 +120,6 @@ const gymRule = randomUUID();
 
 const movements = [];
 const today = now.getDate();
-// Random day in [lo, hi]; the current month only draws from 1..today so nothing piles up on today.
 const rday = (m, lo = 1, hi = 28) => {
 	const h = m === 0 ? Math.min(hi, today) : hi;
 	return between(m === 0 ? 1 : lo, h);
@@ -137,7 +135,6 @@ function dayStartBA(d) {
 	return new Date(`${ymd}T00:00:00${offset}`);
 }
 
-// Local-time date in `monthsAgo` months back; future dates are clamped to now, never dropped.
 function add(monthsAgo, day, hour, row) {
 	let occurredAt = new Date(
 		now.getFullYear(),
@@ -294,7 +291,6 @@ const cols = [
 	'recurring_id'
 ];
 
-// Removes a user's app data (not the auth rows), children before parents.
 async function deleteAppData(tx, id) {
 	await tx`delete from movements where user_id = ${id}`;
 	await tx`delete from plan_category_limits where plan_id in (select id from spending_plans where user_id = ${id})`;

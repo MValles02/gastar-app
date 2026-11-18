@@ -16,7 +16,6 @@ export const init: ServerInit = () => {
 
 const AUTH_API_PREFIX = '/api/auth/';
 
-/** Pages a signed-in user has no use for; they are sent home instead. */
 const SIGNED_OUT_ONLY_PATHS = ['/login', '/signup', '/forgot-password'];
 
 const PUBLIC_PATHS = [

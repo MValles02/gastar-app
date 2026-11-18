@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 
-	// The Ingresar / Crear cuenta switch at the top of /login and /signup.
 	let { current }: { current: 'login' | 'signup' } = $props();
 
 	const tabs = [

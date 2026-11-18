@@ -95,7 +95,6 @@
 		gap: var(--space-3);
 	}
 
-	/* Full-bleed bar pinned to the bottom of the viewport (no tab bar on form screens). */
 	.half {
 		flex: 1 1 0;
 		min-width: 0;
