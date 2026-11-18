@@ -55,5 +55,28 @@ export function importDoneOf(location: string): ImportDone {
 	return done === 'rejected' || done === 'stale' ? done : 'approved';
 }
 
+/** Where "Aprobar sugeridos" lands: how many were approved and how many stayed pending. */
+export const importBulkHref = (approved: number, skipped: number) =>
+	`/imports?approved=${approved}&skipped=${skipped}`;
+/** Where a statement upload (Banco Galicia) lands: new items and how many were auto-approved. */
+export const importUploadHref = (created: number, auto: number) =>
+	`/imports?imported=${created}&auto=${auto}`;
+/** The inbox's one-shot flags, stripped once their toast has shown. */
+export const IMPORT_FLAGS = ['done', 'approved', 'skipped', 'imported', 'auto'] as const;
+
+const countParam = (v: string | null) => (v !== null && /^\d{1,9}$/.test(v) ? Number(v) : null);
+
+/** The inbox's flags: a review outcome, a bulk approval or a statement upload; null when absent. */
+export function readImportFlags(sp: Flags) {
+	const done = sp.get('done');
+	const approved = countParam(sp.get('approved'));
+	const imported = countParam(sp.get('imported'));
+	return {
+		done: IMPORT_DONE.find((d) => d === done) ?? null,
+		bulk: approved === null ? null : { approved, skipped: countParam(sp.get('skipped')) ?? 0 },
+		upload: imported === null ? null : { created: imported, auto: countParam(sp.get('auto')) ?? 0 }
+	};
+}
+
 /** The id a create action redirected to (`/<collection>/<id>`). */
 export const createdId = (location: string) => location.split('/').pop()!;

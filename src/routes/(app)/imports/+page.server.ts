@@ -24,7 +24,7 @@ import { isUuid } from '#lib/server/db/util.ts';
 import { pgErrorCode } from '#lib/server/db/errors.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { IMPORT_DONE } from '#lib/toast-flags.ts';
+import { importBulkHref, readImportFlags } from '#lib/toast-flags.ts';
 
 /** "Recién", "Hace 5 min", "Hace 2 h", "Hace 3 d". */
 function agoLabel(at: Date, now: Date): string {
@@ -37,8 +37,6 @@ function agoLabel(at: Date, now: Date): string {
 
 const APPROVE_FAILED = 'No se pudo aprobar.';
 const DISCARD_FAILED = 'No se pudo descartar.';
-
-const countParam = (v: string | null) => (v !== null && /^\d{1,9}$/.test(v) ? Number(v) : null);
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
@@ -104,11 +102,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		});
 	}
 
-	const done = url.searchParams.get('done');
-	const approved = countParam(url.searchParams.get('approved'));
-	const skipped = countParam(url.searchParams.get('skipped'));
-	const imported = countParam(url.searchParams.get('imported'));
-	const autoImported = countParam(url.searchParams.get('auto'));
+	const { done, bulk, upload } = readImportFlags(url.searchParams);
 	return {
 		mpLinked: mpOn,
 		gmailLinked: gmail?.state === 'linked',
@@ -125,9 +119,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		// Gmail's failure, labelled (shown next to Mercado Pago's result).
 		gmailError: gmailState?.errorLabel ?? null,
 		suggested,
-		bulk: approved === null ? null : { approved, skipped: skipped ?? 0 },
+		bulk,
 		// A statement upload just landed (Banco Galicia): new items and how many were auto-approved.
-		upload: imported === null ? null : { created: imported, auto: autoImported ?? 0 },
+		upload,
 		needsReconnect: mp?.state === 'reconnect',
 		running: !!sync?.running,
 		// 'payments' or 'report' while running; null when idle.
@@ -140,7 +134,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			sync?.lastRunAt || gmailState?.lastRunAt
 				? agoLabel((sync?.lastRunAt ?? gmailState?.lastRunAt)!, now)
 				: null,
-		done: IMPORT_DONE.find((d) => d === done) ?? null,
+		done,
 		groups,
 		// Approved automatically in the last 30 days; the line opens their list (/imports/auto).
 		autoCount: autoRows.length
@@ -199,6 +193,6 @@ export const actions: Actions = {
 	approveSuggested: async ({ locals }) => {
 		const userId = requireUser(locals).id;
 		const { approved, skipped } = await approveAllSuggested(userId, false);
-		redirect(303, `/imports?approved=${approved}&skipped=${skipped}`);
+		redirect(303, importBulkHref(approved, skipped));
 	}
 };

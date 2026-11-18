@@ -9,6 +9,7 @@
 	import { afterNavigate, refreshAll } from '$app/navigation';
 	import { ALREADY_REVIEWED } from '#lib/imports.ts';
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
+	import { IMPORT_FLAGS } from '#lib/toast-flags.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Empty from '#lib/components/ui/empty/index.js';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
@@ -42,7 +43,7 @@
 	let hydrated = $state(false);
 	onMount(() => (hydrated = true));
 	// Toast once per redirect, then strip its flags from the URL so a reload does not toast again.
-	const stripDone = () => stripFlags(['done', 'approved', 'skipped', 'imported', 'auto']);
+	const stripDone = () => stripFlags(IMPORT_FLAGS);
 	afterNavigate(({ shallow, type }) => {
 		if (shallow && type === 'goto') return;
 		if (data.done) {
