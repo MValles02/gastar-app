@@ -1,6 +1,6 @@
 import { and, eq, inArray, max } from 'drizzle-orm';
 import { db } from '../../db';
-import { mpImportItems } from '../../db/schema';
+import { importItems } from '../../db/schema';
 import { canAccessOwn } from '../../access';
 import { batches, type ImportRow } from '../ingest';
 import { paymentKey, refundKey } from '../keys';
@@ -84,13 +84,13 @@ export async function syncPayments(
 ): Promise<ImportRow[]> {
 	const now = Date.now();
 	const [last] = await db
-		.select({ at: max(mpImportItems.occurredAt) })
-		.from(mpImportItems)
+		.select({ at: max(importItems.occurredAt) })
+		.from(importItems)
 		.where(
 			and(
-				canAccessOwn(ownerId, mpImportItems),
-				eq(mpImportItems.accountId, accountId),
-				inArray(mpImportItems.kind, PAYMENT_KINDS)
+				canAccessOwn(ownerId, importItems),
+				eq(importItems.accountId, accountId),
+				inArray(importItems.kind, PAYMENT_KINDS)
 			)
 		);
 	const begin =
@@ -107,9 +107,9 @@ export async function syncPayments(
 	const ids = payments.map((p) => str(p.id)).filter((id): id is string => !!id);
 	for (const batch of batches(ids)) {
 		const found = await db
-			.select({ key: mpImportItems.externalKey, status: mpImportItems.status })
-			.from(mpImportItems)
-			.where(and(canAccessOwn(ownerId, mpImportItems), inArray(mpImportItems.sourceId, batch)));
+			.select({ key: importItems.externalKey, status: importItems.status })
+			.from(importItems)
+			.where(and(canAccessOwn(ownerId, importItems), inArray(importItems.sourceId, batch)));
 		found.forEach((f) => existing.set(f.key, f.status));
 	}
 

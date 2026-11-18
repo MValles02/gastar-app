@@ -1,7 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 import { userOwned } from '../access';
 import { db } from '../db';
-import { mpImportItems } from '../db/schema';
+import { importItems } from '../db/schema';
 import { autoApprovePending } from './approve';
 import { importSource, type SourceId } from './sources';
 
@@ -13,14 +13,14 @@ export const batches = <T>(xs: T[]) =>
 		xs.slice(i * BATCH, (i + 1) * BATCH)
 	);
 
-export type ImportRow = Omit<typeof mpImportItems.$inferInsert, 'userId' | 'source'>;
+export type ImportRow = Omit<typeof importItems.$inferInsert, 'userId' | 'source'>;
 
 /**
  * In an upsert's RETURNING: true when the row was inserted, false when an existing one was updated.
  * An insert sets created_at and updated_at to the same now(); the conflict update sets updated_at = now()
  * on a row created in an earlier transaction, so they differ.
  */
-const INSERTED = sql<boolean>`${mpImportItems.createdAt} = ${mpImportItems.updatedAt}`;
+const INSERTED = sql<boolean>`${importItems.createdAt} = ${importItems.updatedAt}`;
 
 /**
  * The only writer of import items, and the only place that auto-approves afterwards: stores the rows as
@@ -34,13 +34,13 @@ export async function ingestImportItems(
 	rows: ImportRow[]
 ): Promise<{ created: number; autoApproved: number }> {
 	const { conflict } = importSource(source);
-	const target = [mpImportItems.userId, mpImportItems.externalKey];
+	const target = [importItems.userId, importItems.externalKey];
 	// A key listed twice (a payment seen on two pages) would make an update-on-conflict insert fail.
 	const unique = [...new Map(rows.map((r) => [r.externalKey, r])).values()];
 	let created = 0;
 	for (const batch of batches(unique)) {
 		const insert = db
-			.insert(mpImportItems)
+			.insert(importItems)
 			.values(batch.map((r) => ({ ...userOwned(userId), ...r, source })));
 		const written = await (
 			conflict === 'skip'
@@ -55,7 +55,7 @@ export async function ingestImportItems(
 							occurredAt: sql`excluded.occurred_at`,
 							updatedAt: sql`now()`
 						},
-						setWhere: eq(mpImportItems.status, 'pending')
+						setWhere: eq(importItems.status, 'pending')
 					})
 		).returning({ inserted: INSERTED });
 		created += written.filter((r) => r.inserted).length;
