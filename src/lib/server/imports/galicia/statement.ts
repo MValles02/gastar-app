@@ -1,11 +1,12 @@
 import { createHash } from 'node:crypto';
 import { getDocumentProxy } from 'unpdf';
 import { CURRENCIES, type Currency } from '#lib/money.ts';
+import type { CardNetwork } from '#lib/imports.ts';
 
 // Parser for Banco Galicia credit-card statement PDFs (Visa and Mastercard). The PDF is read in
 // memory only; nothing here logs or returns the holder's name, address or account numbers.
 
-export type CardNetwork = 'visa' | 'mastercard';
+export type { CardNetwork };
 
 /** One consumo line of DETALLE DEL CONSUMO. `cents` is signed: negative lines are credits. */
 export type StatementLine = {

@@ -7,7 +7,8 @@
 // /__fake/{health,reset,revoke,omit-scope,account,requests} and /__fake/alert?email=&last4=&merchant=&amount=
 // &currency=&type=&foreign=&dkim=pass|fail[&date=<ISO>][&listed=date] (adds a synthetic Visa alert, dated now or at `date`; the
 // listing goes by arrival, so a backdated alert is still listed after the cursor, unless `listed=date`: then it is
-// listed at `date`, as real Gmail's `after:` goes by the message date), /__fake/mailbox-reset?email=.
+// listed at `date`, as real Gmail's `after:` goes by the message date; `network=mastercard[&cuotas=N]` makes it a
+// Banco Galicia Mastercard alert instead, `amount` then in es-AR form like "1.234,56"), /__fake/mailbox-reset?email=.
 // The global reset leaves mailboxes and access tokens alone, so a spec resetting it does not disturb another.
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
@@ -92,7 +93,52 @@ function alertHtml(a) {
 	);
 }
 
+// The body of a Banco Galicia Mastercard alert (Fiserv): an intro and a list of "Label: <b>value</b>" items.
+function mastercardHtml(a) {
+	const li = (label, value) =>
+		'<li type="disc">&nbsp;' + label + ': <b>' + escapeHtml(value) + '</b></li>';
+	return (
+		'<html><body><p>Le informamos el movimiento realizado con su Tarjeta Mastercard emitida por ' +
+		'<b>BCO DE GALICIA Y BS.AS.</b></p><ul>' +
+		li('Tipo de Movimiento', a.type) +
+		li('Comercio', a.merchant + '   ') +
+		li('Importe', a.amount) +
+		li('Moneda', a.currency) +
+		li('Fecha', '01/01/2026') +
+		li('Hora', '12:00') +
+		li('Cantidad cuotas', a.cuotas) +
+		li('Estado', 'APROBADA') +
+		li('&Uacute;ltimos 4 d&iacute;gitos de la tarjeta', a.last4) +
+		li('Ubicaci&oacute;n', a.foreign ? 'Estados Unidos' : 'Argentina') +
+		'</ul></body></html>'
+	);
+}
+
+const SENDERS = {
+	visa: {
+		from: 'Visa <DoNotReplyAlertadeComprasVisa@visa.com>',
+		subject: 'Alerta de Compras Visa',
+		auth: (dkim) =>
+			'mx.google.com; dkim=' +
+			dkim +
+			' header.i=@visa.com header.s=cportal; ' +
+			'spf=pass smtp.mailfrom=DoNotReplyAlertadeComprasVisa@visa.com; ' +
+			'dmarc=pass (p=QUARANTINE) header.from=visa.com'
+	},
+	mastercard: {
+		from: 'Alertas <alertas@misconsultas.com.ar>',
+		subject: 'Aviso de consumo con tarjeta',
+		auth: (dkim) =>
+			'mx.google.com; dkim=' +
+			dkim +
+			' header.i=@misconsultas.com.ar header.s=fiservser1; ' +
+			'spf=pass smtp.mailfrom=alertas@misconsultas.com.ar; ' +
+			'dmarc=pass (p=NONE) header.from=misconsultas.com.ar'
+	}
+};
+
 function gmailMessage(m) {
+	const sender = SENDERS[m.network];
 	return {
 		id: m.id,
 		threadId: m.id,
@@ -100,18 +146,10 @@ function gmailMessage(m) {
 		payload: {
 			mimeType: 'text/html',
 			headers: [
-				{ name: 'From', value: 'Visa <DoNotReplyAlertadeComprasVisa@visa.com>' },
-				{ name: 'Subject', value: 'Alerta de Compras Visa' },
+				{ name: 'From', value: sender.from },
+				{ name: 'Subject', value: sender.subject },
 				{ name: 'Date', value: new Date(m.internalDate).toUTCString() },
-				{
-					name: 'Authentication-Results',
-					value:
-						'mx.google.com; dkim=' +
-						m.dkim +
-						' header.i=@visa.com header.s=cportal; ' +
-						'spf=pass smtp.mailfrom=DoNotReplyAlertadeComprasVisa@visa.com; ' +
-						'dmarc=pass (p=QUARANTINE) header.from=visa.com'
-				}
+				{ name: 'Authentication-Results', value: sender.auth(m.dkim) }
 			],
 			body: { data: Buffer.from(m.html, 'utf8').toString('base64url') }
 		}
@@ -149,17 +187,21 @@ createServer(async (req, res) => {
 		lastDate = Math.max(Date.now(), lastDate + 1);
 		const id = 'fake-msg-' + ++issued;
 		const date = Date.parse(q.get('date') ?? '');
-		const html = alertHtml({
+		const network = q.get('network') === 'mastercard' ? 'mastercard' : 'visa';
+		const fields = {
 			last4: q.get('last4') || '1234',
 			merchant: q.get('merchant') || 'COMERCIO EJEMPLO',
 			amount: q.get('amount') || '100.00',
 			currency: q.get('currency') || 'ARS',
 			type: q.get('type') || 'Compra',
-			foreign: q.get('foreign') === '1' || q.get('foreign') === 'true'
-		});
+			foreign: q.get('foreign') === '1' || q.get('foreign') === 'true',
+			cuotas: q.get('cuotas') || '01'
+		};
+		const html = network === 'mastercard' ? mastercardHtml(fields) : alertHtml(fields);
 		const list = mailboxes.get(to) ?? [];
 		list.push({
 			id,
+			network,
 			internalDate: Number.isNaN(date) ? lastDate : date,
 			listedAt: q.get('listed') === 'date' && !Number.isNaN(date) ? date : lastDate,
 			dkim: q.get('dkim') === 'fail' ? 'fail' : 'pass',

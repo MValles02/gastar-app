@@ -7,7 +7,7 @@
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import { afterNavigate, refreshAll } from '$app/navigation';
-	import { ALREADY_REVIEWED } from '#lib/imports.ts';
+	import { ALREADY_REVIEWED, cardNetworkName } from '#lib/imports.ts';
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
 	import { IMPORT_FLAGS } from '#lib/toast-flags.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -157,7 +157,7 @@
 				<ListRow
 					href={resolve(`profile/gmail/cards/${c.slug}`)}
 					lead={{ icon: 'card', color: null }}
-					title="Tarjeta Visa ••{c.last4}: elegí qué es"
+					title="Tarjeta {cardNetworkName(c.network)} ••{c.last4}: elegí qué es"
 					chevron
 				/>
 			{/each}

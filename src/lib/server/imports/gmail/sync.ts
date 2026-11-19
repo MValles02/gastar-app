@@ -9,6 +9,8 @@ import { errorDetail, freshToken, leaseFree } from '../sync-kit';
 import { convertWaitingAlerts } from '../card-alerts';
 import { gmailDataBaseUrl } from './env';
 import { getAccessToken, refreshConnection } from './oauth';
+import { type CardAlertResult, messageSender } from './alert-mail';
+import { MASTERCARD_SENDER, parseMastercardAlert } from './mastercard-alert';
 import { VISA_SENDERS, parseVisaAlert } from './visa-alert';
 
 /** Refresh the access token when it expires within this window (Google's last an hour). */
@@ -26,7 +28,7 @@ export const GMAIL_ERROR_LABELS: Record<string, string> = {
 	reconnect: 'hay que volver a vincular Gmail',
 	network: 'sin conexión con Gmail',
 	api: 'Gmail respondió con un error',
-	parse: 'algún mail de Visa no se pudo leer'
+	parse: 'algún mail de alertas de tarjeta no se pudo leer'
 };
 
 /** The inbox label of a stored code (an unknown code shows as is). */
@@ -39,6 +41,15 @@ class SyncError extends Error {
 }
 
 const obj = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
+
+/** The parser of each alert sender. */
+const PARSERS = new Map<string, (message: unknown) => CardAlertResult>([
+	...VISA_SENDERS.map((s) => [s, parseVisaAlert] as const),
+	[MASTERCARD_SENDER, parseMastercardAlert]
+]);
+
+const parseAlert = (message: unknown): CardAlertResult =>
+	PARSERS.get(messageSender(message))?.(message) ?? { status: 'ignored' };
 
 /** Takes the user's lease and returns the cursor (null until the first run); null when off or held. */
 async function acquire(
@@ -104,7 +115,7 @@ async function gmailClient(userId: string) {
 
 /** Ids of the matching messages newer than the bound (minus the overlap), and whether every page was listed. */
 async function listMessageIds(api: (url: string) => Promise<unknown>, bound: Date) {
-	const from = VISA_SENDERS.join(' OR ');
+	const from = [...PARSERS.keys()].join(' OR ');
 	const after = Math.floor(bound.getTime() / 1000) - OVERLAP_S;
 	const ids: string[] = [];
 	let pageToken: string | undefined;
@@ -140,7 +151,7 @@ async function pull(userId: string, bound: Date, base: Date) {
 		);
 		if (message === null) continue;
 		newest = Math.max(newest, Number(obj(message).internalDate) || 0);
-		const result = parseVisaAlert(message);
+		const result = parseAlert(message);
 		if (result.status === 'invalid') invalid++;
 		else if (result.status === 'ok') {
 			await db
@@ -154,7 +165,7 @@ async function pull(userId: string, bound: Date, base: Date) {
 
 /**
  * Reads from the "Importar desde" day when it is earlier than `coveredFrom` (or nothing was read yet: a
- * backfill), else from the cursor, and turns the Visa purchase alerts into pending items. Never throws and
+ * backfill), else from the cursor, and turns the card purchase alerts into pending items. Never throws and
  * logs only codes: the mail itself is never stored or logged. The cursor is the forward cursor: it never moves
  * backwards (a backfill leaves it where it was) and also moves past messages that did not parse (visible as
  * the `parse` code). A complete backfill listing lowers `coveredFrom`; a failed or truncated one retries on
