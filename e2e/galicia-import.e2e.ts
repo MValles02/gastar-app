@@ -7,7 +7,8 @@ test.describe.configure({ mode: 'serial' });
 let page: Page;
 
 /** The pending /imports row whose title contains `text`. */
-const row = (text: string) => page.locator('main [role="listitem"]').filter({ hasText: text });
+const rows = () => page.getByRole('main').getByRole('listitem');
+const row = (text: string) => rows().filter({ hasText: text });
 
 /** The user's imported items with their account, local day and signed amount, oldest key first. */
 const items = () =>
@@ -112,7 +113,7 @@ test('a statement lands its lines on the chosen pesos and dollar accounts', asyn
 test('uploading the same statement again creates nothing', async () => {
 	await upload(page, visaStatement());
 	await expect(page.getByText('Sin movimientos nuevos.')).toBeVisible();
-	await expect(row('')).toHaveCount(5);
+	await expect(rows()).toHaveCount(5);
 });
 
 test('a statement that does not add up to its total is rejected with nothing written', async () => {
@@ -120,7 +121,7 @@ test('a statement that does not add up to its total is rejected with nothing wri
 	await expect(page.getByRole('alert')).toBeVisible();
 	await expect(page).toHaveURL(/\/profile\/galicia/);
 	await page.goto('/imports');
-	await expect(row('')).toHaveCount(5);
+	await expect(rows()).toHaveCount(5);
 });
 
 test('a remembered merchant matches the same merchant with another reference code next month', async () => {

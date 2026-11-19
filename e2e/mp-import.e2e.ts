@@ -86,6 +86,7 @@ const CATEGORY = `Cat MP ${sfx}`;
 const SECOND = `Cuenta MP ${sfx}`;
 const AMIGA_DESC = `Pago amiga ${sfx}`;
 const PAYOUT_DESC = `Retiro MP ${sfx}`;
+const YIELD_DESC = `Rendimiento MP ${sfx}`;
 let origin = '';
 let categoryUrl = '';
 let secondUrl = '';
@@ -118,7 +119,7 @@ test.beforeAll(async ({ browser }) => {
 });
 
 test.afterAll(async () => {
-	for (const d of [AMIGA_DESC, PAYOUT_DESC]) await deleteMovements(page, origin, d);
+	for (const d of [AMIGA_DESC, PAYOUT_DESC, YIELD_DESC]) await deleteMovements(page, origin, d);
 	for (const url of [usdUrl, secondUrl, categoryUrl]) if (url) await postDelete(page, origin, url);
 	await page.close();
 });
@@ -177,10 +178,26 @@ test('sync fills the inbox and leaves balances alone', async () => {
 		new Set(puts[0].columns.map((c) => c.key)).size
 	);
 
-	// A day whose losses outweigh its gains is one debit yield (12,34 + 5,02 - 20,00 = -2,64); the other is 7,89.
-	const yields = rows().filter({ hasText: 'Rendimientos' });
-	await expect(yields.filter({ hasText: '$3' })).toHaveCount(1);
-	await expect(yields.filter({ hasText: '$8' })).toHaveCount(1);
+	// Raw-SQL exception: these keys match the old settlement report so earlier imports dedupe; no UI shows them.
+	// A day whose losses outweigh its gains is one debit yield (12,34 + 5,02 - 20,00 = -2,64).
+	const yields = await withDb(
+		(sql) => sql`select external_key, amount::int as amount, is_credit from mp_import_items
+			where user_id = (select id from "user" where email = ${IMPORT_EMAIL})
+			and kind = 'yield' order by external_key`
+	);
+	expect(yields.map((y) => [y.external_key, y.amount, y.is_credit])).toEqual([
+		[`yield:${daysAgoYmd(14)}`, 264, false],
+		[`yield:${daysAgoYmd(13)}`, 789, true]
+	]);
+	const payouts = await withDb(
+		(sql) => sql`select external_key, kind from mp_import_items
+			where user_id = (select id from "user" where email = ${IMPORT_EMAIL})
+			and kind in ('payout', 'merchant_payout') order by external_key`
+	);
+	expect(payouts.map((p) => [p.external_key, p.kind])).toEqual([
+		['payout:9000000004:out', 'payout'],
+		['payout:9000000005:out', 'merchant_payout']
+	]);
 
 	expect(await accountRow()).toBe(balance);
 
@@ -369,6 +386,26 @@ test('approving a payout as a transfer moves both balances', async () => {
 	expect(await balanceOf(SECOND)).toBe(secondBefore + 5000);
 });
 
+test('approving without remembering leaves the other yield unsuggested', async () => {
+	// 7,89 renders as "$8"; the "Rendimientos" filter keeps the "$801" FAKE AMIGA row out.
+	await openItem(page, 'Rendimientos', '$8');
+	await page.locator('input[name="description"]').fill(YIELD_DESC);
+	await page.getByRole('radio', { name: 'Ingreso' }).check({ force: true });
+	await pick(page, 'Categoría', CATEGORY);
+	await expect(page.getByText('Los próximos de Rendimientos se completan así.')).toBeVisible();
+	await expect(rememberBox()).not.toBeChecked();
+	await approve().click();
+	await flash('Movimiento aprobado.');
+	const other = rows().filter({ hasText: 'Rendimientos' });
+	await expect(other).toHaveCount(1);
+	await expect(other).not.toContainText(/sugerido/i);
+
+	await openItem(page, 'Rendimientos');
+	// The remaining yield day lost money: a debit, so it defaults to Gasto.
+	await expect(page.getByRole('radio', { name: 'Gasto' })).toBeChecked();
+	await expect(page.locator('input[name="description"]')).toHaveValue('Rendimientos');
+});
+
 /** The pending-or-approved FAKE AMIGA item that still carries the remembered rule, and its movement. */
 const amigaItem = () =>
 	withDb(async (sql) => {
@@ -459,22 +496,27 @@ test('bulk approve creates the suggested movements with exact amounts', async ()
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Aprobar' }).click();
 	await flash('Se aprobó 1 movimiento.');
 	// Only the remembered counterparty was suggested; the payouts never offered a rule.
-	await expect(rows()).toHaveCount(4);
+	await expect(rows()).toHaveCount(3);
 	await expect(rows().filter({ hasText: 'Ingreso de dinero' })).toHaveCount(1);
 	await expect(rows().filter({ hasText: 'Pago en comercio' })).toHaveCount(1);
-	await expect(rows().filter({ hasText: 'Rendimientos' })).toHaveCount(2);
+	await expect(rows().filter({ hasText: 'Rendimientos' })).toHaveCount(1);
 
 	const amounts: string[] = [];
-	const hrefs = await findMovements(page, AMIGA_DESC);
-	expect(hrefs).toHaveLength(2);
-	for (const href of hrefs) {
-		await page.goto(href);
-		const label = await page.getByRole('button', { name: /^Monto: / }).getAttribute('aria-label');
-		amounts.push(label!.replace('Monto: ', ''));
+	for (const [desc, count] of [
+		[AMIGA_DESC, 2],
+		[YIELD_DESC, 1]
+	] as const) {
+		const hrefs = await findMovements(page, desc);
+		expect(hrefs).toHaveLength(count);
+		for (const href of hrefs) {
+			await page.goto(href);
+			const label = await page.getByRole('button', { name: /^Monto: / }).getAttribute('aria-label');
+			amounts.push(label!.replace('Monto: ', ''));
+		}
 	}
-	expect(amounts.sort()).toEqual(['1.234,56', '800,50'].sort());
+	expect(amounts.sort()).toEqual(['1.234,56', '7,89', '800,50'].sort());
 
-	// Whole-peso display: only FAKE AMIGA 800,50.
+	// Whole-peso display: only FAKE AMIGA 800,50 (the 7,89 yield was approved before `before`).
 	expect(Math.abs((await balanceOf('Mercado Pago')) - before - 800.5)).toBeLessThanOrEqual(1);
 
 	await page.goto('/imports');
@@ -525,7 +567,7 @@ test('moving "Importar desde" earlier searches from the chosen date and never ch
 
 	await untilRun(() => importFrom(from));
 	await page.goto('/imports');
-	await expect(rows()).toHaveCount(4);
+	await expect(rows()).toHaveCount(3);
 	// The discarded item never comes back.
 	await expect(rows().filter({ hasText: 'CAFE DE PRUEBA' })).toHaveCount(0);
 	expect(await findMovements(page, AMIGA_DESC)).toHaveLength(approvedBefore);
@@ -538,7 +580,7 @@ test('moving "Importar desde" earlier searches from the chosen date and never ch
 	// Earlier still: a backfill again, and approved or rejected items stay as they were.
 	await untilRun(() => importFrom(daysAgoYmd(90)));
 	await page.goto('/imports');
-	await expect(rows()).toHaveCount(4);
+	await expect(rows()).toHaveCount(3);
 	await expect(rows().filter({ hasText: 'CAFE DE PRUEBA' })).toHaveCount(0);
 	expect(await findMovements(page, AMIGA_DESC)).toHaveLength(approvedBefore);
 	await page.goto(LINKS_PATH);

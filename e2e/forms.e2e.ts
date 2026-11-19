@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import { login, OTHER_EMAIL, postDelete, undo } from './helpers';
 
 // Created accounts (detail URLs) are removed in afterEach. Runs as otro so the demo user's totals stay untouched.
@@ -103,11 +103,28 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 	await expect(page.getByText('No aparece al registrar movimientos.')).toBeVisible();
 	await expect(page).toHaveURL(url);
 	expect(await offered()).toBe(0);
-	// Archived accounts stay listed, with their balance, only on request.
-	await page.goto('/accounts');
-	await expect(page.getByRole('link', { name: new RegExp(name) })).toHaveCount(0);
+	// Archived accounts stay listed but leave the group total, by exactly their balance. One page snapshot,
+	// so other workers moving this user's balances cannot skew the comparison.
 	await page.goto('/accounts?archived=1');
-	await expect(page.getByRole('link', { name: new RegExp(name) })).toContainText('$1.234');
+	const group = page.locator('section[aria-labelledby="group-ARS"]');
+	const rows = group.locator('a:has(.row-amount)');
+	const cents = async (l: Locator) =>
+		Math.round(
+			Number(
+				(await l.innerText())
+					.replace('\u2212', '-')
+					.replace(/\./g, '')
+					.replace(',', '.')
+					.replace(/[^\d.-]/g, '')
+			) * 100
+		);
+	const mine = rows.filter({ hasText: name });
+	await expect(mine).toHaveCount(1);
+	expect(await cents(mine.locator('.row-amount'))).toBe(123400);
+	const active = rows.filter({ hasNotText: 'Archivada' }).locator('.row-amount');
+	let sum = 0;
+	for (const amount of await active.all()) sum += await cents(amount);
+	expect(await cents(group.locator('.group-total'))).toBe(sum);
 	await page.goto(url, { waitUntil: 'networkidle' }); // hydration guard: the unarchive form is enhanced
 	await page.getByRole('button', { name: 'Desarchivar' }).click();
 	await expect(page.getByRole('button', { name: 'Archivar', exact: true })).toBeVisible();
