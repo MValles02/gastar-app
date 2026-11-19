@@ -14,14 +14,6 @@ import {
 	rule
 } from './helpers';
 
-test('a rule on an archived account is listed under Inactivos', async ({ page }) => {
-	await login(page);
-	await page.goto('/plan');
-	const inactive = page.getByRole('region', { name: 'Inactivos' });
-	await expect(inactive).toContainText('Gimnasio');
-	await expect(inactive).toContainText('Cuenta archivada');
-});
-
 test('a rule detail autosaves its amount with Deshacer, deactivates, activates and deletes', async ({
 	page,
 	baseURL

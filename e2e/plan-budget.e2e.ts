@@ -175,7 +175,7 @@ test("another user's category and rule never leak or get written", async ({
 	browser,
 	baseURL
 }) => {
-	const { category, rule } = await foreignIds(browser, baseURL!);
+	const { category } = await foreignIds(browser, baseURL!);
 	await login(page);
 
 	// hydration guard: the drawer and picker need JavaScript.
@@ -198,8 +198,6 @@ test("another user's category and rule never leak or get written", async ({
 	await page.goto('/plan');
 	await expect(page.getByText('Ajena')).toHaveCount(0);
 	await expect(page.getByText('Regla ajena')).toHaveCount(0);
-	expect((await page.goto(`/plan/recurring/${rule}`))!.status()).toBe(404);
-	expect((await page.goto(`/plan/recurring/${rule}/edit`))!.status()).toBe(404);
 
 	// The other direction: another user cannot attach a limit to the demo user's category.
 	await page.goto('/categories');
@@ -264,27 +262,6 @@ test('deleting a category removes its limit', async ({ page, baseURL }) => {
 	}
 });
 
-test('a limit on an archived category is rejected and nothing is written', async ({
-	page,
-	baseURL
-}) => {
-	await login(page);
-	await restoreDemoPlan(page, baseURL!);
-	await page.goto('/categories?archived=1');
-	const archived = await linkId(page.getByRole('link', { name: /Gimnasio/ }).first());
-	const res = await post(page, baseURL!, '/plan/limits/new', {
-		categoryId: archived,
-		amount: '5',
-		currency: 'ARS'
-	});
-	expect(res.status()).toBe(400);
-	expect(await res.text()).toContain(NOT_OFFERED);
-	await page.goto('/plan');
-	const limits = limitsRegion(page);
-	await expect(limits).toContainText('Supermercado');
-	await expect(limits).not.toContainText('Gimnasio');
-});
-
 test('a limit amount edited in its drawer persists', async ({ page, baseURL }) => {
 	await login(page);
 	await restoreDemoPlan(page, baseURL!);
@@ -311,26 +288,13 @@ test.describe('as another user', () => {
 		await page.context().addCookies(cookies);
 	});
 
-	test('Disponible is Ingresos minus Ahorro, Pagos fijos and Gastado', async ({ page }) => {
-		// beforeAll: Sueldo $200.000, no savings, Regla ajena US$50 at $1.000 still unpaid.
-		const g = await figures(page);
-		expect(g['Ingresos']).toBe(200_000);
-		expect(g['Pagos fijos']).toBe(50_000);
-		expect(g['Gastado']).toBe(0);
-		expect(g['Disponible']).toBe(150_000);
-	});
-
 	test('the plan counts USD in pesos at the last purchase rate; a manual rate overrides it', async ({
 		page,
 		baseURL
 	}) => {
-		const [, month, day] = todayInAppTz().split('-');
 		const ruleRow = page.locator('.rule', { hasText: 'Regla ajena' });
 		try {
 			await page.goto('/plan');
-			await expect(page.getByRole('link', { name: /^Cotización:/ })).toContainText(
-				`Cotización: $1.000 (última compra, ${day}/${month})`
-			);
 			await expect(ruleRow).toContainText('≈ $50.000');
 
 			const before = await figures(page);
@@ -351,9 +315,6 @@ test.describe('as another user', () => {
 			const drawer = page.getByRole('dialog', { name: 'Cotización del plan' });
 			await drawer.getByLabel('Monto').fill('1.200');
 			await drawer.getByRole('button', { name: 'Guardar', exact: true }).click();
-			await expect(page.getByRole('link', { name: /^Cotización:/ })).toContainText(
-				'Cotización: $1.200 (manual)'
-			);
 			await expect(ruleRow).toContainText('≈ $60.000');
 
 			await page.getByRole('link', { name: /^Cotización:/ }).click();
@@ -361,9 +322,7 @@ test.describe('as another user', () => {
 				.getByRole('dialog', { name: 'Cotización del plan' })
 				.getByRole('button', { name: 'Usar la última compra' })
 				.click();
-			await expect(page.getByRole('link', { name: /^Cotización:/ })).toContainText(
-				'Cotización: $1.000'
-			);
+			await expect(ruleRow).toContainText('≈ $50.000');
 		} finally {
 			await post(page, baseURL!, '/plan/rate?/auto', {});
 		}

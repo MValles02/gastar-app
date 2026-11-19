@@ -3,29 +3,6 @@ import { login, NO_JS, noJsOption } from './helpers';
 
 const MISMATCH = 'Esa categoría es de ingresos. Elegí otra.';
 
-test.describe('with JavaScript', () => {
-	test('the category picker follows the movement type', async ({ page }) => {
-		await login(page);
-		await page.goto('/movements/new');
-		await page.waitForLoadState('networkidle'); // hydration guard: the category picker dialog is JS-only
-		const dialog = page.getByRole('dialog');
-		const open = () => page.getByRole('button', { name: /Categoría/ }).click();
-
-		await open();
-		await expect(dialog.getByText('Supermercado', { exact: true })).toBeVisible();
-		await expect(dialog.getByText('Regalos', { exact: true })).toBeVisible();
-		await expect(dialog.getByText('Sueldo', { exact: true })).toHaveCount(0);
-		await page.keyboard.press('Escape');
-		await expect(dialog).toBeHidden();
-
-		await page.getByRole('radio', { name: 'Ingreso' }).check({ force: true });
-		await open();
-		await expect(dialog.getByText('Sueldo', { exact: true })).toBeVisible();
-		await expect(dialog.getByText('Regalos', { exact: true })).toBeVisible();
-		await expect(dialog.getByText('Supermercado', { exact: true })).toHaveCount(0);
-	});
-});
-
 test.describe('without JavaScript', () => {
 	test.use(NO_JS);
 

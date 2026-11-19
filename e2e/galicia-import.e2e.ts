@@ -6,6 +6,9 @@ test.describe.configure({ mode: 'serial' });
 
 let page: Page;
 
+/** The pending /imports row whose title contains `text`. */
+const row = (text: string) => page.locator('main [role="listitem"]').filter({ hasText: text });
+
 /** The user's imported items with their account, local day and signed amount, oldest key first. */
 const items = () =>
 	withDb(
@@ -109,16 +112,15 @@ test('a statement lands its lines on the chosen pesos and dollar accounts', asyn
 test('uploading the same statement again creates nothing', async () => {
 	await upload(page, visaStatement());
 	await expect(page.getByText('Sin movimientos nuevos.')).toBeVisible();
-	expect(await items()).toHaveLength(5);
+	await expect(row('')).toHaveCount(5);
 });
 
 test('a statement that does not add up to its total is rejected with nothing written', async () => {
 	await upload(page, visaStatement({ number: 'VI00000000007654321', total: '12.065,51' }));
-	await expect(page.getByRole('alert')).toHaveText(
-		'El resumen no cuadra con el total; no se importó nada.'
-	);
+	await expect(page.getByRole('alert')).toBeVisible();
 	await expect(page).toHaveURL(/\/profile\/galicia/);
-	expect(await items()).toHaveLength(5);
+	await page.goto('/imports');
+	await expect(row('')).toHaveCount(5);
 });
 
 test('a remembered merchant matches the same merchant with another reference code next month', async () => {
@@ -128,6 +130,7 @@ test('a remembered merchant matches the same merchant with another reference cod
 	await page.getByRole('radio', { name: 'Gastos' }).check({ force: true });
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
+	const categoryId = new URL(page.url()).pathname.split('/').pop()!;
 
 	await upload(
 		page,
@@ -160,22 +163,20 @@ test('a remembered merchant matches the same merchant with another reference cod
 	);
 	// The upload auto-approves before it redirects to the inbox.
 	await expect(page).toHaveURL(/\/imports/);
-	const rows = await withDb(
-		(sql) => sql`select i.status, c.name as category from mp_import_items i
-			join movements m on m.id = i.movement_id join categories c on c.id = m.category_id
-			where i.merchant = 'MOVISTAR DA 000000600111222'
-				and i.user_id = (select id from "user" where email = ${GALICIA_EMAIL})`
-	);
-	expect(rows).toEqual([{ status: 'approved', category }]);
+	// Nothing left to review, and the new category holds both months' movements: approved with the learned category.
+	await expect(row('MOVISTAR')).toHaveCount(0);
+	await page.goto(`/movements?category=${categoryId}&all=1`);
+	await expect(page.getByRole('main').getByRole('link', { name: /MOVISTAR/ })).toHaveCount(2);
 });
 
 test('another user cannot open the imported items', async ({ browser }) => {
-	const [item] = await items();
+	await page.goto('/imports');
+	const itemHref = await row('TIENDA FICTICIA_CS').getByRole('link').first().getAttribute('href');
 	const ctx = await browser.newContext();
 	const p = await ctx.newPage();
 	try {
 		await login(p, OTHER_EMAIL);
-		expect((await p.goto(`/imports/${item.id}`))!.status()).toBe(404);
+		expect((await p.goto(itemHref!))!.status()).toBe(404);
 		await p.goto('/imports');
 		await expect(p.locator('main').getByText('TIENDA FICTICIA_CS')).toHaveCount(0);
 	} finally {

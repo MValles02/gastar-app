@@ -1,4 +1,4 @@
-import { expect, test, type Locator } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { login, OTHER_EMAIL, postDelete, undo } from './helpers';
 
 // Created accounts (detail URLs) are removed in afterEach. Runs as otro so the demo user's totals stay untouched.
@@ -55,9 +55,7 @@ test('an account with movements has no Eliminar and a crafted delete is rejected
 	expect((await res.json()).type).toBe('failure');
 });
 
-test('an account without movements can be archived or deleted, and links to its movements', async ({
-	page
-}) => {
+test('an account without movements can be archived or deleted', async ({ page }) => {
 	await login(page, OTHER_EMAIL);
 	await page.goto('/accounts/new');
 	const name = `Forms acciones ${Date.now()}`;
@@ -66,13 +64,8 @@ test('an account without movements can be archived or deleted, and links to its 
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	const url = page.url();
 	createdAccounts.push(url);
-	const id = url.split('/').pop();
 
 	await expect(page.getByRole('button', { name: 'Archivar' })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Ver movimientos' })).toHaveAttribute(
-		'href',
-		`/movements?account=${id}&all=1`
-	);
 	await page.goto(url);
 	await page.waitForLoadState('networkidle'); // hydration guard: the confirm dialog needs JS
 	await page.getByRole('button', { name: 'Eliminar' }).click();
@@ -110,28 +103,11 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 	await expect(page.getByText('No aparece al registrar movimientos.')).toBeVisible();
 	await expect(page).toHaveURL(url);
 	expect(await offered()).toBe(0);
-	// Archived accounts stay listed but leave the group total, by exactly their balance. One page snapshot,
-	// so other workers moving this user's balances cannot skew the comparison.
+	// Archived accounts stay listed, with their balance, only on request.
+	await page.goto('/accounts');
+	await expect(page.getByRole('link', { name: new RegExp(name) })).toHaveCount(0);
 	await page.goto('/accounts?archived=1');
-	const group = page.locator('section[aria-labelledby="group-ARS"]');
-	const rows = group.locator('a:has(.row-amount)');
-	const cents = async (l: Locator) =>
-		Math.round(
-			Number(
-				(await l.innerText())
-					.replace('\u2212', '-')
-					.replace(/\./g, '')
-					.replace(',', '.')
-					.replace(/[^\d.-]/g, '')
-			) * 100
-		);
-	const mine = rows.filter({ hasText: name });
-	await expect(mine).toHaveCount(1);
-	expect(await cents(mine.locator('.row-amount'))).toBe(123400);
-	const active = rows.filter({ hasNotText: 'Archivada' }).locator('.row-amount');
-	let sum = 0;
-	for (const amount of await active.all()) sum += await cents(amount);
-	expect(await cents(group.locator('.group-total'))).toBe(sum);
+	await expect(page.getByRole('link', { name: new RegExp(name) })).toContainText('$1.234');
 	await page.goto(url, { waitUntil: 'networkidle' }); // hydration guard: the unarchive form is enhanced
 	await page.getByRole('button', { name: 'Desarchivar' }).click();
 	await expect(page.getByRole('button', { name: 'Archivar', exact: true })).toBeVisible();

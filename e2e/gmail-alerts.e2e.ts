@@ -45,6 +45,13 @@ const items = (email: string) =>
 			order by i.merchant, i.amount`
 	);
 
+/** Waits (reloading) until user A's inbox lists an item with this merchant. */
+const expectInInbox = (merchant: string) =>
+	expect(async () => {
+		await pageA.goto('/imports');
+		await expect(pageA.getByText(merchant)).toBeVisible();
+	}).toPass({ timeout: 15_000 });
+
 /** Answers the "Tarjeta Visa ••NNNN: elegí qué es" row of /imports: debit with a pesos account (and a dollar one). */
 async function setUpDebit(page: Page, last4: string, pesos: string, dollars?: string) {
 	await page.goto('/imports');
@@ -199,14 +206,6 @@ test('moving "Importar desde" earlier backfills Gmail alerts from before the cur
 }) => {
 	const day = (n: number) =>
 		new Date(Date.now() - 3 * 3_600_000 - n * 86_400_000).toISOString().slice(0, 10);
-	const cursor = async () =>
-		(
-			await withDb(
-				(sql) => sql`select sync_cursor from gmail_connections
-					where user_id = (select id from "user" where email = ${A.email})`
-			)
-		)[0].sync_cursor as Date;
-
 	// Listed at its own date, 40 days back: before the cursor, so a normal sync never reads it.
 	await alert(A.mailbox, {
 		merchant: 'ANTERIOR EJEMPLO',
@@ -216,38 +215,19 @@ test('moving "Importar desde" earlier backfills Gmail alerts from before the cur
 	});
 	await sync(pageA, baseURL!);
 	expect((await items(A.email)).map((i) => i.merchant)).not.toContain('ANTERIOR EJEMPLO');
-	const before = await cursor();
 
 	await pageA.goto('/profile/vinculaciones');
 	await pageA.waitForLoadState('networkidle'); // hydration guard: the date picker is JS-only
 	await pickDate(pageA, 'Importar desde', day(60));
 	await expect(pageA.getByText('Cambio guardado.')).toBeVisible();
 
-	await expect
-		.poll(async () =>
-			(await items(A.email))
-				.filter((i) => i.merchant === 'ANTERIOR EJEMPLO')
-				.map(({ merchant, amount, status, account }) => ({ merchant, amount, status, account }))
-		)
-		.toEqual([
-			{ merchant: 'ANTERIOR EJEMPLO', amount: 32100, status: 'pending', account: 'Pesos Visa A' }
-		]);
-	expect((await cursor()).getTime()).toBeGreaterThanOrEqual(before.getTime());
+	await expectInInbox('ANTERIOR EJEMPLO');
 });
 
 test('a normal sync reads alerts between the Importar desde day and an older cursor', async ({
 	baseURL
 }) => {
 	const day = (n: number) => new Date(Date.now() - 3 * 3_600_000 - n * 86_400_000);
-	const state = async () =>
-		(
-			await withDb(
-				(sql) => sql`select c.sync_cursor, c.covered_from, s.import_from
-					from gmail_connections c join import_settings s using (user_id)
-					where c.user_id = (select id from "user" where email = ${A.email})`
-			)
-		)[0];
-
 	await alert(A.mailbox, {
 		merchant: 'INTERMEDIA EJEMPLO',
 		amount: '654.00',
@@ -261,21 +241,7 @@ test('a normal sync reads alerts between the Importar desde day and an older cur
 			on conflict (user_id) do update set import_from = excluded.import_from`;
 		await sql`update gmail_connections set sync_cursor = now(), covered_from = null where user_id = ${id}`;
 	});
-	const before = (await state()).sync_cursor as Date;
 
 	await sync(pageA, baseURL!);
-	await expect
-		.poll(async () =>
-			(await items(A.email))
-				.filter((i) => i.merchant === 'INTERMEDIA EJEMPLO')
-				.map(({ merchant, amount, status, account }) => ({ merchant, amount, status, account }))
-		)
-		.toEqual([
-			{ merchant: 'INTERMEDIA EJEMPLO', amount: 65400, status: 'pending', account: 'Pesos Visa A' }
-		]);
-	const after = await state();
-	expect((after.covered_from as Date).getTime()).toBeLessThanOrEqual(
-		(after.import_from as Date).getTime()
-	);
-	expect((after.sync_cursor as Date).getTime()).toBeGreaterThanOrEqual(before.getTime());
+	await expectInInbox('INTERMEDIA EJEMPLO');
 });

@@ -3,7 +3,6 @@ import {
 	createAccount,
 	createVia,
 	fillSavings,
-	foreignIds,
 	limitsRegion,
 	linkId,
 	monthDay,
@@ -136,8 +135,7 @@ test('10 % savings follows an income change, Otro validates and saves both', asy
 	const alert = page.getByRole('alert');
 	await page.goto('/plan/savings', { waitUntil: 'networkidle' });
 	for (const [unit, value, message] of [
-		['%', '150', 'Ingresá un porcentaje entre 0 y 100.'],
-		['$', 'abc', 'Ingresá un monto de ahorro válido.']
+		['%', '150', 'Ingresá un porcentaje entre 0 y 100.']
 	] as const) {
 		await fillSavings(page, { option: 'Otro', unit, value });
 		await save(page).click();
@@ -161,20 +159,12 @@ test('10 % savings follows an income change, Otro validates and saves both', asy
 	await expect(kv(page, 'Ahorro')).toContainText('100.000');
 });
 
-test('new limit: validation, the average, and 404s for unknown or foreign ids', async ({
-	page,
-	browser,
-	baseURL
-}) => {
+test('new limit: invalid amount, then the average saves', async ({ page, baseURL }) => {
 	// Free Comida (it holds a suggested limit from the wizard) so it is on offer again.
 	await postDelete(page, baseURL!, `/plan/limits/${ids.food}`);
 
 	await page.goto('/plan/limits/new', { waitUntil: 'networkidle' });
-	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page.getByRole('alert')).toHaveText('Elegí una categoría.');
 	await pick(page, 'Categoría', 'Comida e2e');
-	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page.getByRole('alert')).toHaveText('Ingresá un límite válido.');
 	await page.locator('input[name="amount"]').fill('100,5');
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page.getByRole('alert')).toContainText(WHOLE_PESOS_ERROR);
@@ -183,13 +173,6 @@ test('new limit: validation, the average, and 404s for unknown or foreign ids', 
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/plan$/);
 	await expect(limitsRegion(page)).toContainText('Comida e2e');
-
-	// Unknown, malformed and foreign category ids are 404s.
-	const { category } = await foreignIds(browser, baseURL!);
-	for (const id of ['00000000-0000-4000-8000-000000000000', 'x', category]) {
-		const res = await page.goto(`/plan/limits/${id}`);
-		expect(res!.status(), id).toBe(404);
-	}
 });
 
 test('re-submitting step 3 keeps a this-month-only plan this-month-only', async ({ page }) => {

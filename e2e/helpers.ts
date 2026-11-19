@@ -264,14 +264,6 @@ export function unique(created: string[], prefix: string) {
 	return d;
 }
 
-/** Text with whitespace runs (NBSP included) collapsed to one space and zero-width spaces dropped. */
-export function norm(s: string | null) {
-	return (s ?? '')
-		.replace(/\u200B/g, '')
-		.replace(/\s+/g, ' ')
-		.trim();
-}
-
 /** The "Movimiento guardado." toast. */
 export function toast(page: Page) {
 	return page.locator('[data-sonner-toast]', { hasText: 'Movimiento guardado.' }).first();
