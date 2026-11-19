@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
 import { canAccessOwn, userOwned } from '../access';
 import { db } from '../db';
 import { cardAlerts, importCards, importItems } from '../db/schema';
@@ -12,6 +12,12 @@ import { withMatchLock } from './match-lock';
 import { getChosenImportFrom } from './settings';
 import { GALICIA_SOURCE, KIND, SOURCE, type SourceId } from './sources';
 import { CURRENCIES, CURRENCY_NAME, type Currency } from '#lib/money.ts';
+import {
+	CARD_NETWORKS,
+	CREDIT_ONLY_NETWORKS,
+	type CardNetwork,
+	isCardNetwork
+} from '#lib/imports.ts';
 
 export type { CardType } from '#lib/imports.ts';
 export type CardInput = {
@@ -30,14 +36,18 @@ export const ACCOUNT_ERRORS = Object.fromEntries(
 	CURRENCIES.map((c) => [c, `Elegí una cuenta en ${CURRENCY_NAME[c]}.`])
 ) as Record<Currency, string>;
 
-/** A card's URL segment: `visa-0515`. */
+/** A card's URL segment: `visa-0515`, `mastercard-3374`. */
 export const cardSlug = (network: string, last4: string) => `${network}-${last4}`;
 
 /** `visa-0515` into its network and last 4; null for anything else. */
 export function parseCardSlug(param: string) {
-	const m = /^(visa)-(\d{4})$/.exec(param);
-	return m ? { network: m[1], last4: m[2] } : null;
+	const m = /^([a-z]+)-(\d{4})$/.exec(param);
+	return m && isCardNetwork(m[1]) ? { network: m[1], last4: m[2] } : null;
 }
+
+/** Whether a card of this network can only be saved as credit (no debit option). */
+export const creditOnly = (network: string) =>
+	(CREDIT_ONLY_NETWORKS as readonly string[]).includes(network);
 
 const withSlug = <T extends { network: string; last4: string }>(rows: T[]) =>
 	rows.map((r) => ({ ...r, slug: cardSlug(r.network, r.last4) }));
@@ -45,9 +55,10 @@ const withSlug = <T extends { network: string; last4: string }>(rows: T[]) =>
 /**
  * Turns the waiting alerts of the user's cards into pending items of the account for the alert currency (a
  * USD alert goes to the dollar account as it is), then links each alert to its item. A debit card's items
- * use the card's accounts; a credit card's use the Banco Galicia accounts, the same its statements land on,
- * and a purchase whose statement line was already imported creates nothing (it is matched to that item).
- * Unknown cards create nothing. The only caller of ingestImportItems for Gmail alerts.
+ * use the card's accounts; a credit card's use the Banco Galicia accounts, the same its statements land on
+ * (the Galicia source of the alert's network), and a purchase whose statement line was already imported
+ * creates nothing (it is matched to that item). Unknown cards create nothing, and neither do alerts of more
+ * than one installment (cuotas): they are stored and wait. The only caller of ingestImportItems for Gmail alerts.
  */
 export const convertWaitingAlerts = (userId: string) =>
 	withMatchLock(userId, () => convertLocked(userId));
@@ -59,6 +70,7 @@ async function convertLocked(userId: string) {
 	const waiting = await db
 		.select({
 			messageId: cardAlerts.gmailMessageId,
+			network: cardAlerts.network,
 			currency: cardAlerts.currency,
 			amount: cardAlerts.amount,
 			merchant: cardAlerts.merchant,
@@ -82,7 +94,10 @@ async function convertLocked(userId: string) {
 				canAccessOwn(userId, cardAlerts),
 				canAccessOwn(userId, importCards),
 				isNull(cardAlerts.importItemId),
-				fromFloor
+				fromFloor,
+				// An installment purchase (cuotas > 1) is not one item of its full amount: it is stored but waits
+				// unconverted for installment support (phase 2 turns it into a fixed payment with an end).
+				or(isNull(cardAlerts.installments), eq(cardAlerts.installments, 1))
 			)
 		);
 	if (waiting.length === 0) return { created: 0, autoApproved: 0 };
@@ -92,19 +107,25 @@ async function convertLocked(userId: string) {
 		: undefined;
 	// Statement first, alert later: the statement item already stands for the purchase.
 	// A failure here must not block the debit conversion: the credit alerts just wait for the next run.
-	let matched = new Set<string>();
-	let creditFailed = false;
-	try {
-		matched = await matchWaitingAlerts(
-			userId,
-			GALICIA_SOURCE.visa,
-			waiting
-				.filter((a) => a.type === 'credit' && a.transactionType === PURCHASE)
-				.map((a) => ({ ...a, currency: a.currency as Currency }))
+	// Each network matches against its own Galicia statement source.
+	const matched = new Set<string>();
+	const creditFailed = new Set<string>();
+	for (const network of CARD_NETWORKS) {
+		const purchases = waiting.filter(
+			(a) => a.type === 'credit' && a.network === network && a.transactionType === PURCHASE
 		);
-	} catch (e) {
-		creditFailed = true;
-		console.error('[gmail] credit alert matching failed', pgErrorCode(e) ?? 'unknown');
+		if (purchases.length === 0) continue;
+		try {
+			const ids = await matchWaitingAlerts(
+				userId,
+				GALICIA_SOURCE[network],
+				purchases.map((a) => ({ ...a, currency: a.currency as Currency }))
+			);
+			for (const id of ids) matched.add(id);
+		} catch (e) {
+			creditFailed.add(network);
+			console.error('[gmail] credit alert matching failed', pgErrorCode(e) ?? 'unknown');
+		}
 	}
 
 	// Only the user's own active accounts can receive an item.
@@ -117,11 +138,14 @@ async function convertLocked(userId: string) {
 	for (const a of waiting) {
 		if (matched.has(a.messageId)) continue;
 		// Without a matching result, a credit purchase must not be inserted next to a statement item.
-		if (creditFailed && a.type === 'credit' && a.transactionType === PURCHASE) continue;
+		if (a.type === 'credit' && a.transactionType === PURCHASE && creditFailed.has(a.network))
+			continue;
 		const accounts = a.type === 'credit' ? galicia : a;
 		const accountId = a.currency === 'ARS' ? accounts?.arsAccountId : accounts?.usdAccountId;
 		if (!accountId || !usable.has(accountId)) continue;
-		const source = a.type === 'credit' ? GALICIA_SOURCE.visa : SOURCE.visaDebit;
+		const network: CardNetwork = isCardNetwork(a.network) ? a.network : 'visa';
+		// Only a Visa card can be debit (see saveCard).
+		const source = a.type === 'credit' ? GALICIA_SOURCE[network] : SOURCE.visaDebit;
 		const rows = rowsBySource.get(source) ?? [];
 		rowsBySource.set(source, rows);
 		rows.push({
@@ -234,7 +258,7 @@ export async function getCardForm(userId: string, network: string, last4: string
 	const galicia = await getGaliciaConnection(userId);
 	const accounts = card.type === 'credit' ? galicia : card;
 	return {
-		type: card.type ?? '',
+		type: card.type ?? (creditOnly(network) ? 'credit' : ''),
 		arsAccountId: accounts?.arsAccountId ?? galicia?.arsAccountId ?? '',
 		usdAccountId: accounts?.usdAccountId ?? galicia?.usdAccountId ?? ''
 	};
@@ -252,10 +276,15 @@ export async function saveCard(
 	userId: string,
 	input: CardInput
 ): Promise<{ ok: true } | { ok: false; errors: CardErrors }> {
-	if (input.network !== 'visa' || !/^\d{4}$/.test(input.last4)) return { ok: false, errors: {} };
+	if (!isCardNetwork(input.network) || !/^\d{4}$/.test(input.last4))
+		return { ok: false, errors: {} };
 	if (!(await getCard(userId, input.network, input.last4))) return { ok: false, errors: {} };
 	const errors: CardErrors = {};
-	if (input.type !== 'credit' && input.type !== 'debit') errors.type = 'Elegí crédito o débito.';
+	if (creditOnly(input.network)) {
+		if (input.type !== 'credit') errors.type = 'Esta tarjeta solo puede ser de crédito.';
+	} else if (input.type !== 'credit' && input.type !== 'debit') {
+		errors.type = 'Elegí crédito o débito.';
+	}
 	const { arsAccountId, usdAccountId } = input;
 	// A credit card's accounts are the Banco Galicia ones, so the pesos account is required for both types.
 	if (!arsAccountId || !(await isActiveAccountIn(userId, 'ARS', arsAccountId)))

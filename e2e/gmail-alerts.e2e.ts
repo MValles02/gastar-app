@@ -67,16 +67,18 @@ async function setUpDebit(page: Page, last4: string, pesos: string, dollars?: st
 	await expect(page).toHaveURL(/\/imports$/);
 }
 
-/** Removes what an earlier run left of these users' Gmail import: alerts, cards, visa_debit items with their movements, rules and the link. */
+/** Removes what an earlier run left of these users' Gmail import: alerts, cards, visa_debit and galicia_mastercard items with their movements, rules and the link. */
+const SOURCES = ['visa_debit', 'galicia_mastercard'];
+
 function resetGmailState(emails: string[]) {
 	return withDb(async (sql) => {
 		const ids = (await sql`select id from "user" where email in ${sql(emails)}`).map((u) => u.id);
 		await sql`delete from movements where id in (
 			select movement_id from mp_import_items
-			where source = 'visa_debit' and movement_id is not null and user_id in ${sql(ids)})`;
+			where source in ${sql(SOURCES)} and movement_id is not null and user_id in ${sql(ids)})`;
 		await sql`delete from card_alerts where user_id in ${sql(ids)}`;
 		await sql`delete from import_cards where user_id in ${sql(ids)}`;
-		await sql`delete from mp_import_items where source = 'visa_debit' and user_id in ${sql(ids)}`;
+		await sql`delete from mp_import_items where source in ${sql(SOURCES)} and user_id in ${sql(ids)}`;
 		await sql`delete from mp_import_rules where user_id in ${sql(ids)}`;
 		await sql`delete from gmail_connections where user_id in ${sql(ids)}`;
 		await sql`delete from import_settings where user_id in ${sql(ids)}`;
@@ -161,6 +163,62 @@ test('an email that fails the DKIM check creates nothing', async ({ baseURL }) =
 		(sql) => sql`select count(*)::int as n from card_alerts where merchant = 'FALSA EJEMPLO'`
 	);
 	expect(stored[0].n).toBe(0);
+});
+
+test('a Galicia Mastercard alert becomes a pending credit item and an installment one waits', async ({
+	baseURL
+}) => {
+	await alert(A.mailbox, {
+		merchant: 'FERRETERIA MC',
+		amount: '1.234,56',
+		last4: '3300',
+		mastercard: { cuotas: '01' }
+	});
+	await alert(A.mailbox, {
+		merchant: 'HELADERA MC',
+		amount: '300.000,00',
+		last4: '3300',
+		mastercard: { cuotas: '03' }
+	});
+	await sync(pageA, baseURL!);
+
+	await pageA.goto('/imports');
+	const href = await pageA
+		.getByRole('link', { name: 'Tarjeta Mastercard ••3300: elegí qué es' })
+		.getAttribute('href');
+	await pageA.goto(href!, { waitUntil: 'networkidle' }); // hydration guard: the pickers need JavaScript
+	await pick(pageA, 'Cuenta en pesos', 'Pesos Visa A');
+	await pageA.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(pageA).toHaveURL(/\/imports$/);
+
+	const state = await withDb(
+		(sql) => sql`
+			select c.merchant, c.installments, i.source, i.amount::int as amount, i.status,
+				a.name as account
+			from card_alerts c
+			left join mp_import_items i on i.id = c.import_item_id
+			left join financial_accounts a on a.id = i.account_id
+			where c.network = 'mastercard' and c.user_id = (select id from "user" where email = ${A.email})
+			order by c.merchant`
+	);
+	expect(state).toEqual([
+		{
+			merchant: 'FERRETERIA MC',
+			installments: 1,
+			source: 'galicia_mastercard',
+			amount: 123456,
+			status: 'pending',
+			account: 'Pesos Visa A'
+		},
+		{
+			merchant: 'HELADERA MC',
+			installments: 3,
+			source: null,
+			amount: null,
+			status: null,
+			account: null
+		}
+	]);
 });
 
 test('a learned merchant rule auto-approves the next debit alert of that merchant', async ({

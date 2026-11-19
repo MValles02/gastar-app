@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { cardNetworkName } from '#lib/imports.ts';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import OAuthLinkPage from '../OAuthLinkPage.svelte';
@@ -16,8 +17,8 @@
 >
 	{#snippet intro()}
 		<p>
-			Leemos solo los mails de alertas de compras de Visa. Guardamos los datos de la compra, nunca
-			el mail.
+			Leemos solo los mails de alertas de compras de Visa y de Mastercard de Galicia. Guardamos los
+			datos de la compra, nunca el mail.
 		</p>
 		<p>
 			Google va a mostrar “Google no verificó esta app”. Para seguir tocá “Configuración avanzada” y
@@ -33,8 +34,8 @@
 	{#snippet linked()}
 		<p class="email">{data.connection?.email}</p>
 		<p>
-			Solo leemos los mails de alertas de compras de Visa y guardamos los datos de la compra, nunca
-			el mail.
+			Solo leemos los mails de alertas de compras de Visa y de Mastercard de Galicia y guardamos los
+			datos de la compra, nunca el mail.
 		</p>
 	{/snippet}
 	{#snippet disconnectNote()}
@@ -48,7 +49,9 @@
 				<ListRow
 					href={resolve(`profile/gmail/cards/${c.slug}`)}
 					lead={{ icon: 'card', color: null }}
-					title="Visa ••{c.last4} · {c.type === 'debit' ? 'Débito' : 'Crédito'}"
+					title="{cardNetworkName(c.network)} ••{c.last4} · {c.type === 'debit'
+						? 'Débito'
+						: 'Crédito'}"
 					chevron
 				/>
 			{/each}
