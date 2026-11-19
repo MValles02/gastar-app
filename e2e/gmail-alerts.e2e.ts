@@ -158,7 +158,7 @@ test('an email that fails the DKIM check creates nothing', async ({ baseURL }) =
 	expect(stored[0].n).toBe(0);
 });
 
-test('a Galicia Mastercard alert becomes a pending credit item and an installment one waits', async ({
+test('a Galicia Mastercard alert becomes a pending credit item; an installment one and a reversed pair wait', async ({
 	baseURL
 }) => {
 	await alert(A.mailbox, {
@@ -173,6 +173,16 @@ test('a Galicia Mastercard alert becomes a pending credit item and an installmen
 		last4: '3300',
 		mastercard: { cuotas: '03' }
 	});
+	// A pre-authorization and its reversal in the same sync cancel each other.
+	for (const type of ['COMPRA', 'COMPRA REVERSADA']) {
+		await alert(A.mailbox, {
+			merchant: 'VIAJE MC',
+			amount: '100,00',
+			last4: '3300',
+			type,
+			mastercard: { cuotas: '01' }
+		});
+	}
 	await sync(pageA, baseURL!);
 
 	await pageA.goto('/imports');
@@ -186,17 +196,18 @@ test('a Galicia Mastercard alert becomes a pending credit item and an installmen
 
 	const state = await withDb(
 		(sql) => sql`
-			select c.merchant, c.installments, i.source, i.amount::int as amount, i.status,
+			select c.merchant, c.transaction_type as type, c.installments, i.source, i.amount::int as amount, i.status,
 				a.name as account
 			from card_alerts c
 			left join mp_import_items i on i.id = c.import_item_id
 			left join financial_accounts a on a.id = i.account_id
 			where c.network = 'mastercard' and c.user_id = (select id from "user" where email = ${A.email})
-			order by c.merchant`
+			order by c.merchant, c.transaction_type`
 	);
 	expect(state).toEqual([
 		{
 			merchant: 'FERRETERIA MC',
+			type: 'Compra',
 			installments: 1,
 			source: 'galicia_mastercard',
 			amount: 123456,
@@ -205,12 +216,22 @@ test('a Galicia Mastercard alert becomes a pending credit item and an installmen
 		},
 		{
 			merchant: 'HELADERA MC',
+			type: 'Compra',
 			installments: 3,
 			source: null,
 			amount: null,
 			status: null,
 			account: null
-		}
+		},
+		...['Compra', 'Compra reversada'].map((type) => ({
+			merchant: 'VIAJE MC',
+			type,
+			installments: 1,
+			source: null,
+			amount: null,
+			status: null,
+			account: null
+		}))
 	]);
 });
 
