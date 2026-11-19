@@ -41,5 +41,21 @@ export const GALICIA_SOURCE = {
 	mastercard: SOURCE.galiciaMastercard
 } as const;
 
+/** Card networks whose Gmail purchase alerts are read. */
+export const CARD_NETWORKS = ['visa', 'mastercard'] as const;
+export type CardNetwork = (typeof CARD_NETWORKS)[number];
+
+export const isCardNetwork = (v: string): v is CardNetwork =>
+	(CARD_NETWORKS as readonly string[]).includes(v);
+
+const CARD_NETWORK_NAMES: Record<CardNetwork, string> = { visa: 'Visa', mastercard: 'Mastercard' };
+
+/** A card network's display name ("Visa", "Mastercard"); an unknown one shows as is. */
+export const cardNetworkName = (network: string) =>
+	isCardNetwork(network) ? CARD_NETWORK_NAMES[network] : network;
+
+/** Networks whose Gmail-alerted cards are credit only (Banco Galicia's Mastercard): no debit option. */
+export const CREDIT_ONLY_NETWORKS: readonly CardNetwork[] = ['mastercard'];
+
 export const CARD_TYPES = ['credit', 'debit'] as const;
 export type CardType = (typeof CARD_TYPES)[number];

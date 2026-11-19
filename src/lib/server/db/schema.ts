@@ -18,7 +18,7 @@ import {
 } from 'drizzle-orm/pg-core';
 // Relative imports only: drizzle-kit loads this file outside SvelteKit, so the #lib alias does not resolve.
 import { MONTH_RE } from '../../dates';
-import { CARD_TYPES, GALICIA_SOURCE, KIND, SOURCE } from '../../imports';
+import { CARD_NETWORKS, CARD_TYPES, GALICIA_SOURCE, KIND, SOURCE } from '../../imports';
 import { CURRENCIES } from '../../money';
 import { MOVEMENT_TYPES } from '../../movement';
 import { MAX_DAY_OF_MONTH, SAVINGS_PERCENT_MAX } from '../../plan';
@@ -590,7 +590,7 @@ export const importCards = pgTable(
 			table.network,
 			table.last4
 		),
-		check('import_cards_network_check', sql`${table.network} IN ('visa')`),
+		check('import_cards_network_check', sql`${table.network} IN (${inList(CARD_NETWORKS)})`),
 		check('import_cards_last4_check', sql`${table.last4} ~ '^[0-9]{4}$'`),
 		check('import_cards_type_check', sql`${table.type} IN (${inList(CARD_TYPES)})`)
 	]
@@ -614,6 +614,8 @@ export const cardAlerts = pgTable(
 		amount: bigint('amount', { mode: 'number' }).notNull(),
 		foreign: boolean('foreign').notNull(),
 		transactionType: text('transaction_type').notNull(),
+		// The purchase's installment count (cuotas) when the alert says it (Mastercard); null for Visa.
+		installments: smallint('installments'),
 		receivedAt: timestamp('received_at', { withTimezone: true }).notNull(),
 		// The item this alert became; null while it waits (unknown or credit card) or after the item is gone.
 		importItemId: uuid('import_item_id').references(() => importItems.id, {
@@ -624,9 +626,10 @@ export const cardAlerts = pgTable(
 	(table) => [
 		uniqueIndex('card_alerts_user_id_gmail_message_id_idx').on(table.userId, table.gmailMessageId),
 		index('card_alerts_user_id_network_last4_idx').on(table.userId, table.network, table.last4),
-		check('card_alerts_network_check', sql`${table.network} IN ('visa')`),
+		check('card_alerts_network_check', sql`${table.network} IN (${inList(CARD_NETWORKS)})`),
 		check('card_alerts_last4_check', sql`${table.last4} ~ '^[0-9]{4}$'`),
 		check('card_alerts_currency_check', sql`${table.currency} IN (${inList(CURRENCIES)})`),
-		check('card_alerts_amount_positive_check', sql`${table.amount} > 0`)
+		check('card_alerts_amount_positive_check', sql`${table.amount} > 0`),
+		check('card_alerts_installments_check', sql`${table.installments} >= 1`)
 	]
 );

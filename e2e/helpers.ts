@@ -399,22 +399,28 @@ type FakeAlert = {
 	date?: string;
 	/** List the alert at `date` (as Gmail's `after:` does) instead of at its arrival. */
 	listedAtDate?: boolean;
+	/** A Banco Galicia Mastercard alert (in pesos; `amount` in es-AR form, "1.234,56"), with its cuotas. */
+	mastercard?: { cuotas: string };
 };
 
-/** Puts a synthetic Visa alert in the fake Gmail mailbox. */
+/** Puts a synthetic Visa (or Galicia Mastercard) alert in the fake Gmail mailbox. */
 export async function fakeAlert(mailbox: string, o: FakeAlert) {
 	const q = new URLSearchParams({
 		email: mailbox,
 		last4: o.last4 ?? '5678',
 		merchant: o.merchant,
 		amount: o.amount,
-		currency: o.currency ?? 'ARS',
-		type: o.type ?? 'Compra',
+		currency: o.mastercard ? 'PESOS' : (o.currency ?? 'ARS'),
+		type: o.type ?? (o.mastercard ? 'COMPRA' : 'Compra'),
 		foreign: o.foreign ? '1' : '0',
 		dkim: o.dkim ?? 'pass'
 	});
 	if (o.date) q.set('date', o.date);
 	if (o.listedAtDate) q.set('listed', 'date');
+	if (o.mastercard) {
+		q.set('network', 'mastercard');
+		q.set('cuotas', o.mastercard.cuotas);
+	}
 	expect((await fetch(`${FAKE_GMAIL}/__fake/alert?${q}`)).ok).toBe(true);
 }
 

@@ -20,35 +20,48 @@
 </script>
 
 <svelte:head>
-	<title>Tarjeta Visa ••{data.last4} · Gastar</title>
+	<title>Tarjeta {data.networkName} ••{data.last4} · Gastar</title>
 </svelte:head>
 
 <PageHeader
-	title="Visa ••{data.last4}"
+	title="{data.networkName} ••{data.last4}"
 	back={{ href: resolve('profile/gmail'), label: 'Volver a Gmail', text: 'Gmail' }}
 />
 
 <div class="page">
-	<p class="lead">
-		Con una tarjeta de débito, cada compra de la alerta entra como un movimiento de tu cuenta para
-		revisar. Con una de crédito, las compras entran en las cuentas de Banco Galicia, las mismas que
-		usa el resumen, y el resumen las confirma sin duplicarlas.
-	</p>
+	{#if data.creditOnly}
+		<p class="lead">
+			Es una tarjeta de crédito: las compras de la alerta entran en las cuentas de Banco Galicia,
+			las mismas que usa el resumen, y el resumen las confirma sin duplicarlas. Las compras en
+			cuotas todavía no se importan.
+		</p>
+	{:else}
+		<p class="lead">
+			Con una tarjeta de débito, cada compra de la alerta entra como un movimiento de tu cuenta para
+			revisar. Con una de crédito, las compras entran en las cuentas de Banco Galicia, las mismas
+			que usa el resumen, y el resumen las confirma sin duplicarlas.
+		</p>
+	{/if}
 
 	<FormShell action="?/save" {errors} cancelHref="profile/gmail" submitLabel="Guardar">
-		<div class="field">
-			<span id="type-label" class="label">Tipo de tarjeta</span>
-			<SegmentedControl
-				name="type"
-				options={[
-					{ value: 'credit', label: 'Crédito' },
-					{ value: 'debit', label: 'Débito' }
-				]}
-				bind:value={type}
-				labelledby="type-label"
-			/>
+		{#if data.creditOnly}
+			<input type="hidden" name="type" value="credit" />
 			{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
-		</div>
+		{:else}
+			<div class="field">
+				<span id="type-label" class="label">Tipo de tarjeta</span>
+				<SegmentedControl
+					name="type"
+					options={[
+						{ value: 'credit', label: 'Crédito' },
+						{ value: 'debit', label: 'Débito' }
+					]}
+					bind:value={type}
+					labelledby="type-label"
+				/>
+				{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
+			</div>
+		{/if}
 
 		<ListCard aria-label="Cuentas">
 			<div role="listitem">

@@ -167,7 +167,7 @@ Approval inbox for imported activity (Mercado Pago, Banco Galicia card statement
 | `account_id` | fk → `financial_accounts.id` | ON DELETE RESTRICT |
 | `external_key` | text | idempotency key from the source; Galicia: `galicia:<network>:<comprobante>:<cuota>:<date>:<currency>:<signed cents>` (`#n` for the nth identical line of one statement), taxes `galicia:<network>:taxes:<sha256(statement number), 16 hex>:<currency>` |
 | `source` | text, default 'mercado_pago' | CHECK in ('mercado_pago','galicia_visa','galicia_mastercard','visa_debit') |
-| `kind` | text | CHECK in ('payment','account_fund','yield','payout','merchant_payout','refund','other','card_purchase','card_installment','card_taxes','card_adjustment'); `merchant_payout` is a payout with an `EXTERNAL_REFERENCE` (payment at a merchant), `payout` one without (transfer or withdrawal); the `card_*` kinds come from Galicia statements (`card_adjustment`: the "Diferencia con el resumen" item of a matched alert, key `diff:<statement line key>`); a credit-card alert is an item of source `galicia_visa`, kind `card_purchase`, key `alert:<gmail message id>` |
+| `kind` | text | CHECK in ('payment','account_fund','yield','payout','merchant_payout','refund','other','card_purchase','card_installment','card_taxes','card_adjustment'); `merchant_payout` is a payout with an `EXTERNAL_REFERENCE` (payment at a merchant), `payout` one without (transfer or withdrawal); the `card_*` kinds come from Galicia statements (`card_adjustment`: the "Diferencia con el resumen" item of a matched alert, key `diff:<statement line key>`); a credit-card alert is an item of source `galicia_visa` or `galicia_mastercard` (its network), kind `card_purchase`, key `alert:<gmail message id>` |
 | `status` | enum('pending','approved','rejected') | default 'pending' |
 | `occurred_at` | timestamptz | |
 | `amount` | bigint, > 0 | exact net, minor units |
@@ -288,7 +288,7 @@ Encryption: tokens are AES-256-GCM ciphertext, `v1:` + base64(iv(12) | tag(16) |
 
 ### `gmail_connections`
 
-One row per user who linked Gmail (OAuth, own Google client; the sync reads Visa purchase alerts).
+One row per user who linked Gmail (OAuth, own Google client; the sync reads Visa and Banco Galicia Mastercard purchase alerts).
 
 | Column | Type | Notes |
 |---|---|---|
@@ -303,29 +303,30 @@ One row per user who linked Gmail (OAuth, own Google client; the sync reads Visa
 | `covered_from` | timestamptz, nullable | earliest instant from which mail has been read at least once; a run reads from the "Importar desde" day whenever that day is earlier than this (or this is null), then lowers it; moving the day later leaves it (trimming deletes pending items only, `card_alerts` stay) |
 | `sync_running_since` | timestamptz, nullable | the run's lease (taken in one UPDATE; a later run may take over after 15 minutes) |
 | `last_run_at` | timestamptz, nullable | |
-| `last_error_code` | text, nullable | `reconnect`, `network`, `api` or `parse` (a mail from Visa that did not parse); code only |
+| `last_error_code` | text, nullable | `reconnect`, `network`, `api` or `parse` (a card-alert mail that did not parse); code only |
 | `created_at`, `updated_at` | timestamptz | |
 
 Encryption: same format as `mp_connections` (shared helper), keyed by `GMAIL_TOKEN_KEY`. Unlinking revokes the refresh token at Google (best effort) and deletes the row; deleting the account does the same before its transaction deletes the row.
 
 ### `card_alerts`
 
-One row per Visa purchase-alert email, only the parsed fields: the email body, subject, headers and links are never stored or logged.
+One row per card purchase-alert email (Visa, or Banco Galicia Mastercard), only the parsed fields: the email body, subject, headers and links are never stored or logged.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | uuid pk | |
 | `user_id` | fk → `user.id` | ON DELETE CASCADE |
 | `gmail_message_id` | text | UNIQUE with `user_id` |
-| `network` | text | CHECK 'visa' |
+| `network` | text | CHECK in ('visa','mastercard') |
 | `last4` | text | CHECK 4 digits |
 | `merchant`, `country` | text | |
 | `currency` | text | CHECK in ('ARS','USD') |
 | `amount` | bigint | minor units of `currency`, > 0 |
 | `foreign` | boolean | |
-| `transaction_type` | text | "Compra" or another label |
+| `transaction_type` | text | "Compra" or another label (Mastercard's "COMPRA" is stored as "Compra") |
+| `installments` | smallint, nullable | CHECK >= 1; the purchase's installment count (cuotas) when the alert says it (Mastercard), null for Visa. An alert with `installments > 1` is stored but never converted: it waits with `import_item_id` null |
 | `received_at` | timestamptz | the message's `internalDate` |
-| `import_item_id` | fk → `mp_import_items.id`, nullable | ON DELETE SET NULL; null while the alert waits (unknown or credit card) |
+| `import_item_id` | fk → `mp_import_items.id`, nullable | ON DELETE SET NULL; null while the alert waits (unknown card, no Galicia account, installments > 1) |
 | `created_at` | timestamptz | |
 
 Index `(user_id, network, last4)`.
@@ -338,13 +339,13 @@ What a card of the alerts is. UNIQUE `(user_id, network, last4)`.
 |---|---|---|
 | `id` | uuid pk | |
 | `user_id` | fk → `user.id` | ON DELETE CASCADE |
-| `network` | text | CHECK 'visa' |
+| `network` | text | CHECK in ('visa','mastercard') |
 | `last4` | text | CHECK 4 digits |
-| `type` | text | CHECK in ('credit','debit') |
+| `type` | text | CHECK in ('credit','debit'); a `mastercard` card is always 'credit' (enforced by `saveCard`) |
 | `ars_account_id`, `usd_account_id` | fk → `financial_accounts.id`, nullable | ON DELETE SET NULL; a debit card needs the pesos account |
 | `created_at`, `updated_at` | timestamptz | |
 
-A debit card's alerts become items of the source `visa_debit` ("Visa Débito"), kind `card_purchase` (transaction type "Compra") or `other` (any other type: always a review, learns nothing, never auto-approved), external key `alert:<gmail message id>`, account = the card's account of the alert currency, `merchant` = `raw_description` = the alert's merchant, `occurred_at` = `received_at`. A credit card's alerts become items of the source `galicia_visa` on the accounts of `galicia_connections` (a credit card's own account columns are not used). A credit alert whose statement line is already imported creates no item: its key is stored as that statement item's `alias_key` and `import_item_id` points at the statement item; otherwise the later statement line fills the alert item's `alias_key` (see `docs/scope.md`, "Banco Galicia statements"). Alerts of unknown cards stay in `card_alerts` until the card is set up.
+A debit card's alerts become items of the source `visa_debit` ("Visa Débito"), kind `card_purchase` (transaction type "Compra") or `other` (any other type: always a review, learns nothing, never auto-approved), external key `alert:<gmail message id>`, account = the card's account of the alert currency, `merchant` = `raw_description` = the alert's merchant, `occurred_at` = `received_at`. A credit card's alerts become items of the Galicia source of its network (`galicia_visa` or `galicia_mastercard`) on the accounts of `galicia_connections` (a credit card's own account columns are not used). A credit alert whose statement line is already imported creates no item: its key is stored as that statement item's `alias_key` and `import_item_id` points at the statement item; otherwise the later statement line fills the alert item's `alias_key` (see `docs/scope.md`, "Banco Galicia statements"). Alerts of unknown cards stay in `card_alerts` until the card is set up.
 
 ## Derived formulas
 

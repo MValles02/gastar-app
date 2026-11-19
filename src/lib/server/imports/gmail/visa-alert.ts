@@ -1,107 +1,25 @@
 // Pure: reads one Gmail message (format=full) and returns the purchase fields of a Visa alert. Nothing here
 // stores or logs anything, and the body, subject and headers never leave this function.
 
+import {
+	type CardAlertResult,
+	IGNORED,
+	INVALID,
+	authenticated,
+	decodeEntities,
+	headerValue,
+	headersOf,
+	messageParts,
+	obj,
+	plain,
+	senderOf
+} from './alert-mail';
+
 export const VISA_SENDERS = [
 	'donotreplyalertadecomprasvisa@visa.com',
 	'donotreplyvisapurchasealerts@visa.com'
 ] as const;
 const SUBJECT = 'Alerta de Compras Visa';
-
-export type VisaAlert = {
-	gmailMessageId: string;
-	network: 'visa';
-	last4: string;
-	merchant: string;
-	country: string;
-	currency: 'ARS' | 'USD';
-	/** Minor units of `currency`. */
-	amount: number;
-	foreign: boolean;
-	transactionType: string;
-	receivedAt: Date;
-};
-
-/**
- * `ignored`: not a purchase alert of Visa, or not authenticated as Visa (silently skipped).
- * `invalid`: it is one but does not parse (never guessed; the sync reports it by code).
- */
-export type VisaAlertResult =
-	{ status: 'ignored' } | { status: 'invalid' } | { status: 'ok'; alert: VisaAlert };
-
-const IGNORED = { status: 'ignored' } as const;
-const INVALID = { status: 'invalid' } as const;
-
-const obj = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
-
-type Header = { name: string; value: string };
-
-const headersOf = (payload: Record<string, unknown>): Header[] =>
-	Array.isArray(payload.headers)
-		? payload.headers.map((h) => ({
-				name: String(obj(h).name ?? '').toLowerCase(),
-				value: String(obj(h).value ?? '')
-			}))
-		: [];
-
-/** Gmail's own verdict on the top header: DKIM and DMARC both pass for visa.com. */
-function authenticated(headers: Header[]): boolean {
-	const value = headers.find((h) => h.name === 'authentication-results')?.value;
-	if (!value || !value.trim().startsWith('mx.google.com')) return false;
-	const clauses = value.split(';').map((c) => c.trim());
-	const passes = (method: string, ids: RegExp) =>
-		clauses.some((c) => c.startsWith(`${method}=pass`) && ids.test(c));
-	return (
-		passes('dkim', /(?:^|\s)header\.(?:i=@|d=)visa\.com(?=\s|$)/) &&
-		passes('dmarc', /(?:^|\s)header\.from=visa\.com(?=\s|$)/)
-	);
-}
-
-const ENTITIES: Record<string, string> = {
-	amp: '&',
-	lt: '<',
-	gt: '>',
-	quot: '"',
-	apos: "'",
-	nbsp: ' ',
-	aacute: 'á',
-	eacute: 'é',
-	iacute: 'í',
-	oacute: 'ó',
-	uacute: 'ú',
-	Aacute: 'Á',
-	Eacute: 'É',
-	Iacute: 'Í',
-	Oacute: 'Ó',
-	Uacute: 'Ú',
-	ntilde: 'ñ',
-	Ntilde: 'Ñ',
-	uuml: 'ü',
-	Uuml: 'Ü'
-};
-
-const decodeEntities = (s: string) =>
-	s.replace(/&(?:#(\d+)|#x([0-9a-f]+)|([a-z]+));/gi, (m, dec, hex, name) => {
-		if (name) return ENTITIES[name] ?? m;
-		const code = dec ? Number(dec) : parseInt(hex, 16);
-		return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : m;
-	});
-
-/** The decoded `text/html` part of the message, or null. */
-function htmlOf(part: Record<string, unknown>): string | null {
-	const data = obj(part.body).data;
-	if (part.mimeType === 'text/html' && typeof data === 'string') {
-		return Buffer.from(data, 'base64url').toString('utf8');
-	}
-	if (Array.isArray(part.parts)) {
-		for (const p of part.parts) {
-			const html = htmlOf(obj(p));
-			if (html !== null) return html;
-		}
-	}
-	return null;
-}
-
-const plain = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
 /** Label -> value of the "Label: value" lines from "Comercio:" on (the first one wins), and the intro before it. */
 function readBlock(html: string) {
@@ -126,22 +44,18 @@ function minorUnits(raw: string): number | null {
 	return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
 }
 
-export function parseVisaAlert(message: unknown): VisaAlertResult {
+export function parseVisaAlert(message: unknown): CardAlertResult {
 	const msg = obj(message);
 	const payload = obj(msg.payload);
 	const headers = headersOf(payload);
-	const from = headers.find((h) => h.name === 'from')?.value ?? '';
-	const address = (/<([^>]+)>/.exec(from)?.[1] ?? from).trim().toLowerCase();
-	if (!(VISA_SENDERS as readonly string[]).includes(address)) return IGNORED;
-	if (headers.find((h) => h.name === 'subject')?.value.trim() !== SUBJECT) return IGNORED;
-	if (!authenticated(headers)) return IGNORED;
+	if (!(VISA_SENDERS as readonly string[]).includes(senderOf(headers))) return IGNORED;
+	if (headerValue(headers, 'subject')?.trim() !== SUBJECT) return IGNORED;
+	if (!authenticated(headers, 'visa.com')) return IGNORED;
 
-	const id = msg.id;
-	const internal = Number(msg.internalDate);
-	const html = htmlOf(payload);
-	if (typeof id !== 'string' || !id || !(internal > 0) || html === null) return INVALID;
+	const parts = messageParts(msg, payload);
+	if (!parts) return INVALID;
 
-	const { fields, intro } = readBlock(html);
+	const { fields, intro } = readBlock(parts.html);
 	const merchant = fields.get('comercio');
 	const country = fields.get('pais');
 	const last4 = fields.get('tarjeta');
@@ -162,7 +76,7 @@ export function parseVisaAlert(message: unknown): VisaAlertResult {
 	return {
 		status: 'ok',
 		alert: {
-			gmailMessageId: id,
+			gmailMessageId: parts.id,
 			network: 'visa',
 			last4,
 			merchant,
@@ -171,7 +85,8 @@ export function parseVisaAlert(message: unknown): VisaAlertResult {
 			amount,
 			foreign: intro.includes('en el exterior'),
 			transactionType,
-			receivedAt: new Date(internal)
+			installments: null,
+			receivedAt: parts.receivedAt
 		}
 	};
 }

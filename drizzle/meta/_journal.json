@@ -204,6 +204,13 @@
       "when": 1795026837590,
       "tag": "0028_gray_ronan",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1795131295410,
+      "tag": "0029_parched_master_chief",
+      "breakpoints": true
     }
   ]
 }
