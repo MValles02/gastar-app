@@ -17,7 +17,7 @@ import {
 	listUnmatchedAlerts
 } from '#lib/server/imports/galicia/unmatched.ts';
 import { listUnknownCards } from '#lib/server/imports/cards.ts';
-import { importPrefill, importTitle } from '#lib/server/imports/rules.ts';
+import { importPrefill, importTitle, installmentAmounts } from '#lib/server/imports/rules.ts';
 import { importSource } from '#lib/server/imports/sources.ts';
 import { getImport, listAutoApproved, listPendingImports } from '#lib/server/imports/store.ts';
 import { dayHeading, localDay } from '#lib/server/month.ts';
@@ -75,6 +75,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			isCredit: boolean;
 			suggestion: string | null;
 			source: string | null;
+			/** Cuotas of an installment purchase and the fixed payment amount of each; null otherwise. */
+			cuotas: { n: number; amount: number } | null;
 		}[];
 	}[] = [];
 	for (const i of items) {
@@ -88,7 +90,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			i,
 			ctx.rules,
 			ctx.categories,
-			counterAccountsOf(ctx.accounts, i)
+			counterAccountsOf(ctx.accounts, i),
+			ctx.fixed
 		).suggestion;
 		if (suggestion !== null) suggested++;
 		group.items.push({
@@ -98,7 +101,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			currency: i.currency,
 			isCredit: i.isCredit,
 			suggestion,
-			source: mixed ? importSource(i.source).label : null
+			source: mixed ? importSource(i.source).label : null,
+			cuotas:
+				i.installments && i.installmentTotal
+					? {
+							n: i.installments,
+							amount: installmentAmounts(i.installmentTotal, i.installments, i.currency).rule
+						}
+					: null
 		});
 	}
 

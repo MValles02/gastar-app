@@ -1,6 +1,7 @@
 import { toIconKey } from '#lib/appearance.ts';
 import { cannotRegister, inactiveReason, isRecurringActive } from '#lib/plan.ts';
 import { notFoundHelpers } from '../guards';
+import { monthLabel } from '../month';
 import { movementPickers } from '../movements/pickers';
 import { ruleDueThisMonth } from '../plan/month-plan';
 import { toFormValues } from './form';
@@ -44,6 +45,7 @@ export async function detailOf(userId: string, id: string) {
 		previousAmount: rule.previousAmount,
 		currency: rule.currency,
 		dayOfMonth: rule.dayOfMonth,
+		endsMonthLabel: rule.endsMonth ? monthLabel(rule.endsMonth) : null,
 		account,
 		category,
 		thisMonth,

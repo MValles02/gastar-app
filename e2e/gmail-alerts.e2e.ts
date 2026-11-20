@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { statementOf } from './galicia-pdf';
 import {
 	ALERTS_B_EMAIL,
 	ALERTS_EMAIL,
@@ -10,6 +11,7 @@ import {
 	pick,
 	pickDate,
 	reviewDrawer,
+	upload,
 	withDb
 } from './helpers';
 
@@ -77,6 +79,8 @@ function resetGmailState(emails: string[]) {
 			select movement_id from mp_import_items
 			where source in ${sql(SOURCES)} and movement_id is not null and user_id in ${sql(ids)})`;
 		await sql`delete from card_alerts where user_id in ${sql(ids)}`;
+		await sql`delete from card_statements where user_id in ${sql(ids)}`;
+		await sql`delete from recurring_movements where ends_month is not null and user_id in ${sql(ids)}`;
 		await sql`delete from import_cards where user_id in ${sql(ids)}`;
 		await sql`delete from mp_import_items where source in ${sql(SOURCES)} and user_id in ${sql(ids)}`;
 		await sql`delete from mp_import_rules where user_id in ${sql(ids)}`;
@@ -165,7 +169,7 @@ test('an email that fails the DKIM check creates nothing', async ({ baseURL }) =
 	expect(stored[0].n).toBe(0);
 });
 
-test('a Galicia Mastercard alert becomes a pending credit item; an installment one and a reversed pair wait', async ({
+test('a Galicia Mastercard alert becomes a pending credit item; an installment one becomes its first cuota; a reversed pair waits', async ({
 	baseURL
 }) => {
 	await alert(A.mailbox, {
@@ -225,10 +229,11 @@ test('a Galicia Mastercard alert becomes a pending credit item; an installment o
 			merchant: 'HELADERA MC',
 			type: 'Compra',
 			installments: 3,
-			source: null,
-			amount: null,
-			status: null,
-			account: null
+			source: 'galicia_mastercard',
+			// The first cuota of the 300.000,00 total in 3 cuotas.
+			amount: 30_000_000 / 3,
+			status: 'pending',
+			account: 'Pesos Visa A'
 		},
 		...['Compra', 'Compra reversada'].map((type) => ({
 			merchant: 'VIAJE MC',
@@ -240,6 +245,81 @@ test('a Galicia Mastercard alert becomes a pending credit item; an installment o
 			account: null
 		}))
 	]);
+});
+
+test('a Mastercard purchase in 3 cuotas becomes a fixed payment for 3 months and its statement cuotas are not duplicated', async () => {
+	const TZ = 'America/Argentina/Buenos_Aires';
+	await openItem(pageA, 'HELADERA MC');
+	await expect(reviewDrawer(pageA).getByText(/3 cuotas de/)).toBeVisible();
+	await pick(pageA, 'Categoría', 'Compras Visa');
+	await reviewDrawer(pageA).getByRole('button', { name: 'Aprobar', exact: true }).click();
+	await expect(reviewDrawer(pageA)).toHaveCount(0);
+
+	const [rule] = await withDb(
+		(sql) => sql`
+			select r.id, r.amount::int as amount, r.ends_month,
+				to_char((i.occurred_at at time zone ${TZ}) + interval '2 months', 'YYYY-MM') as expected_end,
+				to_char(i.occurred_at at time zone ${TZ}, 'YYYY-MM-DD') as day,
+				(select count(*)::int from movements m where m.recurring_id = r.id) as linked
+			from recurring_movements r join mp_import_items i on i.recurring_id = r.id
+			where i.merchant = 'HELADERA MC' and r.user_id = (select id from "user" where email = ${A.email})`
+	);
+	expect(rule).toMatchObject({ amount: 30_000_000 / 3, linked: 1 });
+	expect(rule.ends_month).toBe(rule.expected_end);
+
+	// The statement of the next month: the 01/03 line is the purchase already imported, 02/03 its second cuota.
+	const [y, m, d] = (rule.day as string).split('-').map(Number);
+	const two = (n: number) => String(n).padStart(2, '0');
+	const next = new Date(Date.UTC(y, m, 15));
+	const line = (cuota: string) => ({
+		date: `${two(d)}-${two(m)}-${String(y).slice(2)}`,
+		reference: 'HELADERA MC',
+		cuota,
+		voucher: '000777',
+		ars: '100.000,00'
+	});
+	await upload(
+		pageA,
+		statementOf({
+			network: 'MASTERCARD',
+			number: 'MC-TARJETA-001',
+			closing: `15-${two(next.getUTCMonth() + 1)}-${String(next.getUTCFullYear()).slice(2)}`,
+			lines: [line('01/03'), line('02/03')]
+		})
+	);
+	await expect(pageA).toHaveURL(/\/imports/);
+
+	// The 01/03 line anchors the last month to the closing: closing month + 2.
+	const closingDay = next.toISOString().slice(0, 10);
+	const [moved] = await withDb(
+		(sql) => sql`
+			select ends_month, to_char(${closingDay}::date + interval '2 months', 'YYYY-MM') as expected
+			from recurring_movements where id = ${rule.id}`
+	);
+	expect(moved.ends_month).toBe(moved.expected);
+
+	const rows = await withDb(
+		(sql) => sql`
+			select i.external_key as key, i.kind, i.status, i.auto_approved_at is not null as auto, m.recurring_id
+			from mp_import_items i left join movements m on m.id = i.movement_id
+			where i.merchant = 'HELADERA MC' and i.user_id = (select id from "user" where email = ${A.email})`
+	);
+	expect(rows.filter((r) => r.kind === 'card_adjustment')).toEqual([]);
+	expect(rows.some((r) => r.key.includes(':01/03:'))).toBe(false);
+	const second = rows.find((r) => r.key.includes(':02/03:'))!;
+	expect(second).toMatchObject({ status: 'approved', auto: true, recurring_id: rule.id });
+
+	const [after] = await withDb(
+		(sql) => sql`
+			select r.amount::int as amount, (select count(*)::int from movements m where m.recurring_id = r.id) as linked
+			from recurring_movements r where r.id = ${rule.id}`
+	);
+	expect(after).toEqual({ amount: 30_000_000 / 3, linked: 2 });
+
+	await pageA.goto(`/plan/recurring/${rule.id}`);
+	await expect(pageA.getByText('Última cuota')).toBeVisible();
+	// Not asserted: the rule leaving the plan after its last month ("Terminado"). It is decided against the
+	// current month, so the plan's ?month= does not show it without moving the clock.
 });
 
 test('a learned merchant rule auto-approves the next debit alert of that merchant', async ({

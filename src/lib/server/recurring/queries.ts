@@ -5,7 +5,7 @@ import { db, type DbExecutor } from '../db';
 import { categories, financialAccounts, movements, recurringMovements } from '../db/schema';
 import { appTz, inRange, localMonth, type Range } from '../db/sql';
 import { canAccessAccount, canAccessMovement, canAccessOwn, userOwned } from '../access';
-import { HISTORY_MONTHS } from '../month';
+import { currentMonth, HISTORY_MONTHS } from '../month';
 import type { MovementRow } from '../movements/form';
 
 export const ownRule = (userId: string, id: string) =>
@@ -30,6 +30,9 @@ function recurringRows(userId: string, where: SQL | undefined) {
 			dayOfMonth: recurringMovements.dayOfMonth,
 			previousAmount: recurringMovements.previousAmount,
 			archivedAt: recurringMovements.archivedAt,
+			endsMonth: recurringMovements.endsMonth,
+			// An installment rule past its last month: read-time, never archived.
+			ended: sql<boolean>`coalesce(${recurringMovements.endsMonth} < ${currentMonth(new Date())}, false)`,
 			accountId: recurringMovements.accountId,
 			accountName: financialAccounts.name,
 			accountArchivedAt: financialAccounts.archivedAt,

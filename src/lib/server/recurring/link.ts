@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { and, eq, gte, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { dayOfMonth } from '#lib/dates.ts';
 import { roundToStep, type Currency } from '#lib/money.ts';
 import type { MovementType } from '#lib/movement.ts';
@@ -141,7 +141,8 @@ export async function linkRuleFor(
 			id: recurringMovements.id,
 			description: recurringMovements.description,
 			dayOfMonth: recurringMovements.dayOfMonth,
-			amount: recurringMovements.amount
+			amount: recurringMovements.amount,
+			endsMonth: recurringMovements.endsMonth
 		})
 		.from(recurringMovements)
 		.innerJoin(
@@ -156,6 +157,9 @@ export async function linkRuleFor(
 			and(
 				canAccessOwn(userId, recurringMovements),
 				eq(recurringMovements.type, m.type),
+				// An installment rule (ends_month set) links only explicitly, and not past its last month.
+				or(isNull(recurringMovements.endsMonth), gte(recurringMovements.endsMonth, ym)),
+				explicitRuleId ? undefined : isNull(recurringMovements.endsMonth),
 				eq(financialAccounts.currency, account.currency),
 				isNull(recurringMovements.archivedAt),
 				isNull(financialAccounts.archivedAt),
@@ -177,8 +181,11 @@ export async function linkRuleFor(
 		.sort((a, b) => dist(a) - dist(b) || a.dayOfMonth - b.dayOfMonth || (a.id < b.id ? -1 : 1))[0];
 	if (!rule) return null;
 
-	const latest = await latestLinkedMonth(tx, userId, rule.id);
-	const amount = ruleAmountFor(m, account.currency, rule, ym, latest);
+	// An installment rule (endsMonth set) keeps its total ÷ cuotas amount: it never follows linked charges.
+	const amount =
+		rule.endsMonth === null
+			? ruleAmountFor(m, account.currency, rule, ym, await latestLinkedMonth(tx, userId, rule.id))
+			: null;
 	if (amount !== null)
 		await tx
 			.update(recurringMovements)

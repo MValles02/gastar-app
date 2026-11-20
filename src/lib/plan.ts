@@ -57,13 +57,15 @@ export const MAX_DAY_OF_MONTH = 31;
 
 export type RuleState = {
 	archivedAt: Date | null;
+	/** An installment rule past its last month. */
+	ended: boolean;
 	accountArchivedAt: Date | null;
 	categoryArchivedAt: Date | null;
 };
 
-/** A rule counts only while the rule, its account and its category are all unarchived. */
+/** A rule counts only while it has not ended and the rule, its account and its category are all unarchived. */
 export function isRecurringActive(r: RuleState): boolean {
-	return !r.archivedAt && !r.accountArchivedAt && !r.categoryArchivedAt;
+	return !r.ended && !r.archivedAt && !r.accountArchivedAt && !r.categoryArchivedAt;
 }
 
 /** Why a rule is inactive (the rule itself first, then its account, then its category); null when active. */
@@ -71,6 +73,7 @@ export function inactiveReason(r: RuleState): string | null {
 	if (r.archivedAt) return 'Desactivado';
 	if (r.accountArchivedAt) return 'Cuenta archivada';
 	if (r.categoryArchivedAt) return 'Categoría archivada';
+	if (r.ended) return 'Terminado';
 	return null;
 }
 

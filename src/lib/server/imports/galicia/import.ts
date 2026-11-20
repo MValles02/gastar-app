@@ -10,7 +10,7 @@ import { withMatchLock } from '../match-lock';
 import { GALICIA_SOURCE, KIND } from '#lib/imports.ts';
 import { kindSpec } from '../sources';
 import { getGaliciaConnection } from './connection';
-import { matchStatement } from './matching';
+import { linkInstallmentLines, matchStatement } from './matching';
 import { StatementError, type Statement, type StatementLine } from './statement';
 
 type GaliciaConnection = Awaited<ReturnType<typeof getGaliciaConnection>>;
@@ -79,12 +79,14 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 	}
 	const { created, autoApproved } = await withMatchLock(userId, async () => {
 		const { rows, diffs } = await matchStatement(userId, source, s.closing, lines);
-		const result = await ingestImportItems(userId, source, [...rows, ...diffs, ...taxes]);
+		// Later cuotas (k/N, k >= 2) of an approved installment purchase join its fixed payment.
+		await linkInstallmentLines(userId, source, lines);
+		// Before the ingest: its automatic approvals size installment fixed payments from this closing.
 		await db
 			.insert(cardStatements)
 			.values({ ...userOwned(userId), source, numberHash: s.numberHash, closing: s.closing })
 			.onConflictDoNothing();
-		return result;
+		return ingestImportItems(userId, source, [...rows, ...diffs, ...taxes]);
 	});
 	return { ok: true, created, autoApproved };
 }
