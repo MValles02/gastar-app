@@ -80,12 +80,12 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 		const { rows, diffs } = await matchStatement(userId, source, s.closing, lines);
 		// Later cuotas (k/N, k >= 2) of an approved installment purchase join its fixed payment.
 		await linkInstallmentLines(userId, source, lines);
-		const result = await ingestImportItems(userId, source, [...rows, ...diffs, ...taxes]);
+		// Before the ingest: its automatic approvals size installment fixed payments from this closing.
 		await db
 			.insert(cardStatements)
 			.values({ ...userOwned(userId), source, numberHash: s.numberHash, closing: s.closing })
 			.onConflictDoNothing();
-		return result;
+		return ingestImportItems(userId, source, [...rows, ...diffs, ...taxes]);
 	});
 	return { ok: true, created, autoApproved };
 }

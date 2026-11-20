@@ -1,8 +1,9 @@
-import { and, count, desc, eq, gt, inArray, isNotNull, ne, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gt, gte, inArray, isNotNull, ne, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '../db';
 import {
 	cardAlerts,
+	cardStatements,
 	categories,
 	financialAccounts,
 	importSettings,
@@ -15,8 +16,14 @@ import {
 import { dayOfMonth } from '#lib/dates.ts';
 import { localDay } from '../month';
 import { ownRule } from '../recurring/queries';
-import { alertKeySql } from './keys';
-import { canAccessAccount, canAccessMovement, canAccessOwn, userOwned } from '../access';
+import { alertKeySql, ALERT_KEYS, statementPurchaseDay } from './keys';
+import {
+	allMovementsOf,
+	canAccessAccount,
+	canAccessMovement,
+	canAccessOwn,
+	userOwned
+} from '../access';
 import type { MovementType } from '#lib/movement.ts';
 import type { MovementRow } from '../movements/form';
 import { createMovement, deleteMovement } from '../movements/queries';
@@ -39,6 +46,8 @@ const itemColumns = {
 	source: itemSource,
 	installment: importItems.installment,
 	installments: importItems.installments,
+	externalKey: importItems.externalKey,
+	aliasKey: importItems.aliasKey,
 	recurringId: importItems.recurringId,
 	// The card alert's total of an installment purchase (by key: the alert's link is set after the item exists).
 	installmentTotal: sql<
@@ -159,6 +168,22 @@ export function approveImport(
 		let ruleId = rule.recurringId;
 		if (item.installments && item.installmentTotal && rule.categoryId) {
 			const day = localDay(item.occurredAt);
+			// An alert item matched to a statement's 01/N line: the cuotas run from that statement's closing when it is later
+			// (the earliest uploaded closing on or after the purchase day; the line is in that statement).
+			let from = day;
+			if (item.aliasKey && !item.aliasKey.startsWith(ALERT_KEYS.slice(0, -1))) {
+				const [s] = await tx
+					.select({ closing: sql<string | null>`min(${cardStatements.closing})` })
+					.from(cardStatements)
+					.where(
+						and(
+							canAccessOwn(userId, cardStatements),
+							eq(cardStatements.source, item.source),
+							gte(cardStatements.closing, statementPurchaseDay(item.aliasKey))
+						)
+					);
+				if (s?.closing && s.closing > from) from = s.closing;
+			}
 			const [created] = await tx
 				.insert(recurringMovements)
 				.values({
@@ -169,7 +194,7 @@ export function approveImport(
 					accountId: item.accountId,
 					categoryId: rule.categoryId,
 					dayOfMonth: dayOfMonth(day),
-					endsMonth: installmentEndsMonth(day, item.installments)
+					endsMonth: installmentEndsMonth(from, item.installments)
 				})
 				.returning({ id: recurringMovements.id });
 			ruleId = created.id;
@@ -268,7 +293,7 @@ export function undoApproval(userId: string, id: string): Promise<'undone' | 'ch
 					and(
 						eq(movements.recurringId, item.recurringId),
 						ne(movements.id, item.movementId),
-						canAccessOwn(userId, movements)
+						allMovementsOf(userId)
 					)
 				)
 				.limit(1);
