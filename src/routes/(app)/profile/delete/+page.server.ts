@@ -8,6 +8,7 @@ import {
 	tooManyAttempts
 } from '#lib/server/auth-forms.ts';
 import { deleteUserAndData } from '#lib/server/delete-user.ts';
+import { str } from '#lib/server/forms.ts';
 import { deletionSummary } from '#lib/server/profile-queries.ts';
 import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import { requireUser } from '#lib/server/guards.ts';
@@ -34,7 +35,7 @@ export const actions: Actions = {
 
 		const mode = await reauthMode(userId, locals.session);
 		if (mode === 'password') {
-			const password = String((await request.formData()).get('password') ?? '');
+			const password = str(await request.formData(), 'password');
 			if (!password) return formFail(400, { formError: 'Ingresá tu contraseña.' });
 
 			try {
