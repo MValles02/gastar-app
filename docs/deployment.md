@@ -26,6 +26,15 @@ Required GitHub variables:
 
 `GITHUB_TOKEN` is provided automatically and used to push to GHCR. Runtime env vars: see the Production section of the [README](../README.md).
 
+## Public repository
+
+This repository is public on purpose and stays public. That means:
+
+- Never commit secrets, `.env*` files (except `.env.example`), real user data, or VPS IPs, hostnames and internal URLs that are not already public. Secrets live only in GitHub Actions secrets and Dokploy.
+- PRs from forks run CI without secrets; deploys run only on pushes to `develop` and `main`.
+- A `pull_request_target` workflow never checks out or runs PR code (`auto-merge.yml` has no checkout step).
+- Report vulnerabilities privately (a GitHub security advisory), never as a public issue with exploit detail.
+
 ## Dokploy
 
 Production app:
