@@ -171,6 +171,8 @@ export async function matchStatement(
 					eq(importItems.source, source),
 					like(importItems.externalKey, ALERT_KEYS),
 					eq(importItems.kind, KIND.cardPurchase),
+					// A reversal's credit item is money back, never the purchase a statement line stands for.
+					eq(importItems.isCredit, false),
 					isNull(importItems.aliasKey),
 					gte(importItems.occurredAt, from),
 					lt(importItems.occurredAt, to)

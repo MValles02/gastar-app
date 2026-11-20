@@ -10,6 +10,7 @@ import { type ImportRow, ingestImportItems } from './ingest';
 import { alertKey, alertKeySql } from './keys';
 import { withMatchLock } from './match-lock';
 import { getChosenImportFrom } from './settings';
+import { REVERSAL } from './gmail/mastercard-alert';
 import { GALICIA_SOURCE, KIND, SOURCE, type SourceId } from './sources';
 import { CURRENCIES, CURRENCY_NAME, type Currency } from '#lib/money.ts';
 import {
@@ -71,6 +72,7 @@ async function convertLocked(userId: string) {
 		.select({
 			messageId: cardAlerts.gmailMessageId,
 			network: cardAlerts.network,
+			last4: cardAlerts.last4,
 			currency: cardAlerts.currency,
 			amount: cardAlerts.amount,
 			merchant: cardAlerts.merchant,
@@ -101,6 +103,8 @@ async function convertLocked(userId: string) {
 			)
 		);
 	if (waiting.length === 0) return { created: 0, autoApproved: 0 };
+	const reversals = await settleReversals(userId, waiting);
+	const waitingLive = waiting.filter((a) => !reversals.skip.has(a.messageId));
 
 	const galicia = waiting.some((a) => a.type === 'credit')
 		? await getGaliciaConnection(userId)
@@ -111,7 +115,7 @@ async function convertLocked(userId: string) {
 	const matched = new Set<string>();
 	const creditFailed = new Set<string>();
 	for (const network of CARD_NETWORKS) {
-		const purchases = waiting.filter(
+		const purchases = waitingLive.filter(
 			(a) => a.type === 'credit' && a.network === network && a.transactionType === PURCHASE
 		);
 		if (purchases.length === 0) continue;
@@ -135,7 +139,7 @@ async function convertLocked(userId: string) {
 	]);
 	const usable = new Set([...ars, ...usd].map((a) => a.id));
 	const rowsBySource = new Map<SourceId, ImportRow[]>();
-	for (const a of waiting) {
+	for (const a of waitingLive) {
 		if (matched.has(a.messageId)) continue;
 		// Without a matching result, a credit purchase must not be inserted next to a statement item.
 		if (a.type === 'credit' && a.transactionType === PURCHASE && creditFailed.has(a.network))
@@ -148,13 +152,15 @@ async function convertLocked(userId: string) {
 		const source = a.type === 'credit' ? GALICIA_SOURCE[network] : SOURCE.visaDebit;
 		const rows = rowsBySource.get(source) ?? [];
 		rowsBySource.set(source, rows);
+		// A reversal left here is money back: a credit of the card purchase kind (it learns nothing).
+		const refund = reversals.credit.has(a.messageId);
 		rows.push({
 			externalKey: alertKey(a.messageId),
 			accountId,
-			kind: a.transactionType === PURCHASE ? KIND.cardPurchase : KIND.other,
+			kind: a.transactionType === PURCHASE || refund ? KIND.cardPurchase : KIND.other,
 			occurredAt: a.receivedAt,
 			amount: a.amount,
-			isCredit: false,
+			isCredit: refund,
 			sourceId: a.messageId,
 			rawDescription: a.merchant,
 			merchant: a.merchant
@@ -184,6 +190,114 @@ async function convertLocked(userId: string) {
 			)
 		);
 	return result;
+}
+
+type Waiting = {
+	messageId: string;
+	network: string;
+	last4: string;
+	currency: string;
+	amount: number;
+	merchant: string;
+	transactionType: string;
+};
+
+/**
+ * Mastercard "Compra reversada" alerts (a cancelled pre-authorization, never on the statement). Each reversal
+ * cancels the latest earlier purchase alert of the same card, currency, amount and merchant that no other
+ * reversal cancelled. The pairing is recomputed from card_alerts on every run (no column marks it), so:
+ * - both unconverted: neither ever converts (both are in `skip` and keep import_item_id null);
+ * - the purchase is a pending item of its own alert key, not linked to a statement line: that item is deleted
+ *   (as an "Importar desde" trim does), and from then on both are unconverted;
+ * - the purchase item was rejected: the reversal creates nothing;
+ * - the purchase item was approved (or is a statement line): the reversal becomes a credit item (`credit`);
+ * - no purchase to cancel: the reversal becomes a credit item.
+ * Visa has no known reversal alert and is left out.
+ */
+async function settleReversals(userId: string, waiting: Waiting[]) {
+	const skip = new Set<string>();
+	const credit = new Set<string>();
+	const mine = waiting.filter(
+		(a) =>
+			a.network === 'mastercard' &&
+			(a.transactionType === PURCHASE || a.transactionType === REVERSAL)
+	);
+	if (mine.length === 0) return { skip, credit };
+	const waitingIds = new Set(waiting.map((a) => a.messageId));
+	const all = await db
+		.select({
+			messageId: cardAlerts.gmailMessageId,
+			last4: cardAlerts.last4,
+			currency: cardAlerts.currency,
+			amount: cardAlerts.amount,
+			merchant: cardAlerts.merchant,
+			transactionType: cardAlerts.transactionType,
+			receivedAt: cardAlerts.receivedAt,
+			itemId: importItems.id,
+			itemStatus: importItems.status,
+			itemKey: importItems.externalKey,
+			itemAlias: importItems.aliasKey
+		})
+		.from(cardAlerts)
+		.leftJoin(importItems, eq(importItems.id, cardAlerts.importItemId))
+		.where(
+			and(
+				canAccessOwn(userId, cardAlerts),
+				eq(cardAlerts.network, 'mastercard'),
+				inArray(cardAlerts.transactionType, [PURCHASE, REVERSAL]),
+				inArray(cardAlerts.amount, [...new Set(mine.map((a) => a.amount))])
+			)
+		)
+		.orderBy(asc(cardAlerts.receivedAt), asc(cardAlerts.gmailMessageId));
+	type Row = (typeof all)[number];
+	const key = (a: Pick<Row, 'last4' | 'currency' | 'amount' | 'merchant'>) =>
+		[a.last4, a.currency, a.amount, a.merchant.trim()].join('|');
+	const wanted = new Set(mine.map(key));
+	const open = new Map<string, Row[]>();
+	const toDelete: string[] = [];
+	// Chronological, a purchase before a reversal of the same instant: each reversal takes the latest open purchase.
+	const ordered = all
+		.filter((a) => wanted.has(key(a)))
+		.sort(
+			(a, b) =>
+				a.receivedAt.getTime() - b.receivedAt.getTime() ||
+				Number(a.transactionType === REVERSAL) - Number(b.transactionType === REVERSAL)
+		);
+	for (const a of ordered) {
+		const stack = open.get(key(a)) ?? [];
+		open.set(key(a), stack);
+		if (a.transactionType === PURCHASE) {
+			stack.push(a);
+			continue;
+		}
+		const purchase = stack.pop();
+		if (purchase && !purchase.itemId) skip.add(purchase.messageId);
+		if (!waitingIds.has(a.messageId)) continue;
+		if (!purchase) credit.add(a.messageId);
+		else if (!purchase.itemId) skip.add(a.messageId);
+		else if (
+			purchase.itemStatus === 'pending' &&
+			purchase.itemKey === alertKey(purchase.messageId) &&
+			purchase.itemAlias === null
+		) {
+			toDelete.push(purchase.itemId);
+			skip.add(a.messageId);
+		} else if (purchase.itemStatus === 'rejected') skip.add(a.messageId);
+		else credit.add(a.messageId);
+	}
+	if (toDelete.length > 0) {
+		await db
+			.delete(importItems)
+			.where(
+				and(
+					canAccessOwn(userId, importItems),
+					eq(importItems.status, 'pending'),
+					isNull(importItems.aliasKey),
+					inArray(importItems.id, toDelete)
+				)
+			);
+	}
+	return { skip, credit };
 }
 
 /** Cards that sent alerts but have no card row yet: the user still has to say what they are. */

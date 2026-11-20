@@ -19,6 +19,10 @@ import {
 export const MASTERCARD_SENDER = 'alertas@misconsultas.com.ar';
 const SUBJECT = 'Aviso de consumo con tarjeta';
 const PURCHASE = 'Compra';
+/** The stored type of a "COMPRA REVERSADA" alert: it cancels an earlier purchase (see convertWaitingAlerts). */
+export const REVERSAL = 'Compra reversada';
+/** Plain type -> stored type; any other type is kept as sent. */
+const TYPES: Record<string, string> = { compra: PURCHASE, 'compra reversada': REVERSAL };
 
 /** Plain (lowercase, unaccented) currency word -> currency; anything else is not guessed. */
 const CURRENCY: Record<string, 'ARS' | 'USD'> = {
@@ -99,7 +103,7 @@ export function parseMastercardAlert(message: unknown): CardAlertResult {
 			amount,
 			foreign: plain(country) !== 'argentina',
 			// The existing purchase value, so the conversion treats it as one; other types are kept as sent.
-			transactionType: plain(type) === 'compra' ? PURCHASE : type,
+			transactionType: TYPES[plain(type).replace(/\s+/g, ' ')] ?? type,
 			installments,
 			receivedAt: parts.receivedAt
 		}
