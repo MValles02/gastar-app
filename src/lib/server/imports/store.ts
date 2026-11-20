@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gt, inArray, isNotNull, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gt, inArray, isNotNull, ne, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '../db';
 import {
@@ -147,6 +147,8 @@ export function approveImport(
 	auto = false
 ): Promise<'approved' | 'stale'> {
 	return db.transaction(async (tx) => {
+		// Its card alert is gone: nothing to size the fixed payment from, so nothing is booked.
+		if (item.installments && !item.installmentTotal) throw new Error('installment alert missing');
 		const [claimed] = await tx
 			.update(importItems)
 			.set({ status: 'approved', autoApprovedAt: auto ? sql`now()` : null })
@@ -256,6 +258,22 @@ export function undoApproval(userId: string, id: string): Promise<'undone' | 'ch
 		if (!movement) return 'stale';
 		// An edit stamps updated_at; a fresh movement has both columns from the same insert.
 		if (movement.updatedAt.getTime() !== movement.createdAt.getTime()) return 'changed';
+
+		// Later cuotas still linked to the installment rule: undoing the first would orphan them.
+		if (item.installments && item.recurringId) {
+			const [other] = await tx
+				.select({ id: movements.id })
+				.from(movements)
+				.where(
+					and(
+						eq(movements.recurringId, item.recurringId),
+						ne(movements.id, item.movementId),
+						canAccessOwn(userId, movements)
+					)
+				)
+				.limit(1);
+			if (other) return 'changed';
+		}
 
 		await deleteMovement(userId, item.movementId, tx);
 		if (item.installments && item.recurringId)

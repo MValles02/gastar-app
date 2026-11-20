@@ -2,10 +2,11 @@ import { and, eq, inArray, isNotNull, isNull, like, gte, lt, or, type SQL } from
 import type { Currency } from '#lib/money.ts';
 import { canAccessAccount, canAccessOwn } from '../../access';
 import { db } from '../../db';
-import { cardAlerts, financialAccounts, importItems } from '../../db/schema';
+import { cardAlerts, financialAccounts, importItems, recurringMovements } from '../../db/schema';
 import { dayStart, localDay } from '../../month';
 import { batches, type ImportRow } from '../ingest';
 import { ALERT_KEYS, alertKey, diffKey, STATEMENT_KEYS, statementPurchaseDay } from '../keys';
+import { installmentEndsMonth } from '../rules';
 import { importSource, KIND, type SourceId } from '../sources';
 import type { StatementLine } from './statement';
 
@@ -211,8 +212,26 @@ export async function matchStatement(
 					.update(importItems)
 					.set({ aliasKey: l.key })
 					.where(and(eq(importItems.id, found.id), mine, isNull(importItems.aliasKey)))
-					.returning({ id: importItems.id });
+					.returning({
+						id: importItems.id,
+						installments: importItems.installments,
+						recurringId: importItems.recurringId
+					});
 				if (!row) return false;
+				// The cuotas run from the statement of the first one: the fixed payment ends N - 1 months after its closing (never earlier).
+				if (row.installments && row.recurringId && l.line.installment?.startsWith('01/')) {
+					const ends = installmentEndsMonth(closing, row.installments);
+					await tx
+						.update(recurringMovements)
+						.set({ endsMonth: ends, updatedAt: new Date() })
+						.where(
+							and(
+								eq(recurringMovements.id, row.recurringId),
+								canAccessOwn(userId, recurringMovements),
+								or(isNull(recurringMovements.endsMonth), lt(recurringMovements.endsMonth, ends))
+							)
+						);
+				}
 				// A pending alert item becomes what the statement says (the cuota, for an installment).
 				await tx
 					.update(importItems)

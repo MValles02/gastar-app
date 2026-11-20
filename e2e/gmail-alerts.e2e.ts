@@ -289,6 +289,15 @@ test('a Mastercard purchase in 3 cuotas becomes a fixed payment for 3 months and
 	);
 	await expect(pageA).toHaveURL(/\/imports/);
 
+	// The 01/03 line anchors the last month to the closing: closing month + 2.
+	const closingDay = next.toISOString().slice(0, 10);
+	const [moved] = await withDb(
+		(sql) => sql`
+			select ends_month, to_char(${closingDay}::date + interval '2 months', 'YYYY-MM') as expected
+			from recurring_movements where id = ${rule.id}`
+	);
+	expect(moved.ends_month).toBe(moved.expected);
+
 	const rows = await withDb(
 		(sql) => sql`
 			select i.external_key as key, i.kind, i.status, i.auto_approved_at is not null as auto, m.recurring_id
