@@ -141,9 +141,21 @@ test('debit alerts in pesos and dollars land on the right accounts and a second 
 		currency: 'USD',
 		foreign: true
 	});
+	await alert(A.mailbox, {
+		merchant: 'SUSCRIPCION EXTERIOR',
+		amount: '4499.00',
+		currency: 'ARS',
+		foreign: true
+	});
 	await sync(pageA, baseURL!);
 	const expected = [
 		{ merchant: 'LIBRERIA EJEMPLO', amount: 250000, account: 'Pesos Visa A', status: 'pending' },
+		{
+			merchant: 'SUSCRIPCION EXTERIOR',
+			amount: 449900,
+			account: 'Pesos Visa A',
+			status: 'pending'
+		},
 		{ merchant: 'TIENDA ARS', amount: 1234567, account: 'Pesos Visa A', status: 'pending' },
 		{ merchant: 'TIENDA USD', amount: 999, account: 'Dolares Visa A', status: 'pending' }
 	];
