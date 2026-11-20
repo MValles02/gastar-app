@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { ALREADY_REVIEWED } from '#lib/imports.ts';
+import { ALREADY_REVIEWED, UNMATCHED_FAILED } from '#lib/imports.ts';
 import type { Currency } from '#lib/money.ts';
 import { undoApprovalAction } from '#lib/server/imports/actions.ts';
 import {
@@ -9,6 +9,7 @@ import {
 	suggestionContext
 } from '#lib/server/imports/approve.ts';
 import { sourceStatus, syncNow } from '#lib/server/imports/automatic.ts';
+import { linkedSources } from '#lib/server/imports/connections.ts';
 import { getGaliciaConnection } from '#lib/server/imports/galicia/connection.ts';
 import {
 	discardUnmatched,
@@ -36,7 +37,6 @@ function agoLabel(at: Date, now: Date): string {
 }
 
 const APPROVE_FAILED = 'No se pudo aprobar.';
-const DISCARD_FAILED = 'No se pudo descartar.';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
@@ -48,11 +48,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		listAutoApproved(userId),
 		listUnmatchedAlerts(userId)
 	]);
-	// Mercado Pago counts once it feeds an account (also while a reconnect is pending); Gmail once linked.
-	const mpOn = !!mp?.accountId;
-	const gmailOn = !!gmail?.state;
+	const l = linkedSources({ mp, gmail }, galicia);
+	const mpOn = l.mp;
+	const gmailOn = l.gmail;
 	// Nothing to review and no source linked: send the user to the connections.
-	if (!mpOn && !galicia?.arsAccountId && !gmailOn && items.length === 0 && autoRows.length === 0) {
+	if (!l.mp && !l.galicia && !l.gmail && items.length === 0 && autoRows.length === 0) {
 		redirect(303, '/profile/vinculaciones');
 	}
 	// The source only disambiguates when the pending items come from more than one.
@@ -172,12 +172,12 @@ export const actions: Actions = {
 	discardUnmatched: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
 		const id = String((await request.formData()).get('id') ?? '');
-		if (!isUuid(id)) return fail(400, { message: DISCARD_FAILED });
+		if (!isUuid(id)) return fail(400, { message: UNMATCHED_FAILED.discard });
 		const result = await discardUnmatched(userId, id);
 		if (result === 'changed') {
 			return fail(409, { message: 'No se pudo descartar: el movimiento ya cambió.' });
 		}
-		if (result === 'stale') return fail(409, { message: DISCARD_FAILED });
+		if (result === 'stale') return fail(409, { message: UNMATCHED_FAILED.discard });
 		return { discardedId: id };
 	},
 
@@ -185,7 +185,7 @@ export const actions: Actions = {
 	keepUnmatched: async ({ locals, request }) => {
 		const id = String((await request.formData()).get('id') ?? '');
 		if (!isUuid(id) || !(await keepUnmatched(requireUser(locals).id, id))) {
-			return fail(409, { message: 'No se pudo guardar.' });
+			return fail(409, { message: UNMATCHED_FAILED.keep });
 		}
 		return { keptId: id };
 	},

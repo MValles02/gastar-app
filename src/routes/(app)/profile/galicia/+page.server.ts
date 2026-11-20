@@ -1,9 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { isCurrency } from '#lib/money.ts';
-import { accountOption } from '#lib/server/accounts/queries.ts';
 import { chooseGaliciaAccount } from '#lib/server/imports/cards.ts';
-import { ACCOUNT_ERRORS, activeAccountsIn } from '#lib/server/imports/connections.ts';
+import { ACCOUNT_ERRORS, currencyAccountOptions } from '#lib/server/imports/connections.ts';
 import { getGaliciaConnection } from '#lib/server/imports/galicia/connection.ts';
 import { importStatement } from '#lib/server/imports/galicia/import.ts';
 import {
@@ -24,16 +23,14 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const userId = requireUser(locals).id;
-	const [connection, ars, usd] = await Promise.all([
+	const [connection, options] = await Promise.all([
 		getGaliciaConnection(userId),
-		activeAccountsIn(userId, 'ARS'),
-		activeAccountsIn(userId, 'USD')
+		currencyAccountOptions(userId)
 	]);
 	return {
 		arsAccountId: connection?.arsAccountId ?? null,
 		usdAccountId: connection?.usdAccountId ?? null,
-		arsAccounts: ars.map(accountOption),
-		usdAccounts: usd.map(accountOption)
+		...options
 	};
 };
 

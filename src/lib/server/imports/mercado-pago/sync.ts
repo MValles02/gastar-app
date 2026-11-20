@@ -5,21 +5,13 @@ import { financialAccounts, mpConnections, mpSyncState } from '../../db/schema';
 import { canAccessAccount, canAccessOwn } from '../../access';
 import { autoApprovePending } from '../approve';
 import { type ImportRow, ingestImportItems } from '../ingest';
+import { obj } from '../json';
 import { getChosenImportFrom } from '../settings';
 import { SOURCE } from '#lib/imports.ts';
 
 import { errorDetail, freshToken, leaseFree } from '../sync-kit';
 import { DAY_MS } from '#lib/dates.ts';
-import {
-	apiJson,
-	type Auth,
-	fail,
-	isAuthError,
-	mpCode,
-	type MpSyncError,
-	obj,
-	str
-} from './client';
+import { apiJson, type Auth, fail, isAuthError, mpCode, type MpSyncError, str } from './client';
 import { getAccessToken, refreshConnection } from './oauth';
 import { syncPayments } from './payments';
 import { syncReport } from './report';
@@ -120,7 +112,14 @@ async function paymentsStep(
 }
 
 async function reportStep(l: Lease, auth: Auth, from: Date | undefined, ingest: Ingest) {
-	const r = await syncReport(l.accountId, l.syncedUntil, auth, l.floor, from);
+	const r = await syncReport(
+		l.accountId,
+		l.syncedUntil,
+		auth,
+		l.floor,
+		() => progress(l.accountId, { runningSince: sql`now()` }),
+		from
+	);
 	const added = await ingest(r.rows);
 	await progress(l.accountId, {
 		newItems: sql`coalesce(${mpSyncState.newItems}, 0) + ${added}`

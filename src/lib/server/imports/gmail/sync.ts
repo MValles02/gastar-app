@@ -1,4 +1,5 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
+import { CARD_NETWORKS } from '#lib/imports.ts';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { dayStart } from '../../month';
@@ -9,9 +10,9 @@ import { errorDetail, freshToken, leaseFree } from '../sync-kit';
 import { convertWaitingAlerts } from '../card-alerts';
 import { gmailDataBaseUrl } from './env';
 import { getAccessToken, refreshConnection } from './oauth';
+import { obj } from '../json';
+import { NETWORK_IMPORT } from '../networks';
 import { type CardAlertResult, messageSender } from './alert-mail';
-import { MASTERCARD_SENDER, parseMastercardAlert } from './mastercard-alert';
-import { VISA_SENDERS, parseVisaAlert } from './visa-alert';
 
 /** Refresh the access token when it expires within this window (Google's last an hour). */
 const REFRESH_WINDOW_MS = 5 * 60_000;
@@ -24,7 +25,7 @@ const MAX_PAGES = 50;
 type GmailSyncError = 'reconnect' | 'network' | 'api' | 'parse';
 
 /** What the inbox says after "No se pudo sincronizar Gmail" for each stored code. */
-export const GMAIL_ERROR_LABELS: Record<string, string> = {
+const GMAIL_ERROR_LABELS: Record<string, string> = {
 	reconnect: 'hay que volver a vincular Gmail',
 	network: 'sin conexión con Gmail',
 	api: 'Gmail respondió con un error',
@@ -40,13 +41,13 @@ class SyncError extends Error {
 	}
 }
 
-const obj = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
-
 /** The parser of each alert sender. */
-const PARSERS = new Map<string, (message: unknown) => CardAlertResult>([
-	...VISA_SENDERS.map((s) => [s, parseVisaAlert] as const),
-	[MASTERCARD_SENDER, parseMastercardAlert]
-]);
+const PARSERS = new Map(
+	CARD_NETWORKS.flatMap((n) => {
+		const { senders, parse } = NETWORK_IMPORT[n].alert;
+		return senders.map((s) => [s, parse] as const);
+	})
+);
 
 const parseAlert = (message: unknown): CardAlertResult =>
 	PARSERS.get(messageSender(message))?.(message) ?? { status: 'ignored' };

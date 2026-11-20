@@ -9,11 +9,11 @@ import { withMatchLock } from './match-lock';
 import { SOURCE } from '#lib/imports.ts';
 
 /** How far back "Importar desde" may reach. */
-export const MAX_BACKFILL_DAYS = 365;
+const MAX_BACKFILL_DAYS = 365;
 export const earliestImportDay = () => localDay(new Date(Date.now() - MAX_BACKFILL_DAYS * DAY_MS));
 
 /** How far back a first sync reaches when the user has not chosen an "importar desde" day. */
-export const DEFAULT_BACKFILL_DAYS = 30;
+const DEFAULT_BACKFILL_DAYS = 30;
 
 /** How long an automatically approved item stays in the "approved automatically" list. */
 export const AUTO_APPROVED_DAYS = 30;

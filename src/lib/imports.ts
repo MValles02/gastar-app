@@ -2,15 +2,14 @@
 
 export const ALREADY_REVIEWED = 'Ese movimiento ya fue revisado.';
 
+/** What the inbox says when "Descartar" or "Dejar" of an alert missing from its statement fails. */
+export const UNMATCHED_FAILED = {
+	discard: 'No se pudo descartar.',
+	keep: 'No se pudo guardar.'
+} as const;
+
 /** The step a running Mercado Pago sync is on: payments first, then (when due) the release report. */
 export type SyncPhase = 'payments' | 'report';
-
-export const SOURCE_LABELS = {
-	mercado_pago: 'Mercado Pago',
-	galicia_visa: 'Galicia Visa',
-	galicia_mastercard: 'Galicia Mastercard',
-	visa_debit: 'Visa Débito'
-} as const;
 
 export const KIND = {
 	payment: 'payment',
@@ -35,36 +34,45 @@ export const SOURCE = {
 } as const;
 export type SourceId = (typeof SOURCE)[keyof typeof SOURCE];
 
-/** The Banco Galicia source of a card network's statements. */
-export const GALICIA_SOURCE = {
-	visa: SOURCE.galiciaVisa,
-	mastercard: SOURCE.galiciaMastercard
-} as const;
+type NetworkSpec = {
+	name: string;
+	credit: { source: SourceId; label: string };
+	/** `null`: credit only (Galicia Mastercard). */
+	debit: { source: SourceId; label: string } | null;
+	/** The network sends purchase-reversal alerts. */
+	reversals: boolean;
+};
 
-/** Card networks whose Gmail purchase alerts are read. */
-export const CARD_NETWORKS = ['visa', 'mastercard'] as const;
-export type CardNetwork = (typeof CARD_NETWORKS)[number];
+/** Card networks whose Gmail purchase alerts are read, and what each says about its sources. */
+export const CARD_NETWORK = {
+	visa: {
+		name: 'Visa',
+		credit: { source: SOURCE.galiciaVisa, label: 'Galicia Visa' },
+		debit: { source: SOURCE.visaDebit, label: 'Visa Débito' },
+		reversals: false
+	},
+	mastercard: {
+		name: 'Mastercard',
+		credit: { source: SOURCE.galiciaMastercard, label: 'Galicia Mastercard' },
+		debit: null,
+		reversals: true
+	}
+} as const satisfies Record<string, NetworkSpec>;
+export type CardNetwork = keyof typeof CARD_NETWORK;
+
+export const CARD_NETWORKS = Object.keys(CARD_NETWORK) as CardNetwork[];
+
+/** The Banco Galicia source of a card network's statements. */
+export const GALICIA_SOURCE = Object.fromEntries(
+	CARD_NETWORKS.map((n) => [n, CARD_NETWORK[n].credit.source])
+) as { [N in CardNetwork]: (typeof CARD_NETWORK)[N]['credit']['source'] };
 
 export const isCardNetwork = (v: string): v is CardNetwork =>
 	(CARD_NETWORKS as readonly string[]).includes(v);
 
-const CARD_NETWORK_NAMES: Record<CardNetwork, string> = { visa: 'Visa', mastercard: 'Mastercard' };
-
 /** A card network's display name ("Visa", "Mastercard"); an unknown one shows as is. */
 export const cardNetworkName = (network: string) =>
-	isCardNetwork(network) ? CARD_NETWORK_NAMES[network] : network;
-
-/**
- * Per card network: `debitSource: null` means credit only (Galicia Mastercard); `reversals` means the network
- * sends purchase-reversal alerts.
- */
-export const CARD_NETWORK_RULES: Record<
-	CardNetwork,
-	{ debitSource: SourceId | null; reversals: boolean }
-> = {
-	visa: { debitSource: SOURCE.visaDebit, reversals: false },
-	mastercard: { debitSource: null, reversals: true }
-};
+	isCardNetwork(network) ? CARD_NETWORK[network].name : network;
 
 export const CARD_TYPES = ['credit', 'debit'] as const;
 export type CardType = (typeof CARD_TYPES)[number];

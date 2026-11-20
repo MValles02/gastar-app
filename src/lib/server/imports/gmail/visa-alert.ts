@@ -1,7 +1,9 @@
 // Pure: reads one Gmail message (format=full) and returns the purchase fields of a Visa alert. Nothing here
 // stores or logs anything, and the body, subject and headers never leave this function.
 
+import { obj } from '../json';
 import {
+	type AlertParser,
 	type CardAlertResult,
 	IGNORED,
 	INVALID,
@@ -11,15 +13,14 @@ import {
 	headersOf,
 	labelledFields,
 	messageParts,
-	obj,
 	plain,
 	senderOf
 } from './alert-mail';
 
-export const VISA_SENDERS = [
+const SENDERS: readonly string[] = [
 	'donotreplyalertadecomprasvisa@visa.com',
 	'donotreplyvisapurchasealerts@visa.com'
-] as const;
+];
 const SUBJECT = 'Alerta de Compras Visa';
 
 /** Label -> value of the "Label: value" lines from "Comercio:" on (the first one wins), and the intro before it. */
@@ -42,11 +43,11 @@ function minorUnits(raw: string): number | null {
 	return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
 }
 
-export function parseVisaAlert(message: unknown): CardAlertResult {
+function parse(message: unknown): CardAlertResult {
 	const msg = obj(message);
 	const payload = obj(msg.payload);
 	const headers = headersOf(payload);
-	if (!(VISA_SENDERS as readonly string[]).includes(senderOf(headers))) return IGNORED;
+	if (!SENDERS.includes(senderOf(headers))) return IGNORED;
 	if (headerValue(headers, 'subject')?.trim() !== SUBJECT) return IGNORED;
 	if (!authenticated(headers, 'visa.com')) return IGNORED;
 
@@ -88,3 +89,5 @@ export function parseVisaAlert(message: unknown): CardAlertResult {
 		}
 	};
 }
+
+export const visaAlert: AlertParser = { senders: SENDERS, parse };
