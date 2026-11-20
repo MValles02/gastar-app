@@ -4,7 +4,8 @@ import { db } from '../../db';
 import { appTz } from '../../db/sql';
 import { cardStatements, financialAccounts, importItems } from '../../db/schema';
 import { ALERT_KEYS } from '../keys';
-import { GALICIA_SOURCE, type Kind, type SourceId } from '../sources';
+import { GALICIA_SOURCE, type Kind, type SourceId } from '#lib/imports.ts';
+
 import { rejectImport, undoApproval } from '../store';
 import { UNMATCHED_AFTER_STATEMENTS } from './matching';
 

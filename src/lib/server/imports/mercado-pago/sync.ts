@@ -6,7 +6,8 @@ import { canAccessAccount, canAccessOwn } from '../../access';
 import { autoApprovePending } from '../approve';
 import { type ImportRow, ingestImportItems } from '../ingest';
 import { getChosenImportFrom } from '../settings';
-import { SOURCE } from '../sources';
+import { SOURCE } from '#lib/imports.ts';
+
 import { errorDetail, freshToken, leaseFree } from '../sync-kit';
 import { DAY_MS } from '#lib/dates.ts';
 import {

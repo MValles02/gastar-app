@@ -16,7 +16,7 @@ import type { MovementRow } from '../movements/form';
 import { createMovement, deleteMovement } from '../movements/queries';
 import { rememberKey } from './rules';
 import { AUTO_APPROVED_DAYS } from './settings';
-import type { Kind, SourceId } from './sources';
+import { type Kind, type SourceId } from '#lib/imports.ts';
 
 // The columns are CHECK-constrained to the SOURCE ids and KIND values: the one cast from text.
 const itemSource = sql<SourceId>`${importItems.source}`;

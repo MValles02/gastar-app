@@ -1,7 +1,8 @@
 import { APP_TZ, formatDay, LOCALE } from '#lib/locale.ts';
 import { kindFits, type MovementType } from '#lib/movement.ts';
 import { localDay } from '../month';
-import { importSource, type Kind, kindSpec, type SourceId } from './sources';
+import { type Kind, type SourceId } from '#lib/imports.ts';
+import { importSource, kindSpec } from './sources';
 import type { ImportRule } from './store';
 
 // Pure: what an item is called, which rule keys it has and what its review form starts from.
