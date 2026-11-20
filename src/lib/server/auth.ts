@@ -8,7 +8,7 @@ import * as env from '$app/env/private';
 import { existingAccount, resetPassword, verifyEmail } from './auth-emails';
 import { db } from './db';
 import { sendEmail } from './email';
-import { LIMITS } from './rate-limit';
+import { BETTER_AUTH_RULES } from './rate-limit';
 import { GOOGLE_PROVIDER_ID } from './reauth';
 import { CLIENT_IP_HEADER } from './env-check';
 import * as schema from './db/schema';
@@ -21,11 +21,6 @@ const MINUTE = 60;
 const HOUR = 60 * MINUTE;
 const RESET_PASSWORD_TOKEN_TTL = HOUR;
 const VERIFY_EMAIL_TOKEN_TTL = 24 * HOUR;
-
-const rule = ({ max, windowMs }: { max: number; windowMs: number }) => ({
-	window: windowMs / 1000,
-	max
-});
 
 /** "Continuar con Google" is on only when both credentials are set (env-check.ts rejects just one). */
 export const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
@@ -105,15 +100,7 @@ export const auth = betterAuth({
 		storage: 'memory',
 		window: MINUTE,
 		max: 100,
-		customRules: {
-			'/sign-in/email': rule(LIMITS.signIn),
-			'/send-verification-email': rule(LIMITS.resendHttp),
-			'/request-password-reset': rule(LIMITS.resetRequestHttp),
-			'/sign-up/email': rule(LIMITS.signUp),
-			'/verify-email': rule(LIMITS.verifyEmail),
-			'/sign-in/social': rule(LIMITS.oauthStart),
-			'/callback/*': rule(LIMITS.oauthCallback)
-		}
+		customRules: BETTER_AUTH_RULES
 	},
 	plugins: [
 		...(googleEnabled

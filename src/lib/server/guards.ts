@@ -2,15 +2,18 @@ import { error, redirect } from '@sveltejs/kit';
 import { isUuid } from './db/util';
 import { requestEvent } from './request-memo';
 
-/**
- * The signed-in user for a route under (app). hooks.server.ts already rejects signed-out requests there,
- * so the fallback is unreachable; it mirrors that guard (GET/HEAD → /login, anything else → 401).
- */
-export function requireUser(locals: App.Locals): NonNullable<App.Locals['user']> {
-	if (locals.user) return locals.user;
-	const { method } = requestEvent().request;
+/** The signed-out policy: GET/HEAD go to /login, anything else gets a 401. */
+export function rejectSignedOut(method: string): never {
 	if (method === 'GET' || method === 'HEAD') redirect(303, '/login');
 	error(401, 'Unauthorized');
+}
+
+/**
+ * The signed-in user for a route under (app). hooks.server.ts already rejects signed-out requests there,
+ * so the fallback is unreachable; it applies the same policy.
+ */
+export function requireUser(locals: App.Locals): NonNullable<App.Locals['user']> {
+	return locals.user ?? rejectSignedOut(requestEvent().request.method);
 }
 
 /** A detail route's 404: `notFound()` throws it; `requireId(id)` throws it for a malformed id, before any query. */

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '#lib/fields.ts';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
-	import { Button } from '#lib/components/ui/button/index.js';
+	import GoogleReauth, { needsGoogleReauth } from '#lib/components/GoogleReauth.svelte';
 	import PasswordInput from '#lib/components/PasswordInput.svelte';
 	import type { ReauthMode } from '#lib/server/reauth.ts';
 
@@ -32,19 +32,14 @@
 	const shown = $derived({ ...errors, ...posted.errors });
 	const message = $derived(posted.formError ?? formError);
 	const hasPassword = $derived(reauthMode === 'password');
-	const needsGoogle = $derived(
-		reauthMode === 'stale' || (reauthMode === 'recent' && (!!posted.reauth || reauth))
-	);
+	const needsGoogle = $derived(needsGoogleReauth(reauthMode, !!posted.reauth || reauth));
 </script>
 
 {#if needsGoogle}
 	<div class="reauth">
-		<p>Por seguridad, confirmá que sos vos entrando de nuevo con Google.</p>
-		{#if message}<p class="error" role="alert">{message}</p>{/if}
-		<!-- Plain form: it leaves for Google with a full navigation. -->
-		<form method="POST" action="/profile/password?/google">
-			<Button type="submit">Confirmar con Google</Button>
-		</form>
+		<GoogleReauth action="/profile/password?/google" {message}>
+			<p>Por seguridad, confirmá que sos vos entrando de nuevo con Google.</p>
+		</GoogleReauth>
 	</div>
 {:else}
 	<FormShell

@@ -1,7 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
+import { isValidPasswordLength, PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
 import { auth } from '#lib/server/auth.ts';
-import { isApiError, isValidPasswordLength } from '#lib/server/auth-forms.ts';
+import { isApiError } from '#lib/server/auth-forms.ts';
+import { str } from '#lib/server/forms.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ url }) => {
@@ -12,8 +13,8 @@ export const load: PageServerLoad = ({ url }) => {
 export const actions: Actions = {
 	reset: async ({ request }) => {
 		const data = await request.formData();
-		const token = String(data.get('token') ?? '');
-		const password = String(data.get('password') ?? '');
+		const token = str(data, 'token');
+		const password = str(data, 'password');
 
 		if (!token) return fail(400, { expired: true });
 		if (!isValidPasswordLength(password)) {
