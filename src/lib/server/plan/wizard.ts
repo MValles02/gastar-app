@@ -1,4 +1,5 @@
 import { PLAN_CURRENCY } from '#lib/plan.ts';
+import type { WizardStep } from '#lib/plan-wizard.ts';
 import { limitOptions, planView, recurringLists, recurringSuggestions } from './month-plan';
 import { savingsView } from './savings-form';
 
@@ -16,7 +17,7 @@ export async function suggestedLimits(userId: string, planId: string | null) {
 /** One shape per step, told apart by `step`. */
 export async function wizardStepView(
 	userId: string,
-	step: number,
+	step: WizardStep,
 	plan: { id: string; month: string | null; savings: number; savingsPercent: number | null } | null
 ) {
 	if (step === 1 || step === 2) {
