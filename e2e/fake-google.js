@@ -3,11 +3,9 @@
 // parallel specs never share state; /token verifies the PKCE challenge and answers a signed id_token.
 import { createHash, createSign, generateKeyPairSync } from 'node:crypto';
 import { createServer } from 'node:http';
+import { FAKE_GOOGLE } from './fakes.js';
 
-const PORT = Number(process.env.FAKE_GOOGLE_PORT) || 5198;
-const ISSUER = `http://127.0.0.1:${PORT}`;
-const CLIENT_ID = process.env.FAKE_GOOGLE_CLIENT_ID || 'test-google-client-id';
-const CLIENT_SECRET = process.env.FAKE_GOOGLE_CLIENT_SECRET || 'test-google-client-secret';
+const { port: PORT, url: ISSUER, clientId: CLIENT_ID, clientSecret: CLIENT_SECRET } = FAKE_GOOGLE;
 
 const { publicKey, privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const jwk = {

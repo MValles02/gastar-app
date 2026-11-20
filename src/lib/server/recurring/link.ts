@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { and, eq, gte, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { dayOfMonth } from '#lib/dates.ts';
 import { roundToStep, type Currency } from '#lib/money.ts';
 import type { MovementType } from '#lib/movement.ts';
@@ -9,9 +9,9 @@ import { canAccessAccount, canAccessMovement, canAccessOwn } from '../access';
 import { daysInMonth, localDay, monthRange } from '../month';
 import { ownRule, paidRecurring } from './queries';
 
-/** Descriptions match ignoring case, accents and surrounding spaces (rule vs movement). */
-export const normalizeDescription = (s: string) =>
-	s.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+import { normalizeDescription } from '#lib/shared/runtime.js';
+
+export { normalizeDescription };
 
 /**
  * Pure: the amount a rule takes after a new linked charge (null = unchanged). The rule follows the
@@ -31,6 +31,27 @@ export function ruleAmountFor(
 		(latest === null || ym >= latest)
 		? target
 		: null;
+}
+
+/** The latest month (`YYYY-MM`) with a movement linked to the rule, optionally ignoring one movement. */
+async function latestLinkedMonth(
+	tx: DbExecutor,
+	userId: string,
+	ruleId: string,
+	exceptMovementId?: string
+): Promise<string | null> {
+	const [{ latest }] = await tx
+		.select({ latest: sql<string | null>`max(${localMonth})` })
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.where(
+			and(
+				eq(movements.recurringId, ruleId),
+				exceptMovementId ? ne(movements.id, exceptMovementId) : undefined,
+				canAccessMovement(userId)
+			)
+		);
+	return latest;
 }
 
 /** Locks the user's rules `ids` in id order (one order everywhere, so two relinks cannot deadlock). */
@@ -71,13 +92,7 @@ export async function unlinkRevert(tx: DbExecutor, userId: string, id: string) {
 		.for('update');
 	if (!rule || rule.previousAmount === null || rule.amount !== roundToStep(m.amount, m.currency))
 		return;
-	const [{ latest }] = await tx
-		.select({ latest: sql<string | null>`max(${localMonth})` })
-		.from(movements)
-		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.where(
-			and(eq(movements.recurringId, m.recurringId), ne(movements.id, id), canAccessMovement(userId))
-		);
+	const latest = await latestLinkedMonth(tx, userId, m.recurringId, id);
 	if (latest !== null && latest >= localDay(m.occurredAt).slice(0, 7)) return;
 	// Another linked charge with the same amount still backs the rule's current amount.
 	const others = await tx
@@ -126,7 +141,8 @@ export async function linkRuleFor(
 			id: recurringMovements.id,
 			description: recurringMovements.description,
 			dayOfMonth: recurringMovements.dayOfMonth,
-			amount: recurringMovements.amount
+			amount: recurringMovements.amount,
+			endsMonth: recurringMovements.endsMonth
 		})
 		.from(recurringMovements)
 		.innerJoin(
@@ -141,6 +157,9 @@ export async function linkRuleFor(
 			and(
 				canAccessOwn(userId, recurringMovements),
 				eq(recurringMovements.type, m.type),
+				// An installment rule (ends_month set) links only explicitly, and not past its last month.
+				or(isNull(recurringMovements.endsMonth), gte(recurringMovements.endsMonth, ym)),
+				explicitRuleId ? undefined : isNull(recurringMovements.endsMonth),
 				eq(financialAccounts.currency, account.currency),
 				isNull(recurringMovements.archivedAt),
 				isNull(financialAccounts.archivedAt),
@@ -162,12 +181,11 @@ export async function linkRuleFor(
 		.sort((a, b) => dist(a) - dist(b) || a.dayOfMonth - b.dayOfMonth || (a.id < b.id ? -1 : 1))[0];
 	if (!rule) return null;
 
-	const [{ latest }] = await tx
-		.select({ latest: sql<string | null>`max(${localMonth})` })
-		.from(movements)
-		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.where(and(eq(movements.recurringId, rule.id), canAccessMovement(userId)));
-	const amount = ruleAmountFor(m, account.currency, rule, ym, latest);
+	// An installment rule (endsMonth set) keeps its total ÷ cuotas amount: it never follows linked charges.
+	const amount =
+		rule.endsMonth === null
+			? ruleAmountFor(m, account.currency, rule, ym, await latestLinkedMonth(tx, userId, rule.id))
+			: null;
 	if (amount !== null)
 		await tx
 			.update(recurringMovements)

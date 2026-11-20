@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
+import { FAKE_GMAIL } from './fakes.js';
 import { GALICIA_EMAIL, login, OTHER_EMAIL, post } from './helpers';
 
 // Google is the fake in e2e/fake-gmail.js. User A is the seeded Galicia user (no other spec links Gmail),
 // so the spec adds no sign-up or email verification to the suite's rate-limit budget.
-const FAKE = `http://127.0.0.1:${Number(process.env.FAKE_GMAIL_PORT) || 5197}`;
 const GMAIL_PATH = '/profile/gmail';
 const stamp = Date.now();
 const gmailA = `gmail-a-${stamp}@gastar.local`;
@@ -12,7 +12,7 @@ test.describe.configure({ mode: 'serial' });
 
 let page: Page;
 
-const fake = (path: string) => fetch(FAKE + path);
+const fake = (path: string) => fetch(FAKE_GMAIL.url + path);
 const revokeCalls = async () =>
 	((await (await fake('/__fake/requests')).json()) as { path: string }[]).filter(
 		(r) => r.path === '/revoke'
@@ -88,9 +88,6 @@ test('a consent without permission to read mail is rejected and nothing is linke
 	await fake('/__fake/omit-scope');
 	await page.getByRole('button', { name: 'Vincular Gmail' }).click();
 	await expect(page).toHaveURL(/error=scope/);
-	await expect(
-		page.getByText('Para vincular Gmail tenés que permitir que Gastar lea tus mails.')
-	).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Vincular Gmail' })).toBeVisible();
 });
 

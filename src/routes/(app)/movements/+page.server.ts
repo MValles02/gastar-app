@@ -2,8 +2,8 @@ import type { PageServerLoad } from './$types';
 import { listAccounts } from '#lib/server/accounts/queries.ts';
 import { listCategories } from '#lib/server/categories/queries.ts';
 import type { Currency } from '#lib/money.ts';
-import { toRecentItem } from '#lib/server/movements/recent.ts';
-import { dayHeading, localDay, monthHeading } from '#lib/server/month.ts';
+import { groupByMonthDay } from '#lib/server/movements/recent.ts';
+import { localDay } from '#lib/server/month.ts';
 import { countMovements, movementQueryFromUrl } from '#lib/server/movements/filters.ts';
 import { listMovements, PAGE_SIZE } from '#lib/server/movements/queries.ts';
 import { accountItem, categoryItem } from '#lib/server/movements/pickers.ts';
@@ -34,40 +34,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const filterCurrency: Currency | undefined = query.currency || lockedCurrency || undefined;
 
 	const hasNext = rows.length > PAGE_SIZE;
-	type Item = ReturnType<typeof toRecentItem> & {
-		currency: Currency;
-		secondary: { cents: number; currency: Currency } | null;
-	};
-	const months: {
-		ym: string;
-		label: string;
-		days: { day: string; heading: string; items: Item[] }[];
-	}[] = [];
-	for (const r of rows.slice(0, PAGE_SIZE)) {
-		const day = localDay(r.occurredAt);
-		const ym = day.slice(0, 7);
-		const currency = filterCurrency ?? r.accountCurrency;
-		let month = months.at(-1);
-		if (month?.ym !== ym) {
-			month = { ym, label: monthHeading(ym), days: [] };
-			months.push(month);
-		}
-		let group = month.days.at(-1);
-		if (group?.day !== day) {
-			group = { day, heading: dayHeading(day, today, true), items: [] };
-			month.days.push(group);
-		}
-		// Cross-currency transfer shown in its origin currency: the destination amount goes underneath.
-		const secondary =
-			r.type === 'transfer' &&
-			currency === r.accountCurrency &&
-			r.destinationCurrency &&
-			r.destinationCurrency !== currency &&
-			r.destinationAmount !== null
-				? { cents: r.destinationAmount, currency: r.destinationCurrency }
-				: null;
-		group.items.push({ ...toRecentItem(r, currency), currency, secondary });
-	}
+	const months = groupByMonthDay(rows.slice(0, PAGE_SIZE), today, filterCurrency);
 
 	return {
 		filters,

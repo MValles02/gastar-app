@@ -1,11 +1,13 @@
 import { createHash } from 'node:crypto';
 import { getDocumentProxy } from 'unpdf';
 import { CURRENCIES, type Currency } from '#lib/money.ts';
+import { CARD_NETWORKS, type CardNetwork } from '#lib/imports.ts';
+import { NETWORK_IMPORT } from '../networks';
 
 // Parser for Banco Galicia credit-card statement PDFs (Visa and Mastercard). The PDF is read in
 // memory only; nothing here logs or returns the holder's name, address or account numbers.
 
-export type CardNetwork = 'visa' | 'mastercard';
+export type { CardNetwork };
 
 /** One consumo line of DETALLE DEL CONSUMO. `cents` is signed: negative lines are credits. */
 export type StatementLine = {
@@ -77,7 +79,7 @@ const MONTHS: Record<string, string> = {
 };
 
 /** `29-10-26` or `29-Oct-26` → `2026-10-29`; null otherwise. */
-export function parseDate(s: string): string | null {
+function parseDate(s: string): string | null {
 	const m = /^(\d{2})-(\d{2}|[A-Za-z]{3})-(\d{2})$/.exec(s);
 	if (!m) return null;
 	const month = /^\d+$/.test(m[2]) ? m[2] : MONTHS[m[2].toLowerCase()];
@@ -88,7 +90,7 @@ export function parseDate(s: string): string | null {
 }
 
 /** `-1.234,56` or `1.234,56-` → signed cents; null when not an amount. */
-export function parseAmount(s: string): number | null {
+function parseAmount(s: string): number | null {
 	const m = /^(-)?(\d{1,3}(?:\.\d{3})*|\d+),(\d{2})(-)?$/.exec(s);
 	if (!m || (m[1] && m[4])) return null;
 	const cents = Number(m[2].replace(/\./g, '')) * 100 + Number(m[3]);
@@ -97,7 +99,6 @@ export function parseAmount(s: string): number | null {
 
 /** Text items of every page, grouped into visual lines (top to bottom, page order). */
 async function readLines(bytes: Uint8Array): Promise<Line[]> {
-	// One deadline for loading + all pages; every pdfjs await races it, the finally destroys the task.
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	const deadline = new Promise<never>((_, reject) => {
 		timer = setTimeout(() => reject(new StatementError('unreadable')), PARSE_TIMEOUT_MS);
@@ -168,11 +169,7 @@ export async function parseGaliciaStatement(bytes: Uint8Array): Promise<Statemen
 		throw new StatementError('not_galicia');
 	}
 	const cardLine = all.find((t) => /Tarjeta Cr[ée]dito/i.test(t)) ?? '';
-	const network: CardNetwork | null = /VISA/i.test(cardLine)
-		? 'visa'
-		: /MASTERCARD/i.test(cardLine)
-			? 'mastercard'
-			: null;
+	const network = CARD_NETWORKS.find((n) => NETWORK_IMPORT[n].statementMark.test(cardLine)) ?? null;
 	if (!network) throw new StatementError('not_galicia');
 	const number = all.map((t) => /Resumen N° ?(\S+)/.exec(t)?.[1]).find(Boolean);
 	const dates = lines

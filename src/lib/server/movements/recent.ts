@@ -1,6 +1,7 @@
 import { categoryLook } from '#lib/appearance.ts';
 import type { Currency } from '#lib/money.ts';
 import { signOf, type MovementType } from '#lib/movement.ts';
+import { dayHeading, localDay, monthHeading } from '../month';
 
 export type RecentRow = {
 	id: string;
@@ -12,6 +13,7 @@ export type RecentRow = {
 	accountName: string;
 	accountCurrency: Currency;
 	destinationAccountName: string | null;
+	destinationCurrency: Currency | null;
 	categoryIcon: string | null;
 	categoryColor: string | null;
 };
@@ -36,4 +38,47 @@ export function toRecentItem(row: RecentRow, currency: Currency) {
 		amount: sign === 'negative' ? -raw : raw,
 		sign
 	};
+}
+
+type Item = ReturnType<typeof toRecentItem> & {
+	currency: Currency;
+	secondary: { cents: number; currency: Currency } | null;
+};
+
+export function groupByMonthDay(
+	rows: RecentRow[],
+	today: string,
+	filterCurrency: Currency | undefined
+) {
+	const months: {
+		ym: string;
+		label: string;
+		days: { day: string; heading: string; items: Item[] }[];
+	}[] = [];
+	for (const r of rows) {
+		const day = localDay(r.occurredAt);
+		const ym = day.slice(0, 7);
+		const currency = filterCurrency ?? r.accountCurrency;
+		let month = months.at(-1);
+		if (month?.ym !== ym) {
+			month = { ym, label: monthHeading(ym), days: [] };
+			months.push(month);
+		}
+		let group = month.days.at(-1);
+		if (group?.day !== day) {
+			group = { day, heading: dayHeading(day, today, true), items: [] };
+			month.days.push(group);
+		}
+		// Cross-currency transfer shown in its origin currency: the destination amount goes underneath.
+		const secondary =
+			r.type === 'transfer' &&
+			currency === r.accountCurrency &&
+			r.destinationCurrency &&
+			r.destinationCurrency !== currency &&
+			r.destinationAmount !== null
+				? { cents: r.destinationAmount, currency: r.destinationCurrency }
+				: null;
+		group.items.push({ ...toRecentItem(r, currency), currency, secondary });
+	}
+	return months;
 }

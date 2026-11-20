@@ -13,7 +13,6 @@ import { categoryUsage, getMovement } from './queries';
 
 export const { notFound, requireId } = notFoundHelpers('Movimiento no encontrado.');
 
-/** The user's movement, or a 404 (invalid, foreign and missing ids alike). */
 export async function findMovement(userId: string, id: string) {
 	requireId(id);
 	const [m] = await getMovement(userId, id);
@@ -34,7 +33,6 @@ export const keptRefs = (m: {
 	amount: m.accountCurrency === 'ARS' ? m.amount : null
 });
 
-/** Detail payload: display fields, ids, pickers (archived refs kept) and the form values. */
 export async function detailOf(userId: string, id: string) {
 	const m = await findMovement(userId, id);
 	const { accounts, categories } = await movementPickers(userId, keptRefs(m));
@@ -81,7 +79,6 @@ export async function detailOf(userId: string, id: string) {
 	};
 }
 
-/** What `update` and `link` hand back: the parts of the detail the client replaces. */
 export async function savedSlice(userId: string, id: string) {
 	const { movement, rules, values } = await detailOf(userId, id);
 	return { movement, rules, values };

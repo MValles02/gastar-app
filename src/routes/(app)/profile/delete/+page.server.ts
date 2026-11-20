@@ -8,6 +8,7 @@ import {
 	tooManyAttempts
 } from '#lib/server/auth-forms.ts';
 import { deleteUserAndData } from '#lib/server/delete-user.ts';
+import { str } from '#lib/server/forms.ts';
 import { deletionSummary } from '#lib/server/profile-queries.ts';
 import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import { requireUser } from '#lib/server/guards.ts';
@@ -27,13 +28,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
 	delete: async ({ request, locals }) => {
 		const userId = requireUser(locals).id;
+		// Rate limit policy (b): count only failures.
 		if (isBlocked('deleteAccount', userId)) {
 			return formFail(429, { formError: tooManyAttempts('rato') });
 		}
 
 		const mode = await reauthMode(userId, locals.session);
 		if (mode === 'password') {
-			const password = String((await request.formData()).get('password') ?? '');
+			const password = str(await request.formData(), 'password');
 			if (!password) return formFail(400, { formError: 'Ingresá tu contraseña.' });
 
 			try {

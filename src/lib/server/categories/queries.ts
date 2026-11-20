@@ -6,7 +6,8 @@ import { PG_UNIQUE_VIOLATION, pgErrorCode } from '../db/errors';
 import { escapeLike } from '../db/util';
 import { inRange, isIncomeOrOutcome, sumOfType, type Range } from '../db/sql';
 import type { CategoryData } from './form';
-import type { Currency } from '#lib/money.ts';
+import { CURRENCIES, type Currency } from '#lib/money.ts';
+import { CATEGORY_KINDS, KIND_LABEL, type CategoryKind } from '#lib/movement.ts';
 
 export function listCategories(
 	userId: string,
@@ -43,7 +44,6 @@ export function getCategory(userId: string, id: string) {
 		.limit(1);
 }
 
-/** Whether any movement uses the category. */
 export async function isCategoryReferenced(userId: string, id: string) {
 	const rows = await db
 		.select({ id: movements.id })
@@ -116,7 +116,7 @@ export function toCurrencyNets(
 ): { currency: Currency; net: number }[] {
 	return rows
 		.map((r) => ({ currency: r.currency, net: r.outcome - r.income }))
-		.sort((a, b) => (a.currency === b.currency ? 0 : a.currency === 'ARS' ? -1 : 1));
+		.sort((a, b) => CURRENCIES.indexOf(a.currency) - CURRENCIES.indexOf(b.currency));
 }
 
 /** Income and outcome totals per category and currency for a range, never summed across currencies. */
@@ -142,7 +142,6 @@ export function categoryMonthTotals(userId: string, range: Range) {
 		.groupBy(movements.categoryId, financialAccounts.currency);
 }
 
-/** Distinct income/outcome movement types recorded on a category (empty when it has none). */
 export function categoryMovementTypes(userId: string, id: string) {
 	return db
 		.selectDistinct({ type: movements.type })
@@ -187,4 +186,37 @@ export function setCategoryArchived(userId: string, id: string, at: Date | null)
 		.set({ archivedAt: at })
 		.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
 		.returning({ id: categories.id });
+}
+
+const KIND_GROUPS = [
+	...CATEGORY_KINDS.map((k) => [k, KIND_LABEL[k]] as const),
+	[null, 'Ambos'] as const
+];
+
+/** Categories grouped by kind, each group sorted by the biggest month amount in `sortBy`. */
+export function categoryGroups<C extends { id: string; name: string; kind: CategoryKind | null }>(
+	categories: C[],
+	totals: { categoryId: string | null; currency: Currency; outcome: number; income: number }[],
+	sortBy: Currency
+) {
+	// Month net (income - outcome) per category and currency, computed at read time.
+	const nets = new Map<string, { ARS?: number; USD?: number }>();
+	for (const t of totals) {
+		const row = nets.get(t.categoryId!) ?? {};
+		row[t.currency] = t.income - t.outcome;
+		nets.set(t.categoryId!, row);
+	}
+	const withTotals = categories.map((c) => ({ ...c, totals: nets.get(c.id) ?? {} }));
+	return KIND_GROUPS.map(([k, label]) => ({
+		key: k ?? 'both',
+		label,
+		// Biggest month amount first (absolute net of the selected currency; Ambas sorts by pesos).
+		categories: withTotals
+			.filter((c) => c.kind === k)
+			.sort(
+				(a, b) =>
+					Math.abs(b.totals[sortBy] ?? 0) - Math.abs(a.totals[sortBy] ?? 0) ||
+					a.name.localeCompare(b.name)
+			)
+	})).filter((g) => g.categories.length > 0);
 }

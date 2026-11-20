@@ -2,9 +2,10 @@ import { and, desc, eq, inArray, isNull, like, ne, sql } from 'drizzle-orm';
 import { canAccessAccount, canAccessOwn } from '../../access';
 import { db } from '../../db';
 import { appTz } from '../../db/sql';
-import { cardStatements, financialAccounts, mpImportItems } from '../../db/schema';
+import { cardStatements, financialAccounts, importItems } from '../../db/schema';
 import { ALERT_KEYS } from '../keys';
-import { GALICIA_SOURCE, type Kind, type SourceId } from '../sources';
+import { GALICIA_SOURCE, type Kind, type SourceId } from '#lib/imports.ts';
+
 import { rejectImport, undoApproval } from '../store';
 import { UNMATCHED_AFTER_STATEMENTS } from './matching';
 
@@ -14,43 +15,43 @@ import { UNMATCHED_AFTER_STATEMENTS } from './matching';
 /** The user's alert items still unmatched after UNMATCHED_AFTER_STATEMENTS statements of their network closed after them. */
 const unmatched = (userId: string) =>
 	and(
-		canAccessOwn(userId, mpImportItems),
-		inArray(mpImportItems.source, Object.values(GALICIA_SOURCE)),
-		like(mpImportItems.externalKey, ALERT_KEYS),
-		isNull(mpImportItems.aliasKey),
-		isNull(mpImportItems.unmatchedKeptAt),
-		ne(mpImportItems.status, 'rejected'),
-		sql`(select count(*) from ${cardStatements} where ${cardStatements.userId} = ${mpImportItems.userId} and ${cardStatements.source} = ${mpImportItems.source} and ${cardStatements.closing} > (${mpImportItems.occurredAt} at time zone ${appTz})::date) >= ${UNMATCHED_AFTER_STATEMENTS}`
+		canAccessOwn(userId, importItems),
+		inArray(importItems.source, Object.values(GALICIA_SOURCE)),
+		like(importItems.externalKey, ALERT_KEYS),
+		isNull(importItems.aliasKey),
+		isNull(importItems.unmatchedKeptAt),
+		ne(importItems.status, 'rejected'),
+		sql`(select count(*) from ${cardStatements} where ${cardStatements.userId} = ${importItems.userId} and ${cardStatements.source} = ${importItems.source} and ${cardStatements.closing} > (${importItems.occurredAt} at time zone ${appTz})::date) >= ${UNMATCHED_AFTER_STATEMENTS}`
 	);
 
 export function listUnmatchedAlerts(userId: string) {
 	return db
 		.select({
-			id: mpImportItems.id,
-			source: sql<SourceId>`${mpImportItems.source}`,
-			kind: sql<Kind>`${mpImportItems.kind}`,
-			isCredit: mpImportItems.isCredit,
-			amount: mpImportItems.amount,
-			occurredAt: mpImportItems.occurredAt,
-			counterpartyNickname: mpImportItems.counterpartyNickname,
-			merchant: mpImportItems.merchant,
-			rawDescription: mpImportItems.rawDescription,
-			installment: mpImportItems.installment,
+			id: importItems.id,
+			source: sql<SourceId>`${importItems.source}`,
+			kind: sql<Kind>`${importItems.kind}`,
+			isCredit: importItems.isCredit,
+			amount: importItems.amount,
+			occurredAt: importItems.occurredAt,
+			counterpartyNickname: importItems.counterpartyNickname,
+			merchant: importItems.merchant,
+			rawDescription: importItems.rawDescription,
+			installment: importItems.installment,
 			currency: financialAccounts.currency
 		})
-		.from(mpImportItems)
-		.innerJoin(financialAccounts, eq(financialAccounts.id, mpImportItems.accountId))
+		.from(importItems)
+		.innerJoin(financialAccounts, eq(financialAccounts.id, importItems.accountId))
 		.where(and(unmatched(userId), canAccessAccount(userId)))
-		.orderBy(desc(mpImportItems.occurredAt));
+		.orderBy(desc(importItems.occurredAt));
 }
 
 /** "Dejar": the item stays and leaves the list. */
 export async function keepUnmatched(userId: string, id: string): Promise<boolean> {
 	const rows = await db
-		.update(mpImportItems)
+		.update(importItems)
 		.set({ unmatchedKeptAt: sql`now()` })
-		.where(and(eq(mpImportItems.id, id), unmatched(userId)))
-		.returning({ id: mpImportItems.id });
+		.where(and(eq(importItems.id, id), unmatched(userId)))
+		.returning({ id: importItems.id });
 	return rows.length > 0;
 }
 
@@ -63,10 +64,10 @@ export async function discardUnmatched(
 	id: string
 ): Promise<'discarded' | 'changed' | 'stale'> {
 	const [item] = await db
-		.select({ status: mpImportItems.status })
-		.from(mpImportItems)
-		.innerJoin(financialAccounts, eq(financialAccounts.id, mpImportItems.accountId))
-		.where(and(eq(mpImportItems.id, id), unmatched(userId), canAccessAccount(userId)))
+		.select({ status: importItems.status })
+		.from(importItems)
+		.innerJoin(financialAccounts, eq(financialAccounts.id, importItems.accountId))
+		.where(and(eq(importItems.id, id), unmatched(userId), canAccessAccount(userId)))
 		.limit(1);
 	if (!item) return 'stale';
 	if (item.status === 'approved') {

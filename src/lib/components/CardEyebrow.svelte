@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	/** Small uppercase label above a figure or a group of rows. */
 	let {
 		as = 'p',
 		id,

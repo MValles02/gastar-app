@@ -1,10 +1,9 @@
-import { eq, sql } from 'drizzle-orm';
-import { db } from '../../db';
-import { mpSyncState } from '../../db/schema';
 import type { ImportRow } from '../ingest';
+import { obj } from '../json';
 import { payoutKey, yieldKey } from '../keys';
 import { backfillStart } from '../settings';
-import { KIND } from '../sources';
+import { KIND } from '#lib/imports.ts';
+
 import { DAY_MS } from '#lib/dates.ts';
 import { dayStart, localDay } from '../../month';
 import {
@@ -15,7 +14,6 @@ import {
 	cents,
 	date,
 	fail,
-	obj,
 	OVERLAP_DAYS,
 	parseCsv,
 	type Row,
@@ -308,6 +306,7 @@ export async function syncReport(
 	syncedUntil: Date | null,
 	auth: Auth,
 	floor: Date | null,
+	renewLease: () => Promise<unknown>,
 	from?: Date
 ) {
 	const now = Date.now();
@@ -327,7 +326,6 @@ export async function syncReport(
 	if (!begin) throw fail('config');
 
 	await ensureReportConfig(auth);
-	// Yield rows sharing a day (across all chunks) are netted before any write (gains minus losses); the first row's fields stay.
 	const items = new Map<string, NonNullable<ReturnType<typeof reportItem>>>();
 	let reportEnd = end;
 	for (let from = begin.getTime(); from < end.getTime(); from += CHUNK_DAYS * DAY_MS) {
@@ -353,10 +351,7 @@ export async function syncReport(
 			reuse ?? undefined
 		);
 		// Each chunk can wait minutes in MP's queue: renew the lease so a long backfill keeps it.
-		await db
-			.update(mpSyncState)
-			.set({ runningSince: sql`now()` })
-			.where(eq(mpSyncState.accountId, accountId));
+		await renewLease();
 		const parsed = parseCsv(csv);
 		// A config that lacks a parser column (the PUT in ensureReportConfig did not go through) reads as blanks.
 		if (parsed.length && !REPORT_COLUMNS.every((k) => k in parsed[0])) throw fail('parse');
@@ -381,7 +376,6 @@ export async function syncReport(
 		}
 	}
 
-	// A day whose gains and losses cancel out has nothing to import.
 	const rows = [...items.values()]
 		.filter((item) => item.amount !== 0)
 		.map((item) => ({ ...item, accountId }));

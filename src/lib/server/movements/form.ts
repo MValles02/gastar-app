@@ -40,19 +40,16 @@ export const FIELDS = [
 	'exchangeRate'
 ] as const;
 type MovementField = (typeof FIELDS)[number];
-/** Every field: `?/update` takes any of them, `type` included, through the same parse/resolve path. */
 export const EDITABLE = FIELDS;
 type MovementFormErrors = Partial<Record<MovementField, string>>;
 type MovementFormResult =
 	| { ok: true; values: Record<string, string>; data: MovementData }
 	| { ok: false; values: Record<string, string>; errors: MovementFormErrors };
 
-/** Row to insert (the owner is added by createMovement). */
 export type MovementRow = MovementData & { destinationAmount: number | null };
 type MovementResolveResult =
 	{ ok: true; row: MovementRow } | { ok: false; errors: MovementFormErrors };
 
-/** Archived accounts/category already referenced by the movement being edited (they stay valid). */
 export type KeptRefs = {
 	accountIds: string[];
 	categoryId: string | null;
@@ -69,7 +66,6 @@ export const validDay = (s: string) => YMD_RE.test(s) && s < '9999' && dayStart(
 
 export const kindMismatchMessage = (kind: 'income' | 'outcome') => MSG.kindMismatch[kind];
 
-/** The movement type posted, if `types` (every type by default; an import narrows them) has it. */
 export const movementTypeOf = (raw: string, types: readonly MovementType[] = MOVEMENT_TYPES) =>
 	types.find((t) => t === raw);
 
@@ -78,7 +74,6 @@ export const descriptionField = requiredText(DESCRIPTION_MAX_LENGTH, {
 	long: MSG.descLong
 });
 
-/** The stored movement as the form's strings (what `parseMovementForm` takes back). */
 export const toFormValues = (m: {
 	type: MovementType;
 	occurredAt: Date;
@@ -100,11 +95,9 @@ export const toFormValues = (m: {
 	categoryId: m.categoryId ?? ''
 });
 
-/** The form `?/update` validates: `row`'s stored values with the posted EDITABLE fields over them. */
 export const editedForm = (row: Parameters<typeof toFormValues>[0], posted: FormData) =>
 	editFormData(toFormValues(row), posted, EDITABLE);
 
-/** The new-movement form's starting values: an outcome today on `accountId`. */
 export const emptyMovementValues = (accountId: string, today: string) => ({
 	type: 'outcome',
 	amount: '',
@@ -161,9 +154,8 @@ export function parseMovementForm(fd: FormData): MovementFormResult {
 }
 
 type AccountRef = { id: string; currency: Currency; archivedAt: Date | null };
-type CategoryRef = { id: string; archivedAt: Date | null; kind: MovementType | null };
+type CategoryRef = { id: string; archivedAt: Date | null; kind: CategoryKind | null };
 
-/** Pure over looked-up (owner-checked) rows; undefined means not found / not owned. */
 export function resolveMovement(
 	data: MovementData,
 	rows: {
@@ -202,8 +194,8 @@ export function resolveMovement(
 				kindFor: own ? undefined : data.type
 			});
 			if (error === 'archived') errors.categoryId = MSG.archivedCategory;
-			else if (error === 'kind')
-				errors.categoryId = MSG.kindMismatch[category.kind as CategoryKind];
+			else if (error === 'kind' && category.kind)
+				errors.categoryId = MSG.kindMismatch[category.kind];
 		}
 		if (Object.keys(errors).length > 0) return { ok: false, errors };
 		return {

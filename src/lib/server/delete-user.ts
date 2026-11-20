@@ -1,7 +1,7 @@
 import { eq, inArray } from 'drizzle-orm';
 import { allMovementsOf, canAccessAccount, canAccessOwn } from './access';
 import { db } from './db';
-import { revokeGmail } from './imports/gmail/oauth';
+import { revokeImportGrants } from './imports/automatic';
 import {
 	categories,
 	financialAccounts,
@@ -9,8 +9,8 @@ import {
 	galiciaConnections,
 	movements,
 	mpConnections,
-	mpImportItems,
-	mpImportRules,
+	importItems,
+	importRules,
 	mpSyncState,
 	planCategoryLimits,
 	recurringMovements,
@@ -26,13 +26,13 @@ import {
  */
 export async function deleteUserAndData(userId: string): Promise<void> {
 	// Best effort and outside the transaction: a slow or failing Google must not block the deletion.
-	await revokeGmail(userId);
+	await revokeImportGrants(userId);
 	await db.transaction(async (tx) => {
 		await tx.delete(mpConnections).where(canAccessOwn(userId, mpConnections));
 		await tx.delete(galiciaConnections).where(canAccessOwn(userId, galiciaConnections));
 		await tx.delete(gmailConnections).where(canAccessOwn(userId, gmailConnections));
-		await tx.delete(mpImportItems).where(canAccessOwn(userId, mpImportItems));
-		await tx.delete(mpImportRules).where(canAccessOwn(userId, mpImportRules));
+		await tx.delete(importItems).where(canAccessOwn(userId, importItems));
+		await tx.delete(importRules).where(canAccessOwn(userId, importRules));
 		const ownAccounts = tx
 			.select({ id: financialAccounts.id })
 			.from(financialAccounts)

@@ -5,6 +5,7 @@
 	import DayOfMonthPicker from '#lib/components/pickers/DayOfMonthPicker.svelte';
 	import EntryFields from '#lib/components/EntryFields.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
+	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
@@ -21,12 +22,7 @@
 		accounts,
 		categories,
 		action = '',
-		submitLabel,
-		cancelHref = '/plan',
-		type: initialType,
-		variant = 'page',
-		onsaved,
-		onclose
+		type: initialType
 	}: {
 		initial: Record<Fields, string>;
 		errors?: Errors;
@@ -34,22 +30,13 @@
 		categories: (Picker & { kind: string | null })[];
 		/** Page: the form's action. Drawer: the query (e.g. `?wizard=2`) added to /plan/recurring/new. */
 		action?: string;
-		submitLabel: string;
-		cancelHref?: string;
 		/** `income` or `outcome`: where the Pago / Ingreso switch starts. */
 		type: string;
-		/**
-		 * `drawer`: the new-rule drawer (stacked pickers, Guardar waits for amount and description, posts to
-		 * /plan/recurring/new and reports the result instead of navigating). `page`: a full page.
-		 */
-		variant?: 'page' | 'drawer';
-		/** Drawer: the save succeeded. */
-		onsaved?: () => void;
-		/** Drawer: Cancelar. */
-		onclose?: () => void;
 	} = $props();
 
-	const drawer = $derived(variant === 'drawer');
+	// In a FormScreen drawer: stacked pickers, Guardar waits for amount and description, posts to
+	// /plan/recurring/new and reports the result instead of navigating.
+	const drawer = formScreen().variant === 'drawer';
 	const typeOptions = [
 		{ value: 'outcome', label: 'Pago' },
 		{ value: 'income', label: 'Ingreso' }
@@ -131,13 +118,8 @@
 
 <FormShell
 	action={drawer ? resolve('plan/recurring/new') + action : action}
-	{variant}
 	{errors}
 	onfailure={(data: { errors?: Errors }) => (fieldErrors = data.errors ?? {})}
-	{onsaved}
-	{onclose}
-	{cancelHref}
-	{submitLabel}
 	canSave={isPositiveAmount(amount) && description.trim() !== ''}
 	scroll="drawer"
 	style="--form-gap: var(--space-5)"

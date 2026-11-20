@@ -6,7 +6,6 @@ export type OriginSum = { accountId: string } & TypeSum;
 /** `accountId` is the destination account (null never matches an account). */
 export type TransferIn = { accountId: string | null; amount: number };
 
-/** Whether the user has any account (archived included), in `currency` when given, from accountSummary rows. */
 export const hasAccounts = (
 	summary: { currency: Currency; count: number }[],
 	currency?: Currency
@@ -15,7 +14,6 @@ export const hasAccounts = (
 const sumOf = (sums: TypeSum[], type: MovementType) =>
 	sums.filter((s) => s.type === type).reduce((a, s) => a + s.amount, 0);
 
-/** transfersIn = sum of destination_amount of transfers landing in this currency. */
 export function totalBalance(initial: number, originSums: TypeSum[], transfersIn: number): number {
 	return (
 		initial +

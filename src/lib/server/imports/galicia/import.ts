@@ -7,9 +7,10 @@ import { isActiveAccountIn } from '../connections';
 import { type ImportRow, ingestImportItems } from '../ingest';
 import { statementLineKey, statementTaxesKey } from '../keys';
 import { withMatchLock } from '../match-lock';
-import { GALICIA_SOURCE, KIND, kindSpec } from '../sources';
+import { GALICIA_SOURCE, KIND } from '#lib/imports.ts';
+import { kindSpec } from '../sources';
 import { getGaliciaConnection } from './connection';
-import { matchStatement } from './matching';
+import { linkInstallmentLines, matchStatement } from './matching';
 import { StatementError, type Statement, type StatementLine } from './statement';
 
 type GaliciaConnection = Awaited<ReturnType<typeof getGaliciaConnection>>;
@@ -48,7 +49,7 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 		occurredAt: day(s.closing),
 		amount: Math.abs(s.charges[c]),
 		isCredit: s.charges[c] < 0,
-		sourceId: '',
+		sourceId: null,
 		rawDescription: kindSpec(source, KIND.cardTaxes).title as string
 	}));
 
@@ -69,23 +70,23 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 			occurredAt: day(l.installment ? s.closing : l.date),
 			amount: Math.abs(l.cents),
 			isCredit: l.cents < 0,
-			sourceId: l.voucher ?? '',
+			sourceId: l.voucher ?? null,
 			rawDescription: l.installment ? `${l.reference} ${l.installment}` : l.reference,
 			merchant: l.reference,
 			installment: l.installment
 		};
 		lines.push({ key, line: l, row });
 	}
-	// After the reconciliation (the parser already threw if the statement does not add up).
-	// Under the user's matching lock, so a concurrent upload or alert conversion cannot claim or insert in between.
 	const { created, autoApproved } = await withMatchLock(userId, async () => {
 		const { rows, diffs } = await matchStatement(userId, source, s.closing, lines);
-		const result = await ingestImportItems(userId, source, [...rows, ...diffs, ...taxes]);
+		// Later cuotas (k/N, k >= 2) of an approved installment purchase join its fixed payment.
+		await linkInstallmentLines(userId, source, lines);
+		// Before the ingest: its automatic approvals size installment fixed payments from this closing.
 		await db
 			.insert(cardStatements)
 			.values({ ...userOwned(userId), source, numberHash: s.numberHash, closing: s.closing })
 			.onConflictDoNothing();
-		return result;
+		return ingestImportItems(userId, source, [...rows, ...diffs, ...taxes]);
 	});
 	return { ok: true, created, autoApproved };
 }

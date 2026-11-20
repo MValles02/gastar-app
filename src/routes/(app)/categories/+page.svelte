@@ -13,7 +13,7 @@
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import Icon from '#lib/components/Icon.svelte';
-	import { CURRENCIES, CURRENCY_OPTIONS, type Currency } from '#lib/money.ts';
+	import { CURRENCIES, CURRENCY_OPTIONS, DEFAULT_CURRENCY, type Currency } from '#lib/money.ts';
 	import { KIND_OPTIONS } from '#lib/movement.ts';
 	import { activeListFilters } from '#lib/list-filter.ts';
 	import type { PageData } from './$types';
@@ -26,7 +26,7 @@
 	const shown = (totals: Partial<Record<Currency, number>>): Currency[] => {
 		if (data.filters.currency !== 'both') return [data.filters.currency];
 		const present = CURRENCIES.filter((c) => totals[c] !== undefined);
-		return present.length > 0 ? present : ['ARS'];
+		return present.length > 0 ? present : [DEFAULT_CURRENCY];
 	};
 	const kindOptions = [{ value: '', label: 'Todas' }, ...KIND_OPTIONS];
 </script>
@@ -74,7 +74,7 @@
 			q={data.filters.q}
 			label="Buscar categoría"
 			placeholder="Buscar categoría"
-			active={activeListFilters(data.filters, 'ARS')}
+			active={activeListFilters(data.filters, DEFAULT_CURRENCY)}
 			onfilters={() => (open = true)}
 		/>
 

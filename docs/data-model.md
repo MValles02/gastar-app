@@ -77,6 +77,8 @@ Constraints: `UNIQUE (user_id, name)`.
 
 #### DB-level CHECK constraints
 
+The `IN (...)` lists of the import tables' checks are built from the constants in `src/lib/imports.ts` (`KIND`, `SOURCE`, `GALICIA_SOURCE`, `CARD_TYPES`) and `CURRENCIES`, so they cannot drift from the code.
+
 - `type IN ('income','outcome')` ⇒ `category_id IS NOT NULL` AND `destination_account_id IS NULL` AND `destination_amount IS NULL` AND `exchange_rate IS NULL`.
 - `type = 'transfer'` ⇒ `category_id IS NULL` AND `destination_account_id IS NOT NULL` AND `destination_account_id <> account_id` AND `destination_amount IS NOT NULL`.
 
@@ -105,6 +107,8 @@ Constraints: `UNIQUE (user_id, name)`.
 
 Monthly recurring incomes or bills. A movement links to a rule through `movements.recurring_id`; a rule is paid in a month when a linked movement exists in that month. Its currency is its account's currency. Invariant: at most one linked movement per rule per local (Buenos Aires) month, enforced in `linkRuleFor` with the rule rows locked (`FOR UPDATE`), not by a constraint. Amount rule: linking a payment (outcome) sets the rule's `amount` to the movement's amount (ARS rounded half-up to whole pesos) when it differs and the movement's month is not earlier than the rule's latest linked month, storing the old value in `previous_amount`; deleting or unlinking the movement that made the change restores it (`unlinkRevert`, same transaction) when no other linked movement is as recent; income rules never change from a link; a manual amount edit clears `previous_amount`. A one-time backfill in `scripts/migrate.js` links the previous and current month's unlinked movements by the same matching (no amount changes); it runs only in the migration that adds `mp_import_rules.recurring_id`.
 
+Installment rule: a rule with `ends_month` set is the fixed payment of a Galicia Mastercard purchase in N cuotas (see `mp_import_items`). Its `amount` is the purchase total divided by N (below) and never follows a linked charge (no change, no `previous_amount`); it links only explicitly (the approval and the later statement cuotas pass its id), never by description match, and no month after `ends_month` can link to it. It ends by date at read time: once the current month is after `ends_month` it is not active (see `isRecurringActive`), is listed under "Inactivos" with the reason "Terminado", and is never archived by the app. Rounding: `cuota = floor(total / N)` in minor units, the first cuota `total - (N - 1) * cuota` (it carries the remainder, so the N cuotas add up to the total), and the rule amount is `cuota` rounded to the currency step (ARS half-up to whole pesos, invariant 20; USD exact). The rule never adopts the statement's cuota amount. When the `01/N` statement line is matched to an approved installment item that has a rule, `ends_month` moves to the month of that statement's closing + N - 1 if that is later (statement cuotas are dated at the closing, so a purchase made after a closing has its `N/N` cuota in the month purchase + N). Known side effect: for such a purchase the month right after the purchase has no cuota, so the fixed payment may show as pending that month. Undoing the approval of an installment item is refused (`changed`) while another movement is linked to its rule.
+
 | Column | Type | Notes |
 |---|---|---|
 | `id` | pk | |
@@ -117,6 +121,7 @@ Monthly recurring incomes or bills. A movement links to a rule through `movement
 | `day_of_month` | smallint | 1–31 (CHECK); clamped to the month's last day when reading |
 | `previous_amount` | bigint, nullable | amount before the last change that came from a linked charge; CHECK `recurring_movements_previous_amount_positive_check`: null or > 0 |
 | `archived_at` | timestamptz, nullable | null = active |
+| `ends_month` | varchar(7), nullable | installment rule: its last month (`YYYY-MM`, month of the purchase + N - 1); CHECK `recurring_movements_ends_month_check`: null or `YYYY-MM`; null = no end |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
 
@@ -165,15 +170,17 @@ Approval inbox for imported activity (Mercado Pago, Banco Galicia card statement
 | `account_id` | fk → `financial_accounts.id` | ON DELETE RESTRICT |
 | `external_key` | text | idempotency key from the source; Galicia: `galicia:<network>:<comprobante>:<cuota>:<date>:<currency>:<signed cents>` (`#n` for the nth identical line of one statement), taxes `galicia:<network>:taxes:<sha256(statement number), 16 hex>:<currency>` |
 | `source` | text, default 'mercado_pago' | CHECK in ('mercado_pago','galicia_visa','galicia_mastercard','visa_debit') |
-| `kind` | text | CHECK in ('payment','account_fund','yield','payout','merchant_payout','refund','other','card_purchase','card_installment','card_taxes','card_adjustment'); `merchant_payout` is a payout with an `EXTERNAL_REFERENCE` (payment at a merchant), `payout` one without (transfer or withdrawal); the `card_*` kinds come from Galicia statements (`card_adjustment`: the "Diferencia con el resumen" item of a matched alert, key `diff:<statement line key>`); a credit-card alert is an item of source `galicia_visa`, kind `card_purchase`, key `alert:<gmail message id>` |
+| `kind` | text | CHECK in ('payment','account_fund','yield','payout','merchant_payout','refund','other','card_purchase','card_installment','card_taxes','card_adjustment'); `merchant_payout` is a payout with an `EXTERNAL_REFERENCE` (payment at a merchant), `payout` one without (transfer or withdrawal); the `card_*` kinds come from Galicia statements (`card_adjustment`: the "Diferencia con el resumen" item of a matched alert, key `diff:<statement line key>`); a credit-card alert is an item of source `galicia_visa` or `galicia_mastercard` (its network), kind `card_purchase`, key `alert:<gmail message id>` |
 | `status` | enum('pending','approved','rejected') | default 'pending' |
 | `occurred_at` | timestamptz | |
 | `amount` | bigint, > 0 | exact net, minor units |
 | `is_credit` | boolean | direction of the money |
-| `source_id` | text | |
+| `source_id` | text, nullable | the source's own id; null when it has none (Galicia taxes and adjustments, lines without a comprobante) |
 | `raw_description` | text | |
-| `counterparty_id`, `counterparty_nickname`, `merchant`, `operation_type`, `poi_type` | text, nullable | Galicia: `merchant` is the raw reference (its rule key is the cleaned name, see Rules) and `source_id` the comprobante (or '') |
+| `counterparty_id`, `counterparty_nickname`, `merchant`, `operation_type`, `poi_type` | text, nullable | Galicia: `merchant` is the raw reference (its rule key is the cleaned name, see Rules) and `source_id` the comprobante, or null |
 | `installment` | text, nullable | Galicia installment lines: the cuota as printed (`05/12`) |
+| `installments` | smallint, nullable | CHECK null or >= 2; the item stands for a purchase in N cuotas (a Galicia Mastercard alert with N > 1, or the pending `01/N` statement item that consumed such an alert): its `amount` is the first cuota, and approving it creates the installment fixed payment |
+| `recurring_id` | fk → `recurring_movements.id`, nullable | ON DELETE SET NULL; on an installment item, the fixed payment its approval created (undoing the approval deletes that rule); on a later statement line (`k/N`, k >= 2) the fixed payment of the purchase, set at upload by the same matching as `01/N` (see `docs/scope.md`) |
 | `alias_key` | text, nullable | the key of the other side of a match between a credit-card alert and a statement line: on the alert item the statement line's key, on a statement item the alert's key (`alert:<id>`); UNIQUE with `user_id` |
 | `unmatched_kept_at` | timestamptz, nullable | "Dejar" on "No apareció en el resumen": the alert item leaves that list |
 | `movement_id` | fk → `movements.id`, nullable | ON DELETE SET NULL |
@@ -286,7 +293,7 @@ Encryption: tokens are AES-256-GCM ciphertext, `v1:` + base64(iv(12) | tag(16) |
 
 ### `gmail_connections`
 
-One row per user who linked Gmail (OAuth, own Google client; the sync reads Visa purchase alerts).
+One row per user who linked Gmail (OAuth, own Google client; the sync reads Visa and Banco Galicia Mastercard purchase alerts).
 
 | Column | Type | Notes |
 |---|---|---|
@@ -301,29 +308,30 @@ One row per user who linked Gmail (OAuth, own Google client; the sync reads Visa
 | `covered_from` | timestamptz, nullable | earliest instant from which mail has been read at least once; a run reads from the "Importar desde" day whenever that day is earlier than this (or this is null), then lowers it; moving the day later leaves it (trimming deletes pending items only, `card_alerts` stay) |
 | `sync_running_since` | timestamptz, nullable | the run's lease (taken in one UPDATE; a later run may take over after 15 minutes) |
 | `last_run_at` | timestamptz, nullable | |
-| `last_error_code` | text, nullable | `reconnect`, `network`, `api` or `parse` (a mail from Visa that did not parse); code only |
+| `last_error_code` | text, nullable | `reconnect`, `network`, `api` or `parse` (a card-alert mail that did not parse); code only |
 | `created_at`, `updated_at` | timestamptz | |
 
 Encryption: same format as `mp_connections` (shared helper), keyed by `GMAIL_TOKEN_KEY`. Unlinking revokes the refresh token at Google (best effort) and deletes the row; deleting the account does the same before its transaction deletes the row.
 
 ### `card_alerts`
 
-One row per Visa purchase-alert email, only the parsed fields: the email body, subject, headers and links are never stored or logged.
+One row per card purchase-alert email (Visa, or Banco Galicia Mastercard), only the parsed fields: the email body, subject, headers and links are never stored or logged.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | uuid pk | |
 | `user_id` | fk → `user.id` | ON DELETE CASCADE |
 | `gmail_message_id` | text | UNIQUE with `user_id` |
-| `network` | text | CHECK 'visa' |
+| `network` | text | CHECK in ('visa','mastercard') |
 | `last4` | text | CHECK 4 digits |
 | `merchant`, `country` | text | |
 | `currency` | text | CHECK in ('ARS','USD') |
 | `amount` | bigint | minor units of `currency`, > 0 |
 | `foreign` | boolean | |
-| `transaction_type` | text | "Compra" or another label |
+| `transaction_type` | text | "Compra" or another label (Mastercard's "COMPRA" is stored as "Compra" and "COMPRA REVERSADA" as "Compra reversada") |
+| `installments` | smallint, nullable | CHECK >= 1; the purchase's installment count (cuotas) when the alert says it (Mastercard), null for Visa. An alert with `installments > 1` converts like any purchase, into the item of its first cuota (`mp_import_items.installments`) |
 | `received_at` | timestamptz | the message's `internalDate` |
-| `import_item_id` | fk → `mp_import_items.id`, nullable | ON DELETE SET NULL; null while the alert waits (unknown or credit card) |
+| `import_item_id` | fk → `mp_import_items.id`, nullable | ON DELETE SET NULL; null while the alert waits (unknown card, no Galicia account) |
 | `created_at` | timestamptz | |
 
 Index `(user_id, network, last4)`.
@@ -336,13 +344,13 @@ What a card of the alerts is. UNIQUE `(user_id, network, last4)`.
 |---|---|---|
 | `id` | uuid pk | |
 | `user_id` | fk → `user.id` | ON DELETE CASCADE |
-| `network` | text | CHECK 'visa' |
+| `network` | text | CHECK in ('visa','mastercard') |
 | `last4` | text | CHECK 4 digits |
-| `type` | text | CHECK in ('credit','debit') |
+| `type` | text | CHECK in ('credit','debit'); a `mastercard` card is always 'credit' (enforced by `saveCard`) |
 | `ars_account_id`, `usd_account_id` | fk → `financial_accounts.id`, nullable | ON DELETE SET NULL; a debit card needs the pesos account |
 | `created_at`, `updated_at` | timestamptz | |
 
-A debit card's alerts become items of the source `visa_debit` ("Visa Débito"), kind `card_purchase` (transaction type "Compra") or `other` (any other type: always a review, learns nothing, never auto-approved), external key `alert:<gmail message id>`, account = the card's account of the alert currency, `merchant` = `raw_description` = the alert's merchant, `occurred_at` = `received_at`. A credit card's alerts become items of the source `galicia_visa` on the accounts of `galicia_connections` (a credit card's own account columns are not used). A credit alert whose statement line is already imported creates no item: its key is stored as that statement item's `alias_key` and `import_item_id` points at the statement item; otherwise the later statement line fills the alert item's `alias_key` (see `docs/scope.md`, "Banco Galicia statements"). Alerts of unknown cards stay in `card_alerts` until the card is set up.
+A debit card's alerts become items of the source `visa_debit` ("Visa Débito"), kind `card_purchase` (transaction type "Compra") or `other` (any other type: always a review, learns nothing, never auto-approved), external key `alert:<gmail message id>`, account = the card's account of the alert currency, `merchant` = `raw_description` = the alert's merchant, `occurred_at` = `received_at`. A credit card's alerts become items of the Galicia source of its network (`galicia_visa` or `galicia_mastercard`) on the accounts of `galicia_connections` (a credit card's own account columns are not used). A credit alert whose statement line is already imported creates no item: its key is stored as that statement item's `alias_key` and `import_item_id` points at the statement item; otherwise the later statement line fills the alert item's `alias_key` (see `docs/scope.md`, "Banco Galicia statements"). Alerts of unknown cards stay in `card_alerts` until the card is set up. A Mastercard "Compra reversada" alert cancels the latest earlier "Compra" alert of the same card, currency, amount and merchant (trimmed) that no other reversal cancelled; the pairing is recomputed from `card_alerts` on every conversion, so no column marks it. While both are unconverted, both keep `import_item_id` null for good. A purchase that already became its own pending alert item, not linked to a statement line, has that item deleted, and then both wait. If the purchase item was rejected, the reversal creates nothing. If it was approved, or the reversal has no purchase to cancel, the reversal becomes a credit item (`is_credit`, kind `card_purchase`). An alert of a purchase in N > 1 cuotas becomes one item of its first cuota (`installments` = N, `amount` = first cuota, source and account as above), or, when its `01/N` statement item is already imported and still pending, marks that item with `installments` = N. Approving such an item (by hand or automatically) is one transaction that also inserts the installment rule (`ends_month` = the month of the item's date + N - 1, amount from the alert total as in `recurring_movements`) and the first cuota's movement linked to it, and stores the rule in the item's `recurring_id`; an installment item's only type is Gasto and a remembered rule for it never stores a fixed payment. Undoing that approval deletes the rule in the same transaction. The reversal of an approved installment purchase becomes a credit item of the booked first cuota (the item's amount, not the total) and archives the rule ("Desactivado", reactivatable); a pending purchase item is deleted as above.
 
 ## Derived formulas
 
@@ -358,6 +366,7 @@ perDay      = available > 0 ? floor(available / daysLeft / unit) * unit : 0
               -- daysLeft = clamp(days - elapsed + 1, 1, days); unit = 100 (pesos)
 ```
 
+- An ended installment rule (current month after its `ends_month`) is not active: it counts in no figure and no pending list.
 - Spent: outcomes in the current Buenos Aires month on accounts of both currencies, converted (archived accounts included), transfers excluded; outcomes linked to an active rule are excluded (the rule is already in the bills), outcomes linked to an inactive or deleted rule are counted.
 - Status: `over` if `available < 0`; `warn` if `spent / forSpending > elapsed / days`; otherwise `ok`. When `forSpending <= 0`, any spending counts as fully spent (share 1), so status is `warn`, or `over` if `available < 0`; no spending gives `ok`. Each limit shows its own progress the same way.
 - Savings: if `savings_percent` is set, savings = `floor(income * percent_x100 / 1_000_000) * 100` (whole units), computed at read time and never relied on from storage; saves also write that computed amount to `savings` for rollout compatibility (older releases read only `savings`). If null, savings is the `savings` amount.

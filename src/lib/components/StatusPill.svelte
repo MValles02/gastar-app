@@ -5,7 +5,6 @@
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import type { StatusTone } from '#lib/plan.ts';
 
-	/** Status chip: tinted fill with the tone colour as text, plus an icon for every tone but neutral. */
 	let { tone, label }: { tone: StatusTone; label: string } = $props();
 
 	const icon = { ok: Check, warning: Clock, bad: CircleAlert, neutral: null } as const;

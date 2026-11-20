@@ -4,6 +4,14 @@ import { db } from '../../db';
 import { galiciaConnections } from '../../db/schema';
 import { isActiveAccountIn } from '../connections';
 
+export type CardAccounts = { arsAccountId: string | null; usdAccountId: string | null };
+
+/** The accounts a card's items land on: a credit card uses the Banco Galicia ones, any other its own. */
+export const accountsFor = (
+	card: CardAccounts & { type: string | null },
+	galicia: CardAccounts | undefined
+) => (card.type === 'credit' ? galicia : card);
+
 export async function getGaliciaConnection(userId: string) {
 	const [row] = await db
 		.select({

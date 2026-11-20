@@ -1,36 +1,27 @@
 import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USER_NAME_MAX_LENGTH } from '#lib/fields.ts';
+import { EMAIL_RE, INVALID_EMAIL_MESSAGE } from '#lib/fields.ts';
 import { auth } from './auth';
-import { isBlocked, record } from './rate-limit';
+import { str } from './forms';
+import { rateLimited } from './rate-limit';
 import { GOOGLE_PROVIDER_ID } from './reauth';
 
 /** Page that verification links land on (Better Auth `callbackURL`). */
 export const VERIFY_EMAIL_PATH = '/verify-email';
 
-export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-/** Error for an invalid (already trimmed) person name, or undefined when valid. */
-export function userNameError(name: string): string | undefined {
-	if (!name) return 'Falta el nombre.';
-	if (name.length > USER_NAME_MAX_LENGTH)
-		return `Usá un nombre de hasta ${USER_NAME_MAX_LENGTH} caracteres.`;
+/** The posted email, trimmed, with the message to show when it is not one. */
+export function readEmail(fd: FormData): { email: string; emailError?: string } {
+	const email = str(fd, 'email').trim();
+	return EMAIL_RE.test(email) ? { email } : { email, emailError: INVALID_EMAIL_MESSAGE };
 }
 
-export function isValidPasswordLength(password: string): boolean {
-	return password.length >= PASSWORD_MIN_LENGTH && password.length <= PASSWORD_MAX_LENGTH;
-}
-
-/** Better Auth error codes the forms branch on. */
 export const INVALID_PASSWORD = 'INVALID_PASSWORD';
 export const EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED';
 
-/** Whether `err` is a Better Auth API error, optionally with the given `code`. */
 export function isApiError(err: unknown, code?: string): err is APIError {
 	return err instanceof APIError && (code === undefined || err.body?.code === code);
 }
 
-/** Rate-limit message for form actions. */
 export function tooManyAttempts(when: 'minuto' | 'rato'): string {
 	return `Demasiados intentos. Probá de nuevo en un ${when}.`;
 }
@@ -42,15 +33,6 @@ export async function ignoreApiError(call: () => Promise<unknown>): Promise<void
 	} catch (err) {
 		if (!isApiError(err)) throw err;
 	}
-}
-
-/** Re-sends the verification link unless `ip` is over the resend limit. */
-export async function resendVerification(email: string, ip: string): Promise<void> {
-	if (isBlocked('resend', ip)) return;
-	record('resend', ip);
-	await ignoreApiError(() =>
-		auth.api.sendVerificationEmail({ body: { email, callbackURL: VERIFY_EMAIL_PATH } })
-	);
 }
 
 type GoogleStart = {
@@ -74,8 +56,7 @@ async function startGoogle(
 	{ blocked, unavailable, reauth, ...urls }: GoogleStart
 ) {
 	const ip = getClientAddress();
-	if (isBlocked('oauthStart', ip)) redirect(303, blocked);
-	record('oauthStart', ip);
+	if (rateLimited('oauthStart', ip)) redirect(303, blocked);
 
 	let url: string | undefined;
 	try {
@@ -99,7 +80,6 @@ async function startGoogle(
 	redirect(303, url, { external: [new URL(url).origin] });
 }
 
-/** `google` action of /login and /signup: the callback lands on / or /login?error=<code>. */
 export const googleAction = (event: RequestEvent) =>
 	startGoogle(event, {
 		blocked: '/login?error=rate_limited',
@@ -131,9 +111,13 @@ export const googleReauthAction = (returnTo: '/profile/delete' | '/profile/passw
  */
 export async function resendAction({ request, getClientAddress }: RequestEvent) {
 	const ip = getClientAddress();
-	const email = (await request.formData()).get('email');
-	if (typeof email !== 'string' || !EMAIL_RE.test(email)) return fail(400, { email: '' });
+	const { email, emailError } = readEmail(await request.formData());
+	if (emailError) return fail(400, { email, emailError });
 
-	await resendVerification(email, ip);
+	if (!rateLimited('resend', ip)) {
+		await ignoreApiError(() =>
+			auth.api.sendVerificationEmail({ body: { email, callbackURL: VERIFY_EMAIL_PATH } })
+		);
+	}
 	return { checkEmail: email };
 }

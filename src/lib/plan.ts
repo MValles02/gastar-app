@@ -1,5 +1,6 @@
 /** Plan vocabulary shared by the server and the screens: statuses, their tones and labels, savings rules. */
 import { formatPercentInput } from './locale';
+import type { MovementType } from './movement';
 import {
 	ARS_WHOLE_MESSAGE,
 	currencyStep,
@@ -20,6 +21,8 @@ export type StatusTone = 'ok' | 'warning' | 'bad' | 'neutral';
 
 export type PlanStatus = 'ok' | 'warn' | 'over';
 export type RecurringStatus = 'paid' | 'pending';
+/** What a recurring rule's total counts: its incomes or its outcomes. */
+export type RecurringType = Exclude<MovementType, 'transfer'>;
 
 export const PLAN_STATUS_LABEL: Record<PlanStatus, string> = {
 	ok: 'Vas bien',
@@ -42,7 +45,10 @@ const DUE_TONE = {
 export const dueTone = (status: RecurringStatus): StatusTone => DUE_TONE[status];
 
 /** `day` is the due day clamped to the month. */
-export function dueLabel({ status, day }: { status: RecurringStatus; day: number }, type: string) {
+export function dueLabel(
+	{ status, day }: { status: RecurringStatus; day: number },
+	type: MovementType
+) {
 	if (status === 'paid') return type === 'income' ? 'Cobrado' : 'Pagado';
 	return `Pendiente · día ${day}`;
 }
@@ -51,13 +57,15 @@ export const MAX_DAY_OF_MONTH = 31;
 
 export type RuleState = {
 	archivedAt: Date | null;
+	/** An installment rule past its last month. */
+	ended: boolean;
 	accountArchivedAt: Date | null;
 	categoryArchivedAt: Date | null;
 };
 
-/** A rule counts only while the rule, its account and its category are all unarchived. */
+/** A rule counts only while it has not ended and the rule, its account and its category are all unarchived. */
 export function isRecurringActive(r: RuleState): boolean {
-	return !r.archivedAt && !r.accountArchivedAt && !r.categoryArchivedAt;
+	return !r.ended && !r.archivedAt && !r.accountArchivedAt && !r.categoryArchivedAt;
 }
 
 /** Why a rule is inactive (the rule itself first, then its account, then its category); null when active. */
@@ -65,6 +73,7 @@ export function inactiveReason(r: RuleState): string | null {
 	if (r.archivedAt) return 'Desactivado';
 	if (r.accountArchivedAt) return 'Cuenta archivada';
 	if (r.categoryArchivedAt) return 'Categoría archivada';
+	if (r.ended) return 'Terminado';
 	return null;
 }
 
@@ -103,26 +112,43 @@ export function savingsFromPercent(income: number, p: number): number {
 	return Number((BigInt(income) * BigInt(p)) / 1_000_000n) * 100;
 }
 
-/** The savings form fields: `option` none|10|20|other; for "other", `value` in `unit` percent|amount. */
+/** The savings presets offered besides Nada and Otro, in whole percent. */
+export const SAVINGS_PRESETS = [10, 20] as const;
+
+export type SavingsOption = 'none' | `${(typeof SAVINGS_PRESETS)[number]}` | 'other';
+export type SavingsUnit = 'percent' | 'amount';
+
+/** The savings form fields: `option` a `SavingsOption`; for "other", `value` in `unit` (a `SavingsUnit`). */
 export const SAVINGS_FIELDS = {
 	option: 'savingsOption',
 	unit: 'savingsUnit',
 	value: 'savingsValue'
 } as const;
 
-export type SavingsChoice = { option: string; unit: string; value: string };
+export type SavingsChoice = { option: SavingsOption; unit: SavingsUnit; value: string };
 export type PlanSavings = { savings: number; savingsPercent: number | null };
 
+const isPreset = (raw: string) => SAVINGS_PRESETS.some((n) => String(n) === raw);
+
 /** The preset options' percent (x 100); null for none and other. */
-export const presetPercent = (option: string) =>
-	option === '10' || option === '20' ? Number(option) * 100 : null;
+export const presetPercent = (option: SavingsOption) =>
+	isPreset(option) ? Number(option) * 100 : null;
+
+/** A posted option as a `SavingsOption`; anything else counts as none. */
+export const toSavingsOption = (raw: string): SavingsOption =>
+	raw === 'other' || isPreset(raw) ? (raw as SavingsOption) : 'none';
+
+/** A posted unit as a `SavingsUnit`; anything but percent is an amount. */
+export const toSavingsUnit = (raw: string): SavingsUnit =>
+	raw === 'percent' ? 'percent' : 'amount';
 
 /** The choice a stored plan maps to. */
 export function savingsChoice(
 	{ savings, savingsPercent: p }: PlanSavings,
 	currency: Currency
 ): SavingsChoice {
-	if (p === 1000 || p === 2000) return { option: String(p / 100), unit: 'percent', value: '' };
+	const preset = SAVINGS_PRESETS.find((n) => n * 100 === p);
+	if (preset !== undefined) return { option: `${preset}`, unit: 'percent', value: '' };
 	if (p != null && p > 0) return { option: 'other', unit: 'percent', value: formatPercentInput(p) };
 	if (p == null && savings > 0)
 		return { option: 'other', unit: 'amount', value: formatAmountInput(savings, currency) };
@@ -130,7 +156,7 @@ export function savingsChoice(
 }
 
 /** What an "Otro" value saves for `income`; null while it is not a valid percent or amount. */
-export function otherSavings(unit: string, raw: string, income: number): PlanSavings | null {
+export function otherSavings(unit: SavingsUnit, raw: string, income: number): PlanSavings | null {
 	const v = parseAmount(raw);
 	if (unit === 'percent')
 		return v !== null && v > 0 && v <= SAVINGS_PERCENT_MAX

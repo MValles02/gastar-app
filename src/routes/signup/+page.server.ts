@@ -1,16 +1,15 @@
 import { fail } from '@sveltejs/kit';
-import { PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
+import { isValidPasswordLength, PASSWORD_MIN_MESSAGE, userNameError } from '#lib/fields.ts';
 import { auth, googleEnabled } from '#lib/server/auth.ts';
 import {
-	EMAIL_RE,
 	googleAction,
 	ignoreApiError,
-	isValidPasswordLength,
+	readEmail,
 	resendAction,
 	tooManyAttempts,
-	userNameError,
 	VERIFY_EMAIL_PATH
 } from '#lib/server/auth-forms.ts';
+import { str } from '#lib/server/forms.ts';
 import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -20,10 +19,11 @@ export const actions: Actions = {
 	signup: async ({ request, getClientAddress }) => {
 		const ip = getClientAddress();
 		const data = await request.formData();
-		const name = String(data.get('name') ?? '').trim();
-		const email = String(data.get('email') ?? '').trim();
-		const password = String(data.get('password') ?? '');
+		const name = str(data, 'name').trim();
+		const { email, emailError } = readEmail(data);
+		const password = str(data, 'password');
 
+		// Rate limit policy (c): count attempts that pass validation.
 		if (isBlocked('signUp', ip)) {
 			return fail(429, {
 				name,
@@ -34,7 +34,7 @@ export const actions: Actions = {
 
 		const errors: { name?: string; email?: string; password?: string } = {};
 		errors.name = userNameError(name);
-		if (!EMAIL_RE.test(email)) errors.email = 'Email inválido.';
+		errors.email = emailError;
 		if (!isValidPasswordLength(password)) errors.password = PASSWORD_MIN_MESSAGE;
 		if (errors.name || errors.email || errors.password) {
 			return fail(400, { name, email, errors });

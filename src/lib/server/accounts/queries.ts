@@ -3,7 +3,7 @@ import { accountLook } from '#lib/appearance.ts';
 import { and, asc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { financialAccounts, movements } from '../db/schema';
-import { dest, total } from '../db/sql';
+import { dest, inRange, total, type Range } from '../db/sql';
 import { canAccessAccount, canAccessMovement, ownedBy, ownedDestination } from '../access';
 import { memoPerRequest } from '../request-memo';
 import type { AccountData } from './form';
@@ -27,7 +27,6 @@ export const accountSummary = memoPerRequest('accounts', (userId: string) =>
 		.groupBy(financialAccounts.currency)
 );
 
-/** The base picker option of an account row; callers spread it and add their own extra fields. */
 export const accountOption = (a: {
 	id: string;
 	name: string;
@@ -57,7 +56,10 @@ export function getAccount(userId: string, id: string) {
 	return db.select().from(financialAccounts).where(ownedAccount(userId, id)).limit(1);
 }
 
-export function accountOriginSums(userId: string, id?: string) {
+export function accountOriginSums(
+	userId: string,
+	opts: { id?: string; currency?: Currency; range?: Range } = {}
+) {
 	return db
 		.select({
 			accountId: movements.accountId,
@@ -66,11 +68,21 @@ export function accountOriginSums(userId: string, id?: string) {
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.where(and(canAccessMovement(userId), id ? eq(movements.accountId, id) : undefined))
+		.where(
+			and(
+				canAccessMovement(userId),
+				opts.id ? eq(movements.accountId, opts.id) : undefined,
+				opts.currency ? eq(financialAccounts.currency, opts.currency) : undefined,
+				inRange(opts.range)
+			)
+		)
 		.groupBy(movements.accountId, movements.type);
 }
 
-export function accountTransfersIn(userId: string, id?: string) {
+export function accountTransfersIn(
+	userId: string,
+	opts: { id?: string; currency?: Currency } = {}
+) {
 	return db
 		.select({
 			accountId: movements.destinationAccountId,
@@ -79,11 +91,16 @@ export function accountTransfersIn(userId: string, id?: string) {
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
 		.innerJoin(dest, ownedDestination(userId))
-		.where(and(canAccessMovement(userId), id ? eq(movements.destinationAccountId, id) : undefined))
+		.where(
+			and(
+				canAccessMovement(userId),
+				opts.id ? eq(movements.destinationAccountId, opts.id) : undefined,
+				opts.currency ? eq(dest.currency, opts.currency) : undefined
+			)
+		)
 		.groupBy(movements.destinationAccountId);
 }
 
-/** Whether any movement uses the account as origin or destination. */
 export async function isAccountReferenced(userId: string, id: string) {
 	const rows = await db
 		.select({ id: movements.id })
@@ -116,7 +133,7 @@ export function updateAccount(userId: string, id: string, data: AccountData) {
 	const lock = data.currency
 		? or(
 				eq(financialAccounts.currency, data.currency),
-				sql`not exists (select 1 from ${movements} where ${movements.accountId} = "financial_accounts"."id" or ${movements.destinationAccountId} = "financial_accounts"."id")`
+				sql`not exists (select 1 from ${movements} where ${movements.accountId} = ${financialAccounts.id} or ${movements.destinationAccountId} = ${financialAccounts.id})`
 			)
 		: undefined;
 	return db

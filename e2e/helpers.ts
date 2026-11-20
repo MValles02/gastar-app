@@ -8,24 +8,32 @@ import {
 } from '@playwright/test';
 import postgres from 'postgres';
 import { APP_TZ } from '../src/lib/locale';
+import {
+	DEFAULT_SEED_EMAIL,
+	DEFAULT_SEED_PASSWORD,
+	OTHER_EMAIL
+} from '../scripts/lib/seed-identities.js';
+import { FAKE_GMAIL } from './fakes.js';
 import { waitForLink } from './outbox';
 
-// Same defaults as scripts/seed.js (local demo users, not secrets).
-export const SEED_EMAIL = process.env.SEED_EMAIL || 'demo@gastar.local';
-const SEED_PASSWORD = process.env.SEED_PASSWORD || 'demo1234';
-/** Second seeded user, same password: ARS "Otra cuenta pesos", category "Ajena", USD rule "Regla ajena". */
-export const OTHER_EMAIL = 'otro@gastar.local';
-/** Third seeded user, same password: owner of the Mercado Pago import account. */
-export const IMPORT_EMAIL = 'importa@gastar.local';
-/** Fourth seeded user, same password: ARS "Caja pesos" and USD "Caja dólares", for the Banco Galicia statements. */
-export const GALICIA_EMAIL = 'galicia@gastar.local';
-
-/** Fifth seeded user, same password: ARS "Pesos Visa A", USD "Dolares Visa A" and expense category "Compras Visa" (gmail-alerts.e2e.ts only). */
-export const ALERTS_EMAIL = 'alertas@gastar.local';
-/** Sixth seeded user, same password: ARS "Pesos Visa B" (gmail-alerts.e2e.ts only). */
-export const ALERTS_B_EMAIL = 'alertas-b@gastar.local';
-/** Seventh seeded user, same password: ARS "Pesos Tarjeta", USD "Dolares Tarjeta" and expense category "Compras Tarjeta" (card-matching.e2e.ts only). */
-export const CARD_EMAIL = 'tarjeta@gastar.local';
+// Same defaults as scripts/seed.js (local demo users, not secrets), shared via scripts/lib/seed-identities.js.
+// Other seeded users, same password:
+// - OTHER_EMAIL: ARS "Otra cuenta pesos", category "Ajena", USD rule "Regla ajena".
+// - IMPORT_EMAIL: owner of the Mercado Pago import account.
+// - GALICIA_EMAIL: ARS "Caja pesos" and USD "Caja dólares", for the Banco Galicia statements.
+// - ALERTS_EMAIL: ARS "Pesos Visa A", USD "Dolares Visa A", expense category "Compras Visa" (gmail-alerts.e2e.ts only).
+// - ALERTS_B_EMAIL: ARS "Pesos Visa B" (gmail-alerts.e2e.ts only).
+// - CARD_EMAIL: ARS "Pesos Tarjeta", USD "Dolares Tarjeta", expense category "Compras Tarjeta" (card-matching.e2e.ts only).
+export { OTHER_EMAIL };
+export {
+	IMPORT_EMAIL,
+	GALICIA_EMAIL,
+	ALERTS_EMAIL,
+	ALERTS_B_EMAIL,
+	CARD_EMAIL
+} from '../scripts/lib/seed-identities.js';
+export const SEED_EMAIL = process.env.SEED_EMAIL || DEFAULT_SEED_EMAIL;
+const SEED_PASSWORD = process.env.SEED_PASSWORD || DEFAULT_SEED_PASSWORD;
 
 export const PHONE = { width: 390, height: 844 };
 
@@ -264,14 +272,6 @@ export function unique(created: string[], prefix: string) {
 	return d;
 }
 
-/** Text with whitespace runs (NBSP included) collapsed to one space and zero-width spaces dropped. */
-export function norm(s: string | null) {
-	return (s ?? '')
-		.replace(/\u200B/g, '')
-		.replace(/\s+/g, ' ')
-		.trim();
-}
-
 /** The "Movimiento guardado." toast. */
 export function toast(page: Page) {
 	return page.locator('[data-sonner-toast]', { hasText: 'Movimiento guardado.' }).first();
@@ -385,8 +385,6 @@ export async function upload(page: Page, pdf: Buffer) {
 	await page.getByRole('button', { name: 'Subir resumen' }).click();
 }
 
-const FAKE_GMAIL = `http://127.0.0.1:${Number(process.env.FAKE_GMAIL_PORT) || 5197}`;
-
 type FakeAlert = {
 	merchant: string;
 	amount: string;
@@ -399,23 +397,29 @@ type FakeAlert = {
 	date?: string;
 	/** List the alert at `date` (as Gmail's `after:` does) instead of at its arrival. */
 	listedAtDate?: boolean;
+	/** A Banco Galicia Mastercard alert (in pesos; `amount` in es-AR form, "1.234,56"), with its cuotas. */
+	mastercard?: { cuotas: string };
 };
 
-/** Puts a synthetic Visa alert in the fake Gmail mailbox. */
+/** Puts a synthetic Visa (or Galicia Mastercard) alert in the fake Gmail mailbox. */
 export async function fakeAlert(mailbox: string, o: FakeAlert) {
 	const q = new URLSearchParams({
 		email: mailbox,
 		last4: o.last4 ?? '5678',
 		merchant: o.merchant,
 		amount: o.amount,
-		currency: o.currency ?? 'ARS',
-		type: o.type ?? 'Compra',
+		currency: o.mastercard ? 'PESOS' : (o.currency ?? 'ARS'),
+		type: o.type ?? (o.mastercard ? 'COMPRA' : 'Compra'),
 		foreign: o.foreign ? '1' : '0',
 		dkim: o.dkim ?? 'pass'
 	});
 	if (o.date) q.set('date', o.date);
 	if (o.listedAtDate) q.set('listed', 'date');
-	expect((await fetch(`${FAKE_GMAIL}/__fake/alert?${q}`)).ok).toBe(true);
+	if (o.mastercard) {
+		q.set('network', 'mastercard');
+		q.set('cuotas', o.mastercard.cuotas);
+	}
+	expect((await fetch(`${FAKE_GMAIL.url}/__fake/alert?${q}`)).ok).toBe(true);
 }
 
 /** Runs the sync through the "Sincronizar" action of /imports (the Gmail part runs before it answers). */

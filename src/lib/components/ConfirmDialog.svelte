@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { onMount, type Snippet } from 'svelte';
+	import type { Snippet } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { followRedirect } from '#lib/nav-stack.svelte.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
@@ -36,11 +37,10 @@
 	} = $props();
 
 	let open = $state(false);
-	let mounted = $state(false);
-	onMount(() => (mounted = true));
+	const mounted = hydrated();
 </script>
 
-{#if mounted}
+{#if mounted.current}
 	<AlertDialog.Root bind:open>
 		<AlertDialog.Trigger>
 			{#snippet child({ props })}

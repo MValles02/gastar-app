@@ -33,6 +33,7 @@ import {
 	isCurrentPlan,
 	planSpent,
 	planSummary,
+	recurringIncomeInPesos,
 	recurringStatus,
 	toPlanCurrency
 } from './summary';
@@ -72,7 +73,6 @@ async function computeMonthPlan(userId: string) {
 		const own = active.filter((r) => r.currency === cur);
 		return {
 			cur,
-			income: activeTotal(own, 'income'),
 			bills: activeTotal(own, 'outcome'),
 			pendingBills: own
 				.filter((r) => r.type === 'outcome' && !paidIds.has(r.id))
@@ -85,7 +85,7 @@ async function computeMonthPlan(userId: string) {
 	});
 	const toPesos = (pick: (p: (typeof perCurrency)[number]) => number) =>
 		perCurrency.reduce((a, p) => a + (toPlanCurrency(pick(p), p.cur, rate.value) ?? 0), 0);
-	const recurringIncome = toPesos((p) => p.income);
+	const recurringIncome = recurringIncomeInPesos(rules, rate.value);
 
 	// A limit's spending: its own currency plus the other one converted into it (left out without a rate).
 	const limits = (current ? limitRows : []).map((l) => {
@@ -166,7 +166,6 @@ const ruleRow = (r: RecurringRule, rate: number | null) => ({
 	categoryColor: toSwatchKey(r.categoryColor)
 });
 
-/** Recurring rules as /plan lists them: active incomes and outcomes (with due status) and inactive ones. */
 export async function recurringLists(userId: string) {
 	const m = await monthPlan(userId);
 	const active = m.active.map((r) => {
@@ -225,7 +224,6 @@ export async function recurringSuggestions(userId: string) {
 		.sort((a, b) => a.description.localeCompare(b.description));
 }
 
-/** Monthly average of a `HISTORY_MONTHS` total, rounded half up to whole units (integer math). */
 const monthlyAverage = (total: number) =>
 	Math.floor((total + 50 * HISTORY_MONTHS) / (100 * HISTORY_MONTHS)) * 100;
 
@@ -253,7 +251,6 @@ export async function limitSuggestions(
 	return out;
 }
 
-/** The categories a limit can go on: active expense (or both) categories with no limit on the plan yet. */
 export async function limitCandidates(userId: string, planId: string | null) {
 	const [categories, limits] = await Promise.all([
 		listCategories(userId),
@@ -263,7 +260,15 @@ export async function limitCandidates(userId: string, planId: string | null) {
 	return categories.filter((c) => c.kind !== 'income' && !limited.has(c.id));
 }
 
-/** A category limit's detail: its progress this month, amount and suggestion. No plan → /plan; no limit → 404. */
+/** Limit candidates with their suggested monthly limit per currency. */
+export async function limitOptions(userId: string, planId: string | null) {
+	const [candidates, suggestions] = await Promise.all([
+		limitCandidates(userId, planId),
+		limitSuggestions(userId)
+	]);
+	return candidates.map((c) => ({ ...c, suggested: suggestions.get(c.id) ?? { ARS: 0, USD: 0 } }));
+}
+
 export async function limitView(userId: string, categoryId: string) {
 	const plan = await requirePlan(userId);
 	const limit = await requireLimit(userId, plan.id, categoryId);

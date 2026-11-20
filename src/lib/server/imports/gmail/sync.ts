@@ -1,4 +1,5 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
+import { CARD_NETWORKS } from '#lib/imports.ts';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { dayStart } from '../../month';
@@ -9,7 +10,9 @@ import { errorDetail, freshToken, leaseFree } from '../sync-kit';
 import { convertWaitingAlerts } from '../card-alerts';
 import { gmailDataBaseUrl } from './env';
 import { getAccessToken, refreshConnection } from './oauth';
-import { VISA_SENDERS, parseVisaAlert } from './visa-alert';
+import { obj } from '../json';
+import { NETWORK_IMPORT } from '../networks';
+import { type CardAlertResult, messageSender } from './alert-mail';
 
 /** Refresh the access token when it expires within this window (Google's last an hour). */
 const REFRESH_WINDOW_MS = 5 * 60_000;
@@ -21,13 +24,33 @@ const MAX_PAGES = 50;
 /** Stored in gmail_connections.last_error_code: a code only, never a message or payload. */
 type GmailSyncError = 'reconnect' | 'network' | 'api' | 'parse';
 
+/** What the inbox says after "No se pudo sincronizar Gmail" for each stored code. */
+const GMAIL_ERROR_LABELS: Record<string, string> = {
+	reconnect: 'hay que volver a vincular Gmail',
+	network: 'sin conexión con Gmail',
+	api: 'Gmail respondió con un error',
+	parse: 'algún mail de alertas de tarjeta no se pudo leer'
+};
+
+/** The inbox label of a stored code (an unknown code shows as is). */
+export const gmailErrorLabel = (code: string) => GMAIL_ERROR_LABELS[code] ?? code;
+
 class SyncError extends Error {
 	constructor(readonly code: GmailSyncError) {
 		super(code);
 	}
 }
 
-const obj = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
+/** The parser of each alert sender. */
+const PARSERS = new Map(
+	CARD_NETWORKS.flatMap((n) => {
+		const { senders, parse } = NETWORK_IMPORT[n].alert;
+		return senders.map((s) => [s, parse] as const);
+	})
+);
+
+const parseAlert = (message: unknown): CardAlertResult =>
+	PARSERS.get(messageSender(message))?.(message) ?? { status: 'ignored' };
 
 /** Takes the user's lease and returns the cursor (null until the first run); null when off or held. */
 async function acquire(
@@ -93,7 +116,7 @@ async function gmailClient(userId: string) {
 
 /** Ids of the matching messages newer than the bound (minus the overlap), and whether every page was listed. */
 async function listMessageIds(api: (url: string) => Promise<unknown>, bound: Date) {
-	const from = VISA_SENDERS.join(' OR ');
+	const from = [...PARSERS.keys()].join(' OR ');
 	const after = Math.floor(bound.getTime() / 1000) - OVERLAP_S;
 	const ids: string[] = [];
 	let pageToken: string | undefined;
@@ -129,7 +152,7 @@ async function pull(userId: string, bound: Date, base: Date) {
 		);
 		if (message === null) continue;
 		newest = Math.max(newest, Number(obj(message).internalDate) || 0);
-		const result = parseVisaAlert(message);
+		const result = parseAlert(message);
 		if (result.status === 'invalid') invalid++;
 		else if (result.status === 'ok') {
 			await db
@@ -143,7 +166,7 @@ async function pull(userId: string, bound: Date, base: Date) {
 
 /**
  * Reads from the "Importar desde" day when it is earlier than `coveredFrom` (or nothing was read yet: a
- * backfill), else from the cursor, and turns the Visa purchase alerts into pending items. Never throws and
+ * backfill), else from the cursor, and turns the card purchase alerts into pending items. Never throws and
  * logs only codes: the mail itself is never stored or logged. The cursor is the forward cursor: it never moves
  * backwards (a backfill leaves it where it was) and also moves past messages that did not parse (visible as
  * the `parse` code). A complete backfill listing lowers `coveredFrom`; a failed or truncated one retries on
@@ -210,37 +233,18 @@ async function releaseLease(userId: string) {
 }
 
 /**
- * Takes the user's lease (null when Gmail is not linked, needs a reconnect, or another sync holds it) so the
- * caller can `run` once (it backfills from the "Importar desde" day when that is not covered yet), then must `release`. `run` never throws.
+ * The one entry to a Gmail sync: takes the user's lease (null when Gmail is not linked, needs a reconnect, or
+ * another sync holds it). `run` syncs once (it backfills from the "Importar desde" day when that is not
+ * covered yet) and then releases the lease; it never throws. A caller that does not run must `release`.
  */
 export async function acquireGmailSync(userId: string) {
 	const lease = await acquire(userId);
 	if (!lease) return null;
 	return {
-		run: () => execute(userId, lease.cursor, lease.coveredFrom),
+		run: async () => {
+			await execute(userId, lease.cursor, lease.coveredFrom);
+			await releaseLease(userId);
+		},
 		release: () => releaseLease(userId)
 	};
-}
-
-/** Acquires the lease, runs one sync and releases it; false when Gmail is not linked, needs a reconnect, or another sync holds the lease. */
-export async function runGmailSync(userId: string): Promise<boolean> {
-	const lease = await acquireGmailSync(userId);
-	if (!lease) return false;
-	await lease.run();
-	await lease.release();
-	return true;
-}
-
-/** The last run of the user's connection: when it ended and its error code, or null when not linked. */
-export async function gmailSyncState(userId: string) {
-	const [row] = await db
-		.select({
-			lastRunAt: gmailConnections.lastRunAt,
-			lastErrorCode: gmailConnections.lastErrorCode,
-			runningSince: gmailConnections.syncRunningSince
-		})
-		.from(gmailConnections)
-		.where(canAccessOwn(userId, gmailConnections))
-		.limit(1);
-	return row ?? null;
 }

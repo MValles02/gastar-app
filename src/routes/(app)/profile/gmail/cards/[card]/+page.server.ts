@@ -1,10 +1,10 @@
 import { error, redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { readFields } from '#lib/server/forms.ts';
-import { accountOption } from '#lib/server/accounts/queries.ts';
-import { getCardForm, parseCardSlug, saveCard } from '#lib/server/imports/card-alerts.ts';
-import { activeAccountsIn } from '#lib/server/imports/connections.ts';
-import { gmailOauthEnabled } from '#lib/server/imports/gmail/oauth.ts';
+import { creditOnly, getCardForm, parseCardSlug, saveCard } from '#lib/server/imports/cards.ts';
+import { cardNetworkName } from '#lib/imports.ts';
+import { currencyAccountOptions } from '#lib/server/imports/connections.ts';
+import { GMAIL_LINK } from '#lib/server/imports/gmail/oauth.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -16,26 +16,23 @@ function parseCard(param: string) {
 }
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!gmailOauthEnabled()) error(404);
+	if (!GMAIL_LINK.enabled()) error(404);
 	const userId = requireUser(locals).id;
 	const { network, last4 } = parseCard(params.card);
 	const initial = await getCardForm(userId, network, last4);
 	if (!initial) error(404, 'Tarjeta no encontrada.');
-	const [ars, usd] = await Promise.all([
-		activeAccountsIn(userId, 'ARS'),
-		activeAccountsIn(userId, 'USD')
-	]);
 	return {
+		networkName: cardNetworkName(network),
+		creditOnly: creditOnly(network),
 		last4,
 		initial,
-		arsAccounts: ars.map(accountOption),
-		usdAccounts: usd.map(accountOption)
+		...(await currencyAccountOptions(userId))
 	};
 };
 
 export const actions: Actions = {
 	save: async ({ locals, params, request }) => {
-		if (!gmailOauthEnabled()) error(404);
+		if (!GMAIL_LINK.enabled()) error(404);
 		const userId = requireUser(locals).id;
 		const { network, last4 } = parseCard(params.card);
 		const values = readFields(await request.formData(), ['type', 'arsAccountId', 'usdAccountId']);

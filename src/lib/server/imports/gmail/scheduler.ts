@@ -4,7 +4,7 @@ import { gmailConnections } from '../../db/schema';
 import { runEach, START_DELAY_MS } from '../sync-kit';
 import { gmailSyncIntervalMinutes } from './env';
 import { gmailOauthEnabled } from './oauth';
-import { runGmailSync } from './sync';
+import { acquireGmailSync } from './sync';
 
 /** Syncs every usable connection one after another. Never throws; one user failing does not stop the rest. */
 const runAll = () =>
@@ -16,7 +16,7 @@ const runAll = () =>
 					.from(gmailConnections)
 					.where(eq(gmailConnections.needsReconnect, false))
 			).map((r) => r.userId),
-		runGmailSync,
+		async (userId) => (await acquireGmailSync(userId))?.run(),
 		'gmail'
 	);
 

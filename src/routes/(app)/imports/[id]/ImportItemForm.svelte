@@ -6,6 +6,7 @@
 	import { submitAction } from '#lib/autosave.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
+	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import Money from '#lib/components/Money.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
@@ -20,25 +21,23 @@
 	import type { PageData } from './$types';
 
 	/**
-	 * Reviews one pending Mercado Pago item. `drawer` lives over the inbox (shallow route): it posts to
-	 * the page's own actions and reports the outcome through `ondone`. `page` is /imports/<id>, where
-	 * the actions redirect back to the inbox with `?done=`.
+	 * Reviews one pending Mercado Pago item. As a drawer over the inbox (shallow route) it posts to the
+	 * page's own actions and reports the outcome through `ondone`; as the /imports/<id> page the
+	 * actions redirect back to the inbox with `?done=`.
 	 */
 	let {
 		data,
-		variant,
 		form = null,
 		ondone
 	}: {
 		data: PageData;
-		variant: 'page' | 'drawer';
 		/** Page: the failed action's result (values and errors). */
 		form?: { values?: Record<string, string>; errors?: Record<string, string | undefined> } | null;
 		/** Drawer: the item was approved, discarded or was already reviewed. */
 		ondone?: (done: ImportDone) => void;
 	} = $props();
 
-	const drawer = $derived(variant === 'drawer');
+	const drawer = formScreen().variant === 'drawer';
 	const item = $derived(data.item);
 	const path = $derived(resolve(`imports/${item.id}`));
 
@@ -111,6 +110,11 @@
 			</span>
 			<span class="date">{item.dateLabel}</span>
 		</p>
+		{#if item.cuotas}
+			<p class="cuotas">
+				{item.cuotas.n} cuotas de <Money cents={item.cuotas.amount} currency={item.currency} />
+			</p>
+		{/if}
 		<p class="original">{item.rawDescription}</p>
 	</section>
 
@@ -121,7 +125,6 @@
 	<FormShell
 		id="import-form"
 		action={drawer ? `${path}?/approve` : '?/approve'}
-		{variant}
 		bar={false}
 		errors={form?.errors}
 		onfailure={(d: { errors?: Record<string, string | undefined> }) => (posted = d.errors ?? {})}
@@ -129,16 +132,20 @@
 		errorToast="No se pudo aprobar."
 		bind:submitting
 	>
-		<div class="field">
-			<span id="type-label" class="visually-hidden">Tipo</span>
-			<SegmentedControl
-				name="type"
-				options={typeOptions}
-				bind:value={type}
-				labelledby="type-label"
-			/>
-			{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
-		</div>
+		{#if item.cuotas}
+			<input type="hidden" name="type" value="outcome" />
+		{:else}
+			<div class="field">
+				<span id="type-label" class="visually-hidden">Tipo</span>
+				<SegmentedControl
+					name="type"
+					options={typeOptions}
+					bind:value={type}
+					labelledby="type-label"
+				/>
+				{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
+			</div>
+		{/if}
 
 		<ul class="card">
 			<li class:bad={errors.description}>
@@ -205,7 +212,7 @@
 						{/snippet}
 					</OptionPicker>
 				</li>
-				{#if data.rules.length}
+				{#if data.rules.length && !item.cuotas}
 					<li class:bad={errors.recurringId}>
 						<OptionPicker
 							name="recurringId"
@@ -319,6 +326,11 @@
 		color: var(--text-muted);
 		font-size: var(--font-size-sm);
 		white-space: nowrap;
+	}
+
+	.cuotas {
+		margin: 0;
+		font-size: var(--font-size-sm);
 	}
 
 	.original {

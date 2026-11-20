@@ -4,8 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { listRowShown } from '#lib/list-filter.ts';
 	import { replaceGoto } from '#lib/nav-stack.svelte.ts';
-	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
-	import { Button } from '#lib/components/ui/button/index.js';
+	import FilterDrawer from '#lib/components/FilterDrawer.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import SwitchRow from '#lib/components/SwitchRow.svelte';
 
@@ -60,7 +59,6 @@
 		currency = currencyDefault;
 	};
 	const apply = () => {
-		open = false;
 		const sp = new SvelteURLSearchParams();
 		if (filters.q) sp.set('q', filters.q);
 		if (kind) sp.set('kind', kind);
@@ -70,63 +68,28 @@
 	};
 </script>
 
-<!-- Staged: nothing navigates until "Ver". -->
-<BottomDrawer title="Filtros" bare bind:open>
-	<div class="scroll">
-		{#if kindOptions}
-			<span id="kind-label" class="visually-hidden">Tipo</span>
-			<SegmentedControl
-				name="kind"
-				options={kindOptions}
-				bind:value={kind}
-				labelledby="kind-label"
-			/>
-		{/if}
-		<span id="currency-label" class="visually-hidden">Moneda</span>
-		<SegmentedControl
-			name="currency"
-			options={currencyOptions}
-			bind:value={currency}
-			labelledby="currency-label"
-		/>
-		<SwitchRow
-			id="archived"
-			name="archived"
-			value="1"
-			label="Mostrar archivadas"
-			bind:checked={archived}
-		/>
-	</div>
-	<div class="actions">
-		<Button
-			type="button"
-			variant="outline"
-			class="h-[50px] min-w-0 flex-1 basis-0 rounded-full text-[15px] font-semibold"
-			onclick={clear}>Limpiar</Button
-		>
-		<Button
-			type="button"
-			class="h-[50px] min-w-0 flex-[2] basis-0 rounded-full text-[15px] font-semibold whitespace-nowrap"
-			onclick={apply}>{count === 1 ? `Ver 1 ${noun[0]}` : `Ver ${count} ${noun[1]}`}</Button
-		>
-	</div>
-</BottomDrawer>
-
-<style>
-	/* The options scroll; the actions stay pinned below them. */
-	.scroll {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-		min-height: 0;
-		overflow-y: auto;
-		padding: var(--space-1) var(--space-4) var(--space-4);
-	}
-
-	.actions {
-		display: flex;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
-		background: var(--popover);
-	}
-</style>
+<FilterDrawer
+	bind:open
+	applyLabel={count === 1 ? `Ver 1 ${noun[0]}` : `Ver ${count} ${noun[1]}`}
+	onclear={clear}
+	onapply={apply}
+>
+	{#if kindOptions}
+		<span id="kind-label" class="visually-hidden">Tipo</span>
+		<SegmentedControl name="kind" options={kindOptions} bind:value={kind} labelledby="kind-label" />
+	{/if}
+	<span id="currency-label" class="visually-hidden">Moneda</span>
+	<SegmentedControl
+		name="currency"
+		options={currencyOptions}
+		bind:value={currency}
+		labelledby="currency-label"
+	/>
+	<SwitchRow
+		id="archived"
+		name="archived"
+		value="1"
+		label="Mostrar archivadas"
+		bind:checked={archived}
+	/>
+</FilterDrawer>

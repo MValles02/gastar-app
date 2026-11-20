@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { type ComponentProps, untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { autosave } from '#lib/autosave.ts';
 	import { MIN_DAY } from '#lib/dates.ts';
+	import { CURRENCY_SYMBOL } from '#lib/money.ts';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
 	import { categoriesFor, kindFits, MOVEMENT_MESSAGES, movementNeeds } from '#lib/movement.ts';
 	import { upOnClick } from '#lib/nav-stack.svelte.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import { closeAfterDelete, formScreen } from '#lib/components/forms/form-enhance.ts';
 	import InlineText from '#lib/components/InlineText.svelte';
 	import Money from '#lib/components/Money.svelte';
 	import CrossCurrencyRows from '#lib/components/movements/CrossCurrencyRows.svelte';
@@ -19,18 +20,16 @@
 
 	/**
 	 * A movement's detail and edit in one: tapping a field changes it, and every change saves on its own
-	 * (`?/update`) with a Deshacer toast. `drawer` lives over the list (shallow route); `page` is the
-	 * full /movements/<id> page. A type change that needs a field the movement lacks (category, Hacia,
+	 * (`?/update`) with a Deshacer toast. Lives over the list as a drawer (shallow route) or as the
+	 * full /movements/<id> page (the enclosing FormScreen). A type change that needs a field the movement lacks (category, Hacia,
 	 * Cotización) stays staged until that field is picked, then everything saves in one post.
 	 */
-	let {
-		data,
-		variant,
-		onclose
-	}: { data: PageData; variant: 'page' | 'drawer'; onclose?: () => void } = $props();
+	let { data }: { data: PageData } = $props();
 
 	type Movement = PageData['movement'];
-	const drawer = $derived(variant === 'drawer');
+	const screen = formScreen();
+	const drawer = screen.variant === 'drawer';
+	const onclose = () => screen.onclose?.();
 
 	let m = $state<Movement>(untrack(() => data.movement));
 	// Fixed payments the movement can link to; they depend on its type and account currency, so every save refreshes them.
@@ -145,6 +144,8 @@
 	}
 
 	// The picker returns focus to its row as it closes: take it back (or open the one that is needed).
+	// Kept on purpose: the picker drawer (vaul-svelte over bits-ui) hands focus back to its trigger as its
+	// close animation ends, which would take focus from (or close) anything focused or opened sooner.
 	function prompt(what: string) {
 		setTimeout(() => {
 			if (what === 'rate')
@@ -201,15 +202,10 @@
 	const saveRate = (next: string) => commit({ exchangeRate: next });
 
 	/** Drawer: the delete's answer (the page follows its redirect to the list). */
-	async function deleted(type: string) {
-		if (type !== 'redirect') {
-			errors.delete = 'No se pudo eliminar el movimiento.';
-			return;
-		}
-		// refreshAll keeps the drawer's shallow-route state (invalidateAll would reset it).
-		await refreshAll();
-		onclose?.();
-	}
+	const deleted = closeAfterDelete(
+		onclose,
+		() => (errors.delete = 'No se pudo eliminar el movimiento.')
+	);
 </script>
 
 {#snippet empty()}<p class="hint">Todavía no hay opciones.</p>{/snippet}
@@ -231,7 +227,7 @@
 				<InlineText
 					label="Monto"
 					inputmode="decimal"
-					prefix={m.accountCurrency === 'USD' ? 'US$' : '$'}
+					prefix={CURRENCY_SYMBOL[m.accountCurrency]}
 					value={values.amount}
 					onsave={(next) => commit({ amount: next })}
 				>

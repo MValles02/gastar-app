@@ -1,26 +1,24 @@
-import { isRedirect, redirect } from '@sveltejs/kit';
+import { error, isHttpError, isRedirect, redirect } from '@sveltejs/kit';
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { building } from '$app/env';
+import { isDevOrE2E } from '#lib/e2e.ts';
 import { auth } from '#lib/server/auth.ts';
 import { checkEnv } from '#lib/server/env-check.ts';
-import { startGmailScheduler } from '#lib/server/imports/gmail/scheduler.ts';
-import { startMpScheduler } from '#lib/server/imports/mercado-pago/scheduler.ts';
+import { rejectSignedOut } from '#lib/server/guards.ts';
+import { startImportSchedulers } from '#lib/server/imports/automatic.ts';
 import { themeColors } from '#lib/theme.ts';
 import { THEME_COOKIE } from '#lib/server/cookies.ts';
 
 if (!building && process.env.NODE_ENV === 'production') checkEnv(process.env);
 
 export const init: ServerInit = () => {
-	if (!building) {
-		startMpScheduler();
-		startGmailScheduler();
-	}
+	if (!building) startImportSchedulers();
 };
 
 const AUTH_API_PREFIX = '/api/auth/';
+const DEV_PREFIX = '/dev/';
 
-/** Pages a signed-in user has no use for; they are sent home instead. */
 const SIGNED_OUT_ONLY_PATHS = ['/login', '/signup', '/forgot-password'];
 
 const PUBLIC_PATHS = [
@@ -48,9 +46,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 	try {
 		response = await handleRequest({ event, resolve });
 	} catch (err) {
-		// redirect() throws from the hook; turn it into a response so it gets the headers too
-		if (!isRedirect(err)) throw err;
-		response = new Response(null, { status: err.status, headers: { location: err.location } });
+		// redirect() and error() throw from the hook; turn them into responses so they get the headers too
+		if (isRedirect(err)) {
+			response = new Response(null, { status: err.status, headers: { location: err.location } });
+		} else if (isHttpError(err)) {
+			response = new Response(err.body.message, { status: err.status });
+		} else throw err;
 	}
 	for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
 		if (!response.headers.has(name)) response.headers.set(name, value);
@@ -62,6 +63,8 @@ const handleRequest: Handle = async ({ event, resolve }) => {
 	if (event.url.pathname.startsWith(AUTH_API_PREFIX)) {
 		return svelteKitHandler({ event, resolve, auth, building });
 	}
+
+	if (event.url.pathname.startsWith(DEV_PREFIX) && !isDevOrE2E) error(404, 'Not found');
 
 	// /health never reads the session, so the container healthcheck skips the lookup. Other public routes
 	// keep it: browsers send the session cookie there and getSession may refresh or clear it.
@@ -77,10 +80,7 @@ const handleRequest: Handle = async ({ event, resolve }) => {
 	}
 
 	if (!event.locals.user && !isPublic(event.url.pathname)) {
-		if (event.request.method === 'GET' || event.request.method === 'HEAD') {
-			redirect(303, '/login');
-		}
-		return new Response('Unauthorized', { status: 401 });
+		rejectSignedOut(event.request.method);
 	}
 
 	const theme = event.cookies.get(THEME_COOKIE);

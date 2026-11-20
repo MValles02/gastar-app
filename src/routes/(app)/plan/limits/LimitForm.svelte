@@ -9,6 +9,7 @@
 		type Currency
 	} from '#lib/money.ts';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
+	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import AmountInput from '#lib/components/AmountInput.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
@@ -23,29 +24,19 @@
 	 */
 	let {
 		action = '',
-		cancelHref = '/plan',
 		categories = [],
 		initial,
-		errors,
-		variant = 'page',
-		onsaved,
-		onclose
+		errors
 	}: {
 		/** Page: the form's action. Drawer: the query (e.g. `?wizard=4`) added to /plan/limits/new. */
 		action?: string;
-		cancelHref?: string;
 		/** The categories on offer (none has a limit yet), each with its suggested limit. */
 		categories?: (Picker & { suggested: Record<Currency, number> })[];
 		initial: { categoryId: string; amount: string; currency: Currency };
 		errors?: Errors;
-		variant?: 'page' | 'drawer';
-		/** Drawer: the save succeeded. */
-		onsaved?: () => void;
-		/** Drawer: Cancelar. */
-		onclose?: () => void;
 	} = $props();
 
-	const drawer = $derived(variant === 'drawer');
+	const drawer = formScreen().variant === 'drawer';
 	let categoryId = $state(untrack(() => initial.categoryId));
 	let amount = $state(untrack(() => initial.amount));
 	let currency = $state<Currency>(untrack(() => initial.currency));
@@ -59,11 +50,7 @@
 
 <FormShell
 	action={drawer ? resolve('plan/limits/new') + action : action}
-	{variant}
 	onfailure={(data: { errors?: Errors }) => (fieldErrors = data.errors ?? {})}
-	{onsaved}
-	{onclose}
-	{cancelHref}
 	canSave={categoryId !== '' && isPositiveAmount(amount)}
 	scroll
 	style="--form-gap: var(--space-3); --form-pb: var(--space-3)"

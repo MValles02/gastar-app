@@ -1,4 +1,5 @@
 import { and, desc, eq, gte, ilike, inArray, isNotNull, lt, or, sql } from 'drizzle-orm';
+import type { Currency } from '#lib/money.ts';
 import { db, type Tx } from '../db';
 import { categories, financialAccounts, movements } from '../db/schema';
 import { dest, exists, sumOfType } from '../db/sql';
@@ -10,8 +11,8 @@ import type { MovementFilterQuery } from './filters';
 import type { MovementRow } from './form';
 
 export const PAGE_SIZE = 50;
+const RECENT_LIMIT = 10;
 
-/** Whether the user has any movement, in any currency (first-run checklist). */
 export function hasAnyMovement(userId: string) {
 	return exists(
 		db
@@ -82,7 +83,6 @@ export function setMovementRule(
 	});
 }
 
-/** Movements per category (all time), for ranking the category picker by use. */
 export function categoryUsage(userId: string) {
 	return db
 		.select({ categoryId: movements.categoryId, uses: sql<number>`count(*)`.mapWith(Number) })
@@ -92,7 +92,6 @@ export function categoryUsage(userId: string) {
 		.groupBy(movements.categoryId);
 }
 
-/** Single filter predicate shared by the list and its summary (same joins: account, dest, categories). */
 function filterWhere(userId: string, query: MovementFilterQuery) {
 	const { q, from, to, type, account, category, currency } = query;
 	const fromStart = from ? dayStart(from) : null;
@@ -116,8 +115,7 @@ function filterWhere(userId: string, query: MovementFilterQuery) {
 	);
 }
 
-/** Fetches PAGE_SIZE + 1 rows so the caller can tell whether there is a next page. */
-export function listMovements(userId: string, query: MovementFilterQuery, page: number) {
+function movementRowQuery(userId: string, query: MovementFilterQuery) {
 	return db
 		.select({
 			id: movements.id,
@@ -141,9 +139,26 @@ export function listMovements(userId: string, query: MovementFilterQuery, page: 
 			and(eq(movements.categoryId, categories.id), canAccessOwn(userId, categories))
 		)
 		.where(filterWhere(userId, query))
-		.orderBy(desc(movements.occurredAt), desc(movements.createdAt), desc(movements.id))
+		.orderBy(desc(movements.occurredAt), desc(movements.createdAt), desc(movements.id));
+}
+
+/** Fetches PAGE_SIZE + 1 rows so the caller can tell whether there is a next page. */
+export function listMovements(userId: string, query: MovementFilterQuery, page: number) {
+	return movementRowQuery(userId, query)
 		.limit(PAGE_SIZE + 1)
 		.offset((page - 1) * PAGE_SIZE);
+}
+
+export function recentMovements(userId: string, currency: Currency) {
+	return movementRowQuery(userId, {
+		q: '',
+		from: '',
+		to: '',
+		type: '',
+		account: [],
+		category: [],
+		currency
+	}).limit(RECENT_LIMIT);
 }
 
 /** Returns an array of 0 or 1 rows, like getAccount/getCategory. */

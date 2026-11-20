@@ -9,11 +9,11 @@ import {
 } from '../db/schema';
 import { exists, inRange, type Range } from '../db/sql';
 import { canAccessMovement, canAccessOwn, userOwned } from '../access';
-import { CURRENCIES, type Currency } from '#lib/money.ts';
-import { PLAN_CURRENCY } from '#lib/plan.ts';
+import type { Currency } from '#lib/money.ts';
+import { PLAN_CURRENCY, type PlanSavings } from '#lib/plan.ts';
 import { currentMonth, localDay } from '../month';
 import { listRecurring } from '../recurring/queries';
-import { activeTotal, isCurrentPlan, toPlanCurrency } from './summary';
+import { isCurrentPlan, recurringIncomeInPesos } from './summary';
 
 /** Whether the user has a spending plan (first-run checklist); legacy USD rows do not count. */
 export function hasAnyPlan(userId: string) {
@@ -47,12 +47,10 @@ export function getPlan(userId: string) {
 		.limit(1);
 }
 
-/** `planLimits` of the user's plan, so it can run alongside `getPlan`. */
 export function currentPlanLimits(userId: string) {
 	return limitRows(userId, eq(spendingPlans.currency, PLAN_CURRENCY));
 }
 
-/** The most recent ARS<->USD transfer's rate (not in the future); null when there is none. */
 export async function latestTransferRate(userId: string) {
 	const [row] = await db
 		.select({ rate: movements.exchangeRate, occurredAt: movements.occurredAt })
@@ -71,7 +69,6 @@ export async function latestTransferRate(userId: string) {
 	return row ? { rate: row.rate!, occurredAt: row.occurredAt } : null;
 }
 
-/** The plan's rate: the manual one when set, else the latest transfer's. `day` is that transfer's "YYYY-MM-DD". */
 export async function planRate(userId: string) {
 	const [[plan], transfer] = await Promise.all([getPlan(userId), latestTransferRate(userId)]);
 	if (plan?.exchangeRate) return { value: plan.exchangeRate, manual: true, day: null };
@@ -127,7 +124,6 @@ export function monthOutcomes(userId: string, range: Range) {
 		.groupBy(financialAccounts.currency, movements.categoryId, movements.recurringId);
 }
 
-/** Thrown inside `upsertLimits` to roll it back; the message is shown to the user. */
 export class PlanRejected extends Error {}
 
 export function deletePlan(userId: string) {
@@ -137,27 +133,14 @@ export function deletePlan(userId: string) {
 		.returning({ id: spendingPlans.id });
 }
 
-/** Active recurring income in plan pesos: ARS rules plus USD rules at the plan rate (left out without one). */
 export async function planIncome(userId: string) {
 	const [rules, rate] = await Promise.all([listRecurring(userId), planRate(userId)]);
-	return CURRENCIES.reduce(
-		(sum, cur) =>
-			sum +
-			(toPlanCurrency(
-				activeTotal(
-					rules.filter((r) => r.currency === cur),
-					'income'
-				),
-				cur,
-				rate.value
-			) ?? 0),
-		0
-	);
+	return recurringIncomeInPesos(rules, rate.value);
 }
 
-export type PlanSavings = { savings: number; savingsPercent: number | null; month: string | null };
+type PlanMonth = { month: string | null };
 
-export function upsertPlan(userId: string, v: PlanSavings) {
+export function upsertPlan(userId: string, v: PlanSavings & PlanMonth) {
 	return db
 		.insert(spendingPlans)
 		.values({ ...v, currency: PLAN_CURRENCY, ...userOwned(userId) })
@@ -170,7 +153,7 @@ export function upsertPlan(userId: string, v: PlanSavings) {
 
 export function updatePlan(
 	userId: string,
-	patch: Partial<PlanSavings & { exchangeRate: number | null }>
+	patch: Partial<PlanSavings & PlanMonth & { exchangeRate: number | null }>
 ) {
 	return db
 		.update(spendingPlans)
@@ -179,7 +162,6 @@ export function updatePlan(
 		.returning({ id: spendingPlans.id });
 }
 
-/** Sets the limits of the user's plan `planId` (insert or overwrite per category), in one transaction. */
 export function upsertLimits(
 	userId: string,
 	planId: string,

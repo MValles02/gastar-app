@@ -1,11 +1,6 @@
 import { formFail } from '#lib/form.ts';
 import { formatAmountInput, parseAmount, type Currency } from '#lib/money.ts';
-import {
-	type CategoryKind,
-	MOVEMENT_MESSAGES as MSG,
-	type MovementType,
-	refError
-} from '#lib/movement.ts';
+import { MOVEMENT_MESSAGES as MSG, type MovementType, refError } from '#lib/movement.ts';
 import { MAX_DAY_OF_MONTH } from '#lib/plan.ts';
 import { getAccount } from '../accounts/queries';
 import { getCategory } from '../categories/queries';
@@ -14,10 +9,8 @@ import { amountFor, editFormData, readFields } from '../forms';
 import { descriptionField, kindMismatchMessage } from '../movements/form';
 
 const FIELDS = ['type', 'description', 'amount', 'accountId', 'categoryId', 'dayOfMonth'] as const;
-/** The only fields `?/update` takes: a rule keeps its stored type. */
 export const EDITABLE = ['description', 'amount', 'accountId', 'categoryId', 'dayOfMonth'] as const;
 
-/** The stored rule as the form's strings (what `parseRecurringForm` takes back). */
 export const toFormValues = (r: {
 	type: MovementType;
 	description: string;
@@ -35,7 +28,6 @@ export const toFormValues = (r: {
 	dayOfMonth: String(r.dayOfMonth)
 });
 
-/** The form `?/update` validates: `row`'s stored values with the posted EDITABLE fields over them. */
 export const editedForm = (row: Parameters<typeof toFormValues>[0], posted: FormData) =>
 	editFormData(toFormValues(row), posted, EDITABLE);
 
@@ -125,8 +117,8 @@ export async function readRecurringForm(
 			kindFor: keptCategory ? undefined : parsed.data.type
 		});
 	if (!category || categoryError === 'archived') errors.categoryId = 'Elegí una categoría activa.';
-	else if (categoryError === 'kind')
-		errors.categoryId = kindMismatchMessage(category.kind as CategoryKind);
+	else if (categoryError === 'kind' && category.kind)
+		errors.categoryId = kindMismatchMessage(category.kind);
 	if (Object.keys(errors).length > 0)
 		return { failure: formFail(400, { values: parsed.values, errors }) };
 	return { data: parsed.data };

@@ -1,8 +1,10 @@
 /** UI locale for every number and date shown to the user (docs/scope.md). */
 export const LOCALE = 'es-AR';
 
+import { APP_TZ } from '#lib/shared/runtime.js';
+
 /** The app's one time zone: days, months and "today" are Buenos Aires time. */
-export const APP_TZ = 'America/Argentina/Buenos_Aires';
+export { APP_TZ };
 
 const PERCENT = new Intl.NumberFormat(LOCALE, { style: 'percent' });
 
@@ -20,6 +22,5 @@ export const currentMonthName = () =>
 		timeZone: APP_TZ
 	});
 
-/** "2024-02-29" -> "29/02/2024" (dd/mm/aaaa). */
 export const formatDay = (ymd: string) =>
 	`${ymd.slice(8, 10)}/${ymd.slice(5, 7)}/${ymd.slice(0, 4)}`;

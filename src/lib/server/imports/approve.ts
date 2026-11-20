@@ -3,6 +3,7 @@ import type { MovementData } from '../movements/form';
 import { pgErrorCode } from '../db/errors';
 import { listAccounts } from '../accounts/queries';
 import { listCategories } from '../categories/queries';
+import { listRecurring } from '../recurring/queries';
 import { resolvePostedMovement } from '../movements/pickers';
 import { importPrefill } from './rules';
 import { approveImport, listImportRules, listPendingImports, type ImportItem } from './store';
@@ -15,12 +16,15 @@ export const counterAccountsOf = <A extends { currency: string; id: string }>(
 
 /** Rules and the active accounts and categories an item's suggestion is computed from. */
 export async function suggestionContext(userId: string) {
-	const [rules, accounts, categories] = await Promise.all([
+	const [rules, accounts, categories, recurring] = await Promise.all([
 		listImportRules(userId),
 		listAccounts(userId),
-		listCategories(userId)
+		listCategories(userId),
+		listRecurring(userId)
 	]);
-	return { rules, categories, accounts };
+	// The fixed payments a later cuota line can belong to (see importPrefill).
+	const fixed = recurring.filter((r) => !r.archivedAt);
+	return { rules, categories, accounts, fixed };
 }
 
 type SuggestionContext = Awaited<ReturnType<typeof suggestionContext>>;
@@ -39,11 +43,11 @@ export async function approveSuggestion(
 		item,
 		ctx.rules,
 		ctx.categories,
-		counterAccountsOf(ctx.accounts, item)
+		counterAccountsOf(ctx.accounts, item),
+		ctx.fixed
 	);
 	// Only rows that show "Aprobar" have a suggestion; the rest go through the review form.
 	if (prefill.suggestion === null) return 'none';
-	// The values come from the rule itself: nothing new to remember.
 	const out = await approveWithValues(userId, item, prefill, false, auto);
 	return 'result' in out && out.result === 'approved' ? 'approved' : 'stale';
 }
@@ -116,7 +120,6 @@ export async function approveWithValues(
 		categoryId: isTransfer ? null : values.categoryId,
 		exchangeRate: null
 	};
-	// The imported amount keeps its exact cents (keep.amount).
 	const { resolved } = await resolvePostedMovement(userId, data, {
 		accountIds: [],
 		categoryId: null,
@@ -133,7 +136,8 @@ export async function approveWithValues(
 			categoryId: data.categoryId,
 			counterAccountId: isTransfer ? values.counterAccountId : null,
 			description: values.description,
-			recurringId: isTransfer || !values.recurringId ? null : values.recurringId
+			recurringId:
+				isTransfer || item.installments || !values.recurringId ? null : values.recurringId
 		},
 		remember,
 		auto

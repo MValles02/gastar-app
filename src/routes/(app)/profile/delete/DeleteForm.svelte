@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { PASSWORD_MAX_LENGTH } from '#lib/fields.ts';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
-	import { Button } from '#lib/components/ui/button/index.js';
+	import GoogleReauth, { needsGoogleReauth } from '#lib/components/GoogleReauth.svelte';
 	import PasswordInput from '#lib/components/PasswordInput.svelte';
 	import type { ReauthMode } from '#lib/server/reauth.ts';
 
@@ -16,9 +16,7 @@
 		error,
 		reauthMode = 'password',
 		reauth = false,
-		email = '',
-		variant = 'page',
-		onclose
+		email = ''
 	}: {
 		summary: Summary;
 		error?: string;
@@ -28,9 +26,6 @@
 		reauth?: boolean;
 		/** The account being deleted, shown to a user without a password. */
 		email?: string;
-		variant?: 'page' | 'drawer';
-		/** Drawer: Cancelar. */
-		onclose?: () => void;
 	} = $props();
 
 	const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -56,9 +51,7 @@
 	let posted = $state<{ formError?: string; reauth?: boolean } | undefined>();
 	const message = $derived(posted ? posted.formError : error);
 	const hasPassword = $derived(reauthMode === 'password');
-	const needsGoogle = $derived(
-		reauthMode === 'stale' || (reauthMode === 'recent' && (!!posted?.reauth || reauth))
-	);
+	const needsGoogle = $derived(needsGoogleReauth(reauthMode, !!posted?.reauth || reauth));
 </script>
 
 {#snippet warn()}
@@ -74,21 +67,16 @@
 {/snippet}
 
 {#if needsGoogle}
-	{@render warn()}
-	<p>Para confirmar, volvé a entrar con Google.</p>
-	{#if message}<p class="error" role="alert">{message}</p>{/if}
-	<!-- Plain form: it leaves for Google with a full navigation. -->
-	<form method="POST" action="/profile/delete?/google">
-		<Button type="submit">Confirmar con Google</Button>
-	</form>
+	<GoogleReauth action="/profile/delete?/google" {message}>
+		{@render warn()}
+		<p>Para confirmar, volvé a entrar con Google.</p>
+	</GoogleReauth>
 {:else}
 	<FormShell
 		action="/profile/delete?/delete"
-		{variant}
 		inPlace
 		onsubmit={() => (posted = undefined)}
 		onfailure={(data: { formError?: string; reauth?: boolean }) => (posted = data)}
-		{onclose}
 		errorToast="No se pudo darte de baja."
 		cancelHref="/profile"
 		submitLabel="Darme de baja"

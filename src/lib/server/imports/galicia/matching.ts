@@ -1,12 +1,15 @@
-import { and, eq, inArray, isNull, like, gte, lt, or, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, like, gte, lt, or, type SQL } from 'drizzle-orm';
+import { DAY_MS } from '#lib/dates.ts';
 import type { Currency } from '#lib/money.ts';
 import { canAccessAccount, canAccessOwn } from '../../access';
 import { db } from '../../db';
-import { cardAlerts, financialAccounts, mpImportItems } from '../../db/schema';
+import { cardAlerts, financialAccounts, importItems, recurringMovements } from '../../db/schema';
 import { dayStart, localDay } from '../../month';
 import { batches, type ImportRow } from '../ingest';
 import { ALERT_KEYS, alertKey, diffKey, STATEMENT_KEYS, statementPurchaseDay } from '../keys';
-import { importSource, KIND, type SourceId } from '../sources';
+import { KIND, type SourceId } from '#lib/imports.ts';
+import { installmentEndsMonth } from '../rules';
+import { importSource } from '../sources';
 import type { StatementLine } from './statement';
 
 // Matches a Gmail credit-card alert with the statement line of the same purchase, in either order, so
@@ -22,7 +25,6 @@ export const INSTALLMENT_TOTAL_TOLERANCE_PCT = 1;
 /** Uploaded statements (closing after the alert) an alert survives before "No apareció en el resumen". */
 export const UNMATCHED_AFTER_STATEMENTS = 2;
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const dayNumber = (ymd: string) => Date.parse(`${ymd}T00:00:00Z`) / DAY_MS;
 const shiftDay = (ymd: string, days: number) =>
 	new Date((dayNumber(ymd) + days) * DAY_MS).toISOString().slice(0, 10);
@@ -36,6 +38,8 @@ type Side = {
 	merchant: string;
 	/** Cuota as printed (`01/06`) of a statement side. */
 	installment?: string | null;
+	/** Cuotas (N) of an installment alert item, whose amount is its first cuota. */
+	installments?: number | null;
 };
 type Candidate = Side & { id: string };
 
@@ -48,7 +52,7 @@ const commonPrefix = (a: string, b: string) => {
 /**
  * The candidate that matches `subject` (an alert or a statement line; candidates are the other side),
  * or null. The first tier with a match wins: 1) installment `01/N`: the alert equals the cuota or the cuota
- * times N within 1%; 2) the exact amount; 3) pesos only: within 15% and compatible merchant names (one a
+ * times N within 1%, or the alert item (first cuota of N cuotas) is that cuota within 1%; 2) the exact amount; 3) pesos only: within 15% and compatible merchant names (one a
  * prefix of the other). Inside a tier: the nearest day, then the longest common merchant prefix, then the
  * lowest id. Only `01/N` installment lines can match.
  */
@@ -73,7 +77,10 @@ export function pickMatch<C extends Candidate>(
 		const tier =
 			line.installment &&
 			(alert.amount === line.amount ||
-				Math.abs(alert.amount - total) * 100 <= INSTALLMENT_TOTAL_TOLERANCE_PCT * total)
+				Math.abs(alert.amount - total) * 100 <= INSTALLMENT_TOTAL_TOLERANCE_PCT * total ||
+				(alert.installments === n &&
+					Math.abs(alert.amount - line.amount) * 100 <=
+						INSTALLMENT_TOTAL_TOLERANCE_PCT * line.amount))
 				? 1
 				: alert.amount === line.amount
 					? 2
@@ -99,9 +106,9 @@ export function pickMatch<C extends Candidate>(
 /** Whether `key` is already an item's external key or alias key of the user (`mine` is their ownership filter). */
 async function keyTaken(mine: SQL, key: string): Promise<boolean> {
 	const found = await db
-		.select({ id: mpImportItems.id })
-		.from(mpImportItems)
-		.where(and(mine, or(eq(mpImportItems.aliasKey, key), eq(mpImportItems.externalKey, key))))
+		.select({ id: importItems.id })
+		.from(importItems)
+		.where(and(mine, or(eq(importItems.aliasKey, key), eq(importItems.externalKey, key))))
 		.limit(1);
 	return found.length > 0;
 }
@@ -125,21 +132,19 @@ export async function matchStatement(
 	lines: StatementLineRow[]
 ): Promise<{ rows: ImportRow[]; diffs: ImportRow[] }> {
 	const keys = lines.map((l) => l.key);
-	const mine = canAccessOwn(userId, mpImportItems);
+	const mine = canAccessOwn(userId, importItems);
 	const existing = new Set<string>();
 	const aliased = new Set<string>();
 	for (const batch of batches(keys)) {
 		const found = await db
-			.select({ externalKey: mpImportItems.externalKey, aliasKey: mpImportItems.aliasKey })
-			.from(mpImportItems)
-			.where(
-				and(mine, eq(mpImportItems.source, source), inArray(mpImportItems.externalKey, batch))
-			);
+			.select({ externalKey: importItems.externalKey, aliasKey: importItems.aliasKey })
+			.from(importItems)
+			.where(and(mine, eq(importItems.source, source), inArray(importItems.externalKey, batch)));
 		for (const f of found) existing.add(f.externalKey);
 		const viaAlias = await db
-			.select({ aliasKey: mpImportItems.aliasKey })
-			.from(mpImportItems)
-			.where(and(mine, inArray(mpImportItems.aliasKey, batch)));
+			.select({ aliasKey: importItems.aliasKey })
+			.from(importItems)
+			.where(and(mine, inArray(importItems.aliasKey, batch)));
 		for (const f of viaAlias) aliased.add(f.aliasKey!);
 	}
 
@@ -158,24 +163,27 @@ export async function matchStatement(
 		const to = dayStart(shiftDay(days[days.length - 1], MATCH_DAYS_AFTER + 1))!;
 		const rows = await db
 			.select({
-				id: mpImportItems.id,
-				occurredAt: mpImportItems.occurredAt,
-				amount: mpImportItems.amount,
-				merchant: mpImportItems.merchant,
+				id: importItems.id,
+				occurredAt: importItems.occurredAt,
+				amount: importItems.amount,
+				merchant: importItems.merchant,
+				installments: importItems.installments,
 				currency: financialAccounts.currency
 			})
-			.from(mpImportItems)
-			.innerJoin(financialAccounts, eq(financialAccounts.id, mpImportItems.accountId))
+			.from(importItems)
+			.innerJoin(financialAccounts, eq(financialAccounts.id, importItems.accountId))
 			.where(
 				and(
 					mine,
 					canAccessAccount(userId),
-					eq(mpImportItems.source, source),
-					like(mpImportItems.externalKey, ALERT_KEYS),
-					eq(mpImportItems.kind, KIND.cardPurchase),
-					isNull(mpImportItems.aliasKey),
-					gte(mpImportItems.occurredAt, from),
-					lt(mpImportItems.occurredAt, to)
+					eq(importItems.source, source),
+					like(importItems.externalKey, ALERT_KEYS),
+					eq(importItems.kind, KIND.cardPurchase),
+					// A reversal's credit item is money back, never the purchase a statement line stands for.
+					eq(importItems.isCredit, false),
+					isNull(importItems.aliasKey),
+					gte(importItems.occurredAt, from),
+					lt(importItems.occurredAt, to)
 				)
 			);
 		let pool = rows.map((r) => ({
@@ -183,6 +191,7 @@ export async function matchStatement(
 			day: localDay(r.occurredAt),
 			amount: r.amount,
 			merchant: cleaned(source, r.merchant),
+			installments: r.installments,
 			currency: r.currency as Currency
 		}));
 		for (const l of open) {
@@ -201,19 +210,37 @@ export async function matchStatement(
 			pool = pool.filter((c) => c.id !== found.id);
 			const claimed = await db.transaction(async (tx) => {
 				const [row] = await tx
-					.update(mpImportItems)
+					.update(importItems)
 					.set({ aliasKey: l.key })
-					.where(and(eq(mpImportItems.id, found.id), mine, isNull(mpImportItems.aliasKey)))
-					.returning({ id: mpImportItems.id });
+					.where(and(eq(importItems.id, found.id), mine, isNull(importItems.aliasKey)))
+					.returning({
+						id: importItems.id,
+						installments: importItems.installments,
+						recurringId: importItems.recurringId
+					});
 				if (!row) return false;
+				// The cuotas run from the statement of the first one: the fixed payment ends N - 1 months after its closing (never earlier).
+				if (row.installments && row.recurringId && l.line.installment?.startsWith('01/')) {
+					const ends = installmentEndsMonth(closing, row.installments);
+					await tx
+						.update(recurringMovements)
+						.set({ endsMonth: ends, updatedAt: new Date() })
+						.where(
+							and(
+								eq(recurringMovements.id, row.recurringId),
+								canAccessOwn(userId, recurringMovements),
+								or(isNull(recurringMovements.endsMonth), lt(recurringMovements.endsMonth, ends))
+							)
+						);
+				}
 				// A pending alert item becomes what the statement says (the cuota, for an installment).
 				await tx
-					.update(mpImportItems)
+					.update(importItems)
 					.set({
 						amount: l.line.cents,
 						...(l.line.installment ? { installment: l.line.installment } : {})
 					})
-					.where(and(eq(mpImportItems.id, found.id), mine, eq(mpImportItems.status, 'pending')));
+					.where(and(eq(importItems.id, found.id), mine, eq(importItems.status, 'pending')));
 				return true;
 			});
 			// A lost claim: if the line is meanwhile an alias (or an item), it must not be imported again.
@@ -227,15 +254,15 @@ export async function matchStatement(
 	for (const batch of batches([...aliased, ...matched])) {
 		const items = await db
 			.select({
-				aliasKey: mpImportItems.aliasKey,
-				status: mpImportItems.status,
-				amount: mpImportItems.amount,
-				accountId: mpImportItems.accountId,
-				merchant: mpImportItems.merchant,
-				rawDescription: mpImportItems.rawDescription
+				aliasKey: importItems.aliasKey,
+				status: importItems.status,
+				amount: importItems.amount,
+				accountId: importItems.accountId,
+				merchant: importItems.merchant,
+				rawDescription: importItems.rawDescription
 			})
-			.from(mpImportItems)
-			.where(and(mine, inArray(mpImportItems.aliasKey, batch)));
+			.from(importItems)
+			.where(and(mine, inArray(importItems.aliasKey, batch)));
 		for (const item of items) {
 			const line = byKey.get(item.aliasKey!)!;
 			const d = line.line.cents - item.amount;
@@ -247,7 +274,7 @@ export async function matchStatement(
 				occurredAt: dayStart(closing)!,
 				amount: Math.abs(d),
 				isCredit: d < 0,
-				sourceId: '',
+				sourceId: null,
 				rawDescription: item.rawDescription,
 				merchant: item.merchant
 			});
@@ -275,33 +302,34 @@ export async function matchWaitingAlerts(
 		amount: number;
 		merchant: string;
 		receivedAt: Date;
+		installments?: number | null;
 	}[]
 ): Promise<Set<string>> {
 	const consumed = new Set<string>();
 	if (alerts.length === 0) return consumed;
-	const mine = canAccessOwn(userId, mpImportItems);
+	const mine = canAccessOwn(userId, importItems);
 	const earliest = alerts.map((a) => localDay(a.receivedAt)).sort()[0];
 	const rows = await db
 		.select({
-			id: mpImportItems.id,
-			externalKey: mpImportItems.externalKey,
-			amount: mpImportItems.amount,
-			merchant: mpImportItems.merchant,
-			installment: mpImportItems.installment,
+			id: importItems.id,
+			externalKey: importItems.externalKey,
+			amount: importItems.amount,
+			merchant: importItems.merchant,
+			installment: importItems.installment,
 			currency: financialAccounts.currency
 		})
-		.from(mpImportItems)
-		.innerJoin(financialAccounts, eq(financialAccounts.id, mpImportItems.accountId))
+		.from(importItems)
+		.innerJoin(financialAccounts, eq(financialAccounts.id, importItems.accountId))
 		.where(
 			and(
 				mine,
 				canAccessAccount(userId),
-				eq(mpImportItems.source, source),
-				like(mpImportItems.externalKey, STATEMENT_KEYS),
-				inArray(mpImportItems.kind, [KIND.cardPurchase, KIND.cardInstallment]),
-				eq(mpImportItems.isCredit, false),
-				isNull(mpImportItems.aliasKey),
-				gte(mpImportItems.occurredAt, dayStart(shiftDay(earliest, -MATCH_DAYS_BEFORE))!)
+				eq(importItems.source, source),
+				like(importItems.externalKey, STATEMENT_KEYS),
+				inArray(importItems.kind, [KIND.cardPurchase, KIND.cardInstallment]),
+				eq(importItems.isCredit, false),
+				isNull(importItems.aliasKey),
+				gte(importItems.occurredAt, dayStart(shiftDay(earliest, -MATCH_DAYS_BEFORE))!)
 			)
 		);
 	let pool = rows.map((r) => ({
@@ -315,7 +343,12 @@ export async function matchWaitingAlerts(
 	const sorted = [...alerts].sort((a, b) => a.receivedAt.getTime() - b.receivedAt.getTime());
 	for (const a of sorted) {
 		const found = pickMatch(
-			{ day: localDay(a.receivedAt), amount: a.amount, merchant: cleaned(source, a.merchant) },
+			{
+				day: localDay(a.receivedAt),
+				amount: a.amount,
+				merchant: cleaned(source, a.merchant),
+				installments: a.installments
+			},
 			'alert',
 			a.currency,
 			pool.filter((c) => c.currency === a.currency)
@@ -324,18 +357,93 @@ export async function matchWaitingAlerts(
 		pool = pool.filter((c) => c.id !== found.id);
 		const claimed = await db.transaction(async (tx) => {
 			const [row] = await tx
-				.update(mpImportItems)
+				.update(importItems)
 				.set({ aliasKey: alertKey(a.messageId) })
-				.where(and(eq(mpImportItems.id, found.id), mine, isNull(mpImportItems.aliasKey)))
-				.returning({ id: mpImportItems.id });
+				.where(and(eq(importItems.id, found.id), mine, isNull(importItems.aliasKey)))
+				.returning({ id: importItems.id });
 			if (!row) return false;
 			await tx
 				.update(cardAlerts)
 				.set({ importItemId: found.id })
 				.where(and(canAccessOwn(userId, cardAlerts), eq(cardAlerts.gmailMessageId, a.messageId)));
+			// The statement item stands for a purchase in cuotas: approving it creates the fixed payment.
+			if (a.installments && a.installments > 1)
+				await tx
+					.update(importItems)
+					.set({ installments: a.installments })
+					.where(and(eq(importItems.id, found.id), mine, eq(importItems.status, 'pending')));
 			return true;
 		});
 		if (claimed || (await keyTaken(mine, alertKey(a.messageId)))) consumed.add(a.messageId);
 	}
 	return consumed;
+}
+
+/**
+ * Later cuotas (k/N, k >= 2) of a purchase whose first cuota became an approved installment item: each new
+ * debit line is matched like its 01/N line (same rule, `pickMatch`) with those items, and takes their fixed
+ * payment as `recurringId`, so its item is suggested (and auto-approved) as that month's payment.
+ * Nothing leaves the pool: every cuota of one purchase links to the same item.
+ */
+export async function linkInstallmentLines(
+	userId: string,
+	source: SourceId,
+	lines: StatementLineRow[]
+): Promise<void> {
+	const later = lines.filter(
+		(l) => l.line.cents > 0 && l.line.installment && !l.line.installment.startsWith('01/')
+	);
+	if (later.length === 0) return;
+	const mine = canAccessOwn(userId, importItems);
+	const rows = await db
+		.select({
+			id: importItems.id,
+			externalKey: importItems.externalKey,
+			occurredAt: importItems.occurredAt,
+			amount: importItems.amount,
+			merchant: importItems.merchant,
+			installments: importItems.installments,
+			recurringId: importItems.recurringId,
+			currency: financialAccounts.currency
+		})
+		.from(importItems)
+		.innerJoin(financialAccounts, eq(financialAccounts.id, importItems.accountId))
+		.where(
+			and(
+				mine,
+				canAccessAccount(userId),
+				eq(importItems.source, source),
+				eq(importItems.status, 'approved'),
+				eq(importItems.isCredit, false),
+				isNotNull(importItems.installments),
+				isNotNull(importItems.recurringId)
+			)
+		);
+	const pool = rows.map((r) => ({
+		id: r.id,
+		// An alert item stands on the alert's day; a statement item (alert came later) on its purchase day.
+		day: r.externalKey.startsWith(alertKey(''))
+			? localDay(r.occurredAt)
+			: statementPurchaseDay(r.externalKey),
+		amount: r.amount,
+		merchant: cleaned(source, r.merchant),
+		installments: r.installments,
+		recurringId: r.recurringId,
+		currency: r.currency as Currency
+	}));
+	for (const l of later) {
+		const n = Number(l.line.installment!.slice(3));
+		const found = pickMatch(
+			{
+				day: l.line.date,
+				amount: l.line.cents,
+				merchant: cleaned(source, l.line.reference),
+				installment: `01/${l.line.installment!.slice(3)}`
+			},
+			'line',
+			l.line.currency,
+			pool.filter((c) => c.currency === l.line.currency && c.installments === n)
+		);
+		if (found) l.row.recurringId = found.recurringId;
+	}
 }

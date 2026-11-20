@@ -6,6 +6,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
+	const movementRows = page.getByRole('main').getByRole('link');
 	await page.goto('/movements?currency=USD');
 	await page.waitForLoadState('networkidle'); // hydration guard: the filters dialog is JS-only
 	await expect(page.getByRole('button', { name: /^Filtros/ })).toContainText('1');
@@ -14,12 +15,14 @@ test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
 	await page.keyboard.press('Escape');
 	await expect(dialog).toBeHidden();
 	await expect(page.getByText('US$').first()).toBeVisible();
-	await expect(page.locator('[data-slot="item-group"]').getByText(/^[-+]?\$/)).toHaveCount(0);
+	await expect(movementRows.filter({ hasText: /(?<!US)\$\d/ })).toHaveCount(0);
 
 	await page.goto('/movements?currency=ARS');
 	await expect(page.getByText('$').first()).toBeVisible();
 	// A cross-currency transfer lists its destination amount (US$) under the pesos amount.
-	await expect(page.locator('.row-amount > .money').getByText('US$')).toHaveCount(0);
+	await expect(
+		movementRows.filter({ hasText: 'US$' }).filter({ hasNotText: /(?<!US)\$\d/ })
+	).toHaveCount(0);
 
 	// An account filter wins over ?currency=USD.
 	await page.goto('/accounts');
@@ -43,20 +46,16 @@ test('accounts are grouped by currency, ?currency=USD shows only Dólares, archi
 	page
 }) => {
 	await page.goto('/accounts');
-	const ars = page.locator('section[aria-labelledby="group-ARS"]');
-	const usd = page.locator('section[aria-labelledby="group-USD"]');
-	for (const name of ['Efectivo', 'Banco Galicia', 'Mercado Pago'])
-		await expect(ars).toContainText(name);
-	await expect(usd).toContainText('Ahorro USD');
-	await expect(page.getByText('Cuenta Santander (cerrada)')).toHaveCount(0);
+	const account = (name: string) => page.getByRole('link', { name: new RegExp(name) });
+	for (const name of ['Efectivo', 'Banco Galicia', 'Mercado Pago', 'Ahorro USD'])
+		await expect(account(name).first()).toBeVisible();
+	await expect(account('Cuenta Santander')).toHaveCount(0);
 
 	await page.goto('/accounts?currency=USD');
-	await expect(usd).toContainText('Ahorro USD');
-	await expect(ars).toHaveCount(0);
+	await expect(account('Ahorro USD')).toBeVisible();
+	await expect(account('Efectivo')).toHaveCount(0);
 
 	await page.goto('/accounts?archived=1');
 	// scripts/seed.js: the archived account's only movement is the 22.000 gym payment.
-	await expect(
-		ars.locator('[role="listitem"]', { hasText: 'Cuenta Santander (cerrada)' })
-	).toContainText('-$22.000');
+	await expect(account('Cuenta Santander')).toContainText('-$22.000');
 });

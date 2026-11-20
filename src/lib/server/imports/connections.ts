@@ -1,16 +1,13 @@
 import { and, eq, isNull } from 'drizzle-orm';
-import type { Currency } from '#lib/money.ts';
+import { CURRENCIES, CURRENCY_NAME, type Currency } from '#lib/money.ts';
 import { canAccessAccount, canAccessOwn } from '../access';
+import { accountOption } from '../accounts/queries';
 import { db } from '../db';
 import { isUuid } from '../db/util';
-import { financialAccounts, gmailConnections, importCards, mpConnections } from '../db/schema';
+import { financialAccounts, importCards } from '../db/schema';
+import { sourceStatus } from './automatic';
 import { getGaliciaConnection } from './galicia/connection';
-import { gmailOauthEnabled } from './gmail/oauth';
-import { mpOauthEnabled } from './mercado-pago/oauth';
 import { pendingImportCount } from './store';
-
-// The profile Vinculaciones page still reads it from here.
-export { getGaliciaConnection };
 
 /** The user's active accounts of one currency, by name: the only ones an import source can feed. */
 export function activeAccountsIn(userId: string, currency: Currency) {
@@ -44,41 +41,10 @@ export async function isActiveAccountIn(userId: string, currency: Currency, acco
 	return !!row;
 }
 
-type MpConnectionInfo = {
-	accountId: string | null;
-	accountName: string | null;
-	needsReconnect: boolean;
-};
-
-/** The user's Mercado Pago connection without any token, or null when not linked. */
-export async function getConnectionInfo(userId: string): Promise<MpConnectionInfo | null> {
-	const [row] = await db
-		.select({
-			accountId: mpConnections.accountId,
-			accountName: financialAccounts.name,
-			needsReconnect: mpConnections.needsReconnect
-		})
-		.from(mpConnections)
-		.leftJoin(financialAccounts, eq(financialAccounts.id, mpConnections.accountId))
-		.where(canAccessOwn(userId, mpConnections))
-		.limit(1);
-	return row ?? null;
-}
-
-const importAccountOf = (conn: MpConnectionInfo | null) =>
-	conn?.accountId ? { id: conn.accountId, name: conn.accountName ?? '' } : null;
-
-/** The account the user's Mercado Pago connection feeds (also while a reconnect is pending), else null. */
-export const getMpImportAccount = async (userId: string) =>
-	importAccountOf(await getConnectionInfo(userId));
-
-/** How the user's Mercado Pago connection stands: linked, needing a reconnect, or not linked. */
-export async function mpLinkState(userId: string): Promise<'linked' | 'reconnect' | 'unlinked'> {
-	const conn = await getConnectionInfo(userId);
-	if (conn?.needsReconnect) return 'reconnect';
-	if (conn?.accountId) return 'linked';
-	return 'unlinked';
-}
+/** The error of an account picker that needs an active account of that currency (Galicia, Mercado Pago, card pages). */
+export const ACCOUNT_ERRORS = Object.fromEntries(
+	CURRENCIES.map((c) => [c, `Elegí una cuenta en ${CURRENCY_NAME[c]}.`])
+) as Record<Currency, string>;
 
 /**
  * The home imports pill: pending items in both currencies, for a user with a source set up (Mercado
@@ -86,41 +52,37 @@ export async function mpLinkState(userId: string): Promise<'linked' | 'reconnect
  * at least one configured card); else null.
  */
 export async function importsPending(userId: string): Promise<number | null> {
-	return (mpOauthEnabled() && (await getMpImportAccount(userId))) ||
-		(await getGaliciaConnection(userId))?.arsAccountId ||
-		(gmailOauthEnabled() && (await hasGmailCards(userId)))
+	const [status, galicia] = await Promise.all([sourceStatus(userId), getGaliciaConnection(userId)]);
+	const l = linkedSources(status, galicia);
+	return l.mp || l.galicia || (l.gmail && (await hasGmailCards(userId)))
 		? await pendingImportCount(userId)
 		: null;
 }
 
-async function hasGmailCards(userId: string) {
-	const [[conn], [card]] = await Promise.all([
-		db
-			.select({ id: gmailConnections.userId })
-			.from(gmailConnections)
-			.where(canAccessOwn(userId, gmailConnections))
-			.limit(1),
-		db
-			.select({ id: importCards.id })
-			.from(importCards)
-			.where(canAccessOwn(userId, importCards))
-			.limit(1)
+/** Which import sources the user has set up: Mercado Pago once it feeds an account (also while a reconnect is pending), Banco Galicia once its pesos account is chosen, Gmail once linked. */
+export const linkedSources = (
+	status: Awaited<ReturnType<typeof sourceStatus>>,
+	galicia: Awaited<ReturnType<typeof getGaliciaConnection>>
+) => ({
+	mp: !!status.mp?.accountId,
+	galicia: !!galicia?.arsAccountId,
+	gmail: !!status.gmail?.state
+});
+
+/** The user's active pesos and dollar accounts as picker options. */
+export async function currencyAccountOptions(userId: string) {
+	const [ars, usd] = await Promise.all([
+		activeAccountsIn(userId, 'ARS'),
+		activeAccountsIn(userId, 'USD')
 	]);
-	return !!conn && !!card;
+	return { arsAccounts: ars.map(accountOption), usdAccounts: usd.map(accountOption) };
 }
 
-/**
- * Both sources of one user: the Mercado Pago connection (and the account it feeds) and whether Banco
- * Galicia has its pesos account, the one every statement needs.
- */
-export async function importLinks(userId: string) {
-	const [mp, galicia] = await Promise.all([
-		getConnectionInfo(userId),
-		getGaliciaConnection(userId)
-	]);
-	return {
-		mpAccount: importAccountOf(mp),
-		needsReconnect: mp?.needsReconnect ?? false,
-		galiciaReady: !!galicia?.arsAccountId
-	};
+async function hasGmailCards(userId: string) {
+	const [card] = await db
+		.select({ id: importCards.id })
+		.from(importCards)
+		.where(canAccessOwn(userId, importCards))
+		.limit(1);
+	return !!card;
 }

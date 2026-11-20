@@ -2,18 +2,18 @@ import { and, eq, like, lt, min, or, isNull } from 'drizzle-orm';
 import { DAY_MS } from '#lib/dates.ts';
 import { canAccessOwn, userOwned } from '../access';
 import { db } from '../db';
-import { importSettings, mpImportItems } from '../db/schema';
+import { importSettings, importItems } from '../db/schema';
 import { dayStart, localDay } from '../month';
 import { ALERT_KEYS } from './keys';
 import { withMatchLock } from './match-lock';
-import { SOURCE } from './sources';
+import { SOURCE } from '#lib/imports.ts';
 
 /** How far back "Importar desde" may reach. */
-export const MAX_BACKFILL_DAYS = 365;
+const MAX_BACKFILL_DAYS = 365;
 export const earliestImportDay = () => localDay(new Date(Date.now() - MAX_BACKFILL_DAYS * DAY_MS));
 
 /** How far back a first sync reaches when the user has not chosen an "importar desde" day. */
-export const DEFAULT_BACKFILL_DAYS = 30;
+const DEFAULT_BACKFILL_DAYS = 30;
 
 /** How long an automatically approved item stays in the "approved automatically" list. */
 export const AUTO_APPROVED_DAYS = 30;
@@ -25,7 +25,7 @@ export function backfillStart(now: number, floor: Date | null): Date | null {
 
 /** Items of an automatic source: Mercado Pago and Gmail alerts (statement items are uploaded). */
 const isAutomaticItem = () =>
-	or(eq(mpImportItems.source, SOURCE.mercadoPago), like(mpImportItems.externalKey, ALERT_KEYS));
+	or(eq(importItems.source, SOURCE.mercadoPago), like(importItems.externalKey, ALERT_KEYS));
 
 /**
  * The user's chosen "Importar desde" (a local day start) from import_settings, or null when none.
@@ -50,9 +50,9 @@ export async function getImportFromDay(userId: string): Promise<string> {
 	if (chosen) day = localDay(chosen);
 	else {
 		const [first] = await db
-			.select({ at: min(mpImportItems.occurredAt) })
-			.from(mpImportItems)
-			.where(and(canAccessOwn(userId, mpImportItems), isAutomaticItem()));
+			.select({ at: min(importItems.occurredAt) })
+			.from(importItems)
+			.where(and(canAccessOwn(userId, importItems), isAutomaticItem()));
 		day = localDay(first?.at ?? new Date(Date.now() - DEFAULT_BACKFILL_DAYS * DAY_MS));
 	}
 	const earliest = earliestImportDay();
@@ -69,25 +69,25 @@ export async function setImportFrom(userId: string, from: Date): Promise<void> {
 		.values({ ...userOwned(userId), importFrom: from })
 		.onConflictDoUpdate({ target: importSettings.userId, set: { importFrom: from } });
 	await db
-		.delete(mpImportItems)
+		.delete(importItems)
 		.where(
 			and(
-				canAccessOwn(userId, mpImportItems),
-				eq(mpImportItems.status, 'pending'),
-				eq(mpImportItems.source, SOURCE.mercadoPago),
-				lt(mpImportItems.occurredAt, from)
+				canAccessOwn(userId, importItems),
+				eq(importItems.status, 'pending'),
+				eq(importItems.source, SOURCE.mercadoPago),
+				lt(importItems.occurredAt, from)
 			)
 		);
 	await withMatchLock(userId, () =>
 		db
-			.delete(mpImportItems)
+			.delete(importItems)
 			.where(
 				and(
-					canAccessOwn(userId, mpImportItems),
-					eq(mpImportItems.status, 'pending'),
-					like(mpImportItems.externalKey, ALERT_KEYS),
-					isNull(mpImportItems.aliasKey),
-					lt(mpImportItems.occurredAt, from)
+					canAccessOwn(userId, importItems),
+					eq(importItems.status, 'pending'),
+					like(importItems.externalKey, ALERT_KEYS),
+					isNull(importItems.aliasKey),
+					lt(importItems.occurredAt, from)
 				)
 			)
 	);

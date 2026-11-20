@@ -5,11 +5,10 @@
 	import { resolve } from '$app/paths';
 	import { thisMonth } from '#lib/dates.ts';
 	import { replaceGoto } from '#lib/nav-stack.svelte.ts';
-	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
+	import FilterDrawer from '#lib/components/FilterDrawer.svelte';
 	import DateRangePicker from '#lib/components/pickers/DateRangePicker.svelte';
 	import MultiPicker from '#lib/components/pickers/MultiPicker.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
-	import { Button } from '#lib/components/ui/button/index.js';
 
 	type Picks = ComponentProps<typeof MultiPicker>['items'];
 
@@ -114,7 +113,6 @@
 	};
 
 	const apply = () => {
-		open = false;
 		void replaceGoto(resolve(`movements?${query}`), { reset: false });
 	};
 
@@ -125,79 +123,42 @@
 	);
 </script>
 
-<BottomDrawer title="Filtros" bare bind:open>
-	<div class="scroll">
-		<span id="f-currency-label" class="visually-hidden">Moneda</span>
-		<SegmentedControl
-			name="currency"
-			options={currencyOptions}
-			bind:value={() => (stagedAccounts.length ? lockedCurrency : currency), (v) => (currency = v)}
-			labelledby="f-currency-label"
-			disabled={stagedAccounts.length > 0}
+<FilterDrawer bind:open applyLabel={viewLabel} onclear={clear} onapply={apply}>
+	<span id="f-currency-label" class="visually-hidden">Moneda</span>
+	<SegmentedControl
+		name="currency"
+		options={currencyOptions}
+		bind:value={() => (stagedAccounts.length ? lockedCurrency : currency), (v) => (currency = v)}
+		labelledby="f-currency-label"
+		disabled={stagedAccounts.length > 0}
+	/>
+	<span id="f-type-label" class="visually-hidden">Tipo</span>
+	<SegmentedControl name="type" options={typeOptions} bind:value={type} labelledby="f-type-label" />
+	<div class="group">
+		<DateRangePicker nested bind:from bind:to />
+		<MultiPicker
+			legend="Cuenta"
+			title="Cuenta"
+			plural="cuentas"
+			items={pickAccounts}
+			bind:value={stagedAccounts}
 		/>
-		<span id="f-type-label" class="visually-hidden">Tipo</span>
-		<SegmentedControl
-			name="type"
-			options={typeOptions}
-			bind:value={type}
-			labelledby="f-type-label"
+		<MultiPicker
+			legend="Categoría"
+			title="Categoría"
+			plural="categorías"
+			items={pickCategories}
+			bind:value={stagedCategories}
 		/>
-		<div class="group">
-			<DateRangePicker nested bind:from bind:to />
-			<MultiPicker
-				legend="Cuenta"
-				title="Cuenta"
-				plural="cuentas"
-				items={pickAccounts}
-				bind:value={stagedAccounts}
-			/>
-			<MultiPicker
-				legend="Categoría"
-				title="Categoría"
-				plural="categorías"
-				items={pickCategories}
-				bind:value={stagedCategories}
-			/>
-		</div>
 	</div>
-	<div class="actions">
-		<Button
-			type="button"
-			variant="outline"
-			class="h-[50px] min-w-0 flex-1 basis-0 rounded-full text-[15px] font-semibold"
-			onclick={clear}>Limpiar</Button
-		>
-		<Button
-			type="button"
-			class="h-[50px] min-w-0 flex-[2] basis-0 rounded-full text-[15px] font-semibold whitespace-nowrap"
-			onclick={apply}>{viewLabel}</Button
-		>
-	</div>
-</BottomDrawer>
+</FilterDrawer>
 
 <style>
-	/* The filters scroll; the actions stay pinned below them. */
-	.scroll {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-		min-height: 0;
-		overflow-y: auto;
-		padding: var(--space-1) var(--space-4) var(--space-4);
-	}
-
 	/* Rows of one card, like the movement form. */
 	.group {
 		overflow: hidden;
 		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-card);
-	}
-
-	.actions {
-		display: flex;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
-		background: var(--popover);
 	}
 </style>

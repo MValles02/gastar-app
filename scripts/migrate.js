@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
+import { ADVISORY_LOCK_ID, APP_TZ, normalizeDescription } from '../src/lib/shared/runtime.js';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -12,12 +13,9 @@ const client = postgres(databaseUrl, { max: 1 });
 const db = drizzle(client);
 
 // Session advisory lock: start-first deploys may run two migrators at once.
-const LOCK_ID = 727274001;
+const LOCK_ID = ADVISORY_LOCK_ID;
 const MIGRATIONS_FOLDER = './drizzle';
-const TZ = 'America/Argentina/Buenos_Aires';
-
-// Same as normalizeDescription in src/lib/server/recurring/link.ts (this script cannot import app code).
-const normalizeDescription = (s) => s.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+const TZ = APP_TZ;
 const daysInMonth = (ym) =>
 	new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)), 0)).getUTCDate();
 

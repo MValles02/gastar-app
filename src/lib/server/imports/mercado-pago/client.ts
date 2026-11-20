@@ -1,10 +1,26 @@
+import { obj } from '../json';
 import { mpApiBaseUrl } from './env';
 
 /** Stored in mp_sync_state.last_error: a code only, never a message or payload. */
 export type MpSyncError =
 	'auth' | 'report_timeout' | 'network' | 'parse' | 'config' | 'reconnect' | `mp_${number}`;
 
+/** What the inbox says after "No se pudo sincronizar" for each stored code. */
+const MP_ERROR_LABELS: Record<string, string> = {
+	auth: 'token inválido o vencido',
+	report_timeout: 'Mercado Pago tardó demasiado en generar el reporte',
+	network: 'sin conexión con Mercado Pago',
+	parse: 'reporte con formato inesperado',
+	config: 'revisá la cuenta configurada',
+	reconnect: 'hay que volver a vincular Mercado Pago'
+};
+
+/** The inbox label of a stored code; MP's HTTP errors (`mp_<status>`) name their status. */
+export const mpErrorLabel = (code: string) =>
+	MP_ERROR_LABELS[code] ?? `error ${code.replace(/^mp_/, '')} de Mercado Pago`;
+
 const HTTP_TIMEOUT_MS = 30_000;
+// Days, not hours: items from the old release-report sync carry day-start times, and dedupe makes overlap cheap.
 export const OVERLAP_DAYS = 3;
 const AMOUNT_RE = /^-?\d+(?:[.,]\d{1,2})?$/;
 
@@ -29,8 +45,6 @@ export const fail = (code: MpSyncError) => new MpError(code);
 /** The MpSyncError code of a thrown value; null for anything not raised by `fail`. */
 export const mpCode = (e: unknown) => (e instanceof MpError ? e.code : null);
 export const isAuthError = (e: unknown) => mpCode(e) === 'auth';
-export const obj = (v: unknown) =>
-	v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
 export const str = (v: unknown) =>
 	typeof v === 'string' || typeof v === 'number' ? String(v) : null;
 export const text = (v: unknown) => (typeof v === 'string' ? v.trim() || null : null);

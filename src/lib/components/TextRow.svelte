@@ -2,7 +2,6 @@
 	import type { Snippet } from 'svelte';
 	import { groupedAmount } from '#lib/amount-input.ts';
 
-	/** Inline form row: label left, borderless right-aligned input right (G6). */
 	let {
 		id,
 		name,

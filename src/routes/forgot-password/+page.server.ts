@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { auth } from '#lib/server/auth.ts';
-import { EMAIL_RE, ignoreApiError } from '#lib/server/auth-forms.ts';
+import { ignoreApiError, readEmail } from '#lib/server/auth-forms.ts';
 import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import type { Actions, RequestEvent } from './$types';
 
@@ -8,10 +8,11 @@ import type { Actions, RequestEvent } from './$types';
 // cannot be used to probe which emails exist. Every attempt is recorded.
 async function requestReset({ request, getClientAddress }: RequestEvent) {
 	const ip = getClientAddress();
-	const email = String((await request.formData()).get('email') ?? '').trim();
-	if (!EMAIL_RE.test(email)) return fail(400, { email, emailError: 'Email inválido.' });
+	const { email, emailError } = readEmail(await request.formData());
+	if (emailError) return fail(400, { email, emailError });
 
 	const key = email.toLowerCase();
+	// Rate limit policy (d): check both buckets, then record both even when blocked.
 	const blocked = isBlocked('resetRequestIp', ip) || isBlocked('resetRequestEmail', key);
 	record('resetRequestIp', ip);
 	record('resetRequestEmail', key);

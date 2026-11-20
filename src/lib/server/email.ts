@@ -1,5 +1,5 @@
-import { dev } from '$app/env';
 import * as env from '$app/env/private';
+import { isDevOrE2E } from '#lib/e2e.ts';
 
 type OutboxEntry = { id: number; to: string; subject: string; link: string };
 
@@ -26,7 +26,7 @@ export async function sendEmail(msg: {
 }): Promise<void> {
 	const key = env.RESEND_API_KEY;
 	if (!key) {
-		if (dev || import.meta.env.VITE_E2E === '1') {
+		if (isDevOrE2E) {
 			outbox.push({ id: nextId++, to: msg.to, subject: msg.subject, link: msg.link });
 			if (outbox.length > OUTBOX_MAX) outbox.shift();
 		}

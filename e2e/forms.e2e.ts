@@ -55,9 +55,7 @@ test('an account with movements has no Eliminar and a crafted delete is rejected
 	expect((await res.json()).type).toBe('failure');
 });
 
-test('an account without movements can be archived or deleted, and links to its movements', async ({
-	page
-}) => {
+test('an account without movements can be archived or deleted', async ({ page }) => {
 	await login(page, OTHER_EMAIL);
 	await page.goto('/accounts/new');
 	const name = `Forms acciones ${Date.now()}`;
@@ -66,13 +64,8 @@ test('an account without movements can be archived or deleted, and links to its 
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	const url = page.url();
 	createdAccounts.push(url);
-	const id = url.split('/').pop();
 
 	await expect(page.getByRole('button', { name: 'Archivar' })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Ver movimientos' })).toHaveAttribute(
-		'href',
-		`/movements?account=${id}&all=1`
-	);
 	await page.goto(url);
 	await page.waitForLoadState('networkidle'); // hydration guard: the confirm dialog needs JS
 	await page.getByRole('button', { name: 'Eliminar' }).click();

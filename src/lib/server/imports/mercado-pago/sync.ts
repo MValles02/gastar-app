@@ -5,20 +5,13 @@ import { financialAccounts, mpConnections, mpSyncState } from '../../db/schema';
 import { canAccessAccount, canAccessOwn } from '../../access';
 import { autoApprovePending } from '../approve';
 import { type ImportRow, ingestImportItems } from '../ingest';
+import { obj } from '../json';
 import { getChosenImportFrom } from '../settings';
-import { SOURCE } from '../sources';
+import { SOURCE } from '#lib/imports.ts';
+
 import { errorDetail, freshToken, leaseFree } from '../sync-kit';
 import { DAY_MS } from '#lib/dates.ts';
-import {
-	apiJson,
-	type Auth,
-	fail,
-	isAuthError,
-	mpCode,
-	type MpSyncError,
-	obj,
-	str
-} from './client';
+import { apiJson, type Auth, fail, isAuthError, mpCode, type MpSyncError, str } from './client';
 import { getAccessToken, refreshConnection } from './oauth';
 import { syncPayments } from './payments';
 import { syncReport } from './report';
@@ -26,7 +19,6 @@ import { MP_CURRENCY } from './settings';
 
 /** Refresh the token when it expires within this window (MP tokens last 180 days). */
 const REFRESH_WINDOW_MS = 30 * DAY_MS;
-export { leaseActive } from '../sync-kit';
 
 type Lease = {
 	userId: string;
@@ -116,12 +108,18 @@ async function paymentsStep(
 	ingest: Ingest
 ): Promise<void> {
 	const paid = await ingest(await syncPayments(l.accountId, l.userId, me, auth, l.floor, from));
-	// Progress for the inbox: payments are stored, the report is next (if any).
 	await progress(l.accountId, { phase: report ? 'report' : 'payments', newItems: paid });
 }
 
 async function reportStep(l: Lease, auth: Auth, from: Date | undefined, ingest: Ingest) {
-	const r = await syncReport(l.accountId, l.syncedUntil, auth, l.floor, from);
+	const r = await syncReport(
+		l.accountId,
+		l.syncedUntil,
+		auth,
+		l.floor,
+		() => progress(l.accountId, { runningSince: sql`now()` }),
+		from
+	);
 	const added = await ingest(r.rows);
 	await progress(l.accountId, {
 		newItems: sql`coalesce(${mpSyncState.newItems}, 0) + ${added}`

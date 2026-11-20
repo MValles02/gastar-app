@@ -18,12 +18,13 @@ import {
 } from 'drizzle-orm/pg-core';
 // Relative imports only: drizzle-kit loads this file outside SvelteKit, so the #lib alias does not resolve.
 import { MONTH_RE } from '../../dates';
-import { SOURCE_LABELS } from '../../imports';
+import { CARD_NETWORKS, CARD_TYPES, GALICIA_SOURCE, KIND, SOURCE } from '../../imports';
 import { CURRENCIES } from '../../money';
-import { MOVEMENT_TYPES } from '../../movement';
+import { MOVEMENT_TYPES, type CategoryKind } from '../../movement';
 import { MAX_DAY_OF_MONTH, SAVINGS_PERCENT_MAX } from '../../plan';
 
-// --- Better Auth core tables (email+password only) ---
+const inList = (xs: readonly string[]) => sql.raw(xs.map((x) => `'${x}'`).join(', '));
+
 // Generated with `npx @better-auth/cli generate` against better-auth 1.7.6.
 
 export const user = pgTable('user', {
@@ -111,8 +112,6 @@ export const accountRelations = relations(account, ({ one }) => ({
 	user: one(user, { fields: [account.userId], references: [user.id] })
 }));
 
-// --- Finance domain tables (see docs/data-model.md) ---
-
 export const currencyEnum = pgEnum('currency', CURRENCIES);
 export const movementTypeEnum = pgEnum('movement_type', MOVEMENT_TYPES);
 
@@ -150,7 +149,7 @@ export const categories = pgTable(
 		color: text('color'),
 		icon: text('icon'),
 		// NULL = both income and outcome.
-		kind: movementTypeEnum('kind'),
+		kind: movementTypeEnum('kind').$type<CategoryKind>(),
 		archivedAt: timestamp('archived_at', { withTimezone: true }),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp('updated_at', { withTimezone: true })
@@ -185,6 +184,8 @@ export const recurringMovements = pgTable(
 		// Amount before the last change that came from a linked charge; NULL otherwise.
 		previousAmount: bigint('previous_amount', { mode: 'number' }),
 		archivedAt: timestamp('archived_at', { withTimezone: true }),
+		// Installment rule: its last month ('YYYY-MM'); NULL = no end. A non-null rule never follows linked charges.
+		endsMonth: varchar('ends_month', { length: 7 }),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp('updated_at', { withTimezone: true })
 			.defaultNow()
@@ -193,6 +194,10 @@ export const recurringMovements = pgTable(
 	},
 	(table) => [
 		index('recurring_movements_user_id_idx').on(table.userId),
+		check(
+			'recurring_movements_ends_month_check',
+			sql`${table.endsMonth} IS NULL OR ${table.endsMonth} ~ ${sql.raw(`'${MONTH_RE.source}'`)}`
+		),
 		check('recurring_movements_amount_positive_check', sql`${table.amount} > 0`),
 		check(
 			'recurring_movements_previous_amount_positive_check',
@@ -330,8 +335,6 @@ export const movements = pgTable(
 	]
 );
 
-// --- Mercado Pago import staging (see docs/data-model.md) ---
-
 export const importStatusEnum = pgEnum('import_status', ['pending', 'approved', 'rejected']);
 export const importRuleMatchKindEnum = pgEnum('import_rule_match_kind', [
 	'counterparty',
@@ -339,7 +342,7 @@ export const importRuleMatchKindEnum = pgEnum('import_rule_match_kind', [
 	'kind'
 ]);
 
-export const mpImportItems = pgTable(
+export const importItems = pgTable(
 	'mp_import_items',
 	{
 		id: uuid('id').defaultRandom().primaryKey(),
@@ -358,7 +361,8 @@ export const mpImportItems = pgTable(
 		// Exact net amount in minor units; direction is `isCredit`.
 		amount: bigint('amount', { mode: 'number' }).notNull(),
 		isCredit: boolean('is_credit').notNull(),
-		sourceId: text('source_id').notNull(),
+		// Null when the source has no id (e.g. Galicia taxes/adjustments, lines without a comprobante).
+		sourceId: text('source_id'),
 		rawDescription: text('raw_description').notNull(),
 		counterpartyId: text('counterparty_id'),
 		counterpartyNickname: text('counterparty_nickname'),
@@ -367,6 +371,12 @@ export const mpImportItems = pgTable(
 		poiType: text('poi_type'),
 		// Card statements: the cuota as printed (`05/12`) of an installment line; null otherwise.
 		installment: text('installment'),
+		// Galicia Mastercard alert of a purchase in N cuotas (N >= 2): the item is its first cuota and approving it creates a fixed payment.
+		installments: smallint('installments'),
+		// The fixed payment an approved installment item created (or, for a later cuota line, belongs to).
+		recurringId: uuid('recurring_id').references(() => recurringMovements.id, {
+			onDelete: 'set null'
+		}),
 		// Card alert and statement line of one purchase: the key of the other side of the match (one item for both).
 		aliasKey: text('alias_key'),
 		// "No apareció en el resumen": the user chose to keep an unmatched alert item.
@@ -392,21 +402,18 @@ export const mpImportItems = pgTable(
 		),
 		check('mp_import_items_amount_positive_check', sql`${table.amount} > 0`),
 		check(
-			'mp_import_items_kind_check',
-			sql`${table.kind} IN ('payment', 'account_fund', 'yield', 'payout', 'merchant_payout', 'refund', 'other', 'card_purchase', 'card_installment', 'card_taxes', 'card_adjustment')`
+			'mp_import_items_installments_check',
+			sql`${table.installments} IS NULL OR ${table.installments} >= 2`
 		),
+		check('mp_import_items_kind_check', sql`${table.kind} IN (${inList(Object.values(KIND))})`),
 		check(
 			'mp_import_items_source_check',
-			sql`${table.source} IN (${sql.raw(
-				Object.keys(SOURCE_LABELS)
-					.map((s) => `'${s}'`)
-					.join(', ')
-			)})`
+			sql`${table.source} IN (${inList(Object.values(SOURCE))})`
 		)
 	]
 );
 
-export const mpImportRules = pgTable(
+export const importRules = pgTable(
 	'mp_import_rules',
 	{
 		id: uuid('id').defaultRandom().primaryKey(),
@@ -565,7 +572,7 @@ export const cardStatements = pgTable(
 		),
 		check(
 			'card_statements_source_check',
-			sql`${table.source} IN ('galicia_visa', 'galicia_mastercard')`
+			sql`${table.source} IN (${inList(Object.values(GALICIA_SOURCE))})`
 		)
 	]
 );
@@ -599,9 +606,9 @@ export const importCards = pgTable(
 			table.network,
 			table.last4
 		),
-		check('import_cards_network_check', sql`${table.network} IN ('visa')`),
+		check('import_cards_network_check', sql`${table.network} IN (${inList(CARD_NETWORKS)})`),
 		check('import_cards_last4_check', sql`${table.last4} ~ '^[0-9]{4}$'`),
-		check('import_cards_type_check', sql`${table.type} IN ('credit', 'debit')`)
+		check('import_cards_type_check', sql`${table.type} IN (${inList(CARD_TYPES)})`)
 	]
 );
 
@@ -623,9 +630,11 @@ export const cardAlerts = pgTable(
 		amount: bigint('amount', { mode: 'number' }).notNull(),
 		foreign: boolean('foreign').notNull(),
 		transactionType: text('transaction_type').notNull(),
+		// The purchase's installment count (cuotas) when the alert says it (Mastercard); null for Visa.
+		installments: smallint('installments'),
 		receivedAt: timestamp('received_at', { withTimezone: true }).notNull(),
 		// The item this alert became; null while it waits (unknown or credit card) or after the item is gone.
-		importItemId: uuid('import_item_id').references(() => mpImportItems.id, {
+		importItemId: uuid('import_item_id').references(() => importItems.id, {
 			onDelete: 'set null'
 		}),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
@@ -633,9 +642,10 @@ export const cardAlerts = pgTable(
 	(table) => [
 		uniqueIndex('card_alerts_user_id_gmail_message_id_idx').on(table.userId, table.gmailMessageId),
 		index('card_alerts_user_id_network_last4_idx').on(table.userId, table.network, table.last4),
-		check('card_alerts_network_check', sql`${table.network} IN ('visa')`),
+		check('card_alerts_network_check', sql`${table.network} IN (${inList(CARD_NETWORKS)})`),
 		check('card_alerts_last4_check', sql`${table.last4} ~ '^[0-9]{4}$'`),
-		check('card_alerts_currency_check', sql`${table.currency} IN ('ARS', 'USD')`),
-		check('card_alerts_amount_positive_check', sql`${table.amount} > 0`)
+		check('card_alerts_currency_check', sql`${table.currency} IN (${inList(CURRENCIES)})`),
+		check('card_alerts_amount_positive_check', sql`${table.amount} > 0`),
+		check('card_alerts_installments_check', sql`${table.installments} >= 1`)
 	]
 );

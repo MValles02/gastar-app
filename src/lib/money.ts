@@ -21,11 +21,21 @@ export const CURRENCY_OPTIONS: { value: Currency; label: string }[] = CURRENCIES
 	label: CURRENCY_LABEL[value]
 }));
 
+/** Currency a user starts in (Home, lists, filters) and the first of CURRENCIES. */
+export const DEFAULT_CURRENCY: Currency = 'ARS';
+
+/** Symbol printed before an amount; no space after it. */
+export const CURRENCY_SYMBOL = { ARS: '$', USD: 'US$' } as const satisfies Record<Currency, string>;
+
+export const isCurrency = (value: unknown): value is Currency =>
+	CURRENCIES.some((c) => c === value);
+
 /** Exchange rates are quoted in this currency ("1 USD = X ARS"). */
 export const RATE_CURRENCY = 'ARS' satisfies Currency;
 
-/** Narrows a stored or posted value to a Currency: 'USD' is USD, anything else ARS. */
-export const toCurrency = (value: unknown): Currency => (value === 'USD' ? 'USD' : 'ARS');
+/** Narrows a stored or posted value to a Currency: 'USD' is USD, anything else the default currency. */
+export const toCurrency = (value: unknown): Currency =>
+	isCurrency(value) ? value : DEFAULT_CURRENCY;
 
 const intFmt = new Intl.NumberFormat(LOCALE);
 
@@ -44,8 +54,7 @@ export function formatMoney(cents: number, currency: Currency): string {
 	const abs = Math.round(Math.abs(cents) / step) * step;
 	const int = intFmt.format(Math.trunc(abs / 100));
 	const dec = currency === 'USD' ? `,${String(abs % 100).padStart(2, '0')}` : '';
-	const symbol = currency === 'USD' ? 'US$' : '$';
-	return `${symbol}${int}${dec}`;
+	return `${CURRENCY_SYMBOL[currency]}${int}${dec}`;
 }
 
 export const ARS_WHOLE_MESSAGE = 'Los montos en pesos van sin decimales.';

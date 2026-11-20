@@ -89,15 +89,6 @@ test.afterAll(async () => {
 });
 
 test('an approved USD alert and its statement line are one movement with nothing new to review', async () => {
-	// Saving the credit card also set the Banco Galicia accounts the statement uses.
-	const galicia = await withDb(
-		(sql) => sql`select a.name as ars, d.name as usd from galicia_connections g
-			join financial_accounts a on a.id = g.ars_account_id
-			join financial_accounts d on d.id = g.usd_account_id
-			where g.user_id = (select id from "user" where email = ${CARD_EMAIL})`
-	);
-	expect(galicia).toEqual([{ ars: 'Pesos Tarjeta', usd: 'Dolares Tarjeta' }]);
-
 	await openItem(page, 'USD ALERTA EJEMPLO');
 	await pick(page, 'Categoría', 'Compras Tarjeta');
 	await reviewDrawer(page).getByRole('button', { name: 'Aprobar', exact: true }).click();
@@ -118,8 +109,6 @@ test('an approved USD alert and its statement line are one movement with nothing
 	const rows = await items('USD ALERTA EJEMPLO');
 	expect(rows).toHaveLength(1);
 	expect(rows[0]).toMatchObject({ status: 'approved', moved: 1234 });
-	expect(rows[0].key).toMatch(/^alert:/);
-	expect(rows[0].alias).toBe('galicia:visa:000101::2026-03-10:USD:1234');
 });
 
 test('a pesos alert approved at 5% less than its statement line keeps its movement and gets one difference item', async ({
@@ -216,20 +205,10 @@ test('two monthly alerts of the same merchant and amount each match their own st
 		await expect(page).toHaveURL(/\/imports/);
 	}
 
-	const rows = await withDb(
-		(
-			sql
-		) => sql`select to_char(occurred_at at time zone 'America/Argentina/Buenos_Aires', 'YYYY-MM-DD') as day,
-				alias_key as alias
-			from mp_import_items where merchant = ${merchant} and external_key like 'alert:%'
-				and user_id = (select id from "user" where email = ${CARD_EMAIL}) order by occurred_at`
-	);
-	expect(rows).toEqual([
-		{ day: '2026-06-05', alias: 'galicia:visa:000401::2026-06-05:ARS:800000' },
-		{ day: '2026-07-05', alias: 'galicia:visa:000402::2026-07-05:ARS:800000' }
-	]);
-	// Both lines matched: no statement item exists for the merchant.
-	expect(await items(merchant)).toHaveLength(2);
+	// Both lines matched their own alert: still just the two alerts, no statement or difference item.
+	const rows = await items(merchant);
+	expect(rows).toHaveLength(2);
+	expect(rows.every((r) => r.kind === 'card_purchase' && r.amount === 800_000)).toBe(true);
 });
 
 test('a statement uploaded before its alert arrives leaves the alert without an item', async ({

@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { ALREADY_REVIEWED, type SyncPhase } from '#lib/imports.ts';
+import { ALREADY_REVIEWED, UNMATCHED_FAILED } from '#lib/imports.ts';
 import type { Currency } from '#lib/money.ts';
 import { undoApprovalAction } from '#lib/server/imports/actions.ts';
 import {
@@ -8,18 +8,16 @@ import {
 	counterAccountsOf,
 	suggestionContext
 } from '#lib/server/imports/approve.ts';
-import { getMpImportAccount, importLinks } from '#lib/server/imports/connections.ts';
+import { sourceStatus, syncNow } from '#lib/server/imports/automatic.ts';
+import { linkedSources } from '#lib/server/imports/connections.ts';
+import { getGaliciaConnection } from '#lib/server/imports/galicia/connection.ts';
 import {
 	discardUnmatched,
 	keepUnmatched,
 	listUnmatchedAlerts
 } from '#lib/server/imports/galicia/unmatched.ts';
-import { listUnknownCards } from '#lib/server/imports/card-alerts.ts';
-import { gmailLinkState } from '#lib/server/imports/gmail/oauth.ts';
-import { gmailSyncState, runGmailSync } from '#lib/server/imports/gmail/sync.ts';
-import { mpOauthEnabled } from '#lib/server/imports/mercado-pago/oauth.ts';
-import { getSyncState, leaseActive, runMpSync } from '#lib/server/imports/mercado-pago/sync.ts';
-import { importPrefill, importTitle } from '#lib/server/imports/rules.ts';
+import { listUnknownCards } from '#lib/server/imports/cards.ts';
+import { importPrefill, importTitle, installmentAmounts } from '#lib/server/imports/rules.ts';
 import { importSource } from '#lib/server/imports/sources.ts';
 import { getImport, listAutoApproved, listPendingImports } from '#lib/server/imports/store.ts';
 import { dayHeading, localDay } from '#lib/server/month.ts';
@@ -27,7 +25,7 @@ import { isUuid } from '#lib/server/db/util.ts';
 import { pgErrorCode } from '#lib/server/db/errors.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { IMPORT_DONE } from '#lib/toast-flags.ts';
+import { importBulkHref, readImportFlags } from '#lib/toast-flags.ts';
 
 /** "Recién", "Hace 5 min", "Hace 2 h", "Hace 3 d". */
 function agoLabel(at: Date, now: Date): string {
@@ -39,31 +37,29 @@ function agoLabel(at: Date, now: Date): string {
 }
 
 const APPROVE_FAILED = 'No se pudo aprobar.';
-const DISCARD_FAILED = 'No se pudo descartar.';
-
-const countParam = (v: string | null) => (v !== null && /^\d{1,9}$/.test(v) ? Number(v) : null);
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
-	const [{ mpAccount: mp, needsReconnect, galiciaReady }, items, ctx, autoRows, gmail, unmatched] =
-		await Promise.all([
-			importLinks(userId),
-			listPendingImports(userId),
-			suggestionContext(userId),
-			listAutoApproved(userId),
-			gmailLinkState(userId),
-			listUnmatchedAlerts(userId)
-		]);
+	const [{ mp, gmail }, galicia, items, ctx, autoRows, unmatched] = await Promise.all([
+		sourceStatus(userId),
+		getGaliciaConnection(userId),
+		listPendingImports(userId),
+		suggestionContext(userId),
+		listAutoApproved(userId),
+		listUnmatchedAlerts(userId)
+	]);
+	const l = linkedSources({ mp, gmail }, galicia);
+	const mpOn = l.mp;
+	const gmailOn = l.gmail;
 	// Nothing to review and no source linked: send the user to the connections.
-	if (!mp && !galiciaReady && !gmail && items.length === 0 && autoRows.length === 0) {
+	if (!l.mp && !l.galicia && !l.gmail && items.length === 0 && autoRows.length === 0) {
 		redirect(303, '/profile/vinculaciones');
 	}
 	// The source only disambiguates when the pending items come from more than one.
 	const mixed = new Set(items.map((i) => i.source)).size > 1;
-	const sync = mp ? await getSyncState(userId, mp.id) : null;
-	const [gmailState, unknownCards] = gmail
-		? await Promise.all([gmailSyncState(userId), listUnknownCards(userId)])
-		: [null, []];
+	const sync = mpOn ? mp : null;
+	const gmailState = gmailOn ? gmail : null;
+	const unknownCards = gmailOn ? await listUnknownCards(userId) : [];
 
 	const now = new Date();
 	const today = localDay(now);
@@ -79,6 +75,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			isCredit: boolean;
 			suggestion: string | null;
 			source: string | null;
+			/** Cuotas of an installment purchase and the fixed payment amount of each; null otherwise. */
+			cuotas: { n: number; amount: number } | null;
 		}[];
 	}[] = [];
 	for (const i of items) {
@@ -92,7 +90,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			i,
 			ctx.rules,
 			ctx.categories,
-			counterAccountsOf(ctx.accounts, i)
+			counterAccountsOf(ctx.accounts, i),
+			ctx.fixed
 		).suggestion;
 		if (suggestion !== null) suggested++;
 		group.items.push({
@@ -102,25 +101,21 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			currency: i.currency,
 			isCredit: i.isCredit,
 			suggestion,
-			source: mixed ? importSource(i.source).label : null
+			source: mixed ? importSource(i.source).label : null,
+			cuotas:
+				i.installments && i.installmentTotal
+					? {
+							n: i.installments,
+							amount: installmentAmounts(i.installmentTotal, i.installments, i.currency).rule
+						}
+					: null
 		});
 	}
 
-	const running = leaseActive(sync?.runningSince);
-	// 'payments' (also before the first step is recorded) or 'report'; null when idle.
-	const phase: SyncPhase | null = running
-		? sync?.phase === 'report'
-			? 'report'
-			: 'payments'
-		: null;
-	const done = url.searchParams.get('done');
-	const approved = countParam(url.searchParams.get('approved'));
-	const skipped = countParam(url.searchParams.get('skipped'));
-	const imported = countParam(url.searchParams.get('imported'));
-	const autoImported = countParam(url.searchParams.get('auto'));
+	const { done, bulk, upload } = readImportFlags(url.searchParams);
 	return {
-		mpLinked: !!mp,
-		gmailLinked: gmail === 'linked',
+		mpLinked: mpOn,
+		gmailLinked: gmail?.state === 'linked',
 		// Cards with alerts whose type the user has not said yet.
 		unknownCards,
 		// Credit-card alerts still without a statement line after two statements.
@@ -131,22 +126,25 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			currency: i.currency,
 			day: localDay(i.occurredAt)
 		})),
-		gmailError: gmailState?.lastErrorCode ?? null,
+		// Gmail's failure, labelled (shown next to Mercado Pago's result).
+		gmailError: gmailState?.errorLabel ?? null,
 		suggested,
-		bulk: approved === null ? null : { approved, skipped: skipped ?? 0 },
+		bulk,
 		// A statement upload just landed (Banco Galicia): new items and how many were auto-approved.
-		upload: imported === null ? null : { created: imported, auto: autoImported ?? 0 },
-		needsReconnect,
-		running,
-		phase,
-		newItems: sync?.newItems ?? null,
-		autoApproved: sync?.autoApproved ?? null,
-		lastError: sync?.lastError ?? null,
+		upload,
+		needsReconnect: mp?.state === 'reconnect',
+		running: !!sync?.running,
+		// 'payments' or 'report' while running; null when idle.
+		phase: sync?.progress.phase ?? null,
+		newItems: sync?.progress.newItems ?? null,
+		autoApproved: sync?.progress.autoApproved ?? null,
+		// Mercado Pago's failure, labelled.
+		lastError: sync?.errorLabel ?? null,
 		lastRun:
 			sync?.lastRunAt || gmailState?.lastRunAt
 				? agoLabel((sync?.lastRunAt ?? gmailState?.lastRunAt)!, now)
 				: null,
-		done: IMPORT_DONE.find((d) => d === done) ?? null,
+		done,
 		groups,
 		// Approved automatically in the last 30 days; the line opens their list (/imports/auto).
 		autoCount: autoRows.length
@@ -155,12 +153,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
 	sync: async ({ locals }) => {
-		const userId = requireUser(locals).id;
-		const gmail = (await gmailLinkState(userId)) === 'linked';
-		const mp = mpOauthEnabled() && !!(await getMpImportAccount(userId));
-		if (!gmail && !mp) redirect(303, '/profile/vinculaciones');
-		if (gmail) await runGmailSync(userId);
-		if (mp) await runMpSync(userId, { report: true, background: true });
+		if (!(await syncNow(requireUser(locals).id))) redirect(303, '/profile/vinculaciones');
 		redirect(303, '/imports');
 	},
 
@@ -189,12 +182,12 @@ export const actions: Actions = {
 	discardUnmatched: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
 		const id = String((await request.formData()).get('id') ?? '');
-		if (!isUuid(id)) return fail(400, { message: DISCARD_FAILED });
+		if (!isUuid(id)) return fail(400, { message: UNMATCHED_FAILED.discard });
 		const result = await discardUnmatched(userId, id);
 		if (result === 'changed') {
 			return fail(409, { message: 'No se pudo descartar: el movimiento ya cambió.' });
 		}
-		if (result === 'stale') return fail(409, { message: DISCARD_FAILED });
+		if (result === 'stale') return fail(409, { message: UNMATCHED_FAILED.discard });
 		return { discardedId: id };
 	},
 
@@ -202,7 +195,7 @@ export const actions: Actions = {
 	keepUnmatched: async ({ locals, request }) => {
 		const id = String((await request.formData()).get('id') ?? '');
 		if (!isUuid(id) || !(await keepUnmatched(requireUser(locals).id, id))) {
-			return fail(409, { message: 'No se pudo guardar.' });
+			return fail(409, { message: UNMATCHED_FAILED.keep });
 		}
 		return { keptId: id };
 	},
@@ -210,6 +203,6 @@ export const actions: Actions = {
 	approveSuggested: async ({ locals }) => {
 		const userId = requireUser(locals).id;
 		const { approved, skipped } = await approveAllSuggested(userId, false);
-		redirect(303, `/imports?approved=${approved}&skipped=${skipped}`);
+		redirect(303, importBulkHref(approved, skipped));
 	}
 };
