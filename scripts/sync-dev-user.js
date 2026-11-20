@@ -1,8 +1,9 @@
 // Copies one prod user's financial data over the same-email user on dev (daily, via a Dokploy Schedule).
-// Plain JS with no app imports (like migrate.js). Never prints error messages, URLs, emails or row values.
+// Plain JS; shares only src/lib/shared/runtime.js with the app. Never prints error messages, URLs, emails or row values.
 import postgres from 'postgres';
+import { ADVISORY_LOCK_ID, LOCAL_EMAIL_DOMAIN } from '../src/lib/shared/runtime.js';
 
-const LOCK_ID = 727274001; // same id as migrate.js
+const LOCK_ID = ADVISORY_LOCK_ID; // same id as migrate.js
 const STALE = '15 minutes';
 
 // Parents first. Second item: the scope column; null = scoped through spending_plans.
@@ -67,7 +68,7 @@ try {
 } catch {
 	abort('config invalid url');
 }
-if (devEmail.endsWith('@gastar.local')) abort('guard target email');
+if (devEmail.endsWith(LOCAL_EMAIL_DOMAIN)) abort('guard target email');
 
 // onnotice: false, because notices carry detail text.
 const src = postgres(prodUrl, {

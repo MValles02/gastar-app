@@ -2,7 +2,9 @@
 export const NAME_MAX_LENGTH = 40;
 export const DESCRIPTION_MAX_LENGTH = 60;
 export const USER_NAME_MAX_LENGTH = 80;
-export const PASSWORD_MIN_LENGTH = 8;
+import { PASSWORD_MIN_LENGTH } from '#lib/shared/runtime.js';
+
+export { PASSWORD_MIN_LENGTH };
 export const PASSWORD_MAX_LENGTH = 128;
 
 /** "La descripción puede tener hasta 60 caracteres." style message. */

@@ -5,6 +5,7 @@
 	import { submitAction } from '#lib/autosave.ts';
 	import IconBadge from '#lib/components/IconBadge.svelte';
 	import Money from '#lib/components/Money.svelte';
+	import type { Currency } from '#lib/money.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import { undoToast } from '#lib/undo-toast.ts';
 
@@ -19,7 +20,7 @@
 			id: string;
 			title: string;
 			amount: number;
-			currency: 'ARS' | 'USD';
+			currency: Currency;
 			isCredit: boolean;
 			suggestion: string | null;
 			/** Where it came from, only when the inbox mixes sources. */

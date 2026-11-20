@@ -2,8 +2,7 @@ import { randomUUID } from 'node:crypto';
 import readline from 'node:readline';
 import { hashPassword } from 'better-auth/crypto';
 import postgres from 'postgres';
-
-const MIN_PASSWORD_LENGTH = 8;
+import { PASSWORD_MIN_LENGTH } from '../src/lib/shared/runtime.js';
 
 const [, , rawEmail, rawName] = process.argv;
 const email = rawEmail?.trim().toLowerCase();
@@ -39,8 +38,8 @@ function promptPassword(query) {
 
 const password = await promptPassword('Password: ');
 
-if (password.length < MIN_PASSWORD_LENGTH) {
-	console.error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+if (password.length < PASSWORD_MIN_LENGTH) {
+	console.error(`Password must be at least ${PASSWORD_MIN_LENGTH} characters.`);
 	process.exit(1);
 }
 

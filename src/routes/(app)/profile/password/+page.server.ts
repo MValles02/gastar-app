@@ -22,6 +22,7 @@ export const load: PageServerLoad = async ({ locals }) => ({
 export const actions: Actions = {
 	save: async ({ request, locals }) => {
 		const userId = requireUser(locals).id;
+		// Rate limit policy (b): count only failures.
 		if (isBlocked('changePassword', userId)) {
 			return formFail(429, { formError: tooManyAttempts('rato') });
 		}

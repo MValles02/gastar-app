@@ -12,6 +12,7 @@ async function requestReset({ request, getClientAddress }: RequestEvent) {
 	if (!EMAIL_RE.test(email)) return fail(400, { email, emailError: 'Email inválido.' });
 
 	const key = email.toLowerCase();
+	// Rate limit policy (d): check both buckets, then record both even when blocked.
 	const blocked = isBlocked('resetRequestIp', ip) || isBlocked('resetRequestEmail', key);
 	record('resetRequestIp', ip);
 	record('resetRequestEmail', key);
