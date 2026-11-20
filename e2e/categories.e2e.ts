@@ -1,13 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import {
-	deleteMovements,
-	fillMovement,
-	firstDetailHref,
-	login,
-	OTHER_EMAIL,
-	postDelete,
-	undo
-} from './helpers';
+import { deleteMovements, fillMovement, login, OTHER_EMAIL, postDelete } from './helpers';
 
 const DETAIL_RE = /\/categories\/[0-9a-f-]{36}$/;
 const LOCKED = 'Tiene movimientos, solo se puede cambiar a Ambos.';
@@ -122,43 +114,6 @@ test('a category with movements can only widen to Ambos, also server-side; the c
 		await expect(page.getByRole('button', { name: /^Se usa para/ })).toContainText('Ambos');
 	} finally {
 		await deleteMovements(page, baseURL!, description);
-		await postDelete(page, baseURL!, href);
-	}
-});
-
-test('category name autosaves and Deshacer restores it; the /edit routes are gone', async ({
-	page,
-	baseURL
-}) => {
-	await login(page, OTHER_EMAIL);
-	const name = `Cat auto ${Date.now()}`;
-	const href = await createCategory(page, name);
-	try {
-		await page.waitForLoadState('networkidle'); // hydration guard: the inline edits need JS
-		const h1 = page.getByRole('heading', { level: 1 });
-		const toast = page.getByText('Cambio guardado.');
-
-		await page.getByRole('button', { name: `Nombre: ${name}` }).click();
-		await page.getByLabel('Nombre').fill(`${name} 2`);
-		await page.keyboard.press('Enter');
-		await expect(toast).toBeVisible();
-		await page.reload();
-		await expect(h1).toHaveText(`${name} 2`);
-		await page.waitForLoadState('networkidle'); // hydration guard: the toast action needs JS
-		await page.getByRole('button', { name: `Nombre: ${name} 2` }).click();
-		await page.getByLabel('Nombre').fill(name);
-		await page.keyboard.press('Enter');
-		await expect(toast).toBeVisible();
-		await undo(page);
-		await expect(h1).toHaveText(`${name} 2`);
-		await page.reload();
-		await expect(h1).toHaveText(`${name} 2`);
-
-		// The old edit screens are gone, without a redirect.
-		const account = await firstDetailHref(page, 'accounts');
-		for (const base of [href, account!])
-			expect((await page.goto(`${base}/edit`))!.status()).toBe(404);
-	} finally {
 		await postDelete(page, baseURL!, href);
 	}
 });

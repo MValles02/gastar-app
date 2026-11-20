@@ -8,7 +8,7 @@
 // &currency=&type=&foreign=&dkim=pass|fail[&date=<ISO>][&listed=date] (adds a synthetic Visa alert, dated now or at `date`; the
 // listing goes by arrival, so a backdated alert is still listed after the cursor, unless `listed=date`: then it is
 // listed at `date`, as real Gmail's `after:` goes by the message date; `network=mastercard[&cuotas=N]` makes it a
-// Banco Galicia Mastercard alert instead, `amount` then in es-AR form like "1.234,56"), /__fake/mailbox-reset?email=.
+// Banco Galicia Mastercard alert instead, `amount` then in es-AR form like "1.234,56").
 // The global reset leaves mailboxes and access tokens alone, so a spec resetting it does not disturb another.
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
@@ -209,10 +209,6 @@ createServer(async (req, res) => {
 		});
 		mailboxes.set(to, list);
 		return send(res, 200, { id });
-	}
-	if (path === '/__fake/mailbox-reset') {
-		mailboxes.delete(url.searchParams.get('email') || DEFAULT_EMAIL);
-		return send(res, 200, { ok: true });
 	}
 	if (path.startsWith('/gmail/v1/users/me/messages')) {
 		const token = (req.headers.authorization ?? '').replace(/^Bearer /, '');

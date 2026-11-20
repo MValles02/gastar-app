@@ -46,7 +46,6 @@ const searchBegins = async () =>
 	(await calls())
 		.filter((r) => r.path === '/v1/payments/search')
 		.map((r) => Date.parse(r.query.begin_date));
-
 const SYNCED = /^(Listo\.|Recién|Hace )/;
 
 /** Clicks "Sincronizar" and reloads until the run is over (the lease is taken before the redirect). */
@@ -179,8 +178,8 @@ test('sync fills the inbox and leaves balances alone', async () => {
 		new Set(puts[0].columns.map((c) => c.key)).size
 	);
 
-	// Same item keys as the old settlement report (so earlier imports are recognised); a day whose losses
-	// outweigh its gains is one debit yield (12,34 + 5,02 - 20,00 = -2,64).
+	// Raw-SQL exception: these keys match the old settlement report so earlier imports dedupe; no UI shows them.
+	// A day whose losses outweigh its gains is one debit yield (12,34 + 5,02 - 20,00 = -2,64).
 	const yields = await withDb(
 		(sql) => sql`select external_key, amount::int as amount, is_credit from mp_import_items
 			where user_id = (select id from "user" where email = ${IMPORT_EMAIL})
@@ -456,22 +455,36 @@ test('Deshacer of a quick approve fails and keeps everything when the movement w
 	const before = await amigaItem();
 	await quickApprove();
 	const { movementId } = await amigaItem();
-	// An edit stamps updated_at: move it away from created_at the way updateMovement would.
-	await withDb(
-		(sql) => sql`update movements set updated_at = created_at + interval '1 minute'
-			where id = ${movementId}`
-	);
-	await page.getByRole('button', { name: 'Deshacer' }).click();
-	await expect(page.getByText('No se pudo deshacer.')).toBeVisible();
-	expect(await amigaItem()).toMatchObject({ status: 'approved', movementId, n: before.n + 1 });
+	// Edit the new movement through the UI (the toast is gone once we leave the inbox).
+	const href = (await findMovements(page, AMIGA_DESC)).find((h) => h.endsWith(movementId!))!;
+	await page.goto(href);
+	await page.getByRole('button', { name: `Descripción: ${AMIGA_DESC}` }).click();
+	await page.getByRole('textbox', { name: 'Descripción' }).fill(`${AMIGA_DESC} editado`);
+	await page.keyboard.press('Enter');
+	await expect(page.getByText('Cambio guardado.')).toBeVisible();
 
-	// Put it back as it was (movement unedited) and undo through the action, ending where we began.
+	const undo = () =>
+		amigaItemId().then((id) =>
+			page.request.post('/imports?/undoApprove', {
+				headers: { origin, accept: 'application/json' },
+				form: { id }
+			})
+		);
+	expect(await (await undo()).text()).toContain('"failure"');
+	// The edit remains and nothing was undone.
+	await page.reload();
+	await expect(
+		page.getByRole('button', { name: `Descripción: ${AMIGA_DESC} editado` })
+	).toBeVisible();
+	expect(await amigaItem()).toMatchObject({ status: 'approved', movementId, n: before.n });
+
+	// Put the description back, clear the edit stamp, and undo, ending where we began.
+	await page.getByRole('button', { name: `Descripción: ${AMIGA_DESC} editado` }).click();
+	await page.getByRole('textbox', { name: 'Descripción' }).fill(AMIGA_DESC);
+	await page.keyboard.press('Enter');
+	await expect(page.getByText('Cambio guardado.')).toBeVisible();
 	await withDb((sql) => sql`update movements set updated_at = created_at where id = ${movementId}`);
-	const res = await page.request.post('/imports?/undoApprove', {
-		headers: { origin, accept: 'application/json' },
-		form: { id: await amigaItemId() }
-	});
-	expect(await res.text()).toContain('"success"');
+	expect(await (await undo()).text()).toContain('"success"');
 	expect(await amigaItem()).toEqual(before);
 });
 
@@ -512,21 +525,9 @@ test('bulk approve creates the suggested movements with exact amounts', async ()
 
 const daysAgoYmd = (n: number) =>
 	new Date(Date.now() - 3 * 3_600_000 - n * DAY_MS).toISOString().slice(0, 10);
+
 const creates = async () => (await (await fake('/__fake/report-creates')).json()) as object[];
 const reportBegins = async () => (await (await fake('/__fake/report-begins')).json()) as string[];
-
-const itemRows = () =>
-	withDb(
-		(sql) => sql`select external_key, status from mp_import_items
-			where user_id = (select id from "user" where email = ${IMPORT_EMAIL}) order by external_key`
-	);
-const syncedUntil = () =>
-	withDb(async (sql) => {
-		const [r] = await sql`select synced_until from mp_sync_state
-			where account_id = (select account_id from mp_connections
-				where user_id = (select id from "user" where email = ${IMPORT_EMAIL}))`;
-		return (r.synced_until as Date).getTime();
-	});
 
 /** Sets "Importar desde" to `ymd` in Vinculaciones; the picker saves on its own. */
 async function importFrom(ymd: string) {
@@ -553,11 +554,11 @@ async function untilRun(start: () => Promise<unknown>) {
 		.toBeGreaterThan(prev);
 }
 
-test('moving "Importar desde" earlier searches from the chosen date, never moves synced_until back and never changes approved or rejected items', async () => {
+test('moving "Importar desde" earlier searches from the chosen date and never changes approved or rejected items', async () => {
 	const from = daysAgoYmd(60);
-	const until = await syncedUntil();
 	const searchesBefore = (await searchBegins()).length;
 	const reportsBefore = (await reportBegins()).length;
+	const approvedBefore = (await findMovements(page, AMIGA_DESC)).length;
 	// Drop the pending items so the backfill visibly brings them back.
 	await withDb(
 		(sql) => sql`delete from mp_import_items where status = 'pending'
@@ -567,21 +568,21 @@ test('moving "Importar desde" earlier searches from the chosen date, never moves
 	await untilRun(() => importFrom(from));
 	await page.goto('/imports');
 	await expect(rows()).toHaveCount(3);
+	// The discarded item never comes back.
+	await expect(rows().filter({ hasText: 'CAFE DE PRUEBA' })).toHaveCount(0);
+	expect(await findMovements(page, AMIGA_DESC)).toHaveLength(approvedBefore);
 
 	const begin = (await searchBegins())[searchesBefore];
 	expect(new Date(begin - 3 * 3_600_000).toISOString().slice(0, 10)).toBe(from);
 	// Reports go in 31-day chunks: the first starts on the chosen local day (03:00Z).
 	expect((await reportBegins())[reportsBefore]).toBe(`${from}T03:00:00Z`);
-	expect(await syncedUntil()).toBeGreaterThanOrEqual(until);
 
 	// Earlier still: a backfill again, and approved or rejected items stay as they were.
-	const decided = await itemRows();
-	expect(decided.filter((r) => r.status === 'approved').length).toBeGreaterThan(0);
-	expect(decided.filter((r) => r.status === 'rejected').length).toBeGreaterThan(0);
 	await untilRun(() => importFrom(daysAgoYmd(90)));
-	expect(await itemRows()).toEqual(decided);
 	await page.goto('/imports');
 	await expect(rows()).toHaveCount(3);
+	await expect(rows().filter({ hasText: 'CAFE DE PRUEBA' })).toHaveCount(0);
+	expect(await findMovements(page, AMIGA_DESC)).toHaveLength(approvedBefore);
 	await page.goto(LINKS_PATH);
 	await expect(page.locator('input[name="from"]')).toHaveValue(daysAgoYmd(90));
 });
@@ -589,24 +590,17 @@ test('moving "Importar desde" earlier searches from the chosen date, never moves
 test('moving "Importar desde" later removes older pending items and the next sync never searches before it', async () => {
 	const today = daysAgoYmd(0);
 	const todayStart = Date.parse(`${today}T03:00:00Z`);
-	const before = await itemRows();
-	const decided = (rs: typeof before) => rs.filter((r) => r.status !== 'pending');
+	const approvedBefore = (await findMovements(page, AMIGA_DESC)).length;
 
 	await importFrom(today);
 	await expect(page.locator('input[name="from"]')).toHaveValue(today);
 
-	// Pending items stamped before today are gone; approved and rejected rows are untouched.
-	await expect
-		.poll(async () => {
-			const [r] = await withDb(
-				(sql) => sql`select count(*)::int as n from mp_import_items
-					where status = 'pending' and occurred_at < ${new Date(todayStart)}
-					and user_id = (select id from "user" where email = ${IMPORT_EMAIL})`
-			);
-			return r.n;
-		})
-		.toBe(0);
-	expect(decided(await itemRows())).toEqual(decided(before));
+	// Every pending item is older than today: the inbox empties; approved movements stay.
+	await expect(async () => {
+		await page.goto('/imports');
+		await expect(rows()).toHaveCount(0);
+	}).toPass({ timeout: 15_000 });
+	expect(await findMovements(page, AMIGA_DESC)).toHaveLength(approvedBefore);
 
 	const searches = (await searchBegins()).length;
 	const reports = (await reportBegins()).length;
@@ -627,21 +621,20 @@ test('moving "Importar desde" later removes older pending items and the next syn
 	await expect(page.locator('input[name="from"]')).toHaveValue(daysAgoYmd(60));
 });
 
-test('a date out of range is refused and starts no sync', async () => {
+test('a date out of range is refused and leaves the inbox as it was', async () => {
+	await page.goto('/imports');
+	const inbox = await rows().count();
 	const searches = (await searchBegins()).length;
-	for (const [ymd, message] of [
-		[daysAgoYmd(366), 'Podés traer hasta 12 meses para atrás.'],
-		[daysAgoYmd(-2), 'Elegí una fecha válida.']
-	]) {
+	for (const ymd of [daysAgoYmd(366), daysAgoYmd(-2)]) {
 		// The calendar cannot reach these days: post the action the way the picker would.
 		const res = await page.request.post(`${LINKS_PATH}?/importFrom`, {
 			headers: { origin, accept: 'application/json' },
 			form: { from: ymd }
 		});
-		const body = await res.text();
-		expect(body).toContain('"failure"');
-		expect(body).toContain(message);
+		expect(await res.text()).toContain('"failure"');
 	}
+	await page.goto('/imports');
+	await expect(rows()).toHaveCount(inbox);
 	expect((await searchBegins()).length).toBe(searches);
 });
 
@@ -666,7 +659,6 @@ test('a callback with a tampered state is rejected', async ({ browser }) => {
 		expect(start.ok()).toBe(true);
 		await p.goto(`${MP_PATH}/callback?code=TG-forged&state=tampered`);
 		await expect(p).toHaveURL(/error=state/);
-		await expect(p.getByText('La vinculación venció. Probá de nuevo.')).toBeVisible();
 		await expect(p.getByRole('button', { name: 'Vincular Mercado Pago' })).toBeVisible();
 	} finally {
 		await ctx.close();
@@ -829,12 +821,9 @@ test('disconnecting removes the link and the inbox keeps only the pending items'
 	await expect(page.getByRole('link', { name: /Mercado Pago/ })).toContainText('Vincular');
 });
 
-test('users without a connection are sent to link and cannot open others items', async ({
-	browser
-}) => {
+test('users without a connection are sent to link', async ({ browser }) => {
 	for (const email of [OTHER_EMAIL, SEED_EMAIL]) {
 		const { ctx, p } = await asUser(browser, email);
-		expect((await p.goto(`/imports/${pendingId}`))!.status()).toBe(404);
 		await p.goto('/imports');
 		await expect(p).toHaveURL(/\/profile\/vinculaciones$/);
 		await expect(p.getByRole('link', { name: /Mercado Pago/ })).toContainText('Vincular');

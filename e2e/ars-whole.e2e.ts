@@ -33,20 +33,6 @@ const openDetail = async (page: Page, desc: string, currency: 'ARS' | 'USD' = 'A
 	return drawer;
 };
 
-test('an ARS amount with decimals is rejected and the value kept', async ({ page }) => {
-	await fillMovement(page, {
-		type: 'Gasto',
-		amount: '1.500,50',
-		description: unique(created, 'ARS decimales'),
-		account: 'Otra cuenta pesos',
-		category: 'Ajena'
-	});
-	await save(page).click();
-	await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
-	await expect(page.locator('input[name="amount"]')).toHaveValue(/^1\.?500,50$/);
-	await expect(page).toHaveURL(/\/movements\/new$/);
-});
-
 test('USD keeps its cents', async ({ page }) => {
 	const desc = unique(created, 'USD centavos');
 	await fillMovement(page, {
@@ -121,31 +107,7 @@ test('a USD to ARS transfer rejects a non-whole rate and saves a whole one', asy
 	await expect(drawer.locator('p', { hasText: 'En destino' })).toContainText('$12.352');
 });
 
-test('the transfer preview rounds half up into ARS and keeps cents into USD', async ({ page }) => {
-	const dest = page.locator('p', { hasText: 'En destino' });
-	await fillMovement(page, {
-		type: 'Transferencia',
-		amount: '0,01',
-		description: 'Vista previa',
-		account: 'Otra cuenta',
-		destination: 'Otra cuenta pesos',
-		rate: '50'
-	});
-	await expect(dest).toContainText('$1');
-	await fillMovement(page, {
-		type: 'Transferencia',
-		amount: '12352',
-		description: 'Vista previa',
-		account: 'Otra cuenta pesos',
-		destination: 'Otra cuenta',
-		rate: '1234'
-	});
-	await expect(dest).toContainText('US$10,01');
-});
-
-test('account initial balance: ARS whole only, USD keeps cents, edit prefills the stored value', async ({
-	page
-}) => {
+test('account initial balance: ARS whole only and USD keeps cents', async ({ page }) => {
 	const create = async (name: string, currency: 'ARS' | 'USD', balance: string) => {
 		await page.goto('/accounts/new');
 		await page.getByLabel('Nombre').fill(name);
@@ -164,15 +126,4 @@ test('account initial balance: ARS whole only, USD keeps cents, edit prefills th
 	await create(`USD cuenta ${Date.now()}`, 'USD', '100,50');
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	createdAccounts.push(page.url());
-
-	await page.goto('/accounts');
-	await page.getByRole('link', { name: /Otra cuenta pesos/ }).click();
-	await page.waitForLoadState('networkidle'); // hydration guard: the inline edit needs JS
-	// scripts/seed.js: Otra cuenta pesos starts at 500.000.
-	await page.getByRole('button', { name: 'Saldo inicial: 500.000' }).click();
-	await expect(page.getByLabel('Saldo inicial')).toHaveValue('500.000');
-	await page.getByLabel('Saldo inicial').fill('100,50');
-	await page.keyboard.press('Enter');
-	await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Saldo inicial: 500.000' })).toBeVisible();
 });

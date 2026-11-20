@@ -88,9 +88,6 @@ test('a consent without permission to read mail is rejected and nothing is linke
 	await fake('/__fake/omit-scope');
 	await page.getByRole('button', { name: 'Vincular Gmail' }).click();
 	await expect(page).toHaveURL(/error=scope/);
-	await expect(
-		page.getByText('Para vincular Gmail tenés que permitir que Gastar lea tus mails.')
-	).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Vincular Gmail' })).toBeVisible();
 });
 

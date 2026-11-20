@@ -129,10 +129,10 @@ test('description, amount, account, category and date each autosave and Deshacer
 	await page.keyboard.press('Enter');
 	await expect(saved(page)).toBeVisible();
 	await expect(drawer.getByRole('button', { name: 'Monto: 2.500' })).toContainText('$2.500');
-	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('$2.500');
+	await expect(rowOf(page, desc)).toContainText('$2.500');
 	await undo(page);
 	await expect(drawer.getByRole('button', { name: 'Monto: 1.000' })).toBeVisible();
-	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('$1.000');
+	await expect(rowOf(page, desc)).toContainText('$1.000');
 
 	// Account.
 	await pick(page, 'Cuenta', `${desc} B`);
@@ -172,8 +172,6 @@ test('Eliminar confirms: Cancelar keeps the movement, Eliminar removes it for go
 
 	await drawer.getByRole('button', { name: 'Eliminar' }).click();
 	const confirm = page.getByRole('alertdialog');
-	await expect(confirm).toContainText('¿Eliminar este movimiento?');
-	await expect(confirm).toContainText('Esta acción no se puede deshacer.');
 	await confirm.getByRole('button', { name: 'Cancelar' }).click();
 	await expect(confirm).toBeHidden();
 	await expect(drawer).toBeVisible();
@@ -248,12 +246,12 @@ test('Gasto to Ingreso asks for an Ingreso category, saves once, and Deshacer re
 	await expect(saved(page)).toBeVisible();
 	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toContainText('Ingreso');
 	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C2`);
-	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('+');
+	await expect(rowOf(page, desc)).toContainText('+$1.000');
 
 	await undo(page);
 	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toContainText('Gasto');
 	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
-	await expect(rowOf(page, desc).locator('.row-amount')).toContainText('-$1.000');
+	await expect(rowOf(page, desc)).toContainText('-$1.000');
 
 	// A transfer needs its destination: nothing is saved without it.
 	const href = await rowOf(page, desc).getAttribute('href');

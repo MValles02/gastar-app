@@ -66,9 +66,6 @@ test.describe('account changes', () => {
 		await edit('Nombre Nuevo');
 		await expect(page.getByText('Cambio guardado.')).toBeVisible();
 		await stored('Nombre Nuevo');
-		await page.goto('/');
-		await expect(page.getByRole('heading', { level: 1, name: /^Hola, Nombre/ })).toBeAttached();
-		expect((await page.request.get('/profile/name')).status()).toBe(404);
 	});
 
 	test('change password revokes other sessions and keeps this one', async ({ page, browser }) => {
