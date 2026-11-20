@@ -27,8 +27,8 @@ async function detailOf(userId: string, id: string) {
 	const [account] = await getAccount(userId, id);
 	if (!account) notFound();
 	const [sums, ins] = await Promise.all([
-		accountOriginSums(userId, account.id),
-		accountTransfersIn(userId, account.id)
+		accountOriginSums(userId, { id: account.id }),
+		accountTransfersIn(userId, { id: account.id })
 	]);
 	const [{ balance }] = withBalances([account], sums, ins);
 	const { archivedAt, ...rest } = account;

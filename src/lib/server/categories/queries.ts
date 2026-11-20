@@ -7,6 +7,7 @@ import { escapeLike } from '../db/util';
 import { inRange, isIncomeOrOutcome, sumOfType, type Range } from '../db/sql';
 import type { CategoryData } from './form';
 import { CURRENCIES, type Currency } from '#lib/money.ts';
+import { CATEGORY_KINDS, KIND_LABEL, type CategoryKind } from '#lib/movement.ts';
 
 export function listCategories(
 	userId: string,
@@ -185,4 +186,37 @@ export function setCategoryArchived(userId: string, id: string, at: Date | null)
 		.set({ archivedAt: at })
 		.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
 		.returning({ id: categories.id });
+}
+
+const KIND_GROUPS = [
+	...CATEGORY_KINDS.map((k) => [k, KIND_LABEL[k]] as const),
+	[null, 'Ambos'] as const
+];
+
+/** Categories grouped by kind, each group sorted by the biggest month amount in `sortBy`. */
+export function categoryGroups<C extends { id: string; name: string; kind: CategoryKind | null }>(
+	categories: C[],
+	totals: { categoryId: string | null; currency: Currency; outcome: number; income: number }[],
+	sortBy: Currency
+) {
+	// Month net (income - outcome) per category and currency, computed at read time.
+	const nets = new Map<string, { ARS?: number; USD?: number }>();
+	for (const t of totals) {
+		const row = nets.get(t.categoryId!) ?? {};
+		row[t.currency] = t.income - t.outcome;
+		nets.set(t.categoryId!, row);
+	}
+	const withTotals = categories.map((c) => ({ ...c, totals: nets.get(c.id) ?? {} }));
+	return KIND_GROUPS.map(([k, label]) => ({
+		key: k ?? 'both',
+		label,
+		// Biggest month amount first (absolute net of the selected currency; Ambas sorts by pesos).
+		categories: withTotals
+			.filter((c) => c.kind === k)
+			.sort(
+				(a, b) =>
+					Math.abs(b.totals[sortBy] ?? 0) - Math.abs(a.totals[sortBy] ?? 0) ||
+					a.name.localeCompare(b.name)
+			)
+	})).filter((g) => g.categories.length > 0);
 }

@@ -154,7 +154,7 @@ export function parseMovementForm(fd: FormData): MovementFormResult {
 }
 
 type AccountRef = { id: string; currency: Currency; archivedAt: Date | null };
-type CategoryRef = { id: string; archivedAt: Date | null; kind: MovementType | null };
+type CategoryRef = { id: string; archivedAt: Date | null; kind: CategoryKind | null };
 
 export function resolveMovement(
 	data: MovementData,
@@ -194,8 +194,8 @@ export function resolveMovement(
 				kindFor: own ? undefined : data.type
 			});
 			if (error === 'archived') errors.categoryId = MSG.archivedCategory;
-			else if (error === 'kind')
-				errors.categoryId = MSG.kindMismatch[category.kind as CategoryKind];
+			else if (error === 'kind' && category.kind)
+				errors.categoryId = MSG.kindMismatch[category.kind];
 		}
 		if (Object.keys(errors).length > 0) return { ok: false, errors };
 		return {

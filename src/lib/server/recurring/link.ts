@@ -33,6 +33,27 @@ export function ruleAmountFor(
 		: null;
 }
 
+/** The latest month (`YYYY-MM`) with a movement linked to the rule, optionally ignoring one movement. */
+async function latestLinkedMonth(
+	tx: DbExecutor,
+	userId: string,
+	ruleId: string,
+	exceptMovementId?: string
+): Promise<string | null> {
+	const [{ latest }] = await tx
+		.select({ latest: sql<string | null>`max(${localMonth})` })
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.where(
+			and(
+				eq(movements.recurringId, ruleId),
+				exceptMovementId ? ne(movements.id, exceptMovementId) : undefined,
+				canAccessMovement(userId)
+			)
+		);
+	return latest;
+}
+
 /** Locks the user's rules `ids` in id order (one order everywhere, so two relinks cannot deadlock). */
 export async function lockRules(tx: DbExecutor, userId: string, ids: string[]) {
 	await tx
@@ -71,13 +92,7 @@ export async function unlinkRevert(tx: DbExecutor, userId: string, id: string) {
 		.for('update');
 	if (!rule || rule.previousAmount === null || rule.amount !== roundToStep(m.amount, m.currency))
 		return;
-	const [{ latest }] = await tx
-		.select({ latest: sql<string | null>`max(${localMonth})` })
-		.from(movements)
-		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.where(
-			and(eq(movements.recurringId, m.recurringId), ne(movements.id, id), canAccessMovement(userId))
-		);
+	const latest = await latestLinkedMonth(tx, userId, m.recurringId, id);
 	if (latest !== null && latest >= localDay(m.occurredAt).slice(0, 7)) return;
 	// Another linked charge with the same amount still backs the rule's current amount.
 	const others = await tx
@@ -162,11 +177,7 @@ export async function linkRuleFor(
 		.sort((a, b) => dist(a) - dist(b) || a.dayOfMonth - b.dayOfMonth || (a.id < b.id ? -1 : 1))[0];
 	if (!rule) return null;
 
-	const [{ latest }] = await tx
-		.select({ latest: sql<string | null>`max(${localMonth})` })
-		.from(movements)
-		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.where(and(eq(movements.recurringId, rule.id), canAccessMovement(userId)));
+	const latest = await latestLinkedMonth(tx, userId, rule.id);
 	const amount = ruleAmountFor(m, account.currency, rule, ym, latest);
 	if (amount !== null)
 		await tx

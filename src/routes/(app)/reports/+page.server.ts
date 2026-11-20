@@ -1,5 +1,4 @@
 import type { PageServerLoad } from './$types';
-import { categoryLook, type CategoryIconKey } from '#lib/appearance.ts';
 import { preferredCurrency } from '#lib/server/currency-pref.ts';
 import { hasAccounts } from '#lib/server/accounts/balance.ts';
 import { accountSummary } from '#lib/server/accounts/queries.ts';
@@ -16,7 +15,7 @@ import {
 	shortMonth
 } from '#lib/server/month.ts';
 import { requireUser } from '#lib/server/guards.ts';
-import { rankSpending } from '#lib/server/categories/spending.ts';
+import { categorySlices } from '#lib/server/categories/spending.ts';
 
 const FLOW_MONTHS = 6;
 /** Categories listed as their own row; the rest are summed into "Otros". */
@@ -63,7 +62,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		net: month.income - month.outcome,
 		dailyAverage: Math.round(month.outcome / days),
 		days,
-		slices: categorySlices(cats),
+		slices: categorySlices(cats, TOP_CATEGORIES),
 		biggest: biggest
 			? {
 					id: biggest.id,
@@ -75,46 +74,3 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 			: null
 	};
 };
-
-type CategorySum = {
-	id: string;
-	name: string;
-	color: string | null;
-	icon: string | null;
-	outcome: number;
-	income: number;
-};
-
-/** Net spending per category (integer cents), the top TOP_CATEGORIES plus "Otros". */
-function categorySlices(cats: CategorySum[]) {
-	const { top, rest, total: totalSpent } = rankSpending(cats, TOP_CATEGORIES);
-	const slices = top.map((c) => {
-		const look = categoryLook(c);
-		return {
-			id: c.id,
-			name: c.name,
-			color: look.color,
-			icon: look.icon as CategoryIconKey | null,
-			amount: c.net
-		};
-	});
-	if (rest > 0) slices.push({ id: 'other', name: 'Otros', color: null, icon: null, amount: rest });
-
-	const percents = wholePercents(
-		slices.map((s) => s.amount),
-		totalSpent
-	);
-	return slices.map((s, i) => ({ ...s, percent: percents[i] }));
-}
-
-/** Largest-remainder rounding on integer cents so the shown percentages sum to 100. */
-function wholePercents(amounts: number[], total: number): number[] {
-	const percents = amounts.map((a) => Math.floor((a * 100) / total));
-	let left = amounts.length > 0 ? 100 - percents.reduce((a, p) => a + p, 0) : 0;
-	[...amounts.keys()]
-		.sort((i, j) => ((amounts[j] * 100) % total) - ((amounts[i] * 100) % total) || i - j)
-		.forEach((i) => {
-			if (left-- > 0) percents[i]++;
-		});
-	return percents;
-}

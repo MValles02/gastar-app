@@ -260,6 +260,15 @@ export async function limitCandidates(userId: string, planId: string | null) {
 	return categories.filter((c) => c.kind !== 'income' && !limited.has(c.id));
 }
 
+/** Limit candidates with their suggested monthly limit per currency. */
+export async function limitOptions(userId: string, planId: string | null) {
+	const [candidates, suggestions] = await Promise.all([
+		limitCandidates(userId, planId),
+		limitSuggestions(userId)
+	]);
+	return candidates.map((c) => ({ ...c, suggested: suggestions.get(c.id) ?? { ARS: 0, USD: 0 } }));
+}
+
 export async function limitView(userId: string, categoryId: string) {
 	const plan = await requirePlan(userId);
 	const limit = await requireLimit(userId, plan.id, categoryId);

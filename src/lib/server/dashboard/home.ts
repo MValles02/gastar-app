@@ -1,15 +1,14 @@
 import { categoryLook, type CategoryIconKey, type SwatchKey } from '#lib/appearance.ts';
 import { CURRENCY_NAME, type Currency } from '#lib/money.ts';
-import { accountSummary } from '../accounts/queries';
+import { accountOriginSums, accountSummary, accountTransfersIn } from '../accounts/queries';
 import { hasAccounts, monthNet, totalBalance } from '../accounts/balance';
 import { rankSpending } from '../categories/spending';
 import { toRecentItem } from '../movements/recent';
-import { categorySums, originTypeSums, recentMovements, transfersInSum } from './queries';
-import { hasAnyMovement } from '../movements/queries';
+import { categorySums } from './queries';
+import { hasAnyMovement, recentMovements } from '../movements/queries';
 import { hasAnyPlan } from '../plan/queries';
 import { currentMonth, dayHeading, localDay, monthLabel, monthRange } from '../month';
 import { planView } from '../plan/month-plan';
-import { importsPending } from '../imports/connections';
 
 const TOP_CATEGORIES = 3;
 
@@ -28,11 +27,10 @@ type TopCategory = ReturnType<typeof topCategories>[number] & {
 export async function homeView(userId: string, currency: Currency, now: Date) {
 	const value = currentMonth(now);
 	const range = monthRange(value);
-	const [summary, anyMovement, anyPlan, mpPendingCount] = await Promise.all([
+	const [summary, anyMovement, anyPlan] = await Promise.all([
 		accountSummary(userId),
 		hasAnyMovement(userId),
-		hasAnyPlan(userId),
-		importsPending(userId)
+		hasAnyPlan(userId)
 	]);
 	const hasAnyAccount = hasAccounts(summary);
 	const row = summary.find((s) => s.currency === currency);
@@ -47,9 +45,7 @@ export async function homeView(userId: string, currency: Currency, now: Date) {
 		/** Done state of the first-run checklist steps. */
 		steps: { account: hasAnyAccount, movement: hasMovement, plan: hasPlan },
 		firstRunDone: hasAnyAccount && hasMovement && hasPlan,
-		currencyWord: CURRENCY_NAME[currency],
-		/** Pending Mercado Pago items; null when not linked or the feature is off. */
-		mpPending: mpPendingCount
+		currencyWord: CURRENCY_NAME[currency]
 	};
 
 	if (!hasCurrencyAccount) {
@@ -64,9 +60,9 @@ export async function homeView(userId: string, currency: Currency, now: Date) {
 	}
 
 	const [allSums, inSum, monthSums, cats, recent, plan] = await Promise.all([
-		originTypeSums(userId, currency),
-		transfersInSum(userId, currency),
-		originTypeSums(userId, currency, range),
+		accountOriginSums(userId, { currency }),
+		accountTransfersIn(userId, { currency }),
+		accountOriginSums(userId, { currency, range }),
 		categorySums(userId, currency, range),
 		recentMovements(userId, currency),
 		planView(userId)
@@ -76,7 +72,11 @@ export async function homeView(userId: string, currency: Currency, now: Date) {
 
 	return {
 		...base,
-		balance: totalBalance(row?.initial ?? 0, allSums, inSum[0]?.amount ?? 0),
+		balance: totalBalance(
+			row?.initial ?? 0,
+			allSums,
+			inSum.reduce((n, t) => n + t.amount, 0)
+		),
 		monthNet: monthNet(monthSums),
 		plan: {
 			endedMonthName: plan.endedMonthName,

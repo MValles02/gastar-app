@@ -1,11 +1,6 @@
 import { formFail } from '#lib/form.ts';
 import { formatAmountInput, parseAmount, type Currency } from '#lib/money.ts';
-import {
-	type CategoryKind,
-	MOVEMENT_MESSAGES as MSG,
-	type MovementType,
-	refError
-} from '#lib/movement.ts';
+import { MOVEMENT_MESSAGES as MSG, type MovementType, refError } from '#lib/movement.ts';
 import { MAX_DAY_OF_MONTH } from '#lib/plan.ts';
 import { getAccount } from '../accounts/queries';
 import { getCategory } from '../categories/queries';
@@ -122,8 +117,8 @@ export async function readRecurringForm(
 			kindFor: keptCategory ? undefined : parsed.data.type
 		});
 	if (!category || categoryError === 'archived') errors.categoryId = 'Elegí una categoría activa.';
-	else if (categoryError === 'kind')
-		errors.categoryId = kindMismatchMessage(category.kind as CategoryKind);
+	else if (categoryError === 'kind' && category.kind)
+		errors.categoryId = kindMismatchMessage(category.kind);
 	if (Object.keys(errors).length > 0)
 		return { failure: formFail(400, { values: parsed.values, errors }) };
 	return { data: parsed.data };
