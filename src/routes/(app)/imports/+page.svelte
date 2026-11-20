@@ -7,7 +7,7 @@
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import { afterNavigate, refreshAll } from '$app/navigation';
-	import { ALREADY_REVIEWED, cardNetworkName } from '#lib/imports.ts';
+	import { ALREADY_REVIEWED, cardNetworkName, UNMATCHED_FAILED } from '#lib/imports.ts';
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
 	import { IMPORT_FLAGS } from '#lib/toast-flags.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -182,7 +182,7 @@
 								/>
 							</span>
 						</div>
-						{#each [{ action: 'discardUnmatched', label: 'Descartar', failed: 'No se pudo descartar.' }, { action: 'keepUnmatched', label: 'Dejar', failed: 'No se pudo guardar.' }] as a (a.action)}
+						{#each [{ action: 'discardUnmatched', label: 'Descartar', failed: UNMATCHED_FAILED.discard }, { action: 'keepUnmatched', label: 'Dejar', failed: UNMATCHED_FAILED.keep }] as a (a.action)}
 							<form
 								method="POST"
 								action="?/{a.action}"

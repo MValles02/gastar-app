@@ -3,6 +3,7 @@
 
 import type { CardNetwork } from '#lib/imports.ts';
 import type { Currency } from '#lib/money.ts';
+import { obj } from '../json';
 
 export const PURCHASE = 'Compra';
 /** The stored type of a "COMPRA REVERSADA" alert: it cancels an earlier purchase (see convertWaitingAlerts). */
@@ -34,8 +35,11 @@ export type CardAlertResult =
 export const IGNORED = { status: 'ignored' } as const;
 export const INVALID = { status: 'invalid' } as const;
 
-export const obj = (v: unknown) =>
-	v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
+/** One card network's alert parser and the senders whose mail it reads. */
+export type AlertParser = {
+	senders: readonly string[];
+	parse: (message: unknown) => CardAlertResult;
+};
 
 export type Header = { name: string; value: string };
 

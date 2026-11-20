@@ -3,8 +3,8 @@ import { canAccessOwn } from '../access';
 import { db } from '../db';
 import { cardAlerts, importCards, importItems } from '../db/schema';
 import { pgErrorCode } from '../db/errors';
-import { activeAccountsIn } from './connections';
-import { getGaliciaConnection } from './galicia/connection';
+import { currencyAccountOptions } from './connections';
+import { accountsFor, getGaliciaConnection } from './galicia/connection';
 import { matchWaitingAlerts } from './galicia/matching';
 import { type ImportRow, ingestImportItems } from './ingest';
 import { alertKey, alertKeySql } from './keys';
@@ -13,13 +13,11 @@ import { getChosenImportFrom } from './settings';
 import { PURCHASE, REVERSAL } from './gmail/alert-mail';
 import type { Currency } from '#lib/money.ts';
 import {
-	CARD_NETWORK_RULES,
+	CARD_NETWORK,
 	CARD_NETWORKS,
-	GALICIA_SOURCE,
 	KIND,
 	type CardNetwork,
-	type SourceId,
-	isCardNetwork
+	type SourceId
 } from '#lib/imports.ts';
 
 /**
@@ -48,27 +46,20 @@ async function convertLocked(userId: string) {
 	const { matched, failed } = await matchCreditPurchases(userId, waitingLive);
 
 	// Only the user's own active accounts can receive an item.
-	const [ars, usd] = await Promise.all([
-		activeAccountsIn(userId, 'ARS'),
-		activeAccountsIn(userId, 'USD')
-	]);
-	const usable = new Set([...ars, ...usd].map((a) => a.id));
+	const { arsAccounts, usdAccounts } = await currencyAccountOptions(userId);
+	const usable = new Set([...arsAccounts, ...usdAccounts].map((a) => a.id));
 	const rowsBySource = new Map<SourceId, ImportRow[]>();
 	for (const a of waitingLive) {
 		if (matched.has(a.messageId)) continue;
 		// Without a matching result, a credit purchase must not be inserted next to a statement item.
-		if (
-			a.type === 'credit' &&
-			a.transactionType === PURCHASE &&
-			failed.has(a.network as CardNetwork)
-		)
-			continue;
-		const accounts = a.type === 'credit' ? galicia : a;
+		if (a.type === 'credit' && a.transactionType === PURCHASE && failed.has(a.network)) continue;
+		const accounts = accountsFor(a, galicia);
 		const accountId = a.currency === 'ARS' ? accounts?.arsAccountId : accounts?.usdAccountId;
 		if (!accountId || !usable.has(accountId)) continue;
-		if (!isCardNetwork(a.network)) continue;
 		const source =
-			a.type === 'credit' ? GALICIA_SOURCE[a.network] : CARD_NETWORK_RULES[a.network].debitSource;
+			a.type === 'credit'
+				? CARD_NETWORK[a.network].credit.source
+				: CARD_NETWORK[a.network].debit?.source;
 		if (!source) continue;
 		const rows = rowsBySource.get(source) ?? [];
 		rowsBySource.set(source, rows);
@@ -128,11 +119,7 @@ async function matchCreditPurchases(userId: string, alerts: Waiting[]) {
 		);
 		if (purchases.length === 0) continue;
 		try {
-			const ids = await matchWaitingAlerts(
-				userId,
-				GALICIA_SOURCE[network],
-				purchases.map((a) => ({ ...a, currency: a.currency as Currency }))
-			);
+			const ids = await matchWaitingAlerts(userId, CARD_NETWORK[network].credit.source, purchases);
 			for (const id of ids) matched.add(id);
 		} catch (e) {
 			failed.add(network);
@@ -159,8 +146,7 @@ async function settleReversals(userId: string, waiting: Waiting[]) {
 	const credit = new Set<string>();
 	const mine = waiting.filter(
 		(a) =>
-			isCardNetwork(a.network) &&
-			CARD_NETWORK_RULES[a.network].reversals &&
+			CARD_NETWORK[a.network].reversals &&
 			(a.transactionType === PURCHASE || a.transactionType === REVERSAL)
 	);
 	if (mine.length === 0) return { skip, credit };
@@ -246,9 +232,10 @@ const waitingAlerts = (userId: string, fromFloor: SQL | undefined) =>
 	db
 		.select({
 			messageId: cardAlerts.gmailMessageId,
-			network: cardAlerts.network,
+			// The DB checks both columns to hold one of these values.
+			network: sql<CardNetwork>`${cardAlerts.network}`,
 			last4: cardAlerts.last4,
-			currency: cardAlerts.currency,
+			currency: sql<Currency>`${cardAlerts.currency}`,
 			amount: cardAlerts.amount,
 			merchant: cardAlerts.merchant,
 			transactionType: cardAlerts.transactionType,

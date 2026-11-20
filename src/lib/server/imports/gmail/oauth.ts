@@ -5,10 +5,9 @@ import { db } from '../../db';
 import { account, gmailConnections } from '../../db/schema';
 import { GOOGLE_PROVIDER_ID } from '../../reauth';
 import { callbackUrl, type OAuthLink, pkce } from '../oauth-link';
-import { decryptToken as decryptWith, encryptToken as encryptWith } from '../token-crypto';
+import { requestToken as postToken, TOKEN_TIMEOUT_MS, tokenStore } from '../oauth-tokens';
 import { gmailApiBaseUrl, gmailAuthBaseUrl } from './env';
 
-const TOKEN_TIMEOUT_MS = 15_000;
 const SCOPE_READONLY = 'https://www.googleapis.com/auth/gmail.readonly';
 
 // Gmail has its own Google Cloud client and key: never the sign-in GOOGLE_* client or Better Auth.
@@ -18,12 +17,6 @@ const LINK_PATH = '/profile/gmail';
 export function gmailOauthEnabled(): boolean {
 	return !!(env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET && env.GMAIL_TOKEN_KEY);
 }
-
-// Tokens: AES-256-GCM with GMAIL_TOKEN_KEY (format in ../token-crypto.ts).
-const encryptToken = (plain: string, userId: string) =>
-	encryptWith(plain, userId, env.GMAIL_TOKEN_KEY);
-const decryptToken = (stored: string, userId: string) =>
-	decryptWith(stored, userId, env.GMAIL_TOKEN_KEY);
 
 const redirectUri = (origin: string) => callbackUrl(LINK_PATH, origin);
 
@@ -56,59 +49,33 @@ async function startAuthorization(origin: string, user: { id: string; email: str
 	return { state, verifier, url: `${gmailAuthBaseUrl()}/o/oauth2/v2/auth?${params}` };
 }
 
-type TokenGrant = {
-	accessToken: string;
-	refreshToken: string | null;
-	expiresAt: Date;
-	scope: string;
-	idToken: string | null;
-};
-
-type TokenResult =
-	| { ok: true; grant: TokenGrant }
-	// 'invalid_grant': Google answered 400 invalid_grant (revoked, expired or reused). 'unavailable': anything else.
-	| { ok: false; reason: 'invalid_grant' | 'unavailable' };
-
-async function requestToken(body: Record<string, string>): Promise<TokenResult> {
-	let res: Response;
-	try {
-		res = await fetch(gmailApiBaseUrl() + '/token', {
-			method: 'POST',
-			headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+const requestToken = (body: Record<string, string>) =>
+	postToken(
+		{
+			url: gmailApiBaseUrl() + '/token',
+			contentType: 'application/x-www-form-urlencoded',
 			body: new URLSearchParams({
 				...body,
 				client_id: env.GMAIL_CLIENT_ID ?? '',
 				client_secret: env.GMAIL_CLIENT_SECRET ?? ''
-			}),
-			signal: AbortSignal.timeout(TOKEN_TIMEOUT_MS)
-		});
-	} catch {
-		return { ok: false, reason: 'unavailable' };
-	}
-	try {
-		if (res.status === 400) {
-			const j = await res.json();
-			return { ok: false, reason: j?.error === 'invalid_grant' ? 'invalid_grant' : 'unavailable' };
-		}
-		if (!res.ok) return { ok: false, reason: 'unavailable' };
-		const j = await res.json();
-		if (typeof j.access_token !== 'string' || !(Number(j.expires_in) > 0)) {
-			return { ok: false, reason: 'unavailable' };
-		}
-		return {
-			ok: true,
-			grant: {
-				accessToken: j.access_token,
-				refreshToken: typeof j.refresh_token === 'string' ? j.refresh_token : null,
-				expiresAt: new Date(Date.now() + Number(j.expires_in) * 1000),
-				scope: typeof j.scope === 'string' ? j.scope : '',
-				idToken: typeof j.id_token === 'string' ? j.id_token : null
-			}
-		};
-	} catch {
-		return { ok: false, reason: 'unavailable' };
-	}
-}
+			})
+		},
+		// 400 invalid_grant: revoked, expired or reused. Any other failure is transient.
+		async (res) => res.status === 400 && (await res.json())?.error === 'invalid_grant',
+		(j) => ({
+			scope: typeof j.scope === 'string' ? j.scope : '',
+			idToken: typeof j.id_token === 'string' ? j.id_token : null
+		})
+	);
+
+// Google does not rotate refresh tokens: the stored one stays unless an answer carries a new one.
+const store = tokenStore({
+	table: gmailConnections,
+	key: () => env.GMAIL_TOKEN_KEY,
+	request: requestToken,
+	refreshRotates: false
+});
+export const { getAccessToken, refreshConnection } = store;
 
 /** Best-effort: tells Google to drop a grant. Never throws. */
 async function revokeToken(token: string): Promise<void> {
@@ -167,8 +134,8 @@ async function exchangeCode(
 	const tokens = {
 		googleAccountId: id.sub,
 		email: id.email,
-		accessToken: encryptToken(grant.accessToken, userId),
-		refreshToken: encryptToken(grant.refreshToken, userId),
+		accessToken: store.encrypt(grant.accessToken, userId),
+		refreshToken: store.encrypt(grant.refreshToken, userId),
 		expiresAt: grant.expiresAt,
 		needsReconnect: false
 	};
@@ -178,78 +145,6 @@ async function exchangeCode(
 		.values({ ...userOwned(userId), ...tokens })
 		.onConflictDoUpdate({ target: gmailConnections.userId, set: tokens });
 	return 'ok';
-}
-
-type RefreshOutcome = 'ok' | 'reconnect' | 'error';
-
-/**
- * Renews the access token. 'reconnect': Google rejected the refresh token (or it cannot be decrypted), so
- * the row now has needs_reconnect=true; 'error' is transient. Updates are conditional on the stored refresh
- * ciphertext, so a concurrent relink is not overwritten. Google does not rotate refresh tokens: the stored
- * one stays unless an answer carries a new one.
- */
-export async function refreshConnection(userId: string): Promise<RefreshOutcome> {
-	const [conn] = await db
-		.select({ refreshToken: gmailConnections.refreshToken })
-		.from(gmailConnections)
-		.where(canAccessOwn(userId, gmailConnections))
-		.limit(1);
-	if (!conn) return 'reconnect';
-	const unchanged = and(
-		canAccessOwn(userId, gmailConnections),
-		eq(gmailConnections.refreshToken, conn.refreshToken)
-	);
-	const reconnect = async (): Promise<RefreshOutcome> => {
-		await db.update(gmailConnections).set({ needsReconnect: true }).where(unchanged);
-		return 'reconnect';
-	};
-	let old: string;
-	try {
-		old = decryptToken(conn.refreshToken, userId);
-	} catch {
-		return reconnect();
-	}
-	const r = await requestToken({ grant_type: 'refresh_token', refresh_token: old });
-	if (!r.ok) return r.reason === 'invalid_grant' ? reconnect() : 'error';
-	const { grant } = r;
-	await db
-		.update(gmailConnections)
-		.set({
-			accessToken: encryptToken(grant.accessToken, userId),
-			...(grant.refreshToken ? { refreshToken: encryptToken(grant.refreshToken, userId) } : {}),
-			expiresAt: grant.expiresAt,
-			needsReconnect: false
-		})
-		.where(unchanged);
-	return 'ok';
-}
-
-/**
- * Decrypted access token and expiry for the sync, or null when not linked or the token cannot be decrypted
- * (wrong or rotated GMAIL_TOKEN_KEY, corrupt data): then the connection is flagged needs_reconnect.
- * Never pass the token to a client.
- */
-export async function getAccessToken(userId: string) {
-	const [row] = await db
-		.select({ accessToken: gmailConnections.accessToken, expiresAt: gmailConnections.expiresAt })
-		.from(gmailConnections)
-		.where(canAccessOwn(userId, gmailConnections))
-		.limit(1);
-	if (!row) return null;
-	try {
-		return { token: decryptToken(row.accessToken, userId), expiresAt: row.expiresAt };
-	} catch {
-		await db
-			.update(gmailConnections)
-			.set({ needsReconnect: true })
-			.where(
-				and(
-					canAccessOwn(userId, gmailConnections),
-					eq(gmailConnections.accessToken, row.accessToken)
-				)
-			);
-		return null;
-	}
 }
 
 /**
@@ -279,7 +174,7 @@ export async function revokeGmail(userId: string): Promise<void> {
 			.from(gmailConnections)
 			.where(canAccessOwn(userId, gmailConnections))
 			.limit(1);
-		if (row) await revokeToken(decryptToken(row.refreshToken, userId));
+		if (row) await revokeToken(store.decrypt(row.refreshToken, userId));
 	} catch {
 		// Undecryptable or DB error: the user can still revoke from their Google account.
 	}

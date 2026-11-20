@@ -3,9 +3,11 @@
 // subject and headers never leave this function.
 
 import type { Currency } from '#lib/money.ts';
+import { obj } from '../json';
 import {
 	PURCHASE,
 	REVERSAL,
+	type AlertParser,
 	type CardAlertResult,
 	IGNORED,
 	INVALID,
@@ -15,12 +17,11 @@ import {
 	headersOf,
 	labelledFields,
 	messageParts,
-	obj,
 	plain,
 	senderOf
 } from './alert-mail';
 
-export const MASTERCARD_SENDER = 'alertas@misconsultas.com.ar';
+const SENDERS: readonly string[] = ['alertas@misconsultas.com.ar'];
 const SUBJECT = 'Aviso de consumo con tarjeta';
 /** Plain type -> stored type; any other type is kept as sent. */
 const TYPES: Record<string, string> = { compra: PURCHASE, 'compra reversada': REVERSAL };
@@ -51,11 +52,11 @@ function minorUnits(raw: string): number | null {
 	return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
 }
 
-export function parseMastercardAlert(message: unknown): CardAlertResult {
+function parse(message: unknown): CardAlertResult {
 	const msg = obj(message);
 	const payload = obj(msg.payload);
 	const headers = headersOf(payload);
-	if (senderOf(headers) !== MASTERCARD_SENDER) return IGNORED;
+	if (!SENDERS.includes(senderOf(headers))) return IGNORED;
 	if (headerValue(headers, 'subject')?.trim() !== SUBJECT) return IGNORED;
 	if (!authenticated(headers, 'misconsultas.com.ar')) return IGNORED;
 
@@ -107,3 +108,5 @@ export function parseMastercardAlert(message: unknown): CardAlertResult {
 		}
 	};
 }
+
+export const mastercardAlert: AlertParser = { senders: SENDERS, parse };

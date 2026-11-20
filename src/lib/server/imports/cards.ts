@@ -4,9 +4,9 @@ import { db } from '../db';
 import { cardAlerts, importCards } from '../db/schema';
 import { convertWaitingAlerts } from './card-alerts';
 import { ACCOUNT_ERRORS, isActiveAccountIn } from './connections';
-import { getGaliciaConnection, setGaliciaAccount } from './galicia/connection';
+import { accountsFor, getGaliciaConnection, setGaliciaAccount } from './galicia/connection';
 import type { Currency } from '#lib/money.ts';
-import { CARD_NETWORK_RULES, isCardNetwork } from '#lib/imports.ts';
+import { CARD_NETWORK, isCardNetwork } from '#lib/imports.ts';
 
 export type CardInput = {
 	network: string;
@@ -28,7 +28,7 @@ export function parseCardSlug(param: string) {
 
 /** Whether a card of this network can only be saved as credit (no debit option). */
 export const creditOnly = (network: string) =>
-	isCardNetwork(network) && CARD_NETWORK_RULES[network].debitSource === null;
+	isCardNetwork(network) && CARD_NETWORK[network].debit === null;
 
 const withSlug = <T extends { network: string; last4: string }>(rows: T[]) =>
 	rows.map((r) => ({ ...r, slug: cardSlug(r.network, r.last4) }));
@@ -103,7 +103,7 @@ export async function getCardForm(userId: string, network: string, last4: string
 	const card = await getCard(userId, network, last4);
 	if (!card) return null;
 	const galicia = await getGaliciaConnection(userId);
-	const accounts = card.type === 'credit' ? galicia : card;
+	const accounts = accountsFor(card, galicia);
 	return {
 		type: card.type ?? (creditOnly(network) ? 'credit' : ''),
 		arsAccountId: accounts?.arsAccountId ?? galicia?.arsAccountId ?? '',
