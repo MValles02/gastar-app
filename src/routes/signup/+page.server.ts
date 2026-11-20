@@ -24,6 +24,7 @@ export const actions: Actions = {
 		const email = String(data.get('email') ?? '').trim();
 		const password = String(data.get('password') ?? '');
 
+		// Rate limit policy (c): count attempts that pass validation.
 		if (isBlocked('signUp', ip)) {
 			return fail(429, {
 				name,

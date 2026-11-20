@@ -2,8 +2,18 @@
 import { randomUUID } from 'node:crypto';
 import { hashPassword } from 'better-auth/crypto';
 import postgres from 'postgres';
+import { APP_TZ } from '../src/lib/shared/runtime.js';
+import {
+	ALERTS_B_EMAIL,
+	ALERTS_EMAIL,
+	CARD_EMAIL,
+	DEFAULT_SEED_EMAIL,
+	GALICIA_EMAIL,
+	IMPORT_EMAIL,
+	OTHER_EMAIL
+} from './lib/seed-identities.js';
 
-const email = (process.env.SEED_EMAIL || 'demo@gastar.local').trim().toLowerCase();
+const email = (process.env.SEED_EMAIL || DEFAULT_SEED_EMAIL).trim().toLowerCase();
 const password = process.env.SEED_PASSWORD;
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -125,10 +135,9 @@ const rday = (m, lo = 1, hi = 28) => {
 	return between(m === 0 ? 1 : lo, h);
 };
 // Buenos Aires local midnight of the date's Buenos Aires day (movements are date-only).
-const BA = 'America/Argentina/Buenos_Aires';
 function dayStartBA(d) {
-	const ymd = new Intl.DateTimeFormat('en-CA', { timeZone: BA }).format(d);
-	const offset = new Intl.DateTimeFormat('en-US', { timeZone: BA, timeZoneName: 'longOffset' })
+	const ymd = new Intl.DateTimeFormat('en-CA', { timeZone: APP_TZ }).format(d);
+	const offset = new Intl.DateTimeFormat('en-US', { timeZone: APP_TZ, timeZoneName: 'longOffset' })
 		.formatToParts(d)
 		.find((p) => p.type === 'timeZoneName')
 		.value.slice(3);
@@ -445,7 +454,7 @@ try {
 		if (existingEmail) return;
 
 		// Second user with USD data of its own, for the cross-user (foreign id) e2e tests.
-		const otherEmail = 'otro@gastar.local';
+		const otherEmail = OTHER_EMAIL;
 		const [other] = await tx`select id from "user" where email = ${otherEmail}`;
 		if (other) await deleteUserData(tx, other.id);
 		const otherId = randomUUID();
@@ -477,7 +486,7 @@ try {
 		`;
 
 		// Third user owning the Mercado Pago account the E2E links through the UI (fixed id kept stable across seeds).
-		const importEmail = 'importa@gastar.local';
+		const importEmail = IMPORT_EMAIL;
 		const [importer] = await tx`select id from "user" where email = ${importEmail}`;
 		if (importer) await deleteUserData(tx, importer.id);
 		const importerId = randomUUID();
@@ -495,7 +504,7 @@ try {
 		`;
 
 		// Fourth user for the Banco Galicia statement E2E: one pesos and one dollar account, no connection yet.
-		const galiciaEmail = 'galicia@gastar.local';
+		const galiciaEmail = GALICIA_EMAIL;
 		const [cardholder] = await tx`select id from "user" where email = ${galiciaEmail}`;
 		if (cardholder) await deleteUserData(tx, cardholder.id);
 		const cardholderId = randomUUID();
@@ -516,17 +525,17 @@ try {
 		// Fifth and sixth users for the Gmail Visa alert E2E: A has pesos and dollar accounts and an expense category, B a pesos account.
 		for (const [alertEmail, name, accounts] of [
 			[
-				'alertas@gastar.local',
+				ALERTS_EMAIL,
 				'Alertas A',
 				[
 					['Pesos Visa A', 'ARS', 'bank', 'blue'],
 					['Dolares Visa A', 'USD', 'dollar', 'green']
 				]
 			],
-			['alertas-b@gastar.local', 'Alertas B', [['Pesos Visa B', 'ARS', 'bank', 'blue']]],
+			[ALERTS_B_EMAIL, 'Alertas B', [['Pesos Visa B', 'ARS', 'bank', 'blue']]],
 			// Seventh user, for the credit-card matching E2E.
 			[
-				'tarjeta@gastar.local',
+				CARD_EMAIL,
 				'Tarjeta',
 				[
 					['Pesos Tarjeta', 'ARS', 'bank', 'blue'],
@@ -552,8 +561,8 @@ try {
 				`;
 			}
 			const purchases = {
-				'alertas@gastar.local': 'Compras Visa',
-				'tarjeta@gastar.local': 'Compras Tarjeta'
+				[ALERTS_EMAIL]: 'Compras Visa',
+				[CARD_EMAIL]: 'Compras Tarjeta'
 			}[alertEmail];
 			if (purchases) {
 				await tx`

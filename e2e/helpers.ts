@@ -8,24 +8,31 @@ import {
 } from '@playwright/test';
 import postgres from 'postgres';
 import { APP_TZ } from '../src/lib/locale';
+import {
+	DEFAULT_SEED_EMAIL,
+	DEFAULT_SEED_PASSWORD,
+	OTHER_EMAIL
+} from '../scripts/lib/seed-identities.js';
 import { waitForLink } from './outbox';
 
-// Same defaults as scripts/seed.js (local demo users, not secrets).
-export const SEED_EMAIL = process.env.SEED_EMAIL || 'demo@gastar.local';
-const SEED_PASSWORD = process.env.SEED_PASSWORD || 'demo1234';
-/** Second seeded user, same password: ARS "Otra cuenta pesos", category "Ajena", USD rule "Regla ajena". */
-export const OTHER_EMAIL = 'otro@gastar.local';
-/** Third seeded user, same password: owner of the Mercado Pago import account. */
-export const IMPORT_EMAIL = 'importa@gastar.local';
-/** Fourth seeded user, same password: ARS "Caja pesos" and USD "Caja dólares", for the Banco Galicia statements. */
-export const GALICIA_EMAIL = 'galicia@gastar.local';
-
-/** Fifth seeded user, same password: ARS "Pesos Visa A", USD "Dolares Visa A" and expense category "Compras Visa" (gmail-alerts.e2e.ts only). */
-export const ALERTS_EMAIL = 'alertas@gastar.local';
-/** Sixth seeded user, same password: ARS "Pesos Visa B" (gmail-alerts.e2e.ts only). */
-export const ALERTS_B_EMAIL = 'alertas-b@gastar.local';
-/** Seventh seeded user, same password: ARS "Pesos Tarjeta", USD "Dolares Tarjeta" and expense category "Compras Tarjeta" (card-matching.e2e.ts only). */
-export const CARD_EMAIL = 'tarjeta@gastar.local';
+// Same defaults as scripts/seed.js (local demo users, not secrets), shared via scripts/lib/seed-identities.js.
+// Other seeded users, same password:
+// - OTHER_EMAIL: ARS "Otra cuenta pesos", category "Ajena", USD rule "Regla ajena".
+// - IMPORT_EMAIL: owner of the Mercado Pago import account.
+// - GALICIA_EMAIL: ARS "Caja pesos" and USD "Caja dólares", for the Banco Galicia statements.
+// - ALERTS_EMAIL: ARS "Pesos Visa A", USD "Dolares Visa A", expense category "Compras Visa" (gmail-alerts.e2e.ts only).
+// - ALERTS_B_EMAIL: ARS "Pesos Visa B" (gmail-alerts.e2e.ts only).
+// - CARD_EMAIL: ARS "Pesos Tarjeta", USD "Dolares Tarjeta", expense category "Compras Tarjeta" (card-matching.e2e.ts only).
+export { OTHER_EMAIL };
+export {
+	IMPORT_EMAIL,
+	GALICIA_EMAIL,
+	ALERTS_EMAIL,
+	ALERTS_B_EMAIL,
+	CARD_EMAIL
+} from '../scripts/lib/seed-identities.js';
+export const SEED_EMAIL = process.env.SEED_EMAIL || DEFAULT_SEED_EMAIL;
+const SEED_PASSWORD = process.env.SEED_PASSWORD || DEFAULT_SEED_PASSWORD;
 
 export const PHONE = { width: 390, height: 844 };
 

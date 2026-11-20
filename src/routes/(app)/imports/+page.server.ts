@@ -15,7 +15,7 @@ import {
 	keepUnmatched,
 	listUnmatchedAlerts
 } from '#lib/server/imports/galicia/unmatched.ts';
-import { listUnknownCards } from '#lib/server/imports/card-alerts.ts';
+import { listUnknownCards } from '#lib/server/imports/cards.ts';
 import { importPrefill, importTitle, installmentAmounts } from '#lib/server/imports/rules.ts';
 import { importSource } from '#lib/server/imports/sources.ts';
 import { getImport, listAutoApproved, listPendingImports } from '#lib/server/imports/store.ts';

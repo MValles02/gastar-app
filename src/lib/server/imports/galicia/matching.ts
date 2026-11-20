@@ -6,8 +6,9 @@ import { cardAlerts, financialAccounts, importItems, recurringMovements } from '
 import { dayStart, localDay } from '../../month';
 import { batches, type ImportRow } from '../ingest';
 import { ALERT_KEYS, alertKey, diffKey, STATEMENT_KEYS, statementPurchaseDay } from '../keys';
+import { KIND, type SourceId } from '#lib/imports.ts';
 import { installmentEndsMonth } from '../rules';
-import { importSource, KIND, type SourceId } from '../sources';
+import { importSource } from '../sources';
 import type { StatementLine } from './statement';
 
 // Matches a Gmail credit-card alert with the statement line of the same purchase, in either order, so

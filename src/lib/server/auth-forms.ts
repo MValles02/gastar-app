@@ -2,7 +2,7 @@ import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USER_NAME_MAX_LENGTH } from '#lib/fields.ts';
 import { auth } from './auth';
-import { isBlocked, record } from './rate-limit';
+import { rateLimited } from './rate-limit';
 import { GOOGLE_PROVIDER_ID } from './reauth';
 
 /** Page that verification links land on (Better Auth `callbackURL`). */
@@ -41,8 +41,7 @@ export async function ignoreApiError(call: () => Promise<unknown>): Promise<void
 }
 
 export async function resendVerification(email: string, ip: string): Promise<void> {
-	if (isBlocked('resend', ip)) return;
-	record('resend', ip);
+	if (rateLimited('resend', ip)) return;
 	await ignoreApiError(() =>
 		auth.api.sendVerificationEmail({ body: { email, callbackURL: VERIFY_EMAIL_PATH } })
 	);
@@ -69,8 +68,7 @@ async function startGoogle(
 	{ blocked, unavailable, reauth, ...urls }: GoogleStart
 ) {
 	const ip = getClientAddress();
-	if (isBlocked('oauthStart', ip)) redirect(303, blocked);
-	record('oauthStart', ip);
+	if (rateLimited('oauthStart', ip)) redirect(303, blocked);
 
 	let url: string | undefined;
 	try {

@@ -1,8 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { accountOption } from '#lib/server/accounts/queries.ts';
-import { ACCOUNT_ERRORS } from '#lib/server/imports/card-alerts.ts';
-import { activeAccountsIn } from '#lib/server/imports/connections.ts';
+import { ACCOUNT_ERRORS, activeAccountsIn } from '#lib/server/imports/connections.ts';
 import { MP_LINK, mpConnection, mpOauthEnabled } from '#lib/server/imports/mercado-pago/oauth.ts';
 import { connectAction, disconnectAction, linkFlash } from '#lib/server/imports/oauth-link.ts';
 import { MP_CURRENCY, setReceivingAccount } from '#lib/server/imports/mercado-pago/settings.ts';

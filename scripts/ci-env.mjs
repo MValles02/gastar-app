@@ -1,5 +1,7 @@
 // Prints non-secret KEY=VALUE placeholders for CI; the workflow appends them to $GITHUB_ENV.
 // Later lines win. DATABASE_URL is set by the workflow and never printed here.
+import { DEFAULT_SEED_PASSWORD } from './lib/seed-identities.js';
+
 const checks = [
 	'BETTER_AUTH_SECRET=ci-placeholder-secret-not-used-anywhere-000000',
 	'BETTER_AUTH_URL=http://localhost:3000',
@@ -10,7 +12,7 @@ const e2e = [
 	'BETTER_AUTH_URL=http://localhost:5173',
 	'ORIGIN=http://localhost:5173',
 	// CI-only demo password for the throwaway database.
-	'SEED_PASSWORD=demo1234',
+	`SEED_PASSWORD=${DEFAULT_SEED_PASSWORD}`,
 	// Google Chrome preinstalled on the ubuntu runner image; no browser download.
 	'CHROMIUM_PATH=/usr/bin/google-chrome'
 ];

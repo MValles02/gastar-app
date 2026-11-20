@@ -2,7 +2,10 @@
 // alert ("Aviso de consumo con tarjeta", sent by Fiserv). Nothing here stores or logs anything, and the body,
 // subject and headers never leave this function.
 
+import type { Currency } from '#lib/money.ts';
 import {
+	PURCHASE,
+	REVERSAL,
 	type CardAlertResult,
 	IGNORED,
 	INVALID,
@@ -10,6 +13,7 @@ import {
 	decodeEntities,
 	headerValue,
 	headersOf,
+	labelledFields,
 	messageParts,
 	obj,
 	plain,
@@ -18,14 +22,11 @@ import {
 
 export const MASTERCARD_SENDER = 'alertas@misconsultas.com.ar';
 const SUBJECT = 'Aviso de consumo con tarjeta';
-const PURCHASE = 'Compra';
-/** The stored type of a "COMPRA REVERSADA" alert: it cancels an earlier purchase (see convertWaitingAlerts). */
-export const REVERSAL = 'Compra reversada';
 /** Plain type -> stored type; any other type is kept as sent. */
 const TYPES: Record<string, string> = { compra: PURCHASE, 'compra reversada': REVERSAL };
 
 /** Plain (lowercase, unaccented) currency word -> currency; anything else is not guessed. */
-const CURRENCY: Record<string, 'ARS' | 'USD'> = {
+const CURRENCY: Record<string, Currency> = {
 	pesos: 'ARS',
 	dolares: 'USD',
 	usd: 'USD',
@@ -35,12 +36,9 @@ const CURRENCY: Record<string, 'ARS' | 'USD'> = {
 /** Label (plain) -> value of each `<li>Label: value</li>` (the first one wins), and the text before the list. */
 function readList(html: string) {
 	const text = (s: string) => decodeEntities(s.replace(/<[^>]*>/g, ''));
-	const fields = new Map<string, string>();
-	for (const [, li] of html.matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)) {
-		const m = /^\s*([^:]{1,40}):\s*([\s\S]*?)\s*$/.exec(text(li));
-		const label = m && plain(m[1]).trim();
-		if (m && label && !fields.has(label)) fields.set(label, m[2]);
-	}
+	const fields = labelledFields(
+		Array.from(html.matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi), (m) => text(m[1]))
+	);
 	const start = html.search(/<li\b/i);
 	return { fields, intro: plain(text(start < 0 ? html : html.slice(0, start))) };
 }

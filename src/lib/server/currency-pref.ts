@@ -1,12 +1,12 @@
 import type { Cookies } from '@sveltejs/kit';
-import type { Currency } from '#lib/money.ts';
+import { toCurrency, type Currency } from '#lib/money.ts';
 
 /** Cookie holding the user's single-currency preference (read with `preferredCurrency`). */
 export const CURRENCY_COOKIE = 'currency';
 
-/** The stored preference: anything but `USD` (including a missing or unknown cookie value) is ARS. */
+/** The stored preference: anything but `USD` (including a missing or unknown cookie value) is the default currency. */
 export function preferredCurrency(cookies: Cookies): Currency {
-	return cookies.get(CURRENCY_COOKIE) === 'USD' ? 'USD' : 'ARS';
+	return toCurrency(cookies.get(CURRENCY_COOKIE));
 }
 
 /** Same-origin relative paths only: start with `/` but not `//`; no control chars (browsers strip tab/CR/LF) or backslashes. */

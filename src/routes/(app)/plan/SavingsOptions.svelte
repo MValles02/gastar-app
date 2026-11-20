@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte';
 	import Check from '@lucide/svelte/icons/check';
 	import { autosave } from '#lib/autosave.ts';
-	import { formatMoney, type Currency } from '#lib/money.ts';
+	import { CURRENCY_SYMBOL, formatMoney, type Currency } from '#lib/money.ts';
 	import {
 		otherSavings,
 		perDayLeft,
@@ -53,7 +53,7 @@
 
 	const units: { value: SavingsUnit; label: string }[] = $derived([
 		{ value: 'percent', label: '%' },
-		{ value: 'amount', label: currency === 'USD' ? 'US$' : '$' }
+		{ value: 'amount', label: CURRENCY_SYMBOL[currency] }
 	]);
 
 	let stored = $state(start);

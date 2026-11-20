@@ -6,7 +6,7 @@ import { PG_UNIQUE_VIOLATION, pgErrorCode } from '../db/errors';
 import { escapeLike } from '../db/util';
 import { inRange, isIncomeOrOutcome, sumOfType, type Range } from '../db/sql';
 import type { CategoryData } from './form';
-import type { Currency } from '#lib/money.ts';
+import { CURRENCIES, type Currency } from '#lib/money.ts';
 
 export function listCategories(
 	userId: string,
@@ -115,7 +115,7 @@ export function toCurrencyNets(
 ): { currency: Currency; net: number }[] {
 	return rows
 		.map((r) => ({ currency: r.currency, net: r.outcome - r.income }))
-		.sort((a, b) => (a.currency === b.currency ? 0 : a.currency === 'ARS' ? -1 : 1));
+		.sort((a, b) => CURRENCIES.indexOf(a.currency) - CURRENCIES.indexOf(b.currency));
 }
 
 /** Income and outcome totals per category and currency for a range, never summed across currencies. */

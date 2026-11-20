@@ -1,5 +1,5 @@
 import { and, eq, isNull } from 'drizzle-orm';
-import type { Currency } from '#lib/money.ts';
+import { CURRENCIES, CURRENCY_NAME, type Currency } from '#lib/money.ts';
 import { canAccessAccount, canAccessOwn } from '../access';
 import { db } from '../db';
 import { isUuid } from '../db/util';
@@ -39,6 +39,11 @@ export async function isActiveAccountIn(userId: string, currency: Currency, acco
 		.limit(1);
 	return !!row;
 }
+
+/** The error of an account picker that needs an active account of that currency (Galicia, Mercado Pago, card pages). */
+export const ACCOUNT_ERRORS = Object.fromEntries(
+	CURRENCIES.map((c) => [c, `Elegí una cuenta en ${CURRENCY_NAME[c]}.`])
+) as Record<Currency, string>;
 
 /**
  * The home imports pill: pending items in both currencies, for a user with a source set up (Mercado

@@ -20,6 +20,7 @@ export const actions: Actions = {
 		const email = data.get('email');
 		const password = data.get('password');
 
+		// Rate limit policy (b): count only failures.
 		if (isBlocked('signIn', ip)) {
 			return fail(429, {
 				email: typeof email === 'string' ? email : '',

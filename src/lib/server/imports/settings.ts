@@ -6,7 +6,7 @@ import { importSettings, importItems } from '../db/schema';
 import { dayStart, localDay } from '../month';
 import { ALERT_KEYS } from './keys';
 import { withMatchLock } from './match-lock';
-import { SOURCE } from './sources';
+import { SOURCE } from '#lib/imports.ts';
 
 /** How far back "Importar desde" may reach. */
 export const MAX_BACKFILL_DAYS = 365;

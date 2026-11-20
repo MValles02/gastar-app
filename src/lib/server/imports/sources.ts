@@ -1,19 +1,4 @@
-import {
-	GALICIA_SOURCE,
-	KIND,
-	SOURCE,
-	SOURCE_LABELS,
-	type Kind,
-	type SourceId
-} from '#lib/imports.ts';
-
-export { GALICIA_SOURCE, KIND, SOURCE, type Kind, type SourceId };
-
-/**
- * What each import source (Mercado Pago, a Banco Galicia card network) says about its items: the kinds it
- * produces, how a merchant is named, how its dates read and how a re-import treats an existing item.
- * Everything that varies by source or kind lives here; callers ask, they never compare literals.
- */
+import { KIND, SOURCE, SOURCE_LABELS, type Kind, type SourceId } from '#lib/imports.ts';
 
 /** Kinds whose items come from payments/search; their latest date is where the next search starts. */
 export const PAYMENT_KINDS: Kind[] = [KIND.payment, KIND.accountFund, KIND.refund];
@@ -97,6 +82,11 @@ const card = (id: SourceId): SourceSpec => ({
 	kinds: cardKinds
 });
 
+/**
+ * What each import source (Mercado Pago, a Banco Galicia card network) says about its items: the kinds it
+ * produces, how a merchant is named, how its dates read and how a re-import treats an existing item.
+ * Everything that varies by source or kind lives here; callers ask, they never compare literals.
+ */
 const SOURCES: Record<SourceId, SourceSpec> = {
 	[SOURCE.mercadoPago]: {
 		label: SOURCE_LABELS[SOURCE.mercadoPago],
@@ -121,13 +111,11 @@ const SOURCES: Record<SourceId, SourceSpec> = {
 	// Gmail alerts of a debit card, timed. A type other than "Compra" is only a guess: it asks for a review
 	// and learns nothing, so no rule suggests it and it is never auto-approved.
 	[SOURCE.visaDebit]: {
-		label: SOURCE_LABELS[SOURCE.visaDebit],
-		conflict: 'skip',
+		...card(SOURCE.visaDebit),
 		timed: true,
-		merchantName: cardMerchantName,
 		kinds: {
-			[KIND.cardPurchase]: { learns: 'debit' },
-			[KIND.other]: { review: true, learns: 'never' }
+			[KIND.cardPurchase]: cardKinds[KIND.cardPurchase],
+			[KIND.other]: cardKinds[KIND.other]
 		}
 	}
 };

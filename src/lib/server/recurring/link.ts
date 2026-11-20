@@ -9,9 +9,9 @@ import { canAccessAccount, canAccessMovement, canAccessOwn } from '../access';
 import { daysInMonth, localDay, monthRange } from '../month';
 import { ownRule, paidRecurring } from './queries';
 
-/** Descriptions match ignoring case, accents and surrounding spaces (rule vs movement). */
-export const normalizeDescription = (s: string) =>
-	s.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+import { normalizeDescription } from '#lib/shared/runtime.js';
+
+export { normalizeDescription };
 
 /**
  * Pure: the amount a rule takes after a new linked charge (null = unchanged). The rule follows the
