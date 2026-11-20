@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { autosave } from '#lib/autosave.ts';
 	import { swatchVar } from '#lib/appearance.ts';
@@ -9,7 +8,7 @@
 	import { limitPace, limitPercent, PLAN_STATUS_LABEL, PLAN_TONE } from '#lib/plan.ts';
 	import { withWizard } from '#lib/plan-wizard.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import { formScreen } from '#lib/components/forms/form-enhance.ts';
+	import { closeAfterDelete, formScreen } from '#lib/components/forms/form-enhance.ts';
 	import IconBadge from '#lib/components/IconBadge.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
 	import Meter from '#lib/components/Meter.svelte';
@@ -63,15 +62,10 @@
 	}
 
 	/** Drawer: the delete's answer (the page follows its redirect). */
-	async function deleted(type: string) {
-		if (type !== 'redirect') {
-			error = 'No se pudo eliminar el límite.';
-			return;
-		}
-		// refreshAll keeps the drawer's shallow-route state (invalidateAll would reset it).
-		await refreshAll();
-		screen.onclose?.();
-	}
+	const deleted = closeAfterDelete(
+		() => screen.onclose?.(),
+		() => (error = 'No se pudo eliminar el límite.')
+	);
 </script>
 
 <div class="detail">

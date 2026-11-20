@@ -88,31 +88,18 @@ export function replaceGoto(href: string, opts: Parameters<typeof goto>[1] = {})
  * replace navigation and keeps the stack's copy in sync, so a later "up" to this screen still sees the
  * flag missing and replaces the entry with it. It is not shallow on purpose: a shallow goto leaves
  * `page.url` (and the history entry's `pageUrl`) with the flag, so closing a drawer opened after it
- * would be a full popstate navigation to the flagged URL and rerun the flag's effect. Deferred so it
- * runs after `track` has recorded the navigation (the order of `afterNavigate` callbacks is not
- * fixed), and retried while SvelteKit's router is not initialized yet. Resolves once stripped, so a
- * caller can push shallow state right after (the navigation wipes `page.state`).
+ * would be a full popstate navigation to the flagged URL and rerun the flag's effect. Deferred to a
+ * task so it runs after every `afterNavigate` callback, `track` included (their order is not fixed).
+ * Resolves once stripped (or the strip failed), so a caller can push shallow state right after (the
+ * navigation wipes `page.state`).
  */
-export function stripFlags(names: readonly string[] = TOAST_FLAGS) {
-	return new Promise<void>((done) => {
-		let tries = 20;
-		const run = () => {
-			const url = new URL(location.href);
-			if (names.some((n) => url.searchParams.has(n))) {
-				for (const n of names) url.searchParams.delete(n);
-				replaceGoto(url.pathname + url.search + url.hash, { reset: false }).then(
-					() => done(),
-					() => {
-						replaceNext = false;
-						if (--tries > 0) setTimeout(run, 50);
-						else done();
-					}
-				);
-				return;
-			}
-			done();
-		};
-		setTimeout(run, 50);
+export async function stripFlags(names: readonly string[] = TOAST_FLAGS) {
+	await new Promise((r) => setTimeout(r));
+	const url = new URL(location.href);
+	if (!names.some((n) => url.searchParams.has(n))) return;
+	for (const n of names) url.searchParams.delete(n);
+	await replaceGoto(url.pathname + url.search + url.hash, { reset: false }).catch(() => {
+		replaceNext = false;
 	});
 }
 

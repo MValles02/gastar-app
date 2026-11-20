@@ -14,12 +14,11 @@ import {
 	SEED_EMAIL,
 	withDb
 } from './helpers';
+import { AR_OFFSET_MS, arDaysAgo, DAY_MS, FAKE_MP } from './fakes.js';
 
-const FAKE = `http://127.0.0.1:${Number(process.env.FAKE_MP_PORT) || 5199}`;
 const BEARER_RE = /^Bearer APP_USR-fake-\d+$/;
 const MP_PATH = '/profile/mercado-pago';
 const LINKS_PATH = '/profile/vinculaciones';
-const DAY_MS = 86_400_000;
 
 test.describe.configure({ mode: 'serial' });
 
@@ -27,7 +26,7 @@ let page: Page;
 
 const rows = () => page.locator('[data-slot="item-group"] [role="listitem"]');
 const fake = (path: string, body?: unknown) =>
-	fetch(FAKE + path, {
+	fetch(FAKE_MP.url + path, {
 		method: body === undefined ? 'GET' : 'POST',
 		body: body === undefined ? undefined : JSON.stringify(body)
 	});
@@ -186,8 +185,8 @@ test('sync fills the inbox and leaves balances alone', async () => {
 			and kind = 'yield' order by external_key`
 	);
 	expect(yields.map((y) => [y.external_key, y.amount, y.is_credit])).toEqual([
-		[`yield:${daysAgoYmd(14)}`, 264, false],
-		[`yield:${daysAgoYmd(13)}`, 789, true]
+		[`yield:${arDaysAgo(14)}`, 264, false],
+		[`yield:${arDaysAgo(13)}`, 789, true]
 	]);
 	const payouts = await withDb(
 		(sql) => sql`select external_key, kind from mp_import_items
@@ -523,9 +522,6 @@ test('bulk approve creates the suggested movements with exact amounts', async ()
 	await expect(page.getByRole('button', { name: /sugerido/ })).toHaveCount(0);
 });
 
-const daysAgoYmd = (n: number) =>
-	new Date(Date.now() - 3 * 3_600_000 - n * DAY_MS).toISOString().slice(0, 10);
-
 const creates = async () => (await (await fake('/__fake/report-creates')).json()) as object[];
 const reportBegins = async () => (await (await fake('/__fake/report-begins')).json()) as string[];
 
@@ -555,7 +551,7 @@ async function untilRun(start: () => Promise<unknown>) {
 }
 
 test('moving "Importar desde" earlier searches from the chosen date and never changes approved or rejected items', async () => {
-	const from = daysAgoYmd(60);
+	const from = arDaysAgo(60);
 	const searchesBefore = (await searchBegins()).length;
 	const reportsBefore = (await reportBegins()).length;
 	const approvedBefore = (await findMovements(page, AMIGA_DESC)).length;
@@ -573,22 +569,22 @@ test('moving "Importar desde" earlier searches from the chosen date and never ch
 	expect(await findMovements(page, AMIGA_DESC)).toHaveLength(approvedBefore);
 
 	const begin = (await searchBegins())[searchesBefore];
-	expect(new Date(begin - 3 * 3_600_000).toISOString().slice(0, 10)).toBe(from);
+	expect(new Date(begin - AR_OFFSET_MS).toISOString().slice(0, 10)).toBe(from);
 	// Reports go in 31-day chunks: the first starts on the chosen local day (03:00Z).
 	expect((await reportBegins())[reportsBefore]).toBe(`${from}T03:00:00Z`);
 
 	// Earlier still: a backfill again, and approved or rejected items stay as they were.
-	await untilRun(() => importFrom(daysAgoYmd(90)));
+	await untilRun(() => importFrom(arDaysAgo(90)));
 	await page.goto('/imports');
 	await expect(rows()).toHaveCount(3);
 	await expect(rows().filter({ hasText: 'CAFE DE PRUEBA' })).toHaveCount(0);
 	expect(await findMovements(page, AMIGA_DESC)).toHaveLength(approvedBefore);
 	await page.goto(LINKS_PATH);
-	await expect(page.locator('input[name="from"]')).toHaveValue(daysAgoYmd(90));
+	await expect(page.locator('input[name="from"]')).toHaveValue(arDaysAgo(90));
 });
 
 test('moving "Importar desde" later removes older pending items and the next sync never searches before it', async () => {
-	const today = daysAgoYmd(0);
+	const today = arDaysAgo(0);
 	const todayStart = Date.parse(`${today}T03:00:00Z`);
 	const approvedBefore = (await findMovements(page, AMIGA_DESC)).length;
 
@@ -616,16 +612,16 @@ test('moving "Importar desde" later removes older pending items and the next syn
 	);
 
 	// Put the window back so the tests below see the older items again.
-	await untilRun(() => importFrom(daysAgoYmd(60)));
+	await untilRun(() => importFrom(arDaysAgo(60)));
 	await page.reload();
-	await expect(page.locator('input[name="from"]')).toHaveValue(daysAgoYmd(60));
+	await expect(page.locator('input[name="from"]')).toHaveValue(arDaysAgo(60));
 });
 
 test('a date out of range is refused and leaves the inbox as it was', async () => {
 	await page.goto('/imports');
 	const inbox = await rows().count();
 	const searches = (await searchBegins()).length;
-	for (const ymd of [daysAgoYmd(366), daysAgoYmd(-2)]) {
+	for (const ymd of [arDaysAgo(366), arDaysAgo(-2)]) {
 		// The calendar cannot reach these days: post the action the way the picker would.
 		const res = await page.request.post(`${LINKS_PATH}?/importFrom`, {
 			headers: { origin, accept: 'application/json' },

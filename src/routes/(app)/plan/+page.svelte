@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { formatMoney, RATE_CURRENCY } from '#lib/money.ts';
-	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { afterNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -17,6 +16,7 @@
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
+	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
 	import { limitFlag } from '#lib/toast-flags.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
@@ -28,8 +28,7 @@
 	let { data }: { data: PageData } = $props();
 
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
-	let hydrated = $state(false);
-	onMount(() => (hydrated = true));
+	const mounted = hydrated();
 	// An alert's `?limit=<categoryId>` opens that limit's drawer over the plan, then drops the flag
 	// (before the push: stripping replaces the entry's state).
 	async function openLimit(id: string) {
@@ -82,7 +81,7 @@
 <PageHeader title="Plan" />
 
 <div class="page">
-	{#if !hydrated}
+	{#if !mounted.current}
 		{#if data.planSaved}<p role="status">Plan guardado.</p>{/if}
 	{/if}
 

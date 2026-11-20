@@ -14,6 +14,7 @@ import {
 	upload,
 	withDb
 } from './helpers';
+import { arDaysAgo } from './fakes.js';
 
 // Gmail is the fake in e2e/fake-gmail.js. Two seeded users (used by no other spec) with their own mailboxes (the consent answers for the
 // `login_hint` this spec adds to the authorize URL, so it never shares /__fake/account with gmail-link.e2e.ts,
@@ -363,13 +364,11 @@ test("a user's sync never writes to another user", async ({ baseURL }) => {
 test('moving "Importar desde" earlier backfills Gmail alerts from before the cursor', async ({
 	baseURL
 }) => {
-	const day = (n: number) =>
-		new Date(Date.now() - 3 * 3_600_000 - n * 86_400_000).toISOString().slice(0, 10);
 	// Listed at its own date, 40 days back: before the cursor, so a normal sync never reads it.
 	await alert(A.mailbox, {
 		merchant: 'ANTERIOR EJEMPLO',
 		amount: '321.00',
-		date: `${day(40)}T15:00:00Z`,
+		date: `${arDaysAgo(40)}T15:00:00Z`,
 		listedAtDate: true
 	});
 	await sync(pageA, baseURL!);
@@ -377,7 +376,7 @@ test('moving "Importar desde" earlier backfills Gmail alerts from before the cur
 
 	await pageA.goto('/profile/vinculaciones');
 	await pageA.waitForLoadState('networkidle'); // hydration guard: the date picker is JS-only
-	await pickDate(pageA, 'Importar desde', day(60));
+	await pickDate(pageA, 'Importar desde', arDaysAgo(60));
 	await expect(pageA.getByText('Cambio guardado.')).toBeVisible();
 
 	await expectInInbox('ANTERIOR EJEMPLO');
@@ -386,17 +385,16 @@ test('moving "Importar desde" earlier backfills Gmail alerts from before the cur
 test('a normal sync reads alerts between the Importar desde day and an older cursor', async ({
 	baseURL
 }) => {
-	const day = (n: number) => new Date(Date.now() - 3 * 3_600_000 - n * 86_400_000);
 	await alert(A.mailbox, {
 		merchant: 'INTERMEDIA EJEMPLO',
 		amount: '654.00',
-		date: `${day(50).toISOString().slice(0, 10)}T15:00:00Z`,
+		date: `${arDaysAgo(50)}T15:00:00Z`,
 		listedAtDate: true
 	});
 	// The state of a migrated user: the day copied from the old setting, the cursor at the link time, nothing covered.
 	await withDb(async (sql) => {
 		const [{ id }] = await sql`select id from "user" where email = ${A.email}`;
-		await sql`insert into import_settings (user_id, import_from) values (${id}, ${day(60)})
+		await sql`insert into import_settings (user_id, import_from) values (${id}, ${arDaysAgo(60)})
 			on conflict (user_id) do update set import_from = excluded.import_from`;
 		await sql`update gmail_connections set sync_cursor = now(), covered_from = null where user_id = ${id}`;
 	});

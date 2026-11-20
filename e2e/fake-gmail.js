@@ -12,10 +12,9 @@
 // The global reset leaves mailboxes and access tokens alone, so a spec resetting it does not disturb another.
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
+import { FAKE_GMAIL } from './fakes.js';
 
-const PORT = Number(process.env.FAKE_GMAIL_PORT) || 5197;
-const CLIENT_ID = process.env.FAKE_GMAIL_CLIENT_ID || 'test-gmail-client-id';
-const CLIENT_SECRET = process.env.FAKE_GMAIL_CLIENT_SECRET || 'test-gmail-client-secret';
+const { port: PORT, url: ORIGIN, clientId: CLIENT_ID, clientSecret: CLIENT_SECRET } = FAKE_GMAIL;
 const READONLY = 'https://www.googleapis.com/auth/gmail.readonly';
 const DEFAULT_EMAIL = 'gmail-e2e@gastar.local';
 
@@ -173,7 +172,7 @@ const idToken = (address) =>
 	].join('.');
 
 createServer(async (req, res) => {
-	const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
+	const url = new URL(req.url, ORIGIN);
 	const path = url.pathname;
 	if (path === '/__fake/health') return send(res, 200, { ok: true });
 	if (path === '/__fake/reset') {

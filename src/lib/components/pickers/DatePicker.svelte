@@ -4,7 +4,7 @@
 	import { Calendar } from '#lib/components/ui/calendar/index.js';
 	import { calendarFloor, toCalendarDate } from '#lib/dates.ts';
 	import { APP_TZ, formatDay } from '#lib/locale.ts';
-	import { hydrated } from './hydrated.svelte.ts';
+	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import OptionList from './OptionList.svelte';
 	import { commitPick } from './pick.ts';
 	import PickerTrigger from './PickerTrigger.svelte';

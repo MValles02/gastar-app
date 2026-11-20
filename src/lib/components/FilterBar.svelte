@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { onMount, type Snippet } from 'svelte';
+	import type { Snippet } from 'svelte';
 	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import { page } from '$app/state';
+	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { markReplace } from '#lib/nav-stack.svelte.ts';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -31,8 +32,7 @@
 		onfilters: () => void;
 	} = $props();
 
-	let mounted = $state(false);
-	onMount(() => (mounted = true));
+	const mounted = hydrated();
 
 	let searchForm: HTMLFormElement | null = $state(null);
 	let timer: ReturnType<typeof setTimeout>;
@@ -59,7 +59,7 @@
 	onchange={() => searchForm?.requestSubmit()}
 	{onformdata}
 >
-	{#if mounted}
+	{#if mounted.current}
 		{#each carried as [k, v], i (i)}
 			<input type="hidden" name={k} value={v} />
 		{/each}

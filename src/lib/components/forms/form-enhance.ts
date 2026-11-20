@@ -48,3 +48,16 @@ export function closeAfterSave(onclose: () => void, message = 'Guardado.') {
 		toast.success(message);
 	};
 }
+
+/**
+ * A drawer's delete ConfirmDialog `ondone`: a redirect means it was deleted, so refresh the loads
+ * (`refreshAll` keeps the shallow-route state; invalidateAll would reset it) and close; any other
+ * answer calls `failed` and the drawer stays.
+ */
+export function closeAfterDelete(onclose: () => void, failed: () => void) {
+	return async (type: string) => {
+		if (type !== 'redirect') return failed();
+		await refreshAll();
+		onclose();
+	};
+}
