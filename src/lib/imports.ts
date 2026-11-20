@@ -54,8 +54,17 @@ const CARD_NETWORK_NAMES: Record<CardNetwork, string> = { visa: 'Visa', masterca
 export const cardNetworkName = (network: string) =>
 	isCardNetwork(network) ? CARD_NETWORK_NAMES[network] : network;
 
-/** Networks whose Gmail-alerted cards are credit only (Banco Galicia's Mastercard): no debit option. */
-export const CREDIT_ONLY_NETWORKS: readonly CardNetwork[] = ['mastercard'];
+/**
+ * Per card network: `debitSource: null` means credit only (Galicia Mastercard); `reversals` means the network
+ * sends purchase-reversal alerts.
+ */
+export const CARD_NETWORK_RULES: Record<
+	CardNetwork,
+	{ debitSource: SourceId | null; reversals: boolean }
+> = {
+	visa: { debitSource: SOURCE.visaDebit, reversals: false },
+	mastercard: { debitSource: null, reversals: true }
+};
 
 export const CARD_TYPES = ['credit', 'debit'] as const;
 export type CardType = (typeof CARD_TYPES)[number];

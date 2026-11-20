@@ -2,6 +2,11 @@
 // Nothing here stores or logs anything.
 
 import type { CardNetwork } from '#lib/imports.ts';
+import type { Currency } from '#lib/money.ts';
+
+export const PURCHASE = 'Compra';
+/** The stored type of a "COMPRA REVERSADA" alert: it cancels an earlier purchase (see convertWaitingAlerts). */
+export const REVERSAL = 'Compra reversada';
 
 export type CardAlert = {
 	gmailMessageId: string;
@@ -9,7 +14,7 @@ export type CardAlert = {
 	last4: string;
 	merchant: string;
 	country: string;
-	currency: 'ARS' | 'USD';
+	currency: Currency;
 	/** Minor units of `currency`. */
 	amount: number;
 	foreign: boolean;
@@ -115,6 +120,17 @@ export function htmlOf(part: Record<string, unknown>): string | null {
 
 /** Lowercase without accents, for comparing labels and fixed words. */
 export const plain = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+
+/** Label (plain) -> value of each "Label: value" row (the first one wins). */
+export function labelledFields(rows: Iterable<string>): Map<string, string> {
+	const fields = new Map<string, string>();
+	for (const row of rows) {
+		const m = /^\s*([^:]{1,40}):\s*([\s\S]*?)\s*$/.exec(row);
+		const label = m && plain(m[1]).trim();
+		if (m && label && !fields.has(label)) fields.set(label, m[2]);
+	}
+	return fields;
+}
 
 /** The message's id, receive time and HTML, or null when any is missing. */
 export function messageParts(msg: Record<string, unknown>, payload: Record<string, unknown>) {

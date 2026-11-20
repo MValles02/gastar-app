@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { listCards } from '#lib/server/imports/card-alerts.ts';
+import { listCards } from '#lib/server/imports/cards.ts';
 import { GMAIL_LINK, gmailConnection } from '#lib/server/imports/gmail/oauth.ts';
 import { connectAction, disconnectAction, linkFlash } from '#lib/server/imports/oauth-link.ts';
 import { requireUser } from '#lib/server/guards.ts';
