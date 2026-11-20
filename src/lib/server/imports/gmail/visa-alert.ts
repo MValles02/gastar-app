@@ -35,9 +35,13 @@ function readBlock(html: string) {
 	};
 }
 
-/** `^(\d+)\.(\d{2})`, optionally followed directly by "(puede haber ...)": minor units, > 0. */
+/**
+ * `^(\d+)\.(\d{2})`, optionally followed by a parenthesised note: "(puede haber ...)" directly
+ * after, or " (aproximadamente N USD)" after a space: minor units, > 0 (the ARS amount, the
+ * USD approximation is ignored).
+ */
 function minorUnits(raw: string): number | null {
-	const m = /^(\d+)\.(\d{2})(\(.*\))?$/.exec(raw);
+	const m = /^(\d+)\.(\d{2})\s*(\(.*\))?$/.exec(raw);
 	if (!m) return null;
 	const cents = Number(m[1]) * 100 + Number(m[2]);
 	return Number.isSafeInteger(cents) && cents > 0 ? cents : null;

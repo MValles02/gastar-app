@@ -60,7 +60,11 @@ function alertHtml(a) {
 		: 'Su tarjeta Visa con terminaci&oacute;n ' +
 			a.last4 +
 			' se acaba de usar para la siguiente transacci&oacute;n:';
-	const suffix = a.foreign ? '' : '(puede haber una diferencia en el monto real)';
+	const suffix = a.foreign
+		? a.currency === 'ARS'
+			? ' (aproximadamente 2.91 USD)'
+			: ''
+		: '(puede haber una diferencia en el monto real)';
 	return (
 		'<html><body><p>' +
 		intro +
