@@ -1,16 +1,15 @@
 <script lang="ts">
 	import { onMount, type Component, type Snippet } from 'svelte';
-	import { toast } from 'svelte-sonner';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
-	import { stripFlags } from '#lib/nav-stack.svelte.ts';
 	import { edgeSwipeBack, settleEdgeSwipe } from '#lib/edge-swipe-back.ts';
 	import { TAB_ROUTES } from '#lib/form-routes.ts';
 	import { drawers, type DrawerKey } from './drawers';
 	import TabBar from '#lib/components/TabBar.svelte';
 	import { highlightMovement } from '#lib/highlight.svelte.ts';
-	import { undoMovementSaved } from '#lib/undo-toast.ts';
-	import { looksLikeUuid, savedMovement } from '#lib/toast-flags.ts';
+	import { hydrated } from '#lib/hydrated.svelte.ts';
+	import { toastSavedMovement } from '#lib/movement-saved.ts';
+	import { savedMovement } from '#lib/toast-flags.ts';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -34,9 +33,8 @@
 	// once (Deshacer deletes it), then strip the flag so a reload does not toast again. Without
 	// JavaScript the server-rendered status stands in until hydration.
 	const saved = $derived(savedMovement(page.url.searchParams, 'movementSaved'));
-	let hydrated = $state(false);
+	const mounted = hydrated();
 	onMount(() => {
-		hydrated = true;
 		const prefetch = () => keys.forEach(load);
 		if ('requestIdleCallback' in window) {
 			const id = requestIdleCallback(prefetch);
@@ -45,26 +43,16 @@
 		const id = setTimeout(prefetch, 2000);
 		return () => clearTimeout(id);
 	});
-	let toasted: string | null = null;
 	afterNavigate(({ shallow, type }) => {
 		if (shallow && type === 'goto') return;
 		settleEdgeSwipe();
-		const { id, ruleId } = saved;
-		if (!id) return;
-		// Once per saved id, however many navigations land before the flag is stripped.
-		if (id !== toasted) {
-			toasted = id;
-			if (looksLikeUuid(id)) undoMovementSaved(id, ruleId);
-			else toast.success('Movimiento guardado.');
-			highlightMovement(id);
-		}
-		void stripFlags();
 	});
+	toastSavedMovement(() => saved, highlightMovement);
 </script>
 
 <div class="shell">
 	<main class="content" class:with-bar={showBar} use:edgeSwipeBack>
-		{#if saved.id && !hydrated}
+		{#if saved.id && !mounted.current}
 			<p role="status" class="saved">Movimiento guardado.</p>
 		{/if}
 		{@render children()}

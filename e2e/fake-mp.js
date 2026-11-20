@@ -6,13 +6,10 @@ import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { AR_OFFSET_MS, DAY_MS, FAKE_MP } from './fakes.js';
 
-const PORT = Number(process.env.FAKE_MP_PORT) || 5199;
+const { port: PORT, clientId: CLIENT_ID, clientSecret: CLIENT_SECRET } = FAKE_MP;
 const ME = 9000000000;
-const CLIENT_ID = process.env.FAKE_MP_CLIENT_ID || 'test-client-id';
-const CLIENT_SECRET = process.env.FAKE_MP_CLIENT_SECRET || 'test-client-secret';
-const DAY_MS = 86_400_000;
-const AR_OFFSET_MS = 3 * 3_600_000;
 const dir = fileURLToPath(new URL('./fixtures/mp/', import.meta.url));
 
 let requests = [];

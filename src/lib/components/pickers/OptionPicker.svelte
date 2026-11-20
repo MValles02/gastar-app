@@ -6,7 +6,7 @@
 	import Money from '#lib/components/Money.svelte';
 	import * as Item from '#lib/components/ui/item/index.js';
 	import type { Currency } from '#lib/money.ts';
-	import { hydrated } from './hydrated.svelte.ts';
+	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import OptionList from './OptionList.svelte';
 	import { commitPick } from './pick.ts';
 	import PickerTrigger from './PickerTrigger.svelte';

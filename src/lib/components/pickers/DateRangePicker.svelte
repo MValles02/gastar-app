@@ -7,7 +7,7 @@
 	import { RangeCalendar } from '#lib/components/ui/range-calendar/index.js';
 	import { thisMonth, toCalendarDate } from '#lib/dates.ts';
 	import { APP_TZ, formatDay } from '#lib/locale.ts';
-	import { hydrated } from './hydrated.svelte.ts';
+	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { commitPick } from './pick.ts';
 	import PickerTrigger from './PickerTrigger.svelte';
 

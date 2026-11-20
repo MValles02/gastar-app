@@ -13,6 +13,7 @@ import {
 	DEFAULT_SEED_PASSWORD,
 	OTHER_EMAIL
 } from '../scripts/lib/seed-identities.js';
+import { FAKE_GMAIL } from './fakes.js';
 import { waitForLink } from './outbox';
 
 // Same defaults as scripts/seed.js (local demo users, not secrets), shared via scripts/lib/seed-identities.js.
@@ -384,8 +385,6 @@ export async function upload(page: Page, pdf: Buffer) {
 	await page.getByRole('button', { name: 'Subir resumen' }).click();
 }
 
-const FAKE_GMAIL = `http://127.0.0.1:${Number(process.env.FAKE_GMAIL_PORT) || 5197}`;
-
 type FakeAlert = {
 	merchant: string;
 	amount: string;
@@ -420,7 +419,7 @@ export async function fakeAlert(mailbox: string, o: FakeAlert) {
 		q.set('network', 'mastercard');
 		q.set('cuotas', o.mastercard.cuotas);
 	}
-	expect((await fetch(`${FAKE_GMAIL}/__fake/alert?${q}`)).ok).toBe(true);
+	expect((await fetch(`${FAKE_GMAIL.url}/__fake/alert?${q}`)).ok).toBe(true);
 }
 
 /** Runs the sync through the "Sincronizar" action of /imports (the Gmail part runs before it answers). */

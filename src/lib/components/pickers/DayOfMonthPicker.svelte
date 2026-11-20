@@ -1,12 +1,13 @@
 <script lang="ts">
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import { hydrated } from './hydrated.svelte.ts';
+	import { hydrated } from '#lib/hydrated.svelte.ts';
+	import { MAX_DAY_OF_MONTH } from '#lib/plan.ts';
 	import { commitPick } from './pick.ts';
 	import PickerTrigger from './PickerTrigger.svelte';
 
 	/**
-	 * "Día del mes" row: opens a 1-31 grid (31 means the month's last day; the server clamps it). Posts
+	 * "Día del mes" row: opens a grid of the days 1 to MAX_DAY_OF_MONTH (the last one means the month's last day; the server clamps it). Posts
 	 * `dayOfMonth` through a hidden input, as the drawer is portaled out of any form. Without JavaScript: a
 	 * number input.
 	 */
@@ -28,7 +29,7 @@
 	let open = $state(false);
 	let trigger: HTMLButtonElement | null = $state(null);
 
-	const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
+	const days = Array.from({ length: MAX_DAY_OF_MONTH }, (_, i) => String(i + 1));
 
 	const choose = (d: string) =>
 		commitPick({
@@ -75,7 +76,7 @@
 			type="number"
 			inputmode="numeric"
 			min="1"
-			max="31"
+			max={MAX_DAY_OF_MONTH}
 			{value}
 			aria-invalid={error ? 'true' : undefined}
 			aria-describedby={error ? errorId : undefined}

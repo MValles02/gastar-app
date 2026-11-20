@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { type ComponentProps, untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { autosave } from '#lib/autosave.ts';
 	import { MIN_DAY } from '#lib/dates.ts';
@@ -10,7 +9,7 @@
 	import { categoriesFor, kindFits, MOVEMENT_MESSAGES, movementNeeds } from '#lib/movement.ts';
 	import { upOnClick } from '#lib/nav-stack.svelte.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import { formScreen } from '#lib/components/forms/form-enhance.ts';
+	import { closeAfterDelete, formScreen } from '#lib/components/forms/form-enhance.ts';
 	import InlineText from '#lib/components/InlineText.svelte';
 	import Money from '#lib/components/Money.svelte';
 	import CrossCurrencyRows from '#lib/components/movements/CrossCurrencyRows.svelte';
@@ -145,6 +144,8 @@
 	}
 
 	// The picker returns focus to its row as it closes: take it back (or open the one that is needed).
+	// Kept on purpose: the picker drawer (vaul-svelte over bits-ui) hands focus back to its trigger as its
+	// close animation ends, which would take focus from (or close) anything focused or opened sooner.
 	function prompt(what: string) {
 		setTimeout(() => {
 			if (what === 'rate')
@@ -201,15 +202,10 @@
 	const saveRate = (next: string) => commit({ exchangeRate: next });
 
 	/** Drawer: the delete's answer (the page follows its redirect to the list). */
-	async function deleted(type: string) {
-		if (type !== 'redirect') {
-			errors.delete = 'No se pudo eliminar el movimiento.';
-			return;
-		}
-		// refreshAll keeps the drawer's shallow-route state (invalidateAll would reset it).
-		await refreshAll();
-		onclose?.();
-	}
+	const deleted = closeAfterDelete(
+		onclose,
+		() => (errors.delete = 'No se pudo eliminar el movimiento.')
+	);
 </script>
 
 {#snippet empty()}<p class="hint">Todavía no hay opciones.</p>{/snippet}

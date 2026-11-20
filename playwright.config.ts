@@ -1,13 +1,8 @@
 import { defineConfig } from '@playwright/test';
+import { FAKE_GMAIL, FAKE_GOOGLE, FAKE_MP } from './e2e/fakes.js';
 
 const PORT = Number(process.env.E2E_PORT) || 5173;
 const BASE_URL = `http://localhost:${PORT}`;
-const MP_PORT = Number(process.env.FAKE_MP_PORT) || 5199;
-const MP_URL = `http://127.0.0.1:${MP_PORT}`;
-const GOOGLE_PORT = Number(process.env.FAKE_GOOGLE_PORT) || 5198;
-const GOOGLE_URL = `http://127.0.0.1:${GOOGLE_PORT}`;
-const GMAIL_PORT = Number(process.env.FAKE_GMAIL_PORT) || 5197;
-const GMAIL_URL = `http://127.0.0.1:${GMAIL_PORT}`;
 
 export default defineConfig({
 	testDir: 'e2e',
@@ -29,21 +24,21 @@ export default defineConfig({
 	webServer: [
 		{
 			command: 'node e2e/fake-mp.js',
-			url: `${MP_URL}/__fake/health`,
+			url: `${FAKE_MP.url}/__fake/health`,
 			reuseExistingServer: !process.env.CI,
-			env: { FAKE_MP_PORT: String(MP_PORT) }
+			env: { FAKE_MP_PORT: String(FAKE_MP.port) }
 		},
 		{
 			command: 'node e2e/fake-google.js',
-			url: `${GOOGLE_URL}/__fake/health`,
+			url: `${FAKE_GOOGLE.url}/__fake/health`,
 			reuseExistingServer: !process.env.CI,
-			env: { FAKE_GOOGLE_PORT: String(GOOGLE_PORT) }
+			env: { FAKE_GOOGLE_PORT: String(FAKE_GOOGLE.port) }
 		},
 		{
 			command: 'node e2e/fake-gmail.js',
-			url: `${GMAIL_URL}/__fake/health`,
+			url: `${FAKE_GMAIL.url}/__fake/health`,
 			reuseExistingServer: !process.env.CI,
-			env: { FAKE_GMAIL_PORT: String(GMAIL_PORT) }
+			env: { FAKE_GMAIL_PORT: String(FAKE_GMAIL.port) }
 		},
 		// Locally reuses an already running `pnpm dev` (and its .env); a reused server must have the same MP, Google and Gmail env.
 		// Without one (CI), builds with VITE_E2E=1 (enables the test-only routes) and serves `node build`.
@@ -61,27 +56,24 @@ export default defineConfig({
 				// Override .env (:5173) so a non-default E2E_PORT passes the CSRF origin check.
 				ORIGIN: BASE_URL,
 				BETTER_AUTH_URL: BASE_URL,
-				// Must match the fake's defaults (e2e/fake-mp.js).
-				MP_CLIENT_ID: 'test-client-id',
-				MP_CLIENT_SECRET: 'test-client-secret',
+				MP_CLIENT_ID: FAKE_MP.clientId,
+				MP_CLIENT_SECRET: FAKE_MP.clientSecret,
 				// base64 of 32 ASCII chars.
 				MP_TOKEN_KEY: Buffer.from('0123456789abcdef0123456789abcdef').toString('base64'),
-				MP_AUTH_BASE_URL: MP_URL,
-				MP_API_BASE_URL: MP_URL,
+				MP_AUTH_BASE_URL: FAKE_MP.url,
+				MP_API_BASE_URL: FAKE_MP.url,
 				MP_REPORT_POLL_MS: '100',
 				MP_REPORT_TIMEOUT_MS: '5000',
 				// Scheduler off so e2e stays deterministic (syncs only via "Sincronizar ahora").
 				MP_SYNC_INTERVAL_HOURS: '0',
-				// Must match the fake's defaults (e2e/fake-google.js).
-				GOOGLE_CLIENT_ID: 'test-google-client-id',
-				GOOGLE_CLIENT_SECRET: 'test-google-client-secret',
-				GOOGLE_DISCOVERY_URL: `${GOOGLE_URL}/.well-known/openid-configuration`,
-				// Must match the fake's defaults (e2e/fake-gmail.js).
-				GMAIL_CLIENT_ID: 'test-gmail-client-id',
-				GMAIL_CLIENT_SECRET: 'test-gmail-client-secret',
+				GOOGLE_CLIENT_ID: FAKE_GOOGLE.clientId,
+				GOOGLE_CLIENT_SECRET: FAKE_GOOGLE.clientSecret,
+				GOOGLE_DISCOVERY_URL: `${FAKE_GOOGLE.url}/.well-known/openid-configuration`,
+				GMAIL_CLIENT_ID: FAKE_GMAIL.clientId,
+				GMAIL_CLIENT_SECRET: FAKE_GMAIL.clientSecret,
 				GMAIL_TOKEN_KEY: Buffer.from('fedcba9876543210fedcba9876543210').toString('base64'),
-				GMAIL_AUTH_BASE_URL: GMAIL_URL,
-				GMAIL_API_BASE_URL: GMAIL_URL,
+				GMAIL_AUTH_BASE_URL: FAKE_GMAIL.url,
+				GMAIL_API_BASE_URL: FAKE_GMAIL.url,
 				// Scheduler off so e2e stays deterministic (syncs only via "Sincronizar").
 				GMAIL_SYNC_INTERVAL_MINUTES: '0'
 			}

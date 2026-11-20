@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 	import { afterNavigate, invalidateAll, refreshAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { highlightMovement } from '#lib/highlight.svelte.ts';
 	import { NEW_MOVEMENT_PATH } from '#lib/movement.ts';
-	import { stripFlags } from '#lib/nav-stack.svelte.ts';
 	import { isModifiedClick, openShallow } from '#lib/open-shallow.ts';
-	import { undoMovementSaved } from '#lib/undo-toast.ts';
+	import { hydrated } from '#lib/hydrated.svelte.ts';
+	import { toastSavedMovement, undoMovementSaved } from '#lib/movement-saved.ts';
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Empty from '#lib/components/ui/empty/index.js';
@@ -27,8 +27,7 @@
 	// Page: the + button opens this from any screen: back and Cancelar return there (same-origin path only).
 	let cameFrom = $state<string | null>(null);
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
-	let hydrated = $state(false);
-	let toasted: string | null = null;
+	const mounted = hydrated();
 	if (!untrack(() => drawer)) {
 		afterNavigate(({ from, shallow, type }) => {
 			if (shallow && type === 'goto') return;
@@ -42,20 +41,8 @@
 			)
 				cameFrom = path;
 		});
-		onMount(() => (hydrated = true));
-		// Toast once per saved redirect, then strip ?saved so a reload does not toast again.
-		afterNavigate(({ shallow, type }) => {
-			if (shallow && type === 'goto') return;
-			const { id, ruleId } = data.saved;
-			if (id && !form) {
-				// Once per saved id, however many navigations land before the flag is stripped.
-				if (id !== toasted) {
-					toasted = id;
-					undoMovementSaved(id, ruleId);
-				}
-				void stripFlags();
-			}
-		});
+		// The ?saved=<id> redirect after saving here; a failed post (`form`) does not toast it again.
+		toastSavedMovement(() => (form ? { id: null, ruleId: null } : data.saved));
 	}
 	// Page: where saving returns to (validated by the action): the screen we came from, else the
 	// server's Referer guess (no JS), else none and saving stays here for the next movement.
@@ -126,7 +113,7 @@
 	{:else if drawer}
 		{@render movementForm()}
 	{:else}
-		{#if data.saved.id && !form && !hydrated}<p role="status">Movimiento guardado.</p>{/if}
+		{#if data.saved.id && !form && !mounted.current}<p role="status">Movimiento guardado.</p>{/if}
 		{#key data.formKey}
 			{@render movementForm()}
 		{/key}

@@ -16,11 +16,3 @@ export function readPendingEmail(): string {
 		return '';
 	}
 }
-
-export function clearPendingEmail(): void {
-	try {
-		localStorage.removeItem(KEY);
-	} catch {
-		// Nothing to clear.
-	}
-}
