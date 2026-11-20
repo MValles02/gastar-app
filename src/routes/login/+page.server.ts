@@ -8,8 +8,11 @@ import {
 	tooManyAttempts,
 	VERIFY_EMAIL_PATH
 } from '#lib/server/auth-forms.ts';
+import { str } from '#lib/server/forms.ts';
 import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import type { Actions, PageServerLoad } from './$types';
+
+const BAD_CREDENTIALS = 'Email o contraseña incorrectos.';
 
 export const load: PageServerLoad = () => ({ googleEnabled });
 
@@ -17,23 +20,15 @@ export const actions: Actions = {
 	login: async ({ request, getClientAddress }) => {
 		const ip = getClientAddress();
 		const data = await request.formData();
-		const email = data.get('email');
-		const password = data.get('password');
+		const email = str(data, 'email');
+		const password = str(data, 'password');
 
 		// Rate limit policy (b): count only failures.
 		if (isBlocked('signIn', ip)) {
-			return fail(429, {
-				email: typeof email === 'string' ? email : '',
-				formError: tooManyAttempts('minuto')
-			});
+			return fail(429, { email, formError: tooManyAttempts('minuto') });
 		}
 
-		if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
-			return fail(400, {
-				email: typeof email === 'string' ? email : '',
-				passwordError: 'Email o contraseña incorrectos.'
-			});
-		}
+		if (!email || !password) return fail(400, { email, passwordError: BAD_CREDENTIALS });
 
 		try {
 			await auth.api.signInEmail({
@@ -45,7 +40,7 @@ export const actions: Actions = {
 			if (isApiError(err, EMAIL_NOT_VERIFIED)) return { checkEmail: email };
 			if (!isApiError(err)) throw err;
 			record('signIn', ip);
-			return fail(400, { email, passwordError: 'Email o contraseña incorrectos.' });
+			return fail(400, { email, passwordError: BAD_CREDENTIALS });
 		}
 
 		redirect(303, '/');

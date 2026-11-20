@@ -7,6 +7,7 @@ import {
 } from '#lib/appearance.ts';
 import { formatMoney } from '#lib/money.ts';
 import { accountSummary } from '../accounts/queries';
+import { memoPerRequest } from '../request-memo';
 import { monthPlan, type MonthPlan } from './month-plan';
 
 export type AlertItem = {
@@ -32,7 +33,9 @@ type PlanSummary = MonthPlan['summary'];
  * The plan first, then category limits. Fixed payments never alert: a pending one shows neutrally
  * on /plan ("Pendiente · día N").
  */
-export async function alerts(userId: string): Promise<AlertItem[]> {
+export const alerts = memoPerRequest('alerts', computeAlerts);
+
+async function computeAlerts(userId: string): Promise<AlertItem[]> {
 	const accounts = await accountSummary(userId);
 	if (!accounts.some((a) => a.count > 0)) return [];
 	const m = await monthPlan(userId);

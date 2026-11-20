@@ -1,4 +1,11 @@
-import { KIND, SOURCE, SOURCE_LABELS, type Kind, type SourceId } from '#lib/imports.ts';
+import {
+	CARD_NETWORK,
+	CARD_NETWORKS,
+	KIND,
+	SOURCE,
+	type Kind,
+	type SourceId
+} from '#lib/imports.ts';
 
 /** Kinds whose items come from payments/search; their latest date is where the next search starts. */
 export const PAYMENT_KINDS: Kind[] = [KIND.payment, KIND.accountFund, KIND.refund];
@@ -19,7 +26,7 @@ type KindSpec = {
 };
 
 type SourceSpec = {
-	label: (typeof SOURCE_LABELS)[SourceId];
+	label: string;
 	/** Re-importing an existing key: leave it (`skip`) or refresh it while it is still pending (`update`). */
 	conflict: 'skip' | 'update';
 	/** Items carry a time of day; otherwise only a day. */
@@ -74,12 +81,23 @@ const cardKinds: SourceSpec['kinds'] = {
 	[KIND.other]: { review: true, learns: 'never' }
 };
 
-const card = (id: SourceId): SourceSpec => ({
-	label: SOURCE_LABELS[id],
+const card = (label: string): SourceSpec => ({
+	label,
 	conflict: 'skip',
 	timed: false,
 	merchantName: cardMerchantName,
 	kinds: cardKinds
+});
+
+// Gmail alerts of a debit card, timed. A type other than "Compra" is only a guess: it asks for a review
+// and learns nothing, so no rule suggests it and it is never auto-approved.
+const debitCard = (label: string): SourceSpec => ({
+	...card(label),
+	timed: true,
+	kinds: {
+		[KIND.cardPurchase]: cardKinds[KIND.cardPurchase],
+		[KIND.other]: cardKinds[KIND.other]
+	}
 });
 
 /**
@@ -87,9 +105,9 @@ const card = (id: SourceId): SourceSpec => ({
  * produces, how a merchant is named, how its dates read and how a re-import treats an existing item.
  * Everything that varies by source or kind lives here; callers ask, they never compare literals.
  */
-const SOURCES: Record<SourceId, SourceSpec> = {
+const SOURCES = {
 	[SOURCE.mercadoPago]: {
-		label: SOURCE_LABELS[SOURCE.mercadoPago],
+		label: 'Mercado Pago',
 		conflict: 'update',
 		timed: true,
 		merchantName: (m) => m?.trim() ?? '',
@@ -105,20 +123,13 @@ const SOURCES: Record<SourceId, SourceSpec> = {
 			[KIND.accountFund]: { title: 'Ingreso de dinero', kindKey: 'always', transfer: true },
 			[KIND.other]: { review: true }
 		}
-	},
-	[SOURCE.galiciaVisa]: card(SOURCE.galiciaVisa),
-	[SOURCE.galiciaMastercard]: card(SOURCE.galiciaMastercard),
-	// Gmail alerts of a debit card, timed. A type other than "Compra" is only a guess: it asks for a review
-	// and learns nothing, so no rule suggests it and it is never auto-approved.
-	[SOURCE.visaDebit]: {
-		...card(SOURCE.visaDebit),
-		timed: true,
-		kinds: {
-			[KIND.cardPurchase]: cardKinds[KIND.cardPurchase],
-			[KIND.other]: cardKinds[KIND.other]
-		}
 	}
-};
+} as Record<SourceId, SourceSpec>;
+for (const n of CARD_NETWORKS) {
+	const { credit, debit } = CARD_NETWORK[n];
+	SOURCES[credit.source] = card(credit.label);
+	if (debit) SOURCES[debit.source] = debitCard(debit.label);
+}
 
 export const importSource = (source: SourceId): SourceSpec => SOURCES[source];
 

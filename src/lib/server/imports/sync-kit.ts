@@ -5,7 +5,7 @@ import { pgErrorCode } from '../db/errors';
 // refresh and the scheduler loop.
 
 /** A sync holds its lease this long without renewing it; a later one may take over. */
-export const LEASE_MINUTES = 15;
+const LEASE_MINUTES = 15;
 const LEASE_MS = LEASE_MINUTES * 60_000;
 
 /** First scheduled run after a start. */

@@ -1,7 +1,5 @@
-import { eq, sql } from 'drizzle-orm';
-import { db } from '../../db';
-import { mpSyncState } from '../../db/schema';
 import type { ImportRow } from '../ingest';
+import { obj } from '../json';
 import { payoutKey, yieldKey } from '../keys';
 import { backfillStart } from '../settings';
 import { KIND } from '#lib/imports.ts';
@@ -16,7 +14,6 @@ import {
 	cents,
 	date,
 	fail,
-	obj,
 	OVERLAP_DAYS,
 	parseCsv,
 	type Row,
@@ -309,6 +306,7 @@ export async function syncReport(
 	syncedUntil: Date | null,
 	auth: Auth,
 	floor: Date | null,
+	renewLease: () => Promise<unknown>,
 	from?: Date
 ) {
 	const now = Date.now();
@@ -353,10 +351,7 @@ export async function syncReport(
 			reuse ?? undefined
 		);
 		// Each chunk can wait minutes in MP's queue: renew the lease so a long backfill keeps it.
-		await db
-			.update(mpSyncState)
-			.set({ runningSince: sql`now()` })
-			.where(eq(mpSyncState.accountId, accountId));
+		await renewLease();
 		const parsed = parseCsv(csv);
 		// A config that lacks a parser column (the PUT in ensureReportConfig did not go through) reads as blanks.
 		if (parsed.length && !REPORT_COLUMNS.every((k) => k in parsed[0])) throw fail('parse');

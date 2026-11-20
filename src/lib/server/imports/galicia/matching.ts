@@ -1,4 +1,5 @@
 import { and, eq, inArray, isNotNull, isNull, like, gte, lt, or, type SQL } from 'drizzle-orm';
+import { DAY_MS } from '#lib/dates.ts';
 import type { Currency } from '#lib/money.ts';
 import { canAccessAccount, canAccessOwn } from '../../access';
 import { db } from '../../db';
@@ -24,7 +25,6 @@ export const INSTALLMENT_TOTAL_TOLERANCE_PCT = 1;
 /** Uploaded statements (closing after the alert) an alert survives before "No apareció en el resumen". */
 export const UNMATCHED_AFTER_STATEMENTS = 2;
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const dayNumber = (ymd: string) => Date.parse(`${ymd}T00:00:00Z`) / DAY_MS;
 const shiftDay = (ymd: string, days: number) =>
 	new Date((dayNumber(ymd) + days) * DAY_MS).toISOString().slice(0, 10);

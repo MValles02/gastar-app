@@ -1,14 +1,14 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
-import { PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
+import { isValidPasswordLength, PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
 import { auth } from '#lib/server/auth.ts';
 import {
 	googleReauthAction,
 	INVALID_PASSWORD,
 	isApiError,
-	isValidPasswordLength,
 	tooManyAttempts
 } from '#lib/server/auth-forms.ts';
+import { str } from '#lib/server/forms.ts';
 import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import { reauthMode } from '#lib/server/reauth.ts';
@@ -28,7 +28,7 @@ export const actions: Actions = {
 		}
 
 		const data = await request.formData();
-		const newPassword = String(data.get('newPassword') ?? '');
+		const newPassword = str(data, 'newPassword');
 
 		const mode = await reauthMode(userId, locals.session);
 		if (mode !== 'password') {
@@ -50,7 +50,7 @@ export const actions: Actions = {
 			redirect(303, '/profile');
 		}
 
-		const currentPassword = String(data.get('currentPassword') ?? '');
+		const currentPassword = str(data, 'currentPassword');
 
 		const errors: { current?: string; next?: string } = {};
 		if (!currentPassword) errors.current = 'Ingresá tu contraseña actual.';

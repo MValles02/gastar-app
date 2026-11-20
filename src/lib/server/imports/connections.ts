@@ -1,6 +1,7 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { CURRENCIES, CURRENCY_NAME, type Currency } from '#lib/money.ts';
 import { canAccessAccount, canAccessOwn } from '../access';
+import { accountOption } from '../accounts/queries';
 import { db } from '../db';
 import { isUuid } from '../db/util';
 import { financialAccounts, importCards } from '../db/schema';
@@ -51,13 +52,30 @@ export const ACCOUNT_ERRORS = Object.fromEntries(
  * at least one configured card); else null.
  */
 export async function importsPending(userId: string): Promise<number | null> {
-	const [{ mp, gmail }, galicia] = await Promise.all([
-		sourceStatus(userId),
-		getGaliciaConnection(userId)
-	]);
-	return mp?.accountId || galicia?.arsAccountId || (gmail?.state && (await hasGmailCards(userId)))
+	const [status, galicia] = await Promise.all([sourceStatus(userId), getGaliciaConnection(userId)]);
+	const l = linkedSources(status, galicia);
+	return l.mp || l.galicia || (l.gmail && (await hasGmailCards(userId)))
 		? await pendingImportCount(userId)
 		: null;
+}
+
+/** Which import sources the user has set up: Mercado Pago once it feeds an account (also while a reconnect is pending), Banco Galicia once its pesos account is chosen, Gmail once linked. */
+export const linkedSources = (
+	status: Awaited<ReturnType<typeof sourceStatus>>,
+	galicia: Awaited<ReturnType<typeof getGaliciaConnection>>
+) => ({
+	mp: !!status.mp?.accountId,
+	galicia: !!galicia?.arsAccountId,
+	gmail: !!status.gmail?.state
+});
+
+/** The user's active pesos and dollar accounts as picker options. */
+export async function currencyAccountOptions(userId: string) {
+	const [ars, usd] = await Promise.all([
+		activeAccountsIn(userId, 'ARS'),
+		activeAccountsIn(userId, 'USD')
+	]);
+	return { arsAccounts: ars.map(accountOption), usdAccounts: usd.map(accountOption) };
 }
 
 async function hasGmailCards(userId: string) {

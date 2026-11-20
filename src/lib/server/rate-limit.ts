@@ -30,6 +30,23 @@ export const LIMITS = {
 	statementUpload: { max: e2eOr(10), windowMs: 15 * MINUTE_MS }
 } as const;
 
+/** Better Auth takes the window in seconds. */
+const rule = ({ max, windowMs }: { max: number; windowMs: number }) => ({
+	window: windowMs / 1000,
+	max
+});
+
+/** Better Auth's `rateLimit.customRules`: its HTTP endpoints, on the Better Auth buckets above. */
+export const BETTER_AUTH_RULES = {
+	'/sign-in/email': rule(LIMITS.signIn),
+	'/send-verification-email': rule(LIMITS.resendHttp),
+	'/request-password-reset': rule(LIMITS.resetRequestHttp),
+	'/sign-up/email': rule(LIMITS.signUp),
+	'/verify-email': rule(LIMITS.verifyEmail),
+	'/sign-in/social': rule(LIMITS.oauthStart),
+	'/callback/*': rule(LIMITS.oauthCallback)
+};
+
 /** A key idle for the longest window holds no hits that count in any bucket. */
 const MAX_WINDOW_MS = Math.max(...Object.values(LIMITS).map((limit) => limit.windowMs));
 

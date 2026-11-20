@@ -1,6 +1,6 @@
 import { formFail } from '#lib/form.ts';
 import { auth } from '#lib/server/auth.ts';
-import { userNameError } from '#lib/server/auth-forms.ts';
+import { userNameError } from '#lib/fields.ts';
 import { PREFERENCE_COOKIE_OPTIONS, THEME_COOKIE } from '#lib/server/cookies.ts';
 import { profileCounts } from '#lib/server/profile-queries.ts';
 import { requireUser } from '#lib/server/guards.ts';
