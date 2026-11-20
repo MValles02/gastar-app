@@ -3,7 +3,8 @@ import { userOwned } from '../access';
 import { db } from '../db';
 import { importItems } from '../db/schema';
 import { autoApprovePending } from './approve';
-import { importSource, type SourceId } from './sources';
+import { type SourceId } from '#lib/imports.ts';
+import { importSource } from './sources';
 
 const BATCH = 500;
 

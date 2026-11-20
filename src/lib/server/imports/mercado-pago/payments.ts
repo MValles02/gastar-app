@@ -5,7 +5,8 @@ import { canAccessOwn } from '../../access';
 import { batches, type ImportRow } from '../ingest';
 import { paymentKey, refundKey } from '../keys';
 import { backfillStart } from '../settings';
-import { KIND, PAYMENT_KINDS } from '../sources';
+import { KIND } from '#lib/imports.ts';
+import { PAYMENT_KINDS } from '../sources';
 import { DAY_MS } from '#lib/dates.ts';
 import {
 	apiJson,

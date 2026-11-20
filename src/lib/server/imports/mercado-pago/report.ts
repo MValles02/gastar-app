@@ -4,7 +4,8 @@ import { mpSyncState } from '../../db/schema';
 import type { ImportRow } from '../ingest';
 import { payoutKey, yieldKey } from '../keys';
 import { backfillStart } from '../settings';
-import { KIND } from '../sources';
+import { KIND } from '#lib/imports.ts';
+
 import { DAY_MS } from '#lib/dates.ts';
 import { dayStart, localDay } from '../../month';
 import {

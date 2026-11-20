@@ -9,6 +9,7 @@ import {
 	decodeEntities,
 	headerValue,
 	headersOf,
+	labelledFields,
 	messageParts,
 	obj,
 	plain,
@@ -26,14 +27,11 @@ function readBlock(html: string) {
 	const text = decodeEntities(html.replace(/<br\s*\/?>|<\/p>/gi, '\n').replace(/<[^>]*>/g, ''));
 	const rows = text.split('\n');
 	const start = rows.findIndex((l) => plain(l).trim().startsWith('comercio:'));
-	const fields = new Map<string, string>();
-	if (start < 0) return { fields, intro: '' };
-	for (const row of rows.slice(start)) {
-		const m = /^\s*([^:]{1,40}):\s*(.*?)\s*$/.exec(row);
-		const label = m && plain(m[1]).trim();
-		if (m && label && !fields.has(label)) fields.set(label, m[2]);
-	}
-	return { fields, intro: plain(rows.slice(0, start).join(' ')) };
+	if (start < 0) return { fields: new Map<string, string>(), intro: '' };
+	return {
+		fields: labelledFields(rows.slice(start)),
+		intro: plain(rows.slice(0, start).join(' '))
+	};
 }
 
 /** `^(\d+)\.(\d{2})`, optionally followed directly by "(puede haber ...)": minor units, > 0. */
