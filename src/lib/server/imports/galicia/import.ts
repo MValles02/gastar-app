@@ -9,7 +9,7 @@ import { statementLineKey, statementTaxesKey } from '../keys';
 import { withMatchLock } from '../match-lock';
 import { GALICIA_SOURCE, KIND, kindSpec } from '../sources';
 import { getGaliciaConnection } from './connection';
-import { matchStatement } from './matching';
+import { linkInstallmentLines, matchStatement } from './matching';
 import { StatementError, type Statement, type StatementLine } from './statement';
 
 type GaliciaConnection = Awaited<ReturnType<typeof getGaliciaConnection>>;
@@ -78,6 +78,8 @@ export async function importStatement(userId: string, s: Statement): Promise<Sta
 	}
 	const { created, autoApproved } = await withMatchLock(userId, async () => {
 		const { rows, diffs } = await matchStatement(userId, source, s.closing, lines);
+		// Later cuotas (k/N, k >= 2) of an approved installment purchase join its fixed payment.
+		await linkInstallmentLines(userId, source, lines);
 		const result = await ingestImportItems(userId, source, [...rows, ...diffs, ...taxes]);
 		await db
 			.insert(cardStatements)

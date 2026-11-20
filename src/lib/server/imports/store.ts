@@ -2,19 +2,25 @@ import { and, count, desc, eq, gt, inArray, isNotNull, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '../db';
 import {
+	cardAlerts,
 	categories,
 	financialAccounts,
 	importSettings,
 	movements,
 	importItems,
 	importRules,
-	mpSyncState
+	mpSyncState,
+	recurringMovements
 } from '../db/schema';
+import { dayOfMonth } from '#lib/dates.ts';
+import { localDay } from '../month';
+import { ownRule } from '../recurring/queries';
+import { alertKeySql } from './keys';
 import { canAccessAccount, canAccessMovement, canAccessOwn, userOwned } from '../access';
 import type { MovementType } from '#lib/movement.ts';
 import type { MovementRow } from '../movements/form';
 import { createMovement, deleteMovement } from '../movements/queries';
-import { rememberKey } from './rules';
+import { installmentAmounts, installmentEndsMonth, rememberKey } from './rules';
 import { AUTO_APPROVED_DAYS } from './settings';
 import type { Kind, SourceId } from './sources';
 
@@ -32,6 +38,14 @@ const itemColumns = {
 	currency: financialAccounts.currency,
 	source: itemSource,
 	installment: importItems.installment,
+	installments: importItems.installments,
+	recurringId: importItems.recurringId,
+	// The card alert's total of an installment purchase (by key: the alert's link is set after the item exists).
+	installmentTotal: sql<
+		number | null
+	>`(select ${cardAlerts.amount} from ${cardAlerts} where ${cardAlerts.userId} = ${importItems.userId} and ${alertKeySql(cardAlerts.gmailMessageId)} in (${importItems.externalKey}, ${importItems.aliasKey}) limit 1)`.mapWith(
+		(v) => (v === null ? null : Number(v))
+	),
 	status: importItems.status,
 	kind: itemKind,
 	isCredit: importItems.isCredit,
@@ -120,7 +134,8 @@ type ApproveRule = {
 
 /**
  * One transaction: claim the pending item, insert the movement, link it and, when `remember` is set,
- * learn the rule (no rule is created or changed otherwise). `auto` stamps it as an automatic approval.
+ * learn the rule (no rule is created or changed otherwise). An installment item also creates its fixed
+ * payment (amount = total / cuotas, ending after the last cuota) and links the movement to it. `auto` stamps it as an automatic approval.
  * 'stale' (nothing written) when the item is no longer pending.
  */
 export function approveImport(
@@ -139,15 +154,34 @@ export function approveImport(
 			.returning({ id: importItems.id });
 		if (!claimed) return 'stale';
 
-		const [movement] = await createMovement(userId, row, { tx, ruleId: rule.recurringId });
+		let ruleId = rule.recurringId;
+		if (item.installments && item.installmentTotal && rule.categoryId) {
+			const day = localDay(item.occurredAt);
+			const [created] = await tx
+				.insert(recurringMovements)
+				.values({
+					...userOwned(userId),
+					type: 'outcome',
+					description: rule.description,
+					amount: installmentAmounts(item.installmentTotal, item.installments, item.currency).rule,
+					accountId: item.accountId,
+					categoryId: rule.categoryId,
+					dayOfMonth: dayOfMonth(day),
+					endsMonth: installmentEndsMonth(day, item.installments)
+				})
+				.returning({ id: recurringMovements.id });
+			ruleId = created.id;
+		}
+		const [movement] = await createMovement(userId, row, { tx, ruleId });
 		await tx
 			.update(importItems)
-			.set({ movementId: movement.id })
+			.set({ movementId: movement.id, ...(item.installments ? { recurringId: ruleId } : {}) })
 			.where(and(eq(importItems.id, item.id), canAccessOwn(userId, importItems)));
 
 		const key = remember ? rememberKey(item)?.key : undefined;
 		if (key) {
-			const { type, categoryId, counterAccountId, description, recurringId } = rule;
+			const { type, categoryId, counterAccountId, description } = rule;
+			const recurringId = item.installments ? null : rule.recurringId;
 			await tx
 				.insert(importRules)
 				.values({
@@ -186,8 +220,8 @@ export async function rejectImport(userId: string, id: string): Promise<'rejecte
 }
 
 /**
- * Undo of an approval, in one transaction: deletes the movement the approval created and puts the item
- * back to pending. 'changed' when the movement was edited meanwhile, 'stale' when the item is not an
+ * Undo of an approval, in one transaction: deletes the movement the approval created (and the fixed
+ * payment an installment approval created) and puts the item back to pending. 'changed' when the movement was edited meanwhile, 'stale' when the item is not an
  * approved one with a movement (still pending, rejected, or its movement was deleted); nothing is
  * written in either case. Rules are untouched: a quick approval never learns one. Undoing an automatic
  * approval also blocks the item from being auto-approved again (it stays for manual review).
@@ -195,7 +229,11 @@ export async function rejectImport(userId: string, id: string): Promise<'rejecte
 export function undoApproval(userId: string, id: string): Promise<'undone' | 'changed' | 'stale'> {
 	return db.transaction(async (tx) => {
 		const [item] = await tx
-			.select({ movementId: importItems.movementId })
+			.select({
+				movementId: importItems.movementId,
+				installments: importItems.installments,
+				recurringId: importItems.recurringId
+			})
 			.from(importItems)
 			.where(
 				and(
@@ -220,6 +258,8 @@ export function undoApproval(userId: string, id: string): Promise<'undone' | 'ch
 		if (movement.updatedAt.getTime() !== movement.createdAt.getTime()) return 'changed';
 
 		await deleteMovement(userId, item.movementId, tx);
+		if (item.installments && item.recurringId)
+			await tx.delete(recurringMovements).where(ownRule(userId, item.recurringId));
 		await tx
 			.update(importItems)
 			.set({

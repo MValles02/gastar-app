@@ -184,6 +184,8 @@ export const recurringMovements = pgTable(
 		// Amount before the last change that came from a linked charge; NULL otherwise.
 		previousAmount: bigint('previous_amount', { mode: 'number' }),
 		archivedAt: timestamp('archived_at', { withTimezone: true }),
+		// Installment rule: its last month ('YYYY-MM'); NULL = no end. A non-null rule never follows linked charges.
+		endsMonth: varchar('ends_month', { length: 7 }),
 		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp('updated_at', { withTimezone: true })
 			.defaultNow()
@@ -192,6 +194,10 @@ export const recurringMovements = pgTable(
 	},
 	(table) => [
 		index('recurring_movements_user_id_idx').on(table.userId),
+		check(
+			'recurring_movements_ends_month_check',
+			sql`${table.endsMonth} IS NULL OR ${table.endsMonth} ~ ${sql.raw(`'${MONTH_RE.source}'`)}`
+		),
 		check('recurring_movements_amount_positive_check', sql`${table.amount} > 0`),
 		check(
 			'recurring_movements_previous_amount_positive_check',
@@ -365,6 +371,12 @@ export const importItems = pgTable(
 		poiType: text('poi_type'),
 		// Card statements: the cuota as printed (`05/12`) of an installment line; null otherwise.
 		installment: text('installment'),
+		// Galicia Mastercard alert of a purchase in N cuotas (N >= 2): the item is its first cuota and approving it creates a fixed payment.
+		installments: smallint('installments'),
+		// The fixed payment an approved installment item created (or, for a later cuota line, belongs to).
+		recurringId: uuid('recurring_id').references(() => recurringMovements.id, {
+			onDelete: 'set null'
+		}),
 		// Card alert and statement line of one purchase: the key of the other side of the match (one item for both).
 		aliasKey: text('alias_key'),
 		// "No apareció en el resumen": the user chose to keep an unmatched alert item.
@@ -389,6 +401,10 @@ export const importItems = pgTable(
 			table.occurredAt
 		),
 		check('mp_import_items_amount_positive_check', sql`${table.amount} > 0`),
+		check(
+			'mp_import_items_installments_check',
+			sql`${table.installments} IS NULL OR ${table.installments} >= 2`
+		),
 		check('mp_import_items_kind_check', sql`${table.kind} IN (${inList(Object.values(KIND))})`),
 		check(
 			'mp_import_items_source_check',

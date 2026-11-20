@@ -43,10 +43,10 @@ function pdf(pages: Text[][]): Buffer {
 	return Buffer.from(out, 'latin1');
 }
 
-const header = (number: string): Text[] => [
+const header = (number: string, network = 'VISA'): Text[] => [
 	[76, 764, `Resumen N° ${number}`],
 	[75, 743, 'Tarjeta Crédito'],
-	[157, 743, 'VISA'],
+	[157, 743, network],
 	[320, 719, 'Consumidor Final'],
 	[453, 719, 'CUIT Banco: 30-50000173-5'],
 	[34, 716, 'TITULAR DE PRUEBA']
@@ -72,6 +72,8 @@ const fromCents = (cents: number) =>
  * (`ars` or `usd` per line); `cuota` (`01/06`) marks an installment line.
  */
 export function statementOf(o: {
+	/** The header's card network (default `VISA`). */
+	network?: 'VISA' | 'MASTERCARD';
 	number: string;
 	closing: string;
 	lines: {
@@ -96,7 +98,7 @@ export function statementOf(o: {
 		fromCents(o.lines.reduce((s, l) => s + (l[k] ? toCents(l[k]) : 0), 0));
 	return pdf([
 		[
-			...header(o.number),
+			...header(o.number, o.network),
 			[227, 572, '01-01-26'],
 			[284, 572, '02-01-26'],
 			[340, 572, o.closing],

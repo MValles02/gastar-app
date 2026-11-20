@@ -1,7 +1,7 @@
-import { and, asc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 import { canAccessOwn, userOwned } from '../access';
 import { db } from '../db';
-import { cardAlerts, importCards, importItems } from '../db/schema';
+import { cardAlerts, importCards, importItems, recurringMovements } from '../db/schema';
 import { pgErrorCode } from '../db/errors';
 import { activeAccountsIn, isActiveAccountIn } from './connections';
 import { getGaliciaConnection, setGaliciaAccount } from './galicia/connection';
@@ -9,6 +9,7 @@ import { matchWaitingAlerts } from './galicia/matching';
 import { type ImportRow, ingestImportItems } from './ingest';
 import { alertKey, alertKeySql } from './keys';
 import { withMatchLock } from './match-lock';
+import { installmentAmounts } from './rules';
 import { getChosenImportFrom } from './settings';
 import { REVERSAL } from './gmail/mastercard-alert';
 import { GALICIA_SOURCE, KIND, SOURCE, type SourceId } from './sources';
@@ -58,8 +59,9 @@ const withSlug = <T extends { network: string; last4: string }>(rows: T[]) =>
  * USD alert goes to the dollar account as it is), then links each alert to its item. A debit card's items
  * use the card's accounts; a credit card's use the Banco Galicia accounts, the same its statements land on
  * (the Galicia source of the alert's network), and a purchase whose statement line was already imported
- * creates nothing (it is matched to that item). Unknown cards create nothing, and neither do alerts of more
- * than one installment (cuotas): they are stored and wait. The only caller of ingestImportItems for Gmail alerts.
+ * creates nothing (it is matched to that item). Unknown cards create nothing. A purchase in cuotas (N > 1)
+ * becomes the item of its first cuota (`installments` = N); approving it creates the fixed payment. The only
+ * caller of ingestImportItems for Gmail alerts.
  */
 export const convertWaitingAlerts = (userId: string) =>
 	withMatchLock(userId, () => convertLocked(userId));
@@ -77,6 +79,7 @@ async function convertLocked(userId: string) {
 			amount: cardAlerts.amount,
 			merchant: cardAlerts.merchant,
 			transactionType: cardAlerts.transactionType,
+			installments: cardAlerts.installments,
 			receivedAt: cardAlerts.receivedAt,
 			type: importCards.type,
 			arsAccountId: importCards.arsAccountId,
@@ -96,10 +99,7 @@ async function convertLocked(userId: string) {
 				canAccessOwn(userId, cardAlerts),
 				canAccessOwn(userId, importCards),
 				isNull(cardAlerts.importItemId),
-				fromFloor,
-				// An installment purchase (cuotas > 1) is not one item of its full amount: it is stored but waits
-				// unconverted for installment support (phase 2 turns it into a fixed payment with an end).
-				or(isNull(cardAlerts.installments), eq(cardAlerts.installments, 1))
+				fromFloor
 			)
 		);
 	if (waiting.length === 0) return { created: 0, autoApproved: 0 };
@@ -139,6 +139,7 @@ async function convertLocked(userId: string) {
 	]);
 	const usable = new Set([...ars, ...usd].map((a) => a.id));
 	const rowsBySource = new Map<SourceId, ImportRow[]>();
+	const archive: string[] = [];
 	for (const a of waitingLive) {
 		if (matched.has(a.messageId)) continue;
 		// Without a matching result, a credit purchase must not be inserted next to a statement item.
@@ -154,18 +155,39 @@ async function convertLocked(userId: string) {
 		rowsBySource.set(source, rows);
 		// A reversal left here is money back: a credit of the card purchase kind (it learns nothing).
 		const refund = reversals.credit.has(a.messageId);
+		const cuotas =
+			a.type === 'credit' && a.transactionType === PURCHASE && !refund ? (a.installments ?? 1) : 1;
+		// A reversal of an approved installment purchase gives back the booked first cuota and ends its fixed payment.
+		const booked = reversals.booked.get(a.messageId);
+		if (booked?.recurringId) archive.push(booked.recurringId);
 		rows.push({
 			externalKey: alertKey(a.messageId),
 			accountId,
 			kind: a.transactionType === PURCHASE || refund ? KIND.cardPurchase : KIND.other,
 			occurredAt: a.receivedAt,
-			amount: a.amount,
+			amount:
+				booked?.amount ??
+				(cuotas > 1
+					? installmentAmounts(a.amount, cuotas, a.currency as Currency).first
+					: a.amount),
+			installments: cuotas > 1 ? cuotas : null,
 			isCredit: refund,
 			sourceId: a.messageId,
 			rawDescription: a.merchant,
 			merchant: a.merchant
 		});
 	}
+	if (archive.length > 0)
+		await db
+			.update(recurringMovements)
+			.set({ archivedAt: new Date(), updatedAt: new Date() })
+			.where(
+				and(
+					canAccessOwn(userId, recurringMovements),
+					isNull(recurringMovements.archivedAt),
+					inArray(recurringMovements.id, archive)
+				)
+			);
 	const result = { created: 0, autoApproved: 0 };
 	for (const [source, rows] of rowsBySource) {
 		const r = await ingestImportItems(userId, source, rows);
@@ -211,18 +233,20 @@ type Waiting = {
  *   (as an "Importar desde" trim does), and from then on both are unconverted;
  * - the purchase item was rejected: the reversal creates nothing;
  * - the purchase item was approved (or is a statement line): the reversal becomes a credit item (`credit`);
+ *   for an installment purchase it is the booked first cuota (`booked`) and its fixed payment is archived;
  * - no purchase to cancel: the reversal becomes a credit item.
  * Visa has no known reversal alert and is left out.
  */
 async function settleReversals(userId: string, waiting: Waiting[]) {
 	const skip = new Set<string>();
 	const credit = new Set<string>();
+	const booked = new Map<string, { amount: number; recurringId: string | null }>();
 	const mine = waiting.filter(
 		(a) =>
 			a.network === 'mastercard' &&
 			(a.transactionType === PURCHASE || a.transactionType === REVERSAL)
 	);
-	if (mine.length === 0) return { skip, credit };
+	if (mine.length === 0) return { skip, credit, booked };
 	const waitingIds = new Set(waiting.map((a) => a.messageId));
 	const all = await db
 		.select({
@@ -236,7 +260,10 @@ async function settleReversals(userId: string, waiting: Waiting[]) {
 			itemId: importItems.id,
 			itemStatus: importItems.status,
 			itemKey: importItems.externalKey,
-			itemAlias: importItems.aliasKey
+			itemAlias: importItems.aliasKey,
+			itemAmount: importItems.amount,
+			itemInstallments: importItems.installments,
+			itemRecurringId: importItems.recurringId
 		})
 		.from(cardAlerts)
 		.leftJoin(importItems, eq(importItems.id, cardAlerts.importItemId))
@@ -283,7 +310,14 @@ async function settleReversals(userId: string, waiting: Waiting[]) {
 			toDelete.push(purchase.itemId);
 			skip.add(a.messageId);
 		} else if (purchase.itemStatus === 'rejected') skip.add(a.messageId);
-		else credit.add(a.messageId);
+		else {
+			credit.add(a.messageId);
+			if (purchase.itemInstallments)
+				booked.set(a.messageId, {
+					amount: purchase.itemAmount!,
+					recurringId: purchase.itemRecurringId
+				});
+		}
 	}
 	if (toDelete.length > 0) {
 		await db
@@ -297,7 +331,7 @@ async function settleReversals(userId: string, waiting: Waiting[]) {
 				)
 			);
 	}
-	return { skip, credit };
+	return { skip, credit, booked };
 }
 
 /** Cards that sent alerts but have no card row yet: the user still has to say what they are. */

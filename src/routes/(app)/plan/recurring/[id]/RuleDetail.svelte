@@ -72,6 +72,8 @@
 				<StatusPill tone="neutral" label="Desactivado" />
 			{:else if r.cannotRegister}
 				<StatusPill tone="warning" label={r.inactiveReason ?? ''} />
+			{:else if r.inactiveReason}
+				<StatusPill tone="neutral" label={r.inactiveReason} />
 			{:else if r.thisMonth}
 				<StatusPill tone={dueTone(r.thisMonth.status)} label={r.thisMonth.label} />
 			{/if}
@@ -137,6 +139,9 @@
 				error={errors.dayOfMonth}
 			/>
 		</li>
+		{#if r.endsMonthLabel}
+			<DetailRow label="Última cuota">{r.endsMonthLabel}</DetailRow>
+		{/if}
 	</DetailCard>
 
 	<DetailLifecycle

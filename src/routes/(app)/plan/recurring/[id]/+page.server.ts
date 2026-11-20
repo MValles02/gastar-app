@@ -9,6 +9,7 @@ import {
 	setRecurringArchived,
 	updateRecurring
 } from '#lib/server/recurring/queries.ts';
+import { monthLabel } from '#lib/server/month.ts';
 import { ruleDueThisMonth } from '#lib/server/plan/month-plan.ts';
 import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
 import { editedForm, readRecurringForm, toFormValues } from '#lib/server/recurring/form.ts';
@@ -53,6 +54,7 @@ async function detailOf(userId: string, id: string) {
 		previousAmount: rule.previousAmount,
 		currency: rule.currency,
 		dayOfMonth: rule.dayOfMonth,
+		endsMonthLabel: rule.endsMonth ? monthLabel(rule.endsMonth) : null,
 		account,
 		category,
 		thisMonth,

@@ -5,6 +5,7 @@
 	import { submitAction } from '#lib/autosave.ts';
 	import IconBadge from '#lib/components/IconBadge.svelte';
 	import Money from '#lib/components/Money.svelte';
+	import { formatMoney } from '#lib/money.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import { undoToast } from '#lib/undo-toast.ts';
 
@@ -24,6 +25,8 @@
 			suggestion: string | null;
 			/** Where it came from, only when the inbox mixes sources. */
 			source: string | null;
+			/** Installment purchase: how many cuotas and the fixed payment amount of each. */
+			cuotas: { n: number; amount: number } | null;
 		};
 	} = $props();
 
@@ -46,9 +49,9 @@
 	<div class="text">
 		<a {href} class="title" onclick={open}>{item.title}</a>
 		<span class="meta" class:unknown={item.suggestion === null}>
-			{item.source ? `${item.source} · ` : ''}{item.suggestion === null
-				? 'No sabemos qué es'
-				: `${item.suggestion} · sugerido`}
+			{item.source ? `${item.source} · ` : ''}{item.cuotas
+				? `${item.cuotas.n} cuotas de ${formatMoney(item.cuotas.amount, item.currency)} · `
+				: ''}{item.suggestion === null ? 'No sabemos qué es' : `${item.suggestion} · sugerido`}
 		</span>
 	</div>
 	<div class="side">

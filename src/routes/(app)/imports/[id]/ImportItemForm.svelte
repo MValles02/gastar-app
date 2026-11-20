@@ -110,6 +110,11 @@
 			</span>
 			<span class="date">{item.dateLabel}</span>
 		</p>
+		{#if item.cuotas}
+			<p class="cuotas">
+				{item.cuotas.n} cuotas de <Money cents={item.cuotas.amount} currency={item.currency} />
+			</p>
+		{/if}
 		<p class="original">{item.rawDescription}</p>
 	</section>
 
@@ -127,16 +132,20 @@
 		errorToast="No se pudo aprobar."
 		bind:submitting
 	>
-		<div class="field">
-			<span id="type-label" class="visually-hidden">Tipo</span>
-			<SegmentedControl
-				name="type"
-				options={typeOptions}
-				bind:value={type}
-				labelledby="type-label"
-			/>
-			{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
-		</div>
+		{#if item.cuotas}
+			<input type="hidden" name="type" value="outcome" />
+		{:else}
+			<div class="field">
+				<span id="type-label" class="visually-hidden">Tipo</span>
+				<SegmentedControl
+					name="type"
+					options={typeOptions}
+					bind:value={type}
+					labelledby="type-label"
+				/>
+				{#if errors.type}<p class="error" role="alert">{errors.type}</p>{/if}
+			</div>
+		{/if}
 
 		<ul class="card">
 			<li class:bad={errors.description}>
@@ -203,7 +212,7 @@
 						{/snippet}
 					</OptionPicker>
 				</li>
-				{#if data.rules.length}
+				{#if data.rules.length && !item.cuotas}
 					<li class:bad={errors.recurringId}>
 						<OptionPicker
 							name="recurringId"
@@ -317,6 +326,11 @@
 		color: var(--text-muted);
 		font-size: var(--font-size-sm);
 		white-space: nowrap;
+	}
+
+	.cuotas {
+		margin: 0;
+		font-size: var(--font-size-sm);
 	}
 
 	.original {

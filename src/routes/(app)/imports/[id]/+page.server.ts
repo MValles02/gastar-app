@@ -7,6 +7,7 @@ import {
 	importDateLabel,
 	importPrefill,
 	importTypes,
+	installmentAmounts,
 	rememberKey
 } from '#lib/server/imports/rules.ts';
 import { getImport, listImportRules, rejectImport } from '#lib/server/imports/store.ts';
@@ -14,6 +15,7 @@ import { failIfUnavailable } from '#lib/server/movements/detail.ts';
 import { movementPickers } from '#lib/server/movements/pickers.ts';
 import { approveWithValues, counterAccountsOf } from '#lib/server/imports/approve.ts';
 import { activeRuleItems } from '#lib/server/recurring/rule-items.ts';
+import { listRecurring } from '#lib/server/recurring/queries.ts';
 import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
 import { importDoneHref } from '#lib/toast-flags.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -38,12 +40,19 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const userId = requireUser(locals).id;
 	const item = await findItem(userId, params.id);
 	if (item.status !== 'pending') notFound();
-	const [{ categories, accounts }, importRules, rules] = await Promise.all([
+	const [{ categories, accounts }, importRules, rules, recurring] = await Promise.all([
 		pickers(userId, item),
 		listImportRules(userId),
-		activeRuleItems(userId, item.currency, item.isCredit ? 'income' : 'outcome')
+		activeRuleItems(userId, item.currency, item.isCredit ? 'income' : 'outcome'),
+		listRecurring(userId)
 	]);
-	const prefill = importPrefill(item, importRules, categories, accounts);
+	const prefill = importPrefill(
+		item,
+		importRules,
+		categories,
+		accounts,
+		recurring.filter((r) => !r.archivedAt)
+	);
 	return {
 		item: {
 			id: item.id,
@@ -51,7 +60,16 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			amount: item.amount,
 			currency: item.currency,
 			dateLabel: importDateLabel(item.source, item.occurredAt),
-			rawDescription: item.rawDescription
+			rawDescription: item.rawDescription,
+			// An installment purchase: N cuotas of the fixed payment amount (approving creates that payment).
+			cuotas:
+				item.installments && item.installmentTotal
+					? {
+							n: item.installments,
+							amount: installmentAmounts(item.installmentTotal, item.installments, item.currency)
+								.rule
+						}
+					: null
 		},
 		initial: {
 			type: prefill.type as string,
@@ -91,7 +109,7 @@ export const actions: Actions = {
 		const errors: Partial<Record<keyof typeof values | 'form', string>> = {};
 
 		// The movement form's type and description checks, with the types this item can take.
-		const type = movementTypeOf(values.type, importTypes(item.isCredit));
+		const type = movementTypeOf(values.type, importTypes(item));
 		if (!type) errors.type = MSG.type;
 		if (description.error) errors.description = description.error;
 
@@ -104,7 +122,7 @@ export const actions: Actions = {
 						? 'Elegí una cuenta en dólares que no esté archivada.'
 						: 'Elegí una cuenta en pesos que no esté archivada.';
 		} else if (type && !isUuid(values.categoryId)) errors.categoryId = MSG.category;
-		if (type && type !== 'transfer' && values.recurringId) {
+		if (type && type !== 'transfer' && values.recurringId && !item.installments) {
 			const rules = await activeRuleItems(
 				userId,
 				item.currency,
@@ -120,7 +138,11 @@ export const actions: Actions = {
 			approved = await approveWithValues(
 				userId,
 				item,
-				{ ...values, type: type!, recurringId: type === 'transfer' ? '' : values.recurringId },
+				{
+					...values,
+					type: type!,
+					recurringId: type === 'transfer' || item.installments ? '' : values.recurringId
+				},
 				values.remember === 'on'
 			);
 		} catch (e) {

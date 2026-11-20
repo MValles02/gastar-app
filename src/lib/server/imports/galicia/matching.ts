@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, like, gte, lt, or, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, like, gte, lt, or, type SQL } from 'drizzle-orm';
 import type { Currency } from '#lib/money.ts';
 import { canAccessAccount, canAccessOwn } from '../../access';
 import { db } from '../../db';
@@ -36,6 +36,8 @@ type Side = {
 	merchant: string;
 	/** Cuota as printed (`01/06`) of a statement side. */
 	installment?: string | null;
+	/** Cuotas (N) of an installment alert item, whose amount is its first cuota. */
+	installments?: number | null;
 };
 type Candidate = Side & { id: string };
 
@@ -48,7 +50,7 @@ const commonPrefix = (a: string, b: string) => {
 /**
  * The candidate that matches `subject` (an alert or a statement line; candidates are the other side),
  * or null. The first tier with a match wins: 1) installment `01/N`: the alert equals the cuota or the cuota
- * times N within 1%; 2) the exact amount; 3) pesos only: within 15% and compatible merchant names (one a
+ * times N within 1%, or the alert item (first cuota of N cuotas) is that cuota within 1%; 2) the exact amount; 3) pesos only: within 15% and compatible merchant names (one a
  * prefix of the other). Inside a tier: the nearest day, then the longest common merchant prefix, then the
  * lowest id. Only `01/N` installment lines can match.
  */
@@ -73,7 +75,10 @@ export function pickMatch<C extends Candidate>(
 		const tier =
 			line.installment &&
 			(alert.amount === line.amount ||
-				Math.abs(alert.amount - total) * 100 <= INSTALLMENT_TOTAL_TOLERANCE_PCT * total)
+				Math.abs(alert.amount - total) * 100 <= INSTALLMENT_TOTAL_TOLERANCE_PCT * total ||
+				(alert.installments === n &&
+					Math.abs(alert.amount - line.amount) * 100 <=
+						INSTALLMENT_TOTAL_TOLERANCE_PCT * line.amount))
 				? 1
 				: alert.amount === line.amount
 					? 2
@@ -160,6 +165,7 @@ export async function matchStatement(
 				occurredAt: importItems.occurredAt,
 				amount: importItems.amount,
 				merchant: importItems.merchant,
+				installments: importItems.installments,
 				currency: financialAccounts.currency
 			})
 			.from(importItems)
@@ -183,6 +189,7 @@ export async function matchStatement(
 			day: localDay(r.occurredAt),
 			amount: r.amount,
 			merchant: cleaned(source, r.merchant),
+			installments: r.installments,
 			currency: r.currency as Currency
 		}));
 		for (const l of open) {
@@ -275,6 +282,7 @@ export async function matchWaitingAlerts(
 		amount: number;
 		merchant: string;
 		receivedAt: Date;
+		installments?: number | null;
 	}[]
 ): Promise<Set<string>> {
 	const consumed = new Set<string>();
@@ -315,7 +323,12 @@ export async function matchWaitingAlerts(
 	const sorted = [...alerts].sort((a, b) => a.receivedAt.getTime() - b.receivedAt.getTime());
 	for (const a of sorted) {
 		const found = pickMatch(
-			{ day: localDay(a.receivedAt), amount: a.amount, merchant: cleaned(source, a.merchant) },
+			{
+				day: localDay(a.receivedAt),
+				amount: a.amount,
+				merchant: cleaned(source, a.merchant),
+				installments: a.installments
+			},
 			'alert',
 			a.currency,
 			pool.filter((c) => c.currency === a.currency)
@@ -333,9 +346,84 @@ export async function matchWaitingAlerts(
 				.update(cardAlerts)
 				.set({ importItemId: found.id })
 				.where(and(canAccessOwn(userId, cardAlerts), eq(cardAlerts.gmailMessageId, a.messageId)));
+			// The statement item stands for a purchase in cuotas: approving it creates the fixed payment.
+			if (a.installments && a.installments > 1)
+				await tx
+					.update(importItems)
+					.set({ installments: a.installments })
+					.where(and(eq(importItems.id, found.id), mine, eq(importItems.status, 'pending')));
 			return true;
 		});
 		if (claimed || (await keyTaken(mine, alertKey(a.messageId)))) consumed.add(a.messageId);
 	}
 	return consumed;
+}
+
+/**
+ * Later cuotas (k/N, k >= 2) of a purchase whose first cuota became an approved installment item: each new
+ * debit line is matched like its 01/N line (same rule, `pickMatch`) with those items, and takes their fixed
+ * payment as `recurringId`, so its item is suggested (and auto-approved) as that month's payment.
+ * Nothing leaves the pool: every cuota of one purchase links to the same item.
+ */
+export async function linkInstallmentLines(
+	userId: string,
+	source: SourceId,
+	lines: StatementLineRow[]
+): Promise<void> {
+	const later = lines.filter(
+		(l) => l.line.cents > 0 && l.line.installment && !l.line.installment.startsWith('01/')
+	);
+	if (later.length === 0) return;
+	const mine = canAccessOwn(userId, importItems);
+	const rows = await db
+		.select({
+			id: importItems.id,
+			externalKey: importItems.externalKey,
+			occurredAt: importItems.occurredAt,
+			amount: importItems.amount,
+			merchant: importItems.merchant,
+			installments: importItems.installments,
+			recurringId: importItems.recurringId,
+			currency: financialAccounts.currency
+		})
+		.from(importItems)
+		.innerJoin(financialAccounts, eq(financialAccounts.id, importItems.accountId))
+		.where(
+			and(
+				mine,
+				canAccessAccount(userId),
+				eq(importItems.source, source),
+				eq(importItems.status, 'approved'),
+				eq(importItems.isCredit, false),
+				isNotNull(importItems.installments),
+				isNotNull(importItems.recurringId)
+			)
+		);
+	const pool = rows.map((r) => ({
+		id: r.id,
+		// An alert item stands on the alert's day; a statement item (alert came later) on its purchase day.
+		day: r.externalKey.startsWith(alertKey(''))
+			? localDay(r.occurredAt)
+			: statementPurchaseDay(r.externalKey),
+		amount: r.amount,
+		merchant: cleaned(source, r.merchant),
+		installments: r.installments,
+		recurringId: r.recurringId,
+		currency: r.currency as Currency
+	}));
+	for (const l of later) {
+		const n = Number(l.line.installment!.slice(3));
+		const found = pickMatch(
+			{
+				day: l.line.date,
+				amount: l.line.cents,
+				merchant: cleaned(source, l.line.reference),
+				installment: `01/${l.line.installment!.slice(3)}`
+			},
+			'line',
+			l.line.currency,
+			pool.filter((c) => c.currency === l.line.currency && c.installments === n)
+		);
+		if (found) l.row.recurringId = found.recurringId;
+	}
 }
