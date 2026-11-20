@@ -21,7 +21,7 @@ export function undoToast(message: string, undo: () => Promise<void>) {
 					return;
 				}
 				// The undo went through: a failed refresh is not an undo failure; the next navigation reloads.
-				await refreshAll().catch(() => {});
+				await refreshAll().catch((e) => console.error('refreshAll after undo failed', e));
 			}
 		}
 	});

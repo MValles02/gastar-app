@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { CURRENCY_OPTIONS } from '#lib/money.ts';
+	import { CURRENCY_OPTIONS, CURRENCY_SYMBOL, DEFAULT_CURRENCY, toCurrency } from '#lib/money.ts';
 	import { untrack } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { NAME_MAX_LENGTH } from '#lib/fields.ts';
@@ -40,7 +40,7 @@
 
 	let name = $state(untrack(() => initial.name ?? ''));
 	let initialBalance = $state(untrack(() => initial.initialBalance ?? ''));
-	let currency = $state(untrack(() => initial.currency || 'ARS'));
+	let currency = $state(untrack(() => initial.currency || DEFAULT_CURRENCY));
 	let icon = $state(untrack(() => (initial.icon ?? 'wallet') as AccountIconKey));
 	let color = $state(untrack(() => (initial.color ?? 'green') as SwatchKey));
 	let glyphOpen = $state(false);
@@ -113,7 +113,7 @@
 			id="initialBalance"
 			name="initialBalance"
 			inputmode="decimal"
-			placeholder={currency === 'USD' ? 'US$ 0' : '$ 0'}
+			placeholder={`${CURRENCY_SYMBOL[toCurrency(currency)]} 0`}
 			autocomplete="off"
 			aria-invalid={shown.initialBalance ? 'true' : undefined}
 			aria-describedby={shown.initialBalance ? 'balance-error' : undefined}

@@ -26,6 +26,7 @@ COPY --from=build /app/build ./build
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY drizzle ./drizzle
+COPY src/lib/shared/runtime.js ./src/lib/shared/runtime.js
 COPY scripts/migrate.js ./scripts/migrate.js
 COPY scripts/sync-dev-user.js ./scripts/sync-dev-user.js
 COPY scripts/create-user.js ./scripts/create-user.js

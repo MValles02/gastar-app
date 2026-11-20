@@ -1,4 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { CURRENCY_NAME } from '#lib/money.ts';
 import { MOVEMENT_MESSAGES as MSG } from '#lib/movement.ts';
 import { isUuid } from '#lib/server/db/util.ts';
 import { readFields } from '#lib/server/forms.ts';
@@ -99,10 +100,7 @@ export const actions: Actions = {
 		if (type === 'transfer') {
 			if (!isUuid(values.counterAccountId)) errors.counterAccountId = 'Elegí la cuenta.';
 			else if (!accounts.some((a) => a.id === values.counterAccountId))
-				errors.counterAccountId =
-					item.currency === 'USD'
-						? 'Elegí una cuenta en dólares que no esté archivada.'
-						: 'Elegí una cuenta en pesos que no esté archivada.';
+				errors.counterAccountId = `Elegí una cuenta en ${CURRENCY_NAME[item.currency]} que no esté archivada.`;
 		} else if (type && !isUuid(values.categoryId)) errors.categoryId = MSG.category;
 		if (type && type !== 'transfer' && values.recurringId) {
 			const rules = await activeRuleItems(

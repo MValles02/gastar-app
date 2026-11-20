@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { NAME_MAX_LENGTH } from '#lib/fields.ts';
+import { DEFAULT_CURRENCY } from '#lib/money.ts';
 import { CATEGORY_KINDS, KIND_LABEL } from '#lib/movement.ts';
 import { listRowShown, matchesQuery, parseListFilter } from '#lib/list-filter.ts';
 import {
@@ -20,7 +21,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// ARS by default (like Home); `both` lists each currency's total, never summed.
 	const { q, archived, currency } = parseListFilter(url.searchParams, {
 		qMax: NAME_MAX_LENGTH,
-		currencyDefault: 'ARS',
+		currencyDefault: DEFAULT_CURRENCY,
 		extra: ['both']
 	});
 	const kind = CATEGORY_KINDS.find((k) => k === url.searchParams.get('kind')) ?? '';
@@ -48,7 +49,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		nets.set(t.categoryId!, row);
 	}
 	const withTotals = categories.map((c) => ({ ...c, totals: nets.get(c.id) ?? {} }));
-	const sortBy = currency === 'both' ? 'ARS' : currency;
+	const sortBy = currency === 'both' ? DEFAULT_CURRENCY : currency;
 	const groups = KIND_GROUPS.map(([k, label]) => ({
 		key: k ?? 'both',
 		label,

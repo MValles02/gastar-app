@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { groupedAmount } from '#lib/amount-input.ts';
-	import type { Currency } from '#lib/money.ts';
+	import { CURRENCY_SYMBOL, DEFAULT_CURRENCY, type Currency } from '#lib/money.ts';
 
 	/** Big centered amount (no label, no box). The accessible name is "Monto". */
 	let {
@@ -26,7 +26,7 @@
 <div class="amount-block">
 	<label class="amount" class:sm={value.length > 11} style:--amount-color={color}>
 		<span class="visually-hidden">Monto</span>
-		<span class="currency">{currency === 'USD' ? 'US$' : '$'}</span>
+		<span class="currency">{CURRENCY_SYMBOL[currency ?? DEFAULT_CURRENCY]}</span>
 		<!-- svelte-ignore a11y_autofocus -->
 		<input
 			{id}

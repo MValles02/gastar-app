@@ -9,11 +9,11 @@
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import type { Currency } from '#lib/money.ts';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
-	type Currency = 'ARS' | 'USD';
 	// A save sets the value at once; a reload (Deshacer) brings the stored one back in.
 	let ids = $derived({ ARS: data.arsAccountId ?? '', USD: data.usdAccountId ?? '' });
 	let errors = $state<Partial<Record<Currency, string>>>({});

@@ -5,6 +5,7 @@
 	import { resolve } from '$app/paths';
 	import { autosave } from '#lib/autosave.ts';
 	import { MIN_DAY } from '#lib/dates.ts';
+	import { CURRENCY_SYMBOL } from '#lib/money.ts';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
 	import { categoriesFor, kindFits, MOVEMENT_MESSAGES, movementNeeds } from '#lib/movement.ts';
 	import { upOnClick } from '#lib/nav-stack.svelte.ts';
@@ -230,7 +231,7 @@
 				<InlineText
 					label="Monto"
 					inputmode="decimal"
-					prefix={m.accountCurrency === 'USD' ? 'US$' : '$'}
+					prefix={CURRENCY_SYMBOL[m.accountCurrency]}
 					value={values.amount}
 					onsave={(next) => commit({ amount: next })}
 				>
