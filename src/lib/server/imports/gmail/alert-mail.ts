@@ -1,45 +1,46 @@
 // Pure helpers shared by the card-alert parsers: headers, sender authentication, the HTML part and its entities.
 // Nothing here stores or logs anything.
 
-import type { CardNetwork } from '#lib/imports.ts';
-import type { Currency } from '#lib/money.ts';
+import type { AlertKind, CardAlert } from '../card-alert';
 import { obj } from '../json';
-
-export const PURCHASE = 'Compra';
-/** The stored type of a "COMPRA REVERSADA" alert: it cancels an earlier purchase (see convertWaitingAlerts). */
-export const REVERSAL = 'Compra reversada';
-
-export type CardAlert = {
-	gmailMessageId: string;
-	network: CardNetwork;
-	last4: string;
-	merchant: string;
-	country: string;
-	currency: Currency;
-	/** Minor units of `currency`. */
-	amount: number;
-	foreign: boolean;
-	transactionType: string;
-	/** The purchase's installment count (cuotas); null when the alert does not say (Visa). */
-	installments: number | null;
-	receivedAt: Date;
-};
 
 /**
  * `ignored`: not a purchase alert of that sender, or not authenticated as it (silently skipped).
  * `invalid`: it is one but does not parse (never guessed; the sync reports it by code).
  */
-export type CardAlertResult =
-	{ status: 'ignored' } | { status: 'invalid' } | { status: 'ok'; alert: CardAlert };
+export type AlertResult<T> =
+	{ status: 'ignored' } | { status: 'invalid' } | { status: 'ok'; alert: T };
+export type CardAlertResult = AlertResult<CardAlert>;
+
+/**
+ * What a parser reads from the alert's HTML. The message id, receive time and network are not in it: the
+ * gate (parseAlert) adds them, and stores `type` only for the `other` kind (see storedType).
+ */
+export type ParsedAlert = Omit<
+	CardAlert,
+	'gmailMessageId' | 'network' | 'transactionType' | 'receivedAt'
+> & { kind: AlertKind; type: string };
 
 export const IGNORED = { status: 'ignored' } as const;
 export const INVALID = { status: 'invalid' } as const;
 
-/** One card network's alert parser and the senders whose mail it reads. */
+/**
+ * One card network's alert mail: the senders whose mail it reads, the domain that must authenticate it
+ * (DKIM and DMARC), its exact subject, and the parser of its HTML. parseAlert checks sender, subject and
+ * authentication before `parse` runs.
+ */
 export type AlertParser = {
 	senders: readonly string[];
-	parse: (message: unknown) => CardAlertResult;
+	domain: string;
+	subject: string;
+	parse: (html: string) => AlertResult<ParsedAlert>;
 };
+
+/** Minor units from a whole part and a two-digit cents part: null unless a safe integer > 0. */
+export function minorUnits(whole: string, cents: string): number | null {
+	const value = Number(whole) * 100 + Number(cents);
+	return Number.isSafeInteger(value) && value > 0 ? value : null;
+}
 
 export type Header = { name: string; value: string };
 
@@ -59,9 +60,6 @@ export function senderOf(headers: Header[]): string {
 	const from = headerValue(headers, 'from') ?? '';
 	return (/<([^>]+)>/.exec(from)?.[1] ?? from).trim().toLowerCase();
 }
-
-/** The sender address of a Gmail message (format=full). */
-export const messageSender = (message: unknown) => senderOf(headersOf(obj(obj(message).payload)));
 
 /** Gmail's own verdict on the top header: DKIM and DMARC both pass for `domain`. */
 export function authenticated(headers: Header[], domain: string): boolean {
