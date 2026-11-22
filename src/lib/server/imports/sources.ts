@@ -77,7 +77,8 @@ const cardKinds: SourceSpec['kinds'] = {
 		titleWithWho: true,
 		learns: 'debit'
 	},
-	// A credit alert whose type is not "Compra" is only a guess: it asks for a review and learns nothing.
+	// A credit alert whose type is not a purchase (STORED_TYPE in card-alert.ts) is only a guess: it asks
+	// for a review and learns nothing.
 	[KIND.other]: { review: true, learns: 'never' }
 };
 
@@ -89,8 +90,8 @@ const card = (label: string): SourceSpec => ({
 	kinds: cardKinds
 });
 
-// Gmail alerts of a debit card, timed. A type other than "Compra" is only a guess: it asks for a review
-// and learns nothing, so no rule suggests it and it is never auto-approved.
+// Gmail alerts of a debit card, timed. A type other than a purchase (STORED_TYPE in card-alert.ts) is only
+// a guess: it asks for a review and learns nothing, so no rule suggests it and it is never auto-approved.
 const debitCard = (label: string): SourceSpec => ({
 	...card(label),
 	timed: true,

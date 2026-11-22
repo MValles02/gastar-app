@@ -14,7 +14,7 @@
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { CURRENCIES, CURRENCY_OPTIONS, DEFAULT_CURRENCY, type Currency } from '#lib/money.ts';
-	import { KIND_OPTIONS } from '#lib/movement.ts';
+	import { ARCHIVED_LABEL, KIND_OPTIONS } from '#lib/movement.ts';
 	import { activeListFilters } from '#lib/list-filter.ts';
 	import type { PageData } from './$types';
 
@@ -31,7 +31,7 @@
 	const kindOptions = [{ value: '', label: 'Todas' }, ...KIND_OPTIONS];
 </script>
 
-{#snippet archivedMeta()}Archivada{/snippet}
+{#snippet archivedMeta()}{ARCHIVED_LABEL}{/snippet}
 {#snippet add()}
 	<Button
 		href={resolve('categories/new')}

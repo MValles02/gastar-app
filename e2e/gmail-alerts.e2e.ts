@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { STORED_TYPE } from '../src/lib/server/imports/card-alert';
 import { statementOf } from './galicia-pdf';
 import {
 	ALERTS_B_EMAIL,
@@ -232,7 +233,7 @@ test('a Galicia Mastercard alert becomes a pending credit item; an installment o
 	expect(state).toEqual([
 		{
 			merchant: 'FERRETERIA MC',
-			type: 'Compra',
+			type: STORED_TYPE.purchase,
 			installments: 1,
 			source: 'galicia_mastercard',
 			amount: 123456,
@@ -241,7 +242,7 @@ test('a Galicia Mastercard alert becomes a pending credit item; an installment o
 		},
 		{
 			merchant: 'HELADERA MC',
-			type: 'Compra',
+			type: STORED_TYPE.purchase,
 			installments: 3,
 			source: 'galicia_mastercard',
 			// The first cuota of the 300.000,00 total in 3 cuotas.
@@ -249,7 +250,7 @@ test('a Galicia Mastercard alert becomes a pending credit item; an installment o
 			status: 'pending',
 			account: 'Pesos Visa A'
 		},
-		...['Compra', 'Compra reversada'].map((type) => ({
+		...[STORED_TYPE.purchase, STORED_TYPE.reversal].map((type) => ({
 			merchant: 'VIAJE MC',
 			type,
 			installments: 1,
