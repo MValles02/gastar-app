@@ -10,6 +10,7 @@
 		title,
 		open = $bindable(false),
 		onclose,
+		onclosed,
 		nested = false,
 		hideTitle = false,
 		bare = false,
@@ -18,6 +19,8 @@
 		title: string;
 		open?: boolean;
 		onclose?: () => void;
+		/** Runs once the close animation has ended (focus is back on the trigger by then). */
+		onclosed?: () => void;
 		/** Stacks over the drawer this one is rendered inside (vaul nested drawer): the one below stays put. */
 		nested?: boolean;
 		/** Keeps the title for assistive technology only. */
@@ -26,6 +29,23 @@
 		bare?: boolean;
 		children: Snippet;
 	} = $props();
+
+	// vaul's close animation (TRANSITIONS.DURATION = 0.5s, not exported); bits-ui returns focus to the
+	// trigger as the content unmounts, which is before this ends.
+	const CLOSE_MS = 500;
+	let wasOpen = false;
+	// `onclosed` fires once per open -> closed change, whoever closed it (vaul's own onAnimationEnd only
+	// runs for closes it handles itself, not when the parent sets `open`). Reopening cancels it.
+	$effect(() => {
+		if (open) {
+			wasOpen = true;
+			return;
+		}
+		if (!wasOpen) return;
+		wasOpen = false;
+		const timer = setTimeout(() => onclosed?.(), CLOSE_MS);
+		return () => clearTimeout(timer);
+	});
 
 	// untrack: the effect must depend on `open` only, not on the counter it writes.
 	$effect(() => {

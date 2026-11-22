@@ -6,7 +6,13 @@
 	import { MIN_DAY } from '#lib/dates.ts';
 	import { CURRENCY_SYMBOL } from '#lib/money.ts';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
-	import { categoriesFor, kindFits, MOVEMENT_MESSAGES, movementNeeds } from '#lib/movement.ts';
+	import {
+		archived,
+		categoriesFor,
+		kindFits,
+		MOVEMENT_MESSAGES,
+		movementNeeds
+	} from '#lib/movement.ts';
 	import { upOnClick } from '#lib/nav-stack.svelte.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import { closeAfterDelete, formScreen } from '#lib/components/forms/form-enhance.ts';
@@ -50,7 +56,6 @@
 	const effType = $derived((pending.type ?? m.type) as Movement['type']);
 	const isTransfer = $derived(effType === 'transfer');
 
-	const archived = (name: string, is: boolean) => (is ? `${name} · Archivada` : name);
 	const accounts = $derived(
 		data.accounts.map((a) => ({ ...a, name: archived(a.name, a.archived), archived: false }))
 	);
@@ -145,17 +150,26 @@
 
 	// The picker returns focus to its row as it closes: take it back (or open the one that is needed).
 	// Kept on purpose: the picker drawer (vaul-svelte over bits-ui) hands focus back to its trigger as its
-	// close animation ends, which would take focus from (or close) anything focused or opened sooner.
-	function prompt(what: string) {
-		setTimeout(() => {
-			if (what === 'rate')
-				document.querySelector<HTMLInputElement>('input[aria-label="Cotización"]')?.focus();
-			else
-				document
-					.querySelector<HTMLButtonElement>(`[data-row="${what}"] button[aria-haspopup="dialog"]`)
-					?.click();
-		}, 400);
+	// close animation ends, which would take focus from (or close) anything focused or opened sooner. So
+	// the wanted field waits in `wanted` until a picker reports it has finished closing (`runPrompt`).
+	let wanted: string | null = null;
+	let destinationPicker: OptionPicker | undefined = $state();
+	let categoryPicker: OptionPicker | undefined = $state();
+	let rateRows: CrossCurrencyRows | undefined = $state();
+	const prompt = (what: string) => (wanted = what);
+	function runPrompt() {
+		const what = wanted;
+		wanted = null;
+		if (what === 'rate') rateRows?.focus();
+		else if (what === 'destination') void destinationPicker?.openSheet();
+		else if (what === 'category') void categoryPicker?.openSheet();
 	}
+	/** Edits that do not go through a picker have no drawer to wait for. */
+	const commitThenPrompt = async (extra: Record<string, string>) => {
+		const r = await commit(extra);
+		runPrompt();
+		return r;
+	};
 
 	/** Saves the staged fields plus `extra` in one post, or keeps them staged while something is missing. */
 	async function commit(extra: Record<string, string>) {
@@ -199,7 +213,7 @@
 		else if (Object.keys(p).length) toast.error('No se guardó el cambio de cuenta.');
 	});
 
-	const saveRate = (next: string) => commit({ exchangeRate: next });
+	const saveRate = (next: string) => commitThenPrompt({ exchangeRate: next });
 
 	/** Drawer: the delete's answer (the page follows its redirect to the list). */
 	const deleted = closeAfterDelete(
@@ -218,7 +232,7 @@
 					label="Descripción"
 					value={values.description}
 					maxlength={DESCRIPTION_MAX_LENGTH}
-					onsave={(next) => commit({ description: next })}
+					onsave={(next) => commitThenPrompt({ description: next })}
 				>
 					{#snippet display()}{m.description}{/snippet}
 				</InlineText>
@@ -229,7 +243,7 @@
 					inputmode="decimal"
 					prefix={CURRENCY_SYMBOL[m.accountCurrency]}
 					value={values.amount}
-					onsave={(next) => commit({ amount: next })}
+					onsave={(next) => commitThenPrompt({ amount: next })}
 				>
 					{#snippet display()}
 						<Money cents={m.amount} currency={m.accountCurrency} tone="flow" direction={effType} />
@@ -249,6 +263,7 @@
 				bind:value={() => effType, (v) => void selectType(v)}
 				placeholder="Elegir"
 				nested={drawer}
+				onclosed={runPrompt}
 				{empty}
 			/>
 		</li>
@@ -262,6 +277,7 @@
 					bind:value={() => values.occurredAt, (v) => void saveField('occurredAt', v)}
 					plain
 					nested={drawer}
+					onclosed={runPrompt}
 					error={errors.occurredAt}
 					errorId="date-error"
 				/>
@@ -276,6 +292,7 @@
 					items={accounts}
 					bind:value={() => originId, (v) => void saveAccount('accountId', v)}
 					nested={drawer}
+					onclosed={runPrompt}
 					placeholder="Elegir"
 					error={errors.accountId}
 					errorId="account-error"
@@ -284,8 +301,9 @@
 			</fieldset>
 		</li>
 		{#if isTransfer}
-			<li data-row="destination">
+			<li>
 				<OptionPicker
+					bind:this={destinationPicker}
 					name="destinationAccountId"
 					legend="Hacia"
 					title="Hacia"
@@ -293,6 +311,7 @@
 					bind:value={() => destinationId, (v) => void saveAccount('destinationAccountId', v)}
 					excludeId={originId}
 					nested={drawer}
+					onclosed={runPrompt}
 					placeholder="Elegir"
 					error={errors.destinationAccountId}
 					errorId="destination-error"
@@ -301,6 +320,7 @@
 			</li>
 			{#if crossCurrency}
 				<CrossCurrencyRows
+					bind:this={rateRows}
 					rate={values.exchangeRate}
 					rateCents={m.exchangeRate}
 					open={needsRate}
@@ -318,14 +338,16 @@
 				/>
 			{/if}
 		{:else}
-			<li data-row="category">
+			<li>
 				<OptionPicker
+					bind:this={categoryPicker}
 					name="categoryId"
 					legend="Categoría"
 					title="Categoría"
 					items={categories}
 					bind:value={() => categoryId, (v) => void saveField('categoryId', v)}
 					nested={drawer}
+					onclosed={runPrompt}
 					placeholder="Elegir"
 					error={errors.categoryId}
 					errorId="category-error"
@@ -333,7 +355,7 @@
 				/>
 			</li>
 			{#if !typeStaged && (rules.length || m.recurringId)}
-				<li data-row="rule">
+				<li>
 					<OptionPicker
 						name="recurringId"
 						legend={effType === 'income' ? 'Ingreso fijo' : 'Pago fijo'}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
@@ -40,8 +40,7 @@
 	});
 
 	// Without JavaScript there is no toast: the server-rendered status stands in until hydration.
-	let hydrated = $state(false);
-	onMount(() => (hydrated = true));
+	const ready = hydrated();
 	// Toast once per redirect, then strip its flags from the URL so a reload does not toast again.
 	const stripDone = () => stripFlags(IMPORT_FLAGS);
 	afterNavigate(({ shallow, type }) => {
@@ -112,9 +111,9 @@
 />
 
 <div class="page">
-	{#if data.done && !hydrated}<p role="status">{DONE_MESSAGES[data.done]}</p>{/if}
-	{#if bulkMessage && !data.done && !hydrated}<p role="status">{bulkMessage}</p>{/if}
-	{#if uploadMessage && !data.done && !data.bulk && !hydrated}<p role="status">
+	{#if data.done && !ready.current}<p role="status">{DONE_MESSAGES[data.done]}</p>{/if}
+	{#if bulkMessage && !data.done && !ready.current}<p role="status">{bulkMessage}</p>{/if}
+	{#if uploadMessage && !data.done && !data.bulk && !ready.current}<p role="status">
 			{uploadMessage}
 		</p>{/if}
 

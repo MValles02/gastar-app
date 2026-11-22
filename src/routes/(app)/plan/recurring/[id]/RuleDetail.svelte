@@ -3,7 +3,7 @@
 	import { autosave } from '#lib/autosave.ts';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
 	import { formatMoney, toCurrency } from '#lib/money.ts';
-	import { categoriesFor } from '#lib/movement.ts';
+	import { archived, categoriesFor } from '#lib/movement.ts';
 	import { dueTone } from '#lib/plan.ts';
 	import { withWizard } from '#lib/plan-wizard.ts';
 	import DetailCard from '#lib/components/DetailCard.svelte';
@@ -33,7 +33,6 @@
 	// What the update action stores, as the strings it takes (the server's `toFormValues`).
 	const values = $derived<Record<string, string>>(r.values);
 
-	const archived = (name: string, is: boolean) => (is ? `${name} · Archivada` : name);
 	const accounts = $derived(r.accounts.map((a) => ({ ...a, name: archived(a.name, a.archived) })));
 	const categories = $derived(
 		categoriesFor(r.categories, r.type, null).map((c) => ({

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { toast } from 'svelte-sonner';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
@@ -16,8 +16,7 @@
 	const UNDONE = 'Aprobación deshecha. Quedó para revisar.';
 
 	// Without JavaScript there is no toast: the action's answer shows as a status line instead.
-	let hydrated = $state(false);
-	onMount(() => (hydrated = true));
+	const ready = hydrated();
 	const noJsMessage = $derived(
 		form && 'message' in form ? form.message : form && 'undoneId' in form ? UNDONE : null
 	);
@@ -33,7 +32,7 @@
 />
 
 <div class="page">
-	{#if noJsMessage && !hydrated}<p role="status">{noJsMessage}</p>{/if}
+	{#if noJsMessage && !ready.current}<p role="status">{noJsMessage}</p>{/if}
 
 	<p class="hint">
 		Últimos 30 días. Los reconocimos por lo que ya aprobaste; si alguno no va, deshacelo y queda
