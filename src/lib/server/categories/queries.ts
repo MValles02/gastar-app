@@ -1,5 +1,5 @@
 import { and, asc, eq, ilike, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
-import type { PgSelectBase, SelectedFields } from 'drizzle-orm/pg-core';
+import type { PgSelectBase, PgSelectWithout, SelectedFields } from 'drizzle-orm/pg-core';
 import { db } from '../db';
 import { categories, financialAccounts, movements } from '../db/schema';
 import { canAccessMovement, canAccessOwn, userOwned } from '../access';
@@ -99,6 +99,7 @@ export function categorizedMovements<T extends SelectedFields>(
 ) {
 	// Typed with the generic `fields` the builder's join methods do not resolve, so the query is built
 	// over plain SelectedFields and re-typed to the caller's `fields` (so rows keep their inferred type).
+	// `where` stays excluded: a second `.where()` would replace the ownership filter, not add to it.
 	return db
 		.select(fields as SelectedFields)
 		.from(movements)
@@ -106,13 +107,15 @@ export function categorizedMovements<T extends SelectedFields>(
 		.innerJoin(categories, eq(movements.categoryId, categories.id))
 		.where(
 			and(canAccessMovement(userId), canAccessOwn(userId, categories), isIncomeOrOutcome, ...where)
-		)
-		.$dynamic() as unknown as PgSelectBase<
-		'movements',
-		T,
-		'partial',
-		{ movements: 'not-null'; financial_accounts: 'not-null'; categories: 'not-null' },
-		true
+		) as unknown as PgSelectWithout<
+		PgSelectBase<
+			'movements',
+			T,
+			'partial',
+			{ movements: 'not-null'; financial_accounts: 'not-null'; categories: 'not-null' }
+		>,
+		false,
+		'where'
 	>;
 }
 
