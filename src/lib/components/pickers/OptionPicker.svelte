@@ -60,7 +60,7 @@
 	const mounted = hydrated();
 	let open = $state(false);
 	let trigger: HTMLButtonElement | null = $state(null);
-	let list: HTMLElement | null = $state(null);
+	let list: ReturnType<typeof OptionList<Item>> | undefined = $state();
 	let hidden: HTMLInputElement | null = $state(null);
 	const labelId = $props.id();
 
@@ -72,10 +72,7 @@
 	export async function openSheet() {
 		open = true;
 		await tick();
-		const target =
-			list?.querySelector<HTMLElement>('[aria-pressed="true"]') ??
-			list?.querySelector<HTMLElement>('button');
-		target?.focus();
+		list?.focusPicked();
 	}
 
 	const meta = (item: Item) =>
@@ -151,7 +148,7 @@
 			media={badge}
 			end={balance}
 			arrowKeys
-			bind:ref={list}
+			bind:this={list}
 		/>
 		{#if extra}{@render extra(() => (open = false))}{/if}
 	</BottomDrawer>

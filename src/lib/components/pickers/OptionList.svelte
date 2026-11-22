@@ -35,10 +35,19 @@
 		ref?: HTMLElement | null;
 	} = $props();
 
+	/** The row buttons, in `items` order: the one hook both arrow keys and `focusPicked` use. */
+	const rowButtons = () => [...(ref?.querySelectorAll<HTMLElement>('[data-option-row]') ?? [])];
+
+	/** Focuses the picked row, else the first one (a picker drawer calls this once it opens). */
+	export function focusPicked() {
+		const rows = rowButtons();
+		(rows[items.findIndex(on)] ?? rows[0])?.focus();
+	}
+
 	function navigate(e: KeyboardEvent) {
 		const keys = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
-		if (!keys.includes(e.key) || !ref) return;
-		const rows = [...ref.querySelectorAll<HTMLElement>('button.opt')];
+		if (!keys.includes(e.key)) return;
+		const rows = rowButtons();
 		if (rows.length === 0) return;
 		e.preventDefault();
 		const i = rows.indexOf(document.activeElement as HTMLElement);
@@ -64,6 +73,7 @@
 					type="button"
 					class="opt {props.class}"
 					class:on={picked}
+					data-option-row
 					data-value={value?.(item)}
 					aria-pressed={picked}
 					onclick={() => onpick(item)}
