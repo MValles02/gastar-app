@@ -2,6 +2,7 @@ import { formFail } from '#lib/form.ts';
 import { auth } from '#lib/server/auth.ts';
 import { userNameError } from '#lib/fields.ts';
 import { PREFERENCE_COOKIE_OPTIONS, THEME_COOKIE } from '#lib/server/cookies.ts';
+import { str } from '#lib/server/forms.ts';
 import { profileCounts } from '#lib/server/profile-queries.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import { hasPassword } from '#lib/server/reauth.ts';
@@ -23,7 +24,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 export const actions: Actions = {
 	/** Saves the name as typed in the row (`undo` posts the previous one back through the same action). */
 	name: async ({ request }) => {
-		const name = String((await request.formData()).get('name') ?? '').trim();
+		const name = str(await request.formData(), 'name').trim();
 		const error = userNameError(name);
 		if (error) return formFail(400, { errors: { name: error } });
 

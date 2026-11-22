@@ -1,10 +1,11 @@
-import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
+import { type ActionFailure, fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
 import { EMAIL_RE, INVALID_EMAIL_MESSAGE } from '#lib/fields.ts';
+import { formFail } from '#lib/form.ts';
 import { auth } from './auth';
 import { str } from './forms';
-import { rateLimited } from './rate-limit';
-import { GOOGLE_PROVIDER_ID } from './reauth';
+import { isBlocked, rateLimited, record } from './rate-limit';
+import { GOOGLE_PROVIDER_ID, reauthMode } from './reauth';
 
 /** Page that verification links land on (Better Auth `callbackURL`). */
 export const VERIFY_EMAIL_PATH = '/verify-email';
@@ -33,6 +34,35 @@ export async function ignoreApiError(call: () => Promise<unknown>): Promise<void
 	} catch (err) {
 		if (!isApiError(err)) throw err;
 	}
+}
+
+type ReauthGate =
+	| { failure: ActionFailure<{ formError?: string; reauth?: true }> }
+	| {
+			mode: 'password' | 'recent';
+			/** Counts a wrong password against the action's rate limit (only failures count). */
+			recordFailure: () => void;
+	  };
+
+/**
+ * The gate before a sensitive action (password change, account deletion): the action's rate limit, then
+ * how the user proves identity. A stale password-less session fails with `staleMessage` and `reauth`
+ * (the page offers a fresh Google sign-in); in 'password' mode the action checks the password itself.
+ */
+export async function reauthGate(
+	userId: string,
+	session: { createdAt: Date | string } | null,
+	{ limit, staleMessage }: { limit: 'changePassword' | 'deleteAccount'; staleMessage: string }
+): Promise<ReauthGate> {
+	// Rate limit policy (b): count only failures.
+	if (isBlocked(limit, userId)) {
+		return { failure: formFail(429, { formError: tooManyAttempts('rato') }) };
+	}
+	const mode = await reauthMode(userId, session);
+	if (mode === 'stale') {
+		return { failure: fail(400, { formError: staleMessage, reauth: true as const }) };
+	}
+	return { mode, recordFailure: () => record(limit, userId) };
 }
 
 type GoogleStart = {
