@@ -1,9 +1,10 @@
 import type { Currency } from '#lib/money.ts';
 import { accountLook } from '#lib/appearance.ts';
-import { and, asc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, eq, ilike, isNull, notExists, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { financialAccounts, movements } from '../db/schema';
-import { dest, inRange, total, type Range } from '../db/sql';
+import { dest, exists, inRange, total, type Range } from '../db/sql';
+import { hasAccounts } from './balance';
 import { canAccessAccount, canAccessMovement, ownedBy, ownedDestination } from '../access';
 import { memoPerRequest } from '../request-memo';
 import type { AccountData } from './form';
@@ -12,6 +13,11 @@ import { escapeLike } from '../db/util';
 const ownedAccount = (userId: string, id: string) =>
 	and(eq(financialAccounts.id, id), canAccessAccount(userId));
 const returningId = { id: financialAccounts.id };
+/** A movement that leaves from or arrives at the `financialAccounts` row in scope. */
+const referencesAccount = or(
+	eq(movements.accountId, financialAccounts.id),
+	eq(movements.destinationAccountId, financialAccounts.id)
+);
 
 // No archived filter: archived accounts still count toward the total balance.
 /** Per currency: account count and initial balances. Loads only (shared per request, see `memoPerRequest`). */
@@ -26,6 +32,10 @@ export const accountSummary = memoPerRequest('accounts', (userId: string) =>
 		.where(canAccessAccount(userId))
 		.groupBy(financialAccounts.currency)
 );
+
+export async function hasAnyAccount(userId: string, currency?: Currency) {
+	return hasAccounts(await accountSummary(userId), currency);
+}
 
 export const accountOption = (a: {
 	id: string;
@@ -101,20 +111,14 @@ export function accountTransfersIn(
 		.groupBy(movements.destinationAccountId);
 }
 
-export async function isAccountReferenced(userId: string, id: string) {
-	const rows = await db
-		.select({ id: movements.id })
-		.from(movements)
-		.innerJoin(
-			financialAccounts,
-			or(
-				eq(movements.accountId, financialAccounts.id),
-				eq(movements.destinationAccountId, financialAccounts.id)
-			)
-		)
-		.where(ownedAccount(userId, id))
-		.limit(1);
-	return rows.length > 0;
+export function isAccountReferenced(userId: string, id: string) {
+	return exists(
+		db
+			.select({ id: movements.id })
+			.from(movements)
+			.innerJoin(financialAccounts, referencesAccount)
+			.where(ownedAccount(userId, id))
+	);
 }
 
 export function createAccount(userId: string, data: AccountData & { currency: Currency }) {
@@ -133,7 +137,7 @@ export function updateAccount(userId: string, id: string, data: AccountData) {
 	const lock = data.currency
 		? or(
 				eq(financialAccounts.currency, data.currency),
-				sql`not exists (select 1 from ${movements} where ${movements.accountId} = ${financialAccounts.id} or ${movements.destinationAccountId} = ${financialAccounts.id})`
+				notExists(db.select({ id: movements.id }).from(movements).where(referencesAccount))
 			)
 		: undefined;
 	return db

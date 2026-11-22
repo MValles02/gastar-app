@@ -2,13 +2,13 @@ import type { PageServerLoad } from './$types';
 import { NAME_MAX_LENGTH } from '#lib/fields.ts';
 import { DEFAULT_CURRENCY } from '#lib/money.ts';
 import { CATEGORY_KINDS } from '#lib/movement.ts';
-import { listRowShown, matchesQuery, parseListFilter } from '#lib/list-filter.ts';
+import { parseListFilter } from '#lib/list-filter.ts';
 import {
 	categoryMonthTotals,
-	categoryGroups,
 	hasAnyCategory,
 	listCategories
 } from '#lib/server/categories/queries.ts';
+import { categoryList } from '#lib/server/categories/view.ts';
 import { currentMonth, monthRange } from '#lib/server/month.ts';
 import { requireUser } from '#lib/server/guards.ts';
 
@@ -28,17 +28,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		categoryMonthTotals(userId, monthRange(currentMonth(new Date())))
 	]);
 
-	// The drawer counts the staged choice client-side from these (every category, archived included).
-	const facets = all.map((c) => ({
-		kind: c.kind,
-		archived: c.archivedAt !== null,
-		match: matchesQuery(c.name, q)
-	}));
-	// Currency only changes which amounts a row shows, not which rows are listed.
-	const categories = all.filter((_, i) => listRowShown(facets[i], { archived, kind }));
-
-	const sortBy = currency === 'both' ? DEFAULT_CURRENCY : currency;
-	const groups = categoryGroups(categories, totals, sortBy);
+	const { facets, groups } = categoryList(all, totals, { q, archived, kind, currency });
 
 	return {
 		filters: { q, archived, kind, currency },

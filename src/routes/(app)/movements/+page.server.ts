@@ -1,11 +1,14 @@
 import type { PageServerLoad } from './$types';
 import { listAccounts } from '#lib/server/accounts/queries.ts';
 import { listCategories } from '#lib/server/categories/queries.ts';
-import type { Currency } from '#lib/money.ts';
-import { groupByMonthDay } from '#lib/server/movements/recent.ts';
+import { movementPage } from '#lib/server/movements/recent.ts';
 import { localDay } from '#lib/server/month.ts';
-import { countMovements, movementQueryFromUrl } from '#lib/server/movements/filters.ts';
-import { listMovements, PAGE_SIZE } from '#lib/server/movements/queries.ts';
+import {
+	countMovements,
+	filterCurrency,
+	movementQueryFromUrl
+} from '#lib/server/movements/filters.ts';
+import { listMovements } from '#lib/server/movements/queries.ts';
 import { accountItem, categoryItem } from '#lib/server/movements/pickers.ts';
 import { requireUser } from '#lib/server/guards.ts';
 
@@ -25,16 +28,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Filter/search active: total matches.
 	const summary = count !== null ? { count } : null;
 
-	// Common currency of the selected accounts (null when none or mixed).
-	const selectedCurrencies = new Set(
-		accountRows.filter((a) => accountIds.includes(a.id)).map((a) => a.currency)
-	);
-	const lockedCurrency: Currency | null =
-		selectedCurrencies.size === 1 ? [...selectedCurrencies][0] : null;
-	const filterCurrency: Currency | undefined = query.currency || lockedCurrency || undefined;
-
-	const hasNext = rows.length > PAGE_SIZE;
-	const months = groupByMonthDay(rows.slice(0, PAGE_SIZE), today, filterCurrency);
+	const { months, hasNext } = movementPage(rows, today, filterCurrency(query, accountRows));
 
 	return {
 		filters,
