@@ -5,7 +5,7 @@ import { db } from '../../db';
 import { mpConnections, mpSyncState } from '../../db/schema';
 import { callbackUrl, type OAuthLink, pkce } from '../oauth-link';
 import { requestToken as postToken, tokenStore } from '../oauth-tokens';
-import { mpApiBaseUrl } from './env';
+import { MP_ENV, mpApiBaseUrl } from './env';
 
 const DEFAULT_AUTH_BASE_URL = 'https://auth.mercadopago.com';
 
@@ -13,7 +13,7 @@ const LINK_PATH = '/profile/mercado-pago';
 
 /** The feature is on only when the client id, client secret and token key are all set. */
 export function mpOauthEnabled(): boolean {
-	return !!(env.MP_CLIENT_ID && env.MP_CLIENT_SECRET && env.MP_TOKEN_KEY);
+	return MP_ENV.vars.every((name) => !!env[name]);
 }
 
 const redirectUri = (origin: string) => callbackUrl(LINK_PATH, origin);

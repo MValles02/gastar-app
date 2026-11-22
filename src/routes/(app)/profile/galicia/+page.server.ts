@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { isCurrency } from '#lib/money.ts';
+import { str } from '#lib/server/forms.ts';
 import { chooseGaliciaAccount } from '#lib/server/imports/cards.ts';
 import { ACCOUNT_ERRORS, currencyAccountOptions } from '#lib/server/imports/connections.ts';
 import { getGaliciaConnection } from '#lib/server/imports/galicia/connection.ts';
@@ -40,7 +41,7 @@ export const actions: Actions = {
 		const fd = await request.formData();
 		const currency = fd.get('currency');
 		if (!isCurrency(currency)) return formFail(400, { errors: { accountId: 'Elegí la cuenta.' } });
-		const accountId = String(fd.get('accountId') ?? '');
+		const accountId = str(fd, 'accountId');
 		// Credit alerts that waited for the Banco Galicia accounts become items now.
 		if (!(await chooseGaliciaAccount(requireUser(locals).id, currency, accountId))) {
 			return formFail(400, { errors: { accountId: ACCOUNT_ERRORS[currency] } });

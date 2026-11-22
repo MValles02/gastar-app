@@ -1,16 +1,15 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { auth } from '#lib/server/auth.ts';
 import {
 	googleReauthAction,
 	ignoreApiError,
 	isApiError,
-	tooManyAttempts
+	reauthGate
 } from '#lib/server/auth-forms.ts';
 import { deleteUserAndData } from '#lib/server/delete-user.ts';
 import { str } from '#lib/server/forms.ts';
 import { deletionSummary } from '#lib/server/profile-queries.ts';
-import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import { reauthMode } from '#lib/server/reauth.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -28,13 +27,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
 	delete: async ({ request, locals }) => {
 		const userId = requireUser(locals).id;
-		// Rate limit policy (b): count only failures.
-		if (isBlocked('deleteAccount', userId)) {
-			return formFail(429, { formError: tooManyAttempts('rato') });
-		}
+		const gate = await reauthGate(userId, locals.session, {
+			limit: 'deleteAccount',
+			staleMessage: 'Pasaron más de 5 minutos. Confirmá con Google de nuevo.'
+		});
+		if ('failure' in gate) return gate.failure;
 
-		const mode = await reauthMode(userId, locals.session);
-		if (mode === 'password') {
+		if (gate.mode === 'password') {
 			const password = str(await request.formData(), 'password');
 			if (!password) return formFail(400, { formError: 'Ingresá tu contraseña.' });
 
@@ -42,14 +41,9 @@ export const actions: Actions = {
 				await auth.api.verifyPassword({ body: { password }, headers: request.headers });
 			} catch (err) {
 				if (!isApiError(err)) throw err;
-				record('deleteAccount', userId);
+				gate.recordFailure();
 				return formFail(400, { formError: 'La contraseña no es correcta.' });
 			}
-		} else if (mode === 'stale') {
-			return fail(400, {
-				formError: 'Pasaron más de 5 minutos. Confirmá con Google de nuevo.',
-				reauth: true
-			});
 		}
 
 		await deleteUserAndData(userId);

@@ -6,21 +6,23 @@ import { cardNetworkName } from '#lib/imports.ts';
 import { currencyAccountOptions } from '#lib/server/imports/connections.ts';
 import { GMAIL_LINK } from '#lib/server/imports/gmail/oauth.ts';
 import { requireUser } from '#lib/server/guards.ts';
+import { linkActions, whenLinkEnabled } from '../../../link-guard.server.ts';
 import type { Actions, PageServerLoad } from './$types';
+
+/** The one 404 for a card that is not a valid slug or not one of the user's. */
+function cardNotFound(): never {
+	error(404, 'Tarjeta no encontrada.');
+}
 
 /** `visa-0515` into its network and last 4; 404 for anything else. */
 function parseCard(param: string) {
-	const card = parseCardSlug(param);
-	if (!card) error(404, 'Tarjeta no encontrada.');
-	return card;
+	return parseCardSlug(param) ?? cardNotFound();
 }
 
-export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!GMAIL_LINK.enabled()) error(404);
+export const load = whenLinkEnabled(GMAIL_LINK, (async ({ locals, params }) => {
 	const userId = requireUser(locals).id;
 	const { network, last4 } = parseCard(params.card);
-	const initial = await getCardForm(userId, network, last4);
-	if (!initial) error(404, 'Tarjeta no encontrada.');
+	const initial = (await getCardForm(userId, network, last4)) ?? cardNotFound();
 	return {
 		networkName: cardNetworkName(network),
 		creditOnly: creditOnly(network),
@@ -28,20 +30,19 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		initial,
 		...(await currencyAccountOptions(userId))
 	};
-};
+}) satisfies PageServerLoad);
 
-export const actions: Actions = {
+export const actions = linkActions(GMAIL_LINK, {
 	save: async ({ locals, params, request }) => {
-		if (!GMAIL_LINK.enabled()) error(404);
 		const userId = requireUser(locals).id;
 		const { network, last4 } = parseCard(params.card);
 		const values = readFields(await request.formData(), ['type', 'arsAccountId', 'usdAccountId']);
 		const result = await saveCard(userId, { network, last4, ...values });
 		if (!result.ok) {
 			// No errors means the card is not one of the user's: the same 404 as the page.
-			if (Object.keys(result.errors).length === 0) error(404, 'Tarjeta no encontrada.');
+			if (Object.keys(result.errors).length === 0) cardNotFound();
 			return formFail(400, { values, errors: result.errors });
 		}
 		redirect(303, '/imports');
 	}
-};
+} satisfies Actions);

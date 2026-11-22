@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { automaticEnabled, changeImportFrom, sourceStatus } from '#lib/server/imports/automatic.ts';
+import { str } from '#lib/server/forms.ts';
 import { getGaliciaConnection } from '#lib/server/imports/galicia/connection.ts';
 import { earliestImportDay, getImportFromDay } from '#lib/server/imports/settings.ts';
 import { localDay } from '#lib/server/month.ts';
@@ -35,7 +36,7 @@ export const actions: Actions = {
 	importFrom: async ({ locals, request }) => {
 		if (!automaticEnabled()) error(404);
 		const userId = requireUser(locals).id;
-		const ymd = String((await request.formData()).get('from') ?? '');
+		const ymd = str(await request.formData(), 'from');
 		const result = await changeImportFrom(userId, ymd);
 		if ('error' in result) return formFail(result.status, { errors: { from: result.error } });
 		return { from: ymd };
