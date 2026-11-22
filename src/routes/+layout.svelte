@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '@fontsource-variable/geist-mono';
 	import '../app.css';
+	import { onMount } from 'svelte';
 	import { afterNavigate, onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { drawers } from '#lib/drawer-open.svelte.ts';
@@ -11,6 +12,12 @@
 	import NavProgress from '#lib/components/NavProgress.svelte';
 
 	let { children } = $props();
+
+	// Hydration marker: the root layout mounts after every child, so the page is interactive once it is
+	// set. E2E waits for it (`waitForHydration` in e2e/helpers.ts) before using a JS-only control.
+	onMount(() => {
+		document.documentElement.dataset.hydrated = '';
+	});
 
 	// Mirrors the history stack so back/close/save can pop instead of pushing the parent again.
 	afterNavigate(track);

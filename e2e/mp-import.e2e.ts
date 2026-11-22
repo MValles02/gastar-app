@@ -12,9 +12,11 @@ import {
 	postDelete,
 	reviewDrawer,
 	SEED_EMAIL,
-	withDb
+	withDb,
+	gotoHydrated,
+	waitForHydration
 } from './helpers';
-import { AR_OFFSET_MS, arDaysAgo, DAY_MS, FAKE_MP } from './fakes.js';
+import { appDay, arDaysAgo, DAY_MS, FAKE_MP } from './fakes.js';
 
 const BEARER_RE = /^Bearer APP_USR-fake-\d+$/;
 const MP_PATH = '/profile/mercado-pago';
@@ -49,8 +51,7 @@ const SYNCED = /^(Listo\.|Recién|Hace )/;
 
 /** Clicks "Sincronizar" and reloads until the run is over (the lease is taken before the redirect). */
 async function syncNow(expected = SYNCED) {
-	await page.goto('/imports');
-	await page.waitForLoadState('networkidle'); // hydration guard: the sync button is progressively enhanced
+	await gotoHydrated(page, '/imports');
 	// Wait for the action: once it answers, the lease is held and stale statuses can't match.
 	await Promise.all([
 		page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/imports')),
@@ -67,7 +68,7 @@ async function link(p: Page, accountName: string) {
 	await p.goto(MP_PATH);
 	await p.getByRole('button', { name: 'Vincular Mercado Pago' }).click();
 	await expect(p).toHaveURL(/\/profile\/mercado-pago\?linked=1$/);
-	await p.waitForLoadState('networkidle'); // hydration guard: the account picker saves through JS
+	await waitForHydration(p);
 	await pick(p, 'Entra en', accountName);
 	await expect(p.getByRole('button', { name: /Entra en/ })).toContainText(accountName);
 }
@@ -316,8 +317,7 @@ test('a sync auto-approves recognized items, and one undone stays for review on 
 	// A short report wait keeps the run visible, so the page itself shows how it ended.
 	await fake('/__fake/report-delay', { ms: 3_000 });
 	try {
-		await page.goto('/imports');
-		await page.waitForLoadState('networkidle'); // hydration guard: live progress needs JS
+		await gotoHydrated(page, '/imports');
 		await page.getByRole('button', { name: 'Sincronizar' }).click();
 		await expect(status).toContainText('Sincronizando');
 		await expect(status).toHaveText(/^Listo\. .*, 1 aprobado automáticamente\.$/, {
@@ -337,7 +337,7 @@ test('a sync auto-approves recognized items, and one undone stays for review on 
 	await page.goto('/imports');
 	await page.getByRole('link', { name: /1 aprobado automáticamente/ }).click();
 	await expect(page).toHaveURL(/\/imports\/auto$/);
-	await page.waitForLoadState('networkidle'); // hydration guard: Deshacer answers with a toast
+	await waitForHydration(page);
 	const auto = page.getByRole('listitem').filter({ hasText: 'FAKE AMIGA' });
 	await expect(auto).toContainText(CATEGORY);
 	await auto.getByRole('button', { name: /Deshacer/ }).click();
@@ -427,8 +427,7 @@ const amigaItemId = () =>
 
 /** Quick "Aprobar" on the suggested FAKE AMIGA row; the Deshacer toast stays up. */
 async function quickApprove() {
-	await page.goto('/imports');
-	await page.waitForLoadState('networkidle'); // hydration guard: the quick approve is progressively enhanced
+	await gotoHydrated(page, '/imports');
 	await rows().filter({ hasText: 'FAKE AMIGA' }).getByRole('button', { name: 'Aprobar' }).click();
 	await flash('Movimiento aprobado.');
 	await expect(rows().filter({ hasText: 'FAKE AMIGA' })).toHaveCount(0);
@@ -489,8 +488,7 @@ test('Deshacer of a quick approve fails and keeps everything when the movement w
 
 test('bulk approve creates the suggested movements with exact amounts', async () => {
 	const before = await balanceOf('Mercado Pago');
-	await page.goto('/imports');
-	await page.waitForLoadState('networkidle'); // hydration guard: the bulk confirm dialog needs JS
+	await gotoHydrated(page, '/imports');
 	await page.getByRole('button', { name: 'Aprobar 1 sugerido' }).click();
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Aprobar' }).click();
 	await flash('Se aprobó 1 movimiento.');
@@ -527,8 +525,7 @@ const reportBegins = async () => (await (await fake('/__fake/report-begins')).js
 
 /** Sets "Importar desde" to `ymd` in Vinculaciones; the picker saves on its own. */
 async function importFrom(ymd: string) {
-	await page.goto(LINKS_PATH);
-	await page.waitForLoadState('networkidle'); // hydration guard: the date picker is JS-only
+	await gotoHydrated(page, LINKS_PATH);
 	await pickDate(page, 'Importar desde', ymd);
 	await expect(page.getByText('Cambio guardado.')).toBeVisible();
 }
@@ -569,7 +566,7 @@ test('moving "Importar desde" earlier searches from the chosen date and never ch
 	expect(await findMovements(page, AMIGA_DESC)).toHaveLength(approvedBefore);
 
 	const begin = (await searchBegins())[searchesBefore];
-	expect(new Date(begin - AR_OFFSET_MS).toISOString().slice(0, 10)).toBe(from);
+	expect(appDay(begin)).toBe(from);
 	// Reports go in 31-day chunks: the first starts on the chosen local day (03:00Z).
 	expect((await reportBegins())[reportsBefore]).toBe(`${from}T03:00:00Z`);
 
@@ -601,8 +598,7 @@ test('moving "Importar desde" later removes older pending items and the next syn
 	const searches = (await searchBegins()).length;
 	const reports = (await reportBegins()).length;
 	await untilRun(async () => {
-		await page.goto('/imports');
-		await page.waitForLoadState('networkidle'); // hydration guard: the sync button is progressively enhanced
+		await gotoHydrated(page, '/imports');
 		await page.getByRole('button', { name: 'Sincronizar' }).click();
 	});
 	expect((await searchBegins()).slice(searches).every((b) => b >= todayStart)).toBe(true);
@@ -725,8 +721,7 @@ test('another user links their own account and sees only their own inbox', async
 	const { ctx, p } = await asUser(browser, OTHER_EMAIL);
 	try {
 		await link(p, 'Otra cuenta pesos');
-		await p.goto('/imports');
-		await p.waitForLoadState('networkidle'); // hydration guard: the sync button is progressively enhanced
+		await gotoHydrated(p, '/imports');
 		await Promise.all([
 			p.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/imports')),
 			p.getByRole('button', { name: 'Sincronizar' }).click()
@@ -801,8 +796,7 @@ test('an account without a release report configuration gets one created and syn
 });
 
 test('disconnecting removes the link and the inbox keeps only the pending items', async () => {
-	await page.goto(MP_PATH);
-	await page.waitForLoadState('networkidle'); // hydration guard: the disconnect confirm dialog needs JS
+	await gotoHydrated(page, MP_PATH);
 	await page.getByRole('button', { name: 'Desvincular' }).click();
 	await expect(page.getByRole('alertdialog')).toContainText('revocar el acceso');
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Desvincular' }).click();

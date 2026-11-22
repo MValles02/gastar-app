@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { AR_OFFSET_MS, DAY_MS, FAKE_MP } from './fakes.js';
+import { appOffset, arDaysAgo, FAKE_MP } from './fakes.js';
 
 const { port: PORT, clientId: CLIENT_ID, clientSecret: CLIENT_SECRET } = FAKE_MP;
 const ME = 9000000000;
@@ -60,12 +60,10 @@ const send = (res, status, body, type = 'application/json') => {
 	res.end(typeof body === 'string' ? body : JSON.stringify(body));
 };
 const relativeDates = (text) =>
-	text.replace(/@(\d+)T(\d\d:\d\d:\d\d)/g, (_, days, time) => {
-		const day = new Date(Date.now() - AR_OFFSET_MS - Number(days) * DAY_MS)
-			.toISOString()
-			.slice(0, 10);
-		return `${day}T${time}.000-03:00`;
-	});
+	text.replace(
+		/@(\d+)T(\d\d:\d\d:\d\d)/g,
+		(_, days, time) => `${arDaysAgo(Number(days))}T${time}.000${appOffset()}`
+	);
 // Callers only pass fixed names or names built from digit-only ids, so nothing from the URL leaves the folder.
 const fixture = (name) => {
 	const file = dir + name;

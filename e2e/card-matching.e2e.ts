@@ -10,7 +10,8 @@ import {
 	pick,
 	reviewDrawer,
 	upload,
-	withDb
+	withDb,
+	gotoHydrated
 } from './helpers';
 
 // Credit-card alerts (Gmail, e2e/fake-gmail.js) matched with uploaded Banco Galicia statements, in e2e/galicia-pdf.ts's
@@ -76,7 +77,7 @@ test.beforeAll(async ({ browser, baseURL }) => {
 	const href = await page
 		.getByRole('link', { name: 'Tarjeta Visa ••5678: elegí qué es' })
 		.getAttribute('href');
-	await page.goto(href!, { waitUntil: 'networkidle' }); // hydration guard: the pickers need JavaScript
+	await gotoHydrated(page, href!);
 	await page.getByRole('radio', { name: 'Crédito' }).check({ force: true });
 	await pick(page, 'Cuenta en pesos', 'Pesos Tarjeta');
 	await pick(page, 'Cuenta en dólares', 'Dolares Tarjeta');

@@ -10,7 +10,8 @@ import {
 	save,
 	setCurrencyCookie,
 	toast,
-	unique
+	unique,
+	gotoHydrated
 } from './helpers';
 
 test.use({ viewport: PHONE });
@@ -28,8 +29,7 @@ test.afterEach(async ({ page, baseURL }) => {
 const drawer = (page: Page) => page.getByRole('dialog', { name: 'Nuevo movimiento' });
 
 async function open(page: Page, from = '/plan') {
-	await page.goto(from);
-	await page.waitForLoadState('networkidle'); // hydration guard: the new-movement drawer needs JS
+	await gotoHydrated(page, from);
 	await page
 		.getByRole('navigation', { name: 'Navegación principal' })
 		.getByRole('link', { name: 'Nuevo movimiento' })

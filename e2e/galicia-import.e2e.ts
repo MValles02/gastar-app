@@ -1,6 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
 import { visaStatement } from './galicia-pdf';
-import { GALICIA_EMAIL, login, OTHER_EMAIL, pick, upload, withDb } from './helpers';
+import {
+	GALICIA_EMAIL,
+	login,
+	OTHER_EMAIL,
+	pick,
+	upload,
+	withDb,
+	waitForHydration
+} from './helpers';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -41,7 +49,7 @@ test('a statement lands its lines on the chosen pesos and dollar accounts', asyn
 	await page.goto('/profile/vinculaciones');
 	await page.getByRole('link', { name: /Banco Galicia/ }).click();
 	await expect(page).toHaveURL(/\/profile\/galicia$/);
-	await page.waitForLoadState('networkidle'); // hydration guard: the account pickers save through JS
+	await waitForHydration(page);
 	await pick(page, 'Pesos', 'Caja pesos');
 	await expect(page.getByRole('button', { name: /Pesos/ })).toContainText('Caja pesos');
 	await pick(page, 'Dólares', 'Caja dólares');
@@ -141,7 +149,7 @@ test('a remembered merchant matches the same merchant with another reference cod
 		})
 	);
 	await expect(page).toHaveURL(/\/imports/);
-	await page.waitForLoadState('networkidle'); // hydration guard: the drawer is a shallow route opened by JS
+	await waitForHydration(page);
 	await page
 		.locator('[data-slot="item-group"] [role="listitem"]')
 		.filter({ hasText: 'MOVISTAR DA' })
