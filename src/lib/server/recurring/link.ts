@@ -6,6 +6,7 @@ import type { DbExecutor } from '../db';
 import { categories, financialAccounts, movements, recurringMovements } from '../db/schema';
 import { localMonth } from '../db/sql';
 import { canAccessAccount, canAccessMovement, canAccessOwn } from '../access';
+import { activeCategory } from '../categories/queries';
 import { daysInMonth, localDay, monthRange } from '../month';
 import { ownRule, paidRecurring } from './queries';
 
@@ -163,7 +164,7 @@ export async function linkRuleFor(
 				eq(financialAccounts.currency, account.currency),
 				isNull(recurringMovements.archivedAt),
 				isNull(financialAccounts.archivedAt),
-				isNull(categories.archivedAt),
+				activeCategory,
 				explicitRuleId ? eq(recurringMovements.id, explicitRuleId) : undefined
 			)
 		)

@@ -9,6 +9,17 @@ import { exists, inRange, isIncomeOrOutcome, sumOfType, type Range } from '../db
 import type { CategoryData } from './form';
 import { kindFits, type CategoryKind } from '#lib/movement.ts';
 
+/** Not archived. */
+export const activeCategory = isNull(categories.archivedAt);
+
+/** The joined category's fields on a movement or rule row (all null when a left join finds none). */
+export const categoryFields = {
+	categoryName: categories.name,
+	categoryColor: categories.color,
+	categoryIcon: categories.icon,
+	categoryArchivedAt: categories.archivedAt
+};
+
 export function listCategories(
 	userId: string,
 	opts: { q?: string; archived?: boolean; kind?: 'income' | 'outcome' } = {}
@@ -19,7 +30,7 @@ export function listCategories(
 		.where(
 			and(
 				canAccessOwn(userId, categories),
-				opts.archived ? undefined : isNull(categories.archivedAt),
+				opts.archived ? undefined : activeCategory,
 				opts.kind ? or(eq(categories.kind, opts.kind), isNull(categories.kind)) : undefined,
 				opts.q ? ilike(categories.name, `%${escapeLike(opts.q)}%`) : undefined
 			)

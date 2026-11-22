@@ -23,6 +23,12 @@ export type SourceStatus = {
 	errorLabel: string | null;
 };
 
+/** 'reconnect' wins over the source's own notion of linked. */
+const sourceState = (
+	needsReconnect: boolean | undefined,
+	linked: boolean
+): SourceStatus['state'] => (needsReconnect ? 'reconnect' : linked ? 'linked' : null);
+
 export type MpStatus = SourceStatus & {
 	/** The account the connection feeds, also while a reconnect is pending. */
 	accountId: string | null;
@@ -39,7 +45,7 @@ async function mpStatus(userId: string): Promise<MpStatus> {
 	const sync = accountId ? await getSyncState(userId, accountId) : null;
 	const running = leaseActive(sync?.runningSince);
 	return {
-		state: conn?.needsReconnect ? 'reconnect' : accountId ? 'linked' : null,
+		state: sourceState(conn?.needsReconnect, Boolean(accountId)),
 		running,
 		lastRunAt: sync?.lastRunAt ?? null,
 		errorLabel: sync?.lastError ? mpErrorLabel(sync.lastError) : null,
@@ -56,7 +62,7 @@ async function mpStatus(userId: string): Promise<MpStatus> {
 async function gmailStatus(userId: string): Promise<SourceStatus> {
 	const conn = await gmailConnection(userId);
 	return {
-		state: conn ? (conn.needsReconnect ? 'reconnect' : 'linked') : null,
+		state: sourceState(conn?.needsReconnect, Boolean(conn)),
 		running: leaseActive(conn?.runningSince),
 		lastRunAt: conn?.lastRunAt ?? null,
 		errorLabel: conn?.lastErrorCode ? gmailErrorLabel(conn.lastErrorCode) : null

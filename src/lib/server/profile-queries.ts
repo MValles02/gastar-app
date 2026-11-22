@@ -1,6 +1,7 @@
 import { and, count, eq, isNull, sql, type SQLWrapper } from 'drizzle-orm';
 import { db } from './db';
 import { canAccessAccount, canAccessMovement, canAccessOwn } from './access';
+import { activeCategory } from './categories/queries';
 import {
 	categories,
 	financialAccounts,
@@ -29,7 +30,7 @@ export async function profileCounts(userId: string) {
 		categories: db
 			.select({ n: count() })
 			.from(categories)
-			.where(and(canAccessOwn(userId, categories), isNull(categories.archivedAt)))
+			.where(and(canAccessOwn(userId, categories), activeCategory))
 	});
 	return row;
 }

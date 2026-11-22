@@ -4,6 +4,7 @@ import { db, type Tx } from '../db';
 import { categories, financialAccounts, movements } from '../db/schema';
 import { dest, exists, sumOfType } from '../db/sql';
 import { canAccessMovement, canAccessOwn, ownedDestination, userOwned } from '../access';
+import { categoryFields } from '../categories/queries';
 import { linkRuleFor, lockRules, unlinkRevert } from '../recurring/link';
 import { escapeLike } from '../db/util';
 import { dayStart, nextDay } from '../month';
@@ -188,10 +189,7 @@ export function getMovement(userId: string, id: string) {
 			destinationIcon: dest.icon,
 			destinationColor: dest.color,
 			destinationArchivedAt: dest.archivedAt,
-			categoryName: categories.name,
-			categoryColor: categories.color,
-			categoryIcon: categories.icon,
-			categoryArchivedAt: categories.archivedAt
+			...categoryFields
 		})
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
