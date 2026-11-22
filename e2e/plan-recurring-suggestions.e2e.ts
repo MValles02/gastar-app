@@ -7,7 +7,8 @@ import {
 	post,
 	rule,
 	savedId,
-	signUpVerified
+	signUpVerified,
+	gotoHydrated
 } from './helpers';
 
 // Rules of the "Detectamos que se repiten" list (recurringCandidates + recurringSuggestions). Each
@@ -169,7 +170,7 @@ test('grouping is case-insensitive, any category kind is suggested, the amount a
 	await expect(row(page, 'Mixta sug e2e')).toHaveCount(1);
 	await expect(row(page, 'Suma sug e2e')).toContainText('15.000');
 
-	await page.goto('/plan/setup?step=2', { waitUntil: 'networkidle' }); // hydration guard: the drawer needs JS
+	await gotoHydrated(page, '/plan/setup?step=2');
 	await row(page, 'Suma sug e2e').click();
 	const drawer = page.getByRole('dialog', { name: 'Nuevo pago fijo' });
 	await expect(drawer.locator('input[name="description"]')).toHaveValue('Suma sug e2e');

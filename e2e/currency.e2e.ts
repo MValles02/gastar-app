@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { login, openFilters } from './helpers';
+import { login, openFilters, gotoHydrated } from './helpers';
 
 test.beforeEach(async ({ page }) => {
 	await login(page);
@@ -7,8 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
 	const movementRows = page.getByRole('main').getByRole('link');
-	await page.goto('/movements?currency=USD');
-	await page.waitForLoadState('networkidle'); // hydration guard: the filters dialog is JS-only
+	await gotoHydrated(page, '/movements?currency=USD');
 	await expect(page.getByRole('button', { name: /^Filtros/ })).toContainText('1');
 	const dialog = await openFilters(page);
 	await expect(dialog.getByRole('radio', { name: 'Dólares' })).toBeChecked();
@@ -29,8 +28,7 @@ test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
 	await page.getByRole('link', { name: /Efectivo/ }).click();
 	await expect(page).toHaveURL(/\/accounts\/[^/]+$/);
 	const id = page.url().split('/').pop()!;
-	await page.goto(`/movements?account=${id}&currency=USD`);
-	await page.waitForLoadState('networkidle'); // hydration guard: the filters dialog is JS-only
+	await gotoHydrated(page, `/movements?account=${id}&currency=USD`);
 	const accountDialog = await openFilters(page);
 	await expect(accountDialog.getByRole('radio', { name: 'Pesos' })).toBeChecked();
 	await expect(accountDialog.getByRole('radio', { name: 'Pesos' })).toBeDisabled();

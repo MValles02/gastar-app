@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { FAKE_GMAIL } from './fakes.js';
-import { GALICIA_EMAIL, login, OTHER_EMAIL, post } from './helpers';
+import { GALICIA_EMAIL, login, OTHER_EMAIL, post, gotoHydrated } from './helpers';
 
 // Google is the fake in e2e/fake-gmail.js. User A is the seeded Galicia user (no other spec links Gmail),
 // so the spec adds no sign-up or email verification to the suite's rate-limit budget.
@@ -55,8 +55,7 @@ test('linking shows Vinculado and the address; unlinking revokes at Google', asy
 	await page.goto('/profile/vinculaciones');
 	await expect(gmailRow(page)).toContainText('Vinculado');
 
-	await page.goto(GMAIL_PATH);
-	await page.waitForLoadState('networkidle'); // hydration guard: the disconnect confirm dialog needs JS
+	await gotoHydrated(page, GMAIL_PATH);
 	await page.getByRole('button', { name: 'Desvincular' }).click();
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Desvincular' }).click();
 	await expect(page.getByRole('button', { name: 'Vincular Gmail' })).toBeVisible();
@@ -79,8 +78,7 @@ test('a revoked grant asks to reconnect, and reconnecting links again', async ({
 });
 
 test('a consent without permission to read mail is rejected and nothing is linked', async () => {
-	await page.goto(GMAIL_PATH);
-	await page.waitForLoadState('networkidle'); // hydration guard: the disconnect confirm dialog needs JS
+	await gotoHydrated(page, GMAIL_PATH);
 	await page.getByRole('button', { name: 'Desvincular' }).click();
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Desvincular' }).click();
 	await expect(page.getByRole('button', { name: 'Vincular Gmail' })).toBeVisible();

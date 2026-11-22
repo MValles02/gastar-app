@@ -12,7 +12,8 @@ import {
 	setCurrencyCookie,
 	signUpVerified,
 	todayInAppTz,
-	upload
+	upload,
+	gotoHydrated
 } from './helpers';
 
 // Fixed payments link to imported charges: by description (amount follows the charge) and by an explicit,
@@ -63,8 +64,7 @@ test.beforeAll(async ({ browser, baseURL }) => {
 		});
 	await setCurrencyCookie(page, baseURL!, 'ARS');
 
-	await page.goto('/profile/galicia');
-	await page.waitForLoadState('networkidle'); // hydration guard: the account pickers save through JS
+	await gotoHydrated(page, '/profile/galicia');
 	await pick(page, 'Pesos', 'Caja pesos');
 	await expect(page.getByRole('button', { name: /Pesos/ })).toContainText('Caja pesos');
 	await pick(page, 'Dólares', 'Caja dólares');

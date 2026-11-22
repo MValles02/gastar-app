@@ -12,7 +12,8 @@ import {
 	pickDate,
 	reviewDrawer,
 	upload,
-	withDb
+	withDb,
+	gotoHydrated
 } from './helpers';
 import { arDaysAgo } from './fakes.js';
 
@@ -58,11 +59,11 @@ const expectInInbox = (merchant: string) =>
 /** Answers the "Tarjeta Visa ••NNNN: elegí qué es" row of /imports: debit with a pesos account (and a dollar one). */
 async function setUpDebit(page: Page, last4: string, pesos: string, dollars?: string) {
 	await page.goto('/imports');
-	// A full load (not a client-side click) so the hydration guard below waits for this page.
+	// Opens the row's link with a full load (not a client-side click), then waits for hydration.
 	const href = await page
 		.getByRole('link', { name: `Tarjeta Visa ••${last4}: elegí qué es` })
 		.getAttribute('href');
-	await page.goto(href!, { waitUntil: 'networkidle' }); // hydration guard: the pickers need JavaScript
+	await gotoHydrated(page, href!);
 	await page.getByRole('radio', { name: 'Débito' }).check({ force: true });
 	await pick(page, 'Cuenta en pesos', pesos);
 	if (dollars) await pick(page, 'Cuenta en dólares', dollars);
@@ -213,7 +214,7 @@ test('a Galicia Mastercard alert becomes a pending credit item; an installment o
 	const href = await pageA
 		.getByRole('link', { name: 'Tarjeta Mastercard ••3300: elegí qué es' })
 		.getAttribute('href');
-	await pageA.goto(href!, { waitUntil: 'networkidle' }); // hydration guard: the pickers need JavaScript
+	await gotoHydrated(pageA, href!);
 	await pick(pageA, 'Cuenta en pesos', 'Pesos Visa A');
 	await pageA.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(pageA).toHaveURL(/\/imports$/);
@@ -386,8 +387,7 @@ test('moving "Importar desde" earlier backfills Gmail alerts from before the cur
 	await sync(pageA, baseURL!);
 	expect((await items(A.email)).map((i) => i.merchant)).not.toContain('ANTERIOR EJEMPLO');
 
-	await pageA.goto('/profile/vinculaciones');
-	await pageA.waitForLoadState('networkidle'); // hydration guard: the date picker is JS-only
+	await gotoHydrated(pageA, '/profile/vinculaciones');
 	await pickDate(pageA, 'Importar desde', arDaysAgo(60));
 	await expect(pageA.getByText('Cambio guardado.')).toBeVisible();
 
