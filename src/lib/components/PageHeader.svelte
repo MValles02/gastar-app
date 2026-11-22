@@ -38,8 +38,8 @@
 	const full = $derived(!back && !close);
 
 	// From the (app) layout load; missing only if that load failed (error page).
-	const header = $derived(page.data.header as { date: string; initials: string } | undefined);
-	const alertCount = $derived((page.data.alertCount as number | undefined) ?? 0);
+	const header = $derived(page.data.header);
+	const alertCount = $derived(page.data.alertCount ?? 0);
 	const kicker = $derived(eyebrow ?? header?.date);
 </script>
 

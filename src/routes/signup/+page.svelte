@@ -5,6 +5,7 @@
 	import AuthPage from '#lib/components/AuthPage.svelte';
 	import AuthTabs from '#lib/components/AuthTabs.svelte';
 	import CheckEmail from '#lib/components/CheckEmail.svelte';
+	import { rememberPendingEmail } from '#lib/pending-email.ts';
 	import EmailField from '#lib/components/EmailField.svelte';
 	import * as Field from '#lib/components/ui/field/index.js';
 	import GoogleButton from '#lib/components/GoogleButton.svelte';
@@ -22,7 +23,12 @@
 </svelte:head>
 
 {#if form?.checkEmail}
-	<CheckEmail email={form.checkEmail} kind="verify" backHref={resolve('signup')} />
+	<CheckEmail
+		email={form.checkEmail}
+		kind="verify"
+		backHref={resolve('signup')}
+		onshown={() => rememberPendingEmail(form.checkEmail)}
+	/>
 {:else}
 	<AuthPage>
 		<AuthTabs current="signup" />
@@ -57,7 +63,6 @@
 				autocomplete="new-password"
 				error={form?.errors?.password}
 				hint={PASSWORD_MIN_MESSAGE}
-				errorId="password-hint"
 			/>
 
 			{#if form?.formError}

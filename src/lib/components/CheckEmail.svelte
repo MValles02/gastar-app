@@ -4,13 +4,16 @@
 	import { onMount } from 'svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import AuthPage from '#lib/components/AuthPage.svelte';
-	import { rememberPendingEmail } from '#lib/pending-email.ts';
 
 	// Shared "Revisá tu email" screen. The page that renders it must have a `resend` action.
-	// `verify` confirms an account (the address is remembered for /verify-email); `reset` is the
-	// neutral password-reset confirmation and never says whether the address has an account.
-	let { email, kind, backHref }: { email: string; kind: 'verify' | 'reset'; backHref: string } =
-		$props();
+	// `verify` confirms an account; `reset` is the neutral password-reset confirmation and never says
+	// whether the address has an account. `onshown` runs once the screen has mounted.
+	let {
+		email,
+		kind,
+		backHref,
+		onshown
+	}: { email: string; kind: 'verify' | 'reset'; backHref: string; onshown?: () => void } = $props();
 
 	const COOLDOWN_SECONDS = 60;
 	// Starts at 0 so without JS the button stays usable; the countdown only exists with JS.
@@ -18,7 +21,7 @@
 	let sent = $state(false);
 
 	onMount(() => {
-		if (kind === 'verify') rememberPendingEmail(email);
+		onshown?.();
 		seconds = COOLDOWN_SECONDS;
 		const timer = setInterval(() => {
 			if (seconds > 0) seconds--;

@@ -11,28 +11,24 @@
 	let {
 		cents,
 		currency,
-		tone = 'stock',
-		direction,
 		label,
-		labelId,
 		ariaLabel,
 		top,
 		children
 	}: {
 		cents?: number;
 		currency?: Currency;
-		tone?: 'stock' | 'flow';
-		direction?: 'income' | 'outcome' | 'transfer';
 		label?: string;
-		/** Id for the label; the section is then named by it. */
-		labelId?: string;
+		/** Names the section; without it the visible `label` does. */
 		ariaLabel?: string;
 		top?: Snippet;
 		children?: Snippet;
 	} = $props();
+
+	const labelId = $props.id();
 </script>
 
-<section aria-label={labelId ? undefined : ariaLabel} aria-labelledby={labelId}>
+<section aria-label={ariaLabel} aria-labelledby={ariaLabel || !label ? undefined : labelId}>
 	<Card.Root>
 		<Card.Content>
 			<div class="detail-hero">
@@ -40,9 +36,9 @@
 				{#if children}
 					{@render children()}
 				{:else if cents !== undefined && currency}
-					<HeroAmount {cents} {currency} {tone} {direction} />
+					<HeroAmount {cents} {currency} />
 				{/if}
-				{#if label}<p id={labelId} class="label">{label}</p>{/if}
+				{#if label}<p id={ariaLabel ? undefined : labelId} class="label">{label}</p>{/if}
 			</div>
 		</Card.Content>
 	</Card.Root>

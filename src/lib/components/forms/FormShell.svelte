@@ -1,7 +1,8 @@
 <script lang="ts" generics="Failure extends Record<string, unknown>">
-	import { onMount, type Snippet } from 'svelte';
+	import type { Snippet } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { enhance, type SubmitFunction } from '$app/forms';
+	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { followRedirect } from '#lib/nav-stack.svelte.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import FormActions from '#lib/components/FormActions.svelte';
@@ -13,7 +14,7 @@
 	 * (`errors` refocuses the first invalid field). `drawer`: a redirect calls `onsaved` (follows it
 	 * when unset), a failure hands its data to `onfailure` and refocuses, anything else toasts
 	 * `errorToast`; the bar is Cancelar (`onclose`) and the submit, disabled once hydrated until
-	 * `canSave`. `bind:mounted` tells the fields when JS is running. `variant`, `onsaved`, `onclose` and
+	 * `canSave`. `variant`, `onsaved`, `onclose` and
 	 * `cancelHref` default to the enclosing FormScreen's; an explicit prop wins.
 	 */
 	let {
@@ -35,7 +36,6 @@
 		scroll = false,
 		bar = true,
 		style,
-		mounted = $bindable(false),
 		submitting = $bindable(false),
 		children
 	}: {
@@ -69,7 +69,6 @@
 		bar?: boolean;
 		/** Layout overrides: `--form-gap`, `--form-pb`, `--actions-mt`. */
 		style?: string;
-		mounted?: boolean;
 		submitting?: boolean;
 		children: Snippet;
 	} = $props();
@@ -82,7 +81,7 @@
 	const local = $derived(drawer || inPlace);
 	const wrap = $derived(scroll === true || (scroll === 'drawer' && drawer));
 	let form = $state<HTMLFormElement>();
-	onMount(() => (mounted = true));
+	const mounted = hydrated();
 
 	$effect(() => {
 		if (errors && Object.values(errors).some(Boolean)) focusFirstError(form);
@@ -142,7 +141,7 @@
 				type="submit"
 				variant={danger ? 'danger' : 'default'}
 				class="min-w-0 flex-1 basis-0 {danger ? 'whitespace-normal' : ''}"
-				disabled={mounted && (!canSave || submitting)}
+				disabled={mounted.current && (!canSave || submitting)}
 				aria-busy={submitting ? 'true' : undefined}>{submitLabel}</Button
 			>
 		</div>

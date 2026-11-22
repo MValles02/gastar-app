@@ -43,6 +43,10 @@
 	let input: HTMLInputElement | null = $state(null);
 	const errorId = $props.id();
 
+	export function focus() {
+		input?.focus();
+	}
+
 	async function start() {
 		draft = value;
 		error = '';

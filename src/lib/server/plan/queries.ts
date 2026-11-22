@@ -11,9 +11,7 @@ import { exists, inRange, type Range } from '../db/sql';
 import { canAccessMovement, canAccessOwn, userOwned } from '../access';
 import type { Currency } from '#lib/money.ts';
 import { PLAN_CURRENCY, type PlanSavings } from '#lib/plan.ts';
-import { currentMonth, localDay } from '../month';
-import { listRecurring } from '../recurring/queries';
-import { isCurrentPlan, recurringIncomeInPesos } from './summary';
+import { localDay } from '../month';
 
 /** Whether the user has a spending plan (first-run checklist); legacy USD rows do not count. */
 export function hasAnyPlan(userId: string) {
@@ -23,12 +21,6 @@ export function hasAnyPlan(userId: string) {
 			.from(spendingPlans)
 			.where(and(canAccessOwn(userId, spendingPlans), eq(spendingPlans.currency, PLAN_CURRENCY)))
 	);
-}
-
-/** The user's plan when it is the current one (a plan for another month counts as none). */
-export async function currentPlan(userId: string) {
-	const [plan] = await getPlan(userId);
-	return plan && isCurrentPlan(plan, currentMonth(new Date())) ? plan : null;
 }
 
 /** The plan is the user's `PLAN_CURRENCY` row; legacy USD rows are never read. */
@@ -131,11 +123,6 @@ export function deletePlan(userId: string) {
 		.delete(spendingPlans)
 		.where(and(canAccessOwn(userId, spendingPlans), eq(spendingPlans.currency, PLAN_CURRENCY)))
 		.returning({ id: spendingPlans.id });
-}
-
-export async function planIncome(userId: string) {
-	const [rules, rate] = await Promise.all([listRecurring(userId), planRate(userId)]);
-	return recurringIncomeInPesos(rules, rate.value);
 }
 
 type PlanMonth = { month: string | null };

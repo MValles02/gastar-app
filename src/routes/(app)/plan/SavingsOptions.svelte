@@ -143,7 +143,7 @@
 						options={units}
 						bind:value={unit}
 						labelledby="savings-unit-label"
-						size="compact"
+						class="flex-auto px-2 whitespace-nowrap"
 					/>
 				{/snippet}
 			</TextRow>

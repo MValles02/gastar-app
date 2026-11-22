@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
+	import { untrack } from 'svelte';
+	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { toast } from 'svelte-sonner';
 	import { goto, refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -59,18 +60,17 @@
 	let recurringId = $state(initial.recurringId ?? '');
 	let remember = $state(initial.remember === 'on');
 
-	let mounted = $state(false);
-	onMount(() => (mounted = true));
+	const mounted = hydrated();
 	let submitting = $state(false);
 
 	const isTransfer = $derived(type === 'transfer');
-	const showTransfer = $derived(!mounted || isTransfer);
-	const showCategory = $derived(!mounted || !isTransfer);
+	const showTransfer = $derived(!mounted.current || isTransfer);
+	const showCategory = $derived(!mounted.current || !isTransfer);
 
 	// Without JS the type changes without a reload, so every category is listed (the server validates).
 	// An import item has no saved category to keep pickable.
 	const pickableCategories = $derived(
-		!mounted || isTransfer ? data.categories : categoriesFor(data.categories, type, null)
+		!mounted.current || isTransfer ? data.categories : categoriesFor(data.categories, type, null)
 	);
 	$effect(() => {
 		if (categoryId && !pickableCategories.some((c) => c.id === categoryId)) categoryId = '';
@@ -164,7 +164,7 @@
 
 			{#if showTransfer}
 				<li class:bad={errors.counterAccountId}>
-					{#if !mounted}<p class="hint pad">Solo para transferencias</p>{/if}
+					{#if !mounted.current}<p class="hint pad">Solo para transferencias</p>{/if}
 					<OptionPicker
 						name="counterAccountId"
 						legend={item.isCredit ? 'Origen' : 'Destino'}
@@ -191,7 +191,7 @@
 
 			{#if showCategory}
 				<li class:bad={errors.categoryId}>
-					{#if !mounted}<p class="hint pad">Solo para ingresos y gastos</p>{/if}
+					{#if !mounted.current}<p class="hint pad">Solo para ingresos y gastos</p>{/if}
 					<OptionPicker
 						name="categoryId"
 						legend="Categoría"

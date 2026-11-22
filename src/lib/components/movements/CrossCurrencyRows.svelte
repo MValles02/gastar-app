@@ -37,6 +37,12 @@
 		/** Inside the rate row, after it (e.g. the form's hidden input). */
 		hidden?: Snippet;
 	} = $props();
+
+	let rateInput: InlineText | undefined = $state();
+	/** Focuses the rate input (when it is being edited). */
+	export function focus() {
+		rateInput?.focus();
+	}
 </script>
 
 {#snippet rateRow()}
@@ -45,6 +51,7 @@
 			<span class="k">Cotización</span>
 			<span class="v">
 				<InlineText
+					bind:this={rateInput}
 					label="Cotización"
 					inputmode="numeric"
 					prefix="1 USD = $"
