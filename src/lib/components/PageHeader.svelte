@@ -21,7 +21,8 @@
 		eyebrow,
 		back,
 		close,
-		action
+		action,
+		ref = $bindable()
 	}: {
 		title: string;
 		eyebrow?: string;
@@ -30,6 +31,8 @@
 		close?: { href: string; label: string };
 		/** `back` or `close` header only: a pill action at the right end (e.g. "Agregar"). */
 		action?: Snippet;
+		/** The `<header>` element, for a page that measures it (bind:ref). */
+		ref?: HTMLElement;
 	} = $props();
 
 	/** Larger alert counts show as "9+". */
@@ -43,7 +46,7 @@
 	const kicker = $derived(eyebrow ?? header?.date);
 </script>
 
-<header class="top-bar" class:stacked={back && !close}>
+<header bind:this={ref} class="top-bar" class:stacked={back && !close}>
 	{#if close}
 		<Button
 			class="-ml-2"

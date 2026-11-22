@@ -416,6 +416,7 @@ export async function fakeAlert(mailbox: string, o: FakeAlert) {
 		merchant: o.merchant,
 		amount: o.amount,
 		currency: o.mastercard ? 'PESOS' : (o.currency ?? 'ARS'),
+		// The words each bank's mail sends (not STORED_TYPE: a mail's input must not follow the app's constant).
 		type: o.type ?? (o.mastercard ? 'COMPRA' : 'Compra'),
 		foreign: o.foreign ? '1' : '0',
 		dkim: o.dkim ?? 'pass'

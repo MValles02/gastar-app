@@ -9,6 +9,7 @@
 	import FilterBar from '#lib/components/FilterBar.svelte';
 	import ListFilterDrawer from '#lib/components/ListFilterDrawer.svelte';
 	import { activeListFilters } from '#lib/list-filter.ts';
+	import { ARCHIVED_LABEL } from '#lib/movement.ts';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
@@ -22,7 +23,7 @@
 	let open = $state(false);
 </script>
 
-{#snippet archivedMeta()}Archivada{/snippet}
+{#snippet archivedMeta()}{ARCHIVED_LABEL}{/snippet}
 {#snippet add()}
 	<Button
 		href={resolve('accounts/new')}

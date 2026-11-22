@@ -62,7 +62,7 @@ function parse(html: string): AlertResult<ParsedAlert> {
 			currency,
 			amount,
 			foreign: intro.includes('en el exterior'),
-			// Visa sends the stored words as they are ("Compra").
+			// Visa sends the stored words (STORED_TYPE in card-alert.ts) as they are.
 			kind: alertKind(type),
 			type,
 			installments: null

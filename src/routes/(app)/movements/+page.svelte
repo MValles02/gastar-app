@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { navigating } from '$app/state';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
@@ -25,8 +24,9 @@
 
 	// The month headers stick under the page header, which is only sticky on tall viewports.
 	let barHeight = $state(0);
-	onMount(() => {
-		const bar = document.querySelector('header');
+	let header = $state<HTMLElement>();
+	$effect(() => {
+		const bar = header;
 		if (!bar) return;
 		const measure = () =>
 			(barHeight = getComputedStyle(bar).position === 'sticky' ? bar.offsetHeight : 0);
@@ -74,7 +74,7 @@
 	<title>Movimientos · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Movimientos" />
+<PageHeader title="Movimientos" bind:ref={header} />
 
 {#snippet fields(submit: () => void)}
 	<span id="type-label" class="visually-hidden">Tipo</span>

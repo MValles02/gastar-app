@@ -5,6 +5,7 @@
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import IconBadge from '#lib/components/IconBadge.svelte';
 	import * as Item from '#lib/components/ui/item/index.js';
+	import { ARCHIVED_LABEL } from '#lib/movement.ts';
 	import PickerTrigger from './PickerTrigger.svelte';
 
 	/**
@@ -78,7 +79,7 @@
 						<Item.Media><IconBadge icon={item.icon} color={item.color} /></Item.Media>
 						<Item.Content>
 							<Item.Title>{item.name}</Item.Title>
-							{#if item.archived}<Item.Description>Archivada</Item.Description>{/if}
+							{#if item.archived}<Item.Description>{ARCHIVED_LABEL}</Item.Description>{/if}
 						</Item.Content>
 						{#if on || item.meta}
 							<Item.Actions class="text-muted-foreground text-sm">
