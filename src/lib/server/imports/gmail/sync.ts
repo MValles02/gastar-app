@@ -1,5 +1,4 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import { CARD_NETWORKS } from '#lib/imports.ts';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { dayStart } from '../../month';
@@ -11,8 +10,7 @@ import { convertWaitingAlerts } from '../card-alerts';
 import { gmailDataBaseUrl } from './env';
 import { getAccessToken, refreshConnection } from './oauth';
 import { obj } from '../json';
-import { NETWORK_IMPORT } from '../networks';
-import { type CardAlertResult, messageSender } from './alert-mail';
+import { ALERT_SENDERS, parseAlert } from './alert-parsers';
 
 /** Refresh the access token when it expires within this window (Google's last an hour). */
 const REFRESH_WINDOW_MS = 5 * 60_000;
@@ -40,17 +38,6 @@ class SyncError extends Error {
 		super(code);
 	}
 }
-
-/** The parser of each alert sender. */
-const PARSERS = new Map(
-	CARD_NETWORKS.flatMap((n) => {
-		const { senders, parse } = NETWORK_IMPORT[n].alert;
-		return senders.map((s) => [s, parse] as const);
-	})
-);
-
-const parseAlert = (message: unknown): CardAlertResult =>
-	PARSERS.get(messageSender(message))?.(message) ?? { status: 'ignored' };
 
 /** Takes the user's lease and returns the cursor (null until the first run); null when off or held. */
 async function acquire(
@@ -116,7 +103,7 @@ async function gmailClient(userId: string) {
 
 /** Ids of the matching messages newer than the bound (minus the overlap), and whether every page was listed. */
 async function listMessageIds(api: (url: string) => Promise<unknown>, bound: Date) {
-	const from = [...PARSERS.keys()].join(' OR ');
+	const from = ALERT_SENDERS.join(' OR ');
 	const after = Math.floor(bound.getTime() / 1000) - OVERLAP_S;
 	const ids: string[] = [];
 	let pageToken: string | undefined;

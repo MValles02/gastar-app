@@ -1,8 +1,7 @@
 import { createHash } from 'node:crypto';
 import { getDocumentProxy } from 'unpdf';
 import { CURRENCIES, type Currency } from '#lib/money.ts';
-import { CARD_NETWORKS, type CardNetwork } from '#lib/imports.ts';
-import { NETWORK_IMPORT } from '../networks';
+import { CARD_NETWORK, CARD_NETWORKS, type CardNetwork } from '#lib/imports.ts';
 
 // Parser for Banco Galicia credit-card statement PDFs (Visa and Mastercard). The PDF is read in
 // memory only; nothing here logs or returns the holder's name, address or account numbers.
@@ -169,7 +168,8 @@ export async function parseGaliciaStatement(bytes: Uint8Array): Promise<Statemen
 		throw new StatementError('not_galicia');
 	}
 	const cardLine = all.find((t) => /Tarjeta Cr[ée]dito/i.test(t)) ?? '';
-	const network = CARD_NETWORKS.find((n) => NETWORK_IMPORT[n].statementMark.test(cardLine)) ?? null;
+	const network =
+		CARD_NETWORKS.find((n) => CARD_NETWORK[n].credit.statementMark.test(cardLine)) ?? null;
 	if (!network) throw new StatementError('not_galicia');
 	const number = all.map((t) => /Resumen N° ?(\S+)/.exec(t)?.[1]).find(Boolean);
 	const dates = lines
