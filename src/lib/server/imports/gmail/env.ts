@@ -1,4 +1,12 @@
 import * as env from '$app/env/private';
+import type { EnvGroup } from '../../env-check';
+
+/** The Gmail link's env vars: all or none (checkEnv). */
+export const GMAIL_ENV = {
+	vars: ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_TOKEN_KEY'],
+	key: 'GMAIL_TOKEN_KEY',
+	allOrNone: true
+} as const satisfies EnvGroup;
 
 /** Google's OAuth authorization root; overridden in tests only. */
 export const gmailAuthBaseUrl = () => env.GMAIL_AUTH_BASE_URL || 'https://accounts.google.com';

@@ -1,5 +1,5 @@
-import { GMAIL_ENV } from './imports/gmail/oauth';
-import { MP_ENV } from './imports/mercado-pago/oauth';
+import { GMAIL_ENV } from './imports/gmail/env';
+import { MP_ENV } from './imports/mercado-pago/env';
 
 /** Real client IP header behind Cloudflare; ADDRESS_HEADER (adapter-node) must name it too. */
 export const CLIENT_IP_HEADER = 'cf-connecting-ip';
@@ -17,7 +17,8 @@ const REQUIRED = [
 ];
 
 /**
- * An optional feature's env vars, exported by the feature's module: it is on only when every one of
+ * An optional feature's env vars, from its import-free `env` module (its oauth module would close an
+ * import cycle through auth.ts). The feature is on only when every one of
  * `vars` is set, and `key` (one of them) must be base64 of 32 bytes. With `allOrNone`, a partial set
  * fails startup instead of leaving the feature off.
  */

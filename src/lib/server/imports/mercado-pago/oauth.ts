@@ -1,26 +1,15 @@
 import { and, eq, isNotNull } from 'drizzle-orm';
 import * as env from '$app/env/private';
-import type { EnvGroup } from '../../env-check';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { mpConnections, mpSyncState } from '../../db/schema';
 import { callbackUrl, type OAuthLink, pkce } from '../oauth-link';
 import { requestToken as postToken, tokenStore } from '../oauth-tokens';
-import { mpApiBaseUrl } from './env';
+import { MP_ENV, mpApiBaseUrl } from './env';
 
 const DEFAULT_AUTH_BASE_URL = 'https://auth.mercadopago.com';
 
 const LINK_PATH = '/profile/mercado-pago';
-
-/**
- * The Mercado Pago link's env vars. Not all-or-none: a partial set only leaves the link off, as before
- * checkEnv read these groups (enforcing it could stop a deploy that starts today).
- */
-export const MP_ENV = {
-	vars: ['MP_CLIENT_ID', 'MP_CLIENT_SECRET', 'MP_TOKEN_KEY'],
-	key: 'MP_TOKEN_KEY',
-	allOrNone: false
-} as const satisfies EnvGroup;
 
 /** The feature is on only when the client id, client secret and token key are all set. */
 export function mpOauthEnabled(): boolean {

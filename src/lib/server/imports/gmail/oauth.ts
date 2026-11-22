@@ -1,25 +1,17 @@
 import { and, eq } from 'drizzle-orm';
 import * as env from '$app/env/private';
-import type { EnvGroup } from '../../env-check';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { account, gmailConnections } from '../../db/schema';
 import { GOOGLE_PROVIDER_ID } from '../../reauth';
 import { callbackUrl, type OAuthLink, pkce } from '../oauth-link';
 import { requestToken as postToken, TOKEN_TIMEOUT_MS, tokenStore } from '../oauth-tokens';
-import { gmailApiBaseUrl, gmailAuthBaseUrl } from './env';
+import { GMAIL_ENV, gmailApiBaseUrl, gmailAuthBaseUrl } from './env';
 
 const SCOPE_READONLY = 'https://www.googleapis.com/auth/gmail.readonly';
 
 // Gmail has its own Google Cloud client and key: never the sign-in GOOGLE_* client or Better Auth.
 const LINK_PATH = '/profile/gmail';
-
-/** The Gmail link's env vars: all or none (checkEnv). */
-export const GMAIL_ENV = {
-	vars: ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_TOKEN_KEY'],
-	key: 'GMAIL_TOKEN_KEY',
-	allOrNone: true
-} as const satisfies EnvGroup;
 
 /** The feature is on only when the client id, client secret and token key are all set. */
 export function gmailOauthEnabled(): boolean {
