@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { PREFERENCE_COOKIE_OPTIONS } from '#lib/server/cookies.ts';
-import { CURRENCIES } from '#lib/money.ts';
+import { isCurrency } from '#lib/money.ts';
 import { CURRENCY_COOKIE, safeRedirectTo } from '#lib/server/currency-pref.ts';
 import type { Actions } from './$types';
 
@@ -14,7 +14,7 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const value = data.get('currency');
 
-		if (typeof value !== 'string' || !(CURRENCIES as readonly string[]).includes(value)) {
+		if (!isCurrency(value)) {
 			return fail(400, { currencyError: 'Moneda inválida.' });
 		}
 

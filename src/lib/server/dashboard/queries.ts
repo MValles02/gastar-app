@@ -4,32 +4,22 @@ import { db } from '../db';
 import { categories, financialAccounts, movements } from '../db/schema';
 import { inRange, isIncomeOrOutcome, localMonth, sumOfType, type Range } from '../db/sql';
 import { canAccessMovement, canAccessOwn } from '../access';
+import { categorizedMovements } from '../categories/queries';
 
 export function categorySums(userId: string, cur: Currency, range: Range) {
-	return db
-		.select({
+	return categorizedMovements(
+		userId,
+		{
 			id: categories.id,
 			name: categories.name,
 			color: categories.color,
 			icon: categories.icon,
 			outcome: sumOfType('outcome'),
 			income: sumOfType('income')
-		})
-		.from(movements)
-		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.innerJoin(
-			categories,
-			and(eq(movements.categoryId, categories.id), canAccessOwn(userId, categories))
-		)
-		.where(
-			and(
-				canAccessMovement(userId),
-				eq(financialAccounts.currency, cur),
-				isIncomeOrOutcome,
-				inRange(range)
-			)
-		)
-		.groupBy(categories.id, categories.name, categories.color, categories.icon);
+		},
+		eq(financialAccounts.currency, cur),
+		inRange(range)
+	).groupBy(categories.id, categories.name, categories.color, categories.icon);
 }
 
 /** Per local month income and outcome in one currency; transfers never count. */

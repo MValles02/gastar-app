@@ -20,7 +20,12 @@ export function ownedBy(userId: string) {
 	return { ownerId: userId };
 }
 
-/** The single ownership check for movements: the movement and its origin account (inner-joined by the caller) must both be the user's. */
+/**
+ * The single ownership check for movements: the movement and its origin account must both be the user's.
+ * The caller must inner-join the origin account (`financialAccounts`, or the alias passed as `origin`)
+ * on `movements.accountId`; without that join the query errors (missing FROM entry), it never
+ * silently widens. `categorizedMovements` is the join-enforcing base for category queries.
+ */
 export function canAccessMovement(
 	userId: string,
 	origin: { ownerId: AnyColumn } = financialAccounts

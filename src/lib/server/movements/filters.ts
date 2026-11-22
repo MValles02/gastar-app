@@ -98,6 +98,20 @@ export function movementQueryFromUrl(url: URL, today = localDay(new Date())) {
 	};
 }
 
+/** The currency a movements list shows: the selected accounts' common one, else `?currency=`, else none. */
+export function filterCurrency(
+	query: Pick<MovementFilterQuery, 'account' | 'currency'>,
+	accounts: { id: string; currency: Currency }[]
+): Currency | undefined {
+	// Common currency of the selected accounts (null when none or mixed).
+	const selectedCurrencies = new Set(
+		accounts.filter((a) => query.account.includes(a.id)).map((a) => a.currency)
+	);
+	const lockedCurrency: Currency | null =
+		selectedCurrencies.size === 1 ? [...selectedCurrencies][0] : null;
+	return query.currency || lockedCurrency || undefined;
+}
+
 export async function countMovements(userId: string, query: MovementFilterQuery) {
 	const rows = await summarizeMovements(userId, query);
 	return rows.reduce((a, r) => a + r.count, 0);

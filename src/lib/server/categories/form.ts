@@ -9,7 +9,6 @@ export const DELETE_REFERENCED_MESSAGE = 'Esta categoría tiene movimientos. Pod
 export const KIND_LOCKED_MESSAGE = 'Tiene movimientos, solo se puede cambiar a Ambos.';
 
 export const FIELDS = ['name', 'color', 'icon', 'kind'] as const;
-export const EDITABLE = ['name', 'icon', 'color', 'kind'] as const;
 
 export type CategoryData = {
 	name: string;
@@ -40,7 +39,7 @@ export const toFormValues = (c: {
 });
 
 export const editedForm = (row: Parameters<typeof toFormValues>[0], posted: FormData) =>
-	editFormData(toFormValues(row), posted, EDITABLE);
+	editFormData(toFormValues(row), posted, FIELDS);
 
 export function parseCategoryForm(fd: FormData): CategoryFormResult {
 	const values = readFields(fd, FIELDS);

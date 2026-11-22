@@ -1,46 +1,25 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { planReturn } from '#lib/plan-wizard.ts';
-import { formatAmountInput } from '#lib/money.ts';
-import { recurringSuggestions } from '#lib/server/plan/month-plan.ts';
 import { createRecurring } from '#lib/server/recurring/queries.ts';
 import { requireUser } from '#lib/server/guards.ts';
-import { readRecurringForm } from '#lib/server/recurring/form.ts';
+import { newRuleInitial, readRecurringForm } from '#lib/server/recurring/form.ts';
 import { movementPickers } from '#lib/server/movements/pickers.ts';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
 	const type =
 		url.searchParams.get('type') === 'income' ? ('income' as const) : ('outcome' as const);
-	// A suggestion id is recomputed, never trusted: the description and amount are not in the URL.
-	const id = url.searchParams.get('suggestion');
-	const s =
-		id && type === 'outcome'
-			? (await recurringSuggestions(userId)).find((c) => c.id === id)
-			: undefined;
 	const pickers = await movementPickers(userId);
 	return {
 		...pickers,
 		returnHref: planReturn(url.searchParams.get('wizard')),
 		type,
-		// The form's start values: the suggestion, else a blank rule (the only account preselected).
-		initial: s
-			? {
-					type: 'outcome',
-					description: s.description,
-					amount: formatAmountInput(s.amount, s.currency),
-					accountId: s.accountId,
-					categoryId: s.categoryId,
-					dayOfMonth: String(s.dayOfMonth)
-				}
-			: {
-					type: type as string,
-					description: '',
-					amount: '',
-					accountId: pickers.accounts.length === 1 ? pickers.accounts[0].id : '',
-					categoryId: '',
-					dayOfMonth: ''
-				}
+		initial: await newRuleInitial(userId, {
+			type,
+			suggestionId: url.searchParams.get('suggestion'),
+			accounts: pickers.accounts
+		})
 	};
 };
 
