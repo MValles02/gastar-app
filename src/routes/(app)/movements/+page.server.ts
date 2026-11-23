@@ -8,7 +8,8 @@ import {
 	filterCurrency,
 	movementQueryFromUrl
 } from '#lib/server/movements/filters.ts';
-import { listMovements } from '#lib/server/movements/queries.ts';
+import { daySpend, listMovements } from '#lib/server/movements/queries.ts';
+import { CURRENCIES } from '#lib/money.ts';
 import { accountItem, categoryItem } from '#lib/server/movements/pickers.ts';
 import { requireUser } from '#lib/server/guards.ts';
 
@@ -29,6 +30,19 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const summary = count !== null ? { count } : null;
 
 	const { months, hasNext } = movementPage(rows, today, filterCurrency(query, accountRows));
+
+	// Rows are newest first: the page spans the last day to the first. Totals cover every page.
+	const days = months.flatMap((mo) => mo.days);
+	if (days.length) {
+		const spend = await daySpend(userId, query, days.at(-1)!.day, days[0].day);
+		for (const g of days)
+			g.spend = CURRENCIES.flatMap((currency) => {
+				const cents = spend
+					.filter((s) => s.day === g.day && s.currency === currency)
+					.reduce((a, s) => a + s.amount, 0);
+				return cents ? [{ cents, currency }] : [];
+			});
+	}
 
 	return {
 		filters,

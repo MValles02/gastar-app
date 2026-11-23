@@ -15,6 +15,7 @@ export type RecentRow = {
 	accountCurrency: Currency;
 	destinationAccountName: string | null;
 	destinationCurrency: Currency | null;
+	categoryName: string | null;
 	categoryIcon: string | null;
 	categoryColor: string | null;
 };
@@ -31,6 +32,7 @@ export function toRecentItem(row: RecentRow, currency: Currency) {
 		type: row.type,
 		description: row.description,
 		accountName: row.accountName,
+		categoryName: row.categoryName,
 		categoryIcon: look.icon,
 		categoryColor: look.color,
 		destinationAccountName: row.destinationAccountName,
@@ -54,7 +56,12 @@ export function groupByMonthDay(
 	const months: {
 		ym: string;
 		label: string;
-		days: { day: string; heading: string; items: Item[] }[];
+		days: {
+			day: string;
+			heading: string;
+			spend: { cents: number; currency: Currency }[];
+			items: Item[];
+		}[];
 	}[] = [];
 	for (const r of rows) {
 		const day = localDay(r.occurredAt);
@@ -67,7 +74,7 @@ export function groupByMonthDay(
 		}
 		let group = month.days.at(-1);
 		if (group?.day !== day) {
-			group = { day, heading: dayHeading(day, today, true), items: [] };
+			group = { day, heading: dayHeading(day, today, true), spend: [], items: [] };
 			month.days.push(group);
 		}
 		// Cross-currency transfer shown in its origin currency: the destination amount goes underneath.

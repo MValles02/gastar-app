@@ -19,6 +19,7 @@
 			currency: Currency;
 			accountName: string;
 			destinationAccountName: string | null;
+			categoryName?: string | null;
 			categoryIcon: CategoryIconKey | null;
 			categoryColor: SwatchKey | null;
 			/** Cross-currency transfer: the destination amount, shown under the amount. */
@@ -67,6 +68,9 @@
 					}
 				: { letter: m.description.charAt(0).toUpperCase(), color: null }}
 		title={m.description}
+		status={m.categoryName && m.type !== 'transfer'
+			? { tone: 'neutral', label: m.categoryName }
+			: undefined}
 		{value}
 		{meta}
 	/>
