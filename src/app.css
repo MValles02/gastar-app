@@ -378,7 +378,8 @@
 /*
  * Page transitions (onNavigate in src/routes/+layout.svelte sets data-nav-transition): a push slides
  * the new page in from the right over the old one, which drifts left; a pop reverses it; a tab
- * switch crossfades. Changes within one screen (month, currency, filters) have no transition. The
+ * switch slides both pages the full width toward the target tab's side (tab-right/tab-left); any
+ * other replace to another screen crossfades. Changes within one screen (month, currency, filters) have no transition. The
  * header and tab bar have their own view-transition-name, so they crossfade in place instead of
  * sliding. Reduced motion never starts a transition.
  */
@@ -412,6 +413,23 @@
 	animation-name: page-drift-in;
 }
 
+/* Tabs are peers: both pages travel the full width together, like a pager. */
+:root[data-nav-transition='tab-right']::view-transition-old(root) {
+	animation-name: page-exit-left;
+}
+
+:root[data-nav-transition='tab-right']::view-transition-new(root) {
+	animation-name: page-enter-right;
+}
+
+:root[data-nav-transition='tab-left']::view-transition-old(root) {
+	animation-name: page-exit-right;
+}
+
+:root[data-nav-transition='tab-left']::view-transition-new(root) {
+	animation-name: page-enter-left;
+}
+
 /* The navigation progress bar (NavProgress.svelte) never shows in a transition's snapshots. */
 ::view-transition-group(nav-progress) {
 	display: none;
@@ -420,6 +438,18 @@
 @keyframes page-enter-right {
 	from {
 		transform: translateX(100%);
+	}
+}
+
+@keyframes page-enter-left {
+	from {
+		transform: translateX(-100%);
+	}
+}
+
+@keyframes page-exit-left {
+	to {
+		transform: translateX(-100%);
 	}
 }
 
