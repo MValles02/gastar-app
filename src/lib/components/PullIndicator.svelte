@@ -13,7 +13,8 @@
 	<span class="arrow" data-pull-arrow><ArrowDown class="size-4" /></span>
 	<span class="spinner"><LoaderCircle class="size-4" /></span>
 </div>
-<p class="sr-only" role="status" data-pull-status></p>
+<!-- A live region without role="status": it is always mounted, and screens keep their own status lines. -->
+<p class="sr-only" aria-live="polite" aria-atomic="true" data-pull-status></p>
 
 <style>
 	.pull-indicator {
