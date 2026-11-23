@@ -372,6 +372,13 @@ export async function deleteCategories(page: Page, baseURL: string, name: string
 	for (const path of paths) await postDelete(page, baseURL, path);
 }
 
+/** Waits for a background sync (MP, Gmail) to settle: `toPass`/`expect.poll` options; locator assertions take `.timeout`. */
+export const SYNC_WAIT = { timeout: 40_000, intervals: [300, 500, 1000] };
+
+/** The `"user".id` of `email`, as a subquery to embed in another query on the same `sql`. */
+export const userIdOf = (sql: postgres.Sql, email: string) =>
+	sql`(select id from "user" where email = ${email})`;
+
 /** Runs `fn` with a connection to the e2e database. */
 export async function withDb<T>(fn: (sql: postgres.Sql) => Promise<T>) {
 	// Required by playwright.config.ts, which fails without it.

@@ -16,7 +16,6 @@ import {
 // and of the seed. Not covered here (the app cannot create such rows, so no E2E can arrange them): an
 // outcome without a category (DB check), an outcome in an income-only category (kind lock) and
 // descriptions that differ only by surrounding whitespace (both forms trim on save).
-test.describe.configure({ timeout: 90_000 });
 
 const password = 'e2e-pass-1234';
 const ids = { account: '', usd: '', archived: '', food: '', both: '' };

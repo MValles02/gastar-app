@@ -12,6 +12,7 @@ import {
 	pick,
 	pickDate,
 	reviewDrawer,
+	SYNC_WAIT,
 	upload,
 	withDb,
 	gotoHydrated
@@ -55,7 +56,7 @@ const expectInInbox = (merchant: string) =>
 	expect(async () => {
 		await pageA.goto('/imports');
 		await expect(pageA.getByText(merchant)).toBeVisible();
-	}).toPass({ timeout: 15_000 });
+	}).toPass(SYNC_WAIT);
 
 /** Answers the "Tarjeta Visa ••NNNN: elegí qué es" row of /imports: debit with a pesos account (and a dollar one). */
 async function setUpDebit(page: Page, last4: string, pesos: string, dollars?: string) {
