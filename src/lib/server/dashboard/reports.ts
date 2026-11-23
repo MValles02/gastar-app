@@ -1,15 +1,7 @@
 import type { Currency } from '#lib/money.ts';
 import { hasAnyAccount } from '../accounts/queries';
 import { biggestOutcome, categorySums, monthlyFlows } from './queries';
-import {
-	dateLabel,
-	elapsedDays,
-	lastMonths,
-	localDay,
-	monthLabel,
-	monthRange,
-	shortMonth
-} from '../month';
+import { dateLabel, elapsedDays, lastMonths, localDay, monthRange, shortMonth } from '../month';
 import { categorySlices } from '../categories/spending';
 
 const FLOW_MONTHS = 6;
@@ -33,7 +25,6 @@ export async function reportView(userId: string, currency: Currency, ym: string,
 		return {
 			ym: m,
 			label: shortMonth(m),
-			name: monthLabel(m, false),
 			income: f?.income ?? 0,
 			outcome: f?.outcome ?? 0
 		};

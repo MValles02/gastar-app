@@ -100,7 +100,7 @@
 										data-sveltekit-replacestate
 										onclick={markReplace}
 										aria-current={b.ym === data.nav.ym ? 'true' : undefined}
-										aria-label="{b.name}: ingresos {money(b.income)}, gastos {money(b.outcome)}"
+										aria-label="{b.label}: ingresos {money(b.income)}, gastos {money(b.outcome)}"
 									>
 										<span class="cols" aria-hidden="true">
 											{#if b.income > 0}<span
