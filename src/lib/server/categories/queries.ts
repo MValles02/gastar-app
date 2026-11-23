@@ -176,12 +176,41 @@ export function createCategory(userId: string, data: CategoryData) {
 		.returning({ id: categories.id });
 }
 
-export function updateCategory(userId: string, id: string, data: CategoryData) {
-	return db
-		.update(categories)
-		.set(data)
-		.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
-		.returning({ id: categories.id });
+/**
+ * Updates a category; when the kind changes it locks the category row (FOR UPDATE) and checks
+ * every movement fits the new kind, in one transaction. A movement save that is still uncommitted
+ * holds a KEY SHARE lock on the category row (through the FK), which makes the FOR UPDATE wait for
+ * it, so the check sees that movement. A save that read the old kind before the update and inserts
+ * after it commits is not covered. Returns 'kind-locked' when a movement does not fit.
+ */
+export function updateCategoryChecked(
+	userId: string,
+	id: string,
+	data: CategoryData,
+	kindChanged: boolean
+) {
+	return db.transaction(async (tx) => {
+		if (kindChanged) {
+			await tx
+				.select({ id: categories.id })
+				.from(categories)
+				.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
+				.for('update');
+			// The category row is locked and owned, so its movements are filtered by category alone.
+			const types = (
+				await tx
+					.selectDistinct({ type: movements.type })
+					.from(movements)
+					.where(and(eq(movements.categoryId, id), isIncomeOrOutcome))
+			).map((r) => r.type);
+			if (!types.every((t) => kindFits(data.kind, t))) return 'kind-locked' as const;
+		}
+		return tx
+			.update(categories)
+			.set(data)
+			.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
+			.returning({ id: categories.id });
+	});
 }
 
 export function deleteCategory(userId: string, id: string) {

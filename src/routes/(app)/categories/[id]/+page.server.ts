@@ -15,7 +15,7 @@ import {
 	isCategoryReferenced,
 	kindLock,
 	setCategoryArchived,
-	updateCategory,
+	updateCategoryChecked,
 	writeIfNameFree
 } from '#lib/server/categories/queries.ts';
 import { toCurrencyNets } from '#lib/server/categories/view.ts';
@@ -68,19 +68,17 @@ export const actions: Actions = {
 		if (!parsed.ok) return formFail(400, { values: parsed.values, errors: parsed.errors });
 
 		// Only a kind change is checked: a legacy category can still be renamed or recoloured.
-		// ponytail: the check and the update are not atomic (unlikely race); wrap both in a transaction if it matters.
-		if (parsed.data.kind !== current.kind) {
-			if (!(await kindLock(userId, params.id))(parsed.data.kind))
-				return formFail(400, { values: parsed.data, errors: { kind: KIND_LOCKED_MESSAGE } });
-		}
 		const rows = await writeIfNameFree(
 			userId,
 			parsed.data.name,
-			() => updateCategory(userId, params.id, parsed.data),
+			() =>
+				updateCategoryChecked(userId, params.id, parsed.data, parsed.data.kind !== current.kind),
 			params.id
 		);
 		if (!rows)
 			return formFail(400, { values: parsed.data, errors: { name: DUPLICATE_NAME_MESSAGE } });
+		if (rows === 'kind-locked')
+			return formFail(400, { values: parsed.data, errors: { kind: KIND_LOCKED_MESSAGE } });
 		if (rows.length === 0) notFound();
 		return await categoryOf(userId, params.id);
 	},
