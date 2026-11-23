@@ -32,6 +32,7 @@
 			<a
 				href={item.href}
 				class="tab"
+				data-tab-link
 				data-sveltekit-replacestate
 				onclick={markReplace}
 				aria-label={item.label}

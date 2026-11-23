@@ -481,7 +481,7 @@
 	}
 }
 
-/* Edge-swipe back (src/lib/edge-swipe-back.ts): the dragged page may sit past the right edge. */
-html.edge-swiping {
+/* Page-drag gestures (src/lib/swipe.ts): the dragged page may sit past either edge. */
+html.page-swiping {
 	overflow-x: clip;
 }
