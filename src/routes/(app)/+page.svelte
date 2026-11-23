@@ -33,7 +33,8 @@
 
 <PageHeader title="Hola, {data.header.firstName}" tone="primary" />
 
-<div class="band">
+<!-- Part of the header block: stays with it during pull-to-refresh (src/lib/pull-refresh.ts). -->
+<div class="band" data-pull-header>
 	{#if data.hasAnyAccount}
 		<div class="pill-row">
 			<CurrencyTabs value={data.currency} variant="pills" tone="primary" />
