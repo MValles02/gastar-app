@@ -8,7 +8,7 @@ import { categorySums } from './queries';
 import { hasAnyMovement, recentMovements } from '../movements/queries';
 import { hasAnyPlan } from '../plan/queries';
 import { currentMonth, dayHeading, localDay, monthLabel, monthRange } from '../month';
-import { planView } from '../plan/month-plan';
+import { planPace, planView, upcomingBills } from '../plan/month-plan';
 
 const TOP_CATEGORIES = 3;
 
@@ -54,18 +54,21 @@ export async function homeView(userId: string, currency: Currency, now: Date) {
 			balance: 0,
 			monthNet: 0,
 			plan: null,
+			bills: null,
 			topCategories: [] as TopCategory[],
 			recent: []
 		};
 	}
 
-	const [allSums, inSum, monthSums, cats, recent, plan] = await Promise.all([
+	const [allSums, inSum, monthSums, cats, recent, plan, pace, bills] = await Promise.all([
 		accountOriginSums(userId, { currency }),
 		accountTransfersIn(userId, { currency }),
 		accountOriginSums(userId, { currency, range }),
 		categorySums(userId, currency, range),
 		recentMovements(userId, currency),
-		planView(userId)
+		planView(userId),
+		planPace(userId),
+		upcomingBills(userId, currency)
 	]);
 
 	const looks = new Map(cats.map((c) => [c.id, categoryLook(c)]));
@@ -81,6 +84,7 @@ export async function homeView(userId: string, currency: Currency, now: Date) {
 		plan: {
 			endedMonthName: plan.endedMonthName,
 			statusLabel: plan.statusLabel,
+			pace,
 			summary: plan.summary && {
 				available: plan.summary.available,
 				perDay: plan.summary.perDay,
@@ -88,6 +92,7 @@ export async function homeView(userId: string, currency: Currency, now: Date) {
 				status: plan.summary.status
 			}
 		},
+		bills,
 		topCategories: topCategories(cats).map((c) => ({
 			...c,
 			color: looks.get(c.id)?.color ?? null,

@@ -79,6 +79,8 @@ Personal finance PWA for Argentina. Answers two questions:
   - With a plan for the current month: "Disponible para gastar · {mes}", the amount, the status as text ("Vas bien", "Atención", "Te pasaste"), "{monto} por día · quedan N días" and a "Ver plan" link to `/plan`.
   - No plan: "Todavía no tenés un plan.", "Con tus ingresos, pagos fijos y ahorro calculamos cuánto podés gastar por día." and a "Crear plan" link to `/plan/setup`.
   - A one-month plan of a past month is treated as no plan and adds "Tu plan de {mes} terminó.".
+  - With a plan and something left to spend, the card also draws the month's variable spending (outside fixed payments, plan pesos) day by day against an even pace of the month's budget, with a pill reading "{monto} por debajo del ritmo", "{monto} por encima del ritmo" or "En el ritmo". No chart without a plan or a budget.
+- "Próximos vencimientos" (per selected currency, never converted; hidden when there are no active fixed outcomes in it): "Pagaste {pagado} de {total}" with a meter, "Pagaste todos los pagos fijos de {mes}." when all are paid, and a horizontal row of cards for the unpaid fixed payments still due this month (today or later, with "hoy", "mañana" or "en N días"), each linking to the rule. Past-due unpaid payments get no card; there are no overdue states.
 - Last 10 movements in the selected currency, with a "Ver todos" link to `/movements?currency=`.
 
 ### Reportes

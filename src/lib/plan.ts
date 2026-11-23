@@ -53,6 +53,9 @@ export function dueLabel(
 	return `Pendiente · día ${day}`;
 }
 
+/** How far off a due day is, `n` days from today. */
+export const dueInLabel = (n: number) => (n === 0 ? 'hoy' : n === 1 ? 'mañana' : `en ${n} días`);
+
 export const MAX_DAY_OF_MONTH = 31;
 
 export type RuleState = {
