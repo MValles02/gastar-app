@@ -219,7 +219,6 @@ export const spendingPlans = pgTable(
 			.notNull()
 			.references(() => user.id),
 		currency: currencyEnum('currency').notNull(),
-		extraIncome: bigint('extra_income', { mode: 'number' }).default(0).notNull(),
 		savings: bigint('savings', { mode: 'number' }).default(0).notNull(),
 		// Percent x 100 (1000 = 10 %); NULL = fixed `savings` amount.
 		savingsPercent: integer('savings_percent'),
@@ -235,7 +234,7 @@ export const spendingPlans = pgTable(
 	},
 	(table) => [
 		uniqueIndex('spending_plans_user_id_currency_idx').on(table.userId, table.currency),
-		check('spending_plans_amounts_check', sql`${table.extraIncome} >= 0 AND ${table.savings} >= 0`),
+		check('spending_plans_savings_check', sql`${table.savings} >= 0`),
 		check(
 			'spending_plans_savings_percent_check',
 			sql`${table.savingsPercent} IS NULL OR ${table.savingsPercent} BETWEEN 0 AND ${sql.raw(String(SAVINGS_PERCENT_MAX))}`

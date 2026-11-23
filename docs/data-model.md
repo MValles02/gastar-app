@@ -136,7 +136,7 @@ One plan per user, in ARS: "the plan" is the user's row with `currency = 'ARS'`.
 | `id` | pk | |
 | `user_id` | fk → `user.id` | |
 | `currency` | enum('ARS','USD') | |
-| `extra_income` | bigint, >= 0, default 0 | deprecated: not read or written; dropped in a later release |
+| `extra_income` | bigint, >= 0, default 0 | no longer declared in the schema; dropped by the next migration after production runs this release (the DB column stays NOT NULL default 0, with its `spending_plans_amounts_check` CHECK) |
 | `savings` | bigint, >= 0, default 0 | minor units |
 | `savings_percent` | integer, nullable, CHECK 0..10000 | percent x 100 (1000 = 10 %); set → savings = `floor(income / 1_000_000 * percent_x100)` whole units, computed at read time from the income; null → the `savings` amount |
 | `month` | varchar(7), nullable | null = every month; `YYYY-MM` = that month only (CHECK) |
