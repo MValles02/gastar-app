@@ -45,8 +45,9 @@
 </script>
 
 <span class="money amount {color}"
-	>{#if srSign}<span class="visually-hidden">{srSign}</span>{/if}{symbol}<span class="num"
-		>{num.slice(0, cut)}<span class="dec">{num.slice(cut)}</span></span
+	>{#if srSign}<span class="visually-hidden">{srSign}</span>{/if}{#if symbol}<span class="sym"
+			>{symbol}</span
+		>{/if}<span class="num">{num.slice(0, cut)}<span class="dec">{num.slice(cut)}</span></span
 	></span
 >
 

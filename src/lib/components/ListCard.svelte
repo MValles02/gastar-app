@@ -13,7 +13,7 @@
 
 <Item.Group
 	class={cn(
-		'gap-0 overflow-hidden rounded-(--radius-card) border border-(--border) bg-(--surface) shadow-(--shadow-1)',
+		'gap-0 overflow-hidden rounded-(--radius-card) border border-(--card-edge) bg-(--surface) shadow-(--shadow-1)',
 		className
 	)}
 	{...rest}

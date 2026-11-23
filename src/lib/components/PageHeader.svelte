@@ -22,6 +22,7 @@
 		back,
 		close,
 		action,
+		tone = 'default',
 		ref = $bindable()
 	}: {
 		title: string;
@@ -31,6 +32,8 @@
 		close?: { href: string; label: string };
 		/** `back` or `close` header only: a pill action at the right end (e.g. "Agregar"). */
 		action?: Snippet;
+		/** `primary`: solid primary bar with on-primary content (Inicio, joined by a band below it). */
+		tone?: 'default' | 'primary';
 		/** The `<header>` element, for a page that measures it (bind:ref). */
 		ref?: HTMLElement;
 	} = $props();
@@ -46,7 +49,12 @@
 	const kicker = $derived(eyebrow ?? header?.date);
 </script>
 
-<header bind:this={ref} class="top-bar" class:stacked={back && !close}>
+<header
+	bind:this={ref}
+	class="top-bar"
+	class:stacked={back && !close}
+	class:primary={tone === 'primary'}
+>
 	{#if close}
 		<Button
 			class="-ml-2"
@@ -88,7 +96,10 @@
 		>
 			<Bell size={20} strokeWidth={1.75} aria-hidden="true" />
 			{#if alertCount > 0}<Badge
-					class="absolute -top-1.5 -right-1.5 min-w-5 px-1"
+					class={[
+						'absolute -top-1.5 -right-1.5 min-w-5 px-1',
+						tone === 'primary' && 'bg-(--on-primary) text-(--primary)'
+					]}
 					aria-hidden="true"
 					>{alertCount > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : alertCount}</Badge
 				>{/if}
@@ -149,6 +160,24 @@
 		font-weight: 500;
 		letter-spacing: -0.015em;
 		line-height: 1.2;
+	}
+
+	.top-bar.primary {
+		background: var(--primary);
+		color: var(--on-primary);
+		margin-bottom: 0;
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+	}
+
+	.primary .eyebrow {
+		color: var(--on-primary);
+	}
+
+	.primary .bell {
+		color: var(--on-primary);
+		border-color: color-mix(in srgb, var(--on-primary) 35%, transparent);
+		background: color-mix(in srgb, var(--on-primary) 8%, transparent);
 	}
 
 	.top-bar.stacked {
