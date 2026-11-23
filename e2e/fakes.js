@@ -7,6 +7,7 @@ import { APP_TZ, DAY_MS } from '../src/lib/shared/runtime.js';
 // scripts; variables already set win. CI sets them in the environment.
 if (existsSync('.env')) process.loadEnvFile('.env');
 
+/** @param {number} port @param {string} clientId @param {string} clientSecret */
 const fake = (port, clientId, clientSecret) => ({
 	port,
 	url: `http://127.0.0.1:${port}`,
@@ -14,6 +15,7 @@ const fake = (port, clientId, clientSecret) => ({
 	clientSecret
 });
 /** Base64 of 32 ASCII chars: a token encryption key (MP_TOKEN_KEY, GMAIL_TOKEN_KEY). */
+/** @param {string} chars */
 const tokenKey = (chars) => Buffer.from(chars).toString('base64');
 
 /** e2e/fake-mp.js */
@@ -50,7 +52,7 @@ export const appOffset = () =>
 	new Intl.DateTimeFormat('en-US', { timeZone: APP_TZ, timeZoneName: 'longOffset' })
 		.formatToParts(new Date())
 		.find((p) => p.type === 'timeZoneName')
-		.value.replace('GMT', '');
+		?.value.replace('GMT', '') ?? '';
 
 /**
  * The app time zone's calendar day `n` days ago, as YYYY-MM-DD.

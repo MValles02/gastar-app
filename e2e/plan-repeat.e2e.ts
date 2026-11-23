@@ -94,7 +94,7 @@ test('a transfer hides the switch and never creates a rule', async ({ page, base
 			await page.getByRole('button', { name: new RegExp(legend) }).click();
 			const value = await page
 				.getByRole('dialog')
-				.locator('button.opt', { hasText: label })
+				.locator('[data-option-row]', { hasText: label })
 				.getAttribute('data-value');
 			await page.keyboard.press('Escape');
 			return value;
