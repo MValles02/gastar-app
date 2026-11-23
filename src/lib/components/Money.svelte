@@ -68,8 +68,9 @@
 		color: var(--transfer);
 	}
 
-	/* Dimmed only on text colour (>= 4.5:1 at 0.7); coloured decimals stay full strength. */
+	/* Neutral decimals take the muted token (AA on every surface, also inside an already-muted
+	   parent, where an opacity dim fell below 4.5:1); coloured decimals stay full strength. */
 	.neutral .dec {
-		opacity: 0.7;
+		color: var(--text-muted);
 	}
 </style>

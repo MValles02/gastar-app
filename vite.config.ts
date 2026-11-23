@@ -35,6 +35,9 @@ export default defineConfig({
 			},
 
 			adapter: adapter(),
+			// Inline per-component CSS under 2 KB (about 38 of ~43 render-blocking sheets per screen,
+			// ~26 KB raw HTML); app.css and the few larger sheets stay cached files.
+			inlineStyleThreshold: 2048,
 			csp: {
 				mode: 'auto',
 				// No frame-ancestors here; clickjacking is enforced via X-Frame-Options. Violations are logged via /csp-report.

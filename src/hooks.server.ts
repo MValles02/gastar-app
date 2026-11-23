@@ -89,6 +89,10 @@ const handleRequest: Handle = async ({ event, resolve }) => {
 	const colors = themeColors(theme);
 
 	return resolve(event, {
+		// Every screen is set in Geist Mono: preload its Latin face so first paint does not reflow
+		// on the font swap (it wrapped /plan's rate line and shifted the page, CLS 0.16).
+		preload: ({ type, path }) =>
+			type === 'js' || type === 'css' || (type === 'font' && path.includes('latin-wght-normal')),
 		transformPageChunk: ({ html }) =>
 			html
 				.replace('%theme-attr%', themeAttr)
