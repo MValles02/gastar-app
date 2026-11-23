@@ -19,17 +19,18 @@ import {
  * browser tab) has no native one. On a tab screen scrolled to the top, a downward drag (vertical
  * travel at least DOMINANCE x the horizontal, so it never competes with the tab swipe) moves the
  * page content down with rubber-band resistance while the header stays put, uncovering an
- * indicator (`PullIndicator`) below it. Releasing past THRESHOLD_PX runs `refreshAll()`, holds
+ * indicator (`PullIndicator`) below it (on Home, which has its own emerald backdrop above the
+ * band, just below the top safe area). Releasing past THRESHOLD_PX runs `refreshAll()`, holds
  * the content at HOLD_PX with the indicator spinning until it resolves, then settles back; below
- * the threshold the content springs back. Elements that stay put with the header: the screen's
- * `<header>` and any direct child of the layout `main` marked `data-pull-header` (Home's band).
+ * the threshold the content springs back. Only the screen's `<header>` stays put.
  *
  * Tab screens only: they are the overview screens whose data goes stale; child screens are
  * details and forms, where a reload could clobber input in progress and the edge-swipe back
  * already owns the gesture space. Never while a drawer or dialog is open, from an input, slider,
- * text selection, or inside a scroller of its own. The root's `overscroll-behavior` is left alone
- * (Android's native pull-to-refresh needs it): instead, at the top a downward move is
- * `preventDefault`ed while the gesture may still be ours, so iOS's own bounce never doubles ours.
+ * text selection, or inside a scroller of its own. On iOS standalone the root's
+ * `overscroll-behavior-y` is set to none while mounted (the native bounce would double ours); on
+ * Android and in browser tabs it is left alone (Android's native pull-to-refresh needs it). At the
+ * top a downward move is also `preventDefault`ed while the gesture may still be ours.
  */
 const THRESHOLD_PX = 72;
 const HOLD_PX = 56;
@@ -41,7 +42,7 @@ const INDICATOR = '[data-pull-indicator]';
 const ARROW = '[data-pull-arrow]';
 const STATUS = '[data-pull-status]';
 const CURRENT_TAB = '[data-tab-link][aria-current="page"]';
-const ANCHORS = ':scope > header, :scope > [data-pull-header]';
+const ANCHORS = ':scope > header';
 
 /** True when the touch starts inside an element that scrolls vertically on its own. */
 function ownsVertical(target: EventTarget | null) {
@@ -158,7 +159,9 @@ export function pullRefresh(node: HTMLElement) {
 		indicator = document.querySelector<HTMLElement>(INDICATOR);
 		arrow = indicator?.querySelector<HTMLElement>(ARROW) ?? null;
 		const bottom = Math.max(0, ...anchors.map((a) => a.getBoundingClientRect().bottom));
-		if (indicator) indicator.style.top = `${bottom}px`;
+		if (indicator) {
+			indicator.style.top = anchors.length ? `${bottom}px` : 'calc(env(safe-area-inset-top) + 8px)';
+		}
 		if (reducedMotion()) return;
 		for (const el of [node, ...anchors]) el.style.willChange = 'transform';
 		move(0, 'none');
@@ -240,9 +243,14 @@ export function pullRefresh(node: HTMLElement) {
 	}
 
 	node.addEventListener('touchstart', onstart, { passive: true });
+	const rootStyle = document.documentElement.style;
+	const prevOverscroll = rootStyle.overscrollBehaviorY;
+	const ios = isIOSStandalone();
+	if (ios) rootStyle.overscrollBehaviorY = 'none';
 
 	return {
 		destroy() {
+			if (ios) rootStyle.overscrollBehaviorY = prevOverscroll;
 			node.removeEventListener('touchstart', onstart);
 			stopListening();
 			if (raf) cancelAnimationFrame(raf);

@@ -33,8 +33,7 @@
 
 <PageHeader title="Hola, {data.header.firstName}" tone="primary" />
 
-<!-- Part of the header block: stays with it during pull-to-refresh (src/lib/pull-refresh.ts). -->
-<div class="band" data-pull-header>
+<div class="band">
 	{#if data.hasAnyAccount}
 		<div class="pill-row">
 			<CurrencyTabs value={data.currency} variant="pills" tone="primary" />
@@ -196,10 +195,23 @@
 <style>
 	/* Primary band under the header; the dashboard's first card overlaps its bottom. */
 	.band {
+		position: relative;
 		margin-inline: calc(var(--gutter) * -1);
 		padding: 0 var(--gutter) var(--space-8);
 		background: var(--primary);
 		color: var(--on-primary);
+	}
+
+	/* Emerald backdrop above the band: what a pull-to-refresh uncovers. Off-screen at rest. */
+	.band::before {
+		content: '';
+		position: absolute;
+		bottom: 100%;
+		left: 0;
+		right: 0;
+		height: 100vh;
+		background: var(--primary);
+		pointer-events: none;
 	}
 
 	.dashboard {

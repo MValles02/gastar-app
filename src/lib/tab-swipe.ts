@@ -1,3 +1,4 @@
+import { preloadData } from '$app/navigation';
 import { navigating } from '$app/state';
 import { skipNextTransition } from '#lib/nav-stack.svelte.ts';
 import {
@@ -28,7 +29,8 @@ import {
  * Releasing past COMMIT_RATIO of the width, or with a flick, slides the page out and clicks the
  * target tab's link in the bar (`[data-tab-link]` in TabBar), so swipe and tap share one code path;
  * the new page then slides in from the other side. Otherwise the page springs back. Past the first
- * or last tab the page rubber-bands and never navigates.
+ * or last tab the page rubber-bands and never navigates. The target tab's data is preloaded as soon
+ * as the drag points at it, so it is ready when the slide-out ends.
  *
  * The page follows over the plain background (no live peek of the neighbour: it would need that
  * page's data loaded during the drag). Only active when the tab bar is shown (the four tab screens),
@@ -58,6 +60,8 @@ export function tabSwipe(node: HTMLElement) {
 	let base = 0;
 	let dx = 0;
 	let claimed = false;
+	/** The tab link already preloaded during this gesture. */
+	let preloaded: HTMLAnchorElement | undefined;
 	let samples: { x: number; t: number }[] = [];
 	let raf = 0;
 	let springTimer: ReturnType<typeof setTimeout> | undefined;
@@ -114,6 +118,7 @@ export function tabSwipe(node: HTMLElement) {
 		if (!getSelection()?.isCollapsed) return;
 		base = 0;
 		claimed = false;
+		preloaded = undefined;
 		if (springTimer) {
 			// The page is still springing back or sliding in: catch it where it is.
 			clearTimeout(springTimer);
@@ -150,6 +155,13 @@ export function tabSwipe(node: HTMLElement) {
 		const x = base + mx;
 		const hasTarget = x < 0 ? current < links.length - 1 : current > 0;
 		dx = hasTarget ? x : rubber(x, innerWidth);
+		if (hasTarget) {
+			const link = links[current - Math.sign(x)];
+			if (link !== preloaded) {
+				preloaded = link;
+				void preloadData(link.href).catch(() => {});
+			}
+		}
 		samples.push({ x: t.clientX, t: e.timeStamp });
 		if (samples.length > 6) samples.shift();
 		if (!reducedMotion() && !raf) raf = requestAnimationFrame(paint);
