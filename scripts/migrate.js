@@ -89,7 +89,7 @@ try {
 	const [{ had }] = await client`
 		select exists (
 			select 1 from information_schema.columns
-			where table_schema = current_schema() and table_name in ('mp_import_rules','import_rules') and column_name = 'recurring_id'
+			where table_schema = current_schema() and table_name = 'import_rules' and column_name = 'recurring_id'
 		) as had`;
 	await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
 	console.log('Migrations applied successfully');
