@@ -6,7 +6,7 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import CheckEmail from '#lib/components/CheckEmail.svelte';
 	import EmailField from '#lib/components/EmailField.svelte';
-	import { readPendingEmail } from '#lib/pending-email.ts';
+	import { readPendingEmail, rememberPendingEmail } from '#lib/pending-email.ts';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -25,7 +25,12 @@
 </svelte:head>
 
 {#if form?.checkEmail}
-	<CheckEmail email={form.checkEmail} kind="verify" backHref={resolve('login')} />
+	<CheckEmail
+		email={form.checkEmail}
+		kind="verify"
+		backHref={resolve('login')}
+		onshown={() => rememberPendingEmail(form.checkEmail)}
+	/>
 {:else}
 	<AuthPage
 		backHref={resolve('login')}

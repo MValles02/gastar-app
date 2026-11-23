@@ -14,7 +14,8 @@ import {
 	post,
 	postDelete,
 	signUpVerified,
-	todayInAppTz
+	todayInAppTz,
+	gotoHydrated
 } from './helpers';
 
 const NOT_OFFERED = 'Elegí una categoría.';
@@ -24,7 +25,6 @@ const NOT_OFFERED = 'Elegí una categoría.';
 let cookies: Cookie[] = [];
 
 test.beforeAll(async ({ browser, baseURL }) => {
-	test.setTimeout(90_000);
 	const context = await browser.newContext({ baseURL });
 	try {
 		const page = await context.newPage();
@@ -178,8 +178,7 @@ test("another user's category and rule never leak or get written", async ({
 	const { category } = await foreignIds(browser, baseURL!);
 	await login(page);
 
-	// hydration guard: the drawer and picker need JavaScript.
-	await page.goto('/plan/limits/new', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/plan/limits/new');
 	await page.getByRole('button', { name: /Categoría/ }).click();
 	const dialog = page.getByRole('dialog');
 	await expect(dialog.getByText('Servicios', { exact: true })).toBeVisible();
@@ -266,8 +265,7 @@ test('a limit amount edited in its drawer persists', async ({ page, baseURL }) =
 	await login(page);
 	await restoreDemoPlan(page, baseURL!);
 	try {
-		// hydration guard: the drawer needs JavaScript.
-		await page.goto('/plan', { waitUntil: 'networkidle' });
+		await gotoHydrated(page, '/plan');
 		await limitsRegion(page)
 			.getByRole('link', { name: /Supermercado/ })
 			.click();
@@ -309,8 +307,7 @@ test.describe('as another user', () => {
 				}
 			);
 
-			// hydration guard: the drawer needs JavaScript.
-			await page.goto('/plan', { waitUntil: 'networkidle' });
+			await gotoHydrated(page, '/plan');
 			await page.getByRole('link', { name: /^Cotización:/ }).click();
 			const drawer = page.getByRole('dialog', { name: 'Cotización del plan' });
 			await drawer.getByLabel('Monto').fill('1.200');

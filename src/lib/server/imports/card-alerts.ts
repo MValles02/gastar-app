@@ -11,7 +11,7 @@ import { alertKey, alertKeySql } from './keys';
 import { withMatchLock } from './match-lock';
 import { installmentAmounts } from './rules';
 import { getChosenImportFrom } from './settings';
-import { PURCHASE, REVERSAL } from './gmail/alert-mail';
+import { STORED_TYPE, alertKind } from './card-alert';
 import type { Currency } from '#lib/money.ts';
 import {
 	CARD_NETWORK,
@@ -55,7 +55,7 @@ async function convertLocked(userId: string) {
 	for (const a of waitingLive) {
 		if (matched.has(a.messageId)) continue;
 		// Without a matching result, a credit purchase must not be inserted next to a statement item.
-		if (a.type === 'credit' && a.transactionType === PURCHASE && failed.has(a.network)) continue;
+		if (a.creditPurchase && failed.has(a.network)) continue;
 		const accounts = accountsFor(a, galicia);
 		const accountId = a.currency === 'ARS' ? accounts?.arsAccountId : accounts?.usdAccountId;
 		if (!accountId || !usable.has(accountId)) continue;
@@ -68,21 +68,18 @@ async function convertLocked(userId: string) {
 		rowsBySource.set(source, rows);
 		// A reversal left here is money back: a credit of the card purchase kind (it learns nothing).
 		const refund = reversals.credit.has(a.messageId);
-		const cuotas =
-			a.type === 'credit' && a.transactionType === PURCHASE && !refund ? (a.installments ?? 1) : 1;
+		const cuotas = a.creditPurchase && !refund ? (a.installments ?? 1) : 1;
 		// A reversal of an approved installment purchase gives back the booked first cuota and ends its fixed payment.
 		const booked = reversals.booked.get(a.messageId);
 		if (booked?.recurringId) archive.push(booked.recurringId);
 		rows.push({
 			externalKey: alertKey(a.messageId),
 			accountId,
-			kind: a.transactionType === PURCHASE || refund ? KIND.cardPurchase : KIND.other,
+			kind: a.kind === 'purchase' || refund ? KIND.cardPurchase : KIND.other,
 			occurredAt: a.receivedAt,
 			amount:
 				booked?.amount ??
-				(cuotas > 1
-					? installmentAmounts(a.amount, cuotas, a.currency as Currency).first
-					: a.amount),
+				(cuotas > 1 ? installmentAmounts(a.amount, cuotas, a.currency).first : a.amount),
 			installments: cuotas > 1 ? cuotas : null,
 			isCredit: refund,
 			sourceId: a.messageId,
@@ -138,9 +135,7 @@ async function matchCreditPurchases(userId: string, alerts: Waiting[]) {
 	const matched = new Set<string>();
 	const failed = new Set<CardNetwork>();
 	for (const network of CARD_NETWORKS) {
-		const purchases = alerts.filter(
-			(a) => a.type === 'credit' && a.network === network && a.transactionType === PURCHASE
-		);
+		const purchases = alerts.filter((a) => a.creditPurchase && a.network === network);
 		if (purchases.length === 0) continue;
 		try {
 			const ids = await matchWaitingAlerts(userId, CARD_NETWORK[network].credit.source, purchases);
@@ -154,7 +149,7 @@ async function matchCreditPurchases(userId: string, alerts: Waiting[]) {
 }
 
 /**
- * "Compra reversada" alerts of the networks with `reversals` (a cancelled pre-authorization, never on the statement). Each reversal
+ * Reversal alerts of the networks with `reversalsCancelPurchases` (a cancelled pre-authorization, never on the statement). Each reversal
  * cancels the latest earlier purchase alert of the same card, currency, amount and merchant that no other
  * reversal cancelled. The pairing is recomputed from card_alerts on every run (no column marks it), so:
  * - both unconverted: neither ever converts (both are in `skip` and keep import_item_id null);
@@ -164,20 +159,18 @@ async function matchCreditPurchases(userId: string, alerts: Waiting[]) {
  * - the purchase item was approved (or is a statement line): the reversal becomes a credit item (`credit`);
  *   for an installment purchase it is the booked first cuota (`booked`) and its fixed payment is archived;
  * - no purchase to cancel: the reversal becomes a credit item.
- * Only networks with `reversals` are paired.
+ * Only networks with `reversalsCancelPurchases` are paired.
  */
 async function settleReversals(userId: string, waiting: Waiting[]) {
 	const skip = new Set<string>();
 	const credit = new Set<string>();
 	const booked = new Map<string, { amount: number; recurringId: string | null }>();
 	const mine = waiting.filter(
-		(a) =>
-			CARD_NETWORK[a.network].reversals &&
-			(a.transactionType === PURCHASE || a.transactionType === REVERSAL)
+		(a) => CARD_NETWORK[a.network].reversalsCancelPurchases && a.kind !== 'other'
 	);
 	if (mine.length === 0) return { skip, credit, booked };
 	const waitingIds = new Set(waiting.map((a) => a.messageId));
-	const all = await db
+	const rows = await db
 		.select({
 			messageId: cardAlerts.gmailMessageId,
 			network: cardAlerts.network,
@@ -201,11 +194,12 @@ async function settleReversals(userId: string, waiting: Waiting[]) {
 			and(
 				canAccessOwn(userId, cardAlerts),
 				inArray(cardAlerts.network, [...new Set(mine.map((a) => a.network))]),
-				inArray(cardAlerts.transactionType, [PURCHASE, REVERSAL]),
+				inArray(cardAlerts.transactionType, [STORED_TYPE.purchase, STORED_TYPE.reversal]),
 				inArray(cardAlerts.amount, [...new Set(mine.map((a) => a.amount))])
 			)
 		)
 		.orderBy(asc(cardAlerts.receivedAt), asc(cardAlerts.gmailMessageId));
+	const all = rows.map((r) => ({ ...r, kind: alertKind(r.transactionType) }));
 	type Row = (typeof all)[number];
 	const key = (a: Pick<Row, 'network' | 'last4' | 'currency' | 'amount' | 'merchant'>) =>
 		[a.network, a.last4, a.currency, a.amount, a.merchant.trim()].join('|');
@@ -218,12 +212,12 @@ async function settleReversals(userId: string, waiting: Waiting[]) {
 		.sort(
 			(a, b) =>
 				a.receivedAt.getTime() - b.receivedAt.getTime() ||
-				Number(a.transactionType === REVERSAL) - Number(b.transactionType === REVERSAL)
+				Number(a.kind === 'reversal') - Number(b.kind === 'reversal')
 		);
 	for (const a of ordered) {
 		const stack = open.get(key(a)) ?? [];
 		open.set(key(a), stack);
-		if (a.transactionType === PURCHASE) {
+		if (a.kind === 'purchase') {
 			stack.push(a);
 			continue;
 		}
@@ -297,4 +291,11 @@ const waitingAlerts = (userId: string, fromFloor: SQL | undefined) =>
 				isNull(cardAlerts.importItemId),
 				fromFloor
 			)
+		)
+		.then((rows) =>
+			rows.map((r) => {
+				const kind = alertKind(r.transactionType);
+				// A credit card's purchase: matched against its statement and the only alert read in cuotas.
+				return { ...r, kind, creditPurchase: r.type === 'credit' && kind === 'purchase' };
+			})
 		);

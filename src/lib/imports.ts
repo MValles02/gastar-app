@@ -36,26 +36,37 @@ export type SourceId = (typeof SOURCE)[keyof typeof SOURCE];
 
 type NetworkSpec = {
 	name: string;
-	credit: { source: SourceId; label: string };
+	/** `statementMark`: how a Banco Galicia statement's "Tarjeta Crédito" line names the network. */
+	credit: { source: SourceId; label: string; statementMark: RegExp };
 	/** `null`: credit only (Galicia Mastercard). */
 	debit: { source: SourceId; label: string } | null;
-	/** The network sends purchase-reversal alerts. */
-	reversals: boolean;
+	/**
+	 * Its reversal alerts cancel an earlier purchase alert of the same card, currency, amount and merchant
+	 * (a cancelled pre-authorization, never on the statement); see convertWaitingAlerts.
+	 */
+	reversalsCancelPurchases: boolean;
 };
 
-/** Card networks whose Gmail purchase alerts are read, and what each says about its sources. */
+/**
+ * Card networks whose Gmail purchase alerts are read, and what each says about its sources. The server's
+ * alert parser of each network is in imports/gmail/alert-parsers.ts.
+ */
 export const CARD_NETWORK = {
 	visa: {
 		name: 'Visa',
-		credit: { source: SOURCE.galiciaVisa, label: 'Galicia Visa' },
+		credit: { source: SOURCE.galiciaVisa, label: 'Galicia Visa', statementMark: /VISA/i },
 		debit: { source: SOURCE.visaDebit, label: 'Visa Débito' },
-		reversals: false
+		reversalsCancelPurchases: false
 	},
 	mastercard: {
 		name: 'Mastercard',
-		credit: { source: SOURCE.galiciaMastercard, label: 'Galicia Mastercard' },
+		credit: {
+			source: SOURCE.galiciaMastercard,
+			label: 'Galicia Mastercard',
+			statementMark: /MASTERCARD/i
+		},
 		debit: null,
-		reversals: true
+		reversalsCancelPurchases: true
 	}
 } as const satisfies Record<string, NetworkSpec>;
 export type CardNetwork = keyof typeof CARD_NETWORK;

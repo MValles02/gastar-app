@@ -6,6 +6,7 @@ import { saveLimit } from '#lib/server/plan/limit-form.ts';
 import { limitView } from '#lib/server/plan/month-plan.ts';
 import { requireLimit, requirePlan } from '#lib/server/plan/guard.ts';
 import { requireUser } from '#lib/server/guards.ts';
+import { str } from '#lib/server/forms.ts';
 
 export const load: PageServerLoad = async ({ locals, params, url }) => ({
 	...(await limitView(requireUser(locals).id, params.categoryId)),
@@ -18,7 +19,7 @@ export const actions: Actions = {
 		const userId = requireUser(locals).id;
 		const plan = await requirePlan(userId);
 		const limit = await requireLimit(userId, plan.id, params.categoryId);
-		const amount = String((await request.formData()).get('amount') ?? '');
+		const amount = str(await request.formData(), 'amount');
 
 		const saved = await saveLimit(
 			userId,

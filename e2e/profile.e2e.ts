@@ -7,7 +7,8 @@ import {
 	pathOf,
 	signUpVerified,
 	submitLogin,
-	undo
+	undo,
+	gotoHydrated
 } from './helpers';
 
 // This spec uses 1 sign-up (see signUpVerified for the suite's budget).
@@ -44,7 +45,7 @@ test.describe('account changes', () => {
 		await signIn(page);
 
 		const stored = async (name: string) => {
-			await page.goto('/profile', { waitUntil: 'networkidle' }); // hydration guard: the inline edit needs JS
+			await gotoHydrated(page, '/profile');
 			await expect(page.getByRole('button', { name: `Nombre: ${name}` })).toBeVisible();
 		};
 		const edit = async (value: string) => {
@@ -84,8 +85,7 @@ test.describe('account changes', () => {
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('La contraseña actual no es correcta.')).toBeVisible();
 
-		await page.goto('/profile');
-		await page.waitForLoadState('networkidle'); // hydration guard: the drawer opens only through JS
+		await gotoHydrated(page, '/profile');
 		await page.getByRole('link', { name: 'Contraseña' }).click();
 		const drawer = page.getByRole('dialog', { name: 'Cambiar contraseña' });
 		await expect(page).toHaveURL(/\/profile$/);
@@ -116,7 +116,6 @@ test.describe('account changes', () => {
 	});
 
 	test('delete account removes the user and all their data', async ({ page }) => {
-		test.setTimeout(90_000);
 		await signIn(page);
 
 		// Data in every table with a user FK that a fresh user can create cheaply.
@@ -148,8 +147,7 @@ test.describe('account changes', () => {
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page).toHaveURL(/\/plan/);
 
-		await page.goto('/profile');
-		await page.waitForLoadState('networkidle'); // hydration guard: the drawer opens only through JS
+		await gotoHydrated(page, '/profile');
 		await page.getByRole('link', { name: 'Darme de baja' }).click();
 		const drawer = page.getByRole('dialog', { name: '¿Darte de baja?' });
 		await expect(page).toHaveURL(/\/profile$/);

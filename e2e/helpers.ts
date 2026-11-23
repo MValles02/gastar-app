@@ -7,13 +7,12 @@ import {
 	type Page
 } from '@playwright/test';
 import postgres from 'postgres';
-import { APP_TZ } from '../src/lib/locale';
 import {
 	DEFAULT_SEED_EMAIL,
 	DEFAULT_SEED_PASSWORD,
 	OTHER_EMAIL
 } from '../scripts/lib/seed-identities.js';
-import { FAKE_GMAIL } from './fakes.js';
+import { appDay, FAKE_GMAIL } from './fakes.js';
 import { waitForLink } from './outbox';
 
 // Same defaults as scripts/seed.js (local demo users, not secrets), shared via scripts/lib/seed-identities.js.
@@ -46,13 +45,27 @@ export const MOVEMENT_DETAIL_RE = /\/movements\/[0-9a-f-]{36}$/;
 export const WHOLE_PESOS_ERROR = 'Los montos en pesos van sin decimales.';
 
 /** Today in the app time zone, as YYYY-MM-DD. */
-export const todayInAppTz = () =>
-	new Intl.DateTimeFormat('en-CA', { timeZone: APP_TZ }).format(new Date());
+export const todayInAppTz = () => appDay(Date.now());
+
+/**
+ * Waits until the current document has hydrated: the root layout sets `data-hydrated` on <html> once
+ * it mounts. Use it before a JS-only control (drawer, picker, enhanced form) after a full page load.
+ * Returns at once without JavaScript (`NO_JS` blocks), where nothing hydrates.
+ */
+export async function waitForHydration(page: Page) {
+	if (await page.evaluate(() => matchMedia('(scripting: none)').matches)) return;
+	await page.locator('html[data-hydrated]').waitFor({ state: 'attached' });
+}
+
+/** Opens `url` and waits for hydration (see `waitForHydration`). */
+export async function gotoHydrated(page: Page, url: string) {
+	await page.goto(url);
+	await waitForHydration(page);
+}
 
 /** Fills and submits the login form without checking the outcome. */
 export async function submitLogin(page: Page, email: string, password = SEED_PASSWORD) {
-	// hydration guard: the form must be hydrated before it is filled.
-	await page.goto('/login', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/login');
 	await page.getByLabel('Email').fill(email);
 	await page.getByLabel('Contraseña', { exact: true }).fill(password);
 	await page.getByRole('button', { name: 'Ingresar' }).click();
@@ -70,8 +83,7 @@ export async function signUpVerified(
 	request: APIRequestContext,
 	o: { email: string; password: string; name: string }
 ) {
-	// hydration guard: the form must be hydrated before it is filled.
-	await page.goto('/signup', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/signup');
 	await page.getByLabel('Nombre').fill(o.name);
 	await page.getByLabel('Email').fill(o.email);
 	await page.getByLabel('Contraseña', { exact: true }).fill(o.password);
@@ -164,8 +176,7 @@ export async function fillMovement(
 		date?: string;
 	}
 ) {
-	// hydration guard: the type toggle and pickers need JavaScript.
-	await page.goto('/movements/new', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/movements/new');
 	await page
 		.getByRole('radio', { name: o.type === 'Transferencia' ? 'Transf.' : o.type })
 		.check({ force: true });
@@ -196,10 +207,7 @@ export async function fillRule(
 		type?: 'income' | 'outcome';
 	}
 ) {
-	// hydration guard: the day and picker drawers need JavaScript.
-	await page.goto(`/plan/recurring/new${o.type === 'income' ? '?type=income' : ''}`, {
-		waitUntil: 'networkidle'
-	});
+	await gotoHydrated(page, `/plan/recurring/new${o.type === 'income' ? '?type=income' : ''}`);
 	await page.locator('input[name="description"]').fill(o.description);
 	await page.locator('input[name="amount"]').fill(o.amount);
 	await pickDay(page, o.day);
@@ -364,11 +372,17 @@ export async function deleteCategories(page: Page, baseURL: string, name: string
 	for (const path of paths) await postDelete(page, baseURL, path);
 }
 
+/** Waits for a background sync (MP, Gmail) to settle: `toPass`/`expect.poll` options; locator assertions take `.timeout`. */
+export const SYNC_WAIT = { timeout: 40_000, intervals: [300, 500, 1000] };
+
+/** The `"user".id` of `email`, as a subquery to embed in another query on the same `sql`. */
+export const userIdOf = (sql: postgres.Sql, email: string) =>
+	sql`(select id from "user" where email = ${email})`;
+
 /** Runs `fn` with a connection to the e2e database. */
 export async function withDb<T>(fn: (sql: postgres.Sql) => Promise<T>) {
-	const sql = postgres(
-		process.env.DATABASE_URL || 'postgres://gastar:gastar@localhost:5432/gastar'
-	);
+	// Required by playwright.config.ts, which fails without it.
+	const sql = postgres(process.env.DATABASE_URL!);
 	try {
 		return await fn(sql);
 	} finally {
@@ -409,6 +423,7 @@ export async function fakeAlert(mailbox: string, o: FakeAlert) {
 		merchant: o.merchant,
 		amount: o.amount,
 		currency: o.mastercard ? 'PESOS' : (o.currency ?? 'ARS'),
+		// The words each bank's mail sends (not STORED_TYPE: a mail's input must not follow the app's constant).
 		type: o.type ?? (o.mastercard ? 'COMPRA' : 'Compra'),
 		foreign: o.foreign ? '1' : '0',
 		dkim: o.dkim ?? 'pass'
@@ -446,8 +461,7 @@ export const reviewDrawer = (page: Page) =>
 
 /** Opens the review drawer of the pending /imports item whose list row contains all `texts`. */
 export async function openItem(page: Page, ...texts: string[]) {
-	await page.goto('/imports');
-	await page.waitForLoadState('networkidle'); // hydration guard: the drawer is a shallow route opened by JS
+	await gotoHydrated(page, '/imports');
 	let row = page.locator('[data-slot="item-group"] [role="listitem"]');
 	for (const t of texts) row = row.filter({ hasText: t });
 	await row.getByRole('link').first().click();

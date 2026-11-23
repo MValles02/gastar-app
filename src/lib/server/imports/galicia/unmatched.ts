@@ -7,7 +7,7 @@ import { ALERT_KEYS } from '../keys';
 import { GALICIA_SOURCE, type Kind, type SourceId } from '#lib/imports.ts';
 
 import { rejectImport, undoApproval } from '../store';
-import { UNMATCHED_AFTER_STATEMENTS } from './matching';
+import { MATCHABLE_ALERT_KINDS, UNMATCHED_AFTER_STATEMENTS } from './matching';
 
 // "No apareció en el resumen": a credit-card alert item with no statement line after enough statements
 // closed. Nothing is removed automatically; the user discards it or keeps it.
@@ -18,6 +18,7 @@ const unmatched = (userId: string) =>
 		canAccessOwn(userId, importItems),
 		inArray(importItems.source, Object.values(GALICIA_SOURCE)),
 		like(importItems.externalKey, ALERT_KEYS),
+		inArray(importItems.kind, MATCHABLE_ALERT_KINDS),
 		isNull(importItems.aliasKey),
 		isNull(importItems.unmatchedKeptAt),
 		ne(importItems.status, 'rejected'),

@@ -1,4 +1,15 @@
 import * as env from '$app/env/private';
+import type { EnvGroup } from '../../env-check';
+
+/**
+ * The Mercado Pago link's env vars. Not all-or-none: a partial set only leaves the link off, as before
+ * checkEnv read these groups (enforcing it could stop a deploy that starts today).
+ */
+export const MP_ENV = {
+	vars: ['MP_CLIENT_ID', 'MP_CLIENT_SECRET', 'MP_TOKEN_KEY'],
+	key: 'MP_TOKEN_KEY',
+	allOrNone: false
+} as const satisfies EnvGroup;
 
 /** Mercado Pago's API root; overridden in tests only. */
 export const mpApiBaseUrl = () => env.MP_API_BASE_URL || 'https://api.mercadopago.com';

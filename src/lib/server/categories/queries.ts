@@ -1,13 +1,24 @@
-import { and, asc, eq, ilike, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, asc, eq, ilike, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
+import type { PgSelectBase, PgSelectWithout, SelectedFields } from 'drizzle-orm/pg-core';
 import { db } from '../db';
 import { categories, financialAccounts, movements } from '../db/schema';
 import { canAccessMovement, canAccessOwn, userOwned } from '../access';
 import { PG_UNIQUE_VIOLATION, pgErrorCode } from '../db/errors';
 import { escapeLike } from '../db/util';
-import { inRange, isIncomeOrOutcome, sumOfType, type Range } from '../db/sql';
+import { exists, inRange, isIncomeOrOutcome, sumOfType, type Range } from '../db/sql';
 import type { CategoryData } from './form';
-import { CURRENCIES, type Currency } from '#lib/money.ts';
-import { CATEGORY_KINDS, KIND_LABEL, type CategoryKind } from '#lib/movement.ts';
+import { kindFits, type CategoryKind } from '#lib/movement.ts';
+
+/** Not archived. */
+export const activeCategory = isNull(categories.archivedAt);
+
+/** The joined category's fields on a movement or rule row (all null when a left join finds none). */
+export const categoryFields = {
+	categoryName: categories.name,
+	categoryColor: categories.color,
+	categoryIcon: categories.icon,
+	categoryArchivedAt: categories.archivedAt
+};
 
 export function listCategories(
 	userId: string,
@@ -19,7 +30,7 @@ export function listCategories(
 		.where(
 			and(
 				canAccessOwn(userId, categories),
-				opts.archived ? undefined : isNull(categories.archivedAt),
+				opts.archived ? undefined : activeCategory,
 				opts.kind ? or(eq(categories.kind, opts.kind), isNull(categories.kind)) : undefined,
 				opts.q ? ilike(categories.name, `%${escapeLike(opts.q)}%`) : undefined
 			)
@@ -44,14 +55,14 @@ export function getCategory(userId: string, id: string) {
 		.limit(1);
 }
 
-export async function isCategoryReferenced(userId: string, id: string) {
-	const rows = await db
-		.select({ id: movements.id })
-		.from(movements)
-		.innerJoin(categories, eq(movements.categoryId, categories.id))
-		.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
-		.limit(1);
-	return rows.length > 0;
+export function isCategoryReferenced(userId: string, id: string) {
+	return exists(
+		db
+			.select({ id: movements.id })
+			.from(movements)
+			.innerJoin(categories, eq(movements.categoryId, categories.id))
+			.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
+	);
 }
 
 function categoryNameTaken(userId: string, name: string, exceptId?: string) {
@@ -88,74 +99,74 @@ export async function writeIfNameFree<T>(
 	}
 }
 
-export function categoryMonthNet(userId: string, id: string, range: Range) {
+/**
+ * Income/outcome movements in the user's own categories, with the origin account joined for
+ * canAccessMovement. Callers pick the fields, add extra conditions and a groupBy.
+ */
+export function categorizedMovements<T extends SelectedFields>(
+	userId: string,
+	fields: T,
+	...where: (SQL | undefined)[]
+) {
+	// Typed with the generic `fields` the builder's join methods do not resolve, so the query is built
+	// over plain SelectedFields and re-typed to the caller's `fields` (so rows keep their inferred type).
+	// `where` stays excluded: a second `.where()` would replace the ownership filter, not add to it.
 	return db
-		.select({
-			currency: financialAccounts.currency,
-			outcome: sumOfType('outcome'),
-			income: sumOfType('income')
-		})
+		.select(fields as SelectedFields)
 		.from(movements)
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
 		.innerJoin(categories, eq(movements.categoryId, categories.id))
 		.where(
-			and(
-				canAccessMovement(userId),
-				canAccessOwn(userId, categories),
-				eq(categories.id, id),
-				isIncomeOrOutcome,
-				inRange(range)
-			)
-		)
-		.groupBy(financialAccounts.currency);
+			and(canAccessMovement(userId), canAccessOwn(userId, categories), isIncomeOrOutcome, ...where)
+		) as unknown as PgSelectWithout<
+		PgSelectBase<
+			'movements',
+			T,
+			'partial',
+			{ movements: 'not-null'; financial_accounts: 'not-null'; categories: 'not-null' }
+		>,
+		false,
+		'where'
+	>;
 }
 
-/** Net per currency (outcomes minus incomes) from categoryMonthNet rows, ARS first. Never sums across currencies. */
-export function toCurrencyNets(
-	rows: { currency: Currency; outcome: number; income: number }[]
-): { currency: Currency; net: number }[] {
-	return rows
-		.map((r) => ({ currency: r.currency, net: r.outcome - r.income }))
-		.sort((a, b) => CURRENCIES.indexOf(a.currency) - CURRENCIES.indexOf(b.currency));
+export function categoryMonthNet(userId: string, id: string, range: Range) {
+	return categorizedMovements(
+		userId,
+		{
+			currency: financialAccounts.currency,
+			outcome: sumOfType('outcome'),
+			income: sumOfType('income')
+		},
+		eq(categories.id, id),
+		inRange(range)
+	).groupBy(financialAccounts.currency);
 }
 
 /** Income and outcome totals per category and currency for a range, never summed across currencies. */
 export function categoryMonthTotals(userId: string, range: Range) {
-	return db
-		.select({
+	return categorizedMovements(
+		userId,
+		{
 			categoryId: movements.categoryId,
 			currency: financialAccounts.currency,
 			outcome: sumOfType('outcome'),
 			income: sumOfType('income')
-		})
-		.from(movements)
-		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.innerJoin(categories, eq(movements.categoryId, categories.id))
-		.where(
-			and(
-				canAccessMovement(userId),
-				canAccessOwn(userId, categories),
-				isIncomeOrOutcome,
-				inRange(range)
-			)
-		)
-		.groupBy(movements.categoryId, financialAccounts.currency);
+		},
+		inRange(range)
+	).groupBy(movements.categoryId, financialAccounts.currency);
 }
 
 export function categoryMovementTypes(userId: string, id: string) {
-	return db
-		.selectDistinct({ type: movements.type })
-		.from(movements)
-		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
-		.innerJoin(categories, eq(movements.categoryId, categories.id))
-		.where(
-			and(
-				canAccessMovement(userId),
-				canAccessOwn(userId, categories),
-				eq(categories.id, id),
-				isIncomeOrOutcome
-			)
-		);
+	return categorizedMovements(userId, { type: movements.type }, eq(categories.id, id)).groupBy(
+		movements.type
+	);
+}
+
+/** Whether a kind is allowed for the category: only when every one of its movements fits it. */
+export async function kindLock(userId: string, id: string) {
+	const types = (await categoryMovementTypes(userId, id)).map((r) => r.type);
+	return (kind: CategoryKind | null) => types.every((t) => kindFits(kind, t));
 }
 
 export function createCategory(userId: string, data: CategoryData) {
@@ -165,12 +176,41 @@ export function createCategory(userId: string, data: CategoryData) {
 		.returning({ id: categories.id });
 }
 
-export function updateCategory(userId: string, id: string, data: CategoryData) {
-	return db
-		.update(categories)
-		.set(data)
-		.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
-		.returning({ id: categories.id });
+/**
+ * Updates a category; when the kind changes it locks the category row (FOR UPDATE) and checks
+ * every movement fits the new kind, in one transaction. A movement save that is still uncommitted
+ * holds a KEY SHARE lock on the category row (through the FK), which makes the FOR UPDATE wait for
+ * it, so the check sees that movement. A save that read the old kind before the update and inserts
+ * after it commits is not covered. Returns 'kind-locked' when a movement does not fit.
+ */
+export function updateCategoryChecked(
+	userId: string,
+	id: string,
+	data: CategoryData,
+	kindChanged: boolean
+) {
+	return db.transaction(async (tx) => {
+		if (kindChanged) {
+			await tx
+				.select({ id: categories.id })
+				.from(categories)
+				.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
+				.for('update');
+			// The category row is locked and owned, so its movements are filtered by category alone.
+			const types = (
+				await tx
+					.selectDistinct({ type: movements.type })
+					.from(movements)
+					.where(and(eq(movements.categoryId, id), isIncomeOrOutcome))
+			).map((r) => r.type);
+			if (!types.every((t) => kindFits(data.kind, t))) return 'kind-locked' as const;
+		}
+		return tx
+			.update(categories)
+			.set(data)
+			.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
+			.returning({ id: categories.id });
+	});
 }
 
 export function deleteCategory(userId: string, id: string) {
@@ -186,37 +226,4 @@ export function setCategoryArchived(userId: string, id: string, at: Date | null)
 		.set({ archivedAt: at })
 		.where(and(eq(categories.id, id), canAccessOwn(userId, categories)))
 		.returning({ id: categories.id });
-}
-
-const KIND_GROUPS = [
-	...CATEGORY_KINDS.map((k) => [k, KIND_LABEL[k]] as const),
-	[null, 'Ambos'] as const
-];
-
-/** Categories grouped by kind, each group sorted by the biggest month amount in `sortBy`. */
-export function categoryGroups<C extends { id: string; name: string; kind: CategoryKind | null }>(
-	categories: C[],
-	totals: { categoryId: string | null; currency: Currency; outcome: number; income: number }[],
-	sortBy: Currency
-) {
-	// Month net (income - outcome) per category and currency, computed at read time.
-	const nets = new Map<string, { ARS?: number; USD?: number }>();
-	for (const t of totals) {
-		const row = nets.get(t.categoryId!) ?? {};
-		row[t.currency] = t.income - t.outcome;
-		nets.set(t.categoryId!, row);
-	}
-	const withTotals = categories.map((c) => ({ ...c, totals: nets.get(c.id) ?? {} }));
-	return KIND_GROUPS.map(([k, label]) => ({
-		key: k ?? 'both',
-		label,
-		// Biggest month amount first (absolute net of the selected currency; Ambas sorts by pesos).
-		categories: withTotals
-			.filter((c) => c.kind === k)
-			.sort(
-				(a, b) =>
-					Math.abs(b.totals[sortBy] ?? 0) - Math.abs(a.totals[sortBy] ?? 0) ||
-					a.name.localeCompare(b.name)
-			)
-	})).filter((g) => g.categories.length > 0);
 }

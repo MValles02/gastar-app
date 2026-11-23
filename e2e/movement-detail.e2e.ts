@@ -14,7 +14,9 @@ import {
 	pickMovementDate,
 	post,
 	postDelete,
-	undo
+	undo,
+	gotoHydrated,
+	waitForHydration
 } from './helpers';
 
 test.use({ viewport: PHONE });
@@ -95,8 +97,7 @@ const rowOf = (page: Page, description: string) => page.locator('a', { hasText: 
 
 /** Opens the list filtered to `description` and taps its row: the detail drawer. */
 async function openDrawer(page: Page, description: string) {
-	await page.goto(listUrl(description));
-	await page.waitForLoadState('networkidle'); // hydration guard: the detail drawer needs JS
+	await gotoHydrated(page, listUrl(description));
 	await rowOf(page, description).click();
 	const drawer = page.getByRole('dialog');
 	await expect(drawer).toBeVisible();
@@ -263,7 +264,7 @@ test('Gasto to Ingreso asks for an Ingreso category, saves once, and Deshacer re
 	expect(body.type).toBe('failure');
 	expect(body.data).toContain('Elegí la cuenta de destino.');
 	await page.reload();
-	await page.waitForLoadState('networkidle'); // hydration guard: the detail drawer needs JS
+	await waitForHydration(page);
 	await rowOf(page, desc).click();
 	await expect(page.getByRole('dialog').getByRole('button', { name: /^Tipo/ })).toContainText(
 		'Gasto'
@@ -325,7 +326,7 @@ test('Deshacer restores an archived category or account the movement had; a norm
 	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
 
 	await page.reload();
-	await page.waitForLoadState('networkidle'); // hydration guard: the detail drawer needs JS
+	await waitForHydration(page);
 	await rowOf(page, desc).click();
 	await expect(page.getByRole('dialog').getByRole('button', { name: /^Categoría/ })).toContainText(
 		`${desc} C1`
@@ -339,7 +340,7 @@ test('Deshacer restores an archived category or account the movement had; a norm
 	await expect(drawer.getByRole('button', { name: /^Cuenta/ })).toContainText(`${desc} A`);
 
 	await page.reload();
-	await page.waitForLoadState('networkidle'); // hydration guard: the detail drawer needs JS
+	await waitForHydration(page);
 	await rowOf(page, desc).click();
 	await expect(page.getByRole('dialog').getByRole('button', { name: /^Cuenta/ })).toContainText(
 		`${desc} A`

@@ -136,7 +136,7 @@ One plan per user, in ARS: "the plan" is the user's row with `currency = 'ARS'`.
 | `id` | pk | |
 | `user_id` | fk → `user.id` | |
 | `currency` | enum('ARS','USD') | |
-| `extra_income` | bigint, >= 0, default 0 | deprecated: not read or written; dropped in a later release |
+| `extra_income` | bigint, >= 0, default 0 | no longer declared in the schema; dropped by the next migration after production runs this release (the DB column stays NOT NULL default 0, with its `spending_plans_amounts_check` CHECK) |
 | `savings` | bigint, >= 0, default 0 | minor units |
 | `savings_percent` | integer, nullable, CHECK 0..10000 | percent x 100 (1000 = 10 %); set → savings = `floor(income / 1_000_000 * percent_x100)` whole units, computed at read time from the income; null → the `savings` amount |
 | `month` | varchar(7), nullable | null = every month; `YYYY-MM` = that month only (CHECK) |
@@ -286,7 +286,7 @@ One row per user who linked Mercado Pago (OAuth).
 | `refresh_token` | text, nullable | encrypted; null when MP grants no `offline_access` |
 | `expires_at` | timestamptz | |
 | `needs_reconnect` | boolean | default false |
-| `import_from` | timestamptz, nullable | legacy: no longer read or written (`import_settings.import_from` replaced it); dropped in a later release |
+| `import_from` | timestamptz, nullable | no longer declared in the schema; dropped by the next migration after production runs this release (`import_settings.import_from` replaced it) |
 | `created_at`, `updated_at` | timestamptz | |
 
 Encryption: tokens are AES-256-GCM ciphertext, `v1:` + base64(iv(12) | tag(16) | ct), with AAD = `user_id`, keyed by `MP_TOKEN_KEY`. They are never logged or sent to the client.

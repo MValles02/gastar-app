@@ -12,13 +12,13 @@ import {
 	postDelete,
 	save,
 	signUpVerified,
-	WHOLE_PESOS_ERROR
+	WHOLE_PESOS_ERROR,
+	gotoHydrated
 } from './helpers';
 
-// Every `networkidle` goto below is a hydration guard: the drawer, picker or switch it opens needs JavaScript.
 // Everything runs as one freshly signed-up user, so no other spec (and no demo-user month total) is
 // disturbed. Tests are serial: each leaves the plan the next one expects (see the order below).
-test.describe.configure({ mode: 'serial', timeout: 90_000 });
+test.describe.configure({ mode: 'serial' });
 
 const password = 'e2e-pass-1234';
 const ids = { account: '', food: '', gym: '', salary: '' };
@@ -71,7 +71,7 @@ const available = (page: Page) =>
 	page.getByRole('region', { name: /^Disponible$/ }).locator('.hero-amount');
 
 test('the wizard saves the income, savings and limits its summary shows', async ({ page }) => {
-	await page.goto('/plan/setup', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/plan/setup');
 	await page.getByRole('link', { name: '+ Agregar' }).click();
 	const drawer = page.getByRole('dialog', { name: 'Nuevo ingreso fijo' });
 	await expect(drawer).toBeVisible();
@@ -83,7 +83,7 @@ test('the wizard saves the income, savings and limits its summary shows', async 
 	await save(drawer).click();
 	await expect(page.getByRole('link', { name: /Sueldo e2e/ })).toBeVisible();
 
-	await page.goto('/plan/setup?step=3', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/plan/setup?step=3');
 	await fillSavings(page, { option: '10%' });
 	await page.getByRole('button', { name: 'Siguiente' }).click();
 	await expect(page).toHaveURL(/\/plan\/setup\?step=4$/);
@@ -111,7 +111,7 @@ test('10 % savings follows an income change, Otro validates and saves both', asy
 	page,
 	baseURL
 }) => {
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/plan');
 	await expect(kv(page, 'Ingresos')).toContainText('1.000.000');
 	await expect(kv(page, 'Ahorro')).toContainText('100.000');
 	await expect(available(page)).toContainText('900.000');
@@ -122,18 +122,18 @@ test('10 % savings follows an income change, Otro validates and saves both', asy
 	await expect(page.getByRole('button', { name: /^10 %/ })).toHaveAttribute('aria-pressed', 'true');
 
 	// Raise the income through the rule's update action.
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/plan');
 	const id = await linkId(page.getByRole('link', { name: /Sueldo e2e/ }));
 	const res = await post(page, baseURL!, `/plan/recurring/${id}?/update`, { amount: '2.000.000' });
 	expect(res.ok()).toBe(true);
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/plan');
 	await expect(kv(page, 'Ingresos')).toContainText('2.000.000');
 	await expect(kv(page, 'Ahorro')).toContainText('200.000');
 	await expect(available(page)).toContainText('1.800.000');
 
 	// Otro (direct URL renders the page variant): invalid values are rejected, valid ones saved.
 	const alert = page.getByRole('alert');
-	await page.goto('/plan/savings', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/plan/savings');
 	for (const [unit, value, message] of [
 		['%', '150', 'Ingresá un porcentaje entre 0 y 100.']
 	] as const) {
@@ -148,14 +148,14 @@ test('10 % savings follows an income change, Otro validates and saves both', asy
 	await fillSavings(page, { option: 'Otro', unit: '%', value: '12,5' });
 	await save(page).click();
 	await expect(page.getByRole('button', { name: /^Otro/ })).toContainText('250.000');
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/plan');
 	await expect(kv(page, 'Ahorro')).toContainText('250.000');
 
-	await page.goto('/plan/savings', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/plan/savings');
 	await fillSavings(page, { option: 'Otro', unit: '$', value: '100.000' });
 	await save(page).click();
 	await expect(page.getByRole('button', { name: /^Otro/ })).toContainText('100.000');
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/plan');
 	await expect(kv(page, 'Ahorro')).toContainText('100.000');
 });
 
@@ -163,7 +163,7 @@ test('new limit: invalid amount, then the average saves', async ({ page, baseURL
 	// Free Comida (it holds a suggested limit from the wizard) so it is on offer again.
 	await postDelete(page, baseURL!, `/plan/limits/${ids.food}`);
 
-	await page.goto('/plan/limits/new', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/plan/limits/new');
 	await pick(page, 'Categoría', 'Comida e2e');
 	await page.locator('input[name="amount"]').fill('100,5');
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
@@ -178,24 +178,24 @@ test('new limit: invalid amount, then the average saves', async ({ page, baseURL
 test('re-submitting step 3 keeps a this-month-only plan this-month-only', async ({ page }) => {
 	const repeat = page.getByRole('switch', { name: 'Usar este plan todos los meses' });
 	const save = async (check: boolean) => {
-		await page.goto('/plan/setup?step=5', { waitUntil: 'networkidle' });
+		await gotoHydrated(page, '/plan/setup?step=5');
 		if ((await repeat.isChecked()) !== check) await repeat.click();
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Plan guardado.')).toBeVisible();
 	};
 	await save(false);
 
-	await page.goto('/plan/setup?step=3', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/plan/setup?step=3');
 	await page.getByRole('button', { name: 'Siguiente' }).click();
 	await expect(page).toHaveURL(/\/plan\/setup\?step=4$/);
 
-	await page.goto('/plan/setup?step=5', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/plan/setup?step=5');
 	await expect(repeat).not.toBeChecked();
 	await save(true);
 });
 
 test('Eliminar plan on /plan removes the plan and keeps the fixed incomes', async ({ page }) => {
-	await page.goto('/plan', { waitUntil: 'networkidle' });
+	await gotoHydrated(page, '/plan');
 	await page.getByRole('button', { name: 'Eliminar plan' }).click();
 	await expect(page.getByText('¿Eliminar este plan?')).toBeVisible();
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();

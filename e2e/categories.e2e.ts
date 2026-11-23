@@ -1,5 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
-import { deleteMovements, fillMovement, login, OTHER_EMAIL, postDelete } from './helpers';
+import {
+	deleteMovements,
+	fillMovement,
+	login,
+	OTHER_EMAIL,
+	postDelete,
+	gotoHydrated,
+	waitForHydration
+} from './helpers';
 
 const DETAIL_RE = /\/categories\/[0-9a-f-]{36}$/;
 const LOCKED = 'Tiene movimientos, solo se puede cambiar a Ambos.';
@@ -83,7 +91,7 @@ test('a category with movements can only widen to Ambos, also server-side; the c
 		// Saving redirects back to /movements/new, so wait for the toast, not the URL.
 		await expect(page.getByText('Movimiento guardado.')).toBeVisible();
 
-		await page.goto(href, { waitUntil: 'networkidle' }); // hydration guard: the drawer needs JS
+		await gotoHydrated(page, href);
 		await page.getByRole('button', { name: /^Se usa para/ }).click();
 		const dialog = page.getByRole('dialog');
 		await expect(dialog.getByRole('button', { name: /^Ingresos/ })).toBeDisabled();
@@ -106,7 +114,7 @@ test('a category with movements can only widen to Ambos, also server-side; the c
 		await expect(page.getByText('Cambio guardado.')).toBeVisible();
 		await page.reload();
 		await expect(page.getByRole('button', { name: /^Se usa para/ })).toContainText('Ambos');
-		await page.waitForLoadState('networkidle'); // hydration guard: the toast action needs JS
+		await waitForHydration(page);
 		await page.getByRole('button', { name: /^Se usa para/ }).click();
 		await dialog.getByRole('button', { name: /^Gastos/ }).click();
 		await expect(page.getByText('Cambio guardado.')).toBeVisible();
@@ -128,7 +136,7 @@ test('archiving a category hides it from the new-movement picker and Desarchivar
 	try {
 		/** How many times the new-movement category picker offers the category. */
 		const offered = async () => {
-			await page.goto('/movements/new', { waitUntil: 'networkidle' }); // hydration guard: the picker needs JS
+			await gotoHydrated(page, '/movements/new');
 			await page.getByRole('button', { name: /^Categoría/ }).click();
 			const dialog = page.getByRole('dialog').last();
 			await expect(dialog).toBeVisible();
@@ -136,12 +144,12 @@ test('archiving a category hides it from the new-movement picker and Desarchivar
 		};
 		expect(await offered()).toBe(1);
 
-		await page.goto(href, { waitUntil: 'networkidle' }); // hydration guard: the archive form is enhanced
+		await gotoHydrated(page, href);
 		await page.getByRole('button', { name: 'Archivar' }).click();
 		await expect(page.getByRole('button', { name: 'Desarchivar' })).toBeVisible();
 		expect(await offered()).toBe(0);
 
-		await page.goto(href, { waitUntil: 'networkidle' }); // hydration guard: the unarchive form is enhanced
+		await gotoHydrated(page, href);
 		await page.getByRole('button', { name: 'Desarchivar' }).click();
 		await expect(page.getByRole('button', { name: 'Archivar', exact: true })).toBeVisible();
 		expect(await offered()).toBe(1);

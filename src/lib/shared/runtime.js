@@ -6,6 +6,9 @@ export const ADVISORY_LOCK_ID = 727274001;
 /** The app's one time zone: days, months and "today" are Buenos Aires time. */
 export const APP_TZ = 'America/Argentina/Buenos_Aires';
 
+/** Milliseconds in a day. */
+export const DAY_MS = 24 * 60 * 60 * 1000;
+
 /** Minimum password length for sign-up and the create-user script. */
 export const PASSWORD_MIN_LENGTH = 8;
 

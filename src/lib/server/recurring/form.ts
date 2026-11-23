@@ -7,6 +7,7 @@ import { getCategory } from '../categories/queries';
 import { isUuid } from '../db/util';
 import { amountFor, editFormData, readFields } from '../forms';
 import { descriptionField, kindMismatchMessage } from '../movements/form';
+import { recurringSuggestions } from '../plan/month-plan';
 
 const FIELDS = ['type', 'description', 'amount', 'accountId', 'categoryId', 'dayOfMonth'] as const;
 export const EDITABLE = ['description', 'amount', 'accountId', 'categoryId', 'dayOfMonth'] as const;
@@ -27,6 +28,41 @@ export const toFormValues = (r: {
 	categoryId: r.categoryId,
 	dayOfMonth: String(r.dayOfMonth)
 });
+
+/**
+ * The new-rule form's start values: the suggestion, else a blank rule (the only account preselected).
+ * A suggestion id is recomputed, never trusted: the description and amount are not in the URL.
+ */
+export async function newRuleInitial(
+	userId: string,
+	{
+		type,
+		suggestionId,
+		accounts
+	}: { type: 'income' | 'outcome'; suggestionId: string | null; accounts: { id: string }[] }
+) {
+	const s =
+		suggestionId && type === 'outcome'
+			? (await recurringSuggestions(userId)).find((c) => c.id === suggestionId)
+			: undefined;
+	return s
+		? {
+				type: 'outcome',
+				description: s.description,
+				amount: formatAmountInput(s.amount, s.currency),
+				accountId: s.accountId,
+				categoryId: s.categoryId,
+				dayOfMonth: String(s.dayOfMonth)
+			}
+		: {
+				type: type as string,
+				description: '',
+				amount: '',
+				accountId: accounts.length === 1 ? accounts[0].id : '',
+				categoryId: '',
+				dayOfMonth: ''
+			};
+}
 
 export const editedForm = (row: Parameters<typeof toFormValues>[0], posted: FormData) =>
 	editFormData(toFormValues(row), posted, EDITABLE);

@@ -9,17 +9,18 @@
 		autocomplete,
 		error,
 		hint,
-		errorId = 'password-error',
 		minlength
 	}: {
 		value?: string;
 		autocomplete: HTMLInputAttributes['autocomplete'];
 		error?: string;
 		hint?: string;
-		/** Signup gives its error the hint's id, so the input's aria-describedby never changes. */
-		errorId?: string;
 		minlength?: number;
 	} = $props();
+
+	// The hint and the error share one id, so the input's aria-describedby never changes when an error
+	// appears. The login page's EmailField points at this id too.
+	const errorId = 'password-error';
 </script>
 
 <Field.Field>
@@ -29,11 +30,11 @@
 		{autocomplete}
 		{minlength}
 		invalid={!!error}
-		describedby={error ? errorId : hint ? 'password-hint' : undefined}
+		describedby={error || hint ? errorId : undefined}
 	/>
 	{#if error}
 		<Field.Error id={errorId}>{error}</Field.Error>
 	{:else if hint}
-		<Field.Description id="password-hint">{hint}</Field.Description>
+		<Field.Description id={errorId}>{hint}</Field.Description>
 	{/if}
 </Field.Field>

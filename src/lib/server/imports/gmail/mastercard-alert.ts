@@ -1,30 +1,29 @@
-// Pure: reads one Gmail message (format=full) and returns the purchase fields of a Banco Galicia Mastercard
-// alert ("Aviso de consumo con tarjeta", sent by Fiserv). Nothing here stores or logs anything, and the body,
-// subject and headers never leave this function.
+// Pure: reads the HTML of one Banco Galicia Mastercard alert ("Aviso de consumo con tarjeta", sent by Fiserv)
+// and returns its purchase fields. Nothing here stores or logs anything, and the body never leaves this
+// function.
 
 import type { Currency } from '#lib/money.ts';
-import { obj } from '../json';
+import type { AlertKind } from '../card-alert';
 import {
-	PURCHASE,
-	REVERSAL,
 	type AlertParser,
-	type CardAlertResult,
+	type AlertResult,
+	type ParsedAlert,
 	IGNORED,
 	INVALID,
-	authenticated,
 	decodeEntities,
-	headerValue,
-	headersOf,
 	labelledFields,
-	messageParts,
-	plain,
-	senderOf
+	minorUnits,
+	plain
 } from './alert-mail';
 
-const SENDERS: readonly string[] = ['alertas@misconsultas.com.ar'];
-const SUBJECT = 'Aviso de consumo con tarjeta';
-/** Plain type -> stored type; any other type is kept as sent. */
-const TYPES: Record<string, string> = { compra: PURCHASE, 'compra reversada': REVERSAL };
+/**
+ * The sender also serves other cards and banks: only an alert whose intro (plain) names all of these lands on
+ * the Galicia accounts.
+ */
+const ISSUER_MARKS = ['tarjeta mastercard', 'galicia'];
+
+/** Plain type (single spaces) -> kind; any other type is `other`, stored as sent. */
+const KINDS: Record<string, AlertKind> = { compra: 'purchase', 'compra reversada': 'reversal' };
 
 /** Plain (lowercase, unaccented) currency word -> currency; anything else is not guessed. */
 const CURRENCY: Record<string, Currency> = {
@@ -44,28 +43,15 @@ function readList(html: string) {
 	return { fields, intro: plain(text(start < 0 ? html : html.slice(0, start))) };
 }
 
-/** es-AR "78.993,00" (dot thousands, comma decimals): minor units, > 0. */
-function minorUnits(raw: string): number | null {
+/** es-AR "78.993,00" (dot thousands, comma decimals). */
+function amountOf(raw: string): number | null {
 	const m = /^(\d{1,3}(?:\.\d{3})+|\d+),(\d{2})$/.exec(raw);
-	if (!m) return null;
-	const cents = Number(m[1].replace(/\./g, '')) * 100 + Number(m[2]);
-	return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
+	return m ? minorUnits(m[1].replace(/\./g, ''), m[2]) : null;
 }
 
-function parse(message: unknown): CardAlertResult {
-	const msg = obj(message);
-	const payload = obj(msg.payload);
-	const headers = headersOf(payload);
-	if (!SENDERS.includes(senderOf(headers))) return IGNORED;
-	if (headerValue(headers, 'subject')?.trim() !== SUBJECT) return IGNORED;
-	if (!authenticated(headers, 'misconsultas.com.ar')) return IGNORED;
-
-	const parts = messageParts(msg, payload);
-	if (!parts) return INVALID;
-
-	const { fields, intro } = readList(parts.html);
-	// The sender also serves other cards and banks: only a Galicia Mastercard lands on the Galicia accounts.
-	if (!intro.includes('tarjeta mastercard') || !intro.includes('galicia')) return IGNORED;
+function parse(html: string): AlertResult<ParsedAlert> {
+	const { fields, intro } = readList(html);
+	if (!ISSUER_MARKS.every((mark) => intro.includes(mark))) return IGNORED;
 	const state = fields.get('estado');
 	if (state && plain(state) !== 'aprobada') return IGNORED;
 
@@ -74,7 +60,7 @@ function parse(message: unknown): CardAlertResult {
 	const country = fields.get('ubicacion');
 	const last4 = fields.get('ultimos 4 digitos de la tarjeta');
 	const currency = CURRENCY[plain(fields.get('moneda') ?? '')];
-	const amount = minorUnits(fields.get('importe') ?? '');
+	const amount = amountOf(fields.get('importe') ?? '');
 	const cuotas = fields.get('cantidad cuotas') ?? '';
 	const installments = /^\d{1,3}$/.test(cuotas) ? Number(cuotas) : 0;
 	if (
@@ -93,20 +79,22 @@ function parse(message: unknown): CardAlertResult {
 	return {
 		status: 'ok',
 		alert: {
-			gmailMessageId: parts.id,
-			network: 'mastercard',
 			last4,
 			merchant,
 			country,
 			currency,
 			amount,
 			foreign: plain(country) !== 'argentina',
-			// The existing purchase value, so the conversion treats it as one; other types are kept as sent.
-			transactionType: TYPES[plain(type).replace(/\s+/g, ' ')] ?? type,
-			installments,
-			receivedAt: parts.receivedAt
+			kind: KINDS[plain(type).replace(/\s+/g, ' ')] ?? 'other',
+			type,
+			installments
 		}
 	};
 }
 
-export const mastercardAlert: AlertParser = { senders: SENDERS, parse };
+export const mastercardAlert: AlertParser = {
+	senders: ['alertas@misconsultas.com.ar'],
+	domain: 'misconsultas.com.ar',
+	subject: 'Aviso de consumo con tarjeta',
+	parse
+};

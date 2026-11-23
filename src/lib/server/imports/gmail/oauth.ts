@@ -6,7 +6,7 @@ import { account, gmailConnections } from '../../db/schema';
 import { GOOGLE_PROVIDER_ID } from '../../reauth';
 import { callbackUrl, type OAuthLink, pkce } from '../oauth-link';
 import { requestToken as postToken, TOKEN_TIMEOUT_MS, tokenStore } from '../oauth-tokens';
-import { gmailApiBaseUrl, gmailAuthBaseUrl } from './env';
+import { GMAIL_ENV, gmailApiBaseUrl, gmailAuthBaseUrl } from './env';
 
 const SCOPE_READONLY = 'https://www.googleapis.com/auth/gmail.readonly';
 
@@ -15,7 +15,7 @@ const LINK_PATH = '/profile/gmail';
 
 /** The feature is on only when the client id, client secret and token key are all set. */
 export function gmailOauthEnabled(): boolean {
-	return !!(env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET && env.GMAIL_TOKEN_KEY);
+	return GMAIL_ENV.vars.every((name) => !!env[name]);
 }
 
 const redirectUri = (origin: string) => callbackUrl(LINK_PATH, origin);

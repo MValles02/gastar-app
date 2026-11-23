@@ -10,19 +10,19 @@ import {
 } from '#lib/server/categories/form.ts';
 import {
 	categoryMonthNet,
-	categoryMovementTypes,
 	deleteCategory,
 	getCategory,
 	isCategoryReferenced,
+	kindLock,
 	setCategoryArchived,
-	toCurrencyNets,
-	updateCategory,
+	updateCategoryChecked,
 	writeIfNameFree
 } from '#lib/server/categories/queries.ts';
+import { toCurrencyNets } from '#lib/server/categories/view.ts';
 import { archiveActions, deleteUnlessReferenced, lifecycleState } from '#lib/server/lifecycle.ts';
 import { monthLabel, monthParam, monthRange } from '#lib/server/month.ts';
 import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
-import { CATEGORY_KINDS, kindFits } from '#lib/movement.ts';
+import { CATEGORY_KINDS } from '#lib/movement.ts';
 
 const guards = notFoundHelpers(NOT_FOUND_MESSAGE);
 const { notFound, requireId } = guards;
@@ -31,11 +31,9 @@ const { notFound, requireId } = guards;
 async function categoryOf(userId: string, id: string) {
 	const [category] = await getCategory(userId, id);
 	if (!category) notFound();
-	const types = (await categoryMovementTypes(userId, id)).map((r) => r.type);
+	const fits = await kindLock(userId, id);
 	// A kind is allowed only when every movement fits it; the saved kind stays selectable, every other blocked kind is disabled.
-	const disabledKinds = CATEGORY_KINDS.filter(
-		(k) => k !== category.kind && !types.every((t) => kindFits(k, t))
-	);
+	const disabledKinds = CATEGORY_KINDS.filter((k) => k !== category.kind && !fits(k));
 	const { archivedAt, ...rest } = category;
 	return { category: { ...rest, archived: archivedAt !== null }, disabledKinds };
 }
@@ -70,20 +68,17 @@ export const actions: Actions = {
 		if (!parsed.ok) return formFail(400, { values: parsed.values, errors: parsed.errors });
 
 		// Only a kind change is checked: a legacy category can still be renamed or recoloured.
-		// ponytail: the check and the update are not atomic (unlikely race); wrap both in a transaction if it matters.
-		if (parsed.data.kind !== current.kind) {
-			const types = (await categoryMovementTypes(userId, params.id)).map((r) => r.type);
-			if (!types.every((t) => kindFits(parsed.data.kind, t)))
-				return formFail(400, { values: parsed.data, errors: { kind: KIND_LOCKED_MESSAGE } });
-		}
 		const rows = await writeIfNameFree(
 			userId,
 			parsed.data.name,
-			() => updateCategory(userId, params.id, parsed.data),
+			() =>
+				updateCategoryChecked(userId, params.id, parsed.data, parsed.data.kind !== current.kind),
 			params.id
 		);
 		if (!rows)
 			return formFail(400, { values: parsed.data, errors: { name: DUPLICATE_NAME_MESSAGE } });
+		if (rows === 'kind-locked')
+			return formFail(400, { values: parsed.data, errors: { kind: KIND_LOCKED_MESSAGE } });
 		if (rows.length === 0) notFound();
 		return await categoryOf(userId, params.id);
 	},

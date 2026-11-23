@@ -1,7 +1,7 @@
 import { CalendarDate, parseDate, startOfMonth, today } from '@internationalized/date';
 import { APP_TZ } from './locale';
 
-export const DAY_MS = 24 * 60 * 60 * 1000;
+export { DAY_MS } from '#lib/shared/runtime.js';
 
 /** "YYYY-MM" with a real month (01-12). The spending_plans month CHECK uses the same pattern. */
 export const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;

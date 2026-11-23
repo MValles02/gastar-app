@@ -30,7 +30,7 @@ SvelteKit 3 + TypeScript, Drizzle ORM + Postgres (`src/lib/server/db/schema.ts`)
 - Public repo: the repository is public on purpose; never commit secrets, `.env*` (except examples), real user data or non-public infra hostnames/IPs, and never file vulnerabilities as public issues (`docs/deployment.md`).
 - `develop` auto-deploys dev.gastar.app on merge; `main` auto-deploys production (web.gastar.app) on merge (`docs/WORKFLOW.md`).
 - Design: UI work starts from root `PRODUCT.md` and `DESIGN.md`; update `DESIGN.md` when the visual system changes. UI text stays Spanish (es-AR) per `docs/scope.md`. Design skills live in `.claude/skills/`, vendored unchanged from [emilkowalski/skills](https://github.com/emilkowalski/skills) (MIT, commit `715c180`): `emil-design-eng` for UI polish and component decisions, `mobile-native` for touch, viewport, input and PWA behavior, `gestures` for drag, swipe and drawer interactions, `review-animations` to review motion, `break-ui` to stress a screen with worst-case data (its toggle and fixture stay dev-only and are not tests). Phone-only behavior (input zoom, safe areas, keyboard, overscroll, tap feedback) is confirmed on a real phone, not only in device emulation. To update a skill, re-copy it from upstream and bump the commit here.
-- Testing: unit tests are not required and are not kept in the repo; cover behavior with integration tests or Playwright E2E (`e2e/`). E2E covers money, data, auth and cross-user isolation flows only. No layout/pixel/viewport, animation, touch-target, colour or copy tests; one representative test per error class; no duplicated assertions across specs; no `waitForTimeout`, and `networkidle` only as a commented hydration guard before a JS-only control (the app exposes no hydration marker). Keep the suite around 125 tests and CI e2e under ~5 min; before adding a test, check it is not already covered.
+- Testing: unit tests are not required and are not kept in the repo; cover behavior with integration tests or Playwright E2E (`e2e/`). E2E covers money, data, auth and cross-user isolation flows only. No layout/pixel/viewport, animation, touch-target, colour or copy tests; one representative test per error class; no duplicated assertions across specs; no `waitForTimeout` or `networkidle`: before a JS-only control after a full page load, use `gotoHydrated(page, url)` or `waitForHydration(page)` from `e2e/helpers.ts`, which wait for the `data-hydrated` marker the root layout sets on `<html>` once it mounts. Keep the suite around 125 tests and CI e2e under ~5 min; before adding a test, check it is not already covered.
 
 ## Commands
 
@@ -42,7 +42,7 @@ pnpm typecheck     # svelte-kit sync && svelte-check (what CI runs)
 pnpm typecheck:fast # same check on TS 7 native (--tsgo-experimental-api; plain --tsgo reports false errors), used by pre-push
 pnpm lint          # prettier --check . && eslint .
 pnpm format        # prettier --write .
-pnpm test:e2e      # playwright test (Chromium; reuses a running `pnpm dev`, else builds with VITE_E2E=1 and serves `node build`; needs a migrated + seeded DB)
+pnpm test:e2e      # playwright test (Chromium; reuses a running `pnpm dev`, else builds with VITE_E2E=1 and serves `node build`; needs a migrated + seeded DB; reads DATABASE_URL from the env or .env and fails without it)
 pnpm db:generate   # drizzle-kit generate
 pnpm db:deploy     # node scripts/migrate.js (loads .env if present)
 pnpm db:seed       # node scripts/seed.js, local demo data (loads .env; requires SEED_PASSWORD)

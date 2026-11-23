@@ -6,6 +6,7 @@ import { latestTransferRate, updatePlan } from '#lib/server/plan/queries.ts';
 import { planView } from '#lib/server/plan/month-plan.ts';
 import { requirePlan, toPlan } from '#lib/server/plan/guard.ts';
 import { requireUser } from '#lib/server/guards.ts';
+import { str } from '#lib/server/forms.ts';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const userId = requireUser(locals).id;
@@ -23,7 +24,7 @@ export const actions: Actions = {
 	set: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
 		await requirePlan(userId);
-		const raw = String((await request.formData()).get('rate') ?? '');
+		const raw = str(await request.formData(), 'rate');
 		const rate = parseAmount(raw);
 		if (!isValidRate(rate))
 			return formFail(400, { values: { rate: raw }, errors: { rate: MOVEMENT_MESSAGES.rate } });

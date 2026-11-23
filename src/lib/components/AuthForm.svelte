@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { tick } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { focusFirstError } from '#lib/components/forms/form-enhance.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
 
 	// Auth page form: progressive enhancement, busy state, and focus on the first invalid
@@ -40,8 +40,7 @@
 			await update({ reset: false });
 			busy = false;
 			onupdated?.();
-			await tick();
-			formEl?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+			if (formEl) await focusFirstError(formEl);
 		};
 	}}
 >

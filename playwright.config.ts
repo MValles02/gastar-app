@@ -1,5 +1,11 @@
 import { defineConfig } from '@playwright/test';
+// Also loads .env (local runs), before anything here reads process.env.
 import { FAKE_GMAIL, FAKE_GOOGLE, FAKE_MP } from './e2e/fakes.js';
+
+if (!process.env.DATABASE_URL)
+	throw new Error(
+		'DATABASE_URL is not set: e2e needs the migrated + seeded database (set it or add it to .env)'
+	);
 
 const PORT = Number(process.env.E2E_PORT) || 5173;
 const BASE_URL = `http://localhost:${PORT}`;
@@ -11,6 +17,9 @@ export default defineConfig({
 	// writers use the seeded `otro` user, so a spec that asserts exact figures uses data no other
 	// file writes, or its own `signUpVerified` user.
 	fullyParallel: false,
+	// One per-test budget for the whole suite (Playwright's 30s default is too short for the multi-page
+	// plan flows and MP syncs on 2-vCPU CI runners); specs don't override it. Hooks get the same budget.
+	timeout: 90_000,
 	// CI runners for this private repo have 2 vCPUs, so Playwright's default (half the cores)
 	// would run every spec on a single worker. Measured: 3 workers 337/376s, 2 workers
 	// 373/502/412s; 4 overloaded the runner and tripped test timeouts.
@@ -25,20 +34,17 @@ export default defineConfig({
 		{
 			command: 'node e2e/fake-mp.js',
 			url: `${FAKE_MP.url}/__fake/health`,
-			reuseExistingServer: !process.env.CI,
-			env: { FAKE_MP_PORT: String(FAKE_MP.port) }
+			reuseExistingServer: !process.env.CI
 		},
 		{
 			command: 'node e2e/fake-google.js',
 			url: `${FAKE_GOOGLE.url}/__fake/health`,
-			reuseExistingServer: !process.env.CI,
-			env: { FAKE_GOOGLE_PORT: String(FAKE_GOOGLE.port) }
+			reuseExistingServer: !process.env.CI
 		},
 		{
 			command: 'node e2e/fake-gmail.js',
 			url: `${FAKE_GMAIL.url}/__fake/health`,
-			reuseExistingServer: !process.env.CI,
-			env: { FAKE_GMAIL_PORT: String(FAKE_GMAIL.port) }
+			reuseExistingServer: !process.env.CI
 		},
 		// Locally reuses an already running `pnpm dev` (and its .env); a reused server must have the same MP, Google and Gmail env.
 		// Without one (CI), builds with VITE_E2E=1 (enables the test-only routes) and serves `node build`.
@@ -58,8 +64,7 @@ export default defineConfig({
 				BETTER_AUTH_URL: BASE_URL,
 				MP_CLIENT_ID: FAKE_MP.clientId,
 				MP_CLIENT_SECRET: FAKE_MP.clientSecret,
-				// base64 of 32 ASCII chars.
-				MP_TOKEN_KEY: Buffer.from('0123456789abcdef0123456789abcdef').toString('base64'),
+				MP_TOKEN_KEY: FAKE_MP.tokenKey,
 				MP_AUTH_BASE_URL: FAKE_MP.url,
 				MP_API_BASE_URL: FAKE_MP.url,
 				MP_REPORT_POLL_MS: '100',
@@ -71,7 +76,7 @@ export default defineConfig({
 				GOOGLE_DISCOVERY_URL: `${FAKE_GOOGLE.url}/.well-known/openid-configuration`,
 				GMAIL_CLIENT_ID: FAKE_GMAIL.clientId,
 				GMAIL_CLIENT_SECRET: FAKE_GMAIL.clientSecret,
-				GMAIL_TOKEN_KEY: Buffer.from('fedcba9876543210fedcba9876543210').toString('base64'),
+				GMAIL_TOKEN_KEY: FAKE_GMAIL.tokenKey,
 				GMAIL_AUTH_BASE_URL: FAKE_GMAIL.url,
 				GMAIL_API_BASE_URL: FAKE_GMAIL.url,
 				// Scheduler off so e2e stays deterministic (syncs only via "Sincronizar").

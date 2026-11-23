@@ -7,15 +7,12 @@ import {
 	parseAccountForm
 } from '#lib/server/accounts/form.ts';
 import {
-	accountOriginSums,
-	accountTransfersIn,
 	deleteAccount,
-	getAccount,
 	isAccountReferenced,
 	setArchived,
 	updateAccount
 } from '#lib/server/accounts/queries.ts';
-import { withBalances } from '#lib/server/accounts/balance.ts';
+import { accountDetail } from '#lib/server/accounts/view.ts';
 import { archiveActions, deleteUnlessReferenced, lifecycleState } from '#lib/server/lifecycle.ts';
 import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
 
@@ -24,15 +21,7 @@ const { notFound, requireId } = guards;
 
 /** The account as the detail shows it (what the load returns and `update` hands back). */
 async function detailOf(userId: string, id: string) {
-	const [account] = await getAccount(userId, id);
-	if (!account) notFound();
-	const [sums, ins] = await Promise.all([
-		accountOriginSums(userId, { id: account.id }),
-		accountTransfersIn(userId, { id: account.id })
-	]);
-	const [{ balance }] = withBalances([account], sums, ins);
-	const { archivedAt, ...rest } = account;
-	return { account: { ...rest, archived: archivedAt !== null }, balance };
+	return (await accountDetail(userId, id)) ?? notFound();
 }
 
 export const load: PageServerLoad = async ({ locals, params }) => {

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { MIN_DAY } from '#lib/dates.ts';
+	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import type { Currency } from '#lib/money.ts';
 	import { categoriesFor, MOVEMENT_MESSAGES, movementNeeds } from '#lib/movement.ts';
 	import { savedMovement } from '#lib/toast-flags.ts';
@@ -85,7 +86,7 @@
 		transfer: 'Ej.: Carga Mercado Pago'
 	} as const;
 
-	let mounted = $state(false);
+	const mounted = hydrated();
 
 	let type = $state(untrack(() => initial.type || 'outcome'));
 	let accountId = $state(untrack(() => initial.accountId));
@@ -138,8 +139,8 @@
 	}
 
 	const isTransfer = $derived(type === 'transfer');
-	const showTransfer = $derived(!mounted || isTransfer);
-	const showCategory = $derived(!mounted || !isTransfer);
+	const showTransfer = $derived(!mounted.current || isTransfer);
+	const showCategory = $derived(!mounted.current || !isTransfer);
 
 	$effect(() => {
 		if (destinationId && destinationId === accountId) destinationId = '';
@@ -148,7 +149,9 @@
 	// Without JS the type changes without a reload, so every category is listed (the server validates).
 	// A category already saved on this movement or rule stays pickable.
 	const pickableCategories = $derived(
-		!mounted || isTransfer ? allCategories : categoriesFor(allCategories, type, savedCategoryId)
+		!mounted.current || isTransfer
+			? allCategories
+			: categoriesFor(allCategories, type, savedCategoryId)
 	);
 	$effect(() => {
 		if (categoryId && !pickableCategories.some((c) => c.id === categoryId)) categoryId = '';
@@ -219,7 +222,6 @@
 	{canSave}
 	scroll="drawer"
 	style="--form-gap: var(--space-5)"
-	bind:mounted
 >
 	<div class="fields">
 		{#if returnTo}<input type="hidden" name="returnTo" value={returnTo} />{/if}
@@ -270,14 +272,14 @@
 
 				{#if showTransfer}
 					<li class:bad={shown.destinationAccountId}>
-						{#if !mounted}<p class="hint pad">Solo para transferencias</p>{/if}
+						{#if !mounted.current}<p class="hint pad">Solo para transferencias</p>{/if}
 						<OptionPicker
 							name="destinationAccountId"
 							legend="Hacia"
 							title="Hacia"
 							items={accountItems}
 							bind:value={destinationId}
-							excludeId={mounted ? accountId : undefined}
+							excludeId={mounted.current ? accountId : undefined}
 							nested={drawer}
 							placeholder="Elegir"
 							error={shown.destinationAccountId}
@@ -290,7 +292,7 @@
 					</li>
 				{/if}
 
-				{#if !mounted}
+				{#if !mounted.current}
 					<li class:bad={shown.exchangeRate}>
 						<p class="hint pad">Solo para transferencias entre monedas distintas</p>
 						<TextRow
@@ -329,7 +331,7 @@
 			{#snippet category()}
 				{#if showCategory}
 					<li class:bad={shown.categoryId}>
-						{#if !mounted}<p class="hint pad">Solo para ingresos y gastos</p>{/if}
+						{#if !mounted.current}<p class="hint pad">Solo para ingresos y gastos</p>{/if}
 						<OptionPicker
 							name="categoryId"
 							legend="Categoría"

@@ -1,27 +1,17 @@
-// Pure: reads one Gmail message (format=full) and returns the purchase fields of a Visa alert. Nothing here
-// stores or logs anything, and the body, subject and headers never leave this function.
+// Pure: reads the HTML of one Visa alert and returns its purchase fields. Nothing here stores or logs
+// anything, and the body never leaves this function.
 
-import { obj } from '../json';
+import { alertKind } from '../card-alert';
 import {
 	type AlertParser,
-	type CardAlertResult,
-	IGNORED,
+	type AlertResult,
+	type ParsedAlert,
 	INVALID,
-	authenticated,
 	decodeEntities,
-	headerValue,
-	headersOf,
 	labelledFields,
-	messageParts,
-	plain,
-	senderOf
+	minorUnits,
+	plain
 } from './alert-mail';
-
-const SENDERS: readonly string[] = [
-	'donotreplyalertadecomprasvisa@visa.com',
-	'donotreplyvisapurchasealerts@visa.com'
-];
-const SUBJECT = 'Alerta de Compras Visa';
 
 /** Label -> value of the "Label: value" lines from "Comercio:" on (the first one wins), and the intro before it. */
 function readBlock(html: string) {
@@ -37,38 +27,25 @@ function readBlock(html: string) {
 
 /**
  * `^(\d+)\.(\d{2})`, optionally followed by a parenthesised note: "(puede haber ...)" directly
- * after, or " (aproximadamente N USD)" after a space: minor units, > 0 (the ARS amount, the
- * USD approximation is ignored).
+ * after, or " (aproximadamente N USD)" after a space (the ARS amount, the USD approximation is ignored).
  */
-function minorUnits(raw: string): number | null {
+function amountOf(raw: string): number | null {
 	const m = /^(\d+)\.(\d{2})\s*(\(.*\))?$/.exec(raw);
-	if (!m) return null;
-	const cents = Number(m[1]) * 100 + Number(m[2]);
-	return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
+	return m ? minorUnits(m[1], m[2]) : null;
 }
 
-function parse(message: unknown): CardAlertResult {
-	const msg = obj(message);
-	const payload = obj(msg.payload);
-	const headers = headersOf(payload);
-	if (!SENDERS.includes(senderOf(headers))) return IGNORED;
-	if (headerValue(headers, 'subject')?.trim() !== SUBJECT) return IGNORED;
-	if (!authenticated(headers, 'visa.com')) return IGNORED;
-
-	const parts = messageParts(msg, payload);
-	if (!parts) return INVALID;
-
-	const { fields, intro } = readBlock(parts.html);
+function parse(html: string): AlertResult<ParsedAlert> {
+	const { fields, intro } = readBlock(html);
 	const merchant = fields.get('comercio');
 	const country = fields.get('pais');
 	const last4 = fields.get('tarjeta');
-	const transactionType = fields.get('tipo de transaccion');
+	const type = fields.get('tipo de transaccion');
 	const currency = fields.get('moneda');
-	const amount = minorUnits(fields.get('monto') ?? '');
+	const amount = amountOf(fields.get('monto') ?? '');
 	if (
 		!merchant ||
 		!country ||
-		!transactionType ||
+		!type ||
 		!last4 ||
 		!/^\d{4}$/.test(last4) ||
 		(currency !== 'ARS' && currency !== 'USD') ||
@@ -79,19 +56,23 @@ function parse(message: unknown): CardAlertResult {
 	return {
 		status: 'ok',
 		alert: {
-			gmailMessageId: parts.id,
-			network: 'visa',
 			last4,
 			merchant,
 			country,
 			currency,
 			amount,
 			foreign: intro.includes('en el exterior'),
-			transactionType,
-			installments: null,
-			receivedAt: parts.receivedAt
+			// Visa sends the stored words (STORED_TYPE in card-alert.ts) as they are.
+			kind: alertKind(type),
+			type,
+			installments: null
 		}
 	};
 }
 
-export const visaAlert: AlertParser = { senders: SENDERS, parse };
+export const visaAlert: AlertParser = {
+	senders: ['donotreplyalertadecomprasvisa@visa.com', 'donotreplyvisapurchasealerts@visa.com'],
+	domain: 'visa.com',
+	subject: 'Alerta de Compras Visa',
+	parse
+};

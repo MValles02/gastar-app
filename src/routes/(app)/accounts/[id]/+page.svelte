@@ -4,6 +4,7 @@
 	import { autosaveChanged } from '#lib/autosave.ts';
 	import { NAME_MAX_LENGTH } from '#lib/fields.ts';
 	import { CURRENCY_LABEL, formatAmountInput } from '#lib/money.ts';
+	import { ARCHIVED_LABEL } from '#lib/movement.ts';
 	import DetailCard from '#lib/components/DetailCard.svelte';
 	import DetailHero from '#lib/components/DetailHero.svelte';
 	import DetailLifecycle from '#lib/components/DetailLifecycle.svelte';
@@ -24,7 +25,6 @@
 	// A reload (archive, Deshacer) brings the stored account back in; a save sets it at once.
 	let detail = $derived({ account: data.account, balance: data.balance });
 	const a = $derived(detail.account);
-	const labelId = $props.id();
 
 	// What the update action stores, as the strings it takes.
 	const values = $derived<Record<string, string>>({
@@ -53,9 +53,9 @@
 		back={{ href: resolve('accounts'), label: 'Volver a cuentas', text: 'Cuentas' }}
 	/>
 
-	<DetailHero cents={detail.balance} currency={a.currency} label="Saldo" {labelId}>
+	<DetailHero cents={detail.balance} currency={a.currency} label="Saldo">
 		{#snippet top()}
-			{#if a.archived}<StatusPill tone="neutral" label="Archivada" />{/if}
+			{#if a.archived}<StatusPill tone="neutral" label={ARCHIVED_LABEL} />{/if}
 		{/snippet}
 	</DetailHero>
 

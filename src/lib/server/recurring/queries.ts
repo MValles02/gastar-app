@@ -5,6 +5,7 @@ import { db, type DbExecutor } from '../db';
 import { categories, financialAccounts, movements, recurringMovements } from '../db/schema';
 import { appTz, inRange, localMonth, type Range } from '../db/sql';
 import { canAccessAccount, canAccessMovement, canAccessOwn, userOwned } from '../access';
+import { categoryFields } from '../categories/queries';
 import { currentMonth, HISTORY_MONTHS } from '../month';
 import type { MovementRow } from '../movements/form';
 
@@ -38,10 +39,7 @@ function recurringRows(userId: string, where: SQL | undefined) {
 			accountArchivedAt: financialAccounts.archivedAt,
 			currency: financialAccounts.currency,
 			categoryId: recurringMovements.categoryId,
-			categoryName: categories.name,
-			categoryIcon: categories.icon,
-			categoryColor: categories.color,
-			categoryArchivedAt: categories.archivedAt
+			...categoryFields
 		})
 		.from(recurringMovements)
 		.innerJoin(

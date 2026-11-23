@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { STORED_TYPE } from '../src/lib/server/imports/card-alert';
 import { statementOf } from './galicia-pdf';
 import {
 	ALERTS_B_EMAIL,
@@ -11,8 +12,10 @@ import {
 	pick,
 	pickDate,
 	reviewDrawer,
+	SYNC_WAIT,
 	upload,
-	withDb
+	withDb,
+	gotoHydrated
 } from './helpers';
 import { arDaysAgo } from './fakes.js';
 
@@ -53,16 +56,16 @@ const expectInInbox = (merchant: string) =>
 	expect(async () => {
 		await pageA.goto('/imports');
 		await expect(pageA.getByText(merchant)).toBeVisible();
-	}).toPass({ timeout: 15_000 });
+	}).toPass(SYNC_WAIT);
 
 /** Answers the "Tarjeta Visa ••NNNN: elegí qué es" row of /imports: debit with a pesos account (and a dollar one). */
 async function setUpDebit(page: Page, last4: string, pesos: string, dollars?: string) {
 	await page.goto('/imports');
-	// A full load (not a client-side click) so the hydration guard below waits for this page.
+	// Opens the row's link with a full load (not a client-side click), then waits for hydration.
 	const href = await page
 		.getByRole('link', { name: `Tarjeta Visa ••${last4}: elegí qué es` })
 		.getAttribute('href');
-	await page.goto(href!, { waitUntil: 'networkidle' }); // hydration guard: the pickers need JavaScript
+	await gotoHydrated(page, href!);
 	await page.getByRole('radio', { name: 'Débito' }).check({ force: true });
 	await pick(page, 'Cuenta en pesos', pesos);
 	if (dollars) await pick(page, 'Cuenta en dólares', dollars);
@@ -213,7 +216,7 @@ test('a Galicia Mastercard alert becomes a pending credit item; an installment o
 	const href = await pageA
 		.getByRole('link', { name: 'Tarjeta Mastercard ••3300: elegí qué es' })
 		.getAttribute('href');
-	await pageA.goto(href!, { waitUntil: 'networkidle' }); // hydration guard: the pickers need JavaScript
+	await gotoHydrated(pageA, href!);
 	await pick(pageA, 'Cuenta en pesos', 'Pesos Visa A');
 	await pageA.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(pageA).toHaveURL(/\/imports$/);
@@ -231,7 +234,7 @@ test('a Galicia Mastercard alert becomes a pending credit item; an installment o
 	expect(state).toEqual([
 		{
 			merchant: 'FERRETERIA MC',
-			type: 'Compra',
+			type: STORED_TYPE.purchase,
 			installments: 1,
 			source: 'galicia_mastercard',
 			amount: 123456,
@@ -240,7 +243,7 @@ test('a Galicia Mastercard alert becomes a pending credit item; an installment o
 		},
 		{
 			merchant: 'HELADERA MC',
-			type: 'Compra',
+			type: STORED_TYPE.purchase,
 			installments: 3,
 			source: 'galicia_mastercard',
 			// The first cuota of the 300.000,00 total in 3 cuotas.
@@ -248,7 +251,7 @@ test('a Galicia Mastercard alert becomes a pending credit item; an installment o
 			status: 'pending',
 			account: 'Pesos Visa A'
 		},
-		...['Compra', 'Compra reversada'].map((type) => ({
+		...[STORED_TYPE.purchase, STORED_TYPE.reversal].map((type) => ({
 			merchant: 'VIAJE MC',
 			type,
 			installments: 1,
@@ -386,8 +389,7 @@ test('moving "Importar desde" earlier backfills Gmail alerts from before the cur
 	await sync(pageA, baseURL!);
 	expect((await items(A.email)).map((i) => i.merchant)).not.toContain('ANTERIOR EJEMPLO');
 
-	await pageA.goto('/profile/vinculaciones');
-	await pageA.waitForLoadState('networkidle'); // hydration guard: the date picker is JS-only
+	await gotoHydrated(pageA, '/profile/vinculaciones');
 	await pickDate(pageA, 'Importar desde', arDaysAgo(60));
 	await expect(pageA.getByText('Cambio guardado.')).toBeVisible();
 

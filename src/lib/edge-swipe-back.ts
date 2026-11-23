@@ -22,7 +22,19 @@ const COMMIT_RATIO = 0.35;
 const FLICK_VELOCITY = 0.5;
 const FLICK_MIN_PX = 40;
 const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+/** The spring back to place; the page resets RESET_SLACK_MS after it ends. */
+const SPRING_MS = 280;
+const RESET_SLACK_MS = 20;
+/** The slide off-screen after a committed swipe; the navigation starts when it ends. */
+const SLIDE_OUT_MS = 200;
+/** Wait this long for the new page to land, then re-check every POLL_MS while a navigation is pending. */
 const SETTLE_MS = 1500;
+const POLL_MS = 300;
+
+/** The screen's "up" control (PageHeader's `data-edge-back`), which a committed swipe clicks. */
+const BACK_SELECTOR = '[data-edge-back]';
+/** An open bits-ui dialog or vaul drawer (BottomDrawer): no swipe while one is up. */
+const OVERLAY_SELECTOR = '[role="dialog"], [data-vaul-drawer]';
 
 const isStandalone = () =>
 	matchMedia('(display-mode: standalone)').matches ||
@@ -30,7 +42,7 @@ const isStandalone = () =>
 
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const dialogOpen = () => !!document.querySelector('[role="dialog"], [data-vaul-drawer]');
+const dialogOpen = () => !!document.querySelector(OVERLAY_SELECTOR);
 
 /** True when the touch starts on something that owns horizontal drags or text. */
 function ownsHorizontal(target: EventTarget | null) {
@@ -89,7 +101,7 @@ export function edgeSwipeBack(node: HTMLElement) {
 		if (e.touches.length !== 1 || restore) return;
 		const t = e.touches[0];
 		if (t.clientX > EDGE_PX || !isStandalone()) return;
-		const el = document.querySelector<HTMLElement>('[data-edge-back]');
+		const el = document.querySelector<HTMLElement>(BACK_SELECTOR);
 		if (!el || dialogOpen() || ownsHorizontal(e.target)) return;
 		if (!getSelection()?.isCollapsed) return;
 		backEl = el;
@@ -135,9 +147,9 @@ export function edgeSwipeBack(node: HTMLElement) {
 		if (raf) cancelAnimationFrame(raf);
 		raf = 0;
 		if (reducedMotion()) return reset();
-		node.style.transition = `transform 0.28s ${EASE}`;
+		node.style.transition = `transform ${SPRING_MS}ms ${EASE}`;
 		node.style.transform = 'translate3d(0,0,0)';
-		setTimeout(reset, 300);
+		setTimeout(reset, SPRING_MS + RESET_SLACK_MS);
 	}
 
 	function oncancel() {
@@ -164,7 +176,7 @@ export function edgeSwipeBack(node: HTMLElement) {
 		}
 		// Slide the rest of the way out, then navigate with the page transition suppressed (the
 		// finger already did it) and keep the page off-screen until the new one has landed.
-		node.style.transition = `transform 0.2s ${EASE}`;
+		node.style.transition = `transform ${SLIDE_OUT_MS}ms ${EASE}`;
 		node.style.transform = `translate3d(${innerWidth}px,0,0)`;
 		restore = reset;
 		setTimeout(() => {
@@ -172,11 +184,11 @@ export function edgeSwipeBack(node: HTMLElement) {
 			go.click();
 			const waitSettle = () => {
 				if (!restore) return;
-				if (navigating.to) settleTimer = setTimeout(waitSettle, 300);
+				if (navigating.to) settleTimer = setTimeout(waitSettle, POLL_MS);
 				else reset();
 			};
 			settleTimer = setTimeout(waitSettle, SETTLE_MS);
-		}, 200);
+		}, SLIDE_OUT_MS);
 	}
 
 	// On the document, not the node: the edge strip may sit outside `main`'s box.

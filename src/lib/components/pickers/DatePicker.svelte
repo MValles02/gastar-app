@@ -24,6 +24,7 @@
 		errorId,
 		presets = false,
 		nested = false,
+		onclosed,
 		plain = false
 	}: {
 		name: string;
@@ -40,6 +41,8 @@
 		presets?: boolean;
 		/** Opens the drawer stacked over the one this row is rendered in. */
 		nested?: boolean;
+		/** Runs once the drawer has finished closing. */
+		onclosed?: () => void;
 		/** With `presets`, the row still reads dd/mm/yyyy (no Hoy/Ayer); the drawer keeps its shortcuts. */
 		plain?: boolean;
 	} = $props();
@@ -112,7 +115,7 @@
 		<input type="hidden" {name} {value} bind:this={hidden} />
 		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
 	</div>
-	<BottomDrawer title={label} {nested} bind:open>
+	<BottomDrawer title={label} {nested} {onclosed} bind:open>
 		{#if presets}
 			<OptionList
 				items={shortcuts}

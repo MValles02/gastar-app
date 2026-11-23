@@ -2,7 +2,15 @@ import { redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import { notFoundHelpers } from '../guards';
 import { setupStepHref, wizardStep, type WizardStepName } from '#lib/plan-wizard.ts';
-import { currentPlan, planLimits, PlanRejected } from './queries';
+import { currentMonth } from '../month';
+import { getPlan, planLimits, PlanRejected } from './queries';
+import { isCurrentPlan } from './summary';
+
+/** The user's plan when it is the current one (a plan for another month counts as none). */
+export async function currentPlan(userId: string) {
+	const [plan] = await getPlan(userId);
+	return plan && isCurrentPlan(plan, currentMonth(new Date())) ? plan : null;
+}
 
 export function toPlan(): never {
 	redirect(303, '/plan');

@@ -6,6 +6,7 @@
 	import Money from '#lib/components/Money.svelte';
 	import * as Item from '#lib/components/ui/item/index.js';
 	import type { Currency } from '#lib/money.ts';
+	import { archived } from '#lib/movement.ts';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import OptionList from './OptionList.svelte';
 	import { commitPick } from './pick.ts';
@@ -35,6 +36,7 @@
 		errorId,
 		excludeId,
 		nested = false,
+		onclosed,
 		extra
 	}: {
 		name: string;
@@ -49,6 +51,8 @@
 		excludeId?: string;
 		/** Opens the list as a drawer stacked over the one this picker is rendered in. */
 		nested?: boolean;
+		/** Runs once the list drawer has finished closing. */
+		onclosed?: () => void;
 		/** Extra last row of the list; gets a function that closes it. */
 		extra?: Snippet<[() => void]>;
 	} = $props();
@@ -56,7 +60,7 @@
 	const mounted = hydrated();
 	let open = $state(false);
 	let trigger: HTMLButtonElement | null = $state(null);
-	let list: HTMLElement | null = $state(null);
+	let list: ReturnType<typeof OptionList<Item>> | undefined = $state();
 	let hidden: HTMLInputElement | null = $state(null);
 	const labelId = $props.id();
 
@@ -64,19 +68,15 @@
 	// An empty value is the "none" placeholder: never shows an icon, even if an item has id ''.
 	const selected = $derived(value ? visible.find((item) => item.id === value) : undefined);
 
-	async function openSheet() {
+	/** Opens the list (a parent can ask for it, e.g. when a field is still missing). */
+	export async function openSheet() {
 		open = true;
 		await tick();
-		const target =
-			list?.querySelector<HTMLElement>('[aria-pressed="true"]') ??
-			list?.querySelector<HTMLElement>('button');
-		target?.focus();
+		list?.focusPicked();
 	}
 
 	const meta = (item: Item) =>
-		item.meta || item.archived
-			? `${item.meta ?? ''}${item.archived ? ' · Archivada' : ''}`
-			: undefined;
+		item.meta || item.archived ? archived(item.meta ?? '', !!item.archived) : undefined;
 
 	const choose = (item: Item) =>
 		commitPick({
@@ -136,7 +136,7 @@
 		<input type="hidden" {name} {value} disabled={!value} bind:this={hidden} />
 		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
 	</div>
-	<BottomDrawer {title} {nested} bind:open>
+	<BottomDrawer {title} {nested} {onclosed} bind:open>
 		<OptionList
 			items={visible}
 			key={(item) => item.id}
@@ -148,7 +148,7 @@
 			media={badge}
 			end={balance}
 			arrowKeys
-			bind:ref={list}
+			bind:this={list}
 		/>
 		{#if extra}{@render extra(() => (open = false))}{/if}
 	</BottomDrawer>

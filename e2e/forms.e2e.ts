@@ -1,5 +1,5 @@
 import { expect, test, type Locator } from '@playwright/test';
-import { login, OTHER_EMAIL, postDelete, undo } from './helpers';
+import { login, OTHER_EMAIL, postDelete, undo, gotoHydrated, waitForHydration } from './helpers';
 
 // Created accounts (detail URLs) are removed in afterEach. Runs as otro so the demo user's totals stay untouched.
 const createdAccounts: string[] = [];
@@ -16,7 +16,7 @@ test('an account name autosaves, survives a reload and Deshacer restores it', as
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
 	createdAccounts.push(page.url());
-	await page.waitForLoadState('networkidle'); // hydration guard: the inline edits need JS
+	await waitForHydration(page);
 
 	const h1 = page.getByRole('heading', { level: 1 });
 	await page.getByRole('button', { name: `Nombre: ${name}` }).click();
@@ -25,7 +25,7 @@ test('an account name autosaves, survives a reload and Deshacer restores it', as
 	await expect(page.getByText('Cambio guardado.')).toBeVisible();
 	await page.reload();
 	await expect(h1).toHaveText(`${name} 2`);
-	await page.waitForLoadState('networkidle'); // hydration guard: the toast needs JS
+	await waitForHydration(page);
 	await page.getByRole('button', { name: `Nombre: ${name} 2` }).click();
 	await page.getByLabel('Nombre').fill(name);
 	await page.keyboard.press('Enter');
@@ -66,8 +66,7 @@ test('an account without movements can be archived or deleted', async ({ page })
 	createdAccounts.push(url);
 
 	await expect(page.getByRole('button', { name: 'Archivar' })).toBeVisible();
-	await page.goto(url);
-	await page.waitForLoadState('networkidle'); // hydration guard: the confirm dialog needs JS
+	await gotoHydrated(page, url);
 	await page.getByRole('button', { name: 'Eliminar' }).click();
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
 	await expect(page).toHaveURL(/\/accounts$/);
@@ -90,7 +89,7 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 
 	/** How many times the new-movement account picker offers the account. */
 	const offered = async () => {
-		await page.goto('/movements/new', { waitUntil: 'networkidle' }); // hydration guard: the picker needs JS
+		await gotoHydrated(page, '/movements/new');
 		await page.getByRole('button', { name: /^Cuenta/ }).click();
 		const dialog = page.getByRole('dialog').last();
 		await expect(dialog).toBeVisible();
@@ -98,7 +97,7 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 	};
 	expect(await offered()).toBe(1);
 
-	await page.goto(url, { waitUntil: 'networkidle' }); // hydration guard: the archive form is enhanced
+	await gotoHydrated(page, url);
 	await page.getByRole('button', { name: 'Archivar' }).click();
 	await expect(page.getByText('No aparece al registrar movimientos.')).toBeVisible();
 	await expect(page).toHaveURL(url);
@@ -125,7 +124,7 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 	let sum = 0;
 	for (const amount of await active.all()) sum += await cents(amount);
 	expect(await cents(group.locator('.group-total'))).toBe(sum);
-	await page.goto(url, { waitUntil: 'networkidle' }); // hydration guard: the unarchive form is enhanced
+	await gotoHydrated(page, url);
 	await page.getByRole('button', { name: 'Desarchivar' }).click();
 	await expect(page.getByRole('button', { name: 'Archivar', exact: true })).toBeVisible();
 	expect(await offered()).toBe(1);

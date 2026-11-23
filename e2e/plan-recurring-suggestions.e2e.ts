@@ -7,7 +7,8 @@ import {
 	post,
 	rule,
 	savedId,
-	signUpVerified
+	signUpVerified,
+	gotoHydrated
 } from './helpers';
 
 // Rules of the "Detectamos que se repiten" list (recurringCandidates + recurringSuggestions). Each
@@ -15,7 +16,6 @@ import {
 // and of the seed. Not covered here (the app cannot create such rows, so no E2E can arrange them): an
 // outcome without a category (DB check), an outcome in an income-only category (kind lock) and
 // descriptions that differ only by surrounding whitespace (both forms trim on save).
-test.describe.configure({ timeout: 90_000 });
 
 const password = 'e2e-pass-1234';
 const ids = { account: '', usd: '', archived: '', food: '', both: '' };
@@ -169,7 +169,7 @@ test('grouping is case-insensitive, any category kind is suggested, the amount a
 	await expect(row(page, 'Mixta sug e2e')).toHaveCount(1);
 	await expect(row(page, 'Suma sug e2e')).toContainText('15.000');
 
-	await page.goto('/plan/setup?step=2', { waitUntil: 'networkidle' }); // hydration guard: the drawer needs JS
+	await gotoHydrated(page, '/plan/setup?step=2');
 	await row(page, 'Suma sug e2e').click();
 	const drawer = page.getByRole('dialog', { name: 'Nuevo pago fijo' });
 	await expect(drawer.locator('input[name="description"]')).toHaveValue('Suma sug e2e');

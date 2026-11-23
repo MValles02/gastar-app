@@ -11,7 +11,6 @@ import {
 
 // Every test that writes runs as `otro` (ARS account "Otra cuenta pesos", category "Ajena"): no other spec
 // reads his ARS totals, so parallel workers stay independent.
-test.describe.configure({ timeout: 60_000 });
 
 const checkbox = (page: Page) => page.getByRole('switch', { name: 'Repetir todos los meses' });
 /** A uniquely described ARS outcome as `otro`, filled but not submitted. */
@@ -95,7 +94,7 @@ test('a transfer hides the switch and never creates a rule', async ({ page, base
 			await page.getByRole('button', { name: new RegExp(legend) }).click();
 			const value = await page
 				.getByRole('dialog')
-				.locator('button.opt', { hasText: label })
+				.locator('[data-option-row]', { hasText: label })
 				.getAttribute('data-value');
 			await page.keyboard.press('Escape');
 			return value;

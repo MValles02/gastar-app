@@ -12,9 +12,13 @@ import {
 	postDelete,
 	reviewDrawer,
 	SEED_EMAIL,
-	withDb
+	SYNC_WAIT,
+	userIdOf,
+	withDb,
+	gotoHydrated,
+	waitForHydration
 } from './helpers';
-import { AR_OFFSET_MS, arDaysAgo, DAY_MS, FAKE_MP } from './fakes.js';
+import { appDay, arDaysAgo, DAY_MS, FAKE_MP } from './fakes.js';
 
 const BEARER_RE = /^Bearer APP_USR-fake-\d+$/;
 const MP_PATH = '/profile/mercado-pago';
@@ -49,8 +53,7 @@ const SYNCED = /^(Listo\.|Recién|Hace )/;
 
 /** Clicks "Sincronizar" and reloads until the run is over (the lease is taken before the redirect). */
 async function syncNow(expected = SYNCED) {
-	await page.goto('/imports');
-	await page.waitForLoadState('networkidle'); // hydration guard: the sync button is progressively enhanced
+	await gotoHydrated(page, '/imports');
 	// Wait for the action: once it answers, the lease is held and stale statuses can't match.
 	await Promise.all([
 		page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/imports')),
@@ -59,7 +62,7 @@ async function syncNow(expected = SYNCED) {
 	await expect(async () => {
 		await page.reload();
 		await expect(page.getByRole('status')).toHaveText(expected);
-	}).toPass({ timeout: 30_000, intervals: [300, 500, 1000] });
+	}).toPass(SYNC_WAIT);
 }
 
 /** Links Mercado Pago through the UI (fake OAuth) and picks the receiving account. */
@@ -67,7 +70,7 @@ async function link(p: Page, accountName: string) {
 	await p.goto(MP_PATH);
 	await p.getByRole('button', { name: 'Vincular Mercado Pago' }).click();
 	await expect(p).toHaveURL(/\/profile\/mercado-pago\?linked=1$/);
-	await p.waitForLoadState('networkidle'); // hydration guard: the account picker saves through JS
+	await waitForHydration(p);
 	await pick(p, 'Entra en', accountName);
 	await expect(p.getByRole('button', { name: /Entra en/ })).toContainText(accountName);
 }
@@ -124,7 +127,6 @@ test.afterAll(async () => {
 });
 
 test('sync fills the inbox and leaves balances alone', async () => {
-	test.setTimeout(90_000);
 	const balance = await accountRow();
 	const main = page.locator('main');
 
@@ -181,7 +183,7 @@ test('sync fills the inbox and leaves balances alone', async () => {
 	// A day whose losses outweigh its gains is one debit yield (12,34 + 5,02 - 20,00 = -2,64).
 	const yields = await withDb(
 		(sql) => sql`select external_key, amount::int as amount, is_credit from mp_import_items
-			where user_id = (select id from "user" where email = ${IMPORT_EMAIL})
+			where user_id = ${userIdOf(sql, IMPORT_EMAIL)}
 			and kind = 'yield' order by external_key`
 	);
 	expect(yields.map((y) => [y.external_key, y.amount, y.is_credit])).toEqual([
@@ -190,7 +192,7 @@ test('sync fills the inbox and leaves balances alone', async () => {
 	]);
 	const payouts = await withDb(
 		(sql) => sql`select external_key, kind from mp_import_items
-			where user_id = (select id from "user" where email = ${IMPORT_EMAIL})
+			where user_id = ${userIdOf(sql, IMPORT_EMAIL)}
 			and kind in ('payout', 'merchant_payout') order by external_key`
 	);
 	expect(payouts.map((p) => [p.external_key, p.kind])).toEqual([
@@ -219,7 +221,6 @@ test('a second sync searches from the last payment and keeps the same items', as
 });
 
 test('a sync that times out in MP queue is retried on the same report, not a new one', async () => {
-	test.setTimeout(60_000);
 	const before = await reportRequests();
 	// Ready 8s after its creation: past the 5s report wait of the first sync, before the second one ends.
 	await fake('/__fake/report-delay', { ms: 8_000 });
@@ -310,18 +311,16 @@ test('a remembered rule suggests the category for the next item', async () => {
 });
 
 test('a sync auto-approves recognized items, and one undone stays for review on the next sync', async () => {
-	test.setTimeout(90_000);
 	const before = await balanceOf('Mercado Pago');
 	const status = page.getByRole('status');
 	// A short report wait keeps the run visible, so the page itself shows how it ended.
 	await fake('/__fake/report-delay', { ms: 3_000 });
 	try {
-		await page.goto('/imports');
-		await page.waitForLoadState('networkidle'); // hydration guard: live progress needs JS
+		await gotoHydrated(page, '/imports');
 		await page.getByRole('button', { name: 'Sincronizar' }).click();
 		await expect(status).toContainText('Sincronizando');
 		await expect(status).toHaveText(/^Listo\. .*, 1 aprobado automáticamente\.$/, {
-			timeout: 40_000
+			timeout: SYNC_WAIT.timeout
 		});
 	} finally {
 		await fake('/__fake/report-delay', { ms: 0 });
@@ -337,7 +336,7 @@ test('a sync auto-approves recognized items, and one undone stays for review on 
 	await page.goto('/imports');
 	await page.getByRole('link', { name: /1 aprobado automáticamente/ }).click();
 	await expect(page).toHaveURL(/\/imports\/auto$/);
-	await page.waitForLoadState('networkidle'); // hydration guard: Deshacer answers with a toast
+	await waitForHydration(page);
 	const auto = page.getByRole('listitem').filter({ hasText: 'FAKE AMIGA' });
 	await expect(auto).toContainText(CATEGORY);
 	await auto.getByRole('button', { name: /Deshacer/ }).click();
@@ -409,26 +408,25 @@ test('approving without remembering leaves the other yield unsuggested', async (
 const amigaItem = () =>
 	withDb(async (sql) => {
 		const [item] = await sql`select id, status, movement_id from mp_import_items
-			where user_id = (select id from "user" where email = ${IMPORT_EMAIL})
+			where user_id = ${userIdOf(sql, IMPORT_EMAIL)}
 			and counterparty_nickname ilike '%FAKE AMIGA%' and amount = 80050`;
 		const [m] = await sql`select count(*)::int as n from movements
 			where description = ${AMIGA_DESC}
-			and user_id = (select id from "user" where email = ${IMPORT_EMAIL})`;
+			and user_id = ${userIdOf(sql, IMPORT_EMAIL)}`;
 		return { status: item.status as string, movementId: item.movement_id as string | null, n: m.n };
 	});
 
 const amigaItemId = () =>
 	withDb(async (sql) => {
 		const [item] = await sql`select id from mp_import_items
-			where user_id = (select id from "user" where email = ${IMPORT_EMAIL})
+			where user_id = ${userIdOf(sql, IMPORT_EMAIL)}
 			and counterparty_nickname ilike '%FAKE AMIGA%' and amount = 80050`;
 		return item.id as string;
 	});
 
 /** Quick "Aprobar" on the suggested FAKE AMIGA row; the Deshacer toast stays up. */
 async function quickApprove() {
-	await page.goto('/imports');
-	await page.waitForLoadState('networkidle'); // hydration guard: the quick approve is progressively enhanced
+	await gotoHydrated(page, '/imports');
 	await rows().filter({ hasText: 'FAKE AMIGA' }).getByRole('button', { name: 'Aprobar' }).click();
 	await flash('Movimiento aprobado.');
 	await expect(rows().filter({ hasText: 'FAKE AMIGA' })).toHaveCount(0);
@@ -489,8 +487,7 @@ test('Deshacer of a quick approve fails and keeps everything when the movement w
 
 test('bulk approve creates the suggested movements with exact amounts', async () => {
 	const before = await balanceOf('Mercado Pago');
-	await page.goto('/imports');
-	await page.waitForLoadState('networkidle'); // hydration guard: the bulk confirm dialog needs JS
+	await gotoHydrated(page, '/imports');
 	await page.getByRole('button', { name: 'Aprobar 1 sugerido' }).click();
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Aprobar' }).click();
 	await flash('Se aprobó 1 movimiento.');
@@ -527,8 +524,7 @@ const reportBegins = async () => (await (await fake('/__fake/report-begins')).js
 
 /** Sets "Importar desde" to `ymd` in Vinculaciones; the picker saves on its own. */
 async function importFrom(ymd: string) {
-	await page.goto(LINKS_PATH);
-	await page.waitForLoadState('networkidle'); // hydration guard: the date picker is JS-only
+	await gotoHydrated(page, LINKS_PATH);
 	await pickDate(page, 'Importar desde', ymd);
 	await expect(page.getByText('Cambio guardado.')).toBeVisible();
 }
@@ -537,7 +533,7 @@ const lastRunAt = () =>
 	withDb(async (sql) => {
 		const [r] = await sql`select last_run_at from mp_sync_state
 			where account_id = (select account_id from mp_connections
-				where user_id = (select id from "user" where email = ${IMPORT_EMAIL}))`;
+				where user_id = ${userIdOf(sql, IMPORT_EMAIL)})`;
 		return (r.last_run_at as Date).getTime();
 	});
 
@@ -545,9 +541,7 @@ const lastRunAt = () =>
 async function untilRun(start: () => Promise<unknown>) {
 	const prev = await lastRunAt();
 	await start();
-	await expect
-		.poll(lastRunAt, { timeout: 30_000, intervals: [300, 500, 1000] })
-		.toBeGreaterThan(prev);
+	await expect.poll(lastRunAt, SYNC_WAIT).toBeGreaterThan(prev);
 }
 
 test('moving "Importar desde" earlier searches from the chosen date and never changes approved or rejected items', async () => {
@@ -558,7 +552,7 @@ test('moving "Importar desde" earlier searches from the chosen date and never ch
 	// Drop the pending items so the backfill visibly brings them back.
 	await withDb(
 		(sql) => sql`delete from mp_import_items where status = 'pending'
-		and user_id = (select id from "user" where email = ${IMPORT_EMAIL})`
+		and user_id = ${userIdOf(sql, IMPORT_EMAIL)}`
 	);
 
 	await untilRun(() => importFrom(from));
@@ -569,7 +563,7 @@ test('moving "Importar desde" earlier searches from the chosen date and never ch
 	expect(await findMovements(page, AMIGA_DESC)).toHaveLength(approvedBefore);
 
 	const begin = (await searchBegins())[searchesBefore];
-	expect(new Date(begin - AR_OFFSET_MS).toISOString().slice(0, 10)).toBe(from);
+	expect(appDay(begin)).toBe(from);
 	// Reports go in 31-day chunks: the first starts on the chosen local day (03:00Z).
 	expect((await reportBegins())[reportsBefore]).toBe(`${from}T03:00:00Z`);
 
@@ -595,14 +589,13 @@ test('moving "Importar desde" later removes older pending items and the next syn
 	await expect(async () => {
 		await page.goto('/imports');
 		await expect(rows()).toHaveCount(0);
-	}).toPass({ timeout: 15_000 });
+	}).toPass(SYNC_WAIT);
 	expect(await findMovements(page, AMIGA_DESC)).toHaveLength(approvedBefore);
 
 	const searches = (await searchBegins()).length;
 	const reports = (await reportBegins()).length;
 	await untilRun(async () => {
-		await page.goto('/imports');
-		await page.waitForLoadState('networkidle'); // hydration guard: the sync button is progressively enhanced
+		await gotoHydrated(page, '/imports');
 		await page.getByRole('button', { name: 'Sincronizar' }).click();
 	});
 	expect((await searchBegins()).slice(searches).every((b) => b >= todayStart)).toBe(true);
@@ -709,7 +702,7 @@ test('a revoked connection asks to reconnect in Perfil and in the inbox', async 
 	await expect(async () => {
 		await page.reload();
 		await expect(page.getByRole('link', { name: 'Reconectar' })).toBeVisible();
-	}).toPass({ timeout: 30_000, intervals: [300, 500, 1000] });
+	}).toPass(SYNC_WAIT);
 	await expect(page.getByRole('button', { name: 'Sincronizar' })).toHaveCount(0);
 	await expect(page.getByRole('status')).toContainText('volver a vincular');
 	// The items already imported stay listed.
@@ -725,15 +718,14 @@ test('another user links their own account and sees only their own inbox', async
 	const { ctx, p } = await asUser(browser, OTHER_EMAIL);
 	try {
 		await link(p, 'Otra cuenta pesos');
-		await p.goto('/imports');
-		await p.waitForLoadState('networkidle'); // hydration guard: the sync button is progressively enhanced
+		await gotoHydrated(p, '/imports');
 		await Promise.all([
 			p.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/imports')),
 			p.getByRole('button', { name: 'Sincronizar' }).click()
 		]);
 		const theirs = p.locator('[data-slot="item-group"] [role="listitem"]');
 		// Their own full import (the fake serves the same payments), not the importer's current inbox.
-		await expect(theirs).toHaveCount(8, { timeout: 30_000 });
+		await expect(theirs).toHaveCount(8, { timeout: SYNC_WAIT.timeout });
 		expect((await p.goto(`/imports/${pendingId}`))!.status()).toBe(404);
 	} finally {
 		// Leave `otro` as the other specs expect: no items, no connection.
@@ -755,7 +747,7 @@ async function otherSync(browser: Browser, expected: RegExp) {
 		await expect(async () => {
 			await p.reload();
 			await expect(p.getByRole('status')).toHaveText(expected);
-		}).toPass({ timeout: 30_000, intervals: [300, 500, 1000] });
+		}).toPass(SYNC_WAIT);
 		return await p.locator('[data-slot="item-group"] [role="listitem"]').count();
 	} finally {
 		await p.request.post('/dev/mp-reset', { headers: { origin } });
@@ -801,8 +793,7 @@ test('an account without a release report configuration gets one created and syn
 });
 
 test('disconnecting removes the link and the inbox keeps only the pending items', async () => {
-	await page.goto(MP_PATH);
-	await page.waitForLoadState('networkidle'); // hydration guard: the disconnect confirm dialog needs JS
+	await gotoHydrated(page, MP_PATH);
 	await page.getByRole('button', { name: 'Desvincular' }).click();
 	await expect(page.getByRole('alertdialog')).toContainText('revocar el acceso');
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Desvincular' }).click();

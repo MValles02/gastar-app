@@ -15,6 +15,7 @@ import * as schema from './db/schema';
 
 /** Base URL for links in emails when BETTER_AUTH_URL is unset (local dev). */
 const DEV_BASE_URL = 'http://localhost:5173';
+const APP_ORIGIN = new URL(env.BETTER_AUTH_URL ?? DEV_BASE_URL).origin;
 
 // Better Auth takes seconds. The email copy in auth-emails.ts states the token lifetimes.
 const MINUTE = 60;
@@ -32,7 +33,12 @@ export const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_S
  */
 async function googleProfile({ idToken }: { idToken?: string }) {
 	if (!idToken) return null;
-	const claims = JSON.parse(Buffer.from(idToken.split('.')[1] ?? '', 'base64url').toString());
+	let claims;
+	try {
+		claims = JSON.parse(Buffer.from(idToken.split('.')[1] ?? '', 'base64url').toString());
+	} catch {
+		return null;
+	}
 	if (claims.email_verified !== true || typeof claims.email !== 'string') return null;
 	const name = typeof claims.name === 'string' ? claims.name.trim() : '';
 	return {
@@ -59,9 +65,8 @@ export const auth = betterAuth({
 			void sendEmail({ to: user.email, link: url, ...resetPassword(user.name, url) });
 		},
 		onExistingUserSignUp: async ({ user }) => {
-			const origin = new URL(env.BETTER_AUTH_URL ?? DEV_BASE_URL).origin;
-			const login = `${origin}/login`;
-			const forgot = `${origin}/forgot-password`;
+			const login = `${APP_ORIGIN}/login`;
+			const forgot = `${APP_ORIGIN}/forgot-password`;
 			// Not awaited: same timing side-channel reason as sendResetPassword.
 			void sendEmail({
 				to: user.email,
@@ -89,9 +94,10 @@ export const auth = betterAuth({
 		}
 	},
 	// State errors (lost or mismatched cookie) end on /login like the other Google errors.
-	onAPIError: { errorURL: `${new URL(env.BETTER_AUTH_URL ?? DEV_BASE_URL).origin}/login` },
+	onAPIError: { errorURL: `${APP_ORIGIN}/login` },
 	logger: { level: 'warn' },
 	secret: env.BETTER_AUTH_SECRET,
+	// No DEV_BASE_URL fallback on purpose: unset (dev), Better Auth infers the base URL from the request.
 	baseURL: env.BETTER_AUTH_URL,
 	advanced: { ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] } },
 	// ponytail: in-memory, single instance; move to DB/Redis if the app is scaled out

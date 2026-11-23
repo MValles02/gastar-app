@@ -21,7 +21,8 @@
 		eyebrow,
 		back,
 		close,
-		action
+		action,
+		ref = $bindable()
 	}: {
 		title: string;
 		eyebrow?: string;
@@ -30,6 +31,8 @@
 		close?: { href: string; label: string };
 		/** `back` or `close` header only: a pill action at the right end (e.g. "Agregar"). */
 		action?: Snippet;
+		/** The `<header>` element, for a page that measures it (bind:ref). */
+		ref?: HTMLElement;
 	} = $props();
 
 	/** Larger alert counts show as "9+". */
@@ -38,12 +41,12 @@
 	const full = $derived(!back && !close);
 
 	// From the (app) layout load; missing only if that load failed (error page).
-	const header = $derived(page.data.header as { date: string; initials: string } | undefined);
-	const alertCount = $derived((page.data.alertCount as number | undefined) ?? 0);
+	const header = $derived(page.data.header);
+	const alertCount = $derived(page.data.alertCount ?? 0);
 	const kicker = $derived(eyebrow ?? header?.date);
 </script>
 
-<header class="top-bar" class:stacked={back && !close}>
+<header bind:this={ref} class="top-bar" class:stacked={back && !close}>
 	{#if close}
 		<Button
 			class="-ml-2"

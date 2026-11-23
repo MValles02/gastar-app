@@ -7,8 +7,16 @@ import {
 	toSavingsUnit
 } from '#lib/plan.ts';
 import { str } from '../forms';
+import { listRecurring } from '../recurring/queries';
+import { currentPlan } from './guard';
 import { savingsBaseline } from './month-plan';
-import { currentPlan, planIncome, updatePlan, upsertPlan } from './queries';
+import { planRate, updatePlan, upsertPlan } from './queries';
+import { recurringIncomeInPesos } from './summary';
+
+async function planIncome(userId: string) {
+	const [rules, rate] = await Promise.all([listRecurring(userId), planRate(userId)]);
+	return recurringIncomeInPesos(rules, rate.value);
+}
 
 function parseSavingsForm(fd: FormData, income: number, currency: Currency) {
 	return readSavings(

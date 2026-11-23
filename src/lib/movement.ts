@@ -14,6 +14,12 @@ export type MovementType = (typeof MOVEMENT_TYPES)[number];
 export const CATEGORY_KINDS = ['outcome', 'income'] as const;
 export type CategoryKind = (typeof CATEGORY_KINDS)[number];
 
+/** The label of an archived account or category (both nouns are feminine, so one form fits both). */
+export const ARCHIVED_LABEL = 'Archivada';
+
+/** A picker label: the name, marked when the account or category is archived. */
+export const archived = (name: string, is: boolean) => (is ? `${name} · ${ARCHIVED_LABEL}` : name);
+
 /** Whether a category of `kind` can hold a movement of `type`. */
 export const kindFits = (kind: string | null, type: string) => (kind ?? type) === type;
 
