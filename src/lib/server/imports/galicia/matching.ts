@@ -25,6 +25,9 @@ export const INSTALLMENT_TOTAL_TOLERANCE_PCT = 1;
 /** Uploaded statements (closing after the alert) an alert survives before "No apareció en el resumen". */
 export const UNMATCHED_AFTER_STATEMENTS = 2;
 
+/** The alert kinds a statement line can match; alerts of any other kind never show as unmatched. */
+export const MATCHABLE_ALERT_KINDS = [KIND.cardPurchase];
+
 const dayNumber = (ymd: string) => Date.parse(`${ymd}T00:00:00Z`) / DAY_MS;
 const shiftDay = (ymd: string, days: number) =>
 	new Date((dayNumber(ymd) + days) * DAY_MS).toISOString().slice(0, 10);
@@ -178,7 +181,7 @@ export async function matchStatement(
 					canAccessAccount(userId),
 					eq(importItems.source, source),
 					like(importItems.externalKey, ALERT_KEYS),
-					eq(importItems.kind, KIND.cardPurchase),
+					inArray(importItems.kind, MATCHABLE_ALERT_KINDS),
 					// A reversal's credit item is money back, never the purchase a statement line stands for.
 					eq(importItems.isCredit, false),
 					isNull(importItems.aliasKey),
