@@ -7,7 +7,7 @@ import {
 	planCategoryLimits,
 	spendingPlans
 } from '../db/schema';
-import { exists, inRange, type Range } from '../db/sql';
+import { exists, inRange, localDate, type Range } from '../db/sql';
 import { canAccessMovement, canAccessOwn, userOwned } from '../access';
 import type { Currency } from '#lib/money.ts';
 import { PLAN_CURRENCY, type PlanSavings } from '#lib/plan.ts';
@@ -114,6 +114,21 @@ export function monthOutcomes(userId: string, range: Range) {
 		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
 		.where(and(canAccessMovement(userId), eq(movements.type, 'outcome'), inRange(range)))
 		.groupBy(financialAccounts.currency, movements.categoryId, movements.recurringId);
+}
+
+/** `monthOutcomes` split by local day (YYYY-MM-DD), for the month's spending curve. */
+export function monthOutcomesByDay(userId: string, range: Range) {
+	return db
+		.select({
+			currency: financialAccounts.currency,
+			recurringId: movements.recurringId,
+			day: localDate,
+			amount: sql<number>`coalesce(sum(${movements.amount}), 0)`.mapWith(Number)
+		})
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.where(and(canAccessMovement(userId), eq(movements.type, 'outcome'), inRange(range)))
+		.groupBy(financialAccounts.currency, movements.recurringId, localDate);
 }
 
 export class PlanRejected extends Error {}

@@ -16,6 +16,8 @@
 	import HeroAmount from '#lib/components/HeroAmount.svelte';
 	import MovementRow from '#lib/components/movements/MovementRow.svelte';
 	import MpPill from './MpPill.svelte';
+	import PaceChart from '#lib/components/PaceChart.svelte';
+	import UpcomingBills from './UpcomingBills.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import { PLAN_TONE } from '#lib/plan.ts';
@@ -76,6 +78,16 @@
 									? 'queda 1 día'
 									: `quedan ${s.daysLeft} días`}
 							</p>
+							{#if data.plan.pace}
+								<PaceChart
+									points={data.plan.pace.points}
+									days={data.plan.pace.days}
+									budget={data.plan.pace.budget}
+								/>
+								<div class="pace-tag">
+									<StatusPill tone={data.plan.pace.tag.tone} label={data.plan.pace.tag.label} />
+								</div>
+							{/if}
 						</div>
 						<div class="cols">
 							<div class="col">
@@ -109,6 +121,10 @@
 					{/if}
 				</Card.Root>
 			</section>
+
+			{#if data.bills}
+				<UpcomingBills bills={data.bills} currency={data.currency} monthName={data.monthName} />
+			{/if}
 
 			{#if data.recent.length > 0}
 				<section aria-labelledby="categories-heading">
@@ -260,6 +276,11 @@
 
 	.per-day {
 		font-size: var(--font-size-sm);
+	}
+
+	.pace-tag {
+		display: flex;
+		justify-content: flex-end;
 	}
 
 	.per-day .net {
