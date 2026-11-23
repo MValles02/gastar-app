@@ -116,7 +116,6 @@ test.describe('account changes', () => {
 	});
 
 	test('delete account removes the user and all their data', async ({ page }) => {
-		test.setTimeout(90_000);
 		await signIn(page);
 
 		// Data in every table with a user FK that a fresh user can create cheaply.

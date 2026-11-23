@@ -18,7 +18,7 @@ import {
 
 // Everything runs as one freshly signed-up user, so no other spec (and no demo-user month total) is
 // disturbed. Tests are serial: each leaves the plan the next one expects (see the order below).
-test.describe.configure({ mode: 'serial', timeout: 90_000 });
+test.describe.configure({ mode: 'serial' });
 
 const password = 'e2e-pass-1234';
 const ids = { account: '', food: '', gym: '', salary: '' };

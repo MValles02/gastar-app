@@ -18,7 +18,7 @@ import {
 
 // Fixed payments link to imported charges: by description (amount follows the charge) and by an explicit,
 // remembered choice. One fresh user; the rules and the Galicia connection are created in beforeAll.
-test.describe.configure({ mode: 'serial', timeout: 90_000 });
+test.describe.configure({ mode: 'serial' });
 
 let page: Page;
 

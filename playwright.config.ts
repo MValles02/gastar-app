@@ -17,6 +17,9 @@ export default defineConfig({
 	// writers use the seeded `otro` user, so a spec that asserts exact figures uses data no other
 	// file writes, or its own `signUpVerified` user.
 	fullyParallel: false,
+	// One per-test budget for the whole suite (Playwright's 30s default is too short for the multi-page
+	// plan flows and MP syncs on 2-vCPU CI runners); specs don't override it. Hooks get the same budget.
+	timeout: 90_000,
 	// CI runners for this private repo have 2 vCPUs, so Playwright's default (half the cores)
 	// would run every spec on a single worker. Measured: 3 workers 337/376s, 2 workers
 	// 373/502/412s; 4 overloaded the runner and tripped test timeouts.

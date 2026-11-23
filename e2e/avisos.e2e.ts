@@ -11,7 +11,6 @@ import {
 
 // Every test that writes runs as `otro` (ARS account "Otra cuenta pesos", category "Ajena"). Other specs
 // change his data too, so every assertion is about one uniquely named row, never a count.
-test.describe.configure({ timeout: 60_000 });
 
 const alertRow = (page: Page, text: string) => page.getByRole('listitem').filter({ hasText: text });
 

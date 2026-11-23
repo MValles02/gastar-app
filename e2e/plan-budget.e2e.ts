@@ -25,7 +25,6 @@ const NOT_OFFERED = 'Elegí una categoría.';
 let cookies: Cookie[] = [];
 
 test.beforeAll(async ({ browser, baseURL }) => {
-	test.setTimeout(90_000);
 	const context = await browser.newContext({ baseURL });
 	try {
 		const page = await context.newPage();
