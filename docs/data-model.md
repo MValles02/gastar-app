@@ -286,7 +286,7 @@ One row per user who linked Mercado Pago (OAuth).
 | `refresh_token` | text, nullable | encrypted; null when MP grants no `offline_access` |
 | `expires_at` | timestamptz | |
 | `needs_reconnect` | boolean | default false |
-| `import_from` | timestamptz, nullable | legacy: no longer read or written (`import_settings.import_from` replaced it); dropped in a later release |
+| `import_from` | timestamptz, nullable | no longer declared in the schema; dropped by the next migration after production runs this release (`import_settings.import_from` replaced it) |
 | `created_at`, `updated_at` | timestamptz | |
 
 Encryption: tokens are AES-256-GCM ciphertext, `v1:` + base64(iv(12) | tag(16) | ct), with AAD = `user_id`, keyed by `MP_TOKEN_KEY`. They are never logged or sent to the client.

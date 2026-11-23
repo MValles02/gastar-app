@@ -481,8 +481,6 @@ export const mpConnections = pgTable('mp_connections', {
 	refreshToken: text('refresh_token'),
 	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
 	needsReconnect: boolean('needs_reconnect').default(false).notNull(),
-	// Legacy: no longer read or written (import_settings.import_from replaced it); dropped in a later release.
-	importFrom: timestamp('import_from', { withTimezone: true }),
 	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp('updated_at', { withTimezone: true })
 		.defaultNow()
