@@ -218,6 +218,20 @@
       "when": 1795183083932,
       "tag": "0030_legal_vance_astro",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1795401688770,
+      "tag": "0031_copy_mp_import_from_again",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1795401693357,
+      "tag": "0032_drop_deprecated_columns",
+      "breakpoints": true
     }
   ]
 }
