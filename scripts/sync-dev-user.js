@@ -14,8 +14,8 @@ const TABLES = [
 	['movements', 'user_id'],
 	['spending_plans', 'user_id'],
 	['plan_category_limits', null],
-	['mp_import_rules', 'user_id'],
-	['mp_import_items', 'user_id'],
+	['import_rules', 'user_id'],
+	['import_items', 'user_id'],
 	['card_statements', 'user_id'],
 	['import_cards', 'user_id'],
 	['card_alerts', 'user_id'],
@@ -31,14 +31,14 @@ const FKS = [
 	['movements', 'recurring_id', 'recurring_movements'],
 	['plan_category_limits', 'plan_id', 'spending_plans'],
 	['plan_category_limits', 'category_id', 'categories'],
-	['mp_import_rules', 'category_id', 'categories'],
-	['mp_import_rules', 'counter_account_id', 'financial_accounts'],
-	['mp_import_rules', 'recurring_id', 'recurring_movements'],
-	['mp_import_items', 'account_id', 'financial_accounts'],
-	['mp_import_items', 'movement_id', 'movements'],
+	['import_rules', 'category_id', 'categories'],
+	['import_rules', 'counter_account_id', 'financial_accounts'],
+	['import_rules', 'recurring_id', 'recurring_movements'],
+	['import_items', 'account_id', 'financial_accounts'],
+	['import_items', 'movement_id', 'movements'],
 	['import_cards', 'ars_account_id', 'financial_accounts'],
 	['import_cards', 'usd_account_id', 'financial_accounts'],
-	['card_alerts', 'import_item_id', 'mp_import_items']
+	['card_alerts', 'import_item_id', 'import_items']
 ];
 const scopeOf = (t) => TABLES.find(([n]) => n === t)[1];
 

@@ -24,7 +24,7 @@ const items = () =>
 		(sql) => sql`select i.id, a.name as account, i.kind, i.installment, i.source,
 			to_char(i.occurred_at at time zone 'America/Argentina/Buenos_Aires', 'YYYY-MM-DD') as day,
 			(case when i.is_credit then -i.amount else i.amount end)::int as cents
-		from mp_import_items i join financial_accounts a on a.id = i.account_id
+		from import_items i join financial_accounts a on a.id = i.account_id
 		where i.user_id = (select id from "user" where email = ${GALICIA_EMAIL})
 		order by i.external_key`
 	);
@@ -33,8 +33,8 @@ test.beforeAll(async ({ browser }) => {
 	// Local DBs are reused between runs: start from no items, no connection and no remembered MOVISTAR rule.
 	await withDb(
 		(sql) => sql`with u as (select id from "user" where email = ${GALICIA_EMAIL})
-			, d as (delete from mp_import_items where user_id in (select id from u))
-			, r as (delete from mp_import_rules where user_id in (select id from u) and match_value ilike 'MOVISTAR%')
+			, d as (delete from import_items where user_id in (select id from u))
+			, r as (delete from import_rules where user_id in (select id from u) and match_value ilike 'MOVISTAR%')
 			delete from galicia_connections where user_id in (select id from u)`
 	);
 	page = await browser.newPage();
