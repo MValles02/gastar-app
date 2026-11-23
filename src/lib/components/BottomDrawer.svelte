@@ -14,6 +14,7 @@
 		nested = false,
 		hideTitle = false,
 		bare = false,
+		initialFocus,
 		children
 	}: {
 		title: string;
@@ -27,12 +28,15 @@
 		hideTitle?: boolean;
 		/** No padded scroll wrapper: the children lay out the content themselves (e.g. sticky actions). */
 		bare?: boolean;
+		/** CSS selector of the element inside the drawer to focus when it opens (default: the dialog's own choice). */
+		initialFocus?: string;
 		children: Snippet;
 	} = $props();
 
 	// vaul's close animation (TRANSITIONS.DURATION = 0.5s, not exported); bits-ui returns focus to the
 	// trigger as the content unmounts, which is before this ends.
 	const CLOSE_MS = 500;
+	let drawerEl = $state<HTMLElement | null>(null);
 	let wasOpen = false;
 	// `onclosed` fires once per open -> closed change, whoever closed it (vaul's own onAnimationEnd only
 	// runs for closes it handles itself, not when the parent sets `open`). Reopening cancels it.
@@ -59,6 +63,14 @@
 	<!-- A tap on a toast (Deshacer) is not an outside tap: it must not close the drawer. -->
 	<Drawer.Content
 		class="mx-auto w-full max-w-[35rem]"
+		bind:ref={drawerEl}
+		onOpenAutoFocus={(e) => {
+			if (!initialFocus) return;
+			e.preventDefault();
+			requestAnimationFrame(() =>
+				drawerEl?.querySelector<HTMLElement>(initialFocus)?.focus({ preventScroll: true })
+			);
+		}}
 		onInteractOutside={(e) => {
 			if ((e.target as Element | null)?.closest?.('[data-sonner-toast]')) e.preventDefault();
 		}}

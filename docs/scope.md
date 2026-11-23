@@ -135,6 +135,7 @@ Personal finance PWA for Argentina. Answers two questions:
   - Account: origin (all types), destination (transfer only).
   - Exchange rate: shown only for a transfer between accounts of different currencies.
   - Category: required for income/outcome, not shown for transfers.
+  - In the drawer, the amount input is focused on open, and up to six chips ("Categorías frecuentes": the most used non-archived categories, none for a user without history) sit above the fields. Tapping a chip picks that category and, if the description is empty, fills it with the category name.
 - Cross-currency transfer: destination amount is computed live and shown, but is **not editable**.
 - "Repetir cada mes" (new movements only; hidden when editing): a checkbox with the hint "Te lo recordamos el mismo día de cada mes. Solo ingresos y gastos.". Checked, saving also creates a recurring rule (same description, amount, type, account and category) due on the movement's day of the month, and the movement is linked to it, so it counts as paid this month. Every other new income or outcome also tries to link itself to an existing rule (see Plan). Transfers never create a rule (the checkbox is hidden for them; without JS it shows and is ignored). Nothing is saved if the movement is rejected.
 

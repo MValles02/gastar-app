@@ -10,6 +10,8 @@
 	import AmountInput from '#lib/components/AmountInput.svelte';
 	import NewCategoryScreen from '../categories/new/NewCategoryScreen.svelte';
 	import type { CreatedCategory } from '#lib/components/categories/CategoryForm.svelte';
+	import { swatchVar } from '#lib/appearance.ts';
+	import IconBadge from '#lib/components/IconBadge.svelte';
 	import EntryFields from '#lib/components/EntryFields.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import { formScreen } from '#lib/components/forms/form-enhance.ts';
@@ -52,7 +54,7 @@
 		initial: Record<Fields, string>;
 		errors?: Errors;
 		accounts: (Picker & { currency: Currency; balance?: number })[];
-		categories: (Picker & { kind: string | null })[];
+		categories: (Picker & { kind: string | null; uses?: number })[];
 		/** Where saving returns to (validated by the action); none keeps the user on the form. */
 		returnTo?: string | null;
 		/** Offer "Repetir todos los meses" (new incomes and outcomes only). */
@@ -123,7 +125,7 @@
 	});
 
 	// Categories created from the drawer, listed after the server's (ranked) ones.
-	let created = $state<(Picker & { kind: string | null })[]>([]);
+	let created = $state<(Picker & { kind: string | null; uses?: number })[]>([]);
 	const allCategories = $derived([...categories, ...created]);
 	let createOpen = $state(false);
 	function categoryCreated(c: CreatedCategory) {
@@ -153,6 +155,15 @@
 			? allCategories
 			: categoriesFor(allCategories, type, savedCategoryId)
 	);
+	// Drawer shortcut: the most used categories as one-tap chips (none for a user without history).
+	const frequent = $derived(
+		pickableCategories.filter((c) => (c.uses ?? 0) > 0 && !c.archived).slice(0, 6)
+	);
+	function pickFrequent(c: (typeof frequent)[number]) {
+		categoryId = c.id;
+		if (description.trim() === '') description = c.name;
+	}
+
 	$effect(() => {
 		if (categoryId && !pickableCategories.some((c) => c.id === categoryId)) categoryId = '';
 	});
@@ -244,6 +255,29 @@
 			autofocus
 			color={drawer ? AMOUNT_COLOR[type as keyof typeof AMOUNT_COLOR] : undefined}
 		/>
+
+		{#if mounted.current && showCategory && frequent.length}
+			<div class="chips" role="group" aria-label="Categorías frecuentes">
+				{#each frequent as c (c.id)}
+					<button
+						type="button"
+						class="chip"
+						aria-pressed={categoryId === c.id}
+						style:--swatch={swatchVar(c.color ?? null)}
+						onclick={() => pickFrequent(c)}
+					>
+						<span class="pill">
+							<IconBadge
+								icon={c.icon as ComponentProps<typeof IconBadge>['icon']}
+								color={c.color ?? null}
+								size="1.5rem"
+							/>
+							<span class="name">{c.name}</span>
+						</span>
+					</button>
+				{/each}
+			</div>
+		{/if}
 
 		<EntryFields
 			bind:description
@@ -425,6 +459,72 @@
 		font-size: var(--font-size-base);
 		font-weight: 600;
 		color: var(--link);
+	}
+
+	.chips {
+		display: flex;
+		gap: var(--space-2);
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+		scrollbar-width: none;
+		touch-action: pan-x;
+	}
+
+	.chips::-webkit-scrollbar {
+		display: none;
+	}
+
+	.chip {
+		flex: none;
+		display: flex;
+		align-items: center;
+		min-height: 2.75rem;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		-webkit-tap-highlight-color: transparent;
+		user-select: none;
+	}
+
+	.pill {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		height: 2.25rem;
+		padding: 0 var(--space-3) 0 var(--space-2);
+		border-radius: var(--radius-pill);
+		box-shadow: inset 0 0 0 1px var(--border-strong);
+		color: var(--text);
+		font-size: 13px;
+		font-weight: 500;
+	}
+
+	.chip[aria-pressed='true'] .pill {
+		background: color-mix(in srgb, var(--swatch) 14%, var(--surface));
+		box-shadow: inset 0 0 0 2px var(--swatch);
+	}
+
+	.chip:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: 0;
+		border-radius: var(--radius-pill);
+	}
+
+	.name {
+		max-width: 9rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.pill {
+			transition: transform 120ms ease-out;
+		}
+
+		.chip:active .pill {
+			transform: scale(0.96);
+		}
 	}
 
 	.hint {
