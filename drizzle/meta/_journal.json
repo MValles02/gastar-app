@@ -239,6 +239,13 @@
       "when": 1795405689719,
       "tag": "0033_rename_import_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795412153509,
+      "tag": "0034_drop_import_compat_views",
+      "breakpoints": true
     }
   ]
 }

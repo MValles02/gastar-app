@@ -94,7 +94,6 @@ Manual run: `docker exec <dev web container> node scripts/sync-dev-user.js`.
 
 1. In Dokploy, roll back the application to the previous image tag (`sha-<full sha>`).
 2. Because migrations are backward-compatible, the old image keeps working against the current schema, so no database rollback is needed.
-   Migration 0033 renamed `mp_import_items` and `mp_import_rules` to `import_items` and `import_rules`; the `mp_import_*` views it left behind keep the previous release working and are temporary until the next release drops them.
 3. Exception: migration 0021 added the `visa_debit` import source (Gmail Visa debit alerts). Rolling back past it requires deleting the `visa_debit` rows of `import_items` first (and, if wanted, the movements they created), because the older release does not know that source.
 4. Only restore a database backup if data itself was corrupted, and treat that as a separate, deliberate operation.
 
