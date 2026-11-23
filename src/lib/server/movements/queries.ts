@@ -2,7 +2,7 @@ import { and, desc, eq, gte, ilike, inArray, isNotNull, lt, or, sql } from 'driz
 import type { Currency } from '#lib/money.ts';
 import { db, type Tx } from '../db';
 import { categories, financialAccounts, movements } from '../db/schema';
-import { dest, exists, sumOfType } from '../db/sql';
+import { dest, exists, localDate, sumOfType, total } from '../db/sql';
 import { canAccessMovement, canAccessOwn, ownedDestination, userOwned } from '../access';
 import { categoryFields } from '../categories/queries';
 import { linkRuleFor, lockRules, unlinkRevert } from '../recurring/link';
@@ -129,6 +129,7 @@ function movementRowQuery(userId: string, query: MovementFilterQuery) {
 			accountCurrency: financialAccounts.currency,
 			destinationAccountName: dest.name,
 			destinationCurrency: dest.currency,
+			categoryName: categories.name,
 			categoryIcon: categories.icon,
 			categoryColor: categories.color
 		})
@@ -228,6 +229,32 @@ export function deleteMovement(userId: string, id: string, tx?: Tx) {
 			.returning({ id: movements.id });
 	};
 	return tx ? run(tx) : db.transaction(run);
+}
+
+/** Outcome totals per local day and currency between two days (inclusive), over every row the filters match. */
+export function daySpend(userId: string, query: MovementFilterQuery, from: string, to: string) {
+	return db
+		.select({
+			day: localDate,
+			currency: financialAccounts.currency,
+			amount: total(movements.amount)
+		})
+		.from(movements)
+		.innerJoin(financialAccounts, eq(movements.accountId, financialAccounts.id))
+		.leftJoin(dest, ownedDestination(userId))
+		.leftJoin(
+			categories,
+			and(eq(movements.categoryId, categories.id), canAccessOwn(userId, categories))
+		)
+		.where(
+			and(
+				filterWhere(userId, query),
+				eq(movements.type, 'outcome'),
+				gte(movements.occurredAt, dayStart(from)!),
+				lt(movements.occurredAt, dayStart(nextDay(to))!)
+			)
+		)
+		.groupBy(localDate, financialAccounts.currency);
 }
 
 /** Per-currency totals over every row the filters match (not just the page). Transfers only count in `count`. */

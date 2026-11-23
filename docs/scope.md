@@ -143,7 +143,7 @@ Personal finance PWA for Argentina. Answers two questions:
 
 ### Movements
 
-- List with a search field (description) and a "Filtros" button (bottom drawer, applies on change; badge = number of non-default filters). Filters: currency, type, account, category and one date range (`from`/`to`, a single range calendar). Currency `?currency=ARS|USD` (default Ambas = merged list, each amount in its own currency; non-default counts as active); when an `?account=` filter is set, that account's own currency wins and is not counted. Grouped by day.
+- List with a search field (description) and a "Filtros" button (bottom drawer, applies on change; badge = number of non-default filters). Filters: currency, type, account, category and one date range (`from`/`to`, a single range calendar). Currency `?currency=ARS|USD` (default Ambas = merged list, each amount in its own currency; non-default counts as active); when an `?account=` filter is set, that account's own currency wins and is not counted. Grouped by day; each day heading shows that day's spending (outcomes only, per currency, never summed) over every movement matching the filters and search, including other pages. Each row shows its category as a neutral pill (not on transfers).
 - Tap → detail page with Edit / Delete.
 
 ### Categories

@@ -11,6 +11,7 @@
 	import FilterBar from '#lib/components/FilterBar.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import MovementFiltersDrawer from '#lib/components/movements/MovementFiltersDrawer.svelte';
+	import Money from '#lib/components/Money.svelte';
 	import MovementRow from '#lib/components/movements/MovementRow.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
@@ -19,6 +20,9 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	// A literal: Svelte trims whitespace around inline text in blocks.
+	const CURRENCY_SEP = ' · ';
 
 	let filtersOpen = $state(false);
 
@@ -179,7 +183,18 @@
 					<h2 id="month-{mo.ym}">{mo.label}</h2>
 					{#each mo.days as g (g.day)}
 						<section aria-labelledby="day-{g.day}">
-							<h3 id="day-{g.day}">{g.heading}</h3>
+							<div class="day-head">
+								<h3 id="day-{g.day}">{g.heading}</h3>
+								{#if g.spend.length}
+									<span class="day-total">
+										<span class="visually-hidden">Gastos del día: </span>
+										{#each g.spend as s, i (s.currency)}
+											{#if i > 0}{CURRENCY_SEP}{/if}
+											<Money cents={s.cents} currency={s.currency} />
+										{/each}
+									</span>
+								{/if}
+							</div>
 							<ListCard>
 								{#each g.items as m (m.id)}
 									<MovementRow {m} />
@@ -257,12 +272,25 @@
 		font-weight: 600;
 	}
 
-	h3 {
+	.day-head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: var(--space-3);
+		padding-inline: var(--space-4);
+		margin-bottom: var(--space-2);
 		font-size: var(--font-size-sm);
 		font-weight: 600;
 		color: var(--text-muted);
-		padding-inline: var(--space-4);
-		margin-bottom: var(--space-2);
+	}
+
+	h3 {
+		font-size: inherit;
+		font-weight: inherit;
+	}
+
+	.day-total {
+		text-align: right;
 	}
 
 	.empty-action {
