@@ -18,6 +18,7 @@ import {
 	isStandalone,
 	ownsHorizontal,
 	reducedMotion,
+	rubber,
 	velocity
 } from '#lib/swipe.ts';
 
@@ -40,11 +41,6 @@ const TAB_LINK = '[data-tab-link]';
 const SHADOW = '-12px 0 24px -12px rgb(0 0 0 / 0.25), 12px 0 24px -12px rgb(0 0 0 / 0.25)';
 /** Shortest slide-out, for a fast flick that already carries the page most of the way. */
 const SLIDE_OUT_MIN_MS = 120;
-
-/** iOS-style rubber band: travel past a boundary moves the page a shrinking fraction of it. */
-function rubber(x: number, width: number) {
-	return Math.sign(x) * (1 - 1 / ((Math.abs(x) * 0.55) / width + 1)) * width;
-}
 
 let restore: (() => void) | null = null;
 

@@ -1,6 +1,6 @@
 /**
- * Shared pieces of the page-drag gestures (edge-swipe back, tab swipe): the claim thresholds, the
- * release rules and the motion values, so both gestures feel the same.
+ * Shared pieces of the page-drag gestures (edge-swipe back, tab swipe, pull-to-refresh): the claim
+ * thresholds, the release rules and the motion values, so the gestures feel the same.
  */
 
 /** Width of the screen-edge zones: the left one belongs to swipe back (ours or the system's). */
@@ -31,6 +31,14 @@ export const isStandalone = () =>
 	matchMedia('(display-mode: standalone)').matches ||
 	(navigator as Navigator & { standalone?: boolean }).standalone === true;
 
+/**
+ * The installed iOS app (home-screen web app): the one standalone mode with no native
+ * pull-to-refresh. `navigator.standalone` exists only on iOS, so Android never matches.
+ */
+export const isIOSStandalone = () =>
+	(navigator as Navigator & { standalone?: boolean }).standalone === true &&
+	matchMedia('(display-mode: standalone)').matches;
+
 export const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export const dialogOpen = () => !!document.querySelector(OVERLAY_SELECTOR);
@@ -49,6 +57,16 @@ export function ownsHorizontal(target: EventTarget | null, scrolledOnly = false)
 		}
 	}
 	return false;
+}
+
+/** iOS-style rubber band: travel `x` past a boundary moves a shrinking fraction of it (`size`: the axis length). */
+export function rubber(x: number, size: number) {
+	return Math.sign(x) * (1 - 1 / ((Math.abs(x) * 0.55) / size + 1)) * size;
+}
+
+/** The inverse of `rubber`: the finger travel that produced a displayed offset. */
+export function unrubber(y: number, size: number) {
+	return (Math.sign(y) * (1 / (1 - Math.abs(y) / size) - 1) * size) / 0.55;
 }
 
 /** Horizontal velocity in px/ms over the kept touch samples. */
