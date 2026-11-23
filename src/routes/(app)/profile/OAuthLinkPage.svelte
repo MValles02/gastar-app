@@ -104,7 +104,7 @@
 		gap: var(--space-3);
 		padding: var(--space-5) var(--space-4);
 		background: var(--surface);
-		border: 1px solid var(--border);
+		border: 1px solid var(--card-edge);
 		border-radius: var(--radius-card);
 		box-shadow: var(--shadow-1);
 	}
@@ -135,7 +135,7 @@
 		margin: 0;
 		padding: var(--space-3) var(--space-4);
 		background: var(--surface);
-		border: 1px solid var(--border);
+		border: 1px solid var(--card-edge);
 		border-radius: var(--radius-card);
 	}
 

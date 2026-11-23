@@ -274,7 +274,7 @@
 		min-height: 3.5rem;
 		padding: var(--space-2) var(--space-4);
 		background: var(--surface);
-		border: 1px solid var(--border);
+		border: 1px solid var(--card-edge);
 		border-radius: var(--radius-card);
 		box-shadow: var(--shadow-1);
 	}

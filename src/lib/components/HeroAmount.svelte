@@ -38,6 +38,14 @@
 		line-height: 1.1;
 	}
 
+	/* Raised, half-size currency symbol; the text stays "$1.234" for screen readers. */
+	.hero :global(.sym) {
+		font-size: 0.5em;
+		vertical-align: 0.8em;
+		line-height: 0;
+		margin-right: 0.06em;
+	}
+
 	/* Geist Mono advances 0.58em per glyph with the -0.02em tracking; 0.59 keeps a hair of margin. */
 	.fit {
 		font-size: min(var(--font-size-hero), calc(100cqi / (var(--chars) * 0.59)));

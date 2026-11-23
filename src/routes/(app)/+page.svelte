@@ -29,7 +29,16 @@
 	<title>Gastar</title>
 </svelte:head>
 
-<PageHeader title="Hola, {data.header.firstName}" />
+<PageHeader title="Hola, {data.header.firstName}" tone="primary" />
+
+<div class="band">
+	{#if data.hasAnyAccount}
+		<div class="pill-row">
+			<CurrencyTabs value={data.currency} variant="pills" tone="primary" />
+			{#if data.mpPending !== null}<MpPill pending={data.mpPending} />{/if}
+		</div>
+	{/if}
+</div>
 
 <div class="dashboard">
 	{#if !data.hasAnyAccount}
@@ -39,21 +48,18 @@
 			<FirstRunChecklist steps={data.steps} />
 		{/if}
 
-		<div class="pill-row">
-			<CurrencyTabs value={data.currency} variant="pills" />
-			{#if data.mpPending !== null}<MpPill pending={data.mpPending} />{/if}
-		</div>
-
 		{#if !data.hasCurrencyAccount}
-			<Empty.Root>
-				<Empty.Header>
-					<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
-					<Empty.Description>Sin cuentas en {data.currencyWord}.</Empty.Description>
-				</Empty.Header>
-			</Empty.Root>
-			<div class="empty-action">
-				<Button href={resolve('accounts/new')}>Crear cuenta</Button>
-			</div>
+			<Card.Root>
+				<Empty.Root>
+					<Empty.Header>
+						<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
+						<Empty.Description>Sin cuentas en {data.currencyWord}.</Empty.Description>
+					</Empty.Header>
+				</Empty.Root>
+				<div class="empty-action">
+					<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+				</div>
+			</Card.Root>
 		{:else}
 			<section aria-labelledby="summary-heading">
 				<Card.Root class="gap-0 overflow-hidden py-0">
@@ -171,10 +177,20 @@
 </div>
 
 <style>
+	/* Primary band under the header; the dashboard's first card overlaps its bottom. */
+	.band {
+		margin-inline: calc(var(--gutter) * -1);
+		padding: 0 var(--gutter) var(--space-8);
+		background: var(--primary);
+		color: var(--on-primary);
+	}
+
 	.dashboard {
+		position: relative;
 		display: flex;
 		flex-direction: column;
-		gap: 0.875rem;
+		gap: var(--space-5);
+		margin-top: calc(var(--space-6) * -1);
 	}
 
 	/* Canvas row height: 60px minimum for every list row on Inicio. */
@@ -230,7 +246,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.375rem;
-		padding: 1.125rem 1.125rem var(--space-4);
+		padding: 1.25rem 1.25rem var(--space-4);
 	}
 
 	.top {
@@ -260,7 +276,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.125rem;
-		padding: var(--space-3) 1.125rem;
+		padding: var(--space-3) 1.25rem;
 		min-width: 0;
 	}
 
@@ -277,7 +293,7 @@
 	}
 
 	.no-plan {
-		padding: 0.875rem 1.125rem 1.125rem;
+		padding: 0.875rem 1.25rem 1.25rem;
 	}
 
 	.inline-empty {

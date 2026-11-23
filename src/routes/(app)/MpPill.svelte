@@ -37,8 +37,8 @@
 		font-size: var(--font-size-sm);
 		font-weight: 600;
 		white-space: nowrap;
-		background: color-mix(in oklab, var(--positive) 14%, transparent);
-		color: var(--positive);
+		background: var(--on-primary);
+		color: var(--primary);
 	}
 
 	.badge {
@@ -56,18 +56,18 @@
 
 	.quiet .pill {
 		background: none;
-		color: var(--text-muted);
+		color: var(--on-primary);
 		font-weight: 500;
-		box-shadow: inset 0 0 0 1px var(--border);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--on-primary) 45%, transparent);
 	}
 
 	.quiet .badge {
-		background: var(--muted);
-		color: var(--text-muted);
+		background: color-mix(in srgb, var(--on-primary) 20%, transparent);
+		color: var(--on-primary);
 	}
 
 	.mp:focus-visible {
-		outline: 2px solid var(--primary);
+		outline: 2px solid var(--on-primary);
 		outline-offset: -2px;
 		border-radius: var(--radius-pill);
 	}
