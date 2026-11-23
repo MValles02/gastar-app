@@ -62,7 +62,7 @@
 	}
 
 	.quiet .badge {
-		background: color-mix(in srgb, var(--on-primary) 20%, transparent);
+		background: color-mix(in srgb, var(--on-primary) 8%, transparent);
 		color: var(--on-primary);
 	}
 

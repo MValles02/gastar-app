@@ -177,7 +177,7 @@
 	.primary .bell {
 		color: var(--on-primary);
 		border-color: color-mix(in srgb, var(--on-primary) 35%, transparent);
-		background: color-mix(in srgb, var(--on-primary) 12%, transparent);
+		background: color-mix(in srgb, var(--on-primary) 8%, transparent);
 	}
 
 	.top-bar.stacked {
