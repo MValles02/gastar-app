@@ -46,7 +46,7 @@ const items = (email: string) =>
 		(sql) => sql`
 			select i.merchant, i.amount::int as amount, i.status, i.kind, a.name as account,
 				i.auto_approved_at is not null as auto
-			from mp_import_items i join financial_accounts a on a.id = i.account_id
+			from import_items i join financial_accounts a on a.id = i.account_id
 			where i.source = 'visa_debit' and i.user_id = (select id from "user" where email = ${email})
 			order by i.merchant, i.amount`
 	);
@@ -80,14 +80,14 @@ function resetGmailState(emails: string[]) {
 	return withDb(async (sql) => {
 		const ids = (await sql`select id from "user" where email in ${sql(emails)}`).map((u) => u.id);
 		await sql`delete from movements where id in (
-			select movement_id from mp_import_items
+			select movement_id from import_items
 			where source in ${sql(SOURCES)} and movement_id is not null and user_id in ${sql(ids)})`;
 		await sql`delete from card_alerts where user_id in ${sql(ids)}`;
 		await sql`delete from card_statements where user_id in ${sql(ids)}`;
 		await sql`delete from recurring_movements where ends_month is not null and user_id in ${sql(ids)}`;
 		await sql`delete from import_cards where user_id in ${sql(ids)}`;
-		await sql`delete from mp_import_items where source in ${sql(SOURCES)} and user_id in ${sql(ids)}`;
-		await sql`delete from mp_import_rules where user_id in ${sql(ids)}`;
+		await sql`delete from import_items where source in ${sql(SOURCES)} and user_id in ${sql(ids)}`;
+		await sql`delete from import_rules where user_id in ${sql(ids)}`;
 		await sql`delete from gmail_connections where user_id in ${sql(ids)}`;
 		await sql`delete from import_settings where user_id in ${sql(ids)}`;
 	});
@@ -226,7 +226,7 @@ test('a Galicia Mastercard alert becomes a pending credit item; an installment o
 			select c.merchant, c.transaction_type as type, c.installments, i.source, i.amount::int as amount, i.status,
 				a.name as account
 			from card_alerts c
-			left join mp_import_items i on i.id = c.import_item_id
+			left join import_items i on i.id = c.import_item_id
 			left join financial_accounts a on a.id = i.account_id
 			where c.network = 'mastercard' and c.user_id = (select id from "user" where email = ${A.email})
 			order by c.merchant, c.transaction_type`
@@ -277,7 +277,7 @@ test('a Mastercard purchase in 3 cuotas becomes a fixed payment for 3 months and
 				to_char((i.occurred_at at time zone ${TZ}) + interval '2 months', 'YYYY-MM') as expected_end,
 				to_char(i.occurred_at at time zone ${TZ}, 'YYYY-MM-DD') as day,
 				(select count(*)::int from movements m where m.recurring_id = r.id) as linked
-			from recurring_movements r join mp_import_items i on i.recurring_id = r.id
+			from recurring_movements r join import_items i on i.recurring_id = r.id
 			where i.merchant = 'HELADERA MC' and r.user_id = (select id from "user" where email = ${A.email})`
 	);
 	expect(rule).toMatchObject({ amount: 30_000_000 / 3, linked: 1 });
@@ -317,7 +317,7 @@ test('a Mastercard purchase in 3 cuotas becomes a fixed payment for 3 months and
 	const rows = await withDb(
 		(sql) => sql`
 			select i.external_key as key, i.kind, i.status, i.auto_approved_at is not null as auto, m.recurring_id
-			from mp_import_items i left join movements m on m.id = i.movement_id
+			from import_items i left join movements m on m.id = i.movement_id
 			where i.merchant = 'HELADERA MC' and i.user_id = (select id from "user" where email = ${A.email})`
 	);
 	expect(rows.filter((r) => r.kind === 'card_adjustment')).toEqual([]);

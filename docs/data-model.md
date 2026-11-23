@@ -105,9 +105,9 @@ The `IN (...)` lists of the import tables' checks are built from the constants i
 
 ### `recurring_movements`
 
-Monthly recurring incomes or bills. A movement links to a rule through `movements.recurring_id`; a rule is paid in a month when a linked movement exists in that month. Its currency is its account's currency. Invariant: at most one linked movement per rule per local (Buenos Aires) month, enforced in `linkRuleFor` with the rule rows locked (`FOR UPDATE`), not by a constraint. Amount rule: linking a payment (outcome) sets the rule's `amount` to the movement's amount (ARS rounded half-up to whole pesos) when it differs and the movement's month is not earlier than the rule's latest linked month, storing the old value in `previous_amount`; deleting or unlinking the movement that made the change restores it (`unlinkRevert`, same transaction) when no other linked movement is as recent; income rules never change from a link; a manual amount edit clears `previous_amount`. A one-time backfill in `scripts/migrate.js` links the previous and current month's unlinked movements by the same matching (no amount changes); it runs only in the migration that adds `mp_import_rules.recurring_id`.
+Monthly recurring incomes or bills. A movement links to a rule through `movements.recurring_id`; a rule is paid in a month when a linked movement exists in that month. Its currency is its account's currency. Invariant: at most one linked movement per rule per local (Buenos Aires) month, enforced in `linkRuleFor` with the rule rows locked (`FOR UPDATE`), not by a constraint. Amount rule: linking a payment (outcome) sets the rule's `amount` to the movement's amount (ARS rounded half-up to whole pesos) when it differs and the movement's month is not earlier than the rule's latest linked month, storing the old value in `previous_amount`; deleting or unlinking the movement that made the change restores it (`unlinkRevert`, same transaction) when no other linked movement is as recent; income rules never change from a link; a manual amount edit clears `previous_amount`. A one-time backfill in `scripts/migrate.js` links the previous and current month's unlinked movements by the same matching (no amount changes); it runs only in the migration that adds `import_rules.recurring_id`.
 
-Installment rule: a rule with `ends_month` set is the fixed payment of a Galicia Mastercard purchase in N cuotas (see `mp_import_items`). Its `amount` is the purchase total divided by N (below) and never follows a linked charge (no change, no `previous_amount`); it links only explicitly (the approval and the later statement cuotas pass its id), never by description match, and no month after `ends_month` can link to it. It ends by date at read time: once the current month is after `ends_month` it is not active (see `isRecurringActive`), is listed under "Inactivos" with the reason "Terminado", and is never archived by the app. Rounding: `cuota = floor(total / N)` in minor units, the first cuota `total - (N - 1) * cuota` (it carries the remainder, so the N cuotas add up to the total), and the rule amount is `cuota` rounded to the currency step (ARS half-up to whole pesos, invariant 20; USD exact). The rule never adopts the statement's cuota amount. When the `01/N` statement line is matched to an approved installment item that has a rule, `ends_month` moves to the month of that statement's closing + N - 1 if that is later (statement cuotas are dated at the closing, so a purchase made after a closing has its `N/N` cuota in the month purchase + N). Known side effect: for such a purchase the month right after the purchase has no cuota, so the fixed payment may show as pending that month. Undoing the approval of an installment item is refused (`changed`) while another movement is linked to its rule.
+Installment rule: a rule with `ends_month` set is the fixed payment of a Galicia Mastercard purchase in N cuotas (see `import_items`). Its `amount` is the purchase total divided by N (below) and never follows a linked charge (no change, no `previous_amount`); it links only explicitly (the approval and the later statement cuotas pass its id), never by description match, and no month after `ends_month` can link to it. It ends by date at read time: once the current month is after `ends_month` it is not active (see `isRecurringActive`), is listed under "Inactivos" with the reason "Terminado", and is never archived by the app. Rounding: `cuota = floor(total / N)` in minor units, the first cuota `total - (N - 1) * cuota` (it carries the remainder, so the N cuotas add up to the total), and the rule amount is `cuota` rounded to the currency step (ARS half-up to whole pesos, invariant 20; USD exact). The rule never adopts the statement's cuota amount. When the `01/N` statement line is matched to an approved installment item that has a rule, `ends_month` moves to the month of that statement's closing + N - 1 if that is later (statement cuotas are dated at the closing, so a purchase made after a closing has its `N/N` cuota in the month purchase + N). Known side effect: for such a purchase the month right after the purchase has no cuota, so the fixed payment may show as pending that month. Undoing the approval of an installment item is refused (`changed`) while another movement is linked to its rule.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -158,7 +158,7 @@ Optional monthly limit per category.
 
 Constraints: PK `(plan_id, category_id)` (one limit per category). Migration 0018 copies legacy USD-plan limits onto the ARS plan with `currency = 'USD'` (an existing ARS limit on the category wins) and gives a user with only a USD plan an ARS plan (same month and percent, savings 0; fixed USD savings are not carried over).
 
-### `mp_import_items`
+### `import_items`
 
 Approval inbox for imported activity (Mercado Pago, Banco Galicia card statements). Imports land here, never on `movements`; approving an item creates the movement and links it.
 
@@ -194,7 +194,7 @@ Approving is one transaction: a conditional `pending` → `approved` update (zer
 
 Auto-approval (`autoApprovePending(userId)`, source-agnostic, run after each ingest: after the payments and again after the report of a sync run, and on every statement upload) approves, through the same transaction, every pending item whose read-time prefill is a usable rule, skipping `auto_approve_blocked` items; it never writes a rule and an item whose movement fails validation stays pending. It stamps `auto_approved_at`. Undoing an approval (one transaction: delete the unedited movement, item back to `pending`) clears `auto_approved_at` and, when it was set, sets `auto_approve_blocked`.
 
-### `mp_import_rules`
+### `import_rules`
 
 Rules learned from approved items, used to pre-fill later ones.
 
@@ -212,7 +212,7 @@ Rules learned from approved items, used to pre-fill later ones.
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
 
-Constraints: `UNIQUE (user_id, match_kind, match_value)`; CHECK `mp_import_rules_shape_check`: `transfer` ⇒ `counter_account_id` set and `category_id` null; otherwise `category_id` set.
+Constraints: `UNIQUE (user_id, match_kind, match_value)`; CHECK `import_rules_shape_check`: `transfer` ⇒ `counter_account_id` set and `category_id` null; otherwise `category_id` set.
 
 Approval upserts one rule on the item's strongest key: `counterparty` (`operation_type = money_transfer` with a counterparty id) > `merchant` (trimmed, lowercased; for card lines the reference cleaned of per-transaction codes, keeping `*` and inner punctuation, with the raw trimmed-lowercased reference as a lookup-only fallback for rules learned before; Mercado Pago keys unchanged) > `kind` (only yield, payout, merchant_payout, account_fund, card_taxes); a `refund` item and a card credit (other than `card_taxes`) have no key; no key, no rule. Pre-fill is computed at read time from the first matching key in that order and ignored when its target is archived or its type does not fit the item's direction.
 
@@ -327,9 +327,9 @@ One row per card purchase-alert email (Visa, or Banco Galicia Mastercard), only 
 | `amount` | bigint | minor units of `currency`, > 0 |
 | `foreign` | boolean | |
 | `transaction_type` | text | "Compra" or another label (Mastercard's "COMPRA" is stored as "Compra" and "COMPRA REVERSADA" as "Compra reversada") |
-| `installments` | smallint, nullable | CHECK >= 1; the purchase's installment count (cuotas) when the alert says it (Mastercard), null for Visa. An alert with `installments > 1` converts like any purchase, into the item of its first cuota (`mp_import_items.installments`) |
+| `installments` | smallint, nullable | CHECK >= 1; the purchase's installment count (cuotas) when the alert says it (Mastercard), null for Visa. An alert with `installments > 1` converts like any purchase, into the item of its first cuota (`import_items.installments`) |
 | `received_at` | timestamptz | the message's `internalDate` |
-| `import_item_id` | fk → `mp_import_items.id`, nullable | ON DELETE SET NULL; null while the alert waits (unknown card, no Galicia account) |
+| `import_item_id` | fk → `import_items.id`, nullable | ON DELETE SET NULL; null while the alert waits (unknown card, no Galicia account) |
 | `created_at` | timestamptz | |
 
 Index `(user_id, network, last4)`.
@@ -398,7 +398,7 @@ All live in `src/lib/server/access.ts`. They are SQL conditions (Drizzle `SQL`),
 - `ownedBy(userId)`: insert-side counterpart, sets `owner_id`.
 - `canAccessMovement(userId, origin = financialAccounts)`: `movements.user_id = userId` AND `canAccessAccount(userId, origin)`. The caller must inner-join the origin account.
 - `movementOwnedBy(userId)`: insert-side counterpart, sets `movements.user_id`.
-- `canAccessOwn(userId, table)` and `userOwned(userId)`: the same pair for every other table with a `user_id` owner column: `categories`, `recurring_movements`, `spending_plans`, `mp_import_items`, `mp_import_rules`, `mp_connections`, `gmail_connections`, `galicia_connections`, `import_settings`, `card_alerts`, `card_statements`, `import_cards`. `table` may be an alias. Category limits have no owner column; they are reached only by joining their plan. `mp_sync_state` has no owner column; it is reached only by joining its account.
+- `canAccessOwn(userId, table)` and `userOwned(userId)`: the same pair for every other table with a `user_id` owner column: `categories`, `recurring_movements`, `spending_plans`, `import_items`, `import_rules`, `mp_connections`, `gmail_connections`, `galicia_connections`, `import_settings`, `card_alerts`, `card_statements`, `import_cards`. `table` may be an alias. Category limits have no owner column; they are reached only by joining their plan. `mp_sync_state` has no owner column; it is reached only by joining its account.
 - `allMovementsOf(userId)`: `movements.user_id = userId`, the single path for bulk operations over every movement a user owns (account deletion).
 
 Shared server infrastructure each has one home: SQL fragments (`Range`, `inRange`, `sumOfType`, `total`, `isIncomeOrOutcome`, the `dest` alias, `localMonth`, `exists`) in `src/lib/server/db/sql.ts`; the `Tx`/`DbExecutor` types in `src/lib/server/db/index.ts`; the per-request memo (`memoPerRequest`, the only `getRequestEvent` reader) in `src/lib/server/request-memo.ts`; `requireUser` and the 404 helpers in `src/lib/server/guards.ts`; archive, unarchive and delete-unless-referenced actions (plus `catchForeignKey`) in `src/lib/server/lifecycle.ts`; the stored icon/colour → key mapping (`accountLook`, `categoryLook`) in `src/lib/appearance.ts`.

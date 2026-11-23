@@ -232,6 +232,13 @@
       "when": 1795401693357,
       "tag": "0032_drop_deprecated_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795405689719,
+      "tag": "0033_rename_import_tables",
+      "breakpoints": true
     }
   ]
 }
