@@ -33,7 +33,12 @@ export const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_S
  */
 async function googleProfile({ idToken }: { idToken?: string }) {
 	if (!idToken) return null;
-	const claims = JSON.parse(Buffer.from(idToken.split('.')[1] ?? '', 'base64url').toString());
+	let claims;
+	try {
+		claims = JSON.parse(Buffer.from(idToken.split('.')[1] ?? '', 'base64url').toString());
+	} catch {
+		return null;
+	}
 	if (claims.email_verified !== true || typeof claims.email !== 'string') return null;
 	const name = typeof claims.name === 'string' ? claims.name.trim() : '';
 	return {
