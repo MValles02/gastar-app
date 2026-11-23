@@ -20,7 +20,7 @@ const daysInMonth = (ym) =>
 	new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)), 0)).getUTCDate();
 
 /**
- * One-time backfill (runs only in the migration that adds mp_import_rules.recurring_id): links unlinked
+ * One-time backfill (runs only in the migration that adds import_rules.recurring_id): links unlinked
  * income/outcome movements of the previous and current local month to active fixed-payment rules with
  * the same matching as linkRuleFor (type, currency, one per rule per month, description, closest day).
  * Never changes a rule amount.
@@ -89,7 +89,7 @@ try {
 	const [{ had }] = await client`
 		select exists (
 			select 1 from information_schema.columns
-			where table_schema = current_schema() and table_name = 'mp_import_rules' and column_name = 'recurring_id'
+			where table_schema = current_schema() and table_name in ('mp_import_rules','import_rules') and column_name = 'recurring_id'
 		) as had`;
 	await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
 	console.log('Migrations applied successfully');

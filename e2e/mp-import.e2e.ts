@@ -182,7 +182,7 @@ test('sync fills the inbox and leaves balances alone', async () => {
 	// Raw-SQL exception: these keys match the old settlement report so earlier imports dedupe; no UI shows them.
 	// A day whose losses outweigh its gains is one debit yield (12,34 + 5,02 - 20,00 = -2,64).
 	const yields = await withDb(
-		(sql) => sql`select external_key, amount::int as amount, is_credit from mp_import_items
+		(sql) => sql`select external_key, amount::int as amount, is_credit from import_items
 			where user_id = ${userIdOf(sql, IMPORT_EMAIL)}
 			and kind = 'yield' order by external_key`
 	);
@@ -191,7 +191,7 @@ test('sync fills the inbox and leaves balances alone', async () => {
 		[`yield:${arDaysAgo(13)}`, 789, true]
 	]);
 	const payouts = await withDb(
-		(sql) => sql`select external_key, kind from mp_import_items
+		(sql) => sql`select external_key, kind from import_items
 			where user_id = ${userIdOf(sql, IMPORT_EMAIL)}
 			and kind in ('payout', 'merchant_payout') order by external_key`
 	);
@@ -407,7 +407,7 @@ test('approving without remembering leaves the other yield unsuggested', async (
 /** The pending-or-approved FAKE AMIGA item that still carries the remembered rule, and its movement. */
 const amigaItem = () =>
 	withDb(async (sql) => {
-		const [item] = await sql`select id, status, movement_id from mp_import_items
+		const [item] = await sql`select id, status, movement_id from import_items
 			where user_id = ${userIdOf(sql, IMPORT_EMAIL)}
 			and counterparty_nickname ilike '%FAKE AMIGA%' and amount = 80050`;
 		const [m] = await sql`select count(*)::int as n from movements
@@ -418,7 +418,7 @@ const amigaItem = () =>
 
 const amigaItemId = () =>
 	withDb(async (sql) => {
-		const [item] = await sql`select id from mp_import_items
+		const [item] = await sql`select id from import_items
 			where user_id = ${userIdOf(sql, IMPORT_EMAIL)}
 			and counterparty_nickname ilike '%FAKE AMIGA%' and amount = 80050`;
 		return item.id as string;
@@ -551,7 +551,7 @@ test('moving "Importar desde" earlier searches from the chosen date and never ch
 	const approvedBefore = (await findMovements(page, AMIGA_DESC)).length;
 	// Drop the pending items so the backfill visibly brings them back.
 	await withDb(
-		(sql) => sql`delete from mp_import_items where status = 'pending'
+		(sql) => sql`delete from import_items where status = 'pending'
 		and user_id = ${userIdOf(sql, IMPORT_EMAIL)}`
 	);
 

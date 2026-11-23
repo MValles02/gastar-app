@@ -67,7 +67,7 @@ CREATE ROLE gastar_dev_sync LOGIN PASSWORD '<generated>';
 GRANT CONNECT ON DATABASE gastar TO gastar_dev_sync;
 GRANT USAGE ON SCHEMA public TO gastar_dev_sync;
 GRANT SELECT ON financial_accounts, categories, recurring_movements, movements, spending_plans,
-  plan_category_limits, mp_import_rules, mp_import_items, card_statements, import_cards, card_alerts,
+  plan_category_limits, import_rules, import_items, card_statements, import_cards, card_alerts,
   import_settings
   TO gastar_dev_sync;
 GRANT SELECT (id, email) ON "user" TO gastar_dev_sync;
@@ -94,7 +94,8 @@ Manual run: `docker exec <dev web container> node scripts/sync-dev-user.js`.
 
 1. In Dokploy, roll back the application to the previous image tag (`sha-<full sha>`).
 2. Because migrations are backward-compatible, the old image keeps working against the current schema, so no database rollback is needed.
-3. Exception: migration 0021 added the `visa_debit` import source (Gmail Visa debit alerts). Rolling back past it requires deleting the `visa_debit` rows of `mp_import_items` first (and, if wanted, the movements they created), because the older release does not know that source.
+   Migration 0033 renamed `mp_import_items` and `mp_import_rules` to `import_items` and `import_rules`; the `mp_import_*` views it left behind keep the previous release working and are temporary until the next release drops them.
+3. Exception: migration 0021 added the `visa_debit` import source (Gmail Visa debit alerts). Rolling back past it requires deleting the `visa_debit` rows of `import_items` first (and, if wanted, the movements they created), because the older release does not know that source.
 4. Only restore a database backup if data itself was corrupted, and treat that as a separate, deliberate operation.
 
 ## Promotion checks

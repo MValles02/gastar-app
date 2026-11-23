@@ -7,6 +7,11 @@ import { APP_TZ, DAY_MS } from '../src/lib/shared/runtime.js';
 // scripts; variables already set win. CI sets them in the environment.
 if (existsSync('.env')) process.loadEnvFile('.env');
 
+// One instant anchors every fixture-relative date of the run. The config imports this first, so the fakes and
+// the workers inherit it; a run that crosses midnight in the app time zone then keeps fixtures on one day.
+process.env.E2E_NOW ??= String(Date.now());
+const NOW = Number(process.env.E2E_NOW);
+
 /** @param {number} port @param {string} clientId @param {string} clientSecret */
 const fake = (port, clientId, clientSecret) => ({
 	port,
@@ -50,7 +55,7 @@ export const appDay = (at) => new Intl.DateTimeFormat('en-CA', { timeZone: APP_T
 /** The app time zone's UTC offset now, as "-03:00". */
 export const appOffset = () =>
 	new Intl.DateTimeFormat('en-US', { timeZone: APP_TZ, timeZoneName: 'longOffset' })
-		.formatToParts(new Date())
+		.formatToParts(NOW)
 		.find((p) => p.type === 'timeZoneName')
 		?.value.replace('GMT', '') ?? '';
 
@@ -58,4 +63,4 @@ export const appOffset = () =>
  * The app time zone's calendar day `n` days ago, as YYYY-MM-DD.
  * @param {number} n
  */
-export const arDaysAgo = (n) => appDay(Date.now() - n * DAY_MS);
+export const arDaysAgo = (n) => appDay(NOW - n * DAY_MS);

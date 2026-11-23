@@ -31,7 +31,7 @@ const items = (merchant: string) =>
 		(sql) => sql`
 			select i.external_key as key, i.alias_key as alias, i.status, i.kind, i.amount::int as amount,
 				i.is_credit as credit, m.amount::int as moved
-			from mp_import_items i left join movements m on m.id = i.movement_id
+			from import_items i left join movements m on m.id = i.movement_id
 			where i.merchant = ${merchant} and i.user_id = (select id from "user" where email = ${CARD_EMAIL})
 			order by i.external_key`
 	);
@@ -50,12 +50,12 @@ test.beforeAll(async ({ browser, baseURL }) => {
 	await withDb(async (sql) => {
 		const [u] = await sql`select id from "user" where email = ${CARD_EMAIL}`;
 		await sql`delete from movements where id in (
-			select movement_id from mp_import_items where movement_id is not null and user_id = ${u.id})`;
+			select movement_id from import_items where movement_id is not null and user_id = ${u.id})`;
 		await sql`delete from card_alerts where user_id = ${u.id}`;
 		await sql`delete from import_cards where user_id = ${u.id}`;
 		await sql`delete from card_statements where user_id = ${u.id}`;
-		await sql`delete from mp_import_items where user_id = ${u.id}`;
-		await sql`delete from mp_import_rules where user_id = ${u.id}`;
+		await sql`delete from import_items where user_id = ${u.id}`;
+		await sql`delete from import_rules where user_id = ${u.id}`;
 		await sql`delete from gmail_connections where user_id = ${u.id}`;
 		await sql`delete from galicia_connections where user_id = ${u.id}`;
 	});
@@ -234,7 +234,7 @@ test('a statement uploaded before its alert arrives leaves the alert without an 
 	expect(rows[0].alias).toMatch(/^alert:/);
 	const [alert] = await withDb(
 		(sql) => sql`select i.external_key as key, a.merchant from card_alerts a
-			join mp_import_items i on i.id = a.import_item_id where a.merchant = ${merchant}`
+			join import_items i on i.id = a.import_item_id where a.merchant = ${merchant}`
 	);
 	expect(alert.key).toBe(rows[0].key);
 });

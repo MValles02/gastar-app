@@ -342,7 +342,7 @@ export const importRuleMatchKindEnum = pgEnum('import_rule_match_kind', [
 ]);
 
 export const importItems = pgTable(
-	'mp_import_items',
+	'import_items',
 	{
 		id: uuid('id').defaultRandom().primaryKey(),
 		userId: text('user_id')
@@ -392,28 +392,25 @@ export const importItems = pgTable(
 			.notNull()
 	},
 	(table) => [
-		uniqueIndex('mp_import_items_user_id_external_key_idx').on(table.userId, table.externalKey),
-		uniqueIndex('mp_import_items_user_id_alias_key_idx').on(table.userId, table.aliasKey),
-		index('mp_import_items_user_id_status_occurred_at_idx').on(
+		uniqueIndex('import_items_user_id_external_key_idx').on(table.userId, table.externalKey),
+		uniqueIndex('import_items_user_id_alias_key_idx').on(table.userId, table.aliasKey),
+		index('import_items_user_id_status_occurred_at_idx').on(
 			table.userId,
 			table.status,
 			table.occurredAt
 		),
-		check('mp_import_items_amount_positive_check', sql`${table.amount} > 0`),
+		check('import_items_amount_positive_check', sql`${table.amount} > 0`),
 		check(
-			'mp_import_items_installments_check',
+			'import_items_installments_check',
 			sql`${table.installments} IS NULL OR ${table.installments} >= 2`
 		),
-		check('mp_import_items_kind_check', sql`${table.kind} IN (${inList(Object.values(KIND))})`),
-		check(
-			'mp_import_items_source_check',
-			sql`${table.source} IN (${inList(Object.values(SOURCE))})`
-		)
+		check('import_items_kind_check', sql`${table.kind} IN (${inList(Object.values(KIND))})`),
+		check('import_items_source_check', sql`${table.source} IN (${inList(Object.values(SOURCE))})`)
 	]
 );
 
 export const importRules = pgTable(
-	'mp_import_rules',
+	'import_rules',
 	{
 		id: uuid('id').defaultRandom().primaryKey(),
 		userId: text('user_id')
@@ -438,13 +435,13 @@ export const importRules = pgTable(
 			.notNull()
 	},
 	(table) => [
-		uniqueIndex('mp_import_rules_user_id_match_idx').on(
+		uniqueIndex('import_rules_user_id_match_idx').on(
 			table.userId,
 			table.matchKind,
 			table.matchValue
 		),
 		check(
-			'mp_import_rules_shape_check',
+			'import_rules_shape_check',
 			sql`(${table.type} = 'transfer' AND ${table.counterAccountId} IS NOT NULL AND ${table.categoryId} IS NULL) OR (${table.type} <> 'transfer' AND ${table.categoryId} IS NOT NULL)`
 		)
 	]
