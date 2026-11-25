@@ -25,9 +25,8 @@ test('movements ?currency=USD shows only USD amounts', async ({ page }) => {
 
 	// An account filter wins over ?currency=USD.
 	await page.goto('/accounts');
-	await page.getByRole('link', { name: /Efectivo/ }).click();
-	await expect(page).toHaveURL(/\/accounts\/[^/]+$/);
-	const id = page.url().split('/').pop()!;
+	const href = await page.getByRole('link', { name: /Efectivo/ }).getAttribute('href');
+	const id = href!.split('/').pop()!;
 	await gotoHydrated(page, `/movements?account=${id}&currency=USD`);
 	const accountDialog = await openFilters(page);
 	await expect(accountDialog.getByRole('radio', { name: 'Pesos' })).toBeChecked();

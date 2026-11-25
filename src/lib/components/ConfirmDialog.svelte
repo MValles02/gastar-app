@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import type { ActionResult } from '$app/forms';
 	import { enhance } from '$app/forms';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { followRedirect } from '#lib/nav-stack.svelte.ts';
@@ -29,8 +30,8 @@
 		formId?: string;
 		/** Close the dialog on a failed action too, so the page behind shows its error. */
 		closeOnFailure?: boolean;
-		/** Gets the result type instead of following its redirect (e.g. a drawer that closes itself). */
-		ondone?: (type: string) => unknown;
+		/** Gets the result instead of following its redirect (e.g. a drawer that closes itself). */
+		ondone?: (type: string, result: ActionResult) => unknown;
 		/** Extra classes for the trigger button (and the no-JS summary). */
 		triggerClass?: string;
 		children?: Snippet;
@@ -61,7 +62,7 @@
 				use:enhance={() => async (input) => {
 					const { type } = input.result;
 					if (closeOnFailure || (type !== 'failure' && type !== 'error')) open = false;
-					if (ondone) await ondone(type);
+					if (ondone) await ondone(type, input.result);
 					else await followRedirect(input);
 				}}
 			>

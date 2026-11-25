@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { openShallow } from '#lib/open-shallow.ts';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import Money from '#lib/components/Money.svelte';
 	import { dueTone, PLAN_CURRENCY, type RecurringStatus } from '#lib/plan.ts';
@@ -24,6 +25,7 @@
 		| { reason: string; status?: undefined; label?: undefined }
 	);
 
+	/** Outside the wizard a click opens the rule's drawer over the screen; in the wizard it links to the page. */
 	let { row, wizard }: { row: Row; wizard?: number } = $props();
 	const r = $derived(row);
 </script>
@@ -54,6 +56,7 @@
 <ListRow
 	class="rule"
 	href={withWizard(resolve(`plan/recurring/${r.id}`), wizard)}
+	onclick={wizard ? undefined : (e) => openShallow(e, resolve(`plan/recurring/${r.id}`), 'rule')}
 	lead={{
 		icon: r.categoryIcon ?? undefined,
 		letter: r.categoryIcon ? undefined : r.description.charAt(0).toUpperCase(),

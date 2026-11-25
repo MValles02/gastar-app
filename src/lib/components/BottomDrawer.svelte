@@ -1,17 +1,22 @@
 <script lang="ts">
-	import { untrack, type Snippet } from 'svelte';
+	import { getContext, setContext, untrack, type Snippet } from 'svelte';
 	import { Drawer as DrawerPrimitive } from 'vaul-svelte';
 	import { drawers } from '#lib/drawer-open.svelte.ts';
 	import X from '@lucide/svelte/icons/x';
 	import * as Drawer from '#lib/components/ui/drawer/index.js';
 	import { buttonVariants } from '#lib/components/ui/button/index.js';
 
+	// A drawer rendered inside another one (its content, or a component in it) stacks over it.
+	const IN_DRAWER = Symbol.for('bottom-drawer');
+	const insideDrawer = getContext<boolean | undefined>(IN_DRAWER) ?? false;
+	setContext(IN_DRAWER, true);
+
 	let {
 		title,
 		open = $bindable(false),
 		onclose,
 		onclosed,
-		nested = false,
+		nested = insideDrawer,
 		hideTitle = false,
 		bare = false,
 		initialFocus,
@@ -22,7 +27,7 @@
 		onclose?: () => void;
 		/** Runs once the close animation has ended (focus is back on the trigger by then). */
 		onclosed?: () => void;
-		/** Stacks over the drawer this one is rendered inside (vaul nested drawer): the one below stays put. */
+		/** Stacks over the drawer this one is rendered inside (vaul nested drawer): the one below stays put. Default: whether it is inside one. */
 		nested?: boolean;
 		/** Keeps the title for assistive technology only. */
 		hideTitle?: boolean;

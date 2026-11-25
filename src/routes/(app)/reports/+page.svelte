@@ -17,6 +17,7 @@
 	import TabBand from '#lib/components/TabBand.svelte';
 	import { CURRENCY_NAME, formatMoney } from '#lib/money.ts';
 	import { markReplace } from '#lib/nav-stack.svelte.ts';
+	import { openShallow } from '#lib/open-shallow.ts';
 	import { swatchVar, toSwatchKey } from '#lib/appearance.ts';
 	import type { PageData } from './$types';
 
@@ -158,6 +159,8 @@
 											letter: s.icon ? undefined : s.name.charAt(0).toUpperCase(),
 											color: toSwatchKey(s.color)
 										}}
+								onclick={(e) =>
+									openShallow(e, resolve(`categories/${s.id}?month=${data.nav.ym}`), 'category')}
 								title={s.name}
 								value={sliceValue}
 								footer={sliceFooter}

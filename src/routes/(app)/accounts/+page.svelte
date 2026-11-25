@@ -94,6 +94,7 @@
 							{/snippet}
 							<ListRow
 								href={resolve(`accounts/${a.id}`)}
+								onclick={(e) => openShallow(e, resolve(`accounts/${a.id}`), 'account')}
 								lead={{ icon: toIconKey(a.icon), color: toSwatchKey(a.color) }}
 								title={a.name}
 								{value}

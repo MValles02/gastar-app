@@ -36,19 +36,20 @@ test('an account name autosaves, survives a reload and Deshacer restores it', as
 	await expect(h1).toHaveText(`${name} 2`);
 });
 
-test('an account with movements has no Eliminar and a crafted delete is rejected', async ({
+test('an account with movements opens as a sheet without Eliminar and a crafted delete is rejected', async ({
 	page,
 	baseURL
 }) => {
 	await login(page);
-	await page.goto('/accounts');
-	await page
-		.getByRole('link', { name: /Efectivo/ })
-		.first()
-		.click();
-	await expect(page.getByRole('button', { name: 'Archivar' })).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Eliminar' })).toHaveCount(0);
-	const res = await page.request.post(`${page.url()}?/delete`, {
+	await gotoHydrated(page, '/accounts');
+	const row = page.getByRole('link', { name: /Efectivo/ }).first();
+	const href = (await row.getAttribute('href'))!;
+	await row.click();
+	const sheet = page.getByRole('dialog');
+	await expect(sheet.getByRole('button', { name: 'Archivar' })).toBeVisible();
+	await expect(sheet.getByRole('button', { name: 'Eliminar' })).toHaveCount(0);
+	await expect(page).toHaveURL(/\/accounts$/);
+	const res = await page.request.post(`${href}?/delete`, {
 		form: {},
 		headers: { origin: baseURL!, 'x-sveltekit-action': 'true' }
 	});
@@ -99,6 +100,7 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 
 	await gotoHydrated(page, url);
 	await page.getByRole('button', { name: 'Archivar' }).click();
+	await page.getByRole('alertdialog').getByRole('button', { name: 'Archivar' }).click();
 	await expect(page.getByText('No aparece al registrar movimientos.')).toBeVisible();
 	await expect(page).toHaveURL(url);
 	expect(await offered()).toBe(0);
