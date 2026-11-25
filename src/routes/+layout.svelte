@@ -6,8 +6,8 @@
 	import { page } from '$app/state';
 	import { drawers } from '#lib/drawer-open.svelte.ts';
 	import { track, transitionOf } from '#lib/nav-stack.svelte.ts';
-	import { tabSlideOut } from '#lib/tab-swipe.ts';
 	import { FORM_ROUTES, TAB_ROUTES } from '#lib/form-routes.ts';
+	import { pressFeedback } from '#lib/press.ts';
 	import favicon from '#lib/assets/favicon.svg';
 	import { Toaster } from '#lib/components/ui/sonner/index.js';
 	import NavProgress from '#lib/components/NavProgress.svelte';
@@ -19,6 +19,10 @@
 	onMount(() => {
 		document.documentElement.dataset.hydrated = '';
 	});
+
+	// Pressed rows on touch. Its document touch listeners also make iOS Safari apply :active
+	// (buttons, tab bar), which it only does when the page listens to touches.
+	onMount(() => pressFeedback(document));
 
 	// Mirrors the history stack so back/close/save can pop instead of pushing the parent again.
 	afterNavigate(track);
@@ -35,22 +39,24 @@
 		// hook as long as `page.url` matches the address bar, which `stripFlags` guarantees.
 		if (nav.shallow && nav.type === 'goto') return;
 		const kind = transitionOf(nav);
-		// A tab swipe navigates at release: hold the content swap until its slide-out has ended.
-		const slide = tabSlideOut();
-		if (slide) return slide;
+		const root = document.documentElement;
+		// A tab swipe sets --tab-travel (src/lib/tab-swipe.ts) for this navigation's transition only.
+		const clearTravel = () => void root.style.removeProperty('--tab-travel');
 		if (
 			!kind ||
 			!document.startViewTransition ||
 			(nav.type === 'popstate' && uaAnimatedPop) ||
 			matchMedia('(prefers-reduced-motion: reduce)').matches
 		)
-			return;
-		document.documentElement.dataset.navTransition = kind;
+			return clearTravel();
+		root.dataset.navTransition = kind;
 		return new Promise<void>((resolve) => {
-			document.startViewTransition(async () => {
-				resolve();
-				await nav.complete.catch(() => {});
-			});
+			document
+				.startViewTransition(async () => {
+					resolve();
+					await nav.complete.catch(() => {});
+				})
+				.finished.finally(clearTravel);
 		});
 	});
 
@@ -68,9 +74,6 @@
 </script>
 
 <svelte:window {onpopstate} />
-
-<!-- iOS Safari only applies :active (pressed rows and buttons) when the page listens to touches. -->
-<svelte:document ontouchstart={() => {}} />
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
