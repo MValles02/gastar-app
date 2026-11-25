@@ -278,11 +278,13 @@
 		border-radius: var(--radius);
 		text-decoration: none;
 		color: var(--text-muted);
-		transition: background-color 0.12s ease;
+		transition: background-color 0s;
 	}
 
+	/* The fill waits 100ms so a scroll or swipe that starts on the row never lights it up. */
 	.bars a:active {
 		background: var(--muted);
+		transition-delay: 100ms;
 	}
 
 	.cols {
@@ -382,8 +384,13 @@
 		border-radius: var(--radius-card);
 	}
 
+	.fact-link :global(.card) {
+		transition: background-color 0s;
+	}
+
 	.fact-link:active :global(.card) {
 		background: var(--muted);
+		transition-delay: 100ms;
 	}
 
 	.fact-card {

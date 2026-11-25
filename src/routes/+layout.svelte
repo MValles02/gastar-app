@@ -6,6 +6,7 @@
 	import { page } from '$app/state';
 	import { drawers } from '#lib/drawer-open.svelte.ts';
 	import { track, transitionOf } from '#lib/nav-stack.svelte.ts';
+	import { tabSlideOut } from '#lib/tab-swipe.ts';
 	import { FORM_ROUTES, TAB_ROUTES } from '#lib/form-routes.ts';
 	import favicon from '#lib/assets/favicon.svg';
 	import { Toaster } from '#lib/components/ui/sonner/index.js';
@@ -34,6 +35,9 @@
 		// hook as long as `page.url` matches the address bar, which `stripFlags` guarantees.
 		if (nav.shallow && nav.type === 'goto') return;
 		const kind = transitionOf(nav);
+		// A tab swipe navigates at release: hold the content swap until its slide-out has ended.
+		const slide = tabSlideOut();
+		if (slide) return slide;
 		if (
 			!kind ||
 			!document.startViewTransition ||
