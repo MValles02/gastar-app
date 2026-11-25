@@ -14,7 +14,7 @@
 	let {
 		from = $bindable(''),
 		to = $bindable(''),
-		nested = false
+		nested
 	}: {
 		/** `YYYY-MM-DD`, or '' when empty. */
 		from?: string;

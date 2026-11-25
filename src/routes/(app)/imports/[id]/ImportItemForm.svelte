@@ -168,7 +168,6 @@
 						items={data.accounts}
 						bind:value={counterId}
 						placeholder="Elegir"
-						nested={drawer}
 						error={errors.counterAccountId}
 						errorId="counter-error"
 					>
@@ -195,7 +194,6 @@
 						items={pickableCategories}
 						bind:value={categoryId}
 						placeholder="Elegir"
-						nested={drawer}
 						error={errors.categoryId}
 						errorId="category-error"
 					>
@@ -217,7 +215,6 @@
 							items={[{ id: '', name: 'Ninguno', icon: 'categories', color: null }, ...data.rules]}
 							bind:value={recurringId}
 							placeholder="Ninguno"
-							nested={drawer}
 							error={errors.recurringId}
 							errorId="rule-error"
 						>

@@ -14,7 +14,7 @@
 	let {
 		value = $bindable(''),
 		error,
-		nested = false
+		nested
 	}: {
 		/** The day as text ("5"), or '' when none. */
 		value?: string;

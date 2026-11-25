@@ -135,7 +135,7 @@
 	<span id="f-type-label" class="visually-hidden">Tipo</span>
 	<SegmentedControl name="type" options={typeOptions} bind:value={type} labelledby="f-type-label" />
 	<div class="group">
-		<DateRangePicker nested bind:from bind:to />
+		<DateRangePicker bind:from bind:to />
 		<MultiPicker
 			legend="Cuenta"
 			title="Cuenta"
