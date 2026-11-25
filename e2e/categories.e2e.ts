@@ -146,6 +146,7 @@ test('archiving a category hides it from the new-movement picker and Desarchivar
 
 		await gotoHydrated(page, href);
 		await page.getByRole('button', { name: 'Archivar' }).click();
+		await page.getByRole('alertdialog').getByRole('button', { name: 'Archivar' }).click();
 		await expect(page.getByRole('button', { name: 'Desarchivar' })).toBeVisible();
 		expect(await offered()).toBe(0);
 

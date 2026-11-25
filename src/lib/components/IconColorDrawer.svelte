@@ -15,14 +15,14 @@
 	 */
 	let {
 		open = $bindable(false),
-		nested = true,
+		nested,
 		icons,
 		icon,
 		color,
 		onpick
 	}: {
 		open?: boolean;
-		/** Stacked over a drawer (default); false when opened from a page. */
+		/** Stacked over a drawer; default: whether it is opened inside one. */
 		nested?: boolean;
 		/** The icon set: ACCOUNT_ICONS or CATEGORY_ICONS. */
 		icons: readonly { key: Key; label: string }[];

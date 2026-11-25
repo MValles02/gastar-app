@@ -6,6 +6,7 @@
 	import { archived, categoriesFor } from '#lib/movement.ts';
 	import { dueTone } from '#lib/plan.ts';
 	import { withWizard } from '#lib/plan-wizard.ts';
+	import { patchShallow } from '#lib/open-shallow.ts';
 	import DetailCard from '#lib/components/DetailCard.svelte';
 	import DetailLifecycle from '#lib/components/DetailLifecycle.svelte';
 	import DetailRow from '#lib/components/DetailRow.svelte';
@@ -19,7 +20,8 @@
 	/**
 	 * A recurring rule's detail and edit in one: tapping a row or the amount changes it, and every change
 	 * saves on its own (`?/update`) with a Deshacer toast. Desactivar / Activar and Eliminar (with confirm)
-	 * sit below.
+	 * sit below. Lives over the screen it was opened from as a drawer (shallow route) or as the full
+	 * /plan/recurring/<id> page (the enclosing FormScreen).
 	 */
 	let { data }: { data: PageData } = $props();
 
@@ -51,6 +53,7 @@
 			previous: { [key]: values[key] },
 			apply: (res) => {
 				r = { ...res.rule, wizard: data.wizard };
+				patchShallow('rule', res.rule);
 				errors = {};
 			}
 		});
@@ -144,14 +147,22 @@
 	</DetailCard>
 
 	<DetailLifecycle
+		{path}
+		sheet="rule"
 		can={{ canArchive: !r.archived, canUnarchive: r.archived, canDelete: true }}
 		messages={{
 			archive: 'Desactivar',
+			archiveTitle: `¿Desactivar este ${noun} fijo?`,
+			archiveBody: 'Podés activarlo de nuevo cuando quieras.',
 			unarchive: 'Activar',
 			deleteTitle: `¿Eliminar este ${noun} fijo?`,
 			deleteBody: 'Los movimientos ya registrados se mantienen.'
 		}}
-		actions={{ unarchive: '?/archive', delete: withWizard('?/delete', data.wizard) }}
+		actions={{
+			archive: `${path}?/archive`,
+			unarchive: `${path}?/archive`,
+			delete: withWizard(`${path}?/delete`, data.wizard)
+		}}
 		note={r.cannotRegister}
 	/>
 </div>

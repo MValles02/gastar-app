@@ -1,4 +1,4 @@
-import { goto, preloadData } from '$app/navigation';
+import { goto, preloadData, replaceState } from '$app/navigation';
 import { page } from '$app/state';
 
 /** A click the browser should handle itself (new tab, new window, non-primary button). */
@@ -32,4 +32,17 @@ export async function openShallow(
 	}
 	// eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass a resolved href
 	else await goto(href);
+}
+
+/**
+ * Merges `patch` into the data of the drawer open under `key` (no-op when none is): a drawer's
+ * preloaded data is not reloaded by `refreshAll`, so an in-place save writes its answer here to keep
+ * the drawer showing it.
+ */
+export function patchShallow<K extends keyof App.PageState>(
+	key: K,
+	patch: Partial<NonNullable<App.PageState[K]>>
+) {
+	const current = page.state[key];
+	if (current) replaceState('', { ...page.state, [key]: { ...current, ...patch } });
 }

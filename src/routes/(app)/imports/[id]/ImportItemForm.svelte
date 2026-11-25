@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import type { ActionResult } from '$app/forms';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { toast } from 'svelte-sonner';
 	import { goto, refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { submitAction } from '#lib/autosave.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import { formScreen } from '#lib/components/forms/form-enhance.ts';
@@ -14,7 +14,6 @@
 	import TextRow from '#lib/components/TextRow.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
-	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
 	import * as Field from '#lib/components/ui/field/index.js';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
 	import { categoriesFor } from '#lib/movement.ts';
@@ -87,12 +86,9 @@
 		ondone?.(importDoneOf(location));
 	}
 
-	async function discard() {
-		const r = await submitAction(`${path}?/reject`, {});
-		if (r.type !== 'redirect') {
-			toast.error('No se pudo descartar.');
-			return;
-		}
+	/** Drawer: the discard's answer (the page follows its redirect). */
+	function discarded(_type: string, r: ActionResult) {
+		if (r.type !== 'redirect') return void toast.error('No se pudo descartar.');
 		ondone?.(importDoneOf(r.location));
 	}
 </script>
@@ -248,39 +244,17 @@
 	</FormShell>
 
 	<div class="actions">
-		{#if drawer}
-			<AlertDialog.Root>
-				<AlertDialog.Trigger>
-					{#snippet child({ props })}
-						<Button {...props} variant="outline" class="w-full">Descartar</Button>
-					{/snippet}
-				</AlertDialog.Trigger>
-				<AlertDialog.Content>
-					<AlertDialog.Header>
-						<AlertDialog.Title>¿Descartar movimiento?</AlertDialog.Title>
-						<AlertDialog.Description>
-							No se importa a tus movimientos y no vuelve a aparecer.
-						</AlertDialog.Description>
-					</AlertDialog.Header>
-					<AlertDialog.Footer>
-						<AlertDialog.Cancel type="button" class="w-full">Cancelar</AlertDialog.Cancel>
-						<AlertDialog.Action type="button" variant="destructive" class="w-full" onclick={discard}
-							>Descartar</AlertDialog.Action
-						>
-					</AlertDialog.Footer>
-				</AlertDialog.Content>
-			</AlertDialog.Root>
-		{:else}
-			<ConfirmDialog
-				triggerLabel="Descartar"
-				triggerClass="w-full"
-				title="¿Descartar movimiento?"
-				confirmLabel="Descartar"
-				action="?/reject"
-			>
-				No se importa a tus movimientos y no vuelve a aparecer.
-			</ConfirmDialog>
-		{/if}
+		<ConfirmDialog
+			triggerLabel="Descartar"
+			triggerClass="w-full"
+			title="¿Descartar movimiento?"
+			confirmLabel="Descartar"
+			action={drawer ? `${path}?/reject` : '?/reject'}
+			closeOnFailure={drawer}
+			ondone={drawer ? discarded : undefined}
+		>
+			No se importa a tus movimientos y no vuelve a aparecer.
+		</ConfirmDialog>
 		<Button
 			type="submit"
 			form="import-form"
