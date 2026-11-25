@@ -17,7 +17,6 @@
 		icon = $bindable(),
 		color = $bindable(),
 		icons,
-		nested,
 		placeholder,
 		invalid,
 		describedby
@@ -27,8 +26,6 @@
 		color: SwatchKey;
 		/** The icon set: ACCOUNT_ICONS or CATEGORY_ICONS. */
 		icons: readonly { key: Key; label: string }[];
-		/** The form is in a drawer: the icon drawer stacks over it. */
-		nested: boolean;
 		placeholder: string;
 		invalid?: boolean;
 		/** `id` of the error shown under the head. */
@@ -71,7 +68,6 @@
 
 <IconColorDrawer
 	bind:open={glyphOpen}
-	{nested}
 	{icons}
 	{icon}
 	{color}

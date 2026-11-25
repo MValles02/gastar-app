@@ -62,7 +62,7 @@
 	/>
 </div>
 
-<BottomDrawer {title} nested bind:open>
+<BottomDrawer {title} bind:open>
 	<div class="options">
 		{#each items as item (item.id)}
 			{@const on = value.includes(item.id)}
