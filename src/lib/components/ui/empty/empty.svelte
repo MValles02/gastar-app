@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { appear } from '#lib/motion.ts';
 	import { cn, type WithElementRef } from '#lib/utils.js';
 	import type { HTMLAttributes } from 'svelte/elements';
 
@@ -12,6 +13,7 @@
 
 <div
 	bind:this={ref}
+	in:appear
 	data-slot="empty"
 	class={cn(
 		'gap-4 rounded-xl border-dashed p-6 flex w-full min-w-0 flex-1 flex-col items-center justify-center text-center text-balance',

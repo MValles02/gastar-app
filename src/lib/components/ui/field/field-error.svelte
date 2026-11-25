@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { appear } from '#lib/motion.ts';
 	import { cn, type WithElementRef } from '#lib/utils.js';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
@@ -36,6 +37,7 @@
 {#if hasContent}
 	<div
 		bind:this={ref}
+		in:appear
 		role="alert"
 		data-slot="field-error"
 		class={cn('text-destructive text-sm font-normal', className)}

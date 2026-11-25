@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { appear } from '#lib/motion.ts';
 	import { tick, type ComponentProps, type Snippet } from 'svelte';
 	import type { SwatchKey } from '#lib/appearance.ts';
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
@@ -134,7 +135,7 @@
 		/>
 		<!-- The Drawer is portaled out of the form, so the value submits through this input. -->
 		<input type="hidden" {name} {value} disabled={!value} bind:this={hidden} />
-		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
+		{#if error}<p class="error" id={errorId} role="alert" in:appear>{error}</p>{/if}
 	</div>
 	<BottomDrawer {title} {nested} {onclosed} bind:open>
 		<OptionList
@@ -163,7 +164,7 @@
 				</label>
 			{/each}
 		</fieldset>
-		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
+		{#if error}<p class="error" id={errorId} role="alert" in:appear>{error}</p>{/if}
 	</div>
 {/if}
 

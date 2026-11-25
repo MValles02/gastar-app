@@ -12,6 +12,8 @@
 		label?: string;
 		valueText?: string;
 	} = $props();
+
+	const shown = $derived(Math.min(100, Math.max(0, percent)));
 </script>
 
 <div
@@ -24,7 +26,8 @@
 	aria-valuenow={label ? percent : undefined}
 	aria-valuetext={label ? valueText : undefined}
 >
-	<span class="fill" style:width="{percent}%"></span>
+	<!-- A full-width fill slid left by the empty share: it keeps its rounded end and moves on the GPU. -->
+	<span class="fill" style:transform="translateX({shown - 100}%)"></span>
 </div>
 
 <style>
@@ -38,8 +41,15 @@
 
 	.fill {
 		display: block;
+		width: 100%;
 		height: 100%;
 		background: var(--tone);
 		border-radius: var(--radius-pill);
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.fill {
+			transition: transform var(--dur-slow) var(--ease-out);
+		}
 	}
 </style>

@@ -2,9 +2,9 @@ import { refreshAll } from '$app/navigation';
 import { toast } from 'svelte-sonner';
 import {
 	DOMINANCE,
-	EASE,
 	LOCK_PX,
 	RESET_SLACK_MS,
+	SPRING,
 	SPRING_MS,
 	dialogOpen,
 	isIOSStandalone,
@@ -79,7 +79,7 @@ export function pullRefresh(node: HTMLElement) {
 			a.style.transform = `translate3d(0,${-y}px,0)`;
 		}
 		if (!indicator) return;
-		indicator.style.transition = transition && `${transition}, opacity ${SPRING_MS}ms ${EASE}`;
+		indicator.style.transition = transition && `${transition}, opacity ${SPRING}`;
 		indicator.style.transform = `translate3d(0,${Math.max(0, (y - INDICATOR_PX) / 2)}px,0)`;
 	}
 
@@ -120,7 +120,7 @@ export function pullRefresh(node: HTMLElement) {
 	function settle() {
 		state = 'idle';
 		if (reducedMotion()) return reset();
-		move(0, `transform ${SPRING_MS}ms ${EASE}`);
+		move(0, `transform ${SPRING}`);
 		if (indicator) indicator.style.opacity = '0';
 		springTimer = setTimeout(reset, SPRING_MS + RESET_SLACK_MS);
 	}
@@ -225,7 +225,7 @@ export function pullRefresh(node: HTMLElement) {
 			indicator.style.opacity = '1';
 		}
 		if (arrow) arrow.style.transform = '';
-		if (!reducedMotion()) move(HOLD_PX, `transform ${SPRING_MS}ms ${EASE}`);
+		if (!reducedMotion()) move(HOLD_PX, `transform ${SPRING}`);
 		if (status) status.textContent = 'Actualizando…';
 		const started = performance.now();
 		let ok = true;

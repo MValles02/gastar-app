@@ -104,13 +104,12 @@
 										aria-label="{b.label}: ingresos {money(b.income)}, gastos {money(b.outcome)}"
 									>
 										<span class="cols" aria-hidden="true">
-											{#if b.income > 0}<span
-													class="bar in"
-													style:height="{(b.income / max) * 100}%"
-												></span>{/if}{#if b.outcome > 0}<span
-													class="bar out"
-													style:height="{(b.outcome / max) * 100}%"
-												></span>{/if}
+											{#if b.income > 0}<span class="slot"
+													><span class="bar in" style:--h="{(b.income / max) * 100}%"></span></span
+												>{/if}{#if b.outcome > 0}<span class="slot"
+													><span class="bar out" style:--h="{(b.outcome / max) * 100}%"
+													></span></span
+												>{/if}
 										</span>
 										<span class="bar-label" aria-hidden="true">{b.label}</span>
 									</a>
@@ -305,10 +304,26 @@
 		opacity: 1;
 	}
 
-	.bar {
+	/* Each bar is full height, slid down inside its clipping slot (at least 2px shows): the height
+	   changes as a transform, and the rounded top keeps its shape. */
+	.slot {
 		width: 10px;
-		min-height: 2px;
+		height: 100%;
+		overflow: hidden;
 		border-radius: 4px 4px 1px 1px;
+	}
+
+	.bar {
+		display: block;
+		height: 100%;
+		border-radius: 4px 4px 1px 1px;
+		transform: translateY(min(calc(100% - var(--h)), calc(100% - 2px)));
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.bar {
+			transition: transform var(--dur-slow) var(--ease-out);
+		}
 	}
 
 	.in {

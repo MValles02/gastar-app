@@ -138,9 +138,9 @@
 		.tab,
 		.fab {
 			transition:
-				color var(--ease-fast),
-				background-color var(--ease-fast),
-				transform var(--ease-fast);
+				color var(--dur-fast) var(--ease-out),
+				background-color var(--dur-fast) var(--ease-out),
+				transform var(--dur-fast) var(--ease-out);
 		}
 	}
 

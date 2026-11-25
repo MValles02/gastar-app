@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { markReplace } from '#lib/nav-stack.svelte.ts';
+	import { fade } from '#lib/motion.ts';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as InputGroup from '#lib/components/ui/input-group/index.js';
@@ -93,7 +94,7 @@
 		>
 			<SlidersHorizontal size={18} strokeWidth={1.75} aria-hidden="true" />
 			Filtros
-			{#if active > 0}<Badge>{active}</Badge>{/if}
+			{#if active > 0}<span class="inline-flex" in:fade><Badge>{active}</Badge></span>{/if}
 		</Button>
 	</div>
 	{#if search}<noscript><Button type="submit">Filtrar</Button></noscript>{/if}

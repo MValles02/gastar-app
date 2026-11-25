@@ -33,7 +33,7 @@
 		color: var(--text-muted);
 		opacity: 0;
 		pointer-events: none;
-		transition: color 0.15s ease;
+		transition: color var(--dur-fast) var(--ease-out);
 	}
 
 	.pull-indicator > span {

@@ -33,18 +33,14 @@
 		(uaAnimatedPop =
 			(e as PopStateEvent & { hasUAVisualTransition?: boolean }).hasUAVisualTransition === true);
 
-	// Page transitions (View Transitions API): the direction goes on <html> for the CSS in app.css.
+	// Page transitions (View Transitions API): the direction goes on <html> for the CSS in app.css,
+	// which turns every kind into a short crossfade under reduced motion.
 	onNavigate((nav) => {
 		// A shallow goto (drawer open) is no page change; closing the drawer (shallow popstate) fires no
 		// hook as long as `page.url` matches the address bar, which `stripFlags` guarantees.
 		if (nav.shallow && nav.type === 'goto') return;
 		const kind = transitionOf(nav);
-		if (
-			!kind ||
-			!document.startViewTransition ||
-			(nav.type === 'popstate' && uaAnimatedPop) ||
-			matchMedia('(prefers-reduced-motion: reduce)').matches
-		)
+		if (!kind || !document.startViewTransition || (nav.type === 'popstate' && uaAnimatedPop))
 			return;
 		document.documentElement.dataset.navTransition = kind;
 		return new Promise<void>((resolve) => {

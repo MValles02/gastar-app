@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { appear } from '#lib/motion.ts';
 	import type { Snippet } from 'svelte';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
 
@@ -45,7 +46,7 @@
 		aria-describedby={descriptionError ? `${descriptionId}-error` : undefined}
 	/>
 	{#if descriptionError}
-		<p class="error" id="{descriptionId}-error" role="alert">{descriptionError}</p>
+		<p class="error" id="{descriptionId}-error" role="alert" in:appear>{descriptionError}</p>
 	{/if}
 </div>
 

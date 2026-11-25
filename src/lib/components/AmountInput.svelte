@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { appear } from '#lib/motion.ts';
 	import { groupedAmount } from '#lib/amount-input.ts';
 	import { CURRENCY_SYMBOL, DEFAULT_CURRENCY, type Currency } from '#lib/money.ts';
 
@@ -43,7 +44,7 @@
 			aria-describedby={error ? `${id}-error` : undefined}
 		/>
 	</label>
-	{#if error}<p class="error" id="{id}-error" role="alert">{error}</p>{/if}
+	{#if error}<p class="error" id="{id}-error" role="alert" in:appear>{error}</p>{/if}
 </div>
 
 <style>
