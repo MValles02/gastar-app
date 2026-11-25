@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { appear } from '#lib/motion.ts';
 	import type { Snippet } from 'svelte';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import InlineText from '#lib/components/InlineText.svelte';
@@ -73,7 +74,7 @@
 			</span>
 		</div>
 		{@render hidden?.()}
-		{#if error}<p class="error pad" id={errorId} role="alert">{error}</p>{/if}
+		{#if error}<p class="error pad" id={errorId} role="alert" in:appear>{error}</p>{/if}
 	</li>
 {/snippet}
 

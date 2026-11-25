@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { appear } from '#lib/motion.ts';
 	import { today } from '@internationalized/date';
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import { Calendar } from '#lib/components/ui/calendar/index.js';
@@ -113,7 +114,7 @@
 		/>
 		<!-- The Drawer is portaled out of the form, so the value submits through this input. -->
 		<input type="hidden" {name} {value} bind:this={hidden} />
-		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
+		{#if error}<p class="error" id={errorId} role="alert" in:appear>{error}</p>{/if}
 	</div>
 	<BottomDrawer title={label} {nested} {onclosed} bind:open>
 		{#if presets}
@@ -143,7 +144,7 @@
 	<div class="field native">
 		<label for="{labelId}-native">{label}</label>
 		<input id="{labelId}-native" type="date" {name} {min} {max} bind:value />
-		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
+		{#if error}<p class="error" id={errorId} role="alert" in:appear>{error}</p>{/if}
 	</div>
 {/if}
 

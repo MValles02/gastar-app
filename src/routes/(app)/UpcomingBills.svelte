@@ -6,6 +6,7 @@
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import { formatMoney, type Currency } from '#lib/money.ts';
+	import { appear } from '#lib/motion.ts';
 
 	/** This month's fixed payments in one currency: how much is paid, and the unpaid ones still due. */
 	let {
@@ -34,7 +35,7 @@
 	);
 </script>
 
-<section aria-labelledby="bills-heading">
+<section aria-labelledby="bills-heading" in:appear>
 	<div class="section-head">
 		<h2 id="bills-heading">Próximos vencimientos</h2>
 		<ActionLink href="/plan" label="Ver plan" />

@@ -48,7 +48,7 @@
 
 	@media (prefers-reduced-motion: no-preference) {
 		span {
-			animation: nav-progress-slide 1.1s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+			animation: nav-progress-slide 1.1s var(--ease-drawer) infinite;
 		}
 	}
 

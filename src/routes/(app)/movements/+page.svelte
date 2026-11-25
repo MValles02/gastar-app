@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { navigating } from '$app/state';
+	import { navigating, page } from '$app/state';
+	import { untrack } from 'svelte';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import { fade, recordOffsets, slide } from '#lib/motion.ts';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -70,6 +72,30 @@
 	};
 	const firstPageQuery = $derived(filterParams().toString());
 
+	// A new filter or page (a tap) fades the list in. A search (typed) updates it in place with no
+	// motion. A refresh of the same address (a delete, its undo, pull-to-refresh) slides the rows
+	// that moved, from offsets recorded right before the update, and fades in the ones that return.
+	const listKey = $derived(
+		JSON.stringify([
+			{ ...data.filters, q: '' },
+			data.allDates,
+			data.accountIds,
+			data.categoryIds,
+			data.page
+		])
+	);
+	let groups = $state<HTMLElement>();
+	let lastSearch: string | undefined;
+	let inPlace = $state(false);
+	$effect.pre(() => {
+		void data.months;
+		untrack(() => {
+			inPlace = page.url.search === lastSearch;
+			lastSearch = page.url.search;
+			recordOffsets(inPlace ? groups : undefined);
+		});
+	});
+
 	// The search term is not a filter: the badge and Limpiar count only the drawer filters.
 	const filterCount = $derived(data.activeCount - (data.filters.q ? 1 : 0));
 </script>
@@ -132,95 +158,112 @@
 		categories={data.categories}
 	/>
 
-	{#if data.months.length === 0}
-		{#if data.page > 1}
-			<Empty.Root>
-				<Empty.Header>
-					<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
-					<Empty.Description>Sin más movimientos.</Empty.Description>
-				</Empty.Header>
-			</Empty.Root>
-			<div class="empty-action">
-				<Button href={resolve(`movements?${firstPageQuery}`)} variant="outline">
-					Ir a la primera página
-				</Button>
-			</div>
-		{:else if data.activeCount === 0}
-			<Empty.Root>
-				<Empty.Header>
-					<Empty.Media variant="icon"><Icon name="movements" size="1rem" /></Empty.Media>
-					<Empty.Description>Sin movimientos.</Empty.Description>
-				</Empty.Header>
-			</Empty.Root>
-			<div class="empty-action">
-				<Button
-					href={resolve('movements/new')}
-					onclick={(e) => openShallow(e, resolve('movements/new'), 'newMovement')}
-					>Nuevo movimiento</Button
+	{#key listKey}
+		<div class="list" in:fade>
+			{#if data.months.length === 0}
+				{#if data.page > 1}
+					<Empty.Root>
+						<Empty.Header>
+							<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
+							<Empty.Description>Sin más movimientos.</Empty.Description>
+						</Empty.Header>
+					</Empty.Root>
+					<div class="empty-action">
+						<Button href={resolve(`movements?${firstPageQuery}`)} variant="outline">
+							Ir a la primera página
+						</Button>
+					</div>
+				{:else if data.activeCount === 0}
+					<Empty.Root>
+						<Empty.Header>
+							<Empty.Media variant="icon"><Icon name="movements" size="1rem" /></Empty.Media>
+							<Empty.Description>Sin movimientos.</Empty.Description>
+						</Empty.Header>
+					</Empty.Root>
+					<div class="empty-action">
+						<Button
+							href={resolve('movements/new')}
+							onclick={(e) => openShallow(e, resolve('movements/new'), 'newMovement')}
+							>Nuevo movimiento</Button
+						>
+					</div>
+				{:else}
+					<Empty.Root>
+						<Empty.Header>
+							<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
+							<Empty.Description>Sin resultados.</Empty.Description>
+						</Empty.Header>
+					</Empty.Root>
+					<div class="empty-action">
+						<Button href={resolve('movements')} variant="outline">Limpiar filtros</Button>
+					</div>
+				{/if}
+			{:else}
+				{#if data.summary}
+					<p class="summary" role="status">
+						{data.summary.count}
+						{data.summary.count === 1 ? 'movimiento' : 'movimientos'}
+					</p>
+				{/if}
+				<div
+					class="groups"
+					bind:this={groups}
+					style:--month-top="{barHeight}px"
+					aria-busy={navigating.to !== null}
 				>
-			</div>
-		{:else}
-			<Empty.Root>
-				<Empty.Header>
-					<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
-					<Empty.Description>Sin resultados.</Empty.Description>
-				</Empty.Header>
-			</Empty.Root>
-			<div class="empty-action">
-				<Button href={resolve('movements')} variant="outline">Limpiar filtros</Button>
-			</div>
-		{/if}
-	{:else}
-		{#if data.summary}
-			<p class="summary" role="status">
-				{data.summary.count}
-				{data.summary.count === 1 ? 'movimiento' : 'movimientos'}
-			</p>
-		{/if}
-		<div class="groups" style:--month-top="{barHeight}px" aria-busy={navigating.to !== null}>
-			{#each data.months as mo (mo.ym)}
-				<section class="month" aria-labelledby="month-{mo.ym}">
-					<h2 id="month-{mo.ym}">{mo.label}</h2>
-					{#each mo.days as g (g.day)}
-						<section aria-labelledby="day-{g.day}">
-							<div class="day-head">
-								<h3 id="day-{g.day}">{g.heading}</h3>
-								{#if g.spend.length}
-									<span class="day-total">
-										<span class="visually-hidden">Gastos del día: </span>
-										{#each g.spend as s, i (s.currency)}
-											{#if i > 0}{CURRENCY_SEP}{/if}
-											<Money cents={s.cents} currency={s.currency} />
+					{#each data.months as mo (mo.ym)}
+						<section class="month" aria-labelledby="month-{mo.ym}" data-slide animate:slide>
+							<h2 id="month-{mo.ym}">{mo.label}</h2>
+							{#each mo.days as g (g.day)}
+								<section
+									class="day"
+									aria-labelledby="day-{g.day}"
+									data-slide
+									animate:slide
+									in:fade={{ skip: !inPlace }}
+								>
+									<div class="day-head">
+										<h3 id="day-{g.day}">{g.heading}</h3>
+										{#if g.spend.length}
+											<span class="day-total">
+												<span class="visually-hidden">Gastos del día: </span>
+												{#each g.spend as s, i (s.currency)}
+													{#if i > 0}{CURRENCY_SEP}{/if}
+													<Money cents={s.cents} currency={s.currency} />
+												{/each}
+											</span>
+										{/if}
+									</div>
+									<ListCard class="relative">
+										{#each g.items as m (m.id)}
+											<div data-slide animate:slide in:fade={{ skip: !inPlace }}>
+												<MovementRow {m} />
+											</div>
 										{/each}
-									</span>
-								{/if}
-							</div>
-							<ListCard>
-								{#each g.items as m (m.id)}
-									<MovementRow {m} />
-								{/each}
-							</ListCard>
+									</ListCard>
+								</section>
+							{/each}
 						</section>
 					{/each}
-				</section>
-			{/each}
-		</div>
+				</div>
 
-		{#if data.page > 1 || data.hasNext}
-			<nav class="pager" aria-label="Paginación">
-				{#if data.page > 1}
-					<Button href={resolve(`movements?${pageQuery(data.page - 1)}`)} variant="outline">
-						<ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />Más recientes
-					</Button>
+				{#if data.page > 1 || data.hasNext}
+					<nav class="pager" aria-label="Paginación">
+						{#if data.page > 1}
+							<Button href={resolve(`movements?${pageQuery(data.page - 1)}`)} variant="outline">
+								<ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />Más recientes
+							</Button>
+						{/if}
+						{#if data.hasNext}
+							<Button href={resolve(`movements?${pageQuery(data.page + 1)}`)} variant="outline">
+								Más antiguos<ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
+							</Button>
+						{/if}
+					</nav>
 				{/if}
-				{#if data.hasNext}
-					<Button href={resolve(`movements?${pageQuery(data.page + 1)}`)} variant="outline">
-						Más antiguos<ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
-					</Button>
-				{/if}
-			</nav>
-		{/if}
-	{/if}
+			{/if}
+		</div>
+	{/key}
 </div>
 
 <style>
@@ -238,11 +281,22 @@
 		border-radius: var(--radius-card);
 	}
 
+	.list,
 	.groups {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-		transition: opacity var(--ease-fast);
+	}
+
+	/* Offset parents for the row slide (motion.ts `slide`). */
+	.groups,
+	.month,
+	.day {
+		position: relative;
+	}
+
+	.groups {
+		transition: opacity var(--dur-base) var(--ease-out);
 	}
 
 	.groups[aria-busy='true'] {

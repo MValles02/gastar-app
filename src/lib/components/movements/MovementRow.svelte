@@ -81,24 +81,27 @@
 		display: contents;
 	}
 
-	/* Just saved: a primary tint that fades out (static under reduced motion; the state clears it). */
-	.hl :global(.highlighted) {
+	/* Just saved: a primary tint behind the row, held while `highlight` flags it, then faded out
+	   (an opacity transition, so a new highlight retargets instead of restarting). */
+	.hl > :global([role='listitem']) {
+		position: relative;
+		isolation: isolate;
+	}
+
+	.hl > :global([role='listitem'])::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: -1;
 		background: color-mix(in srgb, var(--primary) 14%, transparent);
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 1.2s var(--ease-out);
 	}
 
-	@media (prefers-reduced-motion: no-preference) {
-		.hl :global(.highlighted) {
-			animation: fade-tint 3s ease-out forwards;
-		}
-	}
-
-	@keyframes fade-tint {
-		from {
-			background: color-mix(in srgb, var(--primary) 14%, transparent);
-		}
-		to {
-			background: transparent;
-		}
+	.hl > :global(.highlighted)::before {
+		opacity: 1;
+		transition: none;
 	}
 
 	.secondary {

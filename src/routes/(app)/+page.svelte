@@ -22,6 +22,7 @@
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import { PLAN_TONE } from '#lib/plan.ts';
 	import { swatchVar, toSwatchKey } from '#lib/appearance.ts';
+	import { appear, fade } from '#lib/motion.ts';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -67,7 +68,7 @@
 				<Card.Root class="gap-0 overflow-hidden py-0">
 					{#if data.plan?.summary}
 						{@const s = data.plan.summary}
-						<div class="box">
+						<div class="box" in:fade>
 							<div class="top">
 								<CardEyebrow as="h2" id="summary-heading">Disponible</CardEyebrow>
 								<StatusPill tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
@@ -102,7 +103,7 @@
 							</div>
 						</div>
 					{:else}
-						<div class="box">
+						<div class="box" in:fade>
 							<CardEyebrow as="h2" id="summary-heading">Saldo total</CardEyebrow>
 							<HeroAmount cents={data.balance} currency={data.currency} />
 							<p class="muted per-day">
@@ -127,14 +128,14 @@
 			{/if}
 
 			{#if data.recent.length > 0}
-				<section aria-labelledby="categories-heading">
+				<section aria-labelledby="categories-heading" in:appear>
 					<div class="section-head">
 						<h2 id="categories-heading">Gastos de {data.monthName}</h2>
 						<ActionLink href="/reports" label="Ver reportes" />
 					</div>
 					{#if data.topCategories.length === 0}
 						<Card.Root>
-							<Card.Content><p class="muted inline-empty">No hay gastos.</p></Card.Content>
+							<Card.Content><p class="muted inline-empty" in:fade>No hay gastos.</p></Card.Content>
 						</Card.Root>
 					{:else}
 						<ListCard>
@@ -177,7 +178,9 @@
 				{#if data.recent.length === 0}
 					<Card.Root>
 						<Card.Content>
-							<p class="muted inline-empty">Todavía no hay movimientos en {data.currencyWord}.</p>
+							<p class="muted inline-empty" in:fade>
+								Todavía no hay movimientos en {data.currencyWord}.
+							</p>
 						</Card.Content>
 					</Card.Root>
 				{:else}

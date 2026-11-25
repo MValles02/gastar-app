@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { appear } from '#lib/motion.ts';
 	import type { Snippet } from 'svelte';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 
@@ -28,7 +29,7 @@
 				/>
 			</span>
 		</button>
-		{#if error}<p class="error" role="alert">{error}</p>{/if}
+		{#if error}<p class="error" role="alert" in:appear>{error}</p>{/if}
 	</li>
 {:else}
 	<li class="row">

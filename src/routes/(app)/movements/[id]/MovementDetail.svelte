@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { type ComponentProps, untrack } from 'svelte';
+	import { appear } from '#lib/motion.ts';
 	import { toast } from 'svelte-sonner';
 	import { resolve } from '$app/paths';
 	import { autosave } from '#lib/autosave.ts';
@@ -373,7 +374,7 @@
 		{/if}
 	</ul>
 
-	{#if errors.delete}<p class="error" role="alert">{errors.delete}</p>{/if}
+	{#if errors.delete}<p class="error" role="alert" in:appear>{errors.delete}</p>{/if}
 	<div class="actions">
 		<ConfirmDialog
 			triggerLabel="Eliminar"

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { appear } from '#lib/motion.ts';
 	import { tick, untrack, type Snippet } from 'svelte';
 
 	/**
@@ -102,7 +103,7 @@
 			{@render display()}
 		</button>
 	{/if}
-	{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
+	{#if error}<p class="error" id={errorId} role="alert" in:appear>{error}</p>{/if}
 </div>
 
 <style>
