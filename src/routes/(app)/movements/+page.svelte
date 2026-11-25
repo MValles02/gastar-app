@@ -17,6 +17,7 @@
 	import MovementRow from '#lib/components/movements/MovementRow.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import TabBand from '#lib/components/TabBand.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import type { PageData } from './$types';
@@ -104,7 +105,7 @@
 	<title>Movimientos · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Movimientos" bind:ref={header} />
+<PageHeader title="Movimientos" tone="primary" bind:ref={header} />
 
 {#snippet fields(submit: () => void)}
 	<span id="type-label" class="visually-hidden">Tipo</span>
@@ -140,7 +141,7 @@
 	</div>
 {/snippet}
 
-<div class="page">
+<TabBand overlap={false}>
 	<FilterBar
 		q={data.filters.q}
 		label="Buscar"
@@ -148,7 +149,11 @@
 		active={filterCount}
 		filters={fields}
 		onfilters={() => (filtersOpen = true)}
+		tone="primary"
 	/>
+</TabBand>
+
+<div class="page">
 	<MovementFiltersDrawer
 		bind:open={filtersOpen}
 		filters={data.filters}
@@ -268,6 +273,7 @@
 
 <style>
 	.page {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);

@@ -14,12 +14,16 @@
 	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
 	import HeroAmount from '#lib/components/HeroAmount.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import TabBand from '#lib/components/TabBand.svelte';
 	import { CURRENCY_NAME, formatMoney } from '#lib/money.ts';
 	import { markReplace } from '#lib/nav-stack.svelte.ts';
 	import { swatchVar, toSwatchKey } from '#lib/appearance.ts';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	// The month starts with the totals card (which overlaps the band) only when it has movements.
+	const hasMovements = $derived(data.bars?.some((b) => b.income !== 0 || b.outcome !== 0) ?? false);
 
 	const money = (c: number) => formatMoney(c, data.currency);
 	// Spending is negated so Money shows it as an outcome (red); zero stays neutral.
@@ -33,17 +37,11 @@
 	<title>Reportes · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Reportes" />
+<PageHeader title="Reportes" tone="primary" />
 
-<div class="page">
-	<CurrencyTabs value={data.currency} variant="pills" />
-
-	{#if !data.hasCurrency}
-		<EmptyState icon="accounts" description="No tenés cuentas en {CURRENCY_NAME[data.currency]}.">
-			<Button href={resolve('accounts/new')}>Crear cuenta</Button>
-		</EmptyState>
-	{:else}
-		{@const max = Math.max(1, ...data.bars.flatMap((b) => [b.income, b.outcome]))}
+<TabBand overlap={data.hasCurrency && hasMovements}>
+	<CurrencyTabs value={data.currency} variant="pills" tone="primary" />
+	{#if data.hasCurrency}
 		<div class="month-nav">
 			<MonthNav
 				label={data.nav.label}
@@ -51,8 +49,17 @@
 				nextHref={data.nav.isCurrent ? null : resolve(`reports?month=${data.nav.next}`)}
 			/>
 		</div>
+	{/if}
+</TabBand>
 
-		{#if data.bars.every((b) => b.income === 0 && b.outcome === 0)}
+<div class="page">
+	{#if !data.hasCurrency}
+		<EmptyState icon="accounts" description="No tenés cuentas en {CURRENCY_NAME[data.currency]}.">
+			<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+		</EmptyState>
+	{:else}
+		{@const max = Math.max(1, ...data.bars.flatMap((b) => [b.income, b.outcome]))}
+		{#if !hasMovements}
 			<EmptyState icon="chart" description="Sin movimientos en {CURRENCY_NAME[data.currency]}." />
 		{:else}
 			<section aria-label="Totales del mes">
@@ -206,6 +213,7 @@
 
 <style>
 	.page {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
@@ -216,8 +224,20 @@
 		font-size: var(--font-size-sm);
 	}
 
+	/* On the band: the arrows and label take the on-primary ink. */
 	.month-nav {
-		margin: calc(-1 * var(--space-2));
+		margin: var(--space-2) calc(-1 * var(--space-2)) calc(-1 * var(--space-2));
+	}
+
+	.month-nav :global(a),
+	.month-nav :global(button) {
+		color: inherit;
+		--tw-ring-color: var(--on-primary);
+	}
+
+	.month-nav :global(a:hover),
+	.month-nav :global(a:active) {
+		background: color-mix(in srgb, var(--on-primary) 12%, transparent);
 	}
 
 	/* Resultado spans the card; Ingresos and Gastos sit side by side beneath it. */

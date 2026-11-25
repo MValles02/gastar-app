@@ -21,7 +21,8 @@
 		label = 'Buscar',
 		active,
 		filters,
-		onfilters
+		onfilters,
+		tone = 'default'
 	}: {
 		q?: string;
 		/** false: only the Filtros button. */
@@ -31,6 +32,8 @@
 		active: number;
 		filters?: Snippet<[() => void]>;
 		onfilters: () => void;
+		/** `primary`: on a primary band (Movimientos): the field and button get a solid surface fill. */
+		tone?: 'default' | 'primary';
 	} = $props();
 
 	const mounted = hydrated();
@@ -53,6 +56,7 @@
 <form
 	method="GET"
 	class="search"
+	class:on-primary={tone === 'primary'}
 	data-sveltekit-reset="false"
 	data-sveltekit-replacestate
 	bind:this={searchForm}
@@ -121,6 +125,17 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
+	}
+
+	/* Fields and outline buttons are translucent in dark mode: solid surface so the band never shows through. */
+	.on-primary :global([data-slot='input-group']),
+	.on-primary :global([data-slot='button']) {
+		background: var(--surface);
+		border-color: transparent;
+	}
+
+	.on-primary :global([data-slot='input-group']:focus-within) {
+		--tw-ring-color: var(--on-primary);
 	}
 
 	.plain {
