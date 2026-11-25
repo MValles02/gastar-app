@@ -106,8 +106,14 @@
 		}
 	}
 
+	/* The fill waits 100ms so a scroll or swipe that starts on the row never lights it up. */
+	a.row {
+		transition: background-color 0s;
+	}
+
 	a.row:active {
 		background: var(--muted);
+		transition-delay: 100ms;
 	}
 
 	a.row:focus-visible {

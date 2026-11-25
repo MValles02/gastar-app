@@ -368,11 +368,18 @@
 
 /*
  * Pressed rows: a link or button Item (ListRow, OptionPicker rows) fills muted while pressed, the
- * touch counterpart of its hover fill. iOS Safari only applies :active with a touchstart listener on
- * the page, which src/routes/+layout.svelte adds.
+ * touch counterpart of its hover fill. The fill waits 100ms (transition-delay, so it holds under
+ * reduced motion too) and is instant on release: a scroll or swipe that starts on a row never lights
+ * it up, like a native iOS list. iOS Safari only applies :active with a touchstart listener on the
+ * page, which src/routes/+layout.svelte adds.
  */
+:is(a, button)[data-slot='item'] {
+	transition-duration: 0s;
+}
+
 :is(a, button)[data-slot='item']:active {
 	background: var(--muted);
+	transition-delay: 100ms;
 }
 
 /*

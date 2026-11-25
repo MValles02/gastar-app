@@ -26,11 +26,13 @@ import {
 /**
  * Swipe between tabs in the installed PWA, like a pager: on a tab screen a horizontal drag moves
  * the page with the finger (left toward the next tab in the bar, right toward the previous one).
- * Releasing past COMMIT_RATIO of the width, or with a flick, slides the page out and clicks the
- * target tab's link in the bar (`[data-tab-link]` in TabBar), so swipe and tap share one code path;
- * the new page then slides in from the other side. Otherwise the page springs back. Past the first
+ * Releasing past COMMIT_RATIO of the width, or with a flick, clicks the target tab's link in the
+ * bar at once (`[data-tab-link]` in TabBar, so swipe and tap share one code path) while the page
+ * slides out; the new page slides in from the other side once BOTH the slide-out has ended and the
+ * navigation has landed, whichever comes last, so no blank page shows while the target loads.
+ * Otherwise the page springs back. Past the first
  * or last tab the page rubber-bands and never navigates. The target tab's data is preloaded as soon
- * as the drag points at it, so it is ready when the slide-out ends.
+ * as the drag points at it, so the navigation lands quickly.
  *
  * The page follows over the plain background (no live peek of the neighbour: it would need that
  * page's data loaded during the drag). Only active when the tab bar is shown (the four tab screens),
@@ -45,11 +47,26 @@ const SHADOW = '-12px 0 24px -12px rgb(0 0 0 / 0.25), 12px 0 24px -12px rgb(0 0 
 const SLIDE_OUT_MIN_MS = 120;
 
 let restore: (() => void) | null = null;
+/** Resolves when a committed swipe's slide-out ends (null when none is running). */
+let slideOut: Promise<void> | null = null;
+let endSlideOut: (() => void) | null = null;
+
+function finishSlideOut() {
+	endSlideOut?.();
+	endSlideOut = null;
+	slideOut = null;
+}
 
 /** Called after every landed navigation: slides the new tab in after a committed swipe. */
 export function settleTabSwipe() {
 	restore?.();
 }
+
+/**
+ * The root layout's `onNavigate` returns this, so the navigation a swipe started (at release, to
+ * overlap the load with the slide-out) does not swap the page's content until the old page is off-screen.
+ */
+export const tabSlideOut = () => slideOut;
 
 export function tabSwipe(node: HTMLElement) {
 	let links: HTMLAnchorElement[] = [];
@@ -74,6 +91,7 @@ export function tabSwipe(node: HTMLElement) {
 		clearTimeout(settleTimer);
 		springTimer = undefined;
 		restore = null;
+		finishSlideOut(); // never leave a navigation waiting on a slide-out that was cut short
 		node.style.transition = '';
 		node.style.transform = '';
 		node.style.boxShadow = '';
@@ -209,19 +227,29 @@ export function tabSwipe(node: HTMLElement) {
 			target.click();
 			return;
 		}
-		// Slide the rest of the way out (no slower than the finger was going), then navigate with
-		// the page transition suppressed (the finger already did it) and keep the page off-screen
-		// until the new one has landed.
+		// Navigate right away with the page transition suppressed (the finger already did it) while
+		// the page slides the rest of the way out (no slower than the finger was going). The node
+		// keeps its off-screen translate (even if the navigation swaps its content meanwhile) until
+		// enterFrom runs, once the slide-out has ended and the new page has landed.
 		const rest = innerWidth - Math.abs(dx);
 		const ms = Math.round(
 			Math.min(SLIDE_OUT_MS, Math.max(SLIDE_OUT_MIN_MS, rest / Math.max(v, 0.01)))
 		);
 		node.style.transition = `transform ${ms}ms ${EASE}`;
 		node.style.transform = `translate3d(${dir * innerWidth}px,0,0)`;
-		restore = () => enterFrom(-dir);
+		let slidOut = false;
+		let landed = false;
+		restore = () => {
+			landed = true;
+			if (slidOut) enterFrom(-dir);
+		};
+		slideOut = new Promise<void>((resolve) => (endSlideOut = resolve));
+		skipNextTransition();
+		target.click();
 		settleTimer = setTimeout(() => {
-			skipNextTransition();
-			target.click();
+			slidOut = true;
+			finishSlideOut();
+			if (landed) return enterFrom(-dir);
 			const waitSettle = () => {
 				if (!restore) return;
 				if (navigating.to) settleTimer = setTimeout(waitSettle, POLL_MS);
