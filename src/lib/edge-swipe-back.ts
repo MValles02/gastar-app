@@ -1,5 +1,25 @@
 import { navigating } from '$app/state';
 import { skipNextTransition } from '#lib/nav-stack.svelte.ts';
+import {
+	COMMIT_RATIO,
+	DOMINANCE,
+	EASE,
+	EDGE_PX,
+	FLICK_MIN_PX,
+	FLICK_VELOCITY,
+	LOCK_PX,
+	POLL_MS,
+	RESET_SLACK_MS,
+	SETTLE_MS,
+	SLIDE_OUT_MS,
+	SPRING_MS,
+	SWIPING_CLASS,
+	dialogOpen,
+	isStandalone,
+	ownsHorizontal,
+	reducedMotion,
+	velocity
+} from '#lib/swipe.ts';
 
 /**
  * Edge-swipe back for the installed PWA (iOS standalone has no system swipe-back). A touch that
@@ -13,48 +33,9 @@ import { skipNextTransition } from '#lib/nav-stack.svelte.ts';
  * already exists and ours would fight it. On Android the system back gesture takes the touch first
  * (we get `touchcancel` and spring back). Touch only: no effect with a mouse.
  */
-const EDGE_PX = 20;
-const LOCK_PX = 10;
-/** Horizontal movement must exceed vertical by this factor to claim the gesture. */
-const DOMINANCE = 1.5;
-const COMMIT_RATIO = 0.35;
-/** px/ms over the last samples, plus a minimum travel, for a flick. */
-const FLICK_VELOCITY = 0.5;
-const FLICK_MIN_PX = 40;
-const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
-/** The spring back to place; the page resets RESET_SLACK_MS after it ends. */
-const SPRING_MS = 280;
-const RESET_SLACK_MS = 20;
-/** The slide off-screen after a committed swipe; the navigation starts when it ends. */
-const SLIDE_OUT_MS = 200;
-/** Wait this long for the new page to land, then re-check every POLL_MS while a navigation is pending. */
-const SETTLE_MS = 1500;
-const POLL_MS = 300;
 
 /** The screen's "up" control (PageHeader's `data-edge-back`), which a committed swipe clicks. */
 const BACK_SELECTOR = '[data-edge-back]';
-/** An open bits-ui dialog or vaul drawer (BottomDrawer): no swipe while one is up. */
-const OVERLAY_SELECTOR = '[role="dialog"], [data-vaul-drawer]';
-
-const isStandalone = () =>
-	matchMedia('(display-mode: standalone)').matches ||
-	(navigator as Navigator & { standalone?: boolean }).standalone === true;
-
-const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-const dialogOpen = () => !!document.querySelector(OVERLAY_SELECTOR);
-
-/** True when the touch starts on something that owns horizontal drags or text. */
-function ownsHorizontal(target: EventTarget | null) {
-	for (let el = target as Element | null; el && el !== document.body; el = el.parentElement) {
-		if (el.matches('input, textarea, select, [contenteditable], [role="slider"]')) return true;
-		if (el.scrollWidth > el.clientWidth && el.scrollLeft > 0) {
-			const ox = getComputedStyle(el).overflowX;
-			if (ox === 'auto' || ox === 'scroll') return true;
-		}
-	}
-	return false;
-}
 
 let restore: (() => void) | null = null;
 
@@ -82,7 +63,7 @@ export function edgeSwipeBack(node: HTMLElement) {
 		node.style.transform = '';
 		node.style.boxShadow = '';
 		node.style.background = '';
-		root.classList.remove('edge-swiping');
+		root.classList.remove(SWIPING_CLASS);
 		node.style.willChange = '';
 	}
 
@@ -102,7 +83,7 @@ export function edgeSwipeBack(node: HTMLElement) {
 		const t = e.touches[0];
 		if (t.clientX > EDGE_PX || !isStandalone()) return;
 		const el = document.querySelector<HTMLElement>(BACK_SELECTOR);
-		if (!el || dialogOpen() || ownsHorizontal(e.target)) return;
+		if (!el || dialogOpen() || ownsHorizontal(e.target, true)) return;
 		if (!getSelection()?.isCollapsed) return;
 		backEl = el;
 		startX = t.clientX;
@@ -128,7 +109,7 @@ export function edgeSwipeBack(node: HTMLElement) {
 			}
 			claimed = true;
 			if (!reducedMotion()) {
-				root.classList.add('edge-swiping');
+				root.classList.add(SWIPING_CLASS);
 				node.style.transition = 'none';
 				node.style.willChange = 'transform';
 				node.style.background = 'var(--bg)';
@@ -162,9 +143,7 @@ export function edgeSwipeBack(node: HTMLElement) {
 		if (!claimed || !backEl) return;
 		if (raf) cancelAnimationFrame(raf);
 		raf = 0;
-		const first = samples[0];
-		const last = samples[samples.length - 1];
-		const v = last.t > first.t ? (last.x - first.x) / (last.t - first.t) : 0;
+		const v = velocity(samples);
 		const commit = dx > innerWidth * COMMIT_RATIO || (v > FLICK_VELOCITY && dx > FLICK_MIN_PX);
 		if (!commit) return springBack();
 

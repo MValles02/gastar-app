@@ -91,7 +91,7 @@
 	title="Nuevo movimiento"
 	close={{ href: resolve(returnTo as ''), label: 'Cerrar' }}
 	{onclose}
-	drawerProps={{ hideTitle: true, bare: true }}
+	drawerProps={{ hideTitle: true, bare: true, initialFocus: 'input[name="amount"]' }}
 >
 	{#if data.accounts.length === 0}
 		{#if drawer}

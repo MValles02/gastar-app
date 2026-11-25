@@ -27,6 +27,9 @@ let poppingTimer: ReturnType<typeof setTimeout> | undefined;
 /** No `popstate` by then means the traversal never started: stop blocking the up controls. */
 const POP_TIMEOUT_MS = 1000;
 
+/** The bottom-nav tabs in bar order (TabBar.svelte): a tab switch slides toward the target's side. */
+const TAB_PATHS = ['/', '/movements', '/plan', '/reports'];
+
 const keyOf = (url: URL) => url.pathname + url.search;
 const pathOf = (key: string) => key.split('?')[0];
 
@@ -155,11 +158,15 @@ function replaceAfterPop(key: string) {
 /**
  * Page transition for a navigation, read once in the root layout's `onNavigate` (it consumes
  * `transitionNext`, so a replace that never lands can't leak it into the next navigation): a push
- * slides forward, a pop (‹, browser/iOS back) or an "up" replace slides back, and a tab switch (a
- * replace to another screen) crossfades. A change within one screen (month, currency, filters,
- * search, wizard step) gets none: taps are swallowed while a transition runs.
+ * slides forward, a pop (‹, browser/iOS back) or an "up" replace slides back, a tab switch slides
+ * toward the tab's side of the bar (`tab-right`/`tab-left`), and any other replace to another screen
+ * crossfades. The tab bar only shows on the tab screens, so a child screen reaches a tab through its
+ * back/up control, which slides back. A change within one screen (month, currency, filters, search,
+ * wizard step) gets none: taps are swallowed while a transition runs.
  */
-export function transitionOf(nav: OnNavigate): 'forward' | 'back' | 'fade' | null {
+export function transitionOf(
+	nav: OnNavigate
+): 'forward' | 'back' | 'tab-right' | 'tab-left' | 'fade' | null {
 	if (skipTransition) {
 		skipTransition = false;
 		transitionNext = null;
@@ -169,7 +176,12 @@ export function transitionOf(nav: OnNavigate): 'forward' | 'back' | 'fade' | nul
 	transitionNext = null;
 	if (next) return next === 'none' ? null : next;
 	if (nav.from?.url.pathname === nav.to?.url.pathname) return null;
-	if (replaceNext) return 'fade';
+	if (replaceNext) {
+		const from = TAB_PATHS.indexOf(nav.from?.url.pathname ?? '');
+		const to = TAB_PATHS.indexOf(nav.to?.url.pathname ?? '');
+		if (from < 0 || to < 0) return 'fade';
+		return to > from ? 'tab-right' : 'tab-left';
+	}
 	if (nav.type === 'popstate') return (nav.delta ?? 0) < 0 ? 'back' : 'forward';
 	return 'forward';
 }

@@ -127,6 +127,7 @@ export function planSummary<L extends { amount: number; spent: number; currency:
 		savings: p.savings,
 		forSpending,
 		spent: p.spent,
+		variableSpent: p.variableSpent,
 		available,
 		perDay: perDayLeft(available, daysLeft, PLAN_CURRENCY),
 		daysLeft,

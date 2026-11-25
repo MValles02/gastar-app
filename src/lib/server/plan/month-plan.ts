@@ -1,7 +1,14 @@
 import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
-import { CURRENCIES, formatAmountInput, roundToStep, type Currency } from '#lib/money.ts';
 import {
+	CURRENCIES,
+	formatAmountInput,
+	formatMoney,
+	roundToStep,
+	type Currency
+} from '#lib/money.ts';
+import {
+	dueInLabel,
 	dueLabel,
 	inactiveReason,
 	effectiveSavings,
@@ -37,7 +44,14 @@ import {
 	recurringStatus,
 	toPlanCurrency
 } from './summary';
-import { currentPlanLimits, getPlan, monthOutcomes, planLimits, planRate } from './queries';
+import {
+	currentPlanLimits,
+	getPlan,
+	monthOutcomes,
+	monthOutcomesByDay,
+	planLimits,
+	planRate
+} from './queries';
 import { requireLimit, requirePlan } from './guard';
 
 /**
@@ -131,6 +145,77 @@ async function computeMonthPlan(userId: string) {
 export async function savingsBaseline(userId: string) {
 	const { summary } = await monthPlan(userId);
 	return { base: summary.available + summary.savings, daysLeft: summary.daysLeft };
+}
+
+/**
+ * Variable spending (outside active rules, plan pesos) by day of the month against an even pace of the
+ * month's budget; null without a plan or a budget. `points[d]` is the running total at the end of day d.
+ */
+export async function planPace(userId: string) {
+	const m = await monthPlan(userId);
+	if (!m.hasPlan) return null;
+	const s = m.summary;
+	const budget = s.available + s.variableSpent;
+	if (budget <= 0) return null;
+
+	const activeIds = new Set(m.active.map((r) => r.id));
+	const rows = await monthOutcomesByDay(userId, monthRange(m.ym));
+	// Per-currency running totals, each converted once, so the last point equals `variableSpent`.
+	const daily = new Map<Currency, number[]>(
+		CURRENCIES.map((cur) => [cur, new Array<number>(s.elapsed + 1).fill(0)])
+	);
+	for (const r of rows) {
+		if (r.recurringId && activeIds.has(r.recurringId)) continue;
+		const d = Math.min(Number(r.day.slice(8)), s.elapsed);
+		daily.get(r.currency)![d] += r.amount;
+	}
+	const points = Array.from({ length: s.elapsed + 1 }, () => 0);
+	for (const [cur, perDay] of daily) {
+		let run = 0;
+		perDay.forEach((amount, d) => {
+			run += amount;
+			points[d] += toPlanCurrency(run, cur, m.rate.value) ?? 0;
+		});
+	}
+
+	const idealToday = Math.round((budget * s.elapsed) / s.days);
+	const diff = idealToday - points[s.elapsed];
+	const tag =
+		diff > 0
+			? { label: `${formatMoney(diff, PLAN_CURRENCY)} por debajo del ritmo`, tone: 'ok' as const }
+			: diff < 0
+				? {
+						label: `${formatMoney(-diff, PLAN_CURRENCY)} por encima del ritmo`,
+						tone: s.available < 0 ? ('bad' as const) : ('warning' as const)
+					}
+				: { label: 'En el ritmo', tone: 'ok' as const };
+	return { days: s.days, today: s.elapsed, budget, points, idealToday, tag };
+}
+
+/** This month's fixed payments in `currency` (never converted): paid so far and the unpaid ones still due. */
+export async function upcomingBills(userId: string, currency: Currency) {
+	const m = await monthPlan(userId);
+	const rules = m.active.filter((r) => r.type === 'outcome' && r.currency === currency);
+	if (rules.length === 0) return null;
+	const today = m.summary.elapsed;
+	const unpaid = rules
+		.filter((r) => !m.paidIds.has(r.id))
+		.map((r) => ({ r, day: recurringStatus(r.dayOfMonth, false, m.ym).day }))
+		.filter(({ day }) => day >= today)
+		.sort((a, b) => a.day - b.day || a.r.description.localeCompare(b.r.description));
+	return {
+		total: rules.reduce((a, r) => a + r.amount, 0),
+		paid: rules.filter((r) => m.paidIds.has(r.id)).reduce((a, r) => a + r.amount, 0),
+		allPaid: rules.every((r) => m.paidIds.has(r.id)),
+		items: unpaid.map(({ r, day }) => ({
+			id: r.id,
+			description: r.description,
+			amount: r.amount,
+			currency: r.currency,
+			label: dueInLabel(day - today),
+			soon: day - today <= 1
+		}))
+	};
 }
 
 /** The plan summary; `summary` is null when there is no plan for the current month. */

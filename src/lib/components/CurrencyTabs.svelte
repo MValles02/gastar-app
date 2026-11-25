@@ -9,8 +9,16 @@
 	 * ARS | USD switch saved in the `currency` cookie. Default: a radiogroup labelled ARS / USD (Plan,
 	 * Reportes). `pills`: two toggle buttons labelled Pesos / Dólares (Inicio).
 	 */
-	let { value, variant = 'segmented' }: { value: Currency; variant?: 'segmented' | 'pills' } =
-		$props();
+	let {
+		value,
+		variant = 'segmented',
+		tone = 'default'
+	}: {
+		value: Currency;
+		variant?: 'segmented' | 'pills';
+		/** `primary`: pills drawn on a primary band (Inicio); Reportes keeps the default. */
+		tone?: 'default' | 'primary';
+	} = $props();
 
 	let selected = $derived(value as string);
 	let form: HTMLFormElement;
@@ -24,6 +32,7 @@
 	action="/currency"
 	class="currency-tabs"
 	class:pills={variant === 'pills'}
+	class:on-primary={tone === 'primary'}
 	bind:this={form}
 	use:enhance={() => {
 		error = '';
@@ -118,6 +127,21 @@
 		background: var(--text);
 		color: var(--background);
 		box-shadow: none;
+	}
+
+	.on-primary .pill {
+		color: var(--on-primary);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--on-primary) 45%, transparent);
+	}
+
+	.on-primary [aria-pressed='true'] .pill {
+		background: var(--on-primary);
+		color: var(--primary);
+		box-shadow: none;
+	}
+
+	.on-primary button:focus-visible {
+		outline-color: var(--on-primary);
 	}
 
 	button:focus-visible {

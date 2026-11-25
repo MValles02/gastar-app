@@ -46,7 +46,7 @@
 	--color-input: var(--input);
 	--color-ring: var(--ring);
 
-	/* shadcn v4 scale: xl = --radius + 4px = 14px = --radius-card, so no --radius-card mapping is needed. */
+	/* shadcn v4 scale: xl = --radius + 4px = 14px, no longer equal to --radius-card (1.25rem); Card uses rounded-(--radius-card). */
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);
@@ -292,7 +292,9 @@
 	--ring: var(--primary);
 
 	--radius: 0.625rem;
-	--radius-card: 0.875rem;
+	--radius-card: 1.25rem;
+	/* No card edge in light (the shadow separates it); a hairline in dark. Drawers re-enable it below. */
+	--card-edge: light-dark(transparent, var(--border));
 	--radius-pill: 999px;
 
 	--content-width: 560px;
@@ -324,7 +326,9 @@
 	--font-size-hero: 2.25rem;
 	--font-size-input: 1rem;
 
-	--shadow-1: 0 1px 2px light-dark(rgb(0 0 0 / 0.04), rgb(0 0 0 / 0.2));
+	--shadow-1:
+		0 1px 2px light-dark(rgb(0 0 0 / 0.03), rgb(0 0 0 / 0.2)),
+		0 6px 20px -8px light-dark(rgb(0 0 0 / 0.08), transparent);
 	--shadow-lift:
 		0 0 0 1px light-dark(transparent, var(--border)),
 		0 6px 16px light-dark(rgb(0 0 0 / 0.2), rgb(0 0 0 / 0.6));
@@ -339,6 +343,11 @@
 :root[data-theme='dark'],
 :root.dark {
 	color-scheme: dark;
+}
+
+/* In light, drawers are the same colour as cards, so cards inside them keep their hairline edge. */
+[data-slot='drawer-content'] {
+	--card-edge: var(--border);
 }
 
 .amount {
@@ -369,7 +378,8 @@
 /*
  * Page transitions (onNavigate in src/routes/+layout.svelte sets data-nav-transition): a push slides
  * the new page in from the right over the old one, which drifts left; a pop reverses it; a tab
- * switch crossfades. Changes within one screen (month, currency, filters) have no transition. The
+ * switch slides both pages the full width toward the target tab's side (tab-right/tab-left); any
+ * other replace to another screen crossfades. Changes within one screen (month, currency, filters) have no transition. The
  * header and tab bar have their own view-transition-name, so they crossfade in place instead of
  * sliding. Reduced motion never starts a transition.
  */
@@ -403,6 +413,23 @@
 	animation-name: page-drift-in;
 }
 
+/* Tabs are peers: both pages travel the full width together, like a pager. */
+:root[data-nav-transition='tab-right']::view-transition-old(root) {
+	animation-name: page-exit-left;
+}
+
+:root[data-nav-transition='tab-right']::view-transition-new(root) {
+	animation-name: page-enter-right;
+}
+
+:root[data-nav-transition='tab-left']::view-transition-old(root) {
+	animation-name: page-exit-right;
+}
+
+:root[data-nav-transition='tab-left']::view-transition-new(root) {
+	animation-name: page-enter-left;
+}
+
 /* The navigation progress bar (NavProgress.svelte) never shows in a transition's snapshots. */
 ::view-transition-group(nav-progress) {
 	display: none;
@@ -411,6 +438,18 @@
 @keyframes page-enter-right {
 	from {
 		transform: translateX(100%);
+	}
+}
+
+@keyframes page-enter-left {
+	from {
+		transform: translateX(-100%);
+	}
+}
+
+@keyframes page-exit-left {
+	to {
+		transform: translateX(-100%);
 	}
 }
 
@@ -442,7 +481,7 @@
 	}
 }
 
-/* Edge-swipe back (src/lib/edge-swipe-back.ts): the dragged page may sit past the right edge. */
-html.edge-swiping {
+/* Page-drag gestures (src/lib/swipe.ts): the dragged page may sit past either edge. */
+html.page-swiping {
 	overflow-x: clip;
 }

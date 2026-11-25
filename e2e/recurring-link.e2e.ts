@@ -7,6 +7,7 @@ import {
 	monthDay,
 	openItem,
 	pick,
+	post,
 	postDelete,
 	rule,
 	setCurrencyCookie,
@@ -106,6 +107,42 @@ test('an imported charge matching a rule by description is linked on approval', 
 	await rule(page, 'Café Inventado').locator('a[data-slot="item"]').click();
 	await expect(page.getByRole('button', { name: /^Monto:/ })).toContainText('2.000');
 	await expect(page.getByText('Antes $')).toHaveCount(0);
+});
+
+test('Inicio lists an unpaid fixed payment still due until it is paid', async ({ baseURL }) => {
+	const accountId = await createAccount(page, baseURL!, 'Caja vencimientos', 'ARS');
+	const categoryId = await createVia(page, baseURL!, '/categories/new', {
+		name: 'Vencimientos',
+		color: 'green',
+		kind: 'outcome'
+	});
+	// Day 31 clamps to the month's last day, so it is always today or later.
+	await createVia(page, baseURL!, '/plan/recurring/new', {
+		type: 'outcome',
+		description: 'Vence Fin De Mes',
+		amount: '1500',
+		dayOfMonth: '31',
+		accountId,
+		categoryId
+	});
+	const bills = page.getByRole('region', { name: 'Próximos vencimientos' });
+
+	await gotoHydrated(page, '/');
+	await expect(bills.getByRole('link', { name: /Vence Fin De Mes/ })).toBeVisible();
+
+	// A matching charge links to the rule by description and pays it.
+	const res = await post(page, baseURL!, '/movements/new', {
+		type: 'outcome',
+		amount: '1500',
+		description: 'Vence Fin De Mes',
+		accountId,
+		categoryId,
+		occurredAt: todayInAppTz()
+	});
+	expect(res.ok()).toBe(true);
+	await gotoHydrated(page, '/');
+	await expect(bills).toBeVisible();
+	await expect(bills.getByRole('link', { name: /Vence Fin De Mes/ })).toHaveCount(0);
 });
 
 test("a remembered explicit link links next month's item with another description", async () => {

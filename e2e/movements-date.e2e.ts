@@ -60,7 +60,19 @@ test.describe('without JavaScript', () => {
 		await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
 		await expect(page.getByText(desc)).toHaveCount(0);
 	});
+	test('the day heading totals the day outcomes', async ({ page }) => {
+		const prefix = unique(created, 'Total dia');
+		await create(page, `${prefix} a`, '2024-02-29');
+		await create(page, `${prefix} b`, '2024-02-29');
+		await page.goto(`/movements?q=${encodeURIComponent(prefix)}&all=1`);
+		await expect(
+			page
+				.locator('section', { has: page.getByRole('heading', { name: 'Jueves 29', exact: true }) })
+				.locator('.day-total')
+		).toContainText('$2');
+	});
 });
+
 test('a legacy non-midnight row uses its Buenos Aires date everywhere', async ({ page }) => {
 	const list = '/movements?q=Legado&all=1';
 	await page.goto(list);

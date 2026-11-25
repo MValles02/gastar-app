@@ -79,6 +79,8 @@ Personal finance PWA for Argentina. Answers two questions:
   - With a plan for the current month: "Disponible para gastar · {mes}", the amount, the status as text ("Vas bien", "Atención", "Te pasaste"), "{monto} por día · quedan N días" and a "Ver plan" link to `/plan`.
   - No plan: "Todavía no tenés un plan.", "Con tus ingresos, pagos fijos y ahorro calculamos cuánto podés gastar por día." and a "Crear plan" link to `/plan/setup`.
   - A one-month plan of a past month is treated as no plan and adds "Tu plan de {mes} terminó.".
+  - With a plan and something left to spend, the card also draws the month's variable spending (outside fixed payments, plan pesos) day by day against an even pace of the month's budget, with a pill reading "{monto} por debajo del ritmo", "{monto} por encima del ritmo" or "En el ritmo". No chart without a plan or a budget.
+- "Próximos vencimientos" (per selected currency, never converted; hidden when there are no active fixed outcomes in it): "Pagaste {pagado} de {total}" with a meter, "Pagaste todos los pagos fijos de {mes}." when all are paid, and a horizontal row of cards for the unpaid fixed payments still due this month (today or later, with "hoy", "mañana" or "en N días"), each linking to the rule. Past-due unpaid payments get no card; there are no overdue states.
 - Last 10 movements in the selected currency, with a "Ver todos" link to `/movements?currency=`.
 
 ### Reportes
@@ -135,12 +137,13 @@ Personal finance PWA for Argentina. Answers two questions:
   - Account: origin (all types), destination (transfer only).
   - Exchange rate: shown only for a transfer between accounts of different currencies.
   - Category: required for income/outcome, not shown for transfers.
+  - In the drawer, the amount input is focused on open, and up to six chips ("Categorías frecuentes": the most used non-archived categories, none for a user without history) sit above the fields. Tapping a chip picks that category and, if the description is empty, fills it with the category name.
 - Cross-currency transfer: destination amount is computed live and shown, but is **not editable**.
 - "Repetir cada mes" (new movements only; hidden when editing): a checkbox with the hint "Te lo recordamos el mismo día de cada mes. Solo ingresos y gastos.". Checked, saving also creates a recurring rule (same description, amount, type, account and category) due on the movement's day of the month, and the movement is linked to it, so it counts as paid this month. Every other new income or outcome also tries to link itself to an existing rule (see Plan). Transfers never create a rule (the checkbox is hidden for them; without JS it shows and is ignored). Nothing is saved if the movement is rejected.
 
 ### Movements
 
-- List with a search field (description) and a "Filtros" button (bottom drawer, applies on change; badge = number of non-default filters). Filters: currency, type, account, category and one date range (`from`/`to`, a single range calendar). Currency `?currency=ARS|USD` (default Ambas = merged list, each amount in its own currency; non-default counts as active); when an `?account=` filter is set, that account's own currency wins and is not counted. Grouped by day.
+- List with a search field (description) and a "Filtros" button (bottom drawer, applies on change; badge = number of non-default filters). Filters: currency, type, account, category and one date range (`from`/`to`, a single range calendar). Currency `?currency=ARS|USD` (default Ambas = merged list, each amount in its own currency; non-default counts as active); when an `?account=` filter is set, that account's own currency wins and is not counted. Grouped by day; each day heading shows that day's spending (outcomes only, per currency, never summed) over every movement matching the filters and search, including other pages. Each row shows its category as a neutral pill (not on transfers).
 - Tap → detail page with Edit / Delete.
 
 ### Categories

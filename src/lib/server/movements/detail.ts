@@ -100,9 +100,9 @@ export async function drawerPickers(userId: string) {
 	const uses = new Map(usage.map((u) => [u.categoryId, u.uses]));
 	return {
 		accounts: accounts.map((a) => ({ ...a, balance: balances.get(a.id) ?? 0 })),
-		categories: categories.toSorted(
-			(a, b) => (uses.get(b.id) ?? 0) - (uses.get(a.id) ?? 0) || a.name.localeCompare(b.name, 'es')
-		)
+		categories: categories
+			.map((c) => ({ ...c, uses: uses.get(c.id) ?? 0 }))
+			.toSorted((a, b) => b.uses - a.uses || a.name.localeCompare(b.name, 'es'))
 	};
 }
 

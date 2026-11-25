@@ -28,6 +28,8 @@ export const appTz = sql.raw(`'${APP_TZ}'`);
 
 export const localMonth = sql<string>`to_char(${movements.occurredAt} at time zone ${appTz}, 'YYYY-MM')`;
 
+export const localDate = sql<string>`to_char(${movements.occurredAt} at time zone ${appTz}, 'YYYY-MM-DD')`;
+
 export async function exists(query: {
 	limit(n: number): PromiseLike<unknown[]>;
 }): Promise<boolean> {

@@ -158,7 +158,7 @@
 	.group {
 		overflow: hidden;
 		background: var(--surface);
-		border: 1px solid var(--border);
+		border: 1px solid var(--card-edge);
 		border-radius: var(--radius-card);
 	}
 </style>
