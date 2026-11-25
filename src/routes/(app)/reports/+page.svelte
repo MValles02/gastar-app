@@ -96,6 +96,7 @@
 							{#each data.bars as b (b.ym)}
 								<li class:current={b.ym === data.nav.ym}>
 									<a
+										data-press
 										href={resolve(`reports?month=${b.ym}`)}
 										data-sveltekit-replacestate
 										onclick={markReplace}
@@ -178,7 +179,7 @@
 						</Card.Root>
 					{/if}
 					{#if data.biggest}
-						<a class="fact-link" href={resolve(`movements/${data.biggest.id}`)}>
+						<a class="fact-link" data-press href={resolve(`movements/${data.biggest.id}`)}>
 							<Card.Root>
 								<Card.Content>
 									<div class="fact-card">
@@ -278,13 +279,17 @@
 		border-radius: var(--radius);
 		text-decoration: none;
 		color: var(--text-muted);
-		transition: background-color 0s;
 	}
 
-	/* The fill waits 100ms so a scroll or swipe that starts on the row never lights it up. */
-	.bars a:active {
+	/* Touch: data-pressed (src/lib/press.ts); mouse: :active. */
+	.bars a:global([data-pressed]) {
 		background: var(--muted);
-		transition-delay: 100ms;
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.bars a:active {
+			background: var(--muted);
+		}
 	}
 
 	.cols {
@@ -384,13 +389,14 @@
 		border-radius: var(--radius-card);
 	}
 
-	.fact-link :global(.card) {
-		transition: background-color 0s;
+	.fact-link:global([data-pressed]) :global(.card) {
+		background: var(--muted);
 	}
 
-	.fact-link:active :global(.card) {
-		background: var(--muted);
-		transition-delay: 100ms;
+	@media (hover: hover) and (pointer: fine) {
+		.fact-link:active :global(.card) {
+			background: var(--muted);
+		}
 	}
 
 	.fact-card {

@@ -67,7 +67,7 @@
 						<div class="row">{@render body()}</div>
 					{:else}
 						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- hrefs are resolved above -->
-						<a class="row" href={item.href} onclick={item.onclick}>{@render body()}</a>
+						<a class="row" data-press href={item.href} onclick={item.onclick}>{@render body()}</a>
 					{/if}
 				</li>
 			{/each}
@@ -106,14 +106,15 @@
 		}
 	}
 
-	/* The fill waits 100ms so a scroll or swipe that starts on the row never lights it up. */
-	a.row {
-		transition: background-color 0s;
+	/* Touch: data-pressed (src/lib/press.ts); mouse: :active. */
+	a.row:global([data-pressed]) {
+		background: var(--muted);
 	}
 
-	a.row:active {
-		background: var(--muted);
-		transition-delay: 100ms;
+	@media (hover: hover) and (pointer: fine) {
+		a.row:active {
+			background: var(--muted);
+		}
 	}
 
 	a.row:focus-visible {
