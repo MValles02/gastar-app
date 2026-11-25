@@ -39,24 +39,19 @@
 		// hook as long as `page.url` matches the address bar, which `stripFlags` guarantees.
 		if (nav.shallow && nav.type === 'goto') return;
 		const kind = transitionOf(nav);
-		const root = document.documentElement;
-		// A tab swipe sets --tab-travel (src/lib/tab-swipe.ts) for this navigation's transition only.
-		const clearTravel = () => void root.style.removeProperty('--tab-travel');
 		if (
 			!kind ||
 			!document.startViewTransition ||
 			(nav.type === 'popstate' && uaAnimatedPop) ||
 			matchMedia('(prefers-reduced-motion: reduce)').matches
 		)
-			return clearTravel();
-		root.dataset.navTransition = kind;
+			return;
+		document.documentElement.dataset.navTransition = kind;
 		return new Promise<void>((resolve) => {
-			document
-				.startViewTransition(async () => {
-					resolve();
-					await nav.complete.catch(() => {});
-				})
-				.finished.finally(clearTravel);
+			document.startViewTransition(async () => {
+				resolve();
+				await nav.complete.catch(() => {});
+			});
 		});
 	});
 

@@ -421,11 +421,7 @@
 	animation-name: page-drift-in;
 }
 
-/*
- * Tabs are peers: both pages travel together, like a pager. A tap travels the full width; a swipe
- * (src/lib/tab-swipe.ts) sets --tab-travel to the width the finger left, so the old snapshot (already
- * shifted by the drag) and the new page finish the travel from there.
- */
+/* Tabs are peers: both pages travel the full width together, like a pager. */
 :root[data-nav-transition='tab-right']::view-transition-old(root) {
 	animation-name: tab-exit-left;
 }
@@ -444,25 +440,25 @@
 
 @keyframes tab-enter-right {
 	from {
-		transform: translateX(var(--tab-travel, 100%));
+		transform: translateX(100%);
 	}
 }
 
 @keyframes tab-enter-left {
 	from {
-		transform: translateX(calc(-1 * var(--tab-travel, 100%)));
+		transform: translateX(-100%);
 	}
 }
 
 @keyframes tab-exit-left {
 	to {
-		transform: translateX(calc(-1 * var(--tab-travel, 100%)));
+		transform: translateX(-100%);
 	}
 }
 
 @keyframes tab-exit-right {
 	to {
-		transform: translateX(var(--tab-travel, 100%));
+		transform: translateX(100%);
 	}
 }
 
