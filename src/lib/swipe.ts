@@ -1,5 +1,5 @@
 /**
- * Shared pieces of the page-drag gestures (edge-swipe back, tab swipe, pull-to-refresh): the claim
+ * Shared pieces of the page-drag gestures (edge-swipe back, pull-to-refresh): the claim
  * thresholds, the release rules and the motion values, so the gestures feel the same.
  */
 
