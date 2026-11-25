@@ -19,6 +19,7 @@
 	import PaceChart from '#lib/components/PaceChart.svelte';
 	import UpcomingBills from './UpcomingBills.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import TabBand from '#lib/components/TabBand.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import { PLAN_TONE } from '#lib/plan.ts';
 	import { swatchVar, toSwatchKey } from '#lib/appearance.ts';
@@ -34,14 +35,14 @@
 
 <PageHeader title="Hola, {data.header.firstName}" tone="primary" />
 
-<div class="band">
+<TabBand>
 	{#if data.hasAnyAccount}
 		<div class="pill-row">
 			<CurrencyTabs value={data.currency} variant="pills" tone="primary" />
 			{#if data.mpPending !== null}<MpPill pending={data.mpPending} />{/if}
 		</div>
 	{/if}
-</div>
+</TabBand>
 
 <div class="dashboard">
 	{#if !data.hasAnyAccount}
@@ -196,33 +197,12 @@
 </div>
 
 <style>
-	/* Primary band under the header; the dashboard's first card overlaps its bottom. */
-	.band {
-		position: relative;
-		margin-inline: calc(var(--gutter) * -1);
-		padding: 0 var(--gutter) var(--space-8);
-		background: var(--primary);
-		color: var(--on-primary);
-	}
-
-	/* Emerald backdrop above the band: what a pull-to-refresh uncovers. Off-screen at rest. */
-	.band::before {
-		content: '';
-		position: absolute;
-		bottom: 100%;
-		left: 0;
-		right: 0;
-		height: 100vh;
-		background: var(--primary);
-		pointer-events: none;
-	}
-
+	/* Positioned so its first card paints over the band it overlaps (TabBand). */
 	.dashboard {
 		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-		margin-top: calc(var(--space-6) * -1);
 	}
 
 	/* Canvas row height: 60px minimum for every list row on Inicio. */
