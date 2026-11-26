@@ -55,6 +55,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
+		transition: opacity var(--dur-fast) var(--ease-out);
 	}
 
 	.form.busy {
