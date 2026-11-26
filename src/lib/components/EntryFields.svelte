@@ -2,6 +2,7 @@
 	import { appear } from '#lib/motion.ts';
 	import type { Snippet } from 'svelte';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+	import DetailCard from './DetailCard.svelte';
 
 	/**
 	 * The fields shared by the movement and recurring forms: a labelled Descripción input, then one card
@@ -50,14 +51,14 @@
 	{/if}
 </div>
 
-<ul class="card" class:outline-errors={outlineErrors}>
+<DetailCard {outlineErrors}>
 	{@render account()}
 	{#if category}{@render category()}{/if}
 	{@render when()}
-</ul>
+</DetailCard>
 
 {#if extra}
-	<ul class="card">{@render extra()}</ul>
+	<DetailCard>{@render extra()}</DetailCard>
 {/if}
 
 <style>
@@ -78,7 +79,7 @@
 		height: 50px;
 		padding: 0 var(--space-4);
 		border: 1px solid var(--input);
-		border-radius: 12px;
+		border-radius: var(--radius);
 		background: transparent;
 		color: var(--text);
 		font-size: 16px;
@@ -95,24 +96,5 @@
 	.error {
 		color: var(--negative);
 		font-size: var(--font-size-sm);
-	}
-
-	.card {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-		background: var(--surface);
-		border: 1px solid var(--card-edge);
-		border-radius: var(--radius-card);
-		box-shadow: var(--shadow-1);
-	}
-
-	.card > :global(li.bad) {
-		box-shadow: inset 3px 0 0 var(--negative);
-	}
-
-	.card.outline-errors > :global(li.bad) {
-		box-shadow: inset 0 0 0 1.5px var(--negative);
 	}
 </style>

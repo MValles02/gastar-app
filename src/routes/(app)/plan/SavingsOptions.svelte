@@ -16,9 +16,11 @@
 		type SavingsOption,
 		type SavingsUnit
 	} from '#lib/plan.ts';
+	import DetailCard from '#lib/components/DetailCard.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import TextRow from '#lib/components/TextRow.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Card from '#lib/components/ui/card/index.js';
 
 	/**
 	 * The Ahorro choice as a list: Nada, 10 %, 20 %, Otro (a percentage or a fixed amount), each row showing
@@ -122,37 +124,41 @@
 	}
 </script>
 
-{#snippet otherFields(msg: string | undefined)}
-	<ul class="card">
-		<li class:bad={msg}>
-			<TextRow
-				id="savings-value"
-				name={SAVINGS_FIELDS.value}
-				label="Ahorro"
-				bind:value
-				placeholder="0"
-				inputmode="decimal"
-				amount
-				error={msg}
-				errorId="savings-error"
-			>
-				{#snippet end()}
-					<span id="savings-unit-label" class="visually-hidden">Unidad</span>
-					<SegmentedControl
-						name={SAVINGS_FIELDS.unit}
-						options={units}
-						bind:value={unit}
-						labelledby="savings-unit-label"
-						class="flex-auto px-2 whitespace-nowrap"
-					/>
-				{/snippet}
-			</TextRow>
-		</li>
-	</ul>
+{#snippet otherField(msg: string | undefined)}
+	<TextRow
+		id="savings-value"
+		name={SAVINGS_FIELDS.value}
+		label="Ahorro"
+		bind:value
+		placeholder="0"
+		inputmode="decimal"
+		amount
+		error={msg}
+		errorId="savings-error"
+	>
+		{#snippet end()}
+			<span id="savings-unit-label" class="visually-hidden">Unidad</span>
+			<SegmentedControl
+				name={SAVINGS_FIELDS.unit}
+				options={units}
+				bind:value={unit}
+				labelledby="savings-unit-label"
+				class="flex-auto px-2 whitespace-nowrap"
+			/>
+		{/snippet}
+	</TextRow>
 {/snippet}
 
-<div class="list">
-	{#if mode === 'form'}<input type="hidden" name={SAVINGS_FIELDS.option} value={option} />{/if}
+<!-- Autosave: a rows card of its own. Form: a plain row, since the setup wraps the options in a card. -->
+{#snippet otherFields(msg: string | undefined)}
+	{#if mode === 'autosave'}
+		<DetailCard><li class:bad={msg}>{@render otherField(msg)}</li></DetailCard>
+	{:else}
+		{@render otherField(msg)}
+	{/if}
+{/snippet}
+
+{#snippet options()}
 	<div class="opts" class:boxed={mode === 'autosave'}>
 		{#each rows as row (row.key)}
 			{@const on = row.key === current}
@@ -166,10 +172,20 @@
 			</button>
 		{/each}
 	</div>
+{/snippet}
+
+<div class="list">
+	{#if mode === 'form'}<input type="hidden" name={SAVINGS_FIELDS.option} value={option} />{/if}
+	<!-- Autosave: the four options share one card (the setup form wraps them in its own). -->
+	{#if mode === 'autosave'}
+		<Card.Root class="gap-0 py-0">{@render options()}</Card.Root>
+	{:else}
+		{@render options()}
+	{/if}
 
 	{#if mode === 'form'}
 		{#if option === 'other'}
-			<div class="other">{@render otherFields(error)}</div>
+			<div class="other form">{@render otherFields(error)}</div>
 		{:else if error}
 			<p class="error" role="alert">{error}</p>
 		{/if}
@@ -237,13 +253,6 @@
 		font-size: var(--font-size-sm);
 	}
 
-	/* Autosave: the four options share one bordered card. */
-	.boxed {
-		overflow: hidden;
-		border: 1px solid var(--border);
-		border-radius: 14px;
-	}
-
 	.boxed .opt {
 		min-height: 58px;
 		padding: 8px 16px;
@@ -275,19 +284,8 @@
 		padding: var(--space-2) 0 0;
 	}
 
-	.card {
-		list-style: none;
-		margin: 0;
+	.other.form {
 		padding: 0;
-		overflow: hidden;
-		background: var(--surface);
-		border: 1px solid var(--card-edge);
-		border-radius: var(--radius-card);
-		box-shadow: var(--shadow-1);
-	}
-
-	.card > li.bad {
-		box-shadow: inset 3px 0 0 var(--negative);
 	}
 
 	.error {
