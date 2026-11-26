@@ -11,9 +11,8 @@
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
 	import { IMPORT_FLAGS } from '#lib/toast-flags.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import * as Empty from '#lib/components/ui/empty/index.js';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import Icon from '#lib/components/Icon.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import Money from '#lib/components/Money.svelte';
@@ -237,12 +236,7 @@
 	{/if}
 
 	{#if data.groups.length === 0}
-		<Empty.Root>
-			<Empty.Header>
-				<Empty.Media variant="icon"><Icon name="movements" size="1rem" /></Empty.Media>
-				<Empty.Description>No hay movimientos para revisar.</Empty.Description>
-			</Empty.Header>
-		</Empty.Root>
+		<EmptyState icon="movements" description="No hay movimientos para revisar." />
 	{:else}
 		<div class="groups">
 			{#each data.groups as g (g.day)}
