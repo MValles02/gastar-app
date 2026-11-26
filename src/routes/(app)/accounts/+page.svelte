@@ -22,7 +22,6 @@
 	let open = $state(false);
 </script>
 
-{#snippet archivedMeta()}{ARCHIVED_LABEL}{/snippet}
 {#snippet add()}
 	<Button
 		href={resolve('accounts/new')}
@@ -87,7 +86,7 @@
 								lead={{ icon: toIconKey(a.icon), color: toSwatchKey(a.color) }}
 								title={a.name}
 								{value}
-								meta={a.archivedAt ? archivedMeta : undefined}
+								status={a.archivedAt ? { tone: 'neutral', label: ARCHIVED_LABEL } : undefined}
 								dimmed={!!a.archivedAt}
 							/>
 						{/each}
@@ -113,7 +112,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-4);
+		gap: var(--space-5);
 	}
 
 	.group-total {

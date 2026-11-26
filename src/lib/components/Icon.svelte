@@ -3,6 +3,7 @@
 	import type { AccountIconKey, CategoryIconKey } from '#lib/appearance.ts';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import LogOut from '@lucide/svelte/icons/log-out';
+	import FileUp from '@lucide/svelte/icons/file-up';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import Banknote from '@lucide/svelte/icons/banknote';
 	import Bus from '@lucide/svelte/icons/bus';
@@ -68,6 +69,7 @@
 		| 'eye-off'
 		| 'mail'
 		| 'clock'
+		| 'file-up'
 		| 'lock';
 
 	/** Lucide at stroke 1.75; `size` is a CSS length (1rem, 1.25rem or 1.5rem) or a percentage of the parent. */
@@ -93,6 +95,7 @@
 		'eye-off': EyeOff,
 		mail: Mail,
 		clock: Clock,
+		'file-up': FileUp,
 		lock: Lock,
 		tag: Tag,
 		search: Search,
