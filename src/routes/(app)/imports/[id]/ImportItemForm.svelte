@@ -6,6 +6,7 @@
 	import { goto, refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import DetailCard from '#lib/components/DetailCard.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import Money from '#lib/components/Money.svelte';
@@ -13,6 +14,7 @@
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import TextRow from '#lib/components/TextRow.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Card from '#lib/components/ui/card/index.js';
 	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
 	import * as Field from '#lib/components/ui/field/index.js';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
@@ -94,7 +96,7 @@
 </script>
 
 <div class="review" class:drawer>
-	<section class="summary" aria-label="Movimiento a revisar">
+	<Card.Root role="region" aria-label="Movimiento a revisar" class="gap-1 px-4 py-3">
 		<p class="top">
 			<span class="amount">
 				<Money
@@ -112,7 +114,7 @@
 			</p>
 		{/if}
 		<p class="original">{item.rawDescription}</p>
-	</section>
+	</Card.Root>
 
 	{#if data.unknown}
 		<p class="hint">No sabemos qué es: elegí el tipo.</p>
@@ -143,7 +145,7 @@
 			</div>
 		{/if}
 
-		<ul class="card">
+		<DetailCard>
 			<li class:bad={errors.description}>
 				<TextRow
 					id="description"
@@ -223,7 +225,7 @@
 					</li>
 				{/if}
 			{/if}
-		</ul>
+		</DetailCard>
 
 		{#if data.rememberLabel}
 			<Field.Field orientation="horizontal">
@@ -266,16 +268,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
-	}
-
-	.summary {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
-		padding: var(--space-3) var(--space-4);
-		background: var(--surface);
-		border: 1px solid var(--card-edge);
-		border-radius: var(--radius-card);
 	}
 
 	.top {
@@ -321,21 +313,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
-	}
-
-	.card {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-		background: var(--surface);
-		border: 1px solid var(--card-edge);
-		border-radius: var(--radius-card);
-		box-shadow: var(--shadow-1);
-	}
-
-	.card > li.bad {
-		box-shadow: inset 3px 0 0 var(--negative);
 	}
 
 	.actions {

@@ -12,6 +12,7 @@
 	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import AmountInput from '#lib/components/AmountInput.svelte';
+	import DetailCard from '#lib/components/DetailCard.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 
@@ -55,7 +56,7 @@
 	scroll
 	style="--form-gap: var(--space-3); --form-pb: var(--space-3)"
 >
-	<ul class="card">
+	<DetailCard>
 		<li class:bad={shown.categoryId}>
 			<OptionPicker
 				name="categoryId"
@@ -72,7 +73,7 @@
 				{/snippet}
 			</OptionPicker>
 		</li>
-	</ul>
+	</DetailCard>
 
 	<div class="field">
 		<span id="lcurrency-label" class="label">Moneda</span>
@@ -107,21 +108,6 @@
 		font-weight: 600;
 		color: var(--link);
 		text-decoration: none;
-	}
-
-	.card {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-		background: var(--surface);
-		border: 1px solid var(--card-edge);
-		border-radius: var(--radius-card);
-		box-shadow: var(--shadow-1);
-	}
-
-	.card > li.bad {
-		box-shadow: inset 3px 0 0 var(--negative);
 	}
 
 	.field {

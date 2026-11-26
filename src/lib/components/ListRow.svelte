@@ -10,6 +10,9 @@
 	/**
 	 * One row of a ListCard. Line 1: title and value (top-aligned); line 2: status pill and meta;
 	 * footer: full-width third line. A link (`href`), a submit button (`submit`) or a plain block.
+	 * `action`: the row's own controls at its right end (e.g. a quick "Aprobar"); with `href` the
+	 * title becomes the link, stretched over the row, so the controls can sit above it. `stacked`:
+	 * the status pill alone on line 2 (truncated to fit) and the meta on line 3.
 	 */
 	let {
 		href,
@@ -20,6 +23,8 @@
 		status,
 		meta,
 		footer,
+		action,
+		stacked = false,
 		chevron = false,
 		dimmed = false,
 		onclick,
@@ -40,6 +45,8 @@
 		status?: { tone: StatusTone; label: string };
 		meta?: Snippet;
 		footer?: Snippet;
+		action?: Snippet;
+		stacked?: boolean;
 		chevron?: boolean;
 		dimmed?: boolean;
 		/** Link only: lets a caller open the target as a drawer (shallow route) on a plain click. */
@@ -64,17 +71,31 @@
 	<Item.Content class="min-w-0">
 		<span class="line">
 			<Item.Title class="block min-w-0 flex-1 truncate {dimmed ? 'text-(--text-muted)' : ''}"
-				>{title}</Item.Title
+				>{#if href && action}<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass a resolved href --><a
+						{href}
+						{onclick}
+						class="stretch tap">{title}</a
+					>{:else}{title}{/if}</Item.Title
 			>
 			{#if value}<span class="row-amount" class:dimmed>{@render value()}</span>{/if}
 		</span>
-		{#if status || meta}
+		{#if stacked}
+			{#if status}<span class="flex min-w-0"
+					><StatusPill tone={status.tone} label={status.label} /></span
+				>{/if}
+			{#if meta}<Item.Description class="line-clamp-none flex min-w-0"
+					><span class="row-meta">{@render meta()}</span></Item.Description
+				>{/if}
+		{:else if status || meta}
 			<Item.Description class="line-clamp-none flex min-w-0 gap-2 items-center">
 				{#if status}<StatusPill tone={status.tone} label={status.label} />{/if}
 				{#if meta}<span class="row-meta">{@render meta()}</span>{/if}
 			</Item.Description>
 		{/if}
 	</Item.Content>
+	{#if action}
+		<Item.Actions class="relative z-1 flex-col items-end gap-1">{@render action()}</Item.Actions>
+	{/if}
 	{#if chevron}
 		<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
 	{/if}
@@ -84,7 +105,11 @@
 <div role="listitem" class={className}>
 	<Item.Root>
 		{#snippet child({ props })}
-			{#if href}
+			{#if action}
+				<div {...props} class={[props.class, 'relative', 'has-[.stretch:active]:bg-muted']}>
+					{@render body()}
+				</div>
+			{:else if href}
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass a resolved href -->
 				<a {href} {onclick} {...props} class={[props.class, 'tap']}>{@render body()}</a>
 			{:else if submit}
@@ -104,6 +129,27 @@
 		-webkit-user-select: none;
 		user-select: none;
 		-webkit-touch-callout: none;
+	}
+
+	/* The title link covers the whole row; the row's own controls sit above it. */
+	.stretch {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.stretch::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+	}
+
+	.stretch:focus-visible {
+		outline: none;
+	}
+
+	.stretch:focus-visible::after {
+		outline: 2px solid var(--ring);
+		outline-offset: -2px;
 	}
 
 	.line {

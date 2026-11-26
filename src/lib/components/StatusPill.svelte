@@ -19,10 +19,10 @@
 
 <Badge
 	variant="secondary"
-	class="font-semibold"
+	class="max-w-full font-semibold"
 	style="background: {tone === 'neutral'
 		? 'var(--muted)'
 		: `color-mix(in oklab, ${color[tone]} 14%, transparent)`}; color: {color[tone]}"
 >
-	{#if Icon}<Icon size={14} strokeWidth={2} />{/if}{label}
+	{#if Icon}<Icon size={14} strokeWidth={2} />{/if}<span class="min-w-0 truncate">{label}</span>
 </Badge>
