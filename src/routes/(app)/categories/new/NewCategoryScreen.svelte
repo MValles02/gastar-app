@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { resolve } from '$app/paths';
-	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import CategoryForm, {
 		type CreatedCategory
 	} from '#lib/components/categories/CategoryForm.svelte';
 	import FormScreen from '#lib/components/forms/FormScreen.svelte';
-	import { closeAfterSave, setFormScreen } from '#lib/components/forms/form-enhance.ts';
+	import { closeAfterSave } from '#lib/components/forms/form-enhance.ts';
 	import type { ActionData } from './$types';
 
 	/**
@@ -29,8 +28,8 @@
 		onclose?: () => void;
 	} = $props();
 
-	// Stacked over a movement form (page or drawer): its own drawer context for the form inside.
-	if (untrack(() => oncreated && !onclose)) setFormScreen({ variant: 'drawer' });
+	// Stacked over a movement form (page or drawer): a sub-task drawer this screen opens and closes.
+	const stacked = untrack(() => !!oncreated && !onclose);
 
 	async function created(category: CreatedCategory) {
 		if (onclose) return closeAfterSave(onclose)();
@@ -39,23 +38,18 @@
 	}
 </script>
 
-{#if oncreated && !onclose}
-	<BottomDrawer title="Nueva categoría" nested bind:open>
-		<!-- Rendered only while open, so every opening starts blank with the movement's kind. -->
+<FormScreen
+	title="Nueva categoría"
+	close={{ href: resolve('categories') }}
+	bind:open
+	onclose={stacked ? () => (open = false) : onclose}
+>
+	{#if stacked || onclose}
+		<!-- Stacked: rendered only while open, so every opening starts blank with the movement's kind. -->
 		{#if open}
-			<CategoryForm
-				initial={{ kind: defaultKind }}
-				oncreated={created}
-				onclose={() => (open = false)}
-			/>
+			<CategoryForm initial={{ kind: defaultKind }} oncreated={created} />
 		{/if}
-	</BottomDrawer>
-{:else}
-	<FormScreen title="Nueva categoría" close={{ href: resolve('categories') }} {onclose}>
-		{#if onclose}
-			<CategoryForm initial={{ kind: defaultKind }} oncreated={created} {onclose} />
-		{:else}
-			<CategoryForm initial={form?.values ?? {}} errors={form?.errors} />
-		{/if}
-	</FormScreen>
-{/if}
+	{:else}
+		<CategoryForm initial={form?.values ?? {}} errors={form?.errors} />
+	{/if}
+</FormScreen>
