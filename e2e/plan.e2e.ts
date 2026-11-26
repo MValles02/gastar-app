@@ -7,6 +7,7 @@ import {
 	findMovements,
 	foreignIds,
 	linkId,
+	gotoHydrated,
 	login,
 	OTHER_EMAIL,
 	pick,
@@ -30,8 +31,9 @@ test('a rule detail autosaves its amount with Deshacer, deactivates, activates a
 		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
-		await rule(page, description).locator('a[data-slot="item"]').click();
-		await expect(page).toHaveURL(/\/plan\/recurring\/[0-9a-f-]{36}$/);
+		const href = await rule(page, description).locator('a[data-slot="item"]').getAttribute('href');
+		expect(href).toMatch(/^\/plan\/recurring\/[0-9a-f-]{36}$/);
+		await gotoHydrated(page, href!);
 
 		const amount = page.getByRole('button', { name: /^Monto:/ });
 		await amount.click();
@@ -64,6 +66,7 @@ test('a rule detail autosaves its amount with Deshacer, deactivates, activates a
 		await page.goto(detail);
 
 		await page.getByRole('button', { name: 'Desactivar' }).click();
+		await page.getByRole('alertdialog').getByRole('button', { name: 'Desactivar' }).click();
 		await expect(page.getByRole('button', { name: 'Activar', exact: true })).toBeVisible();
 		await page.getByRole('button', { name: 'Activar', exact: true }).click();
 		await expect(page.getByRole('button', { name: 'Desactivar' })).toBeVisible();

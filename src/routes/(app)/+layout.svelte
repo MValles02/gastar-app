@@ -3,7 +3,6 @@
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { edgeSwipeBack, settleEdgeSwipe } from '#lib/edge-swipe-back.ts';
-	import { settleTabSwipe, tabSwipe } from '#lib/tab-swipe.ts';
 	import { pullRefresh } from '#lib/pull-refresh.ts';
 	import PullIndicator from '#lib/components/PullIndicator.svelte';
 	import { TAB_ROUTES } from '#lib/form-routes.ts';
@@ -49,13 +48,12 @@
 	afterNavigate(({ shallow, type }) => {
 		if (shallow && type === 'goto') return;
 		settleEdgeSwipe();
-		settleTabSwipe();
 	});
 	toastSavedMovement(() => saved, highlightMovement);
 </script>
 
 <div class="shell">
-	<main class="content" class:with-bar={showBar} use:edgeSwipeBack use:tabSwipe use:pullRefresh>
+	<main class="content" class:with-bar={showBar} use:edgeSwipeBack use:pullRefresh>
 		{#if saved.id && !mounted.current}
 			<p role="status" class="saved">Movimiento guardado.</p>
 		{/if}

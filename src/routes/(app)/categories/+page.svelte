@@ -1,18 +1,18 @@
 <script lang="ts">
 	import Plus from '@lucide/svelte/icons/plus';
 	import { resolve } from '$app/paths';
-	import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
+	import { swatchVar, toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import * as Empty from '#lib/components/ui/empty/index.js';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
 	import ListFilterDrawer from '#lib/components/ListFilterDrawer.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
+	import Meter from '#lib/components/Meter.svelte';
 	import Money from '#lib/components/Money.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
-	import Icon from '#lib/components/Icon.svelte';
 	import { CURRENCIES, CURRENCY_OPTIONS, DEFAULT_CURRENCY, type Currency } from '#lib/money.ts';
 	import { ARCHIVED_LABEL, KIND_OPTIONS } from '#lib/movement.ts';
 	import { activeListFilters } from '#lib/list-filter.ts';
@@ -28,10 +28,12 @@
 		const present = CURRENCIES.filter((c) => totals[c] !== undefined);
 		return present.length > 0 ? present : [DEFAULT_CURRENCY];
 	};
+	/** Spend of one currency (the net when it is an outcome), for the share meter; Ambas shows none. */
+	const spend = (totals: Partial<Record<Currency, number>>) =>
+		data.filters.currency === 'both' ? 0 : Math.max(0, -(totals[data.filters.currency] ?? 0));
 	const kindOptions = [{ value: '', label: 'Todas' }, ...KIND_OPTIONS];
 </script>
 
-{#snippet archivedMeta()}{ARCHIVED_LABEL}{/snippet}
 {#snippet add()}
 	<Button
 		href={resolve('categories/new')}
@@ -54,21 +56,16 @@
 
 <div class="page">
 	{#if !data.hasAnyCategory}
-		<Empty.Root>
-			<Empty.Header>
-				<Empty.Media variant="icon"><Icon name="categories" size="1rem" /></Empty.Media>
-				<Empty.Description
-					>Todavía no tenés categorías. Creá la primera para clasificar tus movimientos.</Empty.Description
-				>
-			</Empty.Header>
-		</Empty.Root>
-		<div class="empty-action">
+		<EmptyState
+			icon="categories"
+			description="Todavía no tenés categorías. Creá la primera para clasificar tus movimientos."
+		>
 			<Button
 				href={resolve('categories/new')}
 				onclick={(e) => openShallow(e, resolve('categories/new'), 'newCategory')}
 				>Crear categoría</Button
 			>
-		</div>
+		</EmptyState>
 	{:else}
 		<FilterBar
 			q={data.filters.q}
@@ -79,19 +76,16 @@
 		/>
 
 		{#if data.groups.length === 0}
-			<Empty.Root>
-				<Empty.Header>
-					<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
-					<Empty.Description>No hay categorías que coincidan con la búsqueda.</Empty.Description>
-				</Empty.Header>
-			</Empty.Root>
+			<EmptyState icon="search" description="No hay categorías que coincidan con la búsqueda." />
 		{:else}
 			{#each data.groups as g (g.key)}
+				{@const groupSpend = g.categories.reduce((sum, c) => sum + spend(c.totals), 0)}
 				<section aria-labelledby="group-{g.key}">
 					<SectionHeader id="group-{g.key}" title={g.label} variant="group" />
 					<ListCard>
 						{#each g.categories as c (c.id)}
 							{@const icon = toCategoryIconKey(c.icon) ?? ('categories' as const)}
+							{@const share = groupSpend > 0 ? spend(c.totals) / groupSpend : 0}
 							{#snippet value()}
 								<span class="totals">
 									{#each shown(c.totals) as cur (cur)}
@@ -103,15 +97,21 @@
 									{/each}
 								</span>
 							{/snippet}
+							<!-- Share of the group's month spend: only categories with spending get a bar. -->
+							{#snippet meter()}
+								<Meter percent={share * 100} color={swatchVar(toSwatchKey(c.color))} />
+							{/snippet}
 							<ListRow
 								href={resolve(`categories/${c.id}`)}
+								onclick={(e) => openShallow(e, resolve(`categories/${c.id}`), 'category')}
 								lead={{
 									icon,
 									color: toSwatchKey(c.color)
 								}}
 								title={c.name}
 								{value}
-								meta={c.archivedAt ? archivedMeta : undefined}
+								status={c.archivedAt ? { tone: 'neutral', label: ARCHIVED_LABEL } : undefined}
+								footer={share > 0 ? meter : undefined}
 								dimmed={!!c.archivedAt}
 							/>
 						{/each}
@@ -139,12 +139,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-4);
-	}
-
-	.empty-action {
-		display: flex;
-		justify-content: center;
+		gap: var(--space-5);
 	}
 
 	/* Month totals stacked on the right (ARS on top); an empty month is a muted zero. */

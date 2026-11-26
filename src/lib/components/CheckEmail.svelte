@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import AuthPage from '#lib/components/AuthPage.svelte';
+	import { appear } from '#lib/motion.ts';
 
 	// Shared "Revisá tu email" screen. The page that renders it must have a `resend` action.
 	// `verify` confirms an account; `reset` is the neutral password-reset confirmation and never says
@@ -71,7 +72,7 @@
 			{seconds > 0 ? `Reenviar en ${clock}` : 'Reenviar'}
 		</Button>
 		{#if sent}
-			<p class="sent" role="status">Enviamos otro enlace.</p>
+			<p class="sent" role="status" in:appear>Enviamos otro enlace.</p>
 		{/if}
 	</form>
 </AuthPage>

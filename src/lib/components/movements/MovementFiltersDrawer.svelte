@@ -4,7 +4,6 @@
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
 	import { thisMonth } from '#lib/dates.ts';
-	import { replaceGoto } from '#lib/nav-stack.svelte.ts';
 	import FilterDrawer from '#lib/components/FilterDrawer.svelte';
 	import DateRangePicker from '#lib/components/pickers/DateRangePicker.svelte';
 	import MultiPicker from '#lib/components/pickers/MultiPicker.svelte';
@@ -13,8 +12,8 @@
 	type Picks = ComponentProps<typeof MultiPicker>['items'];
 
 	/**
-	 * Movements filters. Changes are staged here (nothing navigates or reloads) and applied by
-	 * "Ver N movimientos", where N is the server's count for the staged filters.
+	 * The movements FilterDrawer configuration: N in "Ver N movimientos" is the server's count for
+	 * the staged filters.
 	 */
 	let {
 		open = $bindable(false),
@@ -111,19 +110,15 @@
 		stagedAccounts = [];
 		stagedCategories = [];
 	};
-
-	const apply = () => {
-		void replaceGoto(resolve(`movements?${query}`), { reset: false });
-	};
-
-	const viewLabel = $derived(
-		count === null
-			? 'Ver movimientos'
-			: `Ver ${count} ${count === 1 ? 'movimiento' : 'movimientos'}`
-	);
 </script>
 
-<FilterDrawer bind:open applyLabel={viewLabel} onclear={clear} onapply={apply}>
+<FilterDrawer
+	bind:open
+	{count}
+	noun={['movimiento', 'movimientos']}
+	href={resolve(`movements?${query}`)}
+	onclear={clear}
+>
 	<span id="f-currency-label" class="visually-hidden">Moneda</span>
 	<SegmentedControl
 		name="currency"
@@ -135,7 +130,7 @@
 	<span id="f-type-label" class="visually-hidden">Tipo</span>
 	<SegmentedControl name="type" options={typeOptions} bind:value={type} labelledby="f-type-label" />
 	<div class="group">
-		<DateRangePicker nested bind:from bind:to />
+		<DateRangePicker bind:from bind:to />
 		<MultiPicker
 			legend="Cuenta"
 			title="Cuenta"

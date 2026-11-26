@@ -14,6 +14,7 @@
 	import Money from '#lib/components/Money.svelte';
 	import HeroAmount from '#lib/components/HeroAmount.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import TabBand from '#lib/components/TabBand.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
@@ -78,13 +79,15 @@
 	/>
 {/snippet}
 
-<PageHeader title="Plan" />
+<PageHeader title="Plan" tone="primary" />
 
-<div class="page">
+<TabBand overlap={data.hasAccount}>
 	{#if !mounted.current}
 		{#if data.planSaved}<p role="status">Plan guardado.</p>{/if}
 	{/if}
+</TabBand>
 
+<div class="page">
 	{#if !data.hasAccount}
 		<EmptyState icon="accounts" description="No tenés cuentas.">
 			<Button href={resolve('accounts/new')}>Crear cuenta</Button>
@@ -226,6 +229,7 @@
 
 <style>
 	.page {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);

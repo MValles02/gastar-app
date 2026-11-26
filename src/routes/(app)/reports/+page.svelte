@@ -14,12 +14,17 @@
 	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
 	import HeroAmount from '#lib/components/HeroAmount.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import TabBand from '#lib/components/TabBand.svelte';
 	import { CURRENCY_NAME, formatMoney } from '#lib/money.ts';
 	import { markReplace } from '#lib/nav-stack.svelte.ts';
+	import { openShallow } from '#lib/open-shallow.ts';
 	import { swatchVar, toSwatchKey } from '#lib/appearance.ts';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	// The month starts with the totals card (which overlaps the band) only when it has movements.
+	const hasMovements = $derived(data.bars?.some((b) => b.income !== 0 || b.outcome !== 0) ?? false);
 
 	const money = (c: number) => formatMoney(c, data.currency);
 	// Spending is negated so Money shows it as an outcome (red); zero stays neutral.
@@ -33,17 +38,11 @@
 	<title>Reportes · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Reportes" />
+<PageHeader title="Reportes" tone="primary" />
 
-<div class="page">
-	<CurrencyTabs value={data.currency} variant="pills" />
-
-	{#if !data.hasCurrency}
-		<EmptyState icon="accounts" description="No tenés cuentas en {CURRENCY_NAME[data.currency]}.">
-			<Button href={resolve('accounts/new')}>Crear cuenta</Button>
-		</EmptyState>
-	{:else}
-		{@const max = Math.max(1, ...data.bars.flatMap((b) => [b.income, b.outcome]))}
+<TabBand overlap={data.hasCurrency && hasMovements}>
+	<CurrencyTabs value={data.currency} variant="pills" tone="primary" />
+	{#if data.hasCurrency}
 		<div class="month-nav">
 			<MonthNav
 				label={data.nav.label}
@@ -51,8 +50,17 @@
 				nextHref={data.nav.isCurrent ? null : resolve(`reports?month=${data.nav.next}`)}
 			/>
 		</div>
+	{/if}
+</TabBand>
 
-		{#if data.bars.every((b) => b.income === 0 && b.outcome === 0)}
+<div class="page">
+	{#if !data.hasCurrency}
+		<EmptyState icon="accounts" description="No tenés cuentas en {CURRENCY_NAME[data.currency]}.">
+			<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+		</EmptyState>
+	{:else}
+		{@const max = Math.max(1, ...data.bars.flatMap((b) => [b.income, b.outcome]))}
+		{#if !hasMovements}
 			<EmptyState icon="chart" description="Sin movimientos en {CURRENCY_NAME[data.currency]}." />
 		{:else}
 			<section aria-label="Totales del mes">
@@ -96,6 +104,7 @@
 							{#each data.bars as b (b.ym)}
 								<li class:current={b.ym === data.nav.ym}>
 									<a
+										data-press
 										href={resolve(`reports?month=${b.ym}`)}
 										data-sveltekit-replacestate
 										onclick={markReplace}
@@ -103,13 +112,12 @@
 										aria-label="{b.label}: ingresos {money(b.income)}, gastos {money(b.outcome)}"
 									>
 										<span class="cols" aria-hidden="true">
-											{#if b.income > 0}<span
-													class="bar in"
-													style:height="{(b.income / max) * 100}%"
-												></span>{/if}{#if b.outcome > 0}<span
-													class="bar out"
-													style:height="{(b.outcome / max) * 100}%"
-												></span>{/if}
+											{#if b.income > 0}<span class="slot"
+													><span class="bar in" style:--h="{(b.income / max) * 100}%"></span></span
+												>{/if}{#if b.outcome > 0}<span class="slot"
+													><span class="bar out" style:--h="{(b.outcome / max) * 100}%"
+													></span></span
+												>{/if}
 										</span>
 										<span class="bar-label" aria-hidden="true">{b.label}</span>
 									</a>
@@ -151,6 +159,8 @@
 											letter: s.icon ? undefined : s.name.charAt(0).toUpperCase(),
 											color: toSwatchKey(s.color)
 										}}
+								onclick={(e) =>
+									openShallow(e, resolve(`categories/${s.id}?month=${data.nav.ym}`), 'category')}
 								title={s.name}
 								value={sliceValue}
 								footer={sliceFooter}
@@ -178,7 +188,7 @@
 						</Card.Root>
 					{/if}
 					{#if data.biggest}
-						<a class="fact-link" href={resolve(`movements/${data.biggest.id}`)}>
+						<a class="fact-link" data-press href={resolve(`movements/${data.biggest.id}`)}>
 							<Card.Root>
 								<Card.Content>
 									<div class="fact-card">
@@ -206,6 +216,7 @@
 
 <style>
 	.page {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
@@ -216,8 +227,20 @@
 		font-size: var(--font-size-sm);
 	}
 
+	/* On the band: the arrows and label take the on-primary ink. */
 	.month-nav {
-		margin: calc(-1 * var(--space-2));
+		margin: var(--space-2) calc(-1 * var(--space-2)) calc(-1 * var(--space-2));
+	}
+
+	.month-nav :global(a),
+	.month-nav :global(button) {
+		color: inherit;
+		--tw-ring-color: var(--on-primary);
+	}
+
+	.month-nav :global(a:hover),
+	.month-nav :global(a:active) {
+		background: color-mix(in srgb, var(--on-primary) 12%, transparent);
 	}
 
 	/* Resultado spans the card; Ingresos and Gastos sit side by side beneath it. */
@@ -278,11 +301,17 @@
 		border-radius: var(--radius);
 		text-decoration: none;
 		color: var(--text-muted);
-		transition: background-color 0.12s ease;
 	}
 
-	.bars a:active {
+	/* Touch: data-pressed (src/lib/press.ts); mouse: :active. */
+	.bars a:global([data-pressed]) {
 		background: var(--muted);
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.bars a:active {
+			background: var(--muted);
+		}
 	}
 
 	.cols {
@@ -298,10 +327,26 @@
 		opacity: 1;
 	}
 
-	.bar {
+	/* Each bar is full height, slid down inside its clipping slot (at least 2px shows): the height
+	   changes as a transform, and the rounded top keeps its shape. */
+	.slot {
 		width: 10px;
-		min-height: 2px;
+		height: 100%;
+		overflow: hidden;
 		border-radius: 4px 4px 1px 1px;
+	}
+
+	.bar {
+		display: block;
+		height: 100%;
+		border-radius: 4px 4px 1px 1px;
+		transform: translateY(min(calc(100% - var(--h)), calc(100% - 2px)));
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.bar {
+			transition: transform var(--dur-slow) var(--ease-out);
+		}
 	}
 
 	.in {
@@ -382,8 +427,14 @@
 		border-radius: var(--radius-card);
 	}
 
-	.fact-link:active :global(.card) {
+	.fact-link:global([data-pressed]) :global(.card) {
 		background: var(--muted);
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.fact-link:active :global(.card) {
+			background: var(--muted);
+		}
 	}
 
 	.fact-card {

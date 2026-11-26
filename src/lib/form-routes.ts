@@ -1,6 +1,9 @@
 import type { RouteId } from '$app/types';
 
-/** Form routes (sticky action bar at the bottom): toasts show at the top instead. */
+/**
+ * Form pages (sticky action bar at the bottom): toasts show at the top instead. Any open drawer does the
+ * same (`drawers.open`); detail pages edit inline and have no bar, so they keep toasts at the bottom.
+ */
 export const FORM_ROUTES: ReadonlySet<string> = new Set<RouteId>([
 	'/(app)/movements/new',
 	'/(app)/accounts/new',
@@ -9,6 +12,8 @@ export const FORM_ROUTES: ReadonlySet<string> = new Set<RouteId>([
 	'/(app)/plan/limits/new',
 	'/(app)/plan/limits/[categoryId]',
 	'/(app)/plan/savings',
+	'/(app)/plan/rate',
+	'/(app)/imports/[id]',
 	'/(app)/plan/setup',
 	'/(app)/profile/password',
 	'/(app)/profile/delete'

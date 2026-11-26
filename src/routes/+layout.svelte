@@ -7,6 +7,7 @@
 	import { drawers } from '#lib/drawer-open.svelte.ts';
 	import { track, transitionOf } from '#lib/nav-stack.svelte.ts';
 	import { FORM_ROUTES, TAB_ROUTES } from '#lib/form-routes.ts';
+	import { pressFeedback } from '#lib/press.ts';
 	import favicon from '#lib/assets/favicon.svg';
 	import { Toaster } from '#lib/components/ui/sonner/index.js';
 	import NavProgress from '#lib/components/NavProgress.svelte';
@@ -19,6 +20,10 @@
 		document.documentElement.dataset.hydrated = '';
 	});
 
+	// Pressed rows on touch. Its document touch listeners also make iOS Safari apply :active
+	// (buttons, tab bar), which it only does when the page listens to touches.
+	onMount(() => pressFeedback(document));
+
 	// Mirrors the history stack so back/close/save can pop instead of pushing the parent again.
 	afterNavigate(track);
 
@@ -28,18 +33,14 @@
 		(uaAnimatedPop =
 			(e as PopStateEvent & { hasUAVisualTransition?: boolean }).hasUAVisualTransition === true);
 
-	// Page transitions (View Transitions API): the direction goes on <html> for the CSS in app.css.
+	// Page transitions (View Transitions API): the direction goes on <html> for the CSS in app.css,
+	// which turns every kind into a short crossfade under reduced motion.
 	onNavigate((nav) => {
 		// A shallow goto (drawer open) is no page change; closing the drawer (shallow popstate) fires no
 		// hook as long as `page.url` matches the address bar, which `stripFlags` guarantees.
 		if (nav.shallow && nav.type === 'goto') return;
 		const kind = transitionOf(nav);
-		if (
-			!kind ||
-			!document.startViewTransition ||
-			(nav.type === 'popstate' && uaAnimatedPop) ||
-			matchMedia('(prefers-reduced-motion: reduce)').matches
-		)
+		if (!kind || !document.startViewTransition || (nav.type === 'popstate' && uaAnimatedPop))
 			return;
 		document.documentElement.dataset.navTransition = kind;
 		return new Promise<void>((resolve) => {
@@ -64,9 +65,6 @@
 </script>
 
 <svelte:window {onpopstate} />
-
-<!-- iOS Safari only applies :active (pressed rows and buttons) when the page listens to touches. -->
-<svelte:document ontouchstart={() => {}} />
 
 <svelte:head>
 	<link rel="icon" href={favicon} />

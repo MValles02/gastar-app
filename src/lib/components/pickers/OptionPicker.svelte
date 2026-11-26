@@ -1,7 +1,7 @@
 <script lang="ts">
+	import { appear } from '#lib/motion.ts';
 	import { tick, type ComponentProps, type Snippet } from 'svelte';
 	import type { SwatchKey } from '#lib/appearance.ts';
-	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import IconBadge from '#lib/components/IconBadge.svelte';
 	import Money from '#lib/components/Money.svelte';
 	import * as Item from '#lib/components/ui/item/index.js';
@@ -9,8 +9,7 @@
 	import { archived } from '#lib/movement.ts';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import OptionList from './OptionList.svelte';
-	import { commitPick } from './pick.ts';
-	import PickerTrigger from './PickerTrigger.svelte';
+	import Picker from './Picker.svelte';
 
 	type Item = {
 		id: string;
@@ -35,7 +34,6 @@
 		error,
 		errorId,
 		excludeId,
-		nested = false,
 		onclosed,
 		extra
 	}: {
@@ -49,8 +47,6 @@
 		error?: string;
 		errorId?: string;
 		excludeId?: string;
-		/** Opens the list as a drawer stacked over the one this picker is rendered in. */
-		nested?: boolean;
 		/** Runs once the list drawer has finished closing. */
 		onclosed?: () => void;
 		/** Extra last row of the list; gets a function that closes it. */
@@ -59,7 +55,6 @@
 
 	const mounted = hydrated();
 	let open = $state(false);
-	let trigger: HTMLButtonElement | null = $state(null);
 	let list: ReturnType<typeof OptionList<Item>> | undefined = $state();
 	let hidden: HTMLInputElement | null = $state(null);
 	const labelId = $props.id();
@@ -69,22 +64,18 @@
 	const selected = $derived(value ? visible.find((item) => item.id === value) : undefined);
 
 	/** Opens the list (a parent can ask for it, e.g. when a field is still missing). */
-	export async function openSheet() {
+	export function openSheet() {
 		open = true;
+		void focusList();
+	}
+
+	async function focusList() {
 		await tick();
 		list?.focusPicked();
 	}
 
 	const meta = (item: Item) =>
 		item.meta || item.archived ? archived(item.meta ?? '', !!item.archived) : undefined;
-
-	const choose = (item: Item) =>
-		commitPick({
-			set: () => (value = item.id),
-			close: () => (open = false),
-			changeFrom: hidden,
-			trigger
-		});
 </script>
 
 {#snippet option(item: Item)}
@@ -120,38 +111,42 @@
 	{@render empty()}
 {:else if mounted.current}
 	<div class="field row">
-		<PickerTrigger
+		<Picker
 			class="trigger"
 			{labelId}
 			label={legend}
+			{title}
 			value={current}
 			placeholder={!selected}
 			strongPlaceholder
 			valueClass="flex items-center justify-end gap-3 ps-3"
 			describedBy={error ? errorId : undefined}
-			bind:ref={trigger}
-			onclick={openSheet}
-		/>
+			changeFrom={hidden}
+			onopen={focusList}
+			{onclosed}
+			bind:open
+		>
+			{#snippet children(pick)}
+				<OptionList
+					items={visible}
+					key={(item) => item.id}
+					title={(item) => item.name}
+					description={meta}
+					value={(item) => item.id}
+					on={(item) => item.id === value}
+					onpick={(item) => pick(() => (value = item.id))}
+					media={badge}
+					end={balance}
+					arrowKeys
+					bind:this={list}
+				/>
+				{#if extra}{@render extra(() => (open = false))}{/if}
+			{/snippet}
+		</Picker>
 		<!-- The Drawer is portaled out of the form, so the value submits through this input. -->
 		<input type="hidden" {name} {value} disabled={!value} bind:this={hidden} />
-		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
+		{#if error}<p class="error" id={errorId} role="alert" in:appear>{error}</p>{/if}
 	</div>
-	<BottomDrawer {title} {nested} {onclosed} bind:open>
-		<OptionList
-			items={visible}
-			key={(item) => item.id}
-			title={(item) => item.name}
-			description={meta}
-			value={(item) => item.id}
-			on={(item) => item.id === value}
-			onpick={choose}
-			media={badge}
-			end={balance}
-			arrowKeys
-			bind:this={list}
-		/>
-		{#if extra}{@render extra(() => (open = false))}{/if}
-	</BottomDrawer>
 {:else}
 	<div class="field">
 		<fieldset>
@@ -163,7 +158,7 @@
 				</label>
 			{/each}
 		</fieldset>
-		{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
+		{#if error}<p class="error" id={errorId} role="alert" in:appear>{error}</p>{/if}
 	</div>
 {/if}
 

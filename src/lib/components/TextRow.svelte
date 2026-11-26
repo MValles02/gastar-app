@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { appear } from '#lib/motion.ts';
 	import type { Snippet } from 'svelte';
 	import { groupedAmount } from '#lib/amount-input.ts';
 
@@ -62,7 +63,7 @@
 		</label>
 		{#if end}{@render end()}{/if}
 	</div>
-	{#if error}<p class="error" id={errorId} role="alert">{error}</p>{/if}
+	{#if error}<p class="error" id={errorId} role="alert" in:appear>{error}</p>{/if}
 </div>
 
 <style>

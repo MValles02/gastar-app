@@ -3,6 +3,8 @@
 	import { resolve } from '$app/paths';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import StatusPill from '#lib/components/StatusPill.svelte';
+	import * as Card from '#lib/components/ui/card/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 
 	// The page of one OAuth link (Gmail, Mercado Pago): notices, the intro / reconnect / linked states and
@@ -47,30 +49,38 @@
 />
 
 <div class="page">
-	{#if data.flash}<p class="flash bad" role="alert">{data.flash}</p>{/if}
-	{#if data.linked}<p class="flash" role="status">{name} vinculado.</p>{/if}
+	{#if data.flash}<Card.Root size="sm" class="flash bad" role="alert"
+			><Card.Content>{data.flash}</Card.Content></Card.Root
+		>{/if}
+	{#if data.linked}<Card.Root size="sm" class="flash" role="status"
+			><Card.Content>{name} vinculado.</Card.Content></Card.Root
+		>{/if}
+
+	<!-- One state card; `ok` shows the heading as a green status pill (the linked state). -->
+	{#snippet state(title: string, content: Snippet, action?: string, ok = false)}
+		<section aria-labelledby="intro">
+			<Card.Root>
+				<Card.Content class="state">
+					<h2 id="intro" class:pill={ok}>
+						{#if ok}<StatusPill tone="ok" label={title} />{:else}{title}{/if}
+					</h2>
+					{@render content()}
+					{#if action}
+						<form method="POST" action="?/connect">
+							<Button type="submit" class="w-full">{action}</Button>
+						</form>
+					{/if}
+				</Card.Content>
+			</Card.Root>
+		</section>
+	{/snippet}
 
 	{#if !data.connection}
-		<section class="card" aria-labelledby="intro">
-			<h2 id="intro">{introTitle}</h2>
-			{@render intro()}
-			<form method="POST" action="?/connect">
-				<Button type="submit" class="w-full">Vincular {name}</Button>
-			</form>
-		</section>
+		{@render state(introTitle, intro, `Vincular ${name}`)}
 	{:else if data.connection.needsReconnect}
-		<section class="card" aria-labelledby="intro">
-			<h2 id="intro">Hay que volver a vincular</h2>
-			{@render reconnect()}
-			<form method="POST" action="?/connect">
-				<Button type="submit" class="w-full">Reconectar</Button>
-			</form>
-		</section>
+		{@render state('Hay que volver a vincular', reconnect, 'Reconectar')}
 	{:else if linkedTitle}
-		<section class="card" aria-labelledby="intro">
-			<h2 id="intro">{linkedTitle}</h2>
-			{@render linked()}
-		</section>
+		{@render state(linkedTitle, linked, undefined, true)}
 	{:else}
 		{@render linked()}
 	{/if}
@@ -98,48 +108,43 @@
 		padding-top: var(--space-1);
 	}
 
-	.card {
+	.page :global(.state) {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
-		padding: var(--space-5) var(--space-4);
-		background: var(--surface);
-		border: 1px solid var(--card-edge);
-		border-radius: var(--radius-card);
-		box-shadow: var(--shadow-1);
 	}
 
-	.card h2 {
+	.page :global(.state h2) {
 		margin: 0;
 		font-size: var(--font-size-lg);
 		font-weight: 600;
 	}
 
+	.pill {
+		display: flex;
+	}
+
 	/* The paragraphs come from the provider's snippets, so they carry the page's scope, not this one's. */
-	.card :global(p) {
+	.page :global(.state p) {
 		margin: 0;
 		color: var(--text-muted);
 	}
 
-	.card :global(p.email) {
+	.page :global(.state p.email) {
 		overflow-wrap: anywhere;
 		color: var(--text);
 		font-weight: 500;
 	}
 
-	.card form {
+	.page :global(.state form) {
 		padding-top: var(--space-2);
 	}
 
-	.flash {
-		margin: 0;
-		padding: var(--space-3) var(--space-4);
-		background: var(--surface);
-		border: 1px solid var(--card-edge);
-		border-radius: var(--radius-card);
+	.page :global(.flash) {
+		font-size: var(--font-size-base);
 	}
 
-	.flash.bad {
+	.page :global(.flash.bad) {
 		color: var(--negative);
 	}
 </style>

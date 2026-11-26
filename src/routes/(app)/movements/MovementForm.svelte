@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { MIN_DAY } from '#lib/dates.ts';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
+	import { appear, fade } from '#lib/motion.ts';
 	import type { Currency } from '#lib/money.ts';
 	import { categoriesFor, MOVEMENT_MESSAGES, movementNeeds } from '#lib/movement.ts';
 	import { savedMovement } from '#lib/toast-flags.ts';
@@ -245,7 +246,7 @@
 				bind:value={type}
 				labelledby="type-label"
 			/>
-			{#if shown.type}<p class="error" role="alert">{shown.type}</p>{/if}
+			{#if shown.type}<p class="error" role="alert" in:appear>{shown.type}</p>{/if}
 		</div>
 
 		<AmountInput
@@ -257,7 +258,7 @@
 		/>
 
 		{#if mounted.current && showCategory && frequent.length}
-			<div class="chips" role="group" aria-label="Categorías frecuentes">
+			<div class="chips" role="group" aria-label="Categorías frecuentes" in:fade>
 				{#each frequent as c (c.id)}
 					<button
 						type="button"
@@ -295,7 +296,6 @@
 						title={isTransfer ? 'Desde' : 'Cuenta'}
 						items={accountItems}
 						bind:value={accountId}
-						nested={drawer}
 						placeholder="Elegir"
 						error={shown.accountId}
 						errorId="account-error"
@@ -305,7 +305,7 @@
 				</li>
 
 				{#if showTransfer}
-					<li class:bad={shown.destinationAccountId}>
+					<li class:bad={shown.destinationAccountId} in:fade>
 						{#if !mounted.current}<p class="hint pad">Solo para transferencias</p>{/if}
 						<OptionPicker
 							name="destinationAccountId"
@@ -314,7 +314,6 @@
 							items={accountItems}
 							bind:value={destinationId}
 							excludeId={mounted.current ? accountId : undefined}
-							nested={drawer}
 							placeholder="Elegir"
 							error={shown.destinationAccountId}
 							errorId="destination-error"
@@ -364,7 +363,7 @@
 
 			{#snippet category()}
 				{#if showCategory}
-					<li class:bad={shown.categoryId}>
+					<li class:bad={shown.categoryId} in:fade>
 						{#if !mounted.current}<p class="hint pad">Solo para ingresos y gastos</p>{/if}
 						<OptionPicker
 							name="categoryId"
@@ -372,7 +371,6 @@
 							title="Categoría"
 							items={pickableCategories}
 							bind:value={categoryId}
-							nested={drawer}
 							extra={drawer ? newCategoryRow : undefined}
 							placeholder="Elegir"
 							error={shown.categoryId}
@@ -403,7 +401,6 @@
 						label="Fecha"
 						min={MIN_DAY}
 						bind:value={occurredAt}
-						nested={drawer}
 						error={shown.occurredAt}
 						errorId="date-error"
 					/>
@@ -519,7 +516,7 @@
 
 	@media (prefers-reduced-motion: no-preference) {
 		.pill {
-			transition: transform 120ms ease-out;
+			transition: transform var(--dur-fast) var(--ease-out);
 		}
 
 		.chip:active .pill {

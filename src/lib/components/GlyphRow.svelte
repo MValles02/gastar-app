@@ -34,7 +34,6 @@
 
 <IconColorDrawer
 	bind:open
-	nested={false}
 	{icons}
 	{icon}
 	color={color ?? 'green'}

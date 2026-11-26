@@ -5,9 +5,8 @@
 	import * as Card from '#lib/components/ui/card/index.js';
 	import ActionLink from '#lib/components/ActionLink.svelte';
 	import CurrencyTabs from '#lib/components/CurrencyTabs.svelte';
-	import * as Empty from '#lib/components/ui/empty/index.js';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import FirstRunChecklist from '#lib/components/FirstRunChecklist.svelte';
-	import Icon from '#lib/components/Icon.svelte';
 	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
@@ -19,9 +18,11 @@
 	import PaceChart from '#lib/components/PaceChart.svelte';
 	import UpcomingBills from './UpcomingBills.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import TabBand from '#lib/components/TabBand.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import { PLAN_TONE } from '#lib/plan.ts';
 	import { swatchVar, toSwatchKey } from '#lib/appearance.ts';
+	import { appear, fade } from '#lib/motion.ts';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -33,14 +34,14 @@
 
 <PageHeader title="Hola, {data.header.firstName}" tone="primary" />
 
-<div class="band">
+<TabBand>
 	{#if data.hasAnyAccount}
 		<div class="pill-row">
 			<CurrencyTabs value={data.currency} variant="pills" tone="primary" />
 			{#if data.mpPending !== null}<MpPill pending={data.mpPending} />{/if}
 		</div>
 	{/if}
-</div>
+</TabBand>
 
 <div class="dashboard">
 	{#if !data.hasAnyAccount}
@@ -52,22 +53,16 @@
 
 		{#if !data.hasCurrencyAccount}
 			<Card.Root>
-				<Empty.Root>
-					<Empty.Header>
-						<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
-						<Empty.Description>Sin cuentas en {data.currencyWord}.</Empty.Description>
-					</Empty.Header>
-				</Empty.Root>
-				<div class="empty-action">
+				<EmptyState icon="accounts" description="Sin cuentas en {data.currencyWord}.">
 					<Button href={resolve('accounts/new')}>Crear cuenta</Button>
-				</div>
+				</EmptyState>
 			</Card.Root>
 		{:else}
 			<section aria-labelledby="summary-heading">
 				<Card.Root class="gap-0 overflow-hidden py-0">
 					{#if data.plan?.summary}
 						{@const s = data.plan.summary}
-						<div class="box">
+						<div class="box" in:fade>
 							<div class="top">
 								<CardEyebrow as="h2" id="summary-heading">Disponible</CardEyebrow>
 								<StatusPill tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
@@ -102,7 +97,7 @@
 							</div>
 						</div>
 					{:else}
-						<div class="box">
+						<div class="box" in:fade>
 							<CardEyebrow as="h2" id="summary-heading">Saldo total</CardEyebrow>
 							<HeroAmount cents={data.balance} currency={data.currency} />
 							<p class="muted per-day">
@@ -127,14 +122,14 @@
 			{/if}
 
 			{#if data.recent.length > 0}
-				<section aria-labelledby="categories-heading">
+				<section aria-labelledby="categories-heading" in:appear>
 					<div class="section-head">
 						<h2 id="categories-heading">Gastos de {data.monthName}</h2>
 						<ActionLink href="/reports" label="Ver reportes" />
 					</div>
 					{#if data.topCategories.length === 0}
 						<Card.Root>
-							<Card.Content><p class="muted inline-empty">No hay gastos.</p></Card.Content>
+							<Card.Content><p class="muted inline-empty" in:fade>No hay gastos.</p></Card.Content>
 						</Card.Root>
 					{:else}
 						<ListCard>
@@ -177,7 +172,9 @@
 				{#if data.recent.length === 0}
 					<Card.Root>
 						<Card.Content>
-							<p class="muted inline-empty">Todavía no hay movimientos en {data.currencyWord}.</p>
+							<p class="muted inline-empty" in:fade>
+								Todavía no hay movimientos en {data.currencyWord}.
+							</p>
 						</Card.Content>
 					</Card.Root>
 				{:else}
@@ -193,33 +190,12 @@
 </div>
 
 <style>
-	/* Primary band under the header; the dashboard's first card overlaps its bottom. */
-	.band {
-		position: relative;
-		margin-inline: calc(var(--gutter) * -1);
-		padding: 0 var(--gutter) var(--space-8);
-		background: var(--primary);
-		color: var(--on-primary);
-	}
-
-	/* Emerald backdrop above the band: what a pull-to-refresh uncovers. Off-screen at rest. */
-	.band::before {
-		content: '';
-		position: absolute;
-		bottom: 100%;
-		left: 0;
-		right: 0;
-		height: 100vh;
-		background: var(--primary);
-		pointer-events: none;
-	}
-
+	/* Positioned so its first card paints over the band it overlaps (TabBand). */
 	.dashboard {
 		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-		margin-top: calc(var(--space-6) * -1);
 	}
 
 	/* Canvas row height: 60px minimum for every list row on Inicio. */
@@ -240,11 +216,6 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--space-2);
-	}
-
-	.empty-action {
-		display: flex;
-		justify-content: center;
 	}
 
 	.muted {

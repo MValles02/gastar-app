@@ -11,11 +11,12 @@
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
 	import { IMPORT_FLAGS } from '#lib/toast-flags.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import * as Empty from '#lib/components/ui/empty/index.js';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import Icon from '#lib/components/Icon.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
+	import RowPill from '#lib/components/RowPill.svelte';
+	import * as Card from '#lib/components/ui/card/index.js';
 	import Money from '#lib/components/Money.svelte';
 	import { formatDay } from '#lib/locale.ts';
 	import PageHeader from '#lib/components/PageHeader.svelte';
@@ -119,15 +120,22 @@
 
 	<!-- The sync line is Mercado Pago's and Gmail's: without a link only the pending items show. -->
 	{#if data.mpLinked && data.running}
-		<section class="sync running" role="status" aria-label="Sincronización">
+		<Card.Root
+			role="status"
+			aria-label="Sincronización"
+			class="min-h-14 flex-row items-start gap-3 px-4 py-3"
+		>
 			<LoaderCircle class="spin" aria-hidden="true" />
-			<p>
+			<p class="running">
 				Sincronizando…
 				<span class="detail">Puede tardar unos minutos.</span>
 			</p>
-		</section>
+		</Card.Root>
 	{:else if data.mpLinked || data.gmailLinked}
-		<section class="sync" aria-label="Sincronización">
+		<Card.Root
+			aria-label="Sincronización"
+			class="min-h-14 flex-row items-center gap-3 px-4 py-2 [&_svg]:flex-none"
+		>
 			<div class="messages">
 				<p class="status" class:error={data.needsReconnect || !!data.lastError} role="status">
 					{status}
@@ -147,7 +155,7 @@
 					</Button>
 				</form>
 			{/if}
-		</section>
+		</Card.Root>
 	{/if}
 
 	{#if data.unknownCards.length > 0}
@@ -168,44 +176,39 @@
 			<h2 id="unmatched-title">No apareció en el resumen</h2>
 			<ListCard>
 				{#each data.unmatched as item (item.id)}
-					<div role="listitem" class="unmatched">
-						<div class="text">
-							<span class="title">{item.title}</span>
-							<span class="meta">
-								{formatDay(item.day)} ·
-								<Money
-									cents={item.amount}
-									currency={item.currency}
-									tone="flow"
-									direction="outcome"
-								/>
-							</span>
-						</div>
-						{#each [{ action: 'discardUnmatched', label: 'Descartar', failed: UNMATCHED_FAILED.discard }, { action: 'keepUnmatched', label: 'Dejar', failed: UNMATCHED_FAILED.keep }] as a (a.action)}
-							<form
-								method="POST"
-								action="?/{a.action}"
-								use:enhance={() =>
-									async ({ result, update }) => {
-										if (result.type === 'success') {
-											toast.success(
-												a.action === 'discardUnmatched' ? 'Movimiento descartado.' : 'Listo.'
-											);
-										} else if (result.type === 'failure') {
-											toast.error(
-												(result.data as { message?: string } | undefined)?.message ?? a.failed
-											);
-										} else {
-											toast.error(a.failed);
-										}
-										await update();
-									}}
-							>
-								<input type="hidden" name="id" value={item.id} />
-								<button type="submit" class="pill">{a.label}</button>
-							</form>
-						{/each}
-					</div>
+					{#snippet meta()}
+						{formatDay(item.day)} ·
+						<Money cents={item.amount} currency={item.currency} tone="flow" direction="outcome" />
+					{/snippet}
+					{#snippet choices()}
+						<span class="choices">
+							{#each [{ action: 'discardUnmatched', label: 'Descartar', failed: UNMATCHED_FAILED.discard }, { action: 'keepUnmatched', label: 'Dejar', failed: UNMATCHED_FAILED.keep }] as a (a.action)}
+								<form
+									method="POST"
+									action="?/{a.action}"
+									use:enhance={() =>
+										async ({ result, update }) => {
+											if (result.type === 'success') {
+												toast.success(
+													a.action === 'discardUnmatched' ? 'Movimiento descartado.' : 'Listo.'
+												);
+											} else if (result.type === 'failure') {
+												toast.error(
+													(result.data as { message?: string } | undefined)?.message ?? a.failed
+												);
+											} else {
+												toast.error(a.failed);
+											}
+											await update();
+										}}
+								>
+									<input type="hidden" name="id" value={item.id} />
+									<RowPill label={a.label} />
+								</form>
+							{/each}
+						</span>
+					{/snippet}
+					<ListRow title={item.title} {meta} action={choices} />
 				{/each}
 			</ListCard>
 		</section>
@@ -237,12 +240,7 @@
 	{/if}
 
 	{#if data.groups.length === 0}
-		<Empty.Root>
-			<Empty.Header>
-				<Empty.Media variant="icon"><Icon name="movements" size="1rem" /></Empty.Media>
-				<Empty.Description>No hay movimientos para revisar.</Empty.Description>
-			</Empty.Header>
-		</Empty.Root>
+		<EmptyState icon="movements" description="No hay movimientos para revisar." />
 	{:else}
 		<div class="groups">
 			{#each data.groups as g (g.day)}
@@ -263,20 +261,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-4);
-	}
-
-	/* One line: the last sync (or the progress) and its action. */
-	.sync {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		min-height: 3.5rem;
-		padding: var(--space-2) var(--space-4);
-		background: var(--surface);
-		border: 1px solid var(--card-edge);
-		border-radius: var(--radius-card);
-		box-shadow: var(--shadow-1);
+		gap: var(--space-5);
 	}
 
 	.messages {
@@ -297,28 +282,20 @@
 		font-size: var(--font-size-sm);
 	}
 
-	.sync :global(svg) {
-		flex: none;
-	}
-
-	.sync.running {
-		align-items: flex-start;
-		padding-block: var(--space-3);
-	}
-
-	.sync.running p {
+	.running {
 		margin: 0;
 		font-weight: 500;
 	}
 
-	.sync :global(.spin) {
+	.page :global(.spin) {
+		flex: none;
 		width: 1.25rem;
 		height: 1lh;
 		color: var(--primary);
 	}
 
 	@media (prefers-reduced-motion: no-preference) {
-		.sync :global(.spin) {
+		.page :global(.spin) {
 			animation: spin 1s linear infinite;
 		}
 	}
@@ -366,52 +343,10 @@
 		border-radius: var(--radius-card);
 	}
 
-	/* An alert without a statement line: its text and the two choices. */
-	.unmatched {
+	/* An alert without a statement line: Descartar and Dejar side by side. */
+	.choices {
 		display: flex;
-		align-items: center;
 		gap: var(--space-2);
-		min-height: 4rem;
-		padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
-	}
-
-	.unmatched .text {
-		display: flex;
-		flex: 1;
-		flex-direction: column;
-		gap: 0.125rem;
-		min-width: 0;
-	}
-
-	.unmatched .title {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		font-weight: 500;
-	}
-
-	.unmatched .meta {
-		color: var(--text-muted);
-		font-size: var(--font-size-sm);
-	}
-
-	.pill {
-		display: inline-flex;
-		align-items: center;
-		height: 2rem;
-		padding: 0 0.75rem;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-pill);
-		background: var(--surface);
-		color: var(--text);
-		font-size: var(--font-size-xs);
-		font-weight: 500;
-		cursor: pointer;
-	}
-
-	.pill:focus-visible {
-		outline: 2px solid var(--primary);
-		outline-offset: 2px;
 	}
 
 	.groups {

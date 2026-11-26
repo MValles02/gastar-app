@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { fade } from '#lib/motion.ts';
 	import { resolve } from '$app/paths';
 
 	/** Mercado Pago pill of Inicio: pending items to review, or a quiet "al día". Opens the review list. */
@@ -12,7 +13,7 @@
 </script>
 
 <!-- The 32px pill sits in a 44px link so the tap target meets the minimum. -->
-<a href={resolve('imports')} class="mp" class:quiet={pending === 0} aria-label={label}>
+<a href={resolve('imports')} in:fade class="mp" class:quiet={pending === 0} aria-label={label}>
 	<span class="pill">
 		<span class="badge" aria-hidden="true">MP</span>
 		{pending > 0 ? `${pending} para revisar` : 'al día'}

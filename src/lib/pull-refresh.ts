@@ -2,9 +2,9 @@ import { refreshAll } from '$app/navigation';
 import { toast } from 'svelte-sonner';
 import {
 	DOMINANCE,
-	EASE,
 	LOCK_PX,
 	RESET_SLACK_MS,
+	SPRING,
 	SPRING_MS,
 	dialogOpen,
 	isIOSStandalone,
@@ -17,7 +17,7 @@ import {
 /**
  * Pull-to-refresh for the installed iOS app, which (unlike Android's installed app and every
  * browser tab) has no native one. On a tab screen scrolled to the top, a downward drag (vertical
- * travel at least DOMINANCE x the horizontal, so it never competes with the tab swipe) moves the
+ * travel at least DOMINANCE x the horizontal) moves the
  * page content down with rubber-band resistance while the header stays put, uncovering an
  * indicator (`PullIndicator`) below it (on Home, which has its own emerald backdrop above the
  * band, just below the top safe area). Releasing past THRESHOLD_PX runs `refreshAll()`, holds
@@ -79,7 +79,7 @@ export function pullRefresh(node: HTMLElement) {
 			a.style.transform = `translate3d(0,${-y}px,0)`;
 		}
 		if (!indicator) return;
-		indicator.style.transition = transition && `${transition}, opacity ${SPRING_MS}ms ${EASE}`;
+		indicator.style.transition = transition && `${transition}, opacity ${SPRING}`;
 		indicator.style.transform = `translate3d(0,${Math.max(0, (y - INDICATOR_PX) / 2)}px,0)`;
 	}
 
@@ -120,7 +120,7 @@ export function pullRefresh(node: HTMLElement) {
 	function settle() {
 		state = 'idle';
 		if (reducedMotion()) return reset();
-		move(0, `transform ${SPRING_MS}ms ${EASE}`);
+		move(0, `transform ${SPRING}`);
 		if (indicator) indicator.style.opacity = '0';
 		springTimer = setTimeout(reset, SPRING_MS + RESET_SLACK_MS);
 	}
@@ -131,7 +131,7 @@ export function pullRefresh(node: HTMLElement) {
 		if (ownsHorizontal(e.target) || ownsVertical(e.target)) return;
 		if (!getSelection()?.isCollapsed) return;
 		const caught = !!springTimer;
-		// Another gesture (the tab swipe springing back) still owns the page.
+		// Another gesture still owns the page (it is still moved).
 		if (!caught && node.style.transform) return;
 		base = 0;
 		state = 'pending';
@@ -187,7 +187,7 @@ export function pullRefresh(node: HTMLElement) {
 			if (my <= 0 || scrollY > 0) return release(); // scrolling the content: not ours
 			e.preventDefault();
 			if (Math.hypot(mx, my) < LOCK_PX) return;
-			if (my < Math.abs(mx) * DOMINANCE) return release(); // sideways: the tab swipe's
+			if (my < Math.abs(mx) * DOMINANCE) return release(); // sideways: not ours
 			state = 'pulling';
 			lift();
 		}
@@ -225,7 +225,7 @@ export function pullRefresh(node: HTMLElement) {
 			indicator.style.opacity = '1';
 		}
 		if (arrow) arrow.style.transform = '';
-		if (!reducedMotion()) move(HOLD_PX, `transform ${SPRING_MS}ms ${EASE}`);
+		if (!reducedMotion()) move(HOLD_PX, `transform ${SPRING}`);
 		if (status) status.textContent = 'Actualizando…';
 		const started = performance.now();
 		let ok = true;

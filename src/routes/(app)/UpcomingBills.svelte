@@ -6,6 +6,8 @@
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import { formatMoney, type Currency } from '#lib/money.ts';
+	import { appear } from '#lib/motion.ts';
+	import { openShallow } from '#lib/open-shallow.ts';
 
 	/** This month's fixed payments in one currency: how much is paid, and the unpaid ones still due. */
 	let {
@@ -34,7 +36,7 @@
 	);
 </script>
 
-<section aria-labelledby="bills-heading">
+<section aria-labelledby="bills-heading" in:appear>
 	<div class="section-head">
 		<h2 id="bills-heading">Próximos vencimientos</h2>
 		<ActionLink href="/plan" label="Ver plan" />
@@ -55,7 +57,11 @@
 		<ul class="scroller">
 			{#each bills.items as b (b.id)}
 				<li>
-					<a class="bill" href={resolve(`plan/recurring/${b.id}`)}>
+					<a
+						class="bill"
+						href={resolve(`plan/recurring/${b.id}`)}
+						onclick={(e) => openShallow(e, resolve(`plan/recurring/${b.id}`), 'rule')}
+					>
 						<span class="desc">{b.description}</span>
 						<span class="amt"><Money cents={b.amount} {currency} /></span>
 						<StatusPill tone={b.soon ? 'warning' : 'neutral'} label={b.label} />

@@ -1,10 +1,8 @@
 <script lang="ts">
-	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { MAX_DAY_OF_MONTH } from '#lib/plan.ts';
-	import { commitPick } from './pick.ts';
-	import PickerTrigger from './PickerTrigger.svelte';
+	import Picker from './Picker.svelte';
 
 	/**
 	 * "Día del mes" row: opens a grid of the days 1 to MAX_DAY_OF_MONTH (the last one means the month's last day; the server clamps it). Posts
@@ -13,35 +11,22 @@
 	 */
 	let {
 		value = $bindable(''),
-		error,
-		nested = false
+		error
 	}: {
 		/** The day as text ("5"), or '' when none. */
 		value?: string;
 		error?: string;
-		/** Opens the grid stacked over the drawer this row is rendered in. */
-		nested?: boolean;
 	} = $props();
 
 	const labelId = $props.id();
 	const errorId = `${labelId}-error`;
 	const mounted = hydrated();
-	let open = $state(false);
-	let trigger: HTMLButtonElement | null = $state(null);
 
 	const days = Array.from({ length: MAX_DAY_OF_MONTH }, (_, i) => String(i + 1));
-
-	const choose = (d: string) =>
-		commitPick({
-			set: () => (value = d),
-			close: () => (open = false),
-			changeFrom: false,
-			trigger
-		});
 </script>
 
 {#if mounted.current}
-	<PickerTrigger
+	<Picker
 		{labelId}
 		label="Día del mes"
 		labelClass="text-base font-normal"
@@ -49,24 +34,25 @@
 		placeholder={!value}
 		strongPlaceholder
 		describedBy={error ? errorId : undefined}
-		bind:ref={trigger}
-		onclick={() => (open = true)}
-	/>
+	>
+		{#snippet children(pick)}
+			<div class="days">
+				{#each days as d (d)}
+					<Button
+						type="button"
+						variant={d === value ? 'default' : 'ghost'}
+						class="h-10 rounded-full px-0 text-[15px] {d === value
+							? 'font-semibold'
+							: 'font-normal'}"
+						aria-pressed={d === value}
+						onclick={() => pick(() => (value = d))}>{d}</Button
+					>
+				{/each}
+			</div>
+			<p class="hint">Si el mes tiene menos días, se usa el último.</p>
+		{/snippet}
+	</Picker>
 	<input type="hidden" name="dayOfMonth" {value} />
-	<BottomDrawer title="Día del mes" {nested} bind:open>
-		<div class="days">
-			{#each days as d (d)}
-				<Button
-					type="button"
-					variant={d === value ? 'default' : 'ghost'}
-					class="h-10 rounded-full px-0 text-[15px] {d === value ? 'font-semibold' : 'font-normal'}"
-					aria-pressed={d === value}
-					onclick={() => choose(d)}>{d}</Button
-				>
-			{/each}
-		</div>
-		<p class="hint">Si el mes tiene menos días, se usa el último.</p>
-	</BottomDrawer>
 {:else}
 	<label class="row" for="{labelId}-native">
 		<span>Día del mes</span>

@@ -8,7 +8,6 @@
 	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
-	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
 	import { isPositiveAmount, toCurrency } from '#lib/money.ts';
 	import { categoriesFor } from '#lib/movement.ts';
 
@@ -74,7 +73,6 @@
 			title="Elegí la cuenta"
 			items={accounts}
 			bind:value={accountId}
-			nested={drawer}
 			placeholder="Elegir"
 			error={shown.accountId}
 			errorId="raccount-error"
@@ -96,7 +94,6 @@
 			title="Elegí la categoría"
 			items={pickableCategories}
 			bind:value={categoryId}
-			nested={drawer}
 			placeholder="Elegir"
 			error={shown.categoryId}
 			errorId="rcategory-error"
@@ -112,7 +109,7 @@
 
 {#snippet when()}
 	<li class:bad={shown.dayOfMonth}>
-		<DayOfMonthPicker bind:value={day} nested={drawer} error={shown.dayOfMonth} />
+		<DayOfMonthPicker bind:value={day} error={shown.dayOfMonth} />
 	</li>
 {/snippet}
 
@@ -144,40 +141,16 @@
 		color={drawer ? (type === 'income' ? 'var(--positive)' : 'var(--negative)') : undefined}
 	/>
 
-	{#if drawer}
-		<div class="text-field">
-			<label for="rdescription">Descripción</label>
-			<input
-				id="rdescription"
-				name="description"
-				type="text"
-				autocomplete="off"
-				maxlength={DESCRIPTION_MAX_LENGTH}
-				required
-				placeholder={type === 'income' ? 'Ej.: Sueldo' : 'Ej.: Alquiler'}
-				bind:value={description}
-				aria-invalid={shown.description ? 'true' : undefined}
-				aria-describedby={shown.description ? 'rdescription-error' : undefined}
-			/>
-			{#if shown.description}
-				<p class="error" id="rdescription-error" role="alert">{shown.description}</p>
-			{/if}
-		</div>
-		<ul class="card">
-			{@render account()}
-			{@render category()}
-			{@render when()}
-		</ul>
-	{:else}
-		<EntryFields
-			bind:description
-			descriptionId="rdescription"
-			descriptionError={shown.description}
-			{account}
-			{category}
-			{when}
-		/>
-	{/if}
+	<EntryFields
+		bind:description
+		descriptionId="rdescription"
+		descriptionError={shown.description}
+		placeholder={drawer ? (type === 'income' ? 'Ej.: Sueldo' : 'Ej.: Alquiler') : undefined}
+		outlineErrors={drawer}
+		{account}
+		{category}
+		{when}
+	/>
 </FormShell>
 
 <style>
@@ -185,48 +158,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
-	}
-
-	.text-field {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-
-	.text-field label {
-		color: var(--text-muted);
-		font-size: 13px;
-		font-weight: 500;
-	}
-
-	.text-field input {
-		width: 100%;
-		height: 50px;
-		padding: 0 var(--space-4);
-		border: 1px solid var(--border);
-		border-radius: 12px;
-		background: transparent;
-		color: var(--text);
-		font-size: 16px;
-	}
-
-	.text-field input[aria-invalid='true'] {
-		border-color: var(--negative);
-	}
-
-	.card {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-		background: var(--surface);
-		border: 1px solid var(--card-edge);
-		border-radius: var(--radius-card);
-		box-shadow: var(--shadow-1);
-	}
-
-	.card > :global(li.bad) {
-		box-shadow: inset 0 0 0 1.5px var(--negative);
 	}
 
 	.hint {

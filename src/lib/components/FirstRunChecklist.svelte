@@ -67,7 +67,7 @@
 						<div class="row">{@render body()}</div>
 					{:else}
 						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- hrefs are resolved above -->
-						<a class="row" href={item.href} onclick={item.onclick}>{@render body()}</a>
+						<a class="row" data-press href={item.href} onclick={item.onclick}>{@render body()}</a>
 					{/if}
 				</li>
 			{/each}
@@ -106,8 +106,15 @@
 		}
 	}
 
-	a.row:active {
+	/* Touch: data-pressed (src/lib/press.ts); mouse: :active. */
+	a.row:global([data-pressed]) {
 		background: var(--muted);
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		a.row:active {
+			background: var(--muted);
+		}
 	}
 
 	a.row:focus-visible {

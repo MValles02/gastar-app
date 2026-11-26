@@ -183,8 +183,8 @@
 		justify-content: center;
 		gap: var(--space-2);
 		transition:
-			opacity var(--ease-fast),
-			background-color var(--ease-fast);
+			opacity var(--dur-fast) var(--ease-out),
+			background-color var(--dur-fast) var(--ease-out);
 	}
 
 	@media (hover: hover) {
@@ -299,7 +299,12 @@
 
 	--content-width: 560px;
 	--tap-target: 2.75rem;
-	--ease-fast: 0.15s ease;
+	/* Motion (DESIGN.md "Motion"; src/lib/motion.ts mirrors the values for Svelte transitions). */
+	--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+	--ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+	--dur-fast: 120ms;
+	--dur-base: 200ms;
+	--dur-slow: 280ms;
 	/* Floating tab bar: hugs the home indicator on notched devices, 0.75rem off the edge elsewhere. */
 	--tabbar-bottom: max(0.75rem, calc(env(safe-area-inset-bottom) - 0.5rem));
 	--tabbar-height: 4rem;
@@ -368,11 +373,19 @@
 
 /*
  * Pressed rows: a link or button Item (ListRow, OptionPicker rows) fills muted while pressed, the
- * touch counterpart of its hover fill. iOS Safari only applies :active with a touchstart listener on
- * the page, which src/routes/+layout.svelte adds.
+ * touch counterpart of its hover fill. On touch the fill follows `data-pressed` (src/lib/press.ts),
+ * which waits for a resting finger and drops on any scroll or swipe, like a native iOS list; plain
+ * :active is for mouse pointers only, since iOS applies it before it knows the touch is a scroll.
+ * Other pressable rows opt in with `data-press` and style `[data-pressed]` the same way.
  */
-:is(a, button)[data-slot='item']:active {
+:is(a, button)[data-slot='item'][data-pressed] {
 	background: var(--muted);
+}
+
+@media (hover: hover) and (pointer: fine) {
+	:is(a, button)[data-slot='item']:active {
+		background: var(--muted);
+	}
 }
 
 /*
@@ -381,19 +394,19 @@
  * switch slides both pages the full width toward the target tab's side (tab-right/tab-left); any
  * other replace to another screen crossfades. Changes within one screen (month, currency, filters) have no transition. The
  * header and tab bar have their own view-transition-name, so they crossfade in place instead of
- * sliding. Reduced motion never starts a transition.
+ * sliding. Under reduced motion every navigation is a short crossfade with no movement.
  */
 ::view-transition-group(*),
 ::view-transition-old(*),
 ::view-transition-new(*) {
-	animation-duration: 0.28s;
-	animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+	animation-duration: var(--dur-slow);
+	animation-timing-function: var(--ease-drawer);
 }
 
 :root[data-nav-transition='fade']::view-transition-old(root),
 :root[data-nav-transition='fade']::view-transition-new(root) {
-	animation-duration: 0.2s;
-	animation-timing-function: ease;
+	animation-duration: var(--dur-base);
+	animation-timing-function: var(--ease-out);
 }
 
 :root[data-nav-transition='forward']::view-transition-old(root) {
@@ -415,19 +428,43 @@
 
 /* Tabs are peers: both pages travel the full width together, like a pager. */
 :root[data-nav-transition='tab-right']::view-transition-old(root) {
-	animation-name: page-exit-left;
+	animation-name: tab-exit-left;
 }
 
 :root[data-nav-transition='tab-right']::view-transition-new(root) {
-	animation-name: page-enter-right;
+	animation-name: tab-enter-right;
 }
 
 :root[data-nav-transition='tab-left']::view-transition-old(root) {
-	animation-name: page-exit-right;
+	animation-name: tab-exit-right;
 }
 
 :root[data-nav-transition='tab-left']::view-transition-new(root) {
-	animation-name: page-enter-left;
+	animation-name: tab-enter-left;
+}
+
+@keyframes tab-enter-right {
+	from {
+		transform: translateX(100%);
+	}
+}
+
+@keyframes tab-enter-left {
+	from {
+		transform: translateX(-100%);
+	}
+}
+
+@keyframes tab-exit-left {
+	to {
+		transform: translateX(-100%);
+	}
+}
+
+@keyframes tab-exit-right {
+	to {
+		transform: translateX(100%);
+	}
 }
 
 /* The navigation progress bar (NavProgress.svelte) never shows in a transition's snapshots. */
@@ -438,18 +475,6 @@
 @keyframes page-enter-right {
 	from {
 		transform: translateX(100%);
-	}
-}
-
-@keyframes page-enter-left {
-	from {
-		transform: translateX(-100%);
-	}
-}
-
-@keyframes page-exit-left {
-	to {
-		transform: translateX(-100%);
 	}
 }
 
@@ -477,7 +502,29 @@
 	::view-transition-group(*),
 	::view-transition-old(*),
 	::view-transition-new(*) {
-		animation: none;
+		animation-duration: 100ms;
+		animation-timing-function: var(--ease-out);
+	}
+
+	:root[data-nav-transition]::view-transition-old(root) {
+		z-index: auto;
+		animation-name: nav-fade-out;
+	}
+
+	:root[data-nav-transition]::view-transition-new(root) {
+		animation-name: nav-fade-in;
+	}
+}
+
+@keyframes nav-fade-out {
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes nav-fade-in {
+	from {
+		opacity: 0;
 	}
 }
 

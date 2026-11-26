@@ -61,7 +61,6 @@
 		bind:icon
 		bind:color
 		icons={ACCOUNT_ICONS}
-		nested={drawer}
 		placeholder="Ej.: Banco Galicia"
 		invalid={!!shown.name}
 		describedby={shown.name ? 'name-error' : undefined}

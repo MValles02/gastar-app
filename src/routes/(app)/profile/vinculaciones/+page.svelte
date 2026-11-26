@@ -14,6 +14,13 @@
 	let importFrom = $derived(data.importFrom ?? '');
 	let errors = $state<{ from?: string }>({});
 
+	const linkStatus = (state: string | null | undefined) =>
+		state === 'linked'
+			? ({ tone: 'ok', label: 'Vinculado' } as const)
+			: state === 'reconnect'
+				? ({ tone: 'bad', label: 'Reconectar' } as const)
+				: undefined;
+
 	async function saveFrom(next: string) {
 		if (!next || next === importFrom) return;
 		errors.from =
@@ -36,25 +43,9 @@
 />
 
 <div class="page">
-	{#snippet mpState()}<span class="val"
-			>{data.mp === 'linked'
-				? 'Vinculado'
-				: data.mp === 'reconnect'
-					? 'Reconectar'
-					: 'Vincular'}</span
-		>{/snippet}
-
-	{#snippet gmailState()}<span class="val"
-			>{data.gmail === 'linked'
-				? 'Vinculado'
-				: data.gmail === 'reconnect'
-					? 'Reconectar'
-					: 'Vincular'}</span
-		>{/snippet}
-
-	{#snippet galiciaState()}<span class="val"
-			>{data.galiciaReady ? 'Configurado' : 'Configurar'}</span
-		>{/snippet}
+	<!-- A link that works shows its status as a pill; one still to set up shows the step instead. -->
+	{#snippet vincular()}<span class="val">Vincular</span>{/snippet}
+	{#snippet configurar()}<span class="val">Configurar</span>{/snippet}
 
 	<ListCard aria-label="Vinculaciones">
 		{#if data.mp}
@@ -62,7 +53,8 @@
 				href={resolve('profile/mercado-pago')}
 				lead={{ icon: 'phone', color: null }}
 				title="Mercado Pago"
-				value={mpState}
+				status={linkStatus(data.mp)}
+				value={linkStatus(data.mp) ? undefined : vincular}
 				chevron
 			/>
 		{/if}
@@ -71,7 +63,8 @@
 				href={resolve('profile/gmail')}
 				lead={{ icon: 'mail', color: null }}
 				title="Gmail"
-				value={gmailState}
+				status={linkStatus(data.gmail)}
+				value={linkStatus(data.gmail) ? undefined : vincular}
 				chevron
 			/>
 		{/if}
@@ -79,7 +72,8 @@
 			href={resolve('profile/galicia')}
 			lead={{ icon: 'card', color: null }}
 			title="Banco Galicia"
-			value={galiciaState}
+			status={data.galiciaReady ? { tone: 'ok', label: 'Configurado' } : undefined}
+			value={data.galiciaReady ? undefined : configurar}
 			chevron
 		/>
 	</ListCard>

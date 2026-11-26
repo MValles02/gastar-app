@@ -9,10 +9,8 @@
 	import { isModifiedClick, openShallow } from '#lib/open-shallow.ts';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { toastSavedMovement, undoMovementSaved } from '#lib/movement-saved.ts';
-	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import * as Empty from '#lib/components/ui/empty/index.js';
-	import Icon from '#lib/components/Icon.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import AccountForm from '#lib/components/accounts/AccountForm.svelte';
 	import FormScreen from '#lib/components/forms/FormScreen.svelte';
 	import MovementForm from '../MovementForm.svelte';
@@ -49,7 +47,7 @@
 	const origin = $derived(cameFrom ?? form?.values?.returnTo ?? data.from ?? null);
 	const returnTo = $derived(origin ?? '/');
 
-	// Drawer, no accounts yet: "Nueva cuenta" opens as a nested drawer over this one. Modified clicks follow the link.
+	// Drawer, no accounts yet: "Nueva cuenta" opens as a sub-task drawer (FormScreen `bind:open`) stacked over this one. Modified clicks follow the link.
 	let accountOpen = $state(false);
 	function createAccount(e: MouseEvent) {
 		if (isModifiedClick(e)) return;
@@ -100,15 +98,12 @@
 				<Button href={resolve('accounts/new')} onclick={createAccount}>Crear cuenta</Button>
 			</div>
 		{:else}
-			<Empty.Root>
-				<Empty.Header>
-					<Empty.Media variant="icon"><Icon name="plus" size="1rem" /></Empty.Media>
-					<Empty.Description
-						>Necesitás al menos una cuenta para registrar movimientos.</Empty.Description
-					>
-				</Empty.Header>
-			</Empty.Root>
-			<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+			<EmptyState
+				icon="plus"
+				description="Necesitás al menos una cuenta para registrar movimientos."
+			>
+				<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+			</EmptyState>
 		{/if}
 	{:else if drawer}
 		{@render movementForm()}
@@ -119,9 +114,9 @@
 		{/key}
 	{/if}
 	{#if drawer}
-		<BottomDrawer title="Nueva cuenta" nested bind:open={accountOpen}>
-			<AccountForm initial={{}} onsaved={accountSaved} onclose={() => (accountOpen = false)} />
-		</BottomDrawer>
+		<FormScreen title="Nueva cuenta" bind:open={accountOpen} onclose={() => (accountOpen = false)}>
+			<AccountForm initial={{}} onsaved={accountSaved} />
+		</FormScreen>
 	{/if}
 </FormScreen>
 

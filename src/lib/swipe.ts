@@ -1,5 +1,5 @@
 /**
- * Shared pieces of the page-drag gestures (edge-swipe back, tab swipe, pull-to-refresh): the claim
+ * Shared pieces of the page-drag gestures (edge-swipe back, pull-to-refresh): the claim
  * thresholds, the release rules and the motion values, so the gestures feel the same.
  */
 
@@ -12,9 +12,12 @@ export const COMMIT_RATIO = 0.35;
 /** px/ms over the last samples, plus a minimum travel, for a flick. */
 export const FLICK_VELOCITY = 0.5;
 export const FLICK_MIN_PX = 40;
-export const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+/** The motion tokens in app.css (`--ease-drawer`); SPRING_MS and SLIDE_OUT_MS match `--dur-slow` and `--dur-base`. */
+export const EASE = 'var(--ease-drawer)';
 /** The spring back to place; the page resets RESET_SLACK_MS after it ends. */
 export const SPRING_MS = 280;
+/** The spring as a CSS transition timing: `--dur-slow` on `--ease-drawer`. */
+export const SPRING = 'var(--dur-slow) var(--ease-drawer)';
 export const RESET_SLACK_MS = 20;
 /** The slide off-screen after a committed swipe; the navigation starts when it ends. */
 export const SLIDE_OUT_MS = 200;

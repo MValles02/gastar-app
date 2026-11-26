@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import type { ActionResult } from '$app/forms';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { toast } from 'svelte-sonner';
 	import { goto, refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { submitAction } from '#lib/autosave.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+	import DetailCard from '#lib/components/DetailCard.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import Money from '#lib/components/Money.svelte';
@@ -13,8 +14,8 @@
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import TextRow from '#lib/components/TextRow.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Card from '#lib/components/ui/card/index.js';
 	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
-	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
 	import * as Field from '#lib/components/ui/field/index.js';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
 	import { categoriesFor } from '#lib/movement.ts';
@@ -87,18 +88,15 @@
 		ondone?.(importDoneOf(location));
 	}
 
-	async function discard() {
-		const r = await submitAction(`${path}?/reject`, {});
-		if (r.type !== 'redirect') {
-			toast.error('No se pudo descartar.');
-			return;
-		}
+	/** Drawer: the discard's answer (the page follows its redirect). */
+	function discarded(_type: string, r: ActionResult) {
+		if (r.type !== 'redirect') return void toast.error('No se pudo descartar.');
 		ondone?.(importDoneOf(r.location));
 	}
 </script>
 
 <div class="review" class:drawer>
-	<section class="summary" aria-label="Movimiento a revisar">
+	<Card.Root role="region" aria-label="Movimiento a revisar" class="gap-1 px-4 py-3">
 		<p class="top">
 			<span class="amount">
 				<Money
@@ -116,7 +114,7 @@
 			</p>
 		{/if}
 		<p class="original">{item.rawDescription}</p>
-	</section>
+	</Card.Root>
 
 	{#if data.unknown}
 		<p class="hint">No sabemos qué es: elegí el tipo.</p>
@@ -147,7 +145,7 @@
 			</div>
 		{/if}
 
-		<ul class="card">
+		<DetailCard>
 			<li class:bad={errors.description}>
 				<TextRow
 					id="description"
@@ -172,7 +170,6 @@
 						items={data.accounts}
 						bind:value={counterId}
 						placeholder="Elegir"
-						nested={drawer}
 						error={errors.counterAccountId}
 						errorId="counter-error"
 					>
@@ -199,7 +196,6 @@
 						items={pickableCategories}
 						bind:value={categoryId}
 						placeholder="Elegir"
-						nested={drawer}
 						error={errors.categoryId}
 						errorId="category-error"
 					>
@@ -221,7 +217,6 @@
 							items={[{ id: '', name: 'Ninguno', icon: 'categories', color: null }, ...data.rules]}
 							bind:value={recurringId}
 							placeholder="Ninguno"
-							nested={drawer}
 							error={errors.recurringId}
 							errorId="rule-error"
 						>
@@ -230,7 +225,7 @@
 					</li>
 				{/if}
 			{/if}
-		</ul>
+		</DetailCard>
 
 		{#if data.rememberLabel}
 			<Field.Field orientation="horizontal">
@@ -248,39 +243,17 @@
 	</FormShell>
 
 	<div class="actions">
-		{#if drawer}
-			<AlertDialog.Root>
-				<AlertDialog.Trigger>
-					{#snippet child({ props })}
-						<Button {...props} variant="outline" class="w-full">Descartar</Button>
-					{/snippet}
-				</AlertDialog.Trigger>
-				<AlertDialog.Content>
-					<AlertDialog.Header>
-						<AlertDialog.Title>¿Descartar movimiento?</AlertDialog.Title>
-						<AlertDialog.Description>
-							No se importa a tus movimientos y no vuelve a aparecer.
-						</AlertDialog.Description>
-					</AlertDialog.Header>
-					<AlertDialog.Footer>
-						<AlertDialog.Cancel type="button" class="w-full">Cancelar</AlertDialog.Cancel>
-						<AlertDialog.Action type="button" variant="destructive" class="w-full" onclick={discard}
-							>Descartar</AlertDialog.Action
-						>
-					</AlertDialog.Footer>
-				</AlertDialog.Content>
-			</AlertDialog.Root>
-		{:else}
-			<ConfirmDialog
-				triggerLabel="Descartar"
-				triggerClass="w-full"
-				title="¿Descartar movimiento?"
-				confirmLabel="Descartar"
-				action="?/reject"
-			>
-				No se importa a tus movimientos y no vuelve a aparecer.
-			</ConfirmDialog>
-		{/if}
+		<ConfirmDialog
+			triggerLabel="Descartar"
+			triggerClass="w-full"
+			title="¿Descartar movimiento?"
+			confirmLabel="Descartar"
+			action={drawer ? `${path}?/reject` : '?/reject'}
+			closeOnFailure={drawer}
+			ondone={drawer ? discarded : undefined}
+		>
+			No se importa a tus movimientos y no vuelve a aparecer.
+		</ConfirmDialog>
 		<Button
 			type="submit"
 			form="import-form"
@@ -295,16 +268,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
-	}
-
-	.summary {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
-		padding: var(--space-3) var(--space-4);
-		background: var(--surface);
-		border: 1px solid var(--card-edge);
-		border-radius: var(--radius-card);
 	}
 
 	.top {
@@ -350,21 +313,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
-	}
-
-	.card {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		overflow: hidden;
-		background: var(--surface);
-		border: 1px solid var(--card-edge);
-		border-radius: var(--radius-card);
-		box-shadow: var(--shadow-1);
-	}
-
-	.card > li.bad {
-		box-shadow: inset 3px 0 0 var(--negative);
 	}
 
 	.actions {
