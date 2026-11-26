@@ -6,7 +6,8 @@
 
 	/**
 	 * A form route's one screen: the full page (`<svelte:head>` + header) or, with `onclose`, the
-	 * bottom drawer over the screen it was opened from. Shares `variant`, `onclose`, `onsaved` and the
+	 * bottom drawer over the screen it was opened from, or, with `bind:open` too, a sub-task drawer stacked
+	 * over the form it feeds (it stacks by itself: BottomDrawer nests inside another drawer). Shares `variant`, `onclose`, `onsaved` and the
 	 * close target with the form inside it (FormShell reads them as defaults).
 	 */
 	let {
@@ -16,6 +17,7 @@
 		back,
 		onclose,
 		onsaved,
+		open = $bindable(true),
 		drawerProps,
 		children
 	}: {
@@ -30,6 +32,8 @@
 		onclose?: () => void;
 		/** Drawer: the action redirected to `location`. */
 		onsaved?: (location: string) => unknown;
+		/** Drawer: bound by a sub-task drawer the parent opens and closes itself (`onclose` sets it false). */
+		open?: boolean;
 		/** BottomDrawer options where they differ from the page (another `title`, `hideTitle`, `bare`). */
 		drawerProps?: Partial<
 			Omit<ComponentProps<typeof BottomDrawer>, 'children' | 'open' | 'onclose'>
@@ -58,7 +62,7 @@
 </svelte:head>
 
 {#if onclose}
-	<BottomDrawer {title} {...drawerProps} open {onclose}>
+	<BottomDrawer {title} {...drawerProps} bind:open {onclose}>
 		{@render children()}
 	</BottomDrawer>
 {:else}

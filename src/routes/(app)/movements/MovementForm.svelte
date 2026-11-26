@@ -296,7 +296,6 @@
 						title={isTransfer ? 'Desde' : 'Cuenta'}
 						items={accountItems}
 						bind:value={accountId}
-						nested={drawer}
 						placeholder="Elegir"
 						error={shown.accountId}
 						errorId="account-error"
@@ -315,7 +314,6 @@
 							items={accountItems}
 							bind:value={destinationId}
 							excludeId={mounted.current ? accountId : undefined}
-							nested={drawer}
 							placeholder="Elegir"
 							error={shown.destinationAccountId}
 							errorId="destination-error"
@@ -373,7 +371,6 @@
 							title="Categoría"
 							items={pickableCategories}
 							bind:value={categoryId}
-							nested={drawer}
 							extra={drawer ? newCategoryRow : undefined}
 							placeholder="Elegir"
 							error={shown.categoryId}
@@ -404,7 +401,6 @@
 						label="Fecha"
 						min={MIN_DAY}
 						bind:value={occurredAt}
-						nested={drawer}
 						error={shown.occurredAt}
 						errorId="date-error"
 					/>

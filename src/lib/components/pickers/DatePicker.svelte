@@ -24,7 +24,7 @@
 		error,
 		errorId,
 		presets = false,
-		nested = false,
+		nested,
 		onclosed,
 		plain = false
 	}: {

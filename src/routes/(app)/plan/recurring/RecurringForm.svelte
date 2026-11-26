@@ -74,7 +74,6 @@
 			title="Elegí la cuenta"
 			items={accounts}
 			bind:value={accountId}
-			nested={drawer}
 			placeholder="Elegir"
 			error={shown.accountId}
 			errorId="raccount-error"
@@ -96,7 +95,6 @@
 			title="Elegí la categoría"
 			items={pickableCategories}
 			bind:value={categoryId}
-			nested={drawer}
 			placeholder="Elegir"
 			error={shown.categoryId}
 			errorId="rcategory-error"
@@ -112,7 +110,7 @@
 
 {#snippet when()}
 	<li class:bad={shown.dayOfMonth}>
-		<DayOfMonthPicker bind:value={day} nested={drawer} error={shown.dayOfMonth} />
+		<DayOfMonthPicker bind:value={day} error={shown.dayOfMonth} />
 	</li>
 {/snippet}
 

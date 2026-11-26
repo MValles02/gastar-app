@@ -263,7 +263,6 @@
 				items={typeItems}
 				bind:value={() => effType, (v) => void selectType(v)}
 				placeholder="Elegir"
-				nested={drawer}
 				onclosed={runPrompt}
 				{empty}
 			/>
@@ -277,7 +276,6 @@
 					min={MIN_DAY}
 					bind:value={() => values.occurredAt, (v) => void saveField('occurredAt', v)}
 					plain
-					nested={drawer}
 					onclosed={runPrompt}
 					error={errors.occurredAt}
 					errorId="date-error"
@@ -292,7 +290,6 @@
 					title={isTransfer ? 'Desde' : 'Cuenta'}
 					items={accounts}
 					bind:value={() => originId, (v) => void saveAccount('accountId', v)}
-					nested={drawer}
 					onclosed={runPrompt}
 					placeholder="Elegir"
 					error={errors.accountId}
@@ -311,7 +308,6 @@
 					items={accounts}
 					bind:value={() => destinationId, (v) => void saveAccount('destinationAccountId', v)}
 					excludeId={originId}
-					nested={drawer}
 					onclosed={runPrompt}
 					placeholder="Elegir"
 					error={errors.destinationAccountId}
@@ -347,7 +343,6 @@
 					title="Categoría"
 					items={categories}
 					bind:value={() => categoryId, (v) => void saveField('categoryId', v)}
-					nested={drawer}
 					onclosed={runPrompt}
 					placeholder="Elegir"
 					error={errors.categoryId}
@@ -363,7 +358,6 @@
 						title={effType === 'income' ? 'Ingreso fijo' : 'Pago fijo'}
 						items={ruleItems}
 						bind:value={() => m.recurringId ?? '', (v) => void linkRule(v)}
-						nested={drawer}
 						placeholder="Ninguno"
 						error={errors.recurringId}
 						errorId="rule-error"

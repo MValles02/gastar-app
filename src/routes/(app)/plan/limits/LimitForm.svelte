@@ -63,7 +63,6 @@
 				title="Elegí la categoría"
 				items={categories}
 				bind:value={categoryId}
-				nested={drawer}
 				placeholder="Elegir"
 				error={shown.categoryId}
 				errorId="lcategory-error"

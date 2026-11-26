@@ -83,7 +83,6 @@
 		bind:icon
 		bind:color
 		icons={CATEGORY_ICONS}
-		nested={drawer}
 		placeholder="Ej.: Supermercado"
 		invalid={!!shown.name}
 		describedby={firstError ? 'category-error' : undefined}

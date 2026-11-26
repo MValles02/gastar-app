@@ -36,7 +36,7 @@
 		error,
 		errorId,
 		excludeId,
-		nested = false,
+		nested,
 		onclosed,
 		extra
 	}: {
