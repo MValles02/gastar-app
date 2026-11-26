@@ -169,8 +169,9 @@
 		width: 3.5rem;
 		height: 3.5rem;
 		border-radius: var(--radius-pill);
-		background: var(--muted);
-		box-shadow: inset 0 0 0 1px var(--border);
+		background: var(--surface);
+		border: 1px solid var(--card-edge);
+		box-shadow: var(--shadow-1);
 		font-size: var(--font-size-lg);
 		font-weight: 600;
 	}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Plus from '@lucide/svelte/icons/plus';
 	import { resolve } from '$app/paths';
-	import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
+	import { swatchVar, toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
@@ -9,6 +9,7 @@
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
+	import Meter from '#lib/components/Meter.svelte';
 	import Money from '#lib/components/Money.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
@@ -27,10 +28,12 @@
 		const present = CURRENCIES.filter((c) => totals[c] !== undefined);
 		return present.length > 0 ? present : [DEFAULT_CURRENCY];
 	};
+	/** Spend of one currency (the net when it is an outcome), for the share meter; Ambas shows none. */
+	const spend = (totals: Partial<Record<Currency, number>>) =>
+		data.filters.currency === 'both' ? 0 : Math.max(0, -(totals[data.filters.currency] ?? 0));
 	const kindOptions = [{ value: '', label: 'Todas' }, ...KIND_OPTIONS];
 </script>
 
-{#snippet archivedMeta()}{ARCHIVED_LABEL}{/snippet}
 {#snippet add()}
 	<Button
 		href={resolve('categories/new')}
@@ -76,11 +79,13 @@
 			<EmptyState icon="search" description="No hay categorías que coincidan con la búsqueda." />
 		{:else}
 			{#each data.groups as g (g.key)}
+				{@const groupSpend = g.categories.reduce((sum, c) => sum + spend(c.totals), 0)}
 				<section aria-labelledby="group-{g.key}">
 					<SectionHeader id="group-{g.key}" title={g.label} variant="group" />
 					<ListCard>
 						{#each g.categories as c (c.id)}
 							{@const icon = toCategoryIconKey(c.icon) ?? ('categories' as const)}
+							{@const share = groupSpend > 0 ? spend(c.totals) / groupSpend : 0}
 							{#snippet value()}
 								<span class="totals">
 									{#each shown(c.totals) as cur (cur)}
@@ -92,6 +97,10 @@
 									{/each}
 								</span>
 							{/snippet}
+							<!-- Share of the group's month spend: only categories with spending get a bar. -->
+							{#snippet meter()}
+								<Meter percent={share * 100} color={swatchVar(toSwatchKey(c.color))} />
+							{/snippet}
 							<ListRow
 								href={resolve(`categories/${c.id}`)}
 								onclick={(e) => openShallow(e, resolve(`categories/${c.id}`), 'category')}
@@ -101,7 +110,8 @@
 								}}
 								title={c.name}
 								{value}
-								meta={c.archivedAt ? archivedMeta : undefined}
+								status={c.archivedAt ? { tone: 'neutral', label: ARCHIVED_LABEL } : undefined}
+								footer={share > 0 ? meter : undefined}
 								dimmed={!!c.archivedAt}
 							/>
 						{/each}
@@ -129,7 +139,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-4);
+		gap: var(--space-5);
 	}
 
 	/* Month totals stacked on the right (ARS on top); an empty month is a muted zero. */

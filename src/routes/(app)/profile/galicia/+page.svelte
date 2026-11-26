@@ -1,11 +1,12 @@
 <script lang="ts">
-	import FileUp from '@lucide/svelte/icons/file-up';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import { refreshAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { autosave, submitAction } from '#lib/autosave.ts';
+	import IconBadge from '#lib/components/IconBadge.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
+	import * as Card from '#lib/components/ui/card/index.js';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -127,18 +128,20 @@
 			};
 		}}
 	>
-		<label class="file" class:chosen={!!fileName}>
-			<FileUp aria-hidden="true" />
-			<span class="name">{fileName || 'Elegir el PDF del resumen'}</span>
-			<input
-				type="file"
-				name="statement"
-				accept="application/pdf,.pdf"
-				required
-				aria-describedby={form?.upload ? 'upload-error' : undefined}
-				onchange={(e) => (fileName = e.currentTarget.files?.[0]?.name ?? '')}
-			/>
-		</label>
+		<Card.Root class="py-0">
+			<label class="file" class:chosen={!!fileName}>
+				<IconBadge icon="file-up" color={null} neutral size="2.25rem" />
+				<span class="name">{fileName || 'Elegir el PDF del resumen'}</span>
+				<input
+					type="file"
+					name="statement"
+					accept="application/pdf,.pdf"
+					required
+					aria-describedby={form?.upload ? 'upload-error' : undefined}
+					onchange={(e) => (fileName = e.currentTarget.files?.[0]?.name ?? '')}
+				/>
+			</label>
+		</Card.Root>
 		{#if form?.upload}<p id="upload-error" class="error" role="alert">{form.upload}</p>{/if}
 		<Button type="submit" class="w-full" disabled={!ids.ARS || uploading}>
 			{uploading ? 'Importando…' : 'Subir resumen'}
@@ -182,30 +185,21 @@
 		margin-top: var(--space-2);
 	}
 
-	/* The native input covers the whole drop row: tapping anywhere opens the file chooser. */
+	/* The native input covers the whole card row: tapping anywhere opens the file chooser. */
 	.file {
 		position: relative;
 		display: flex;
+		flex-direction: row;
 		align-items: center;
 		gap: var(--space-3);
 		min-height: 3.5rem;
 		padding: var(--space-3) var(--space-4);
-		background: var(--surface);
-		border: 1px dashed var(--border-strong);
-		border-radius: var(--radius-card);
 		color: var(--text-muted);
 		cursor: pointer;
 	}
 
 	.file.chosen {
-		border-style: solid;
 		color: var(--text);
-	}
-
-	.file :global(svg) {
-		flex: none;
-		width: 1.25rem;
-		height: 1.25rem;
 	}
 
 	.name {
@@ -224,7 +218,8 @@
 
 	.file:focus-within {
 		outline: 2px solid var(--primary);
-		outline-offset: 2px;
+		outline-offset: -2px;
+		border-radius: var(--radius-card);
 	}
 
 	.error {

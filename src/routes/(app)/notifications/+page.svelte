@@ -3,7 +3,6 @@
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
-	import StatusPill from '#lib/components/StatusPill.svelte';
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 
@@ -28,10 +27,7 @@
 	{:else}
 		<ListCard>
 			{#each data.items as n (n.id)}
-				{#snippet message()}{n.message}{/snippet}
-				{#snippet statusPill()}
-					<StatusPill tone={n.status.tone} label={n.status.label} />
-				{/snippet}
+				{#snippet message()}<p class="message">{n.message}</p>{/snippet}
 				<ListRow
 					href={n.href}
 					lead={n.kind === 'plan'
@@ -40,8 +36,8 @@
 							? { icon: n.icon, color: n.color }
 							: { letter: n.name.charAt(0).toUpperCase(), color: n.color }}
 					title={n.name}
-					value={statusPill}
-					meta={message}
+					status={n.status}
+					footer={message}
 				/>
 			{/each}
 		</ListCard>
@@ -52,10 +48,14 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 0.875rem;
+		gap: var(--space-5);
 	}
 
-	.page :global([data-slot='item']) {
-		min-height: 3.75rem;
+	/* The whole alert, wrapped under the pill: it is the reason the row is here. */
+	.message {
+		/* Under the title: the 36px badge plus the row's 10px gap. */
+		padding-inline-start: 2.875rem;
+		color: var(--text-muted);
+		font-size: var(--font-size-sm);
 	}
 </style>
