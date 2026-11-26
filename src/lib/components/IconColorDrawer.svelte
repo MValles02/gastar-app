@@ -15,15 +15,12 @@
 	 */
 	let {
 		open = $bindable(false),
-		nested,
 		icons,
 		icon,
 		color,
 		onpick
 	}: {
 		open?: boolean;
-		/** Stacked over a drawer; default: whether it is opened inside one. */
-		nested?: boolean;
 		/** The icon set: ACCOUNT_ICONS or CATEGORY_ICONS. */
 		icons: readonly { key: Key; label: string }[];
 		/** Current choice, staged again every time the drawer opens. */
@@ -49,7 +46,7 @@
 	}
 </script>
 
-<BottomDrawer title="Ícono y color" {nested} bind:open>
+<BottomDrawer title="Ícono y color" bind:open>
 	<div class="body">
 		<div class="preview">
 			<IconBadge icon={glyph(stagedIcon)} color={stagedColor} size="4rem" />

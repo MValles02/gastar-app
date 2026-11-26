@@ -5,9 +5,8 @@
 	import * as Card from '#lib/components/ui/card/index.js';
 	import ActionLink from '#lib/components/ActionLink.svelte';
 	import CurrencyTabs from '#lib/components/CurrencyTabs.svelte';
-	import * as Empty from '#lib/components/ui/empty/index.js';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import FirstRunChecklist from '#lib/components/FirstRunChecklist.svelte';
-	import Icon from '#lib/components/Icon.svelte';
 	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
@@ -54,15 +53,9 @@
 
 		{#if !data.hasCurrencyAccount}
 			<Card.Root>
-				<Empty.Root>
-					<Empty.Header>
-						<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
-						<Empty.Description>Sin cuentas en {data.currencyWord}.</Empty.Description>
-					</Empty.Header>
-				</Empty.Root>
-				<div class="empty-action">
+				<EmptyState icon="accounts" description="Sin cuentas en {data.currencyWord}.">
 					<Button href={resolve('accounts/new')}>Crear cuenta</Button>
-				</div>
+				</EmptyState>
 			</Card.Root>
 		{:else}
 			<section aria-labelledby="summary-heading">
@@ -223,11 +216,6 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--space-2);
-	}
-
-	.empty-action {
-		display: flex;
-		justify-content: center;
 	}
 
 	.muted {

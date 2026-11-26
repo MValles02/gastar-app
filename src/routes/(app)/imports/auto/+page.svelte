@@ -3,8 +3,7 @@
 	import { toast } from 'svelte-sonner';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
-	import * as Empty from '#lib/components/ui/empty/index.js';
-	import Icon from '#lib/components/Icon.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import IconBadge from '#lib/components/IconBadge.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import Money from '#lib/components/Money.svelte';
@@ -40,12 +39,10 @@
 	</p>
 
 	{#if data.items.length === 0}
-		<Empty.Root>
-			<Empty.Header>
-				<Empty.Media variant="icon"><Icon name="movements" size="1rem" /></Empty.Media>
-				<Empty.Description>Nada aprobado automáticamente en los últimos 30 días.</Empty.Description>
-			</Empty.Header>
-		</Empty.Root>
+		<EmptyState
+			icon="movements"
+			description="Nada aprobado automáticamente en los últimos 30 días."
+		/>
 	{:else}
 		<ListCard aria-label="Aprobados automáticamente">
 			{#each data.items as item (item.id)}
