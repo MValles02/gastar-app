@@ -9,7 +9,8 @@
 	import EmailField from '#lib/components/EmailField.svelte';
 	import * as Field from '#lib/components/ui/field/index.js';
 	import GoogleButton from '#lib/components/GoogleButton.svelte';
-	import Icon from '#lib/components/Icon.svelte';
+	import StatusPill from '#lib/components/StatusPill.svelte';
+	import { appear } from '#lib/motion.ts';
 	import PasswordField from '#lib/components/PasswordField.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -46,8 +47,8 @@
 		<AuthTabs current="login" />
 
 		{#if reset && !form}
-			<p class="note" role="status">
-				<Icon name="check" size="1.25rem" />Contraseña actualizada.
+			<p class="note" role="status" in:appear>
+				<StatusPill tone="ok" label="Contraseña actualizada." />
 			</p>
 		{/if}
 
@@ -84,14 +85,6 @@
 <style>
 	.note {
 		margin: 0;
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-3);
-		border-radius: var(--radius);
-		background: var(--muted);
-		font-size: var(--font-size-sm);
-		font-weight: 500;
 	}
 
 	.forgot {
