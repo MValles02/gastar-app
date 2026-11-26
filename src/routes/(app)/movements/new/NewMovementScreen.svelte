@@ -10,8 +10,7 @@
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { toastSavedMovement, undoMovementSaved } from '#lib/movement-saved.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import * as Empty from '#lib/components/ui/empty/index.js';
-	import Icon from '#lib/components/Icon.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import AccountForm from '#lib/components/accounts/AccountForm.svelte';
 	import FormScreen from '#lib/components/forms/FormScreen.svelte';
 	import MovementForm from '../MovementForm.svelte';
@@ -99,15 +98,12 @@
 				<Button href={resolve('accounts/new')} onclick={createAccount}>Crear cuenta</Button>
 			</div>
 		{:else}
-			<Empty.Root>
-				<Empty.Header>
-					<Empty.Media variant="icon"><Icon name="plus" size="1rem" /></Empty.Media>
-					<Empty.Description
-						>Necesitás al menos una cuenta para registrar movimientos.</Empty.Description
-					>
-				</Empty.Header>
-			</Empty.Root>
-			<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+			<EmptyState
+				icon="plus"
+				description="Necesitás al menos una cuenta para registrar movimientos."
+			>
+				<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+			</EmptyState>
 		{/if}
 	{:else if drawer}
 		{@render movementForm()}

@@ -8,8 +8,7 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import DateRangePicker from '#lib/components/pickers/DateRangePicker.svelte';
-	import * as Empty from '#lib/components/ui/empty/index.js';
-	import Icon from '#lib/components/Icon.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import MovementFiltersDrawer from '#lib/components/movements/MovementFiltersDrawer.svelte';
@@ -167,41 +166,23 @@
 		<div class="list" in:fade>
 			{#if data.months.length === 0}
 				{#if data.page > 1}
-					<Empty.Root>
-						<Empty.Header>
-							<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
-							<Empty.Description>Sin más movimientos.</Empty.Description>
-						</Empty.Header>
-					</Empty.Root>
-					<div class="empty-action">
+					<EmptyState icon="search" description="Sin más movimientos.">
 						<Button href={resolve(`movements?${firstPageQuery}`)} variant="outline">
 							Ir a la primera página
 						</Button>
-					</div>
+					</EmptyState>
 				{:else if data.activeCount === 0}
-					<Empty.Root>
-						<Empty.Header>
-							<Empty.Media variant="icon"><Icon name="movements" size="1rem" /></Empty.Media>
-							<Empty.Description>Sin movimientos.</Empty.Description>
-						</Empty.Header>
-					</Empty.Root>
-					<div class="empty-action">
+					<EmptyState icon="movements" description="Sin movimientos.">
 						<Button
 							href={resolve('movements/new')}
 							onclick={(e) => openShallow(e, resolve('movements/new'), 'newMovement')}
 							>Nuevo movimiento</Button
 						>
-					</div>
+					</EmptyState>
 				{:else}
-					<Empty.Root>
-						<Empty.Header>
-							<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
-							<Empty.Description>Sin resultados.</Empty.Description>
-						</Empty.Header>
-					</Empty.Root>
-					<div class="empty-action">
+					<EmptyState icon="search" description="Sin resultados.">
 						<Button href={resolve('movements')} variant="outline">Limpiar filtros</Button>
-					</div>
+					</EmptyState>
 				{/if}
 			{:else}
 				{#if data.summary}
@@ -351,11 +332,6 @@
 
 	.day-total {
 		text-align: right;
-	}
-
-	.empty-action {
-		display: flex;
-		justify-content: center;
 	}
 
 	.pager {

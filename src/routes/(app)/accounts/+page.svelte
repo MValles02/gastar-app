@@ -4,8 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { toIconKey, toSwatchKey } from '#lib/appearance.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import * as Empty from '#lib/components/ui/empty/index.js';
-	import Icon from '#lib/components/Icon.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
 	import ListFilterDrawer from '#lib/components/ListFilterDrawer.svelte';
 	import { activeListFilters } from '#lib/list-filter.ts';
@@ -46,20 +45,15 @@
 
 <div class="page">
 	{#if !data.hasAnyAccount}
-		<Empty.Root>
-			<Empty.Header>
-				<Empty.Media variant="icon"><Icon name="accounts" size="1rem" /></Empty.Media>
-				<Empty.Description
-					>Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos.</Empty.Description
-				>
-			</Empty.Header>
-		</Empty.Root>
-		<div class="empty-action">
+		<EmptyState
+			icon="accounts"
+			description="Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos."
+		>
 			<Button
 				href={resolve('accounts/new')}
 				onclick={(e) => openShallow(e, resolve('accounts/new'), 'newAccount')}>Crear cuenta</Button
 			>
-		</div>
+		</EmptyState>
 	{:else}
 		<FilterBar
 			q={data.filters.q}
@@ -70,12 +64,7 @@
 		/>
 
 		{#if data.groups.length === 0}
-			<Empty.Root>
-				<Empty.Header>
-					<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
-					<Empty.Description>No hay cuentas que coincidan con los filtros.</Empty.Description>
-				</Empty.Header>
-			</Empty.Root>
+			<EmptyState icon="search" description="No hay cuentas que coincidan con los filtros." />
 		{:else}
 			<!-- Balances are totalled per currency group, never across currencies. -->
 			{#each data.groups as g (g.currency)}
@@ -125,11 +114,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
-	}
-
-	.empty-action {
-		display: flex;
-		justify-content: center;
 	}
 
 	.group-total {

@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import * as Empty from '#lib/components/ui/empty/index.js';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
 	import ListFilterDrawer from '#lib/components/ListFilterDrawer.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
@@ -12,7 +12,6 @@
 	import Money from '#lib/components/Money.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
-	import Icon from '#lib/components/Icon.svelte';
 	import { CURRENCIES, CURRENCY_OPTIONS, DEFAULT_CURRENCY, type Currency } from '#lib/money.ts';
 	import { ARCHIVED_LABEL, KIND_OPTIONS } from '#lib/movement.ts';
 	import { activeListFilters } from '#lib/list-filter.ts';
@@ -54,21 +53,16 @@
 
 <div class="page">
 	{#if !data.hasAnyCategory}
-		<Empty.Root>
-			<Empty.Header>
-				<Empty.Media variant="icon"><Icon name="categories" size="1rem" /></Empty.Media>
-				<Empty.Description
-					>Todavía no tenés categorías. Creá la primera para clasificar tus movimientos.</Empty.Description
-				>
-			</Empty.Header>
-		</Empty.Root>
-		<div class="empty-action">
+		<EmptyState
+			icon="categories"
+			description="Todavía no tenés categorías. Creá la primera para clasificar tus movimientos."
+		>
 			<Button
 				href={resolve('categories/new')}
 				onclick={(e) => openShallow(e, resolve('categories/new'), 'newCategory')}
 				>Crear categoría</Button
 			>
-		</div>
+		</EmptyState>
 	{:else}
 		<FilterBar
 			q={data.filters.q}
@@ -79,12 +73,7 @@
 		/>
 
 		{#if data.groups.length === 0}
-			<Empty.Root>
-				<Empty.Header>
-					<Empty.Media variant="icon"><Icon name="search" size="1rem" /></Empty.Media>
-					<Empty.Description>No hay categorías que coincidan con la búsqueda.</Empty.Description>
-				</Empty.Header>
-			</Empty.Root>
+			<EmptyState icon="search" description="No hay categorías que coincidan con la búsqueda." />
 		{:else}
 			{#each data.groups as g (g.key)}
 				<section aria-labelledby="group-{g.key}">
@@ -141,11 +130,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
-	}
-
-	.empty-action {
-		display: flex;
-		justify-content: center;
 	}
 
 	/* Month totals stacked on the right (ARS on top); an empty month is a muted zero. */

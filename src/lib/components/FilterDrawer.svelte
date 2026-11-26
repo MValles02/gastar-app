@@ -1,30 +1,41 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { replaceGoto } from '#lib/nav-stack.svelte.ts';
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 
 	/**
-	 * The "Filtros" drawer shell of a list: the filters scroll above the pinned Limpiar and Ver buttons.
-	 * Staged: nothing navigates until Ver, which closes the drawer and calls `onapply`.
+	 * The one "Filtros" sheet of every list: the filters scroll above the pinned Limpiar and "Ver N …"
+	 * buttons. Staged: nothing navigates until Ver, which closes the sheet and replaces the URL with
+	 * `href` (the list's staged query). The list's FilterBar shows the applied count as a badge.
 	 */
 	let {
 		open = $bindable(false),
-		applyLabel,
+		count,
+		noun,
+		href,
 		onclear,
-		onapply,
 		children
 	}: {
 		open?: boolean;
-		/** The Ver button's text ("Ver 3 cuentas"). */
-		applyLabel: string;
+		/** Rows the staged filters show; null while it is still being counted ("Ver movimientos"). */
+		count: number | null;
+		/** Singular and plural, for "Ver N …". */
+		noun: [string, string];
+		/** The list URL with the staged filters, resolved. */
+		href: string;
+		/** Back to each filter's default (still staged). */
 		onclear: () => void;
-		onapply: () => void;
 		children: Snippet;
 	} = $props();
 
+	const label = $derived(
+		count === null ? `Ver ${noun[1]}` : `Ver ${count} ${count === 1 ? noun[0] : noun[1]}`
+	);
+
 	const apply = () => {
 		open = false;
-		onapply();
+		void replaceGoto(href, { reset: false });
 	};
 </script>
 
@@ -42,7 +53,7 @@
 		<Button
 			type="button"
 			class="h-[50px] min-w-0 flex-[2] basis-0 rounded-full text-[15px] font-semibold whitespace-nowrap"
-			onclick={apply}>{applyLabel}</Button
+			onclick={apply}>{label}</Button
 		>
 	</div>
 </BottomDrawer>

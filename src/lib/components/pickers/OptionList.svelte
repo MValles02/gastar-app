@@ -11,6 +11,7 @@
 		on,
 		onpick,
 		description,
+		disabled,
 		meta,
 		value,
 		media,
@@ -24,6 +25,8 @@
 		on: (item: T) => boolean;
 		onpick: (item: T) => void;
 		description?: (item: T) => string | undefined;
+		/** Rows that can't be picked (shown dimmed). */
+		disabled?: (item: T) => boolean;
 		/** Muted text at the row's end, after the check. */
 		meta?: (item: T) => string | undefined;
 		value?: (item: T) => string;
@@ -76,6 +79,7 @@
 					data-option-row
 					data-value={value?.(item)}
 					aria-pressed={picked}
+					disabled={disabled?.(item)}
 					onclick={() => onpick(item)}
 					onkeydown={arrowKeys ? navigate : undefined}
 				>
@@ -114,6 +118,11 @@
 		border: 0;
 		border-radius: 0;
 		font-size: var(--font-size-base);
+	}
+
+	.opt:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 
 	.opt :global([data-slot='item-title']) {
