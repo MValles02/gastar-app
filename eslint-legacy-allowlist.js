@@ -7,7 +7,6 @@ export default {
 	],
 	'gastar/no-raw-color': [
 		'src/lib/components/PaceChart.svelte',
-		'src/lib/components/TabBar.svelte',
 		'src/lib/server/auth-emails.ts',
 		'src/lib/theme.ts'
 	],
@@ -60,7 +59,6 @@ export default {
 		'src/lib/components/GoogleButton.svelte',
 		'src/lib/components/GoogleReauth.svelte',
 		'src/lib/components/NavProgress.svelte',
-		'src/lib/components/TabBar.svelte',
 		'src/lib/components/Wordmark.svelte',
 		'src/lib/components/accounts/AccountForm.svelte',
 		'src/lib/components/categories/CategoryForm.svelte',

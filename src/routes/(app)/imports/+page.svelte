@@ -13,7 +13,7 @@
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
 	import { IMPORT_FLAGS } from '#lib/toast-flags.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import BaseButton from '#lib/components/base/Button.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
@@ -237,7 +237,7 @@
 	{/if}
 
 	{#if data.groups.length === 0}
-		<EmptyState icon="movements" description="No hay movimientos para revisar." />
+		<EmptyState icon="movements" text="No hay movimientos para revisar." />
 	{:else}
 		<div class="groups">
 			{#each data.groups as g (g.day)}

@@ -6,7 +6,7 @@
 	import { resolve } from '$app/paths';
 	import { toneOf } from '#lib/appearance.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
 	import ListFilterDrawer from '#lib/components/ListFilterDrawer.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
@@ -64,13 +64,15 @@
 	{#if !data.hasAnyCategory}
 		<EmptyState
 			icon="categories"
-			description="Todavía no tenés categorías. Creá la primera para clasificar tus movimientos."
+			text="Todavía no tenés categorías. Creá la primera para clasificar tus movimientos."
 		>
-			<Button
-				href={resolve('categories/new')}
-				onclick={(e) => openShallow(e, resolve('categories/new'), 'newCategory')}
-				>Crear categoría</Button
-			>
+			{#snippet action()}
+				<Button
+					href={resolve('categories/new')}
+					onclick={(e) => openShallow(e, resolve('categories/new'), 'newCategory')}
+					>Crear categoría</Button
+				>
+			{/snippet}
 		</EmptyState>
 	{:else}
 		<FilterBar
@@ -82,7 +84,7 @@
 		/>
 
 		{#if data.groups.length === 0}
-			<EmptyState icon="search" description="No hay categorías que coincidan con la búsqueda." />
+			<EmptyState icon="search" text="No hay categorías que coincidan con la búsqueda." />
 		{:else}
 			{#each data.groups as g (g.key)}
 				{@const groupSpend = g.categories.reduce((sum, c) => sum + spend(c.totals), 0)}

@@ -9,7 +9,8 @@
 
 	let {
 		m,
-		date
+		date,
+		item = true
 	}: {
 		m: {
 			id: string;
@@ -27,6 +28,8 @@
 		};
 		/** Pre-formatted day; omitted where a group header already shows it. */
 		date?: string;
+		/** false: the caller supplies the <li> (an animated list item). */
+		item?: boolean;
 	} = $props();
 
 	const highlighted = $derived(highlight.id === m.id);
@@ -50,6 +53,7 @@
 
 <!-- Canvas: "Cuenta · día" on the left, the amount alone on the right. -->
 <Row
+	{item}
 	class={highlighted ? 'movement highlighted' : 'movement'}
 	href={resolve(`movements/${m.id}`)}
 	{onclick}
@@ -74,12 +78,12 @@
 <style>
 	/* Just saved: a primary tint behind the row, held while `highlight` flags it, then faded out
 	   (an opacity transition, so a new highlight retargets instead of restarting). */
-	:global(li.movement) {
+	:global(.movement) {
 		position: relative;
 		isolation: isolate;
 	}
 
-	:global(li.movement)::before {
+	:global(.movement)::before {
 		content: '';
 		position: absolute;
 		inset: 0;
@@ -90,7 +94,7 @@
 		transition: opacity 1.2s var(--ease-out);
 	}
 
-	:global(li.highlighted)::before {
+	:global(.highlighted)::before {
 		opacity: 1;
 		transition: none;
 	}

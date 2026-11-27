@@ -8,7 +8,7 @@
 	import * as Card from '#lib/components/ui/card/index.js';
 	import ActionLink from '#lib/components/ActionLink.svelte';
 	import CurrencyTabs from '#lib/components/CurrencyTabs.svelte';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import FirstRunChecklist from '#lib/components/FirstRunChecklist.svelte';
 	import Meter from '#lib/components/base/Meter.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
@@ -53,8 +53,10 @@
 
 		{#if !data.hasCurrencyAccount}
 			<Card.Root>
-				<EmptyState icon="accounts" description="Sin cuentas en {data.currencyWord}.">
-					<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+				<EmptyState icon="accounts" text="Sin cuentas en {data.currencyWord}.">
+					{#snippet action()}
+						<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+					{/snippet}
 				</EmptyState>
 			</Card.Root>
 		{:else}

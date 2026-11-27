@@ -2,20 +2,23 @@
 	import { NEW_MOVEMENT_PATH } from '#lib/movement.ts';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
+	import { es } from '#lib/copy/es.ts';
+	import Icon from '#lib/components/Icon.svelte';
 	import { markReplace } from '#lib/nav-stack.svelte.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
-	import House from '@lucide/svelte/icons/house';
-	import List from '@lucide/svelte/icons/list';
-	import CalendarCheck from '@lucide/svelte/icons/calendar-check';
-	import ChartColumn from '@lucide/svelte/icons/chart-column';
-	import Plus from '@lucide/svelte/icons/plus';
 
+	/** Floating glass tab bar: the four main screens plus the "Nuevo movimiento" button. */
 	const navItems = [
-		{ href: resolve(''), path: '/', label: 'Inicio', icon: House },
-		{ href: resolve('movements'), path: '/movements', label: 'Movimientos', icon: List },
-		{ href: resolve('plan'), path: '/plan', label: 'Plan', icon: CalendarCheck },
-		{ href: resolve('reports'), path: '/reports', label: 'Reportes', icon: ChartColumn }
-	];
+		{ href: resolve(''), path: '/', label: es.ui.tabs.home, icon: 'home' },
+		{
+			href: resolve('movements'),
+			path: '/movements',
+			label: es.ui.tabs.movements,
+			icon: 'movements'
+		},
+		{ href: resolve('plan'), path: '/plan', label: es.ui.tabs.plan, icon: 'plan' },
+		{ href: resolve('reports'), path: '/reports', label: es.ui.tabs.reports, icon: 'chart' }
+	] as const;
 	const newMovementHref = resolve('movements/new');
 
 	function isActive(path: string): boolean {
@@ -26,7 +29,7 @@
 	}
 </script>
 
-<nav aria-label="Navegación principal">
+<nav aria-label={es.ui.mainNav}>
 	<div class="tabs">
 		{#each navItems as item (item.href)}
 			<a
@@ -39,7 +42,7 @@
 				title={item.label}
 				aria-current={isActive(item.path) ? 'page' : undefined}
 			>
-				<item.icon size={24} strokeWidth={1.75} aria-hidden="true" />
+				<Icon name={item.icon} size="lg" />
 			</a>
 		{/each}
 	</div>
@@ -48,9 +51,9 @@
 		href={newMovementHref}
 		class="fab"
 		onclick={(e) => openShallow(e, newMovementHref, 'newMovement')}
-		aria-label="Nuevo movimiento"
+		aria-label={es.ui.newMovement}
 	>
-		<Plus size={24} strokeWidth={1.75} aria-hidden="true" />
+		<Icon name="plus" size="lg" />
 	</a>
 </nav>
 
@@ -76,13 +79,10 @@
 		height: var(--tabbar-height);
 		padding: var(--space-1);
 		border-radius: var(--radius-pill);
-		background: color-mix(in srgb, var(--card) 62%, transparent);
-		-webkit-backdrop-filter: blur(20px) saturate(180%);
-		backdrop-filter: blur(20px) saturate(180%);
-		box-shadow:
-			inset 0 0 0 1px light-dark(rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.08)),
-			inset 0 1px 0 light-dark(rgb(255 255 255 / 0.9), rgb(255 255 255 / 0.12)),
-			0 10px 30px -10px light-dark(rgb(60 45 20 / 0.35), rgb(0 0 0 / 0.6));
+		background: color-mix(in srgb, var(--card) var(--tint-glass), transparent);
+		-webkit-backdrop-filter: var(--backdrop-glass);
+		backdrop-filter: var(--backdrop-glass);
+		box-shadow: var(--shadow-glass);
 	}
 
 	@media (prefers-reduced-transparency: reduce) {

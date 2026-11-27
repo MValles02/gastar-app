@@ -9,7 +9,7 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import ActionLink from '#lib/components/ActionLink.svelte';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import Header from '#lib/components/base/Header.svelte';
@@ -87,8 +87,10 @@
 
 <div class="page">
 	{#if !data.hasAccount}
-		<EmptyState icon="accounts" description="No tenés cuentas.">
-			<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+		<EmptyState icon="accounts" text="No tenés cuentas.">
+			{#snippet action()}
+				<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+			{/snippet}
 		</EmptyState>
 	{:else}
 		{#if data.plan.summary}
@@ -178,7 +180,7 @@
 						{#each data.incomes as r (r.id)}<RecurringRow row={r} />{/each}
 					</Group>
 				{:else}
-					<EmptyState icon="plan" description="Sin ingresos fijos." />
+					<EmptyState icon="plan" text="Sin ingresos fijos." />
 				{/if}
 			</section>
 
@@ -189,7 +191,7 @@
 						{#each data.outcomes as r (r.id)}<RecurringRow row={r} />{/each}
 					</Group>
 				{:else}
-					<EmptyState icon="plan" description="Sin pagos fijos." />
+					<EmptyState icon="plan" text="Sin pagos fijos." />
 				{/if}
 			</section>
 

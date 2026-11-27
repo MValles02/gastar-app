@@ -1,5 +1,5 @@
 <script lang="ts">
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import Group from '#lib/components/base/Group.svelte';
 	import { es } from '#lib/copy/es.ts';
 	import type { Currency } from '#lib/money.ts';
@@ -28,5 +28,5 @@
 		{/each}
 	</Group>
 {:else}
-	<EmptyState icon="plan" description={es.plan.limits.empty} />
+	<EmptyState icon="plan" text={es.plan.limits.empty} />
 {/if}

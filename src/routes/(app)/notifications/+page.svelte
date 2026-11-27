@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Group from '#lib/components/base/Group.svelte';
 	import Row from '#lib/components/base/Row.svelte';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import Header from '#lib/components/base/Header.svelte';
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
@@ -19,7 +19,7 @@
 	{#if data.items.length === 0}
 		<EmptyState
 			icon="bell"
-			description="Estás al día. Acá vas a ver los límites o el plan cuando vayan rápido o se pasen."
+			text="Estás al día. Acá vas a ver los límites o el plan cuando vayan rápido o se pasen."
 		/>
 	{:else}
 		<Group>

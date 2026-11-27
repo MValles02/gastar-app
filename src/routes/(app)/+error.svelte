@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import Header from '#lib/components/base/Header.svelte';
 
 	const notFound = $derived(page.status === 404);
@@ -18,8 +18,10 @@
 
 <EmptyState
 	icon="home"
-	description={detail ??
+	text={detail ??
 		(notFound ? 'No encontramos lo que buscabas.' : 'Ocurrió un error. Probá de nuevo.')}
 >
-	<Button href={resolve('')}>Volver a Inicio</Button>
+	{#snippet action()}
+		<Button href={resolve('')}>Volver a Inicio</Button>
+	{/snippet}
 </EmptyState>

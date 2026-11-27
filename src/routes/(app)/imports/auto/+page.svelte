@@ -5,7 +5,7 @@
 	import { toast } from 'svelte-sonner';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import Header from '#lib/components/base/Header.svelte';
 	import Button from '#lib/components/base/Button.svelte';
@@ -40,10 +40,7 @@
 	</p>
 
 	{#if data.items.length === 0}
-		<EmptyState
-			icon="movements"
-			description="Nada aprobado automáticamente en los últimos 30 días."
-		/>
+		<EmptyState icon="movements" text="Nada aprobado automáticamente en los últimos 30 días." />
 	{:else}
 		<Group aria-label="Aprobados automáticamente">
 			{#each data.items as item (item.id)}

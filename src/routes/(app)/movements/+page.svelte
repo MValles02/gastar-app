@@ -9,7 +9,7 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import DateRangePicker from '#lib/components/pickers/DateRangePicker.svelte';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
 	import MovementFiltersDrawer from '#lib/components/movements/MovementFiltersDrawer.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
@@ -166,22 +166,28 @@
 		<div class="list" in:fade>
 			{#if data.months.length === 0}
 				{#if data.page > 1}
-					<EmptyState icon="search" description="Sin más movimientos.">
-						<Button href={resolve(`movements?${firstPageQuery}`)} variant="outline">
-							Ir a la primera página
-						</Button>
+					<EmptyState icon="search" text="Sin más movimientos.">
+						{#snippet action()}
+							<Button href={resolve(`movements?${firstPageQuery}`)} variant="outline">
+								Ir a la primera página
+							</Button>
+						{/snippet}
 					</EmptyState>
 				{:else if data.activeCount === 0}
-					<EmptyState icon="movements" description="Sin movimientos.">
-						<Button
-							href={resolve('movements/new')}
-							onclick={(e) => openShallow(e, resolve('movements/new'), 'newMovement')}
-							>Nuevo movimiento</Button
-						>
+					<EmptyState icon="movements" text="Sin movimientos.">
+						{#snippet action()}
+							<Button
+								href={resolve('movements/new')}
+								onclick={(e) => openShallow(e, resolve('movements/new'), 'newMovement')}
+								>Nuevo movimiento</Button
+							>
+						{/snippet}
 					</EmptyState>
 				{:else}
-					<EmptyState icon="search" description="Sin resultados.">
-						<Button href={resolve('movements')} variant="outline">Limpiar filtros</Button>
+					<EmptyState icon="search" text="Sin resultados.">
+						{#snippet action()}
+							<Button href={resolve('movements')} variant="outline">Limpiar filtros</Button>
+						{/snippet}
 					</EmptyState>
 				{/if}
 			{:else}
@@ -222,9 +228,9 @@
 									</div>
 									<Group class="relative">
 										{#each g.items as m (m.id)}
-											<div data-slide animate:slide in:fade={{ skip: !inPlace }}>
-												<MovementRow {m} />
-											</div>
+											<li role="listitem" data-slide animate:slide in:fade={{ skip: !inPlace }}>
+												<MovementRow {m} item={false} />
+											</li>
 										{/each}
 									</Group>
 								</section>

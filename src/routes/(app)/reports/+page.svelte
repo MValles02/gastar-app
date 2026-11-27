@@ -6,7 +6,7 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import CurrencyTabs from '#lib/components/CurrencyTabs.svelte';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import MonthNav from '#lib/components/MonthNav.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
@@ -53,13 +53,15 @@
 
 <div class="page">
 	{#if !data.hasCurrency}
-		<EmptyState icon="accounts" description="No tenés cuentas en {CURRENCY_NAME[data.currency]}.">
-			<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+		<EmptyState icon="accounts" text="No tenés cuentas en {CURRENCY_NAME[data.currency]}.">
+			{#snippet action()}
+				<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+			{/snippet}
 		</EmptyState>
 	{:else}
 		{@const max = Math.max(1, ...data.bars.flatMap((b) => [b.income, b.outcome]))}
 		{#if !hasMovements}
-			<EmptyState icon="chart" description="Sin movimientos en {CURRENCY_NAME[data.currency]}." />
+			<EmptyState icon="chart" text="Sin movimientos en {CURRENCY_NAME[data.currency]}." />
 		{:else}
 			<section aria-label="Totales del mes">
 				<Card.Root class="gap-0 overflow-hidden py-0">

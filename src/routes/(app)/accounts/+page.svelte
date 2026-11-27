@@ -6,7 +6,7 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import { resolve } from '$app/paths';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
 	import ListFilterDrawer from '#lib/components/ListFilterDrawer.svelte';
 	import { activeListFilters } from '#lib/list-filter.ts';
@@ -45,12 +45,15 @@
 	{#if !data.hasAnyAccount}
 		<EmptyState
 			icon="accounts"
-			description="Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos."
+			text="Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos."
 		>
-			<Button
-				href={resolve('accounts/new')}
-				onclick={(e) => openShallow(e, resolve('accounts/new'), 'newAccount')}>Crear cuenta</Button
-			>
+			{#snippet action()}
+				<Button
+					href={resolve('accounts/new')}
+					onclick={(e) => openShallow(e, resolve('accounts/new'), 'newAccount')}
+					>Crear cuenta</Button
+				>
+			{/snippet}
 		</EmptyState>
 	{:else}
 		<FilterBar
@@ -62,7 +65,7 @@
 		/>
 
 		{#if data.groups.length === 0}
-			<EmptyState icon="search" description="No hay cuentas que coincidan con los filtros." />
+			<EmptyState icon="search" text="No hay cuentas que coincidan con los filtros." />
 		{:else}
 			<!-- Balances are totalled per currency group, never across currencies. -->
 			{#each data.groups as g (g.currency)}
