@@ -30,6 +30,7 @@ test('a rule detail autosaves its amount with Deshacer, deactivates, activates a
 			category: 'Ajena'
 		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
+		await expect(page.getByRole('dialog')).toBeHidden();
 		await expect(page).toHaveURL(/\/plan$/);
 		const href = await rule(page, description).getByRole('link').getAttribute('href');
 		expect(href).toMatch(/^\/plan\/recurring\/[0-9a-f-]{36}$/);
@@ -40,7 +41,7 @@ test('a rule detail autosaves its amount with Deshacer, deactivates, activates a
 		await page.getByRole('textbox', { name: 'Monto' }).fill('1200');
 		await page.getByRole('textbox', { name: 'Monto' }).press('Enter');
 		await expect(amount).toContainText('1.200');
-		await page.reload();
+		await gotoHydrated(page, href!);
 		await expect(page.getByRole('button', { name: /^Monto:/ })).toContainText('1.200');
 		await page.getByRole('button', { name: 'Monto:' }).click();
 		await page.getByRole('textbox', { name: 'Monto' }).fill('900');
@@ -50,7 +51,7 @@ test('a rule detail autosaves its amount with Deshacer, deactivates, activates a
 		await expect(amount).toContainText('1.200');
 
 		// A POST that tries to flip the type: the server ignores it.
-		const detail = new URL(page.url()).pathname;
+		const detail = href!;
 		const res = await page.request.post(`${detail}?/update`, {
 			form: { type: 'income', amount: '1.300' },
 			headers: { origin: baseURL!, accept: 'text/html' }
@@ -63,7 +64,7 @@ test('a rule detail autosaves its amount with Deshacer, deactivates, activates a
 				.getByRole('region', { name: 'Ingresos fijos' })
 				.locator('.rule', { hasText: description })
 		).toHaveCount(0);
-		await page.goto(detail);
+		await gotoHydrated(page, detail);
 
 		await page.getByRole('button', { name: 'Desactivar' }).click();
 		await page.getByRole('alertdialog').getByRole('button', { name: 'Desactivar' }).click();
@@ -73,6 +74,7 @@ test('a rule detail autosaves its amount with Deshacer, deactivates, activates a
 
 		await page.getByRole('button', { name: 'Eliminar' }).click();
 		await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
+		await expect(page.getByRole('dialog')).toBeHidden();
 		await expect(page).toHaveURL(/\/plan$/);
 		await expect(page.getByText(description)).toHaveCount(0);
 	} finally {
@@ -95,6 +97,7 @@ test('a payment edited to an account in another currency no longer marks the rul
 			category: 'Ajena'
 		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
+		await expect(page.getByRole('dialog')).toBeHidden();
 		await expect(page).toHaveURL(/\/plan$/);
 		// A payment with the rule's description (any case) on a pesos account links itself to the rule.
 		await fillMovement(page, {
@@ -110,7 +113,7 @@ test('a payment edited to an account in another currency no longer marks the rul
 		await expect(rule(page, description)).toContainText('Pagado');
 
 		const [href] = await findMovements(page, description.toUpperCase(), 'ARS');
-		await page.goto(new URL(href).pathname);
+		await gotoHydrated(page, new URL(href).pathname);
 		await pick(page, 'Cuenta', 'Otra cuenta');
 		await expect(page.getByText('Cambio guardado.')).toBeVisible();
 

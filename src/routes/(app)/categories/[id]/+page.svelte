@@ -1,8 +1,5 @@
 <script lang="ts">
-	import CategoryScreen from './CategoryScreen.svelte';
-	import type { ActionData, PageData } from './$types';
-
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	import DrawerRoute from '#lib/components/DrawerRoute.svelte';
 </script>
 
-<CategoryScreen {data} {form} />
+<DrawerRoute />

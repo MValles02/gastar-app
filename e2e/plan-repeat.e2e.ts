@@ -3,6 +3,7 @@ import {
 	deleteMovements,
 	deleteRules,
 	fillMovement,
+	gotoHydrated,
 	login,
 	OTHER_EMAIL,
 	rule,
@@ -84,9 +85,9 @@ test('a transfer hides the switch and never creates a rule', async ({ page, base
 	await login(page, OTHER_EMAIL);
 	await cleanup(page, baseURL!, description);
 	try {
-		await page.goto('/movements/new');
+		await gotoHydrated(page, '/movements/new');
 		await expect(checkbox(page)).toBeVisible();
-		await page.getByRole('radio', { name: 'Transf.' }).check({ force: true });
+		await page.getByRole('radio', { name: 'Transf.' }).check();
 		await expect(checkbox(page)).toHaveCount(0);
 
 		// A crafted post (what a no-JS form sends) with the switch on: the server ignores it.
@@ -94,6 +95,7 @@ test('a transfer hides the switch and never creates a rule', async ({ page, base
 			await page.getByRole('button', { name: new RegExp(legend) }).click();
 			const value = await page
 				.getByRole('dialog')
+				.last()
 				.locator('[data-option-row]', { hasText: label })
 				.getAttribute('data-value');
 			await page.keyboard.press('Escape');

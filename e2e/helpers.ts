@@ -37,9 +37,6 @@ const SEED_PASSWORD = process.env.SEED_PASSWORD || DEFAULT_SEED_PASSWORD;
 
 export const PHONE = { width: 390, height: 844 };
 
-/** `test.use` options for a spec block that runs without JavaScript. */
-export const NO_JS = { javaScriptEnabled: false };
-
 /** A movement detail URL (no trailing path). */
 export const MOVEMENT_DETAIL_RE = /\/movements\/[0-9a-f-]{36}$/;
 
@@ -51,7 +48,7 @@ export const todayInAppTz = () => appDay(Date.now());
 /**
  * Waits until the current document has hydrated: the root layout sets `data-hydrated` on <html> once
  * it mounts. Use it before a JS-only control (drawer, picker, enhanced form) after a full page load.
- * Returns at once without JavaScript (`NO_JS` blocks), where nothing hydrates.
+ * Returns at once without JavaScript, where nothing hydrates.
  */
 export async function waitForHydration(page: Page) {
 	if (await page.evaluate(() => matchMedia('(scripting: none)').matches)) return;
@@ -178,9 +175,7 @@ export async function fillMovement(
 	}
 ) {
 	await gotoHydrated(page, '/movements/new');
-	await page
-		.getByRole('radio', { name: o.type === 'Transferencia' ? 'Transf.' : o.type })
-		.check({ force: true });
+	await page.getByRole('radio', { name: o.type === 'Transferencia' ? 'Transf.' : o.type }).check();
 	if (o.date !== undefined) await pickMovementDate(page, o.date);
 	await page.locator('input[name="amount"]').fill(o.amount);
 	await page.locator('input[name="description"]').fill(o.description);
@@ -303,13 +298,15 @@ export async function undo(page: Page) {
 	await expect(page.getByText('Cambio guardado.')).toHaveCount(0);
 }
 
-/** A radio of the no-JS movement form, where the pickers render as plain radio groups. */
-export const noJsOption = (page: Page, group: 'Cuenta' | 'Categoría', name: RegExp) =>
-	page.getByRole('group', { name: group, exact: true }).getByRole('radio', { name });
-
 /** Posts a form the way a no-JS browser would; never throws on a 4xx. */
 export const post = (page: Page, baseURL: string, path: string, form: Record<string, string>) =>
 	page.request.post(path, { form, headers: { origin: baseURL, accept: 'text/html' } });
+
+/** The path a URL points at, read from the `drawer` param when a direct load of a drawer URL redirected to its parent. */
+export function drawerPath(url: string) {
+	const u = new URL(url, 'http://localhost');
+	return u.searchParams.get('drawer') ?? u.pathname + u.search;
+}
 
 /** Posts a create form and returns the new entity's id (the last path segment of the redirect). */
 export async function createVia(
@@ -320,7 +317,7 @@ export async function createVia(
 ) {
 	const res = await post(page, baseURL, path, form);
 	expect(res.ok()).toBe(true);
-	return res.url().split('/').pop()!;
+	return drawerPath(res.url()).split('?')[0].split('/').pop()!;
 }
 
 /** Creates an account through its form action and returns its id. */
@@ -340,7 +337,8 @@ export const createAccount = (
 	});
 
 /** The id of the movement a /movements/new POST saved (it redirects with `?saved=<id>`). */
-export const savedId = (res: { url(): string }) => new URL(res.url()).searchParams.get('saved')!;
+export const savedId = (res: { url(): string }) =>
+	new URL(drawerPath(res.url()), 'http://localhost').searchParams.get('saved')!;
 
 /** The `day` of the month `back` months ago, as YYYY-MM-DD (1 = this month, 2 = last month). */
 export function monthDay(back: number, day = 15) {
@@ -390,6 +388,23 @@ export async function withDb<T>(fn: (sql: postgres.Sql) => Promise<T>) {
 		await sql.end();
 	}
 }
+
+/** The id of `email`'s account or category named `name` (names are unique per user in the seed). */
+export const idByName = (table: 'financial_accounts' | 'categories', email: string, name: string) =>
+	withDb(async (sql) => {
+		const owner = table === 'categories' ? sql`user_id` : sql`owner_id`;
+		const [row] = await sql`select id from ${sql(table)}
+			where ${owner} = ${userIdOf(sql, email)} and name = ${name}`;
+		return row.id as string;
+	});
+
+/** Posts a form to an action the way an enhanced form does (JSON answer, never an HTML page). */
+export const postAction = (
+	page: Page,
+	baseURL: string,
+	path: string,
+	form: Record<string, string>
+) => page.request.post(path, { form, headers: { origin: baseURL, 'x-sveltekit-action': 'true' } });
 
 /** Uploads a Banco Galicia statement from /profile/galicia. */
 export async function upload(page: Page, pdf: Buffer) {

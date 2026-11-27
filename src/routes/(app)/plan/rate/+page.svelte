@@ -1,8 +1,5 @@
 <script lang="ts">
-	import RateScreen from './RateScreen.svelte';
-	import type { ActionData, PageData } from './$types';
-
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	import DrawerRoute from '#lib/components/DrawerRoute.svelte';
 </script>
 
-<RateScreen {data} {form} />
+<DrawerRoute />

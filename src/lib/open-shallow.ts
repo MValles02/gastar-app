@@ -1,5 +1,7 @@
 import { goto, preloadData, replaceState } from '$app/navigation';
 import { page } from '$app/state';
+import { toast } from 'svelte-sonner';
+import { es } from '#lib/copy/es.ts';
 
 /** A click the browser should handle itself (new tab, new window, non-primary button). */
 export const isModifiedClick = (e: MouseEvent) =>
@@ -7,8 +9,9 @@ export const isModifiedClick = (e: MouseEvent) =>
 
 /**
  * Opens a route that also works as a drawer over the current screen as `page.state[key]` (shallow
- * route, URL unchanged). From a click handler an unmodified click opens it and anything else, or a
- * failed load, is a normal navigation; pass `null` to open it without a click. `replace` refreshes the
+ * route, URL unchanged). From a click handler an unmodified click opens it and anything else is left
+ * to the browser; a redirect result follows its location and a failed load shows an error toast
+ * (`es.ui.openFailed`). Pass `null` to open it without a click. `replace` refreshes the
  * drawer already open under `key` with a fresh load instead of stacking another one.
  */
 export async function openShallow(
@@ -30,8 +33,9 @@ export async function openShallow(
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- shallow goto keeps the current URL
 		else if (page.state[key]) goto('', { shallow: true, replace: true, state });
 	}
-	// eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass a resolved href
-	else await goto(href);
+	// eslint-disable-next-line svelte/no-navigation-without-resolve -- the server-validated redirect location
+	else if (result.type === 'redirect') await goto(result.location);
+	else toast.error(es.ui.openFailed);
 }
 
 /**

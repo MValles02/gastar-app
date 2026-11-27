@@ -1,8 +1,5 @@
 <script lang="ts">
-	import LimitScreen from './LimitScreen.svelte';
-	import type { PageData } from './$types';
-
-	let { data }: { data: PageData } = $props();
+	import DrawerRoute from '#lib/components/DrawerRoute.svelte';
 </script>
 
-<LimitScreen {data} />
+<DrawerRoute />

@@ -89,7 +89,11 @@
 	{#if !data.hasAccount}
 		<EmptyState icon="accounts" text="No tenés cuentas.">
 			{#snippet action()}
-				<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+				<Button
+					href={resolve('accounts/new')}
+					onclick={(e) => openShallow(e, resolve('accounts/new'), 'newAccount')}
+					>Crear cuenta</Button
+				>
 			{/snippet}
 		</EmptyState>
 	{:else}

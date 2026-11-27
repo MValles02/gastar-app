@@ -4,6 +4,8 @@ import {
 	deleteMovements,
 	fillMovement,
 	fillRate,
+	gotoHydrated,
+	idByName,
 	login,
 	OTHER_EMAIL,
 	postDelete,
@@ -96,7 +98,8 @@ test('a USD to ARS transfer rejects a non-whole rate and saves a whole one', asy
 	await fillRate(page, '1234,5');
 	await save(page).click();
 	await expect(page.getByText(/en pesos enteros y mayor a cero/)).toBeVisible();
-	await expect(page).toHaveURL(/\/movements\/new$/);
+	await expect(page.getByRole('dialog', { name: 'Nuevo movimiento' })).toBeVisible();
+	await expect(page).toHaveURL(/\/$/);
 
 	await fillRate(page, '1234');
 	await expect(dest).toContainText('$12.352');
@@ -107,13 +110,11 @@ test('a USD to ARS transfer rejects a non-whole rate and saves a whole one', asy
 	await expect(drawer.locator('p', { hasText: 'En destino' })).toContainText('$12.352');
 });
 
-test('account initial balance: ARS whole only and USD keeps cents', async ({ page }) => {
+test('account initial balance: ARS whole only and USD keeps cents', async ({ page, baseURL }) => {
 	const create = async (name: string, currency: 'ARS' | 'USD', balance: string) => {
-		await page.goto('/accounts/new');
+		await gotoHydrated(page, '/accounts/new');
 		await page.getByLabel('Nombre').fill(name);
-		await page
-			.getByRole('radio', { name: currency === 'ARS' ? 'Pesos' : 'Dólares' })
-			.check({ force: true });
+		await page.getByRole('radio', { name: currency === 'ARS' ? 'Pesos' : 'Dólares' }).check();
 		await page.getByLabel('Saldo inicial').fill(balance);
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 	};
@@ -121,9 +122,13 @@ test('account initial balance: ARS whole only and USD keeps cents', async ({ pag
 	await create(`ARS cuenta ${Date.now()}`, 'ARS', '100,50');
 	await expect(page.getByText(WHOLE_PESOS_ERROR)).toBeVisible();
 	await expect(page.getByLabel('Saldo inicial')).toHaveValue('100,50');
-	await expect(page).toHaveURL(/\/accounts\/new$/);
+	await expect(page.getByRole('dialog')).toBeVisible();
+	await expect(page).toHaveURL(/\/accounts$/);
 
-	await create(`USD cuenta ${Date.now()}`, 'USD', '100,50');
-	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
-	createdAccounts.push(page.url());
+	const usd = `USD cuenta ${Date.now()}`;
+	await create(usd, 'USD', '100,50');
+	await expect(page.getByRole('dialog')).toBeHidden();
+	await expect(page).toHaveURL(/\/accounts$/);
+	const id = await idByName('financial_accounts', OTHER_EMAIL, usd);
+	createdAccounts.push(`${baseURL}/accounts/${id}`);
 });

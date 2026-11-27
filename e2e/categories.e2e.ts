@@ -5,22 +5,23 @@ import {
 	fillMovement,
 	login,
 	OTHER_EMAIL,
+	idByName,
 	postDelete,
-	gotoHydrated,
-	waitForHydration
+	gotoHydrated
 } from './helpers';
 
-const DETAIL_RE = /\/categories\/[0-9a-f-]{36}$/;
 const LOCKED = es.categories.errors.kindLocked;
 
 /** Creates a category through the form (JS) and returns its detail path. */
 async function createCategory(page: Page, name: string, o: { kind?: string } = {}) {
-	await page.goto('/categories/new');
+	await gotoHydrated(page, '/categories/new');
 	await page.locator('input[name="name"]').fill(name);
-	if (o.kind) await page.getByRole('radio', { name: o.kind }).check({ force: true });
+	if (o.kind) await page.getByRole('radio', { name: o.kind }).check();
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page).toHaveURL(DETAIL_RE);
-	return new URL(page.url()).pathname;
+	// Saving closes the drawer: still on the list.
+	await expect(page.getByRole('dialog')).toBeHidden();
+	await expect(page).toHaveURL(/\/categories$/);
+	return `/categories/${await idByName('categories', OTHER_EMAIL, name)}`;
 }
 
 test('rows show the month total and Ambas stacks ARS over USD', async ({ page, baseURL }) => {
@@ -94,13 +95,14 @@ test('a category with movements can only widen to Ambos, also server-side; the c
 
 		await gotoHydrated(page, href);
 		await page.getByRole('button', { name: /^Se usa para/ }).click();
-		const dialog = page.getByRole('dialog');
+		// The kind picker stacks over the category drawer: the last dialog is the topmost.
+		const dialog = page.getByRole('dialog').last();
 		await expect(dialog.getByRole('button', { name: /^Ingresos/ })).toBeDisabled();
 		await expect(dialog.getByRole('button', { name: /^Gastos/ })).toBeEnabled();
 		await expect(dialog.getByRole('button', { name: /^Ambos/ })).toBeEnabled();
 		await expect(page.getByText(LOCKED)).toHaveCount(0);
 		await page.keyboard.press('Escape');
-		await expect(dialog).toBeHidden();
+		await expect(page.getByRole('dialog')).toHaveCount(1);
 
 		const rejected = await page.request.post(`${href}?/update`, {
 			form: { kind: 'income' },
@@ -113,9 +115,8 @@ test('a category with movements can only widen to Ambos, also server-side; the c
 		await page.getByRole('button', { name: /^Se usa para/ }).click();
 		await dialog.getByRole('button', { name: /^Ambos/ }).click();
 		await expect(page.getByText('Cambio guardado.')).toBeVisible();
-		await page.reload();
+		await gotoHydrated(page, href);
 		await expect(page.getByRole('button', { name: /^Se usa para/ })).toContainText('Ambos');
-		await waitForHydration(page);
 		await page.getByRole('button', { name: /^Se usa para/ }).click();
 		await dialog.getByRole('button', { name: /^Gastos/ }).click();
 		await expect(page.getByText('Cambio guardado.')).toBeVisible();

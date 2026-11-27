@@ -366,7 +366,7 @@ try {
 				user_id: userId,
 				name: c.name,
 				color: c.color,
-				icon: c.icon ?? null,
+				icon: c.icon,
 				kind: c.kind ?? null,
 				archived_at: c.archived ? now : null
 			}))
@@ -477,8 +477,8 @@ try {
 			values (${randomUUID()}, ${otherId}, 'Otra cuenta pesos', 'ARS', ${500_000_00}, 'bank', 'teal')
 		`;
 		await tx`
-			insert into categories (id, user_id, name, color)
-			values (${otherCategoryId}, ${otherId}, 'Ajena', 'blue')
+			insert into categories (id, user_id, name, color, icon)
+			values (${otherCategoryId}, ${otherId}, 'Ajena', 'blue', 'tag')
 		`;
 		await tx`
 			insert into recurring_movements (id, user_id, type, description, amount, account_id, category_id, day_of_month)
@@ -566,8 +566,8 @@ try {
 			}[alertEmail];
 			if (purchases) {
 				await tx`
-					insert into categories (id, user_id, name, kind, color)
-					values (${randomUUID()}, ${alertId}, ${purchases}, 'outcome', 'blue')
+					insert into categories (id, user_id, name, kind, color, icon)
+					values (${randomUUID()}, ${alertId}, ${purchases}, 'outcome', 'blue', 'cart')
 				`;
 			}
 		}

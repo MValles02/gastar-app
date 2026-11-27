@@ -25,7 +25,7 @@ test.beforeAll(async ({ browser, baseURL }) => {
 		const ars = await createAccount(page, baseURL!, 'Caja rep', 'ARS');
 		const usd = await createAccount(page, baseURL!, 'Dólares rep', 'USD');
 		const category = (name: string, kind: string) =>
-			createVia(page, baseURL!, '/categories/new', { name, color: 'green', kind });
+			createVia(page, baseURL!, '/categories/new', { name, color: 'green', icon: 'tag', kind });
 		const food = await category('Comida rep', 'outcome');
 		const misc = await category('Varios rep', 'outcome');
 		const pay = await category('Cobro rep', 'income');

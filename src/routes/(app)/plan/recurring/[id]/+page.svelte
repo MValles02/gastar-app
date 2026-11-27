@@ -1,8 +1,5 @@
 <script lang="ts">
-	import RuleScreen from './RuleScreen.svelte';
-	import type { PageData } from './$types';
-
-	let { data }: { data: PageData } = $props();
+	import DrawerRoute from '#lib/components/DrawerRoute.svelte';
 </script>
 
-<RuleScreen {data} />
+<DrawerRoute />

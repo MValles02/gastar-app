@@ -67,12 +67,14 @@ async function arrange(page: Page, baseURL: string, seed: Seed = {}) {
 	const c1 = await create('/categories/new', {
 		name: `${description} C1`,
 		color: 'blue',
+		icon: 'tag',
 		kind: seed.kinds ? 'outcome' : ''
 	});
 	Object.assign(fixture, { c1, A: ids.A, B: ids.B });
 	fixture.c2 = await create('/categories/new', {
 		name: `${description} C2`,
 		color: 'red',
+		icon: 'tag',
 		kind: seed.kinds ? 'income' : ''
 	});
 	await page.goto('/accounts');

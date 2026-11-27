@@ -38,12 +38,19 @@ test.beforeAll(async ({ browser, baseURL }) => {
 		ids.food = await create('/categories/new', {
 			name: 'Comida e2e',
 			color: 'green',
+			icon: 'tag',
 			kind: 'outcome'
 		});
-		ids.gym = await create('/categories/new', { name: 'Gym e2e', color: 'blue', kind: 'outcome' });
+		ids.gym = await create('/categories/new', {
+			name: 'Gym e2e',
+			color: 'blue',
+			icon: 'tag',
+			kind: 'outcome'
+		});
 		ids.salary = await create('/categories/new', {
 			name: 'Cobro e2e',
 			color: 'teal',
+			icon: 'tag',
 			kind: 'income'
 		});
 		// Last month's spending gives Comida a suggested limit (30.000 over 3 months = 10.000).
@@ -171,6 +178,7 @@ test('new limit: invalid amount, then the average saves', async ({ page, baseURL
 	await page.getByRole('button', { name: /^Usar promedio/ }).click();
 	await expect(page.locator('input[name="amount"]')).toHaveValue(/^10\.?000$/);
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+	await expect(page.getByRole('dialog')).toBeHidden();
 	await expect(page).toHaveURL(/\/plan$/);
 	await expect(limitsRegion(page)).toContainText('Comida e2e');
 });

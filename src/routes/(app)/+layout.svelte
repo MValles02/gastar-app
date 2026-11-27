@@ -1,11 +1,15 @@
 <script lang="ts">
 	import { onMount, type Component, type Snippet } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
+	import { match } from '$app/paths';
 	import { page } from '$app/state';
 	import { edgeSwipeBack, settleEdgeSwipe } from '#lib/edge-swipe-back.ts';
 	import { pullRefresh } from '#lib/pull-refresh.ts';
 	import PullIndicator from '#lib/components/PullIndicator.svelte';
 	import { TAB_ROUTES } from '#lib/form-routes.ts';
+	import { DRAWER_PARAM, DRAWER_ROUTES, drawerOf } from '#lib/drawer-routes.ts';
+	import { stripFlags } from '#lib/nav-stack.svelte.ts';
+	import { openShallow } from '#lib/open-shallow.ts';
 	import { drawers, type DrawerKey } from './drawers';
 	import TabBar from '#lib/components/base/TabBar.svelte';
 	import { highlightMovement } from '#lib/highlight.svelte.ts';
@@ -45,10 +49,33 @@
 		const id = setTimeout(prefetch, 2000);
 		return () => clearTimeout(id);
 	});
-	afterNavigate(({ shallow, type }) => {
+	afterNavigate(async ({ shallow, type }) => {
 		if (shallow && type === 'goto') return;
 		settleEdgeSwipe();
+		await openDrawerParam();
 	});
+	// A direct load of a drawer URL lands here as `?drawer=<path>` (hooks.server.ts): strip it and open
+	// that drawer over this screen, so closing it (history.back) leaves the parent. Anything that is not
+	// a same-origin path of a drawer whose parent is this screen is ignored.
+	async function openDrawerParam() {
+		const value = page.url.searchParams.get(DRAWER_PARAM);
+		if (value === null) return;
+		const parent = page.route.id;
+		let key: DrawerKey | null = null;
+		let target = new URL(location.href);
+		if (value.startsWith('/') && !value.startsWith('//') && !value.startsWith('/\\')) {
+			target = new URL(value, location.origin);
+			if (target.origin === location.origin) {
+				const matched = await match(target.pathname);
+				key = drawerOf(matched ? matched.id : null);
+				if (key && DRAWER_ROUTES[key].parent !== parent) key = null;
+			}
+		}
+		// A replace navigation, not replaceState: a shallow one leaves `page.url` (and the history entry's
+		// pageUrl) with the param, so closing the drawer would reload it and open it again.
+		await stripFlags([DRAWER_PARAM]);
+		if (key) await openShallow(null, target.pathname + target.search, key);
+	}
 	toastSavedMovement(() => saved, highlightMovement);
 </script>
 

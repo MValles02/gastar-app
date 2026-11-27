@@ -7,12 +7,15 @@ import {
 	fillSavings,
 	findMovements,
 	foreignIds,
+	idByName,
 	limitsRegion,
 	linkId,
 	login,
 	pick,
 	post,
+	postAction,
 	postDelete,
+	SEED_EMAIL,
 	signUpVerified,
 	todayInAppTz,
 	gotoHydrated
@@ -37,7 +40,12 @@ test.beforeAll(async ({ browser, baseURL }) => {
 			createVia(page, baseURL!, path, form);
 		const usd = await createAccount(page, baseURL!, 'Otra cuenta', 'USD', '500');
 		const ars = await createAccount(page, baseURL!, 'Otra cuenta pesos', 'ARS', '500');
-		const category = await create('/categories/new', { name: 'Ajena', color: 'blue', kind: '' });
+		const category = await create('/categories/new', {
+			name: 'Ajena',
+			color: 'blue',
+			icon: 'tag',
+			kind: ''
+		});
 		await create('/plan/recurring/new', {
 			type: 'outcome',
 			description: 'Regla ajena',
@@ -184,13 +192,14 @@ test("another user's category and rule never leak or get written", async ({
 	await expect(dialog.getByText('Servicios', { exact: true })).toBeVisible();
 	await expect(dialog.getByText('Ajena')).toHaveCount(0);
 
-	const res = await post(page, baseURL!, '/plan/limits/new', {
+	const res = await postAction(page, baseURL!, '/plan/limits/new', {
 		categoryId: category,
 		amount: '5',
 		currency: 'ARS'
 	});
-	expect(res.status()).toBe(400);
-	expect(await res.text()).toContain(NOT_OFFERED);
+	const body = await res.json();
+	expect(body.status).toBe(400);
+	expect(body.data).toContain(NOT_OFFERED);
 	expect((await page.goto(`/plan/limits/${category}`))!.status()).toBe(404);
 	expect((await post(page, baseURL!, `/plan/limits/${category}?/delete`, {})).status()).toBe(404);
 
@@ -206,13 +215,14 @@ test("another user's category and rule never leak or get written", async ({
 		const other = await context.newPage();
 		await context.addCookies(cookies);
 		const before = await limitHrefs(other);
-		const attach = await post(other, baseURL!, '/plan/limits/new', {
+		const attach = await postAction(other, baseURL!, '/plan/limits/new', {
 			categoryId: superId,
 			amount: '5',
 			currency: 'ARS'
 		});
-		expect(attach.status()).toBe(400);
-		expect(await attach.text()).toContain(NOT_OFFERED);
+		const attachBody = await attach.json();
+		expect(attachBody.status).toBe(400);
+		expect(attachBody.data).toContain(NOT_OFFERED);
 		expect((await other.goto(`/plan/limits/${superId}`))!.status()).toBe(404);
 		expect(await limitHrefs(other)).toEqual(before);
 		await expect(limitsRegion(other)).not.toContainText('Supermercado');
@@ -228,17 +238,20 @@ test('deleting a category removes its limit', async ({ page, baseURL }) => {
 	await deleteCategories(page, baseURL!, name);
 	let categoryPath = '';
 	try {
-		await page.goto('/categories/new');
+		await gotoHydrated(page, '/categories/new');
 		await page.getByLabel('Nombre').fill(name);
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-		await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
-		categoryPath = new URL(page.url()).pathname;
-		const id = categoryPath.split('/').pop()!;
+		// Saving closes the drawer: still on the list.
+		await expect(page.getByRole('dialog')).toBeHidden();
+		await expect(page).toHaveURL(/\/categories$/);
+		const id = await idByName('categories', SEED_EMAIL, name);
+		categoryPath = `/categories/${id}`;
 
-		await page.goto('/plan/limits/new');
+		await gotoHydrated(page, '/plan/limits/new');
 		await pick(page, 'Categoría', name);
 		await page.locator('input[name="amount"]').fill('5.000');
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(page.getByRole('dialog')).toBeHidden();
 		await expect(page).toHaveURL(/\/plan$/);
 		const limits = limitsRegion(page);
 		await expect(limits).toContainText(name);
@@ -247,9 +260,10 @@ test('deleting a category removes its limit', async ({ page, baseURL }) => {
 			/de \$\s?5\.000$/
 		);
 
-		await page.goto(categoryPath);
+		await gotoHydrated(page, categoryPath);
 		await page.getByRole('button', { name: 'Eliminar' }).click();
 		await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
+		await expect(page.getByRole('dialog')).toBeHidden();
 		await expect(page).toHaveURL(/\/categories$/);
 		categoryPath = '';
 

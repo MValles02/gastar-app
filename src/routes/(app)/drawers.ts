@@ -1,8 +1,10 @@
 import type { Component } from 'svelte';
+import type { DrawerRouteKey } from '#lib/drawer-routes.ts';
 
-// Routes that also open as a drawer over the current screen (shallow routing, `openShallow`): key ->
-// the route's screen (a page, or a drawer when given `onclose`), rendered by the (app) layout with
-// `data` (the route's preloaded load) and `onclose`. Adding one is a route folder plus a line here. `App.PageState` derives from this.
+// Routes that open as a drawer over a screen (shallow routing, `openShallow`): key -> the route's
+// screen, rendered by the (app) layout with `data` (the route's preloaded load) and `onclose`. They
+// have no full page: a direct load of the URL opens over the parent screen (`#lib/drawer-routes.ts`).
+// Adding one is a route folder (its +page.svelte is `<DrawerRoute />`), a line here and one there. `App.PageState` derives from this.
 export const drawers = {
 	newMovement: () => import('./movements/new/NewMovementScreen.svelte'),
 	movement: () => import('./movements/[id]/MovementScreen.svelte'),
@@ -19,7 +21,7 @@ export const drawers = {
 	password: () => import('./profile/password/PasswordScreen.svelte'),
 	deleteAccount: () => import('./profile/delete/DeleteAccountScreen.svelte'),
 	importItem: () => import('./imports/[id]/ImportItemScreen.svelte')
-} satisfies Record<string, () => Promise<{ default: Component<any> }>>; // eslint-disable-line @typescript-eslint/no-explicit-any
+} satisfies Record<DrawerRouteKey, () => Promise<{ default: Component<any> }>>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export type DrawerKey = keyof typeof drawers;
 

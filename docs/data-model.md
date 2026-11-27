@@ -33,8 +33,8 @@ ARS → USD: dest_cents = round_half_up(amount_cents × 100 / rate_hundredths)
 | `name` | text | |
 | `currency` | enum('ARS','USD') | |
 | `initial_balance` | bigint | minor units; may be negative |
-| `icon` | text | |
-| `color` | text | |
+| `icon` | text, nullable until phase 9 | |
+| `color` | text, nullable until phase 9 | |
 | `archived_at` | timestamptz, nullable | null = active |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
@@ -48,13 +48,16 @@ Constraints: currency is immutable once the account has ≥1 movement (app-level
 | `id` | pk | |
 | `user_id` | fk → `user.id` | |
 | `name` | text | |
-| `color` | text | |
+| `icon` | text, nullable until phase 9 | key from `CATEGORY_ICONS` |
+| `color` | text, nullable until phase 9 | |
 | `kind` | enum('income','outcome','transfer'), nullable | null = both; never `transfer` (CHECK `categories_kind_check`) |
 | `archived_at` | timestamptz, nullable | null = active |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
 
 Constraints: `UNIQUE (user_id, name)`.
+
+Icon and colour (categories and accounts) are always set by the app on create and update, but stay nullable until redesign phase 9 adds `NOT NULL` (expand/contract). Migration `0035_backfill_icon_color` fills blank (null, empty or whitespace) values and never changes non-blank ones: a category looks its normalised name (lowercase, trimmed, accents stripped) up in a catalogue of common names for icon and colour, else icon `tag`; a missing colour is picked deterministically from the id (md5 into the 16 swatches); an account gets icon `dollar` (USD) or `wallet` (ARS) and an id-derived colour. Deploys are start-first, so during that window the previous release can still insert a null icon: phase 9 must re-run the same backfill right before adding `NOT NULL`, and `categoryLook()` keeps its fallback.
 
 ### `movements`
 

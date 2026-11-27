@@ -3,6 +3,7 @@ import {
 	deleteMovements,
 	fillMovement,
 	fillSavings,
+	gotoHydrated,
 	login,
 	OTHER_EMAIL,
 	pick,
@@ -31,10 +32,11 @@ test('an exceeded limit raises an alert that opens that limit', async ({ page, b
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('Plan guardado.')).toBeVisible();
 
-		await page.goto('/plan/limits/new');
+		await gotoHydrated(page, '/plan/limits/new');
 		await pick(page, 'Categoría', 'Ajena');
 		await page.locator('input[name="amount"]').fill('1');
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(page.getByRole('dialog')).toBeHidden();
 		await expect(page).toHaveURL(/\/plan$/);
 
 		await fillMovement(page, {

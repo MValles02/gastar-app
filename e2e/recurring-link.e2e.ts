@@ -49,6 +49,7 @@ test.beforeAll(async ({ browser, baseURL }) => {
 	const categoryId = await create('/categories/new', {
 		name: 'Fijos',
 		color: 'green',
+		icon: 'tag',
 		kind: 'outcome'
 	});
 	for (const [description, amount] of [
@@ -114,6 +115,7 @@ test('Inicio lists an unpaid fixed payment still due until it is paid', async ({
 	const categoryId = await createVia(page, baseURL!, '/categories/new', {
 		name: 'Vencimientos',
 		color: 'green',
+		icon: 'tag',
 		kind: 'outcome'
 	});
 	// Day 31 clamps to the month's last day, so it is always today or later.

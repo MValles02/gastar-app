@@ -7,6 +7,7 @@ import { auth } from '#lib/server/auth.ts';
 import { checkEnv } from '#lib/server/env-check.ts';
 import { rejectSignedOut } from '#lib/server/guards.ts';
 import { startImportSchedulers } from '#lib/server/imports/automatic.ts';
+import { drawerHref, drawerOf } from '#lib/drawer-routes.ts';
 import { themeColors } from '#lib/theme.ts';
 import { THEME_COOKIE } from '#lib/server/cookies.ts';
 
@@ -88,7 +89,7 @@ const handleRequest: Handle = async ({ event, resolve }) => {
 
 	const colors = themeColors(theme);
 
-	return resolve(event, {
+	const response = await resolve(event, {
 		// Every screen is set in Geist Mono: preload its Latin face so first paint does not reflow
 		// on the font swap (it wrapped /plan's rate line and shifted the page, CLS 0.16).
 		preload: ({ type, path }) =>
@@ -99,4 +100,23 @@ const handleRequest: Handle = async ({ event, resolve }) => {
 				.replace('%theme-color-light%', colors.light)
 				.replace('%theme-color-dark%', colors.dark)
 	});
+
+	// Drawers have no full page: a direct load of one (HTML 200) goes to its parent screen with it open.
+	// The load already ran, so a bad id kept its 404 or redirect. Actions and data requests pass through.
+	const key = drawerOf(event.route.id);
+	if (
+		key &&
+		!event.isDataRequest &&
+		response.status === 200 &&
+		response.headers.get('content-type')?.startsWith('text/html')
+	) {
+		const redirected = new Response(null, {
+			status: 303,
+			headers: { location: drawerHref(key, event.url) }
+		});
+		for (const cookie of response.headers.getSetCookie())
+			redirected.headers.append('set-cookie', cookie);
+		return redirected;
+	}
+	return response;
 };
