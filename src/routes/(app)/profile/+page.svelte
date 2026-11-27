@@ -10,7 +10,7 @@
 	import InlineText from '#lib/components/InlineText.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import { USER_NAME_MAX_LENGTH } from '#lib/fields.ts';
+	import { USER_NAME_MAX_LENGTH } from '#lib/constants.ts';
 	import { applyTheme, THEME_OPTIONS } from '#lib/theme.ts';
 	import type { ActionData, PageData } from './$types';
 

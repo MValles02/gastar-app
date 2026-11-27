@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { PASSWORD_MIN_LENGTH, PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
+	import { PASSWORD_MIN_LENGTH } from '#lib/constants.ts';
+	import { es } from '#lib/copy/es.ts';
 	import { resolve } from '$app/paths';
 	import AuthForm from '#lib/components/AuthForm.svelte';
 	import AuthPage from '#lib/components/AuthPage.svelte';
@@ -39,7 +40,7 @@
 				autocomplete="new-password"
 				minlength={PASSWORD_MIN_LENGTH}
 				error={form?.passwordError}
-				hint={PASSWORD_MIN_MESSAGE}
+				hint={es.common.fields.passwordMin}
 			/>
 		</AuthForm>
 	</AuthPage>

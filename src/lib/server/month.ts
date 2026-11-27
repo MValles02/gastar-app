@@ -1,5 +1,6 @@
 import { DAY_MS, dayOfMonth, MONTH_RE } from '#lib/dates.ts';
 import { APP_TZ, formatDay, LOCALE } from '#lib/locale.ts';
+import { HISTORY_MONTHS } from '#lib/server/constants.ts';
 
 const DAY_RE = /^(\d{4}-(?:0[1-9]|1[0-2]))-\d{2}$/;
 
@@ -75,9 +76,6 @@ export function monthRange(ym: string): { start: Date; end: Date } {
 	const at = (m: string) => new Date(`${m}-01T00:00:00${offsetAt(new Date(`${m}-01T12:00:00Z`))}`);
 	return { start: at(ym), end: at(shiftMonth(ym, 1)) };
 }
-
-/** Full months of history behind suggested rules and limits; a suggested rule appears in each of them. */
-export const HISTORY_MONTHS = 3;
 
 export function lastFullMonths(ym: string) {
 	const [oldest] = lastMonths(shiftMonth(ym, -1), HISTORY_MONTHS);

@@ -1,12 +1,12 @@
 import { fail } from '@sveltejs/kit';
-import { isValidPasswordLength, PASSWORD_MIN_MESSAGE, userNameError } from '#lib/fields.ts';
+import { es } from '#lib/copy/es.ts';
+import { isValidPasswordLength, userNameError } from '#lib/fields.ts';
 import { auth, googleEnabled } from '#lib/server/auth.ts';
 import {
 	googleAction,
 	ignoreApiError,
 	readEmail,
 	resendAction,
-	tooManyAttempts,
 	VERIFY_EMAIL_PATH
 } from '#lib/server/auth-forms.ts';
 import { str } from '#lib/server/forms.ts';
@@ -28,14 +28,14 @@ export const actions: Actions = {
 			return fail(429, {
 				name,
 				email,
-				formError: tooManyAttempts('rato')
+				formError: es.common.tooManyAttempts('rato')
 			});
 		}
 
 		const errors: { name?: string; email?: string; password?: string } = {};
 		errors.name = userNameError(name);
 		errors.email = emailError;
-		if (!isValidPasswordLength(password)) errors.password = PASSWORD_MIN_MESSAGE;
+		if (!isValidPasswordLength(password)) errors.password = es.common.fields.passwordMin;
 		if (errors.name || errors.email || errors.password) {
 			return fail(400, { name, email, errors });
 		}

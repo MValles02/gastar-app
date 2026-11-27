@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { appear } from '#lib/motion.ts';
 	import type { Snippet } from 'svelte';
-	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+	import { DESCRIPTION_MAX_LENGTH } from '#lib/constants.ts';
 	import DetailCard from './DetailCard.svelte';
 
 	/**

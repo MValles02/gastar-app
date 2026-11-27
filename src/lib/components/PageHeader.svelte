@@ -8,6 +8,7 @@
 	import * as Avatar from '#lib/components/ui/avatar/index.js';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import { MAX_BADGE_COUNT } from '#lib/constants.ts';
 	import { upOnClick } from '#lib/nav-stack.svelte.ts';
 
 	/**
@@ -37,9 +38,6 @@
 		/** The `<header>` element, for a page that measures it (bind:ref). */
 		ref?: HTMLElement;
 	} = $props();
-
-	/** Larger alert counts show as "9+". */
-	const MAX_BADGE_COUNT = 9;
 
 	const full = $derived(!back && !close);
 

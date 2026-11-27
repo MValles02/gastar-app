@@ -2,9 +2,9 @@
 name: Gastar
 description: Private personal ledger for Argentina.
 colors:
-  primary: '#0b7656'
+  primary: 'oklch(0.5029 0.102 165.62)'
   primary-dark: 'oklch(0.432 0.095 166.913)'
-  link: '#0b7656'
+  link: 'oklch(0.5029 0.102 165.62)'
   link-dark: 'oklch(0.8 0.11 166)'
   on-primary: 'oklch(0.979 0.021 166.113)'
   on-primary-dark: 'oklch(0.979 0.021 166.113)'
@@ -16,54 +16,54 @@ colors:
   surface-raised-dark: 'oklch(0.216 0.006 56.043)'
   muted: 'oklch(0.925 0.022 82)'
   muted-dark: 'oklch(0.268 0.007 34.298)'
-  text: '#221d17'
+  text: 'oklch(0.2344 0.0136 72.15)'
   text-dark: 'oklch(0.985 0.001 106.423)'
-  text-muted: '#6b6257'
+  text-muted: 'oklch(0.5013 0.0205 72.86)'
   text-muted-dark: 'oklch(0.709 0.01 56.259)'
-  border: '#e3dbcb'
+  border: 'oklch(0.8934 0.0232 84.59)'
   border-dark: 'oklch(1 0 0 / 10%)'
-  border-strong: '#a69b8a'
+  border-strong: 'oklch(0.6942 0.0274 78.84)'
   border-strong-dark: 'oklch(0.553 0.013 58.071)'
-  positive: '#2e6b34'
-  positive-dark: '#8bd68f'
-  negative: '#c4140c'
+  positive: 'oklch(0.4731 0.1066 145.54)'
+  positive-dark: 'oklch(0.809 0.1238 145.55)'
+  negative: 'oklch(0.5214 0.2052 29.32)'
   negative-dark: 'oklch(0.704 0.191 22.216)'
   warning: 'oklch(0.555 0.163 48.998)'
   warning-dark: 'oklch(0.879 0.169 91.605)'
-  transfer: '#2c5d8a'
-  transfer-dark: '#8db8e6'
-  swatch-green: '#2e6b34'
-  swatch-green-dark: '#7fc79a'
-  swatch-teal: '#1f6b66'
-  swatch-teal-dark: '#6cc4c0'
-  swatch-sky: '#1e6380'
-  swatch-sky-dark: '#7cc3e0'
-  swatch-blue: '#2c5d8a'
-  swatch-blue-dark: '#8db8e6'
-  swatch-indigo: '#44508f'
-  swatch-indigo-dark: '#a0abe6'
-  swatch-violet: '#5a4a8a'
-  swatch-violet-dark: '#b3a3e6'
-  swatch-plum: '#7a3d6b'
-  swatch-plum-dark: '#d99ac6'
-  swatch-pink: '#9a3a5c'
-  swatch-pink-dark: '#eba0bb'
-  swatch-red: '#9a3b2e'
-  swatch-red-dark: '#f0a090'
-  swatch-orange: '#b4561c'
-  swatch-orange-dark: '#f0b27a'
-  swatch-amber: '#9a5a1f'
-  swatch-amber-dark: '#ecb36e'
-  swatch-ochre: '#8a6d1a'
-  swatch-ochre-dark: '#d9c46e'
-  swatch-olive: '#5f6b1e'
-  swatch-olive-dark: '#bccb72'
-  swatch-brown: '#6e4e36'
-  swatch-brown-dark: '#d0a98a'
-  swatch-slate: '#4a5868'
-  swatch-slate-dark: '#a3b3c6'
-  swatch-gray: '#5e5a54'
-  swatch-gray-dark: '#b8b3ab'
+  transfer: 'oklch(0.4661 0.0907 248.6)'
+  transfer-dark: 'oklch(0.7685 0.0808 250.59)'
+  swatch-green: 'oklch(0.4731 0.1066 145.54)'
+  swatch-green-dark: 'oklch(0.7698 0.0974 155.88)'
+  swatch-teal: 'oklch(0.4812 0.0726 188.69)'
+  swatch-teal-dark: 'oklch(0.7643 0.0853 191.69)'
+  swatch-sky: 'oklch(0.4709 0.0813 230.38)'
+  swatch-sky-dark: 'oklch(0.7808 0.0823 225.91)'
+  swatch-blue: 'oklch(0.4661 0.0907 248.6)'
+  swatch-blue-dark: 'oklch(0.7685 0.0808 250.59)'
+  swatch-indigo: 'oklch(0.4525 0.1036 273.44)'
+  swatch-indigo-dark: 'oklch(0.7542 0.0859 275.98)'
+  swatch-violet: 'oklch(0.4555 0.1025 293.42)'
+  swatch-violet-dark: 'oklch(0.7534 0.0962 294.95)'
+  swatch-plum: 'oklch(0.4537 0.1045 337.26)'
+  swatch-plum-dark: 'oklch(0.7604 0.0943 338.13)'
+  swatch-pink: 'oklch(0.4915 0.1322 1.21)'
+  swatch-pink-dark: 'oklch(0.7864 0.0949 356.25)'
+  swatch-red: 'oklch(0.482 0.1301 30.29)'
+  swatch-red-dark: 'oklch(0.7807 0.0989 31.81)'
+  swatch-orange: 'oklch(0.5608 0.1393 47.62)'
+  swatch-orange-dark: 'oklch(0.809 0.1022 62.68)'
+  swatch-amber: 'oklch(0.5307 0.11 58.79)'
+  swatch-amber-dark: 'oklch(0.8048 0.1089 70.54)'
+  swatch-ochre: 'oklch(0.5487 0.1025 88.11)'
+  swatch-ochre-dark: 'oklch(0.8198 0.1093 95.99)'
+  swatch-olive: 'oklch(0.5017 0.1008 117.85)'
+  swatch-olive-dark: 'oklch(0.8109 0.1151 116.88)'
+  swatch-brown: 'oklch(0.4525 0.0565 57.6)'
+  swatch-brown-dark: 'oklch(0.7621 0.0625 60.14)'
+  swatch-slate: 'oklch(0.4546 0.0316 251.94)'
+  swatch-slate-dark: 'oklch(0.7605 0.0326 252.75)'
+  swatch-gray: 'oklch(0.4694 0.0108 78.22)'
+  swatch-gray-dark: 'oklch(0.7686 0.0126 79.77)'
 typography:
   body:
     fontFamily: "'Geist Mono Variable', ui-monospace, monospace"
@@ -280,6 +280,14 @@ The Tailwind `text-xs/sm/base/lg` utilities map to the same tokens in `@theme`, 
 
 Mobile-first single column with no layout breakpoints; no narrow-width tweaks. `.content` is the `--content-width` (560px) column, which the floating tab bar shares (see Navigation). `.content` sets `--gutter` (`space-5`) as its inline padding; the page top bar and the `TabBand` bleed out to the content edges with a negative `--gutter` margin. The segmented control options shrink (`min-width: 0`, `space-1` side padding), wrap labels with `overflow-wrap: anywhere` instead of clipping, and keep the 2.75rem hit area. The page top bar is sticky (z-index 9, inside `.content`) only on viewports at least 40em tall (`@media (min-height: 40em)`; `em` is the browser text size, so large text or zoom turns it off and the bar scrolls away); under the same query `html` has a `scroll-padding-top` so focused elements stay clear of it, and the tab bar is fixed above the home indicator (z-index 10). On the tab screens the content's bottom padding is `--tabbar-clearance` plus 1rem so nothing hides under the bar; other screens keep `calc(space-8 + 4.5rem + env(safe-area-inset-bottom))`. The signed-out screens (`AuthPage`) are a 400px column under a full-width emerald band, with safe-area padding on all four sides. Spacing is a short rem scale (`space-1` to `space-6`, plus `space-8`); page padding is `space-5`. The browser theme color follows the page background (cream / stone near-black); the PWA manifest `theme_color` is a cream (`#f6efe1`).
 
+### Tokens
+
+Raw tokens live in `:root` and are exposed through `@theme inline` as Tailwind keys, so `size-control`, `px-gutter` and `gap-group` work. They are declared but unused until the components adopt them; adding them changes nothing on screen.
+
+- **Size scale** (rem, today's px at 16px): `--size-glyph-chip` 1.25rem, `--size-lead` 2.25rem, `--size-hero` 3.5rem, `--size-control` (= `--tap-target`, 2.75rem), `--size-field` 3.25rem, `--size-nav` 3.75rem; icons `--icon-sm` 1.125rem, `--icon-md` 1.375rem, `--icon-lg` 1.5rem. Tailwind: `size-*`, `w-*`, `h-*` with `glyph-chip`, `lead`, `hero`, `control`, `field`, `nav`, `icon-sm`, `icon-md`, `icon-lg`.
+- **Spacing roles:** `--space-gutter` (`space-5`, the page inline padding), `--space-group` (`space-5`, the gap between page sections), `--space-row-x` (`space-3`) and `--space-row-y` (0.625rem), the shadcn `Item` padding. Tailwind: `px-gutter`, `gap-group`, `px-row-x`, `py-row-y`.
+- **Money tones:** `--tone-income` (`--positive`), `--tone-expense` (`--negative`), `--tone-neutral` (`--text`); light and dark come from the referenced tokens. Tailwind: `text-tone-income`, `text-tone-expense`, `text-tone-neutral`.
+
 ## Elevation & Depth
 
 Depth comes from layering first, shadow second. The page (cream) is the base; lists and sections sit on surface cards (lighter cream) with a soft shadow; sheets sit on the raised surface. Shadows are soft and small, and money direction colours are never affected by them.
@@ -318,8 +326,17 @@ Motion explains a change (something appeared, moved or was replaced); it never d
 - **Page transitions:** Screens change with a page transition (View Transitions API, `app.css`), `--dur-slow` on the iOS-like `--ease-drawer`: opening a child screen slides it in from the right while the old one drifts left and dims; going back reverses it; switching tabs (only by tapping the bar: there is no tab swipe) slides both pages the full width on the same curve, toward the target's side of the bar (Inicio, Movimientos, Plan, Reportes: a tab to the right enters from the right and pushes the old page out left, a tab to the left the reverse), since tabs are peers; re-tapping the current tab does nothing. The tab bar shows only on the four tab screens, so a child screen reaches a tab through its back control and slides back; other replaces to another screen crossfade in `--dur-base` on `--ease-out`. Changes within one screen (month, currency, filters, search) update in place with no transition, since taps are ignored while one runs. The header and tab bar crossfade in place instead of sliding. With reduced motion every page transition is a 100ms crossfade with no movement; there is none without browser support, or when the browser already animated the back swipe.
 - **Edge-swipe back:** In the installed PWA (standalone display mode only; a Safari tab already has the system swipe) a touch starting within 20px of the left edge and dragging right moves the whole page with the finger (`edgeSwipeBack`, `src/lib/edge-swipe-back.ts`, on the `(app)` layout's `main`): a surface-coloured page with a soft left shadow slides over the background. The gesture is claimed after 10px only when horizontal travel is at least 1.5x the vertical, so vertical scroll, horizontal scrollers that are scrolled, inputs, sliders and text selections keep their touches. Past 35% of the width, or a flick (over 0.5px/ms and 40px), the page finishes sliding out (0.2s) and the screen's own back or close control is clicked (same pop-or-replace logic as the button, with no second page transition); otherwise it springs back in 0.28s on the same curve. It exists only where the header has a back or close control (never on tabs or auth screens) and never while a drawer or dialog is open. With reduced motion the page does not follow the finger; release past the threshold still navigates.
 - **Pull-to-refresh:** It exists only in the installed iOS app (`navigator.standalone` and standalone display mode), which has no native one; Android and browser tabs keep the browser's own, so the root's `overscroll-behavior` stays untouched (`pullRefresh`, `src/lib/pull-refresh.ts`, on the `(app)` layout's `main`; indicator `PullIndicator`). On the four tab screens only (child screens are details and forms, where a reload could clobber input and edge-swipe back owns the gestures), with the document at the top, a drag claimed after 10px with vertical travel at least 1.5x the horizontal moves the content down with iOS rubber-band resistance while the header stays put (the `TabBand`'s emerald backdrop fills the gap it uncovers), uncovering a 2rem surface-coloured circle below it: an arrow that fades in and turns with the pull and points up in `--primary` once armed at 72px. At the top a downward move is cancelled while it may still be ours, so the iOS bounce never doubles it. Release past 72px holds the content at 56px with a spinner while the screen's data reloads (`refreshAll`, at least 0.4s so it does not flash; a failure shows the error toast "No se pudo actualizar."), then settles back in 0.28s on the shared curve; below it the content springs back in 0.28s, and a finger landing on it mid-spring catches it. Drawers, dialogs, inputs, sliders, text selections and any element that scrolls on its own keep their touches. The indicator is `aria-hidden`; a polite status line announces "Actualizando…" and "Actualizado". With reduced motion the content does not move and the indicator only fades in in place (static spinner); release past the threshold still refreshes.
+- **Reduced-motion and swipe tokens:** `--dur-reduced` (100ms) is the page transitions' duration under `prefers-reduced-motion` (`DUR_REDUCED` in `src/lib/constants.ts` mirrors it); `--shadow-swipe` is the edge shadow of a page dragged by edge-swipe back (`edge-swipe-back.ts` reads it).
 - **Bars:** `Meter` and the Reportes month bars are full-size fills slid by a transform inside a clipping track (`translateX` / `translateY`), so a change glides on the GPU and the rounded end keeps its shape.
 - **Reduced motion:** nothing moves; fades stay (100ms for `appear`, page transitions and the movement list's fade), the segmented thumb snaps, and the meter and bar fills jump.
+
+## Copy
+
+All user-facing text (es-AR) lives in one typed catalogue, `src/lib/copy/es.ts`; the server error messages are in it already and screen text moves in as each screen is restyled.
+
+- **Structure:** `es` is `as const`, grouped by area: `common` (`tooManyAttempts`, `fields`, `amount`), `auth`, `home`, `movements`, `accounts`, `categories`, `plan`, `reports`, `imports`, `profile`, `emails`. Errors sit under `<area>.errors`; sync, OAuth and Galicia upload messages under `imports` and `profile`. `Copy` is its type.
+- **Helpers:** `plural(n, one, other)` picks the word (singular only for 1) and `countOf(n, one, other)` gives "3 cuentas". Amounts arrive already formatted by `formatMoney` (`FormattedAmount`); the catalogue never formats.
+- **Imports:** `es.ts` imports only `../constants.ts` at runtime (limits in messages come from there) and types from `../money.ts`. App code imports `#lib/copy/es.ts`; the E2E specs import `../src/lib/copy/es` and assert the catalogue value instead of a literal, so rewording a message needs no spec edit.
 
 ## Components
 
@@ -465,6 +482,20 @@ There is no grey WebKit tap flash (`-webkit-tap-highlight-color: transparent` on
 ### Navigation Progress
 
 A 3px `--primary` bar fixed at the top (`NavProgress`, below the safe area) appears only when a navigation's data takes longer than 150ms: a 40% segment sliding across in 1.1s on the page-transition curve, or a still full-width bar with reduced motion. It is gone before the page transition starts and is never part of its snapshots.
+
+## Enforcement
+
+`pnpm lint` (so CI) fails on these rules, all at error level (`eslint.config.js`, local rules in `eslint-rules/`):
+
+- **`gastar/no-arbitrary-tailwind`**: no `[...]` arbitrary values or properties and no default-palette colours (`bg-red-500`, `text-white`) in `class`/`*Class` attributes, `class:` directives and `cn`/`clsx`/`twMerge`/`tv`/`cva` arguments. `(--token)` shorthand and arbitrary variants (`data-[state=open]:`) are allowed. `src/lib/components/ui/**` (upstream shadcn structure) is exempt from this rule only.
+- **`gastar/no-raw-color`**: no hex or `rgb()`/`hsl()`/`oklch()`-style colours in strings, template strings, attributes or `<style>` under `src` (`.ts`, `.js`, `.svelte`). Colours live in `app.css` tokens.
+- **`svelte/no-inline-styles`** (`allowTransitions: true`): no `style=` or `style:`. To pass a value to a component's CSS, use a component CSS prop (`<X --ratio={x}>`).
+- **`no-restricted-imports`**: routes (`src/routes/**`) never import from `components/ui/`; they use the base components.
+- **`gastar/no-literal-text`**: no literal text in Svelte markup, text expressions or the `placeholder`, `title`, `alt`, `label` and `aria-*` text attributes; text comes from `src/lib/copy/es.ts`. Symbols, digits and punctuation pass.
+
+**Legacy allowlist.** Files not yet migrated are listed per rule in `eslint-legacy-allowlist.js` (rule off for those files only). Each phase removes the files it migrates; the last phase deletes the file. New files must comply and never go on the list.
+
+Allowlist size at phase 1 (files per rule): `no-arbitrary-tailwind` 10, `no-raw-color` 4, `no-inline-styles` 9, `no-restricted-imports` 28, `no-literal-text` 90.
 
 ## Do's and Don'ts
 

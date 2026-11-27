@@ -1,12 +1,8 @@
-import { NAME_MAX_LENGTH, tooLongMessage } from '#lib/fields.ts';
+import { NAME_MAX_LENGTH } from '#lib/constants.ts';
+import { es } from '#lib/copy/es.ts';
 import { CATEGORY_ICONS, SWATCHES, toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 import { CATEGORY_KINDS, type CategoryKind } from '#lib/movement.ts';
 import { editFormData, readFields, requiredText } from '../forms';
-
-export const NOT_FOUND_MESSAGE = 'Categoría no encontrada.';
-export const DUPLICATE_NAME_MESSAGE = 'Ya tenés una categoría con ese nombre.';
-export const DELETE_REFERENCED_MESSAGE = 'Esta categoría tiene movimientos. Podés archivarla.';
-export const KIND_LOCKED_MESSAGE = 'Tiene movimientos, solo se puede cambiar a Ambos.';
 
 export const FIELDS = ['name', 'color', 'icon', 'kind'] as const;
 
@@ -22,8 +18,8 @@ export type CategoryFormResult =
 	| { ok: false; values: Record<string, string>; errors: CategoryFormErrors };
 
 const nameField = requiredText(NAME_MAX_LENGTH, {
-	empty: 'Ingresá un nombre.',
-	long: tooLongMessage('El nombre', NAME_MAX_LENGTH)
+	empty: es.common.fields.enterName,
+	long: es.common.fields.tooLong('El nombre', NAME_MAX_LENGTH)
 });
 
 export const toFormValues = (c: {
@@ -47,10 +43,10 @@ export function parseCategoryForm(fd: FormData): CategoryFormResult {
 
 	const name = nameField(values.name);
 	if (name.error) errors.name = name.error;
-	if (!SWATCHES.some((s) => s.key === values.color)) errors.color = 'Elegí un color.';
+	if (!SWATCHES.some((s) => s.key === values.color)) errors.color = es.common.fields.pickColor;
 	// '' (or a missing field) means no icon.
 	if (values.icon !== '' && !CATEGORY_ICONS.some((i) => i.key === values.icon))
-		errors.icon = 'Elegí un ícono.';
+		errors.icon = es.common.fields.pickIcon;
 	// '' (or a missing field) means both.
 	const kind = CATEGORY_KINDS.find((k) => k === values.kind) ?? null;
 	if (values.kind !== '' && !kind) errors.kind = 'Elegí un tipo.';

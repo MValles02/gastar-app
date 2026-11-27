@@ -1,3 +1,5 @@
+import { PRESS_DELAY_MS, TAP_FLASH_MS } from '#lib/constants.ts';
+
 /**
  * Touch press feedback for list rows, like a native iOS list: a row under the finger gets
  * `data-pressed` only once the finger has rested on it for PRESS_DELAY_MS without moving, and
@@ -9,8 +11,6 @@
  * rows lit up under every scroll and swipe; that is why touch uses this instead.
  */
 const PRESSABLE = "a[data-slot='item'], button[data-slot='item'], [data-press]";
-const PRESS_DELAY_MS = 120;
-const TAP_FLASH_MS = 100;
 const MOVE_PX = 10;
 
 export function pressFeedback(doc: Document) {

@@ -1,6 +1,3 @@
-import { AMOUNT_EXAMPLE } from './money';
-import { DESCRIPTION_TOO_LONG_MESSAGE } from './fields';
-
 /** The new-movement form's path (its own page, and the one a save never returns to). */
 export const NEW_MOVEMENT_PATH = '/movements/new';
 
@@ -60,27 +57,6 @@ export const KIND_LABEL = { outcome: 'Gastos', income: 'Ingresos' } as const sat
 
 /** Kind picker options; each screen adds its own '' entry ("Ambos" or "Todas"). */
 export const KIND_OPTIONS = CATEGORY_KINDS.map((k) => ({ value: k, label: KIND_LABEL[k] }));
-
-export const MOVEMENT_MESSAGES = {
-	type: 'Elegí un tipo de movimiento.',
-	date: 'Ingresá una fecha válida.',
-	descEmpty: 'Ingresá una descripción.',
-	descLong: DESCRIPTION_TOO_LONG_MESSAGE,
-	amount: `Ingresá un monto mayor a cero ${AMOUNT_EXAMPLE}.`,
-	account: 'Elegí una cuenta.',
-	archivedAccount: 'Esa cuenta está archivada. Elegí otra.',
-	destination: 'Elegí la cuenta de destino.',
-	sameAccount: 'Elegí una cuenta distinta de la de origen.',
-	rate: 'Ingresá la cotización (1 USD = X ARS) en pesos enteros y mayor a cero.',
-	zero: 'El monto convertido da 0. Revisá el monto o la cotización.',
-	overflow: 'El monto convertido es demasiado grande.',
-	category: 'Elegí una categoría.',
-	archivedCategory: 'Esa categoría está archivada. Elegí otra.',
-	kindMismatch: {
-		income: 'Esa categoría es de ingresos. Elegí otra.',
-		outcome: 'Esa categoría es de gastos. Elegí otra.'
-	}
-};
 
 /**
  * Why a picked account or category can't be used, or null: archived (unless `kept`: the ref it

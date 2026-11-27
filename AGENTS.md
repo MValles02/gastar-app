@@ -13,6 +13,7 @@ Public sign-up (email + password, email verification required, password reset by
 | Environments, secrets, Dokploy, rollback, promotion   | `docs/deployment.md`             |
 | Production env vars, creating users                   | `README.md`                      |
 | Product audience/tone; visual system                  | `PRODUCT.md`, `DESIGN.md` (root) |
+| Redesign D plan and review notes                      | `docs/redesign/`                 |
 
 ## Stack
 

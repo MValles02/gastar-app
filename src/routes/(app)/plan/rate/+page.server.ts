@@ -1,7 +1,7 @@
 import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { formatAmountInput, isValidRate, parseAmount, RATE_CURRENCY } from '#lib/money.ts';
-import { MOVEMENT_MESSAGES } from '#lib/movement.ts';
+import { es } from '#lib/copy/es.ts';
 import { latestTransferRate, updatePlan } from '#lib/server/plan/queries.ts';
 import { planView } from '#lib/server/plan/month-plan.ts';
 import { requirePlan, toPlan } from '#lib/server/plan/guard.ts';
@@ -27,7 +27,7 @@ export const actions: Actions = {
 		const raw = str(await request.formData(), 'rate');
 		const rate = parseAmount(raw);
 		if (!isValidRate(rate))
-			return formFail(400, { values: { rate: raw }, errors: { rate: MOVEMENT_MESSAGES.rate } });
+			return formFail(400, { values: { rate: raw }, errors: { rate: es.movements.errors.rate } });
 		await updatePlan(userId, { exchangeRate: rate });
 		toPlan();
 	},

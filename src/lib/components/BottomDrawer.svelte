@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getContext, setContext, untrack, type Snippet } from 'svelte';
 	import { Drawer as DrawerPrimitive } from 'vaul-svelte';
+	import { DRAWER_CLOSE_MS } from '#lib/constants.ts';
 	import { drawers } from '#lib/drawer-open.svelte.ts';
 	import X from '@lucide/svelte/icons/x';
 	import * as Drawer from '#lib/components/ui/drawer/index.js';
@@ -38,9 +39,6 @@
 		children: Snippet;
 	} = $props();
 
-	// vaul's close animation (TRANSITIONS.DURATION = 0.5s, not exported); bits-ui returns focus to the
-	// trigger as the content unmounts, which is before this ends.
-	const CLOSE_MS = 500;
 	let drawerEl = $state<HTMLElement | null>(null);
 	let wasOpen = false;
 	// `onclosed` fires once per open -> closed change, whoever closed it (vaul's own onAnimationEnd only
@@ -52,7 +50,7 @@
 		}
 		if (!wasOpen) return;
 		wasOpen = false;
-		const timer = setTimeout(() => onclosed?.(), CLOSE_MS);
+		const timer = setTimeout(() => onclosed?.(), DRAWER_CLOSE_MS);
 		return () => clearTimeout(timer);
 	});
 

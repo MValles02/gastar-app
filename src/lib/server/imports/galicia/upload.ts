@@ -1,19 +1,11 @@
-import type { Currency } from '#lib/money.ts';
-
-/** Upload cap; the real statements are well under 1 MB. BODY_SIZE_LIMIT (Dockerfile) sits above it. */
-export const MAX_STATEMENT_BYTES = 5 * 1024 * 1024;
-
-/** Shown when the statement has items in a currency whose Banco Galicia account is not chosen. */
-export const MISSING_ACCOUNT_ERRORS: Record<Currency, string> = {
-	ARS: 'Elegí la cuenta en pesos antes de subir el resumen.',
-	USD: 'El resumen tiene consumos en dólares: elegí una cuenta en dólares.'
-};
+import { es } from '#lib/copy/es.ts';
+import { MAX_STATEMENT_BYTES } from '#lib/server/constants.ts';
 
 /** An error message when the posted `statement` value is not an acceptable file, else null. */
 export function checkStatementFile(file: unknown): string | null {
-	if (!(file instanceof File) || file.size === 0) return 'Elegí el PDF del resumen.';
+	if (!(file instanceof File) || file.size === 0) return es.profile.galicia.noFile;
 	if (file.size > MAX_STATEMENT_BYTES) {
-		return `El archivo supera los ${MAX_STATEMENT_BYTES / 1024 / 1024} MB.`;
+		return es.profile.galicia.tooBig(MAX_STATEMENT_BYTES / 1024 / 1024);
 	}
 	return null;
 }

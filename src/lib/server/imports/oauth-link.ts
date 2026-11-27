@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { error, redirect, type RequestEvent } from '@sveltejs/kit';
 import { dev } from '$app/env';
-import { tooManyAttempts } from '../auth-forms';
+import { es } from '#lib/copy/es.ts';
 import { requireUser } from '../guards';
 import { isBlocked, record } from '../rate-limit';
 
@@ -31,11 +31,6 @@ export type OAuthLink<Code extends string = string> = {
 	unlink: (userId: string) => Promise<void>;
 };
 
-const SHARED_FLASHES = {
-	denied: 'Cancelaste la vinculación.',
-	state: 'La vinculación venció. Probá de nuevo.'
-};
-
 const b64url = (buf: Buffer) => buf.toString('base64url');
 
 /** New CSRF state and PKCE verifier, with the verifier's S256 challenge. */
@@ -53,8 +48,8 @@ export const callbackUrl = (path: string, origin: string) => `${origin}${path}/c
 /** The link page's notices from its URL: `?linked=1` and the message of a known `?error=` code. */
 export function linkFlash(link: OAuthLink, url: URL) {
 	const flashes: Record<string, string> = {
-		...SHARED_FLASHES,
-		...(link.limitStart ? { rate: tooManyAttempts('minuto') } : {}),
+		...es.profile.link,
+		...(link.limitStart ? { rate: es.common.tooManyAttempts('minuto') } : {}),
 		...link.flashes
 	};
 	const code = url.searchParams.get('error');

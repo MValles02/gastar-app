@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
-import { isValidPasswordLength, PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
+import { es } from '#lib/copy/es.ts';
+import { isValidPasswordLength } from '#lib/fields.ts';
 import { auth } from '#lib/server/auth.ts';
 import {
 	googleReauthAction,
@@ -32,7 +33,7 @@ export const actions: Actions = {
 
 		if (gate.mode === 'recent') {
 			if (!isValidPasswordLength(newPassword)) {
-				return formFail(400, { errors: { next: PASSWORD_MIN_MESSAGE } });
+				return formFail(400, { errors: { next: es.common.fields.passwordMin } });
 			}
 			try {
 				await auth.api.setPassword({ body: { newPassword }, headers: request.headers });
@@ -47,7 +48,7 @@ export const actions: Actions = {
 
 		const errors: { current?: string; next?: string } = {};
 		if (!currentPassword) errors.current = 'Ingresá tu contraseña actual.';
-		if (!isValidPasswordLength(newPassword)) errors.next = PASSWORD_MIN_MESSAGE;
+		if (!isValidPasswordLength(newPassword)) errors.next = es.common.fields.passwordMin;
 		if (errors.current || errors.next) return formFail(400, { errors });
 
 		try {

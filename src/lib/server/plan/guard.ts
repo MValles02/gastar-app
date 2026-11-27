@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { es } from '#lib/copy/es.ts';
 import { formFail } from '#lib/form.ts';
 import { notFoundHelpers } from '../guards';
 import { setupStepHref, wizardStep, type WizardStepName } from '#lib/plan-wizard.ts';
@@ -38,7 +39,7 @@ export async function requireWizardStep(userId: string, step: WizardStepName) {
 	return plan;
 }
 
-const { notFound, requireId } = notFoundHelpers('Límite no encontrado.');
+const { notFound, requireId } = notFoundHelpers(es.plan.errors.limitNotFound);
 
 export async function requireLimit(userId: string, planId: string, categoryId: string) {
 	requireId(categoryId);

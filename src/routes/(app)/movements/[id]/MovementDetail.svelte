@@ -6,14 +6,9 @@
 	import { autosave } from '#lib/autosave.ts';
 	import { MIN_DAY } from '#lib/dates.ts';
 	import { CURRENCY_SYMBOL } from '#lib/money.ts';
-	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
-	import {
-		archived,
-		categoriesFor,
-		kindFits,
-		MOVEMENT_MESSAGES,
-		movementNeeds
-	} from '#lib/movement.ts';
+	import { DESCRIPTION_MAX_LENGTH } from '#lib/constants.ts';
+	import { es } from '#lib/copy/es.ts';
+	import { archived, categoriesFor, kindFits, movementNeeds } from '#lib/movement.ts';
 	import { upOnClick } from '#lib/nav-stack.svelte.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import { closeAfterDelete, formScreen } from '#lib/components/forms/form-enhance.ts';
@@ -178,8 +173,8 @@
 		const what = missing(fields);
 		if (!what) return save(fields);
 		Object.assign(pending, extra);
-		if (what === 'category') errors.categoryId = MOVEMENT_MESSAGES.category;
-		if (what === 'destination') errors.destinationAccountId = MOVEMENT_MESSAGES.destination;
+		if (what === 'category') errors.categoryId = es.movements.errors.category;
+		if (what === 'destination') errors.destinationAccountId = es.movements.errors.destination;
 		prompt(what);
 		return null;
 	}
@@ -323,7 +318,7 @@
 					open={needsRate}
 					required={needsRate}
 					onsave={saveRate}
-					error={needsRate ? MOVEMENT_MESSAGES.rate : undefined}
+					error={needsRate ? es.movements.errors.rate : undefined}
 					converted={m.destinationAmount !== null &&
 					m.destinationCurrency &&
 					!pending.accountId &&

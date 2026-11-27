@@ -1,3 +1,4 @@
+import { es } from '#lib/copy/es.ts';
 import { formFail } from '#lib/form.ts';
 import { isCurrency, type Currency } from '#lib/money.ts';
 import { PLAN_CURRENCY } from '#lib/plan.ts';
@@ -43,7 +44,7 @@ export async function createLimit(userId: string, planId: string, fd: FormData) 
 		failure: formFail(400, { values, errors })
 	});
 
-	if (!currency) return reject({ currency: 'Elegí una moneda.' });
+	if (!currency) return reject({ currency: es.common.fields.pickCurrency });
 	if (!(await limitCandidates(userId, planId)).some((c) => c.id === categoryId))
 		return reject({ categoryId: 'Elegí una categoría.' });
 	return saveLimit(

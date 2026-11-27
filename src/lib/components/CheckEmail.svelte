@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import AuthPage from '#lib/components/AuthPage.svelte';
+	import { RESEND_COOLDOWN_SECONDS } from '#lib/constants.ts';
 	import { appear } from '#lib/motion.ts';
 
 	// Shared "Revisá tu email" screen. The page that renders it must have a `resend` action.
@@ -16,14 +17,13 @@
 		onshown
 	}: { email: string; kind: 'verify' | 'reset'; backHref: string; onshown?: () => void } = $props();
 
-	const COOLDOWN_SECONDS = 60;
 	// Starts at 0 so without JS the button stays usable; the countdown only exists with JS.
 	let seconds = $state(0);
 	let sent = $state(false);
 
 	onMount(() => {
 		onshown?.();
-		seconds = COOLDOWN_SECONDS;
+		seconds = RESEND_COOLDOWN_SECONDS;
 		const timer = setInterval(() => {
 			if (seconds > 0) seconds--;
 		}, 1000);
@@ -54,7 +54,7 @@
 			}
 			return async ({ update }) => {
 				await update({ reset: false });
-				seconds = COOLDOWN_SECONDS;
+				seconds = RESEND_COOLDOWN_SECONDS;
 				sent = true;
 			};
 		}}

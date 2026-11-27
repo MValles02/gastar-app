@@ -8,11 +8,6 @@ import {
 	FLICK_MIN_PX,
 	FLICK_VELOCITY,
 	LOCK_PX,
-	POLL_MS,
-	RESET_SLACK_MS,
-	SETTLE_MS,
-	SLIDE_OUT_MS,
-	SPRING_MS,
 	SWIPING_CLASS,
 	dialogOpen,
 	isStandalone,
@@ -20,6 +15,7 @@ import {
 	reducedMotion,
 	velocity
 } from '#lib/swipe.ts';
+import { POLL_MS, RESET_SLACK_MS, SETTLE_MS, SLIDE_OUT_MS, SPRING_MS } from '#lib/constants.ts';
 
 /**
  * Edge-swipe back for the installed PWA (iOS standalone has no system swipe-back). A touch that
@@ -113,7 +109,7 @@ export function edgeSwipeBack(node: HTMLElement) {
 				node.style.transition = 'none';
 				node.style.willChange = 'transform';
 				node.style.background = 'var(--bg)';
-				node.style.boxShadow = '-12px 0 24px -12px rgb(0 0 0 / 0.25)';
+				node.style.boxShadow = 'var(--shadow-swipe)';
 			}
 		}
 		e.preventDefault();

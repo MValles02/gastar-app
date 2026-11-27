@@ -2,7 +2,7 @@ import { categoryLook } from '#lib/appearance.ts';
 import type { Currency } from '#lib/money.ts';
 import { signOf, type MovementType } from '#lib/movement.ts';
 import { dayHeading, localDay, monthHeading } from '../month';
-import { PAGE_SIZE } from './queries';
+import { MOVEMENTS_PAGE_SIZE } from '#lib/server/constants.ts';
 
 export type RecentRow = {
 	id: string;
@@ -93,6 +93,6 @@ export function groupByMonthDay(
 
 /** One page of rows (fetched with a lookahead row) grouped by month and day, and whether another page follows. */
 export function movementPage(rows: RecentRow[], today: string, currency: Currency | undefined) {
-	const hasNext = rows.length > PAGE_SIZE;
-	return { months: groupByMonthDay(rows.slice(0, PAGE_SIZE), today, currency), hasNext };
+	const hasNext = rows.length > MOVEMENTS_PAGE_SIZE;
+	return { months: groupByMonthDay(rows.slice(0, MOVEMENTS_PAGE_SIZE), today, currency), hasNext };
 }

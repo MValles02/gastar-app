@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import { getDocumentProxy } from 'unpdf';
+import type { es } from '#lib/copy/es.ts';
 import { CURRENCIES, type Currency } from '#lib/money.ts';
 import { CARD_NETWORK, CARD_NETWORKS, type CardNetwork } from '#lib/imports.ts';
+import { STATEMENT_MAX_PAGES } from '#lib/server/constants.ts';
 
 // Parser for Banco Galicia credit-card statement PDFs (Visa and Mastercard). The PDF is read in
 // memory only; nothing here logs or returns the holder's name, address or account numbers.
@@ -35,15 +37,8 @@ export type Statement = {
 	charges: Record<Currency, number>;
 };
 
-/** What the upload says for each way a statement can fail. */
-export const STATEMENT_ERRORS = {
-	unreadable: 'No pudimos leer el PDF. Subí el resumen tal como lo descargaste de Galicia.',
-	too_many_pages: 'El PDF tiene demasiadas páginas para ser un resumen.',
-	not_galicia: 'Ese PDF no es un resumen de tarjeta de Banco Galicia.',
-	unbalanced: 'El resumen no cuadra con el total; no se importó nada.'
-} as const;
-
-export type StatementErrorCode = keyof typeof STATEMENT_ERRORS;
+/** The ways a statement can fail; the upload says each in the catalogue. */
+export type StatementErrorCode = keyof typeof es.profile.galicia.statement;
 
 export class StatementError extends Error {
 	readonly code: StatementErrorCode;
@@ -53,7 +48,6 @@ export class StatementError extends Error {
 	}
 }
 
-const MAX_PAGES = 20;
 /** Deadline for PDF text extraction (loading + all pages); a crafted PDF cannot keep the server busy longer. */
 const PARSE_TIMEOUT_MS = 5000;
 const GALICIA_CUIT = '30-50000173-5';
@@ -115,7 +109,7 @@ async function readLines(bytes: Uint8Array): Promise<Line[]> {
 		throw new StatementError('unreadable');
 	}
 	try {
-		if (pdf.numPages > MAX_PAGES) throw new StatementError('too_many_pages');
+		if (pdf.numPages > STATEMENT_MAX_PAGES) throw new StatementError('too_many_pages');
 		const lines: Line[] = [];
 		for (let p = 1; p <= pdf.numPages; p++) {
 			const page = await within(pdf.getPage(p));

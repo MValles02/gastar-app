@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { PASSWORD_MIN_MESSAGE, USER_NAME_MAX_LENGTH } from '#lib/fields.ts';
+	import { USER_NAME_MAX_LENGTH } from '#lib/constants.ts';
+	import { es } from '#lib/copy/es.ts';
 	import AuthForm from '#lib/components/AuthForm.svelte';
 	import AuthPage from '#lib/components/AuthPage.svelte';
 	import AuthTabs from '#lib/components/AuthTabs.svelte';
@@ -62,7 +63,7 @@
 				bind:value={password}
 				autocomplete="new-password"
 				error={form?.errors?.password}
-				hint={PASSWORD_MIN_MESSAGE}
+				hint={es.common.fields.passwordMin}
 			/>
 
 			{#if form?.formError}

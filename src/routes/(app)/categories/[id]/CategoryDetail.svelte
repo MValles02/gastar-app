@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { CATEGORY_ICONS, toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 	import { autosaveChanged } from '#lib/autosave.ts';
-	import { NAME_MAX_LENGTH } from '#lib/fields.ts';
+	import { NAME_MAX_LENGTH } from '#lib/constants.ts';
 	import { ARCHIVED_LABEL } from '#lib/movement.ts';
 	import CategoryKindRow from '#lib/components/categories/CategoryKindRow.svelte';
 	import CategoryMonthHero from '#lib/components/categories/CategoryMonthHero.svelte';

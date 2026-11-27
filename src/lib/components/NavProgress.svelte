@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { navigating } from '$app/state';
-
-	/** Delay before the bar shows: instant navigations never flash it. */
-	const DELAY_MS = 150;
+	import { NAV_PROGRESS_DELAY_MS } from '#lib/constants.ts';
 
 	let visible = $state(false);
 
@@ -11,7 +9,7 @@
 			visible = false;
 			return;
 		}
-		const timer = setTimeout(() => (visible = true), DELAY_MS);
+		const timer = setTimeout(() => (visible = true), NAV_PROGRESS_DELAY_MS);
 		return () => clearTimeout(timer);
 	});
 </script>

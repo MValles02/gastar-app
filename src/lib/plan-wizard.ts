@@ -1,4 +1,5 @@
-import { ARS_WHOLE_MESSAGE, isWholeFor, parseAmount, type Currency } from './money';
+import { es } from './copy/es';
+import { isWholeFor, parseAmount, type Currency } from './money';
 
 /**
  * The plan setup wizard's steps in order: step N (`/plan/setup?step=N`) is entry N - 1, with the question
@@ -48,6 +49,6 @@ export function parseLimitAmount(
 ): { cents: number } | { message: string } {
 	const cents = parseAmount(raw);
 	if (cents === null || cents <= 0) return { message: 'Ingresá un límite válido.' };
-	if (!isWholeFor(cents, currency)) return { message: ARS_WHOLE_MESSAGE };
+	if (!isWholeFor(cents, currency)) return { message: es.common.amount.arsWhole };
 	return { cents };
 }

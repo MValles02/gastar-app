@@ -28,7 +28,7 @@ import type { MovementType } from '#lib/movement.ts';
 import type { MovementRow } from '../movements/form';
 import { createMovement, deleteMovement } from '../movements/queries';
 import { installmentAmounts, installmentEndsMonth, rememberKey } from './rules';
-import { AUTO_APPROVED_DAYS } from './settings';
+import { AUTO_APPROVED_DAYS } from '#lib/server/constants.ts';
 import { type Kind, type SourceId } from '#lib/imports.ts';
 
 // The columns are CHECK-constrained to the SOURCE ids and KIND values: the one cast from text.

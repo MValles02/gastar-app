@@ -1,3 +1,4 @@
+import { es } from '#lib/copy/es.ts';
 import { formFail } from '#lib/form.ts';
 import type { Currency } from '#lib/money.ts';
 import { withBalances } from '../accounts/balance';
@@ -7,11 +8,11 @@ import { dateLabel, localDay } from '../month';
 import { notFoundHelpers } from '../guards';
 import { getRecurring } from '../recurring/queries';
 import { activeRuleItems, ruleItem } from '../recurring/rule-items';
-import { type KeptRefs, toFormValues, UNAVAILABLE_MESSAGE } from './form';
+import { type KeptRefs, toFormValues } from './form';
 import { movementPickers } from './pickers';
 import { categoryUsage, getMovement } from './queries';
 
-export const { notFound, requireId } = notFoundHelpers('Movimiento no encontrado.');
+export const { notFound, requireId } = notFoundHelpers(es.movements.errors.notFound);
 
 export async function findMovement(userId: string, id: string) {
 	requireId(id);
@@ -115,7 +116,7 @@ export function failIfUnavailable(e: unknown, values: Record<string, string>) {
 			: constraint.includes('category_id')
 				? 'categoryId'
 				: 'accountId';
-		return formFail(400, { values, errors: { [field]: UNAVAILABLE_MESSAGE } });
+		return formFail(400, { values, errors: { [field]: es.movements.errors.unavailable } });
 	}
 	throw e;
 }

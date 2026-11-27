@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { es } from '../src/lib/copy/es';
 import { deleteMovements, login, NO_JS, noJsOption, unique } from './helpers';
 
 // Descriptions of movements this spec may have created; removed in afterEach.
@@ -56,7 +57,7 @@ test.describe('without JavaScript', () => {
 			headers: { origin: baseURL!, accept: 'text/html' }
 		});
 		expect(res.status()).toBe(400);
-		expect(await res.text()).toContain('Ingresá una fecha válida.');
+		expect(await res.text()).toContain(es.movements.errors.date);
 		await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
 		await expect(page.getByText(desc)).toHaveCount(0);
 	});

@@ -1,13 +1,7 @@
+import { es } from '#lib/copy/es.ts';
 import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
-import {
-	DELETE_REFERENCED_MESSAGE,
-	DUPLICATE_NAME_MESSAGE,
-	editedForm,
-	KIND_LOCKED_MESSAGE,
-	NOT_FOUND_MESSAGE,
-	parseCategoryForm
-} from '#lib/server/categories/form.ts';
+import { editedForm, parseCategoryForm } from '#lib/server/categories/form.ts';
 import {
 	categoryMonthNet,
 	deleteCategory,
@@ -24,7 +18,7 @@ import { monthLabel, monthParam, monthRange } from '#lib/server/month.ts';
 import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
 import { CATEGORY_KINDS } from '#lib/movement.ts';
 
-const guards = notFoundHelpers(NOT_FOUND_MESSAGE);
+const guards = notFoundHelpers(es.categories.errors.notFound);
 const { notFound, requireId } = guards;
 
 /** The category as the detail shows it (what the load returns and `update` hands back). */
@@ -76,9 +70,15 @@ export const actions: Actions = {
 			params.id
 		);
 		if (!rows)
-			return formFail(400, { values: parsed.data, errors: { name: DUPLICATE_NAME_MESSAGE } });
+			return formFail(400, {
+				values: parsed.data,
+				errors: { name: es.categories.errors.duplicateName }
+			});
 		if (rows === 'kind-locked')
-			return formFail(400, { values: parsed.data, errors: { kind: KIND_LOCKED_MESSAGE } });
+			return formFail(400, {
+				values: parsed.data,
+				errors: { kind: es.categories.errors.kindLocked }
+			});
 		if (rows.length === 0) notFound();
 		return await categoryOf(userId, params.id);
 	},
@@ -87,7 +87,7 @@ export const actions: Actions = {
 		{
 			isReferenced: isCategoryReferenced,
 			remove: deleteCategory,
-			message: DELETE_REFERENCED_MESSAGE,
+			message: es.categories.errors.deleteReferenced,
 			redirectTo: '/categories'
 		},
 		guards

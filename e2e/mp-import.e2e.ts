@@ -1,4 +1,5 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
+import { es } from '../src/lib/copy/es';
 import {
 	deleteMovements,
 	findMovements,
@@ -225,7 +226,9 @@ test('a sync that times out in MP queue is retried on the same report, not a new
 	// Ready 8s after its creation: past the 5s report wait of the first sync, before the second one ends.
 	await fake('/__fake/report-delay', { ms: 8_000 });
 	try {
-		await syncNow(/Mercado Pago tardó demasiado en generar el reporte/);
+		await syncNow(
+			new RegExp(es.imports.mpSyncError.report_timeout.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+		);
 		await fake('/__fake/report-delay', { ms: 0 });
 		await syncNow();
 	} finally {
@@ -286,7 +289,7 @@ test('approving a payment keeps its exact cents, time of day and moves the balan
 	await page.getByRole('textbox', { name: 'Descripción' }).fill(`${AMIGA_DESC} editado`);
 	await page.keyboard.press('Enter');
 	await expect(page.getByText('Cambio guardado.')).toBeVisible();
-	await expect(page.getByText('Los montos en pesos van sin decimales.')).toHaveCount(0);
+	await expect(page.getByText(es.common.amount.arsWhole)).toHaveCount(0);
 	await expect(page.getByRole('button', { name: 'Monto: 1.234,56' })).toBeVisible();
 	await page.getByRole('button', { name: 'Deshacer' }).click();
 	await expect(page.getByRole('button', { name: `Descripción: ${AMIGA_DESC}` })).toBeVisible();
@@ -704,7 +707,10 @@ test('a revoked connection asks to reconnect in Perfil and in the inbox', async 
 		await expect(page.getByRole('link', { name: 'Reconectar' })).toBeVisible();
 	}).toPass(SYNC_WAIT);
 	await expect(page.getByRole('button', { name: 'Sincronizar' })).toHaveCount(0);
-	await expect(page.getByRole('status')).toContainText('volver a vincular');
+	// The status capitalises the catalogue fragment ("Hay que volver a vincular …").
+	await expect(page.getByRole('status')).toContainText(es.imports.mpSyncError.reconnect, {
+		ignoreCase: true
+	});
 	// The items already imported stay listed.
 	await expect(rows().first()).toBeVisible();
 

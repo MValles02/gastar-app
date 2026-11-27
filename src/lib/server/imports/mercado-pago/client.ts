@@ -1,3 +1,4 @@
+import { es } from '#lib/copy/es.ts';
 import { obj } from '../json';
 import { mpApiBaseUrl } from './env';
 
@@ -5,19 +6,10 @@ import { mpApiBaseUrl } from './env';
 export type MpSyncError =
 	'auth' | 'report_timeout' | 'network' | 'parse' | 'config' | 'reconnect' | `mp_${number}`;
 
-/** What the inbox says after "No se pudo sincronizar" for each stored code. */
-const MP_ERROR_LABELS: Record<string, string> = {
-	auth: 'token inválido o vencido',
-	report_timeout: 'Mercado Pago tardó demasiado en generar el reporte',
-	network: 'sin conexión con Mercado Pago',
-	parse: 'reporte con formato inesperado',
-	config: 'revisá la cuenta configurada',
-	reconnect: 'hay que volver a vincular Mercado Pago'
-};
-
 /** The inbox label of a stored code; MP's HTTP errors (`mp_<status>`) name their status. */
 export const mpErrorLabel = (code: string) =>
-	MP_ERROR_LABELS[code] ?? `error ${code.replace(/^mp_/, '')} de Mercado Pago`;
+	(es.imports.mpSyncError as Record<string, string>)[code] ??
+	es.imports.mpHttpError(code.replace(/^mp_/, ''));
 
 const HTTP_TIMEOUT_MS = 30_000;
 // Days, not hours: items from the old release-report sync carry day-start times, and dedupe makes overlap cheap.

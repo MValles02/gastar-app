@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { es } from '../src/lib/copy/es';
 import {
 	fillMovement,
 	fillRule,
@@ -56,7 +57,9 @@ test.describe('account changes', () => {
 
 		await stored('Nombre Viejo');
 		await edit('   ');
-		await expect(page.getByRole('alert').filter({ hasText: 'Falta el nombre.' })).toBeVisible();
+		await expect(
+			page.getByRole('alert').filter({ hasText: es.common.fields.nameMissing })
+		).toBeVisible();
 		await stored('Nombre Viejo');
 
 		await edit('  Nombre Nuevo  ');
@@ -94,7 +97,9 @@ test.describe('account changes', () => {
 		await drawer.locator('#current-password').fill(current);
 		await drawer.locator('#new-password').fill('corta');
 		await save.click();
-		await expect(drawer.getByText('Mínimo 8 caracteres.', { exact: true }).first()).toBeVisible();
+		await expect(
+			drawer.getByText(es.common.fields.passwordMin, { exact: true }).first()
+		).toBeVisible();
 
 		await drawer.locator('#new-password').fill(newPassword);
 		await save.click();
@@ -109,7 +114,7 @@ test.describe('account changes', () => {
 
 		await page.context().clearCookies();
 		await submitLogin(page, email, current);
-		await expect(page.getByText('Email o contraseña incorrectos.')).toBeVisible();
+		await expect(page.getByText(es.auth.login.badCredentials)).toBeVisible();
 		await submitLogin(page, email, newPassword);
 		await expect(page).toHaveURL(/\/$/);
 		current = newPassword;
@@ -163,7 +168,7 @@ test.describe('account changes', () => {
 		await page.goto('/');
 		await expect(page).toHaveURL(/\/login/);
 		await submitLogin(page, email, current);
-		await expect(page.getByText('Email o contraseña incorrectos.')).toBeVisible();
+		await expect(page.getByText(es.auth.login.badCredentials)).toBeVisible();
 
 		// Deleting one user leaves the other users' data intact.
 		await login(page, OTHER_EMAIL);

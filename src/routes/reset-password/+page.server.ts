@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { isValidPasswordLength, PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
+import { es } from '#lib/copy/es.ts';
+import { isValidPasswordLength } from '#lib/fields.ts';
 import { auth } from '#lib/server/auth.ts';
 import { isApiError } from '#lib/server/auth-forms.ts';
 import { str } from '#lib/server/forms.ts';
@@ -18,7 +19,7 @@ export const actions: Actions = {
 
 		if (!token) return fail(400, { expired: true });
 		if (!isValidPasswordLength(password)) {
-			return fail(400, { passwordError: PASSWORD_MIN_MESSAGE });
+			return fail(400, { passwordError: es.common.fields.passwordMin });
 		}
 
 		try {

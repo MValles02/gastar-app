@@ -1,6 +1,7 @@
 import { type ActionFailure, fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import { APIError } from 'better-auth/api';
-import { EMAIL_RE, INVALID_EMAIL_MESSAGE } from '#lib/fields.ts';
+import { es } from '#lib/copy/es.ts';
+import { EMAIL_RE } from '#lib/fields.ts';
 import { formFail } from '#lib/form.ts';
 import { auth } from './auth';
 import { str } from './forms';
@@ -13,7 +14,7 @@ export const VERIFY_EMAIL_PATH = '/verify-email';
 /** The posted email, trimmed, with the message to show when it is not one. */
 export function readEmail(fd: FormData): { email: string; emailError?: string } {
 	const email = str(fd, 'email').trim();
-	return EMAIL_RE.test(email) ? { email } : { email, emailError: INVALID_EMAIL_MESSAGE };
+	return EMAIL_RE.test(email) ? { email } : { email, emailError: es.common.fields.invalidEmail };
 }
 
 export const INVALID_PASSWORD = 'INVALID_PASSWORD';
@@ -21,10 +22,6 @@ export const EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED';
 
 export function isApiError(err: unknown, code?: string): err is APIError {
 	return err instanceof APIError && (code === undefined || err.body?.code === code);
-}
-
-export function tooManyAttempts(when: 'minuto' | 'rato'): string {
-	return `Demasiados intentos. Probá de nuevo en un ${when}.`;
 }
 
 /** Runs a Better Auth call, swallowing its API errors (unknown email, failed send...). */
@@ -56,7 +53,7 @@ export async function reauthGate(
 ): Promise<ReauthGate> {
 	// Rate limit policy (b): count only failures.
 	if (isBlocked(limit, userId)) {
-		return { failure: formFail(429, { formError: tooManyAttempts('rato') }) };
+		return { failure: formFail(429, { formError: es.common.tooManyAttempts('rato') }) };
 	}
 	const mode = await reauthMode(userId, session);
 	if (mode === 'stale') {

@@ -12,18 +12,10 @@ export const COMMIT_RATIO = 0.35;
 /** px/ms over the last samples, plus a minimum travel, for a flick. */
 export const FLICK_VELOCITY = 0.5;
 export const FLICK_MIN_PX = 40;
-/** The motion tokens in app.css (`--ease-drawer`); SPRING_MS and SLIDE_OUT_MS match `--dur-slow` and `--dur-base`. */
+/** The motion tokens in app.css (`--ease-drawer`); the durations (SPRING_MS, SLIDE_OUT_MS) are in constants.ts. */
 export const EASE = 'var(--ease-drawer)';
-/** The spring back to place; the page resets RESET_SLACK_MS after it ends. */
-export const SPRING_MS = 280;
 /** The spring as a CSS transition timing: `--dur-slow` on `--ease-drawer`. */
 export const SPRING = 'var(--dur-slow) var(--ease-drawer)';
-export const RESET_SLACK_MS = 20;
-/** The slide off-screen after a committed swipe; the navigation starts when it ends. */
-export const SLIDE_OUT_MS = 200;
-/** Wait this long for the new page to land, then re-check every POLL_MS while a navigation is pending. */
-export const SETTLE_MS = 1500;
-export const POLL_MS = 300;
 /** Set on <html> while a page is dragged, so a page pushed past the edge adds no horizontal scroll. */
 export const SWIPING_CLASS = 'page-swiping';
 

@@ -1,12 +1,7 @@
 import { MIN_DAY } from '#lib/dates.ts';
-import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
-import {
-	type CategoryKind,
-	MOVEMENT_MESSAGES as MSG,
-	MOVEMENT_TYPES,
-	type MovementType,
-	refError
-} from '#lib/movement.ts';
+import { DESCRIPTION_MAX_LENGTH } from '#lib/constants.ts';
+import { es } from '#lib/copy/es.ts';
+import { type CategoryKind, MOVEMENT_TYPES, type MovementType, refError } from '#lib/movement.ts';
 import {
 	convertAmount,
 	type Currency,
@@ -58,20 +53,19 @@ export type KeptRefs = {
 	archivedOk?: string[];
 };
 
-export const UNAVAILABLE_MESSAGE = 'La cuenta o la categoría ya no está disponible.';
-
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 // Year 9999 is rejected so the day after `to` is always representable.
 export const validDay = (s: string) => YMD_RE.test(s) && s < '9999' && dayStart(s) !== null;
 
-export const kindMismatchMessage = (kind: 'income' | 'outcome') => MSG.kindMismatch[kind];
+export const kindMismatchMessage = (kind: 'income' | 'outcome') =>
+	es.movements.errors.kindMismatch[kind];
 
 export const movementTypeOf = (raw: string, types: readonly MovementType[] = MOVEMENT_TYPES) =>
 	types.find((t) => t === raw);
 
 export const descriptionField = requiredText(DESCRIPTION_MAX_LENGTH, {
-	empty: MSG.descEmpty,
-	long: MSG.descLong
+	empty: es.movements.errors.descEmpty,
+	long: es.movements.errors.descLong
 });
 
 export const toFormValues = (m: {
@@ -114,25 +108,25 @@ export function parseMovementForm(fd: FormData): MovementFormResult {
 	const errors: MovementFormErrors = {};
 
 	const type = movementTypeOf(values.type);
-	if (!type) errors.type = MSG.type;
+	if (!type) errors.type = es.movements.errors.type;
 
 	const day = values.occurredAt;
 	const occurredAt = validDay(day) && day >= MIN_DAY ? dayStart(day) : null;
-	if (!occurredAt) errors.occurredAt = MSG.date;
+	if (!occurredAt) errors.occurredAt = es.movements.errors.date;
 
 	const { value: description, error: descriptionError } = descriptionField(values.description);
 	if (descriptionError) errors.description = descriptionError;
 
 	const amount = parseAmount(values.amount);
-	if (amount === null || amount <= 0) errors.amount = MSG.amount;
+	if (amount === null || amount <= 0) errors.amount = es.movements.errors.amount;
 
-	if (!isUuid(values.accountId)) errors.accountId = MSG.account;
+	if (!isUuid(values.accountId)) errors.accountId = es.movements.errors.account;
 
 	const isTransfer = type === 'transfer';
 	if (isTransfer && !isUuid(values.destinationAccountId))
-		errors.destinationAccountId = MSG.destination;
+		errors.destinationAccountId = es.movements.errors.destination;
 	if ((type === 'income' || type === 'outcome') && !isUuid(values.categoryId))
-		errors.categoryId = MSG.category;
+		errors.categoryId = es.movements.errors.category;
 
 	if (Object.keys(errors).length > 0) return { ok: false, values, errors };
 	// Malformed/absent rate becomes null; resolveMovement rejects it only for cross-currency transfers.
@@ -176,16 +170,16 @@ export function resolveMovement(
 	const kept = (id: string, own: boolean) => own || !!keep.archivedOk?.includes(id);
 	const keptAccount = (id: string) => kept(id, keep.accountIds.includes(id));
 
-	if (!origin) errors.accountId = MSG.account;
+	if (!origin) errors.accountId = es.movements.errors.account;
 	else if (refError(origin, { kept: keptAccount(origin.id) }))
-		errors.accountId = MSG.archivedAccount;
+		errors.accountId = es.movements.errors.archivedAccount;
 	else if (!(keep.amount != null && data.amount === keep.amount)) {
 		const whole = amountFor(origin.currency)(data.amount);
 		if (whole) errors.amount = whole;
 	}
 
 	if (data.type !== 'transfer') {
-		if (!category) errors.categoryId = MSG.category;
+		if (!category) errors.categoryId = es.movements.errors.category;
 		else {
 			// The movement's own category is exempt from the kind check; an undo-restored one isn't.
 			const own = category.id === keep.categoryId;
@@ -193,9 +187,9 @@ export function resolveMovement(
 				kept: kept(category.id, own),
 				kindFor: own ? undefined : data.type
 			});
-			if (error === 'archived') errors.categoryId = MSG.archivedCategory;
+			if (error === 'archived') errors.categoryId = es.movements.errors.archivedCategory;
 			else if (error === 'kind' && category.kind)
-				errors.categoryId = MSG.kindMismatch[category.kind];
+				errors.categoryId = es.movements.errors.kindMismatch[category.kind];
 		}
 		if (Object.keys(errors).length > 0) return { ok: false, errors };
 		return {
@@ -204,10 +198,11 @@ export function resolveMovement(
 		};
 	}
 
-	if (!destination) errors.destinationAccountId = MSG.destination;
-	else if (origin && destination.id === origin.id) errors.destinationAccountId = MSG.sameAccount;
+	if (!destination) errors.destinationAccountId = es.movements.errors.destination;
+	else if (origin && destination.id === origin.id)
+		errors.destinationAccountId = es.movements.errors.sameAccount;
 	else if (refError(destination, { kept: keptAccount(destination.id) }))
-		errors.destinationAccountId = MSG.archivedAccount;
+		errors.destinationAccountId = es.movements.errors.archivedAccount;
 	if (Object.keys(errors).length > 0) return { ok: false, errors };
 
 	const o = origin!;
@@ -218,10 +213,11 @@ export function resolveMovement(
 			row: { ...base, destinationAccountId: d.id, destinationAmount: data.amount }
 		};
 	}
-	if (!isValidRate(data.exchangeRate)) return { ok: false, errors: { exchangeRate: MSG.rate } };
+	if (!isValidRate(data.exchangeRate))
+		return { ok: false, errors: { exchangeRate: es.movements.errors.rate } };
 	const converted = convertAmount(data.amount, data.exchangeRate, o.currency, d.currency);
-	if (converted === null) return { ok: false, errors: { amount: MSG.overflow } };
-	if (converted <= 0) return { ok: false, errors: { amount: MSG.zero } };
+	if (converted === null) return { ok: false, errors: { amount: es.movements.errors.overflow } };
+	if (converted <= 0) return { ok: false, errors: { amount: es.movements.errors.zero } };
 	return {
 		ok: true,
 		row: {
