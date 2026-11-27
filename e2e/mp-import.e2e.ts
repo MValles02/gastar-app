@@ -707,7 +707,10 @@ test('a revoked connection asks to reconnect in Perfil and in the inbox', async 
 		await expect(page.getByRole('link', { name: 'Reconectar' })).toBeVisible();
 	}).toPass(SYNC_WAIT);
 	await expect(page.getByRole('button', { name: 'Sincronizar' })).toHaveCount(0);
-	await expect(page.getByRole('status')).toContainText(es.imports.mpSyncError.reconnect);
+	// The status capitalises the catalogue fragment ("Hay que volver a vincular …").
+	await expect(page.getByRole('status')).toContainText(es.imports.mpSyncError.reconnect, {
+		ignoreCase: true
+	});
 	// The items already imported stay listed.
 	await expect(rows().first()).toBeVisible();
 
