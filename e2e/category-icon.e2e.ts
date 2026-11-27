@@ -1,13 +1,14 @@
 import { expect, test } from '@playwright/test';
 import { es } from '../src/lib/copy/es';
-import { login, withDb } from './helpers';
+import { login, postAction, withDb } from './helpers';
 
 test('creating a category without an icon is rejected', async ({ page, baseURL }) => {
 	await login(page);
 	const name = `Sin icono ${Date.now()}`;
-	const res = await page.request.post('/categories/new', {
-		form: { name, color: 'green', kind: '' },
-		headers: { origin: baseURL!, 'x-sveltekit-action': 'true' }
+	const res = await postAction(page, baseURL!, '/categories/new', {
+		name,
+		color: 'green',
+		kind: ''
 	});
 	const body = await res.json();
 	expect(body.type).toBe('failure');

@@ -9,8 +9,9 @@ export const isModifiedClick = (e: MouseEvent) =>
 
 /**
  * Opens a route that also works as a drawer over the current screen as `page.state[key]` (shallow
- * route, URL unchanged). From a click handler an unmodified click opens it and anything else, or a
- * failed load, is a normal navigation; pass `null` to open it without a click. `replace` refreshes the
+ * route, URL unchanged). From a click handler an unmodified click opens it and anything else is left
+ * to the browser; a redirect result follows its location and a failed load shows an error toast
+ * (`es.ui.openFailed`). Pass `null` to open it without a click. `replace` refreshes the
  * drawer already open under `key` with a fresh load instead of stacking another one.
  */
 export async function openShallow(

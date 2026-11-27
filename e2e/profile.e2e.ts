@@ -88,7 +88,7 @@ test.describe('account changes', () => {
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('La contraseña actual no es correcta.')).toBeVisible();
 
-		// Leave through Inicio: a reload of an entry that holds an open drawer restores it.
+		// Leave through Inicio: a reload of an entry that holds an open drawer drops it (shallow state is not restored).
 		await gotoHydrated(page, '/');
 		await gotoHydrated(page, '/profile');
 		await page.getByRole('link', { name: 'Contraseña' }).click();

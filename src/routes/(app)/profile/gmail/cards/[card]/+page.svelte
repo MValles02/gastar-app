@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Group from '#lib/components/base/Group.svelte';
 	import { resolve } from '$app/paths';
+	import { openShallow } from '#lib/open-shallow.ts';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import Header from '#lib/components/base/Header.svelte';
@@ -77,7 +78,11 @@
 				>
 					{#snippet empty()}
 						<p class="hint">
-							Necesitás una cuenta en pesos. <a href={resolve('accounts/new')}>Crear cuenta</a>
+							Necesitás una cuenta en pesos. <a
+								href={resolve('accounts/new')}
+								onclick={(e) => openShallow(e, resolve('accounts/new'), 'newAccount')}
+								>Crear cuenta</a
+							>
 						</p>
 					{/snippet}
 				</OptionPicker>
@@ -95,7 +100,11 @@
 				>
 					{#snippet empty()}
 						<p class="hint">
-							No tenés cuentas en dólares. <a href={resolve('accounts/new')}>Crear cuenta</a>
+							No tenés cuentas en dólares. <a
+								href={resolve('accounts/new')}
+								onclick={(e) => openShallow(e, resolve('accounts/new'), 'newAccount')}
+								>Crear cuenta</a
+							>
 						</p>
 					{/snippet}
 				</OptionPicker>

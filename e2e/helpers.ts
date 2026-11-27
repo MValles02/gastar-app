@@ -37,9 +37,6 @@ const SEED_PASSWORD = process.env.SEED_PASSWORD || DEFAULT_SEED_PASSWORD;
 
 export const PHONE = { width: 390, height: 844 };
 
-/** `test.use` options for a spec block that runs without JavaScript. */
-export const NO_JS = { javaScriptEnabled: false };
-
 /** A movement detail URL (no trailing path). */
 export const MOVEMENT_DETAIL_RE = /\/movements\/[0-9a-f-]{36}$/;
 
@@ -51,7 +48,7 @@ export const todayInAppTz = () => appDay(Date.now());
 /**
  * Waits until the current document has hydrated: the root layout sets `data-hydrated` on <html> once
  * it mounts. Use it before a JS-only control (drawer, picker, enhanced form) after a full page load.
- * Returns at once without JavaScript (`NO_JS` blocks), where nothing hydrates.
+ * Returns at once without JavaScript, where nothing hydrates.
  */
 export async function waitForHydration(page: Page) {
 	if (await page.evaluate(() => matchMedia('(scripting: none)').matches)) return;
@@ -300,10 +297,6 @@ export async function undo(page: Page) {
 	await page.getByRole('button', { name: 'Deshacer' }).first().click();
 	await expect(page.getByText('Cambio guardado.')).toHaveCount(0);
 }
-
-/** A radio of the no-JS movement form, where the pickers render as plain radio groups. */
-export const noJsOption = (page: Page, group: 'Cuenta' | 'Categoría', name: RegExp) =>
-	page.getByRole('group', { name: group, exact: true }).getByRole('radio', { name });
 
 /** Posts a form the way a no-JS browser would; never throws on a 4xx. */
 export const post = (page: Page, baseURL: string, path: string, form: Record<string, string>) =>

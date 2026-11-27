@@ -33,8 +33,8 @@ ARS → USD: dest_cents = round_half_up(amount_cents × 100 / rate_hundredths)
 | `name` | text | |
 | `currency` | enum('ARS','USD') | |
 | `initial_balance` | bigint | minor units; may be negative |
-| `icon` | text | |
-| `color` | text | |
+| `icon` | text, nullable until phase 9 | |
+| `color` | text, nullable until phase 9 | |
 | `archived_at` | timestamptz, nullable | null = active |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
@@ -48,8 +48,8 @@ Constraints: currency is immutable once the account has ≥1 movement (app-level
 | `id` | pk | |
 | `user_id` | fk → `user.id` | |
 | `name` | text | |
-| `icon` | text, nullable | key from `CATEGORY_ICONS` |
-| `color` | text | |
+| `icon` | text, nullable until phase 9 | key from `CATEGORY_ICONS` |
+| `color` | text, nullable until phase 9 | |
 | `kind` | enum('income','outcome','transfer'), nullable | null = both; never `transfer` (CHECK `categories_kind_check`) |
 | `archived_at` | timestamptz, nullable | null = active |
 | `created_at` | timestamptz | |

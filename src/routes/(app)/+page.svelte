@@ -4,6 +4,7 @@
 	import SectionLabel from '#lib/components/base/SectionLabel.svelte';
 	import { formatPercent } from '#lib/locale.ts';
 	import { resolve } from '$app/paths';
+	import { openShallow } from '#lib/open-shallow.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import ActionLink from '#lib/components/ActionLink.svelte';
@@ -55,7 +56,11 @@
 			<Card.Root>
 				<EmptyState icon="accounts" text="Sin cuentas en {data.currencyWord}.">
 					{#snippet action()}
-						<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+						<Button
+							href={resolve('accounts/new')}
+							onclick={(e) => openShallow(e, resolve('accounts/new'), 'newAccount')}
+							>Crear cuenta</Button
+						>
 					{/snippet}
 				</EmptyState>
 			</Card.Root>
