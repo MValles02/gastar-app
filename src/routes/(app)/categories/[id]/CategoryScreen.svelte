@@ -14,7 +14,7 @@
 
 <FormScreen
 	title={detail.category.name}
-	back={{ href: resolve('categories'), label: 'Volver a categorías', text: 'Categorías' }}
+	back={{ href: resolve('categories'), label: 'Volver a categorías' }}
 	{onclose}
 >
 	<CategoryDetail

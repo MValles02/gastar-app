@@ -7,7 +7,7 @@
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
 	import { isPositiveAmount, toCurrency } from '#lib/money.ts';
 	import { categoriesFor } from '#lib/movement.ts';
 
@@ -123,12 +123,7 @@
 >
 	<div class="field">
 		<span id="rtype-label" class="visually-hidden">Tipo</span>
-		<SegmentedControl
-			name="type"
-			options={typeOptions}
-			bind:value={type}
-			labelledby="rtype-label"
-		/>
+		<Segmented name="type" options={typeOptions} bind:value={type} labelledby="rtype-label" />
 		{#if shown.type}<p class="error" role="alert">{shown.type}</p>{/if}
 	</div>
 

@@ -68,7 +68,7 @@ test.beforeEach(async ({ page }) => {
 /** A row of the Disponible card by its label. */
 const kv = (page: Page, label: string) => page.locator('.kv', { hasText: label });
 const available = (page: Page) =>
-	page.getByRole('region', { name: /^Disponible$/ }).locator('.hero-amount');
+	page.getByRole('region', { name: /^Disponible$/ }).locator(".amount[data-size='hero']");
 
 test('the wizard saves the income, savings and limits its summary shows', async ({ page }) => {
 	await gotoHydrated(page, '/plan/setup');

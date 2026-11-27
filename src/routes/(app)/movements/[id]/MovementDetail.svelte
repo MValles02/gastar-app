@@ -13,7 +13,7 @@
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import { closeAfterDelete, formScreen } from '#lib/components/forms/form-enhance.ts';
 	import InlineText from '#lib/components/InlineText.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import CrossCurrencyRows from '#lib/components/movements/CrossCurrencyRows.svelte';
 	import DatePicker from '#lib/components/pickers/DatePicker.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
@@ -242,7 +242,11 @@
 					onsave={(next) => commitThenPrompt({ amount: next })}
 				>
 					{#snippet display()}
-						<Money cents={m.amount} currency={m.accountCurrency} tone="flow" direction={effType} />
+						<Amount
+							cents={m.amount}
+							currency={m.accountCurrency}
+							tone={effType === 'income' ? 'income' : effType === 'outcome' ? 'expense' : 'neutral'}
+						/>
 					{/snippet}
 				</InlineText>
 			</div>

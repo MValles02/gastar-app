@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
@@ -11,15 +13,13 @@
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
 	import { IMPORT_FLAGS } from '#lib/toast-flags.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
-	import RowPill from '#lib/components/RowPill.svelte';
+	import BaseButton from '#lib/components/base/Button.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import { formatDay } from '#lib/locale.ts';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import ImportRow from './ImportRow.svelte';
 	import type { PageData } from './$types';
 
@@ -106,10 +106,7 @@
 	<title>Importados · Gastar</title>
 </svelte:head>
 
-<PageHeader
-	title="Importados"
-	back={{ href: resolve(''), label: 'Volver al inicio', text: 'Inicio' }}
-/>
+<Header title="Importados" back={{ href: resolve(''), label: 'Volver al inicio' }} />
 
 <div class="page">
 	{#if data.done && !ready.current}<p role="status">{DONE_MESSAGES[data.done]}</p>{/if}
@@ -159,26 +156,26 @@
 	{/if}
 
 	{#if data.unknownCards.length > 0}
-		<ListCard aria-label="Tarjetas por definir">
+		<Group aria-label="Tarjetas por definir">
 			{#each data.unknownCards as c (c.network + c.last4)}
-				<ListRow
+				<Row
 					href={resolve(`profile/gmail/cards/${c.slug}`)}
-					lead={{ icon: 'card', color: null }}
+					glyph={{ icon: 'card', tone: 'neutral' }}
 					title="Tarjeta {cardNetworkName(c.network)} ••{c.last4}: elegí qué es"
 					chevron
 				/>
 			{/each}
-		</ListCard>
+		</Group>
 	{/if}
 
 	{#if data.unmatched.length > 0}
 		<section aria-labelledby="unmatched-title">
 			<h2 id="unmatched-title">No apareció en el resumen</h2>
-			<ListCard>
+			<Group>
 				{#each data.unmatched as item (item.id)}
 					{#snippet meta()}
 						{formatDay(item.day)} ·
-						<Money cents={item.amount} currency={item.currency} tone="flow" direction="outcome" />
+						<Amount cents={item.amount} currency={item.currency} tone="expense" />
 					{/snippet}
 					{#snippet choices()}
 						<span class="choices">
@@ -203,14 +200,14 @@
 										}}
 								>
 									<input type="hidden" name="id" value={item.id} />
-									<RowPill label={a.label} />
+									<BaseButton size="sm" type="submit" variant="outline">{a.label}</BaseButton>
 								</form>
 							{/each}
 						</span>
 					{/snippet}
-					<ListRow title={item.title} {meta} action={choices} />
+					<Row title={item.title} subtitle={meta} action={choices} />
 				{/each}
-			</ListCard>
+			</Group>
 		</section>
 	{/if}
 
@@ -240,17 +237,17 @@
 	{/if}
 
 	{#if data.groups.length === 0}
-		<EmptyState icon="movements" description="No hay movimientos para revisar." />
+		<EmptyState icon="movements" text="No hay movimientos para revisar." />
 	{:else}
 		<div class="groups">
 			{#each data.groups as g (g.day)}
 				<section aria-labelledby="day-{g.day}">
 					<h2 id="day-{g.day}">{g.heading}</h2>
-					<ListCard>
+					<Group>
 						{#each g.items as item (item.id)}
 							<ImportRow {item} />
 						{/each}
-					</ListCard>
+					</Group>
 				</section>
 			{/each}
 		</div>

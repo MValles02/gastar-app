@@ -1,8 +1,8 @@
 <script lang="ts">
+	import SectionLabel from '#lib/components/base/SectionLabel.svelte';
 	import { resolve } from '$app/paths';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import { openShallow } from '#lib/open-shallow.ts';
-	import CardEyebrow from './CardEyebrow.svelte';
 	import Icon from './Icon.svelte';
 
 	/** "Empezá en 3 pasos" on Inicio; each step's done state comes from the user's existing data. */
@@ -42,7 +42,7 @@
 <section aria-labelledby="first-run-heading">
 	<Card.Root class="gap-0 overflow-hidden py-0">
 		<div class="head">
-			<CardEyebrow as="h2" id="first-run-heading">Empezá en 3 pasos</CardEyebrow>
+			<SectionLabel as="h2" id="first-run-heading" text="Empezá en 3 pasos" />
 		</div>
 		<ol>
 			{#each items as item, i (item.title)}
@@ -50,7 +50,7 @@
 				{#snippet body()}
 					<span class="num" class:primary={i === firstOpen && !locked} aria-hidden={!item.done}>
 						{#if item.done}
-							<Icon name="check" size="1rem" /><span class="visually-hidden">Hecho: </span>
+							<Icon name="check" size="sm" /><span class="visually-hidden">Hecho: </span>
 						{:else}
 							{i + 1}
 						{/if}
@@ -60,7 +60,7 @@
 						<span class="hint">{item.hint}</span>
 						{#if locked}<span class="visually-hidden">Primero creá una cuenta.</span>{/if}
 					</span>
-					{#if !item.done && !locked}<Icon name="chevron-right" size="1.25rem" />{/if}
+					{#if !item.done && !locked}<Icon name="chevron-right" size="md" />{/if}
 				{/snippet}
 				<li class:done={item.done} class:locked>
 					{#if item.done || locked}

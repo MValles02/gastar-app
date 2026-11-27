@@ -1,19 +1,25 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import SectionLabel from '#lib/components/base/SectionLabel.svelte';
 	import Plus from '@lucide/svelte/icons/plus';
 	import { resolve } from '$app/paths';
-	import { swatchVar, toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
+	import { toneOf } from '#lib/appearance.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
 	import ListFilterDrawer from '#lib/components/ListFilterDrawer.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
-	import Meter from '#lib/components/Meter.svelte';
-	import Money from '#lib/components/Money.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
-	import SectionHeader from '#lib/components/SectionHeader.svelte';
-	import { CURRENCIES, CURRENCY_OPTIONS, DEFAULT_CURRENCY, type Currency } from '#lib/money.ts';
+	import Meter from '#lib/components/base/Meter.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
+	import Header from '#lib/components/base/Header.svelte';
+	import {
+		CURRENCIES,
+		CURRENCY_OPTIONS,
+		DEFAULT_CURRENCY,
+		type Currency,
+		signTone
+	} from '#lib/money.ts';
 	import { ARCHIVED_LABEL, KIND_OPTIONS } from '#lib/movement.ts';
 	import { activeListFilters } from '#lib/list-filter.ts';
 	import type { PageData } from './$types';
@@ -48,9 +54,9 @@
 	<title>Categorías · Gastar</title>
 </svelte:head>
 
-<PageHeader
+<Header
 	title="Categorías"
-	back={{ href: resolve('profile'), label: 'Volver al perfil', text: 'Perfil' }}
+	back={{ href: resolve('profile'), label: 'Volver al perfil' }}
 	action={data.hasAnyCategory ? add : undefined}
 />
 
@@ -58,13 +64,15 @@
 	{#if !data.hasAnyCategory}
 		<EmptyState
 			icon="categories"
-			description="Todavía no tenés categorías. Creá la primera para clasificar tus movimientos."
+			text="Todavía no tenés categorías. Creá la primera para clasificar tus movimientos."
 		>
-			<Button
-				href={resolve('categories/new')}
-				onclick={(e) => openShallow(e, resolve('categories/new'), 'newCategory')}
-				>Crear categoría</Button
-			>
+			{#snippet action()}
+				<Button
+					href={resolve('categories/new')}
+					onclick={(e) => openShallow(e, resolve('categories/new'), 'newCategory')}
+					>Crear categoría</Button
+				>
+			{/snippet}
 		</EmptyState>
 	{:else}
 		<FilterBar
@@ -76,46 +84,42 @@
 		/>
 
 		{#if data.groups.length === 0}
-			<EmptyState icon="search" description="No hay categorías que coincidan con la búsqueda." />
+			<EmptyState icon="search" text="No hay categorías que coincidan con la búsqueda." />
 		{:else}
 			{#each data.groups as g (g.key)}
 				{@const groupSpend = g.categories.reduce((sum, c) => sum + spend(c.totals), 0)}
 				<section aria-labelledby="group-{g.key}">
-					<SectionHeader id="group-{g.key}" title={g.label} variant="group" />
-					<ListCard>
+					<SectionLabel id="group-{g.key}" text={g.label} />
+					<Group>
 						{#each g.categories as c (c.id)}
-							{@const icon = toCategoryIconKey(c.icon) ?? ('categories' as const)}
 							{@const share = groupSpend > 0 ? spend(c.totals) / groupSpend : 0}
 							{#snippet value()}
 								<span class="totals">
 									{#each shown(c.totals) as cur (cur)}
 										{#if c.totals[cur] === undefined}
-											<span class="zero"><Money cents={0} currency={cur} /></span>
+											<span class="zero"><Amount cents={0} currency={cur} /></span>
 										{:else}
-											<Money cents={c.totals[cur]} currency={cur} tone="flow" />
+											<Amount cents={c.totals[cur]} currency={cur} tone={signTone(c.totals[cur])} />
 										{/if}
 									{/each}
 								</span>
 							{/snippet}
 							<!-- Share of the group's month spend: only categories with spending get a bar. -->
 							{#snippet meter()}
-								<Meter percent={share * 100} color={swatchVar(toSwatchKey(c.color))} />
+								<Meter percent={share * 100} tone={toneOf(c.color)} />
 							{/snippet}
-							<ListRow
+							<Row
 								href={resolve(`categories/${c.id}`)}
 								onclick={(e) => openShallow(e, resolve(`categories/${c.id}`), 'category')}
-								lead={{
-									icon,
-									color: toSwatchKey(c.color)
-								}}
+								glyph={{ category: { icon: c.icon, color: c.color } }}
 								title={c.name}
-								{value}
+								trailing={value}
 								status={c.archivedAt ? { tone: 'neutral', label: ARCHIVED_LABEL } : undefined}
 								footer={share > 0 ? meter : undefined}
 								dimmed={!!c.archivedAt}
 							/>
 						{/each}
-					</ListCard>
+					</Group>
 				</section>
 			{/each}
 		{/if}

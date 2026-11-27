@@ -77,7 +77,7 @@
 </script>
 
 {#if error}
-	<p class="error" role="alert"><Icon name="alert" size="1rem" />{error}</p>
+	<p class="error" role="alert"><Icon name="alert" size="sm" />{error}</p>
 {/if}
 
 {#if note}<p class="note">{note}</p>{/if}

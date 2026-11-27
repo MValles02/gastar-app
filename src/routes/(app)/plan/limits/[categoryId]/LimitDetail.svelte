@@ -2,18 +2,18 @@
 	import { untrack } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { autosave } from '#lib/autosave.ts';
-	import { swatchVar } from '#lib/appearance.ts';
+	import { toneOf } from '#lib/appearance.ts';
 	import { CURRENCY_LABEL, formatAmountInput, formatMoney } from '#lib/money.ts';
 	import { upOnClick } from '#lib/nav-stack.svelte.ts';
 	import { limitPace, limitPercent, PLAN_STATUS_LABEL, PLAN_TONE } from '#lib/plan.ts';
 	import { withWizard } from '#lib/plan-wizard.ts';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import { closeAfterDelete, formScreen } from '#lib/components/forms/form-enhance.ts';
-	import IconBadge from '#lib/components/IconBadge.svelte';
+	import Glyph from '#lib/components/base/Glyph.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
-	import Meter from '#lib/components/Meter.svelte';
-	import Money from '#lib/components/Money.svelte';
-	import StatusPill from '#lib/components/StatusPill.svelte';
+	import Meter from '#lib/components/base/Meter.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
+	import Status from '#lib/components/base/Status.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import type { PageData } from './$types';
 
@@ -72,19 +72,19 @@
 	<div class="meter-block">
 		<div class="line">
 			<span class="who">
-				<IconBadge icon={data.category.icon} color={data.category.color} size="1.5rem" />
+				<Glyph icon={data.category.icon} tone={toneOf(data.category.color)} size="chip" />
 				<span class="name">Límite de {data.category.name}</span>
 			</span>
-			{#if pace.over}<StatusPill tone={PLAN_TONE.over} label={PLAN_STATUS_LABEL.over} />
-			{:else if pace.fast}<StatusPill tone={PLAN_TONE.warn} label={PLAN_STATUS_LABEL.warn} />{/if}
+			{#if pace.over}<Status tone={PLAN_TONE.over} label={PLAN_STATUS_LABEL.over} />
+			{:else if pace.fast}<Status tone={PLAN_TONE.warn} label={PLAN_STATUS_LABEL.warn} />{/if}
 		</div>
 		<p class="of">
-			<span class="spent"><Money cents={spent} {currency} /></span> de
-			<Money cents={limit} {currency} />
+			<span class="spent"><Amount cents={spent} {currency} /></span> de
+			<Amount cents={limit} {currency} />
 		</p>
 		<Meter
 			percent={pct}
-			color={pace.over ? 'var(--negative)' : swatchVar(data.category.color)}
+			tone={pace.over ? 'expense' : toneOf(data.category.color)}
 			label="Límite de {data.category.name}"
 			valueText="{formatMoney(spent, currency)} de {formatMoney(limit, currency)}"
 		/>
@@ -92,7 +92,7 @@
 
 	<div class="amount">
 		<InlineText label="Monto del límite" inputmode="decimal" value={amountText} onsave={save}>
-			{#snippet display()}<Money cents={limit} {currency} />{/snippet}
+			{#snippet display()}<Amount cents={limit} {currency} />{/snippet}
 		</InlineText>
 		{#if data.suggested > 0 && data.suggested !== limit}
 			<Button
@@ -113,7 +113,7 @@
 		<li class="static">
 			<span>Categoría</span>
 			<span class="value">
-				<IconBadge icon={data.category.icon} color={data.category.color} size="1.5rem" />
+				<Glyph icon={data.category.icon} tone={toneOf(data.category.color)} size="chip" />
 				<span class="name">{data.category.name}</span>
 			</span>
 		</li>

@@ -1,20 +1,19 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import SectionLabel from '#lib/components/base/SectionLabel.svelte';
 	import { CURRENCY_OPTIONS } from '#lib/money.ts';
 	import Plus from '@lucide/svelte/icons/plus';
 	import { resolve } from '$app/paths';
-	import { toIconKey, toSwatchKey } from '#lib/appearance.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
 	import ListFilterDrawer from '#lib/components/ListFilterDrawer.svelte';
 	import { activeListFilters } from '#lib/list-filter.ts';
 	import { ARCHIVED_LABEL } from '#lib/movement.ts';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
-	import Money from '#lib/components/Money.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
-	import SectionHeader from '#lib/components/SectionHeader.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -36,9 +35,9 @@
 	<title>Cuentas · Gastar</title>
 </svelte:head>
 
-<PageHeader
+<Header
 	title="Cuentas"
-	back={{ href: resolve('profile'), label: 'Volver al perfil', text: 'Perfil' }}
+	back={{ href: resolve('profile'), label: 'Volver al perfil' }}
 	action={data.hasAnyAccount ? add : undefined}
 />
 
@@ -46,12 +45,15 @@
 	{#if !data.hasAnyAccount}
 		<EmptyState
 			icon="accounts"
-			description="Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos."
+			text="Todavía no tenés cuentas. Creá la primera para empezar a registrar tus movimientos."
 		>
-			<Button
-				href={resolve('accounts/new')}
-				onclick={(e) => openShallow(e, resolve('accounts/new'), 'newAccount')}>Crear cuenta</Button
-			>
+			{#snippet action()}
+				<Button
+					href={resolve('accounts/new')}
+					onclick={(e) => openShallow(e, resolve('accounts/new'), 'newAccount')}
+					>Crear cuenta</Button
+				>
+			{/snippet}
 		</EmptyState>
 	{:else}
 		<FilterBar
@@ -63,34 +65,32 @@
 		/>
 
 		{#if data.groups.length === 0}
-			<EmptyState icon="search" description="No hay cuentas que coincidan con los filtros." />
+			<EmptyState icon="search" text="No hay cuentas que coincidan con los filtros." />
 		{:else}
 			<!-- Balances are totalled per currency group, never across currencies. -->
 			{#each data.groups as g (g.currency)}
 				<section aria-labelledby="group-{g.currency}">
-					<SectionHeader id="group-{g.currency}" title={g.label} variant="group">
+					<SectionLabel id="group-{g.currency}" text={g.label}>
 						{#snippet aside()}
-							<span class="group-total"
-								><Money cents={g.total} currency={g.currency} tone="stock" /></span
-							>
+							<span class="group-total"><Amount cents={g.total} currency={g.currency} /></span>
 						{/snippet}
-					</SectionHeader>
-					<ListCard>
+					</SectionLabel>
+					<Group>
 						{#each g.accounts as a (a.id)}
 							{#snippet value()}
-								<Money cents={a.balance} currency={a.currency} tone="stock" />
+								<Amount cents={a.balance} currency={a.currency} />
 							{/snippet}
-							<ListRow
+							<Row
 								href={resolve(`accounts/${a.id}`)}
 								onclick={(e) => openShallow(e, resolve(`accounts/${a.id}`), 'account')}
-								lead={{ icon: toIconKey(a.icon), color: toSwatchKey(a.color) }}
+								glyph={{ account: { icon: a.icon, color: a.color } }}
 								title={a.name}
-								{value}
+								trailing={value}
 								status={a.archivedAt ? { tone: 'neutral', label: ARCHIVED_LABEL } : undefined}
 								dimmed={!!a.archivedAt}
 							/>
 						{/each}
-					</ListCard>
+					</Group>
 				</section>
 			{/each}
 		{/if}

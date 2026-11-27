@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import SectionLabel from '#lib/components/base/SectionLabel.svelte';
 	import { formatMoney, RATE_CURRENCY } from '#lib/money.ts';
 	import { toast } from 'svelte-sonner';
 	import { afterNavigate } from '$app/navigation';
@@ -7,16 +9,12 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import ActionLink from '#lib/components/ActionLink.svelte';
-	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import Money from '#lib/components/Money.svelte';
-	import HeroAmount from '#lib/components/HeroAmount.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import TabBand from '#lib/components/TabBand.svelte';
-	import SectionHeader from '#lib/components/SectionHeader.svelte';
-	import StatusPill from '#lib/components/StatusPill.svelte';
+	import Status from '#lib/components/base/Status.svelte';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
 	import { limitFlag } from '#lib/toast-flags.ts';
@@ -79,7 +77,7 @@
 	/>
 {/snippet}
 
-<PageHeader title="Plan" tone="primary" />
+<Header title="Plan" tone="primary" />
 
 <TabBand overlap={data.hasAccount}>
 	{#if !mounted.current}
@@ -89,8 +87,10 @@
 
 <div class="page">
 	{#if !data.hasAccount}
-		<EmptyState icon="accounts" description="No tenés cuentas.">
-			<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+		<EmptyState icon="accounts" text="No tenés cuentas.">
+			{#snippet action()}
+				<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+			{/snippet}
 		</EmptyState>
 	{:else}
 		{#if data.plan.summary}
@@ -99,12 +99,12 @@
 				<Card.Root class="gap-0 overflow-hidden py-0">
 					<div class="box">
 						<div class="top">
-							<CardEyebrow as="h2" id="summary-heading">Disponible</CardEyebrow>
-							<StatusPill tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
+							<SectionLabel as="h2" id="summary-heading" text="Disponible" />
+							<Status tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
 						</div>
-						<HeroAmount cents={s.available} currency={PLAN_CURRENCY} />
+						<Amount size="hero" as="p" cents={s.available} currency={PLAN_CURRENCY} />
 						<p class="per-day">
-							<Money cents={s.perDay} currency={PLAN_CURRENCY} /> por día · {s.daysLeft === 1
+							<Amount cents={s.perDay} currency={PLAN_CURRENCY} /> por día · {s.daysLeft === 1
 								? 'queda 1 día'
 								: `quedan ${s.daysLeft} días`}
 						</p>
@@ -113,18 +113,13 @@
 						<div class="kv">
 							<dt>Ingresos</dt>
 							<dd>
-								<Money cents={s.income} currency={PLAN_CURRENCY} tone="flow" direction="income" />
+								<Amount cents={s.income} currency={PLAN_CURRENCY} tone="income" />
 							</dd>
 						</div>
 						<div class="kv">
 							<dt>Pagos fijos</dt>
 							<dd>
-								<Money
-									cents={-s.pendingBills}
-									currency={PLAN_CURRENCY}
-									tone="flow"
-									direction="outcome"
-								/>
+								<Amount cents={-s.pendingBills} currency={PLAN_CURRENCY} tone="expense" />
 							</dd>
 						</div>
 						<div class="kv link">
@@ -135,12 +130,12 @@
 									>Ahorro<span aria-hidden="true">&nbsp;›</span></a
 								>
 							</dt>
-							<dd><Money cents={s.savings} currency={PLAN_CURRENCY} /></dd>
+							<dd><Amount cents={s.savings} currency={PLAN_CURRENCY} /></dd>
 						</div>
 						<div class="kv">
 							<dt>Gastado</dt>
 							<dd>
-								<Money cents={-s.spent} currency={PLAN_CURRENCY} tone="flow" direction="outcome" />
+								<Amount cents={-s.spent} currency={PLAN_CURRENCY} tone="expense" />
 							</dd>
 						</div>
 					</dl>
@@ -159,7 +154,7 @@
 			{/if}
 
 			<section aria-labelledby="limits-heading">
-				<SectionHeader id="limits-heading" title="Límites por categoría" aside={addLimit} />
+				<SectionLabel id="limits-heading" text="Límites por categoría" aside={addLimit} />
 				<LimitList limits={s.limits} />
 			</section>
 		{:else}
@@ -179,33 +174,33 @@
 
 		{#if data.plan.summary || data.incomes.length || data.outcomes.length || data.inactive.length}
 			<section aria-labelledby="income-heading">
-				<SectionHeader id="income-heading" title="Ingresos fijos" aside={addIncome} />
+				<SectionLabel id="income-heading" text="Ingresos fijos" aside={addIncome} />
 				{#if data.incomes.length}
-					<ListCard>
+					<Group>
 						{#each data.incomes as r (r.id)}<RecurringRow row={r} />{/each}
-					</ListCard>
+					</Group>
 				{:else}
-					<EmptyState icon="plan" description="Sin ingresos fijos." />
+					<EmptyState icon="plan" text="Sin ingresos fijos." />
 				{/if}
 			</section>
 
 			<section aria-labelledby="outcome-heading">
-				<SectionHeader id="outcome-heading" title="Pagos fijos pendientes" aside={addOutcome} />
+				<SectionLabel id="outcome-heading" text="Pagos fijos pendientes" aside={addOutcome} />
 				{#if data.outcomes.length}
-					<ListCard>
+					<Group>
 						{#each data.outcomes as r (r.id)}<RecurringRow row={r} />{/each}
-					</ListCard>
+					</Group>
 				{:else}
-					<EmptyState icon="plan" description="Sin pagos fijos." />
+					<EmptyState icon="plan" text="Sin pagos fijos." />
 				{/if}
 			</section>
 
 			{#if data.inactive.length}
 				<section aria-labelledby="inactive-heading">
-					<SectionHeader id="inactive-heading" title="Inactivos" />
-					<ListCard>
+					<SectionLabel id="inactive-heading" text="Inactivos" />
+					<Group>
 						{#each data.inactive as r (r.id)}<RecurringRow row={r} />{/each}
-					</ListCard>
+					</Group>
 				</section>
 			{/if}
 		{/if}

@@ -7,14 +7,14 @@
 	import { dueTone } from '#lib/plan.ts';
 	import { withWizard } from '#lib/plan-wizard.ts';
 	import { patchShallow } from '#lib/open-shallow.ts';
-	import DetailCard from '#lib/components/DetailCard.svelte';
 	import DetailLifecycle from '#lib/components/DetailLifecycle.svelte';
-	import DetailRow from '#lib/components/DetailRow.svelte';
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
 	import DayOfMonthPicker from '#lib/components/pickers/DayOfMonthPicker.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
-	import StatusPill from '#lib/components/StatusPill.svelte';
+	import Status from '#lib/components/base/Status.svelte';
 	import type { PageData } from './$types';
 
 	/**
@@ -71,13 +71,13 @@
 		<p class="kind">
 			{income ? 'Ingreso fijo' : 'Pago fijo'}
 			{#if r.archived}
-				<StatusPill tone="neutral" label="Desactivado" />
+				<Status tone="neutral" label="Desactivado" />
 			{:else if r.cannotRegister}
-				<StatusPill tone="warning" label={r.inactiveReason ?? ''} />
+				<Status tone="warning" label={r.inactiveReason ?? ''} />
 			{:else if r.inactiveReason}
-				<StatusPill tone="neutral" label={r.inactiveReason} />
+				<Status tone="neutral" label={r.inactiveReason} />
 			{:else if r.thisMonth}
-				<StatusPill tone={dueTone(r.thisMonth.status)} label={r.thisMonth.label} />
+				<Status tone={dueTone(r.thisMonth.status)} label={r.thisMonth.label} />
 			{/if}
 		</p>
 		<div class="amount {r.type}">
@@ -88,7 +88,11 @@
 				onsave={(next) => save('amount', next)}
 			>
 				{#snippet display()}
-					<Money cents={r.amount} {currency} tone="flow" direction={r.type} />
+					<Amount
+						cents={r.amount}
+						{currency}
+						tone={r.type === 'income' ? 'income' : r.type === 'outcome' ? 'expense' : 'neutral'}
+					/>
 				{/snippet}
 			</InlineText>
 		</div>
@@ -97,18 +101,20 @@
 			</p>{/if}
 	</div>
 
-	<DetailCard>
-		<DetailRow label="Descripción">
-			<InlineText
-				label="Descripción"
-				value={values.description}
-				maxlength={DESCRIPTION_MAX_LENGTH}
-				required
-				onsave={(next) => save('description', next)}
-			>
-				{#snippet display()}{r.description}{/snippet}
-			</InlineText>
-		</DetailRow>
+	<Group>
+		<Row title="Descripción">
+			{#snippet trailing()}
+				<InlineText
+					label="Descripción"
+					value={values.description}
+					maxlength={DESCRIPTION_MAX_LENGTH}
+					required
+					onsave={(next) => save('description', next)}
+				>
+					{#snippet display()}{r.description}{/snippet}
+				</InlineText>
+			{/snippet}
+		</Row>
 		<li>
 			<OptionPicker
 				name="accountId"
@@ -142,9 +148,9 @@
 			/>
 		</li>
 		{#if r.endsMonthLabel}
-			<DetailRow label="Última cuota">{r.endsMonthLabel}</DetailRow>
+			<Row title="Última cuota">{#snippet trailing()}{r.endsMonthLabel}{/snippet}</Row>
 		{/if}
-	</DetailCard>
+	</Group>
 
 	<DetailLifecycle
 		{path}

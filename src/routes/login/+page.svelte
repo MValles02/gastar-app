@@ -6,12 +6,12 @@
 	import AuthTabs from '#lib/components/AuthTabs.svelte';
 	import CheckEmail from '#lib/components/CheckEmail.svelte';
 	import { rememberPendingEmail } from '#lib/pending-email.ts';
-	import EmailField from '#lib/components/EmailField.svelte';
+	import TextField from '#lib/components/base/Field.svelte';
+	import { es } from '#lib/copy/es.ts';
 	import * as Field from '#lib/components/ui/field/index.js';
 	import GoogleButton from '#lib/components/GoogleButton.svelte';
-	import StatusPill from '#lib/components/StatusPill.svelte';
+	import Status from '#lib/components/base/Status.svelte';
 	import { appear } from '#lib/motion.ts';
-	import PasswordField from '#lib/components/PasswordField.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { form, data }: { form: ActionData; data: PageData } = $props();
@@ -48,7 +48,7 @@
 
 		{#if reset && !form}
 			<p class="note" role="status" in:appear>
-				<StatusPill tone="ok" label="Contraseña actualizada." />
+				<Status tone="ok" label="Contraseña actualizada." />
 			</p>
 		{/if}
 
@@ -61,13 +61,24 @@
 		{/if}
 
 		<AuthForm action="?/login" submitLabel="Ingresar" onupdated={() => (password = '')}>
-			<EmailField
+			<TextField
+				id="email"
+				name="email"
+				label={es.auth.fields.email}
+				type="email"
+				autocapitalize="none"
+				required
+				autocomplete="username"
 				value={form?.email ?? ''}
-				ariaWiring={false}
 				describedby={form?.passwordError ? 'password-error' : undefined}
 			/>
 
-			<PasswordField
+			<TextField
+				id="password"
+				name="password"
+				label={es.auth.fields.password}
+				type="password"
+				required
 				bind:value={password}
 				autocomplete="current-password"
 				error={form?.passwordError}

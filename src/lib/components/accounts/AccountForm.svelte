@@ -8,7 +8,7 @@
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import GlyphNameHead from '#lib/components/GlyphNameHead.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
 
 	type Values = Partial<
 		Record<'name' | 'currency' | 'initialBalance' | 'icon' | 'color', string | null>
@@ -71,7 +71,7 @@
 
 	<div class="field">
 		<span id="currency-label" class="label">Moneda</span>
-		<SegmentedControl
+		<Segmented
 			name="currency"
 			options={currencyOptions}
 			bind:value={currency}

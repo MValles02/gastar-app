@@ -1,26 +1,29 @@
 <script lang="ts">
 	import { getContext, setContext, untrack, type Snippet } from 'svelte';
 	import { Drawer as DrawerPrimitive } from 'vaul-svelte';
-	import { DRAWER_CLOSE_MS } from '#lib/constants.ts';
+	import { DRAWER_CLOSE_MS, SHEET_KEYBOARD_MS } from '#lib/constants.ts';
 	import { drawers } from '#lib/drawer-open.svelte.ts';
-	import X from '@lucide/svelte/icons/x';
+	import { es } from '#lib/copy/es.ts';
 	import * as Drawer from '#lib/components/ui/drawer/index.js';
-	import { buttonVariants } from '#lib/components/ui/button/index.js';
+	import CircleButton from '#lib/components/base/CircleButton.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 
-	// A drawer rendered inside another one (its content, or a component in it) stacks over it.
-	const IN_DRAWER = Symbol.for('bottom-drawer');
-	const insideDrawer = getContext<boolean | undefined>(IN_DRAWER) ?? false;
-	setContext(IN_DRAWER, true);
+	// A sheet rendered inside another one (its content, or a component in it) stacks over it.
+	const IN_SHEET = Symbol.for('sheet');
+	const insideSheet = getContext<boolean | undefined>(IN_SHEET) ?? false;
+	setContext(IN_SHEET, true);
 
 	let {
 		title,
 		open = $bindable(false),
 		onclose,
 		onclosed,
-		nested = insideDrawer,
+		nested = insideSheet,
+		variant = 'auto',
 		hideTitle = false,
 		bare = false,
 		initialFocus,
+		footer,
 		children
 	}: {
 		title: string;
@@ -28,14 +31,18 @@
 		onclose?: () => void;
 		/** Runs once the close animation has ended (focus is back on the trigger by then). */
 		onclosed?: () => void;
-		/** Stacks over the drawer this one is rendered inside (vaul nested drawer): the one below stays put. Default: whether it is inside one. */
+		/** Stacks over the sheet this one is rendered inside (vaul nested drawer): the one below stays put. Default: whether it is inside one. */
 		nested?: boolean;
+		/** `auto` hugs its content (capped); `tall` is a fixed tall sheet. */
+		variant?: 'auto' | 'tall';
 		/** Keeps the title for assistive technology only. */
 		hideTitle?: boolean;
 		/** No padded scroll wrapper: the children lay out the content themselves (e.g. sticky actions). */
 		bare?: boolean;
-		/** CSS selector of the element inside the drawer to focus when it opens (default: the dialog's own choice). */
+		/** CSS selector of the element inside the sheet to focus when it opens (default: the dialog's own choice). */
 		initialFocus?: string;
+		/** Pinned below the scrolling body (the filter sheets' Limpiar / Ver N buttons). */
+		footer?: Snippet;
 		children: Snippet;
 	} = $props();
 
@@ -55,7 +62,7 @@
 	});
 
 	// vaul's repositionInputs is off: on every keyboard resize it writes an inline height/bottom and, on close,
-	// restores a stale height (our drawers hug their content), so the drawer jumped. Instead lift it by the
+	// restores a stale height (our sheets hug their content), so the sheet jumped. Instead lift it by the
 	// keyboard inset (iOS only: Android Chrome resizes the layout itself, interactive-widget=resizes-content in
 	// app.html, so the inset stays 0 there). `translate`, not `transform` (vaul drags with transform), animated
 	// with WAAPI because vaul writes an inline `transition` that would drop a CSS one.
@@ -73,8 +80,8 @@
 			el.style.translate = `0 ${-next}px`;
 			if (!matchMedia('(prefers-reduced-motion: reduce)').matches)
 				el.animate([{ translate: from === 'none' ? '0 0' : from }, { translate: `0 ${-next}px` }], {
-					duration: 250,
-					easing: 'cubic-bezier(0.32, 0.72, 0, 1)'
+					duration: SHEET_KEYBOARD_MS,
+					easing: getComputedStyle(el).getPropertyValue('--ease-drawer')
 				});
 		};
 		update();
@@ -96,10 +103,23 @@
 	});
 </script>
 
+{#snippet heading(text: string)}
+	<Drawer.Title class={hideTitle ? 'sr-only' : 'title'}>{text}</Drawer.Title>
+{/snippet}
+
+{#snippet close()}
+	<Drawer.Close>
+		{#snippet child({ props })}
+			<CircleButton {...props} icon="close" tone="ghost" label={es.ui.close} />
+		{/snippet}
+	</Drawer.Close>
+{/snippet}
+
 {#snippet content()}
-	<!-- A tap on a toast (Deshacer) is not an outside tap: it must not close the drawer. -->
+	<!-- A tap on a toast (Deshacer) is not an outside tap: it must not close the sheet. -->
 	<Drawer.Content
-		class="mx-auto w-full max-w-[35rem] data-[vaul-drawer-direction=bottom]:max-h-[calc(85dvh-var(--kb-inset,0px))]"
+		class="sheet"
+		data-variant={variant}
 		bind:ref={drawerEl}
 		onOpenAutoFocus={(e) => {
 			if (!initialFocus) return;
@@ -112,31 +132,15 @@
 			if ((e.target as Element | null)?.closest?.('[data-sonner-toast]')) e.preventDefault();
 		}}
 	>
-		<div class="flex items-start">
-			<Drawer.Title
-				class={hideTitle
-					? 'sr-only'
-					: 'min-w-0 flex-1 px-5 pt-1 pb-3 text-lg leading-snug font-semibold'}
-				>{title}</Drawer.Title
-			>
-			<Drawer.Close
-				aria-label="Cerrar"
-				class={buttonVariants({
-					variant: 'ghost',
-					size: 'icon',
-					class: 'text-muted-foreground mr-2 -mt-2 -mb-1 ml-auto size-11 shrink-0'
-				})}
-			>
-				<X size={20} strokeWidth={1.75} aria-hidden="true" />
-			</Drawer.Close>
-		</div>
+		<Header variant="sheet" {title} {heading} end={close} />
 		{#if bare}
 			{@render children()}
 		{:else}
-			<div class="min-h-0 overflow-y-auto px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+			<div class="body" class:with-footer={!!footer}>
 				{@render children()}
 			</div>
 		{/if}
+		{#if footer}<div class="footer">{@render footer()}</div>{/if}
 	</Drawer.Content>
 {/snippet}
 
@@ -160,3 +164,52 @@
 		{@render content()}
 	</Drawer.Root>
 {/if}
+
+<style>
+	:global(.sheet) {
+		width: 100%;
+		max-width: var(--size-sheet);
+		margin-inline: auto;
+	}
+
+	:global(.sheet[data-vaul-drawer-direction='bottom'][data-variant='auto']) {
+		max-height: calc(var(--size-sheet-auto) - var(--kb-inset, 0px));
+	}
+
+	:global(.sheet[data-vaul-drawer-direction='bottom'][data-variant='tall']) {
+		height: calc(var(--size-sheet-tall) - var(--kb-inset, 0px));
+		max-height: none;
+	}
+
+	:global(.sheet .title) {
+		font-size: var(--font-size-lg);
+		font-weight: 600;
+		line-height: 1.25;
+	}
+
+	.body {
+		min-height: 0;
+		overflow-y: auto;
+		padding: 0 var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+	}
+
+	.body.with-footer {
+		padding-bottom: var(--space-4);
+	}
+
+	.footer {
+		display: flex;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
+		background: var(--popover);
+	}
+
+	.footer > :global(*) {
+		flex: 1 1 0;
+		min-width: 0;
+	}
+
+	.footer > :global(.wide) {
+		flex-grow: 2;
+	}
+</style>

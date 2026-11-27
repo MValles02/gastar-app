@@ -4,10 +4,13 @@
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
 	import { thisMonth } from '#lib/dates.ts';
-	import FilterDrawer from '#lib/components/FilterDrawer.svelte';
+	import { replaceGoto } from '#lib/nav-stack.svelte.ts';
+	import { es } from '#lib/copy/es.ts';
+	import Sheet from '#lib/components/base/Sheet.svelte';
+	import Button from '#lib/components/base/Button.svelte';
 	import DateRangePicker from '#lib/components/pickers/DateRangePicker.svelte';
 	import MultiPicker from '#lib/components/pickers/MultiPicker.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
 
 	type Picks = ComponentProps<typeof MultiPicker>['items'];
 
@@ -110,45 +113,57 @@
 		stagedAccounts = [];
 		stagedCategories = [];
 	};
+
+	const apply = () => {
+		open = false;
+		void replaceGoto(resolve(`movements?${query}`), { reset: false });
+	};
 </script>
 
-<FilterDrawer
-	bind:open
-	{count}
-	noun={['movimiento', 'movimientos']}
-	href={resolve(`movements?${query}`)}
-	onclear={clear}
->
-	<span id="f-currency-label" class="visually-hidden">Moneda</span>
-	<SegmentedControl
-		name="currency"
-		options={currencyOptions}
-		bind:value={() => (stagedAccounts.length ? lockedCurrency : currency), (v) => (currency = v)}
-		labelledby="f-currency-label"
-		disabled={stagedAccounts.length > 0}
-	/>
-	<span id="f-type-label" class="visually-hidden">Tipo</span>
-	<SegmentedControl name="type" options={typeOptions} bind:value={type} labelledby="f-type-label" />
-	<div class="group">
-		<DateRangePicker bind:from bind:to />
-		<MultiPicker
-			legend="Cuenta"
-			title="Cuenta"
-			plural="cuentas"
-			items={pickAccounts}
-			bind:value={stagedAccounts}
+{#snippet footer()}
+	<Button variant="outline" onclick={clear}>{es.ui.clear}</Button>
+	<Button class="wide" onclick={apply}>{es.ui.showResults(count, es.ui.movementNoun)}</Button>
+{/snippet}
+
+<Sheet title={es.ui.filters} bind:open {footer}>
+	<div class="filters">
+		<span id="f-currency-label" class="visually-hidden">{es.ui.currency}</span>
+		<Segmented
+			name="currency"
+			options={currencyOptions}
+			bind:value={() => (stagedAccounts.length ? lockedCurrency : currency), (v) => (currency = v)}
+			labelledby="f-currency-label"
+			disabled={stagedAccounts.length > 0}
 		/>
-		<MultiPicker
-			legend="Categoría"
-			title="Categoría"
-			plural="categorías"
-			items={pickCategories}
-			bind:value={stagedCategories}
-		/>
+		<span id="f-type-label" class="visually-hidden">{es.ui.type}</span>
+		<Segmented name="type" options={typeOptions} bind:value={type} labelledby="f-type-label" />
+		<div class="group">
+			<DateRangePicker bind:from bind:to />
+			<MultiPicker
+				legend={es.ui.account}
+				title={es.ui.account}
+				plural={es.ui.accountsPlural}
+				items={pickAccounts}
+				bind:value={stagedAccounts}
+			/>
+			<MultiPicker
+				legend={es.ui.category}
+				title={es.ui.category}
+				plural={es.ui.categoriesPlural}
+				items={pickCategories}
+				bind:value={stagedCategories}
+			/>
+		</div>
 	</div>
-</FilterDrawer>
+</Sheet>
 
 <style>
+	.filters {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+
 	/* Rows of one card, like the movement form. */
 	.group {
 		overflow: hidden;

@@ -35,6 +35,7 @@ const common = {
 } as const;
 
 const auth = {
+	fields: { email: 'Email', password: 'Contraseña' },
 	login: { badCredentials: 'Email o contraseña incorrectos.' }
 } as const;
 
@@ -73,6 +74,15 @@ const accounts = {
 } as const;
 
 const categories = {
+	kind: {
+		title: 'Se usa para',
+		both: 'Ambos',
+		hint: {
+			outcome: 'Solo aparece al registrar gastos.',
+			income: 'Solo aparece al registrar ingresos.',
+			both: 'Aparece al registrar gastos e ingresos.'
+		}
+	},
 	errors: {
 		notFound: 'Categoría no encontrada.',
 		duplicateName: 'Ya tenés una categoría con ese nombre.',
@@ -85,6 +95,15 @@ const plan = {
 	errors: {
 		limitNotFound: 'Límite no encontrado.',
 		recurringNotFound: 'Movimiento fijo no encontrado.'
+	},
+	limits: {
+		meterLabel: (name: string) => `Límite de ${name}`,
+		meterValue: (spent: string, limit: string) => `${spent} de ${limit}`,
+		empty: 'Sin límites.'
+	},
+	recurring: {
+		noRate: 'Sin cotización',
+		meta: (day: number, detail: string) => `Día ${day} · ${detail}`
 	}
 } as const;
 
@@ -160,8 +179,49 @@ const profile = {
 	}
 } as const;
 
+/** Shared UI chrome (bases, headers, sheets). */
+const ui = {
+	close: 'Cerrar',
+	back: 'Volver',
+	search: 'Buscar',
+	filters: 'Filtros',
+	filter: 'Filtrar',
+	applyFilters: 'Aplicar filtros',
+	clear: 'Limpiar',
+	/** The filter sheet's primary button: "Ver 3 movimientos" (count null: no count yet). */
+	showResults: (count: number | null, noun: readonly [string, string]) =>
+		count === null ? `Ver ${noun[1]}` : `Ver ${count} ${count === 1 ? noun[0] : noun[1]}`,
+	month: 'Mes',
+	prevMonth: 'Mes anterior',
+	nextMonth: 'Mes siguiente',
+	alerts: 'Avisos',
+	alertsCount: (n: number) => `Avisos: ${n}`,
+	badgeOverflow: (max: number) => `${max}+`,
+	profile: 'Perfil',
+	mainNav: 'Navegación principal',
+	tabs: { home: 'Inicio', movements: 'Movimientos', plan: 'Plan', reports: 'Reportes' },
+	newMovement: 'Nuevo movimiento',
+	showPassword: 'Mostrar contraseña',
+	hidePassword: 'Ocultar contraseña',
+	currency: 'Moneda',
+	unknownCategory: '?',
+	iconColor: { title: 'Ícono y color', icon: 'Ícono', color: 'Color' },
+	cancel: 'Cancelar',
+	done: 'Listo',
+	name: 'Nombre',
+	type: 'Tipo',
+	showArchived: 'Mostrar archivadas',
+	account: 'Cuenta',
+	category: 'Categoría',
+	accountsPlural: 'cuentas',
+	categoriesPlural: 'categorías',
+	movementNoun: ['movimiento', 'movimientos'] as const,
+	docTitle: (t: string) => `${t} · Gastar`
+} as const;
+
 export const es = {
 	common,
+	ui,
 	auth,
 	home: {},
 	movements,

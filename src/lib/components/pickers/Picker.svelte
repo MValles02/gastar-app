@@ -5,15 +5,13 @@
 
 <script lang="ts">
 	import { tick, type Snippet } from 'svelte';
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
-	import { Button } from '#lib/components/ui/button/index.js';
-	import { cn } from '#lib/utils.js';
+	import Sheet from '#lib/components/base/Sheet.svelte';
+	import Row from '#lib/components/base/Row.svelte';
 
 	/**
 	 * The one picker shell: the 56px row (label left, value right, chevron) and the sheet it opens,
 	 * titled `title` with the drawer's close button. The sheet stacks over a drawer it is rendered in
-	 * (BottomDrawer reads that from context). The body gets `pick`, which sets the value, closes the
+	 * (Sheet reads that from context). The body gets `pick`, which sets the value, closes the
 	 * sheet, lets ancestors (a filter form) see a bubbling `change` from `changeFrom`, then focuses
 	 * the row again. Pickers that keep the sheet open (multi-select) just never call it.
 	 */
@@ -33,7 +31,6 @@
 		onclosed,
 		changeFrom,
 		class: className,
-		labelClass,
 		valueClass,
 		children
 	}: {
@@ -59,12 +56,11 @@
 		/** The hidden input a pick dispatches `change` from; none: no event. */
 		changeFrom?: HTMLElement | null;
 		class?: string;
-		labelClass?: string;
 		valueClass?: string;
 		children: Snippet<[Pick]>;
 	} = $props();
 
-	let trigger: HTMLButtonElement | null = $state(null);
+	let trigger: HTMLElement | null = $state(null);
 
 	const pick: Pick = async (set) => {
 		set();
@@ -75,57 +71,35 @@
 	};
 </script>
 
-<Button
-	variant="ghost"
-	class={cn(
-		'h-14 w-full justify-between gap-3 rounded-none px-4',
-		scrollMargin && 'scroll-mb-24',
-		className
-	)}
-	aria-haspopup="dialog"
-	aria-labelledby="{labelId} {valueId}"
-	aria-invalid={invalid ? 'true' : undefined}
-	aria-describedby={describedBy}
+{#snippet trailing()}
+	<span class={valueClass} class:placeholder class:strong={strongPlaceholder}>
+		{#if typeof value === 'string'}{value}{:else}{@render value()}{/if}
+	</span>
+{/snippet}
+
+<Row
+	item={false}
+	class={`${scrollMargin ? 'scroll-mb-24' : ''} ${className ?? ''}`}
+	title={label}
+	{trailing}
+	haspopup
+	chevron
+	{invalid}
+	describedby={describedBy}
+	titleId={labelId}
+	trailingId={valueId}
+	labelledby="{labelId} {valueId}"
 	bind:ref={trigger}
 	onclick={() => {
 		onopen?.();
 		open = true;
 	}}
->
-	<span class={['label', labelClass]} id={labelId}>{label}</span>
-	<span
-		id={valueId}
-		class={['current', valueClass]}
-		class:placeholder
-		class:strong={strongPlaceholder}
-	>
-		{#if typeof value === 'string'}{value}{:else}{@render value()}{/if}
-	</span>
-	<ChevronRight
-		size={16}
-		strokeWidth={1.75}
-		aria-hidden="true"
-		class="flex-none text-muted-foreground"
-	/>
-</Button>
-<BottomDrawer {title} {onclosed} bind:open>
+/>
+<Sheet {title} {onclosed} bind:open>
 	{@render children(pick)}
-</BottomDrawer>
+</Sheet>
 
 <style>
-	.label {
-		flex: none;
-		font-size: var(--font-size-base);
-		color: var(--text);
-	}
-
-	.current {
-		flex: 1;
-		min-width: 0;
-		text-align: right;
-		font-weight: 500;
-	}
-
 	.placeholder {
 		color: var(--text-muted);
 		font-weight: 400;

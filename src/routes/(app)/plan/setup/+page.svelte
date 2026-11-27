@@ -1,4 +1,7 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import SectionLabel from '#lib/components/base/SectionLabel.svelte';
 	import { untrack } from 'svelte';
 	import { formatMoney } from '#lib/money.ts';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
@@ -8,13 +11,9 @@
 	import * as Card from '#lib/components/ui/card/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import FormActions from '#lib/components/FormActions.svelte';
-	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
 	import ActionLink from '#lib/components/ActionLink.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
-	import Money from '#lib/components/Money.svelte';
-	import SwitchRow from '#lib/components/SwitchRow.svelte';
-	import SectionHeader from '#lib/components/SectionHeader.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
+	import Toggle from '#lib/components/base/Toggle.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import { PLAN_CURRENCY } from '#lib/plan.ts';
 	import {
@@ -79,66 +78,58 @@
 			</li>
 		{/each}
 	</ol>
-	<CardEyebrow>
-		Plan · paso {data.step} de {WIZARD_STEPS.length}
-	</CardEyebrow>
+	<SectionLabel as="p" text={`Plan · paso ${data.step} de ${WIZARD_STEPS.length}`} />
 
 	{#if data.step === 1 || data.step === 2}
 		{@const income = data.step === 1}
 		{@render question()}
 		<section class="group">
-			<SectionHeader level={3} title={income ? 'Ingresos fijos' : 'Pagos fijos'} aside={addRule} />
-			<ListCard>
+			<SectionLabel as="h3" text={income ? 'Ingresos fijos' : 'Pagos fijos'} aside={addRule} />
+			<Group>
 				{#each data.active as r (r.id)}
 					<RecurringRow row={r} wizard={data.step} />
 				{:else}
 					<p class="empty">{income ? 'Sin ingresos fijos.' : 'Sin pagos fijos.'}</p>
 				{/each}
-			</ListCard>
+			</Group>
 			{#if data.active.length}
 				<p class="total">
 					<span>Total</span>
-					<Money
+					<Amount
 						cents={income ? data.total : -data.total}
 						currency={PLAN_CURRENCY}
-						tone="flow"
-						direction={income ? 'income' : 'outcome'}
+						tone={income ? 'income' : 'expense'}
 					/>
 				</p>
 			{/if}
 		</section>
 		{#if data.inactive.length}
-			<SectionHeader level={3} title="Inactivos" />
-			<ListCard>
+			<SectionLabel as="h3" text="Inactivos" />
+			<Group>
 				{#each data.inactive as r (r.id)}
 					<RecurringRow row={r} wizard={data.step} />
 				{/each}
-			</ListCard>
+			</Group>
 		{/if}
 		{#if data.suggestions.length}
-			<SectionHeader level={3} title="Detectamos que se repiten" />
+			<SectionLabel as="h3" text="Detectamos que se repiten" />
 			<p class="muted small">Tocá uno para agregarlo como pago fijo.</p>
-			<ListCard>
+			<Group>
 				{#each data.suggestions as s (s.id)}
 					{@const href = `${withWizard('/plan/recurring/new?type=outcome', wizardStep('bills'))}&suggestion=${s.id}`}
-					<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-					<div
-						onclick={(e) =>
-							(e.target as Element).closest('a') && openShallow(e, resolve(href as ''), 'newRule')}
-					>
-						<ListRow
-							href={resolve(href as '')}
-							lead={{ letter: s.description.charAt(0).toUpperCase(), color: null }}
-							title={s.description}
-						>
-							{#snippet value()}
-								<Money cents={-s.amount} currency={s.currency} tone="flow" direction="outcome" />
-							{/snippet}
-							{#snippet meta()}Día {s.dayOfMonth} · {s.accountName}{/snippet}
-						</ListRow>
-					</div>
+					{#snippet value()}
+						<Amount cents={-s.amount} currency={s.currency} tone="expense" />
+					{/snippet}
+					<Row
+						href={resolve(href as '')}
+						onclick={(e) => openShallow(e, resolve(href as ''), 'newRule')}
+						glyph={{ category: null }}
+						title={s.description}
+						trailing={value}
+						subtitle={`Día ${s.dayOfMonth} · ${s.accountName}`}
+					/>
 				{/each}
-			</ListCard>
+			</Group>
 		{/if}
 		{@render bar('Siguiente', setupStepHref(data.step + 1))}
 	{:else if data.step === 3}
@@ -177,7 +168,7 @@
 			</form>
 		{/if}
 		<section class="group">
-			<SectionHeader level={3} title="Límites" aside={addLimit} />
+			<SectionLabel as="h3" text="Límites" aside={addLimit} />
 			<LimitList limits={data.limits} wizard={wizardStep('limits')} />
 		</section>
 		{@render bar('Siguiente', setupStepHref(wizardStep('summary')))}
@@ -189,23 +180,23 @@
 				<div class="kv">
 					<dt>Ingresos</dt>
 					<dd>
-						<Money cents={s.income} currency={PLAN_CURRENCY} tone="flow" direction="income" />
+						<Amount cents={s.income} currency={PLAN_CURRENCY} tone="income" />
 					</dd>
 				</div>
 				<div class="kv">
 					<dt>Pagos fijos</dt>
 					<dd>
-						<Money cents={-s.bills} currency={PLAN_CURRENCY} tone="flow" direction="outcome" />
+						<Amount cents={-s.bills} currency={PLAN_CURRENCY} tone="expense" />
 					</dd>
 				</div>
 				<div class="kv">
 					<dt>Ahorro</dt>
-					<dd><Money cents={s.savings} currency={PLAN_CURRENCY} /></dd>
+					<dd><Amount cents={s.savings} currency={PLAN_CURRENCY} /></dd>
 				</div>
 				{#each s.limits as l (l.categoryId)}
 					<div class="kv">
 						<dt>Límite · {l.name}</dt>
-						<dd><Money cents={l.amount} currency={l.currency} /></dd>
+						<dd><Amount cents={l.amount} currency={l.currency} /></dd>
 					</div>
 				{:else}
 					<div class="kv">
@@ -215,11 +206,11 @@
 				{/each}
 				<div class="kv sum">
 					<dt>Para gastar</dt>
-					<dd><Money cents={s.forSpending} currency={PLAN_CURRENCY} /></dd>
+					<dd><Amount cents={s.forSpending} currency={PLAN_CURRENCY} /></dd>
 				</div>
 				<div class="kv">
 					<dt>Por día</dt>
-					<dd>≈ <Money cents={perDay} currency={PLAN_CURRENCY} /></dd>
+					<dd>≈ <Amount cents={perDay} currency={PLAN_CURRENCY} /></dd>
 				</div>
 			</dl>
 		</Card.Root>
@@ -235,15 +226,13 @@
 			use:enhance={() => (input) => followRedirect(input)}
 			class="wizard"
 		>
-			<Card.Root class="gap-0 py-0">
-				<SwitchRow
-					id="repeat"
-					name="repeat"
-					label="Usar este plan todos los meses"
-					bind:checked={repeat}
-					describedby="repeat-note"
-				/>
-			</Card.Root>
+			<Group>
+				<Row title="Usar este plan todos los meses" labelFor="repeat">
+					{#snippet trailing()}
+						<Toggle id="repeat" name="repeat" bind:checked={repeat} describedby="repeat-note" />
+					{/snippet}
+				</Row>
+			</Group>
 			<p id="repeat-note" class="muted small">
 				{repeat
 					? 'El plan se repite cada mes con tus ingresos y pagos fijos.'

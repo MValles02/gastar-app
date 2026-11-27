@@ -1,14 +1,14 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import { autosave } from '#lib/autosave.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { USER_NAME_MAX_LENGTH } from '#lib/constants.ts';
 	import { applyTheme, THEME_OPTIONS } from '#lib/theme.ts';
@@ -44,10 +44,7 @@
 	<title>Perfil · Gastar</title>
 </svelte:head>
 
-<PageHeader
-	title="Perfil"
-	back={{ href: resolve(''), label: 'Volver al inicio', text: 'Inicio' }}
-/>
+<Header title="Perfil" back={{ href: resolve(''), label: 'Volver al inicio' }} />
 
 <div class="page">
 	<section class="who" aria-label="Usuario">
@@ -68,39 +65,39 @@
 		</span>
 	{/snippet}
 
-	<ListCard aria-label="Lo que administrás">
-		<ListRow
+	<Group aria-label="Lo que administrás">
+		<Row
 			href={resolve('accounts')}
-			lead={{ icon: 'accounts', color: null }}
+			glyph={{ icon: 'accounts', tone: 'neutral' }}
 			title="Cuentas"
-			value={accountsCount}
+			trailing={accountsCount}
 			chevron
 		/>
-		<ListRow
+		<Row
 			href={resolve('categories')}
-			lead={{ icon: 'categories', color: null }}
+			glyph={{ icon: 'categories', tone: 'neutral' }}
 			title="Categorías"
-			value={categoriesCount}
+			trailing={categoriesCount}
 			chevron
 		/>
-		<ListRow
+		<Row
 			href={resolve('profile/vinculaciones')}
-			lead={{ icon: 'phone', color: null }}
+			glyph={{ icon: 'phone', tone: 'neutral' }}
 			title="Vinculaciones"
 			chevron
 		/>
-	</ListCard>
+	</Group>
 
-	<ListCard aria-label="Tu identidad">
-		<ListRow lead={{ icon: 'profile', color: null }} title="Nombre" value={nameValue} />
-		<ListRow
+	<Group aria-label="Tu identidad">
+		<Row glyph={{ icon: 'profile', tone: 'neutral' }} title="Nombre" trailing={nameValue} />
+		<Row
 			href={resolve('profile/password')}
-			lead={{ icon: 'lock', color: null }}
+			glyph={{ icon: 'lock', tone: 'neutral' }}
 			title={data.hasPassword ? 'Contraseña' : 'Crear contraseña'}
 			chevron
 			onclick={(e: MouseEvent) => openShallow(e, resolve('profile/password'), 'password')}
 		/>
-	</ListCard>
+	</Group>
 
 	<Card.Root class="gap-0 overflow-hidden py-0" aria-label="Tema">
 		<form
@@ -117,7 +114,7 @@
 			<div class="row">
 				<span id="theme-heading">Tema</span>
 				<div class="seg">
-					<SegmentedControl
+					<Segmented
 						name="theme"
 						options={THEME_OPTIONS}
 						bind:value={selected}
@@ -136,9 +133,9 @@
 	</Card.Root>
 
 	<form method="POST" action="/logout">
-		<ListCard aria-label="Sesión">
-			<ListRow submit lead={{ icon: 'logout', color: null }} title="Cerrar sesión" />
-		</ListCard>
+		<Group aria-label="Sesión">
+			<Row submit glyph={{ icon: 'logout', tone: 'neutral' }} title="Cerrar sesión" />
+		</Group>
 	</form>
 
 	<a

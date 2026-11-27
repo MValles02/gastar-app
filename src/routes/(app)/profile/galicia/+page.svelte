@@ -1,14 +1,14 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import { refreshAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { autosave, submitAction } from '#lib/autosave.ts';
-	import IconBadge from '#lib/components/IconBadge.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
+	import Glyph from '#lib/components/base/Glyph.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import type { Currency } from '#lib/money.ts';
 	import type { ActionData, PageData } from './$types';
@@ -52,12 +52,11 @@
 	<title>Banco Galicia · Gastar</title>
 </svelte:head>
 
-<PageHeader
+<Header
 	title="Banco Galicia"
 	back={{
 		href: resolve('profile/vinculaciones'),
-		label: 'Volver a Vinculaciones',
-		text: 'Vinculaciones'
+		label: 'Volver a Vinculaciones'
 	}}
 />
 
@@ -67,8 +66,8 @@
 		cuenta para revisar; los impuestos, en uno solo.
 	</p>
 
-	<ListCard aria-label="Cuentas">
-		<div role="listitem">
+	<Group aria-label="Cuentas">
+		<li role="listitem">
 			<form method="POST" action="?/account">
 				<input type="hidden" name="currency" value="ARS" />
 				<OptionPicker
@@ -89,8 +88,8 @@
 				</OptionPicker>
 				<noscript><Button type="submit" variant="outline">Guardar</Button></noscript>
 			</form>
-		</div>
-		<div role="listitem">
+		</li>
+		<li role="listitem">
 			<form method="POST" action="?/account">
 				<input type="hidden" name="currency" value="USD" />
 				<OptionPicker
@@ -111,8 +110,8 @@
 				</OptionPicker>
 				<noscript><Button type="submit" variant="outline">Guardar</Button></noscript>
 			</form>
-		</div>
-	</ListCard>
+		</li>
+	</Group>
 	<p class="hint">Solo hace falta si el resumen tiene consumos en dólares.</p>
 
 	<form
@@ -130,7 +129,7 @@
 	>
 		<Card.Root class="py-0">
 			<label class="file" class:chosen={!!fileName}>
-				<IconBadge icon="file-up" color={null} neutral size="2.25rem" />
+				<Glyph icon="file-up" tone="neutral" />
 				<span class="name">{fileName || 'Elegir el PDF del resumen'}</span>
 				<input
 					type="file"

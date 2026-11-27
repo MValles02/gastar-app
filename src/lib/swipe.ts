@@ -19,7 +19,7 @@ export const SPRING = 'var(--dur-slow) var(--ease-drawer)';
 /** Set on <html> while a page is dragged, so a page pushed past the edge adds no horizontal scroll. */
 export const SWIPING_CLASS = 'page-swiping';
 
-/** An open bits-ui dialog or vaul drawer (BottomDrawer): no swipe while one is up. */
+/** An open bits-ui dialog or vaul drawer (Sheet): no swipe while one is up. */
 const OVERLAY_SELECTOR = '[role="dialog"], [data-vaul-drawer]';
 
 export const isStandalone = () =>

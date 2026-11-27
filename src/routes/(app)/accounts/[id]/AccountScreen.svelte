@@ -14,7 +14,7 @@
 
 <FormScreen
 	title={detail.account.name}
-	back={{ href: resolve('accounts'), label: 'Volver a cuentas', text: 'Cuentas' }}
+	back={{ href: resolve('accounts'), label: 'Volver a cuentas' }}
 	{onclose}
 >
 	<AccountDetail

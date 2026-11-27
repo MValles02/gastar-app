@@ -29,7 +29,6 @@
 	<Picker
 		{labelId}
 		label="Día del mes"
-		labelClass="text-base font-normal"
 		value={value || 'Elegir'}
 		placeholder={!value}
 		strongPlaceholder

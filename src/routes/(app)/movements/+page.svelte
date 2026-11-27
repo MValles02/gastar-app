@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
 	import { resolve } from '$app/paths';
 	import { navigating, page } from '$app/state';
 	import { untrack } from 'svelte';
@@ -8,16 +9,15 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import DateRangePicker from '#lib/components/pickers/DateRangePicker.svelte';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
 	import MovementFiltersDrawer from '#lib/components/movements/MovementFiltersDrawer.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import MovementRow from '#lib/components/movements/MovementRow.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import TabBand from '#lib/components/TabBand.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import type { PageData } from './$types';
 
@@ -104,11 +104,11 @@
 	<title>Movimientos · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Movimientos" tone="primary" bind:ref={header} />
+<Header title="Movimientos" tone="primary" bind:ref={header} />
 
 {#snippet fields(submit: () => void)}
 	<span id="type-label" class="visually-hidden">Tipo</span>
-	<SegmentedControl
+	<Segmented
 		name="type"
 		options={typeOptions}
 		bind:value={type}
@@ -166,22 +166,28 @@
 		<div class="list" in:fade>
 			{#if data.months.length === 0}
 				{#if data.page > 1}
-					<EmptyState icon="search" description="Sin más movimientos.">
-						<Button href={resolve(`movements?${firstPageQuery}`)} variant="outline">
-							Ir a la primera página
-						</Button>
+					<EmptyState icon="search" text="Sin más movimientos.">
+						{#snippet action()}
+							<Button href={resolve(`movements?${firstPageQuery}`)} variant="outline">
+								Ir a la primera página
+							</Button>
+						{/snippet}
 					</EmptyState>
 				{:else if data.activeCount === 0}
-					<EmptyState icon="movements" description="Sin movimientos.">
-						<Button
-							href={resolve('movements/new')}
-							onclick={(e) => openShallow(e, resolve('movements/new'), 'newMovement')}
-							>Nuevo movimiento</Button
-						>
+					<EmptyState icon="movements" text="Sin movimientos.">
+						{#snippet action()}
+							<Button
+								href={resolve('movements/new')}
+								onclick={(e) => openShallow(e, resolve('movements/new'), 'newMovement')}
+								>Nuevo movimiento</Button
+							>
+						{/snippet}
 					</EmptyState>
 				{:else}
-					<EmptyState icon="search" description="Sin resultados.">
-						<Button href={resolve('movements')} variant="outline">Limpiar filtros</Button>
+					<EmptyState icon="search" text="Sin resultados.">
+						{#snippet action()}
+							<Button href={resolve('movements')} variant="outline">Limpiar filtros</Button>
+						{/snippet}
 					</EmptyState>
 				{/if}
 			{:else}
@@ -215,18 +221,18 @@
 												<span class="visually-hidden">Gastos del día: </span>
 												{#each g.spend as s, i (s.currency)}
 													{#if i > 0}{CURRENCY_SEP}{/if}
-													<Money cents={s.cents} currency={s.currency} />
+													<Amount cents={s.cents} currency={s.currency} />
 												{/each}
 											</span>
 										{/if}
 									</div>
-									<ListCard class="relative">
+									<Group class="relative">
 										{#each g.items as m (m.id)}
-											<div data-slide animate:slide in:fade={{ skip: !inPlace }}>
-												<MovementRow {m} />
-											</div>
+											<li role="listitem" data-slide animate:slide in:fade={{ skip: !inPlace }}>
+												<MovementRow {m} item={false} />
+											</li>
 										{/each}
-									</ListCard>
+									</Group>
 								</section>
 							{/each}
 						</section>

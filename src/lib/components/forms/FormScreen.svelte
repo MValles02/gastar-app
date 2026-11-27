@@ -1,13 +1,14 @@
 <script lang="ts">
 	import type { ComponentProps, Snippet } from 'svelte';
-	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Sheet from '#lib/components/base/Sheet.svelte';
+	import Header from '#lib/components/base/Header.svelte';
+	import { es } from '#lib/copy/es.ts';
 	import { setFormScreen } from './form-enhance.ts';
 
 	/**
 	 * A form route's one screen: the full page (`<svelte:head>` + header) or, with `onclose`, the
 	 * bottom drawer over the screen it was opened from, or, with `bind:open` too, a sub-task drawer stacked
-	 * over the form it feeds (it stacks by itself: BottomDrawer nests inside another drawer). Shares `variant`, `onclose`, `onsaved` and the
+	 * over the form it feeds (it stacks by itself: Sheet nests inside another drawer). Shares `variant`, `onclose`, `onsaved` and the
 	 * close target with the form inside it (FormShell reads them as defaults).
 	 */
 	let {
@@ -27,17 +28,15 @@
 		/** Page: X button in the header; also Cancelar's target. */
 		close?: { href: string; label?: string };
 		/** Page: "‹ Parent" link instead of the X (`close` wins). */
-		back?: { href: string; label: string; text: string };
+		back?: { href: string; label: string };
 		/** Set: render as a drawer (the (app) layout passes it); closes it. */
 		onclose?: () => void;
 		/** Drawer: the action redirected to `location`. */
 		onsaved?: (location: string) => unknown;
 		/** Drawer: bound by a sub-task drawer the parent opens and closes itself (`onclose` sets it false). */
 		open?: boolean;
-		/** BottomDrawer options where they differ from the page (another `title`, `hideTitle`, `bare`). */
-		drawerProps?: Partial<
-			Omit<ComponentProps<typeof BottomDrawer>, 'children' | 'open' | 'onclose'>
-		>;
+		/** Sheet options where they differ from the page (another `title`, `hideTitle`, `bare`). */
+		drawerProps?: Partial<Omit<ComponentProps<typeof Sheet>, 'children' | 'open' | 'onclose'>>;
 		children: Snippet;
 	} = $props();
 
@@ -58,14 +57,14 @@
 </script>
 
 <svelte:head>
-	{#if !onclose}<title>{headTitle ?? title} · Gastar</title>{/if}
+	{#if !onclose}<title>{es.ui.docTitle(headTitle ?? title)}</title>{/if}
 </svelte:head>
 
 {#if onclose}
-	<BottomDrawer {title} {...drawerProps} bind:open {onclose}>
+	<Sheet {title} {...drawerProps} bind:open {onclose}>
 		{@render children()}
-	</BottomDrawer>
+	</Sheet>
 {:else}
-	<PageHeader {title} close={close && { label: 'Cerrar', ...close }} {back} />
+	<Header {title} close={close && { label: es.ui.close, ...close }} {back} />
 	{@render children()}
 {/if}

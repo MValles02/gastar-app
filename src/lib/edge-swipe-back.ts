@@ -21,7 +21,7 @@ import { POLL_MS, RESET_SLACK_MS, SETTLE_MS, SLIDE_OUT_MS, SPRING_MS } from '#li
  * Edge-swipe back for the installed PWA (iOS standalone has no system swipe-back). A touch that
  * starts within EDGE_PX of the left edge and drags right moves the page with the finger; releasing
  * past COMMIT_RATIO of the width, or with a fast flick, clicks the screen's own "up" control
- * (`[data-edge-back]` in PageHeader, which runs `upOnClick` -> `navigateUp`), so the swipe and the
+ * (`[data-edge-back]` in Header, which runs `upOnClick` -> `navigateUp`), so the swipe and the
  * back button share one code path. Otherwise the page springs back.
  *
  * Only active when the screen has such a control (sub-screens; tabs and auth screens have none),
@@ -30,7 +30,7 @@ import { POLL_MS, RESET_SLACK_MS, SETTLE_MS, SLIDE_OUT_MS, SPRING_MS } from '#li
  * (we get `touchcancel` and spring back). Touch only: no effect with a mouse.
  */
 
-/** The screen's "up" control (PageHeader's `data-edge-back`), which a committed swipe clicks. */
+/** The screen's "up" control (Header's `data-edge-back`), which a committed swipe clicks. */
 const BACK_SELECTOR = '[data-edge-back]';
 
 let restore: (() => void) | null = null;

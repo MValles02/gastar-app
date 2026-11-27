@@ -1,13 +1,13 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import { page } from '$app/state';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { markReplace } from '#lib/nav-stack.svelte.ts';
 	import { fade } from '#lib/motion.ts';
 	import { Badge } from '#lib/components/ui/badge/index.js';
-	import { Button } from '#lib/components/ui/button/index.js';
-	import * as InputGroup from '#lib/components/ui/input-group/index.js';
+	import { es } from '#lib/copy/es.ts';
+	import Button from '#lib/components/base/Button.svelte';
+	import SearchField from '#lib/components/base/SearchField.svelte';
 	import Icon from './Icon.svelte';
 
 	/**
@@ -17,8 +17,8 @@
 	let {
 		q = '',
 		search = true,
-		placeholder = 'Buscar',
-		label = 'Buscar',
+		placeholder = es.ui.search,
+		label = es.ui.search,
 		active,
 		filters,
 		onfilters,
@@ -69,39 +69,29 @@
 			<input type="hidden" name={k} value={v} />
 		{/each}
 	{/if}
-	<div class="tools">
+	<div class="tools" class:end={!search}>
 		{#if search}
-			<InputGroup.Root class="h-11 flex-1 rounded-xl">
-				<InputGroup.Addon>
-					<Icon name="search" size="1.25rem" />
-				</InputGroup.Addon>
-				<InputGroup.Input
-					type="search"
-					name="q"
-					value={q}
-					{placeholder}
-					aria-label={label}
-					oninput={debounced}
-				/>
-			</InputGroup.Root>
+			<SearchField
+				value={q}
+				{placeholder}
+				{label}
+				oninput={debounced}
+				onPrimary={tone === 'primary'}
+			/>
 		{/if}
 		<Button
-			type="button"
 			variant="outline"
-			class={[
-				'h-11 shrink-0 px-3.5 font-medium',
-				!search && 'ml-auto',
-				active > 0 && 'border-foreground'
-			]}
+			class="trigger"
+			data-active={active > 0 ? '' : undefined}
 			aria-haspopup="dialog"
 			onclick={onfilters}
 		>
-			<SlidersHorizontal size={18} strokeWidth={1.75} aria-hidden="true" />
-			Filtros
+			<Icon name="filters" size="sm" />
+			{es.ui.filters}
 			{#if active > 0}<span class="inline-flex" in:fade><Badge>{active}</Badge></span>{/if}
 		</Button>
 	</div>
-	{#if search}<noscript><Button type="submit">Filtrar</Button></noscript>{/if}
+	{#if search}<noscript><Button type="submit">{es.ui.filter}</Button></noscript>{/if}
 </form>
 
 {#if filters}
@@ -109,7 +99,7 @@
 		<form method="GET" class="plain">
 			{#if q}<input type="hidden" name="q" value={q} />{/if}
 			{@render filters(() => {})}
-			<Button type="submit">Aplicar filtros</Button>
+			<Button type="submit">{es.ui.applyFilters}</Button>
 		</form>
 	</noscript>
 {/if}
@@ -127,15 +117,21 @@
 		gap: var(--space-2);
 	}
 
-	/* Fields and outline buttons are translucent in dark mode: solid surface so the band never shows through. */
-	.on-primary :global([data-slot='input-group']),
-	.on-primary :global([data-slot='button']) {
-		background: var(--surface);
-		border-color: transparent;
+	.tools.end {
+		justify-content: flex-end;
 	}
 
-	.on-primary :global([data-slot='input-group']:focus-within) {
-		--tw-ring-color: var(--on-primary);
+	.tools :global(.trigger) {
+		flex: none;
+	}
+
+	.tools :global(.trigger[data-active]) {
+		border-color: var(--text);
+	}
+
+	/* Outline buttons are translucent in dark mode: no edge on the band. */
+	.on-primary .tools :global(.trigger) {
+		border-color: transparent;
 	}
 
 	.plain {

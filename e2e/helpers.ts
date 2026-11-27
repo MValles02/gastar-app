@@ -254,7 +254,7 @@ export async function deleteMovements(page: Page, baseURL: string, query: string
 export async function deleteRules(page: Page, baseURL: string, description: string) {
 	await page.goto('/plan');
 	const hrefs = await rule(page, description)
-		.locator('a[data-slot="item"]')
+		.getByRole('link')
 		.evaluateAll((els) => els.map((el) => (el as HTMLAnchorElement).href));
 	for (const href of hrefs) await postDelete(page, baseURL, href);
 }
@@ -463,7 +463,7 @@ export const reviewDrawer = (page: Page) =>
 /** Opens the review drawer of the pending /imports item whose list row contains all `texts`. */
 export async function openItem(page: Page, ...texts: string[]) {
 	await gotoHydrated(page, '/imports');
-	let row = page.locator('[data-slot="item-group"] [role="listitem"]');
+	let row = page.locator('[role="list"] > [role="listitem"]');
 	for (const t of texts) row = row.filter({ hasText: t });
 	await row.getByRole('link').first().click();
 	await expect(reviewDrawer(page)).toBeVisible();

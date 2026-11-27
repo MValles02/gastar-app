@@ -4,12 +4,13 @@
 	import type { CategoryIconKey, SwatchKey } from '#lib/appearance.ts';
 	import { highlight } from '#lib/highlight.svelte.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
-	import ListRow from '#lib/components/ListRow.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 
 	let {
 		m,
-		date
+		date,
+		item = true
 	}: {
 		m: {
 			id: string;
@@ -27,68 +28,62 @@
 		};
 		/** Pre-formatted day; omitted where a group header already shows it. */
 		date?: string;
+		/** false: the caller supplies the <li> (an animated list item). */
+		item?: boolean;
 	} = $props();
 
 	const highlighted = $derived(highlight.id === m.id);
 
 	// Only a click on the link opens the detail drawer over the list.
-	const open = (e: MouseEvent) =>
-		(e.target as Element).closest('a') && openShallow(e, resolve(`movements/${m.id}`), 'movement');
+	const onclick = (e: MouseEvent) => openShallow(e, resolve(`movements/${m.id}`), 'movement');
 </script>
 
-{#snippet value()}
-	<Money cents={m.amount} currency={m.currency} tone="flow" direction={m.type} />
+{#snippet trailing()}
+	<Amount
+		cents={m.amount}
+		currency={m.currency}
+		tone={m.type === 'income' ? 'income' : m.type === 'outcome' ? 'expense' : 'neutral'}
+	/>
 	{#if m.secondary}
 		<span class="secondary"
-			><Money cents={m.secondary.cents} currency={m.secondary.currency} /></span
+			><Amount cents={m.secondary.cents} currency={m.secondary.currency} /></span
 		>
 	{/if}
 {/snippet}
 
 <!-- Canvas: "Cuenta · día" on the left, the amount alone on the right. -->
-{#snippet meta()}
-	{m.type === 'transfer' ? `${m.accountName} → ${m.destinationAccountName}` : m.accountName}{date
-		? ` · ${date}`
-		: ''}
-{/snippet}
-
-<!-- The wrapper only carries the e2e/test hook; it adds no box. -->
-<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-<div class="hl" data-highlighted={highlighted ? 'true' : undefined} onclick={open}>
-	<ListRow
-		class={highlighted ? 'highlighted' : ''}
-		href={resolve(`movements/${m.id}`)}
-		lead={m.type === 'transfer'
-			? { icon: 'transfer', color: null, glyph: 'var(--transfer)' }
-			: m.categoryColor || m.categoryIcon
-				? {
-						icon: m.categoryIcon ?? undefined,
-						letter: m.categoryIcon ? undefined : m.description.charAt(0).toUpperCase(),
-						color: m.categoryColor
-					}
-				: { letter: m.description.charAt(0).toUpperCase(), color: null }}
-		title={m.description}
-		status={m.categoryName && m.type !== 'transfer'
-			? { tone: 'neutral', label: m.categoryName }
-			: undefined}
-		{value}
-		{meta}
-	/>
-</div>
+<Row
+	{item}
+	class={highlighted ? 'movement highlighted' : 'movement'}
+	href={resolve(`movements/${m.id}`)}
+	{onclick}
+	glyph={m.type === 'transfer'
+		? { icon: 'transfer', tone: 'muted' }
+		: {
+				category:
+					(m.categoryName ?? m.categoryIcon ?? m.categoryColor)
+						? { icon: m.categoryIcon, color: m.categoryColor }
+						: null
+			}}
+	title={m.description}
+	status={m.categoryName && m.type !== 'transfer'
+		? { tone: 'neutral', label: m.categoryName }
+		: undefined}
+	{trailing}
+	subtitle={(m.type === 'transfer'
+		? `${m.accountName} → ${m.destinationAccountName}`
+		: m.accountName) + (date ? ` · ${date}` : '')}
+/>
 
 <style>
-	.hl {
-		display: contents;
-	}
-
 	/* Just saved: a primary tint behind the row, held while `highlight` flags it, then faded out
 	   (an opacity transition, so a new highlight retargets instead of restarting). */
-	.hl > :global([role='listitem']) {
+	:global(.movement) {
 		position: relative;
 		isolation: isolate;
 	}
 
-	.hl > :global([role='listitem'])::before {
+	:global(.movement)::before {
 		content: '';
 		position: absolute;
 		inset: 0;
@@ -99,7 +94,7 @@
 		transition: opacity 1.2s var(--ease-out);
 	}
 
-	.hl > :global(.highlighted)::before {
+	:global(.highlighted)::before {
 		opacity: 1;
 		transition: none;
 	}

@@ -1,27 +1,27 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import SectionLabel from '#lib/components/base/SectionLabel.svelte';
 	import { formatPercent } from '#lib/locale.ts';
 	import { resolve } from '$app/paths';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import ActionLink from '#lib/components/ActionLink.svelte';
 	import CurrencyTabs from '#lib/components/CurrencyTabs.svelte';
-	import EmptyState from '#lib/components/EmptyState.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
 	import FirstRunChecklist from '#lib/components/FirstRunChecklist.svelte';
-	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
-	import Meter from '#lib/components/Meter.svelte';
-	import Money from '#lib/components/Money.svelte';
-	import HeroAmount from '#lib/components/HeroAmount.svelte';
+	import Meter from '#lib/components/base/Meter.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
+	import { signTone } from '#lib/money.ts';
 	import MovementRow from '#lib/components/movements/MovementRow.svelte';
 	import MpPill from './MpPill.svelte';
 	import PaceChart from '#lib/components/PaceChart.svelte';
 	import UpcomingBills from './UpcomingBills.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import TabBand from '#lib/components/TabBand.svelte';
-	import StatusPill from '#lib/components/StatusPill.svelte';
+	import Status from '#lib/components/base/Status.svelte';
 	import { PLAN_TONE } from '#lib/plan.ts';
-	import { swatchVar, toSwatchKey } from '#lib/appearance.ts';
+	import { toneOf } from '#lib/appearance.ts';
 	import { appear, fade } from '#lib/motion.ts';
 	import type { PageData } from './$types';
 
@@ -32,7 +32,7 @@
 	<title>Gastar</title>
 </svelte:head>
 
-<PageHeader title="Hola, {data.header.firstName}" tone="primary" />
+<Header title="Hola, {data.header.firstName}" tone="primary" />
 
 <TabBand>
 	{#if data.hasAnyAccount}
@@ -53,8 +53,10 @@
 
 		{#if !data.hasCurrencyAccount}
 			<Card.Root>
-				<EmptyState icon="accounts" description="Sin cuentas en {data.currencyWord}.">
-					<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+				<EmptyState icon="accounts" text="Sin cuentas en {data.currencyWord}.">
+					{#snippet action()}
+						<Button href={resolve('accounts/new')}>Crear cuenta</Button>
+					{/snippet}
 				</EmptyState>
 			</Card.Root>
 		{:else}
@@ -64,12 +66,12 @@
 						{@const s = data.plan.summary}
 						<div class="box" in:fade>
 							<div class="top">
-								<CardEyebrow as="h2" id="summary-heading">Disponible</CardEyebrow>
-								<StatusPill tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
+								<SectionLabel as="h2" id="summary-heading" text="Disponible" />
+								<Status tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
 							</div>
-							<HeroAmount class="available-amount" cents={s.available} currency="ARS" />
+							<Amount size="hero" as="p" cents={s.available} currency="ARS" />
 							<p class="muted per-day">
-								<Money cents={s.perDay} currency="ARS" /> por día · {s.daysLeft === 1
+								<Amount cents={s.perDay} currency="ARS" /> por día · {s.daysLeft === 1
 									? 'queda 1 día'
 									: `quedan ${s.daysLeft} días`}
 							</p>
@@ -80,30 +82,38 @@
 									budget={data.plan.pace.budget}
 								/>
 								<div class="pace-tag">
-									<StatusPill tone={data.plan.pace.tag.tone} label={data.plan.pace.tag.label} />
+									<Status tone={data.plan.pace.tag.tone} label={data.plan.pace.tag.label} />
 								</div>
 							{/if}
 						</div>
 						<div class="cols">
 							<div class="col">
 								<span class="k">Saldo total</span>
-								<span class="am"><Money cents={data.balance} currency={data.currency} /></span>
+								<span class="am"><Amount cents={data.balance} currency={data.currency} /></span>
 							</div>
 							<div class="col">
 								<span class="k">Resultado del mes</span>
 								<span class="am net">
-									<Money cents={data.monthNet} currency={data.currency} tone="flow" />
+									<Amount
+										cents={data.monthNet}
+										currency={data.currency}
+										tone={signTone(data.monthNet)}
+									/>
 								</span>
 							</div>
 						</div>
 					{:else}
 						<div class="box" in:fade>
-							<CardEyebrow as="h2" id="summary-heading">Saldo total</CardEyebrow>
-							<HeroAmount cents={data.balance} currency={data.currency} />
+							<SectionLabel as="h2" id="summary-heading" text="Saldo total" />
+							<Amount size="hero" as="p" cents={data.balance} currency={data.currency} />
 							<p class="muted per-day">
 								Resultado del mes
 								<span class="net"
-									><Money cents={data.monthNet} currency={data.currency} tone="flow" /></span
+									><Amount
+										cents={data.monthNet}
+										currency={data.currency}
+										tone={signTone(data.monthNet)}
+									/></span
 								>
 							</p>
 							{#if data.plan?.endedMonthName}
@@ -132,32 +142,27 @@
 							<Card.Content><p class="muted inline-empty" in:fade>No hay gastos.</p></Card.Content>
 						</Card.Root>
 					{:else}
-						<ListCard>
+						<Group>
 							{#each data.topCategories as cat (cat.id)}
 								{#snippet catValue()}
 									<span class="pct">{formatPercent(cat.share)}</span>
-									<Money
+									<Amount
 										cents={cat.net}
 										currency={data.currency}
-										tone="flow"
-										direction={cat.net < 0 ? 'income' : 'outcome'}
+										tone={cat.net < 0 ? 'income' : 'expense'}
 									/>
 								{/snippet}
 								{#snippet catFooter()}
-									<Meter percent={cat.share * 100} color={swatchVar(cat.color)} />
+									<Meter percent={cat.share * 100} tone={toneOf(cat.color)} />
 								{/snippet}
-								<ListRow
-									lead={{
-										icon: cat.icon ?? undefined,
-										letter: cat.icon ? undefined : cat.name.charAt(0).toUpperCase(),
-										color: toSwatchKey(cat.color)
-									}}
+								<Row
+									glyph={{ category: { icon: cat.icon, color: cat.color } }}
 									title={cat.name}
-									value={catValue}
+									trailing={catValue}
 									footer={catFooter}
 								/>
 							{/each}
-						</ListCard>
+						</Group>
 					{/if}
 				</section>
 			{/if}
@@ -178,11 +183,11 @@
 						</Card.Content>
 					</Card.Root>
 				{:else}
-					<ListCard>
+					<Group>
 						{#each data.recent as m (m.id)}
 							<MovementRow {m} date={m.dateLabel} />
 						{/each}
-					</ListCard>
+					</Group>
 				{/if}
 			</section>
 		{/if}

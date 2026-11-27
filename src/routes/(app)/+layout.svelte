@@ -7,7 +7,7 @@
 	import PullIndicator from '#lib/components/PullIndicator.svelte';
 	import { TAB_ROUTES } from '#lib/form-routes.ts';
 	import { drawers, type DrawerKey } from './drawers';
-	import TabBar from '#lib/components/TabBar.svelte';
+	import TabBar from '#lib/components/base/TabBar.svelte';
 	import { highlightMovement } from '#lib/highlight.svelte.ts';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { toastSavedMovement } from '#lib/movement-saved.ts';

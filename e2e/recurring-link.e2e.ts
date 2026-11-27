@@ -96,7 +96,7 @@ test('an imported charge matching a rule by description is linked on approval', 
 
 	// The rule follows the charge (2.500,50 rounds to whole pesos) and remembers what it was.
 	await page.goto('/plan');
-	await rule(page, 'Café Inventado').locator('a[data-slot="item"]').click();
+	await rule(page, 'Café Inventado').getByRole('link').click();
 	await expect(page.getByRole('button', { name: /^Monto:/ })).toContainText('2.501');
 	await expect(page.getByText('Antes $2.000')).toBeVisible();
 
@@ -104,7 +104,7 @@ test('an imported charge matching a rule by description is linked on approval', 
 	for (const href of await findMovements(page, 'CAFE INVENTADO'))
 		await postDelete(page, baseURL!, href);
 	await page.goto('/plan');
-	await rule(page, 'Café Inventado').locator('a[data-slot="item"]').click();
+	await rule(page, 'Café Inventado').getByRole('link').click();
 	await expect(page.getByRole('button', { name: /^Monto:/ })).toContainText('2.000');
 	await expect(page.getByText('Antes $')).toHaveCount(0);
 });

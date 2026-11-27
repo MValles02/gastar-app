@@ -1,8 +1,8 @@
 <script lang="ts">
-	import EmptyState from '#lib/components/EmptyState.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import EmptyState from '#lib/components/base/EmptyState.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 
@@ -13,34 +13,29 @@
 	<title>Avisos · Gastar</title>
 </svelte:head>
 
-<PageHeader
-	title="Avisos"
-	back={{ href: resolve(''), label: 'Volver al inicio', text: 'Inicio' }}
-/>
+<Header title="Avisos" back={{ href: resolve(''), label: 'Volver al inicio' }} />
 
 <div class="page">
 	{#if data.items.length === 0}
 		<EmptyState
 			icon="bell"
-			description="Estás al día. Acá vas a ver los límites o el plan cuando vayan rápido o se pasen."
+			text="Estás al día. Acá vas a ver los límites o el plan cuando vayan rápido o se pasen."
 		/>
 	{:else}
-		<ListCard>
+		<Group>
 			{#each data.items as n (n.id)}
 				{#snippet message()}<p class="message">{n.message}</p>{/snippet}
-				<ListRow
+				<Row
 					href={n.href}
-					lead={n.kind === 'plan'
-						? { icon: 'plan', color: null }
-						: n.icon
-							? { icon: n.icon, color: n.color }
-							: { letter: n.name.charAt(0).toUpperCase(), color: n.color }}
+					glyph={n.kind === 'plan'
+						? { icon: 'plan', tone: 'neutral' }
+						: { category: { icon: n.icon, color: n.color } }}
 					title={n.name}
 					status={n.status}
 					footer={message}
 				/>
 			{/each}
-		</ListCard>
+		</Group>
 	{/if}
 </div>
 

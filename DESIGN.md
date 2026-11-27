@@ -342,6 +342,50 @@ All user-facing text (es-AR) lives in one typed catalogue, `src/lib/copy/es.ts`;
 
 Shared components live in `src/lib/components/`.
 
+### Base components
+
+`src/lib/components/base/` holds the building blocks; screens compose them and never restyle them. Each is imported by file path. Their text comes from `src/lib/copy/es.ts`, their sizes and colours from the tokens below.
+
+- `Amount`: a money value. Sizes `inline`, `row`, `tile`, `hero` (hero fits its container); tone `income`, `expense`, `neutral` (zero is always neutral); the sign is for screen readers only.
+- `Button`: pill button or link. Variants `primary`, `outline`, `positive`, `destructive`; sizes `md`, `sm` (a row's quick-action pill).
+- `CircleButton`: round icon control with an accessible label and optional count badge. Tones `surface`, `ghost`, `on-primary`.
+- `EmptyState`: muted icon, one line of text and an optional action.
+- `Field`: labelled text input with error or hint. Layouts `stacked` (label above a pill capsule; `password` adds the show/hide button) and `row` (a card row).
+- `Glyph`: round icon or "?" mark for a category, an account or a plain icon. Sizes `chip`, `lead`, `hero`; tone from `data-tone`.
+- `Group`: the card of stacked `Row`s (`<ul role="list">`); `outlineErrors` outlines a bad row in drawers.
+- `Header`: top bar. Variants `page` (back or close, title, action), `home` (date, title, alerts bell, profile) and `sheet`; tone `default` or `primary`.
+- `Meter`: native `<meter>` fill, 0 to 100, tinted by tone.
+- `Row`: one list row, as a link, button, submit button or plain block, with glyph, status, subtitle, trailing value, chevron, action and footer.
+- `SearchField`: search capsule with a magnifier.
+- `SectionLabel`: uppercase muted section heading with optional aside and action link.
+- `Segmented`: radio group drawn as a segmented switch with a sliding thumb; `fit` sizes options to their text.
+- `Sheet`: bottom drawer. Variants `auto` and `tall`; optional pinned `footer`, nested sheets.
+- `Status`: small tinted pill. Tones `ok`, `warning`, `bad`, `neutral`.
+- `TabBar`: floating glass tab bar with the "Nuevo movimiento" button.
+- `Tile`: card with an eyebrow, content and a caption; `align` `start` or `center`.
+- `Toggle`: on/off switch; its label is the caller's `Row`.
+
+New tokens (`src/app.css`):
+
+| Token                    | Value                                                  | Use                                 |
+| ------------------------ | ------------------------------------------------------ | ----------------------------------- |
+| `--tint-glyph`           | 20%                                                    | glyph background                    |
+| `--tint-soft`            | 14%                                                    | status and positive pill background |
+| `--tint-header`          | 92%                                                    | header background mix               |
+| `--tint-glass`           | 62%                                                    | tab bar background mix              |
+| `--size-pill`            | 2rem                                                   | small pill and capsule height       |
+| `--size-meter`           | 0.375rem                                               | meter height                        |
+| `--size-glyph-icon-chip` | 0.75rem                                                | icon in the chip glyph              |
+| `--size-glyph-icon-hero` | 1.75rem                                                | icon in the hero glyph              |
+| `--size-sheet`           | 35rem                                                  | sheet max width                     |
+| `--size-sheet-auto`      | 85dvh                                                  | auto sheet max height               |
+| `--size-sheet-tall`      | 92dvh                                                  | tall sheet height                   |
+| `--hero-advance`         | 0.59                                                   | hero amount fit factor              |
+| `--tracking-label`       | 0.06em                                                 | section label letter spacing        |
+| `--backdrop-header`      | blur(16px)                                             | header backdrop                     |
+| `--backdrop-glass`       | blur(20px) saturate(180%)                              | tab bar backdrop                    |
+| `--shadow-glass`         | inset hairlines and a soft drop shadow, light and dark | tab bar                             |
+
 ### Buttons
 
 - **Source:** the generated shadcn-svelte `Button` (`#lib/components/ui/button`), used with its stock styling. It renders an `<a>` when given an `href`, otherwise a `<button>` (type `button` unless set).
@@ -495,7 +539,7 @@ A 3px `--primary` bar fixed at the top (`NavProgress`, below the safe area) appe
 
 **Legacy allowlist.** Files not yet migrated are listed per rule in `eslint-legacy-allowlist.js` (rule off for those files only). Each phase removes the files it migrates; the last phase deletes the file. New files must comply and never go on the list.
 
-Allowlist size at phase 1 (files per rule): `no-arbitrary-tailwind` 10, `no-raw-color` 4, `no-inline-styles` 9, `no-restricted-imports` 28, `no-literal-text` 90.
+Allowlist size at phase 1 (files per rule): `no-arbitrary-tailwind` 10, `no-raw-color` 4, `no-inline-styles` 9, `no-restricted-imports` 28, `no-literal-text` 90 (141 total). After phase 2: 3, 3, 5, 28, 72 (111 total).
 
 ## Do's and Don'ts
 

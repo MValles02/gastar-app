@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import ActionLink from '#lib/components/ActionLink.svelte';
-	import Meter from '#lib/components/Meter.svelte';
-	import Money from '#lib/components/Money.svelte';
-	import StatusPill from '#lib/components/StatusPill.svelte';
+	import Meter from '#lib/components/base/Meter.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
+	import Status from '#lib/components/base/Status.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import { formatMoney, type Currency } from '#lib/money.ts';
 	import { appear } from '#lib/motion.ts';
@@ -45,7 +45,7 @@
 		<p class="summary">{summary}</p>
 		<Meter
 			percent={bills.total > 0 ? (bills.paid / bills.total) * 100 : 0}
-			color="var(--positive)"
+			tone="income"
 			label="Pagos fijos pagados"
 			valueText={summary}
 		/>
@@ -63,8 +63,8 @@
 						onclick={(e) => openShallow(e, resolve(`plan/recurring/${b.id}`), 'rule')}
 					>
 						<span class="desc">{b.description}</span>
-						<span class="amt"><Money cents={b.amount} {currency} /></span>
-						<StatusPill tone={b.soon ? 'warning' : 'neutral'} label={b.label} />
+						<span class="amt"><Amount cents={b.amount} {currency} /></span>
+						<Status tone={b.soon ? 'warning' : 'neutral'} label={b.label} />
 					</a>
 				</li>
 			{/each}

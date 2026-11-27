@@ -1,11 +1,11 @@
 <script lang="ts">
+	import Row from '#lib/components/base/Row.svelte';
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { submitAction } from '#lib/autosave.ts';
-	import ListRow from '#lib/components/ListRow.svelte';
-	import Money from '#lib/components/Money.svelte';
-	import RowPill from '#lib/components/RowPill.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
+	import Button from '#lib/components/base/Button.svelte';
 	import { formatMoney, type Currency } from '#lib/money.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import { undoToast } from '#lib/undo-toast.ts';
@@ -53,16 +53,17 @@
 
 {#snippet side()}
 	<span class="amount">
-		<Money
+		<Amount
 			cents={item.amount}
 			currency={item.currency}
-			tone="flow"
-			direction={item.isCredit ? 'income' : 'outcome'}
+			tone={item.isCredit ? 'income' : 'expense'}
 		/>
 	</span>
 	{#if item.suggestion === null}
 		<!-- The title link is the accessible one; this shortcut only widens the touch target. -->
-		<RowPill {href} onclick={open} label="Revisar" hidden />
+		<Button size="sm" variant="outline" {href} onclick={open} aria-hidden="true" tabindex={-1}
+			>Revisar</Button
+		>
 	{:else}
 		<form
 			method="POST"
@@ -83,23 +84,20 @@
 				}}
 		>
 			<input type="hidden" name="id" value={item.id} />
-			<RowPill label="Aprobar" positive />
+			<Button size="sm" type="submit" variant="positive">Aprobar</Button>
 		</form>
 	{/if}
 {/snippet}
 
-<ListRow
+<Row
 	{href}
 	onclick={open}
-	lead={{
-		letter: item.suggestion === null ? '?' : item.title.charAt(0).toUpperCase(),
-		color: null
-	}}
+	glyph={{ category: item.suggestion === null ? null : { icon: null, color: null } }}
 	title={item.title}
 	status={item.suggestion === null
 		? { tone: 'warning', label: 'No sabemos qué es' }
 		: { tone: 'ok', label: `${item.suggestion} · sugerido` }}
-	meta={meta ? metaLine : undefined}
+	subtitle={meta ? metaLine : undefined}
 	stacked
 	action={side}
 />

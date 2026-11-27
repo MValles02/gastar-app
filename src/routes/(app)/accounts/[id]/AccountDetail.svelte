@@ -1,18 +1,20 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { ACCOUNT_ICONS, toIconKey, toSwatchKey } from '#lib/appearance.ts';
+	import { ACCOUNT_ICONS, toIconKey, toneOf, toSwatchKey } from '#lib/appearance.ts';
 	import { autosaveChanged } from '#lib/autosave.ts';
 	import { NAME_MAX_LENGTH } from '#lib/constants.ts';
 	import { CURRENCY_LABEL, formatAmountInput } from '#lib/money.ts';
 	import { ARCHIVED_LABEL } from '#lib/movement.ts';
-	import DetailCard from '#lib/components/DetailCard.svelte';
-	import DetailHero from '#lib/components/DetailHero.svelte';
+	import Tile from '#lib/components/base/Tile.svelte';
 	import DetailLifecycle from '#lib/components/DetailLifecycle.svelte';
-	import DetailRow from '#lib/components/DetailRow.svelte';
-	import GlyphRow from '#lib/components/GlyphRow.svelte';
+	import IconColorDrawer from '#lib/components/IconColorDrawer.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
-	import Money from '#lib/components/Money.svelte';
-	import StatusPill from '#lib/components/StatusPill.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
+	import Glyph from '#lib/components/base/Glyph.svelte';
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import { es } from '#lib/copy/es.ts';
+	import Status from '#lib/components/base/Status.svelte';
 	import type { PageData } from './$types';
 
 	type Detail = Pick<PageData, 'account' | 'balance'>;
@@ -49,48 +51,69 @@
 
 	const save = (fields: Record<string, string>) =>
 		autosaveChanged<Detail>(`${path}?/update`, values, fields, onsaved);
+	let iconOpen = $state(false);
+	let iconError = $state('');
 </script>
 
 <div class="detail">
-	<DetailHero cents={detail.balance} currency={a.currency} label="Saldo">
+	<Tile align="center" caption="Saldo">
 		{#snippet top()}
-			{#if a.archived}<StatusPill tone="neutral" label={ARCHIVED_LABEL} />{/if}
+			{#if a.archived}<Status tone="neutral" label={ARCHIVED_LABEL} />{/if}
 		{/snippet}
-	</DetailHero>
+		<Amount size="hero" as="p" cents={detail.balance} currency={a.currency} />
+	</Tile>
 
-	<DetailCard>
-		<DetailRow label="Nombre">
-			<InlineText
-				label="Nombre"
-				value={values.name}
-				maxlength={NAME_MAX_LENGTH}
-				required
-				onsave={(name) => save({ name })}
-			>
-				{#snippet display()}{a.name}{/snippet}
-			</InlineText>
-		</DetailRow>
-		<GlyphRow
-			icons={ACCOUNT_ICONS}
-			icon={toIconKey(a.icon)}
-			badge={toIconKey(a.icon)}
-			color={toSwatchKey(a.color)}
-			{save}
-		/>
-		<DetailRow label="Saldo inicial">
-			<InlineText
-				label="Saldo inicial"
-				inputmode="decimal"
-				value={values.initialBalance}
-				onsave={(initialBalance) => save({ initialBalance })}
-			>
-				{#snippet display()}
-					<Money cents={a.initialBalance} currency={a.currency} tone="stock" />
-				{/snippet}
-			</InlineText>
-		</DetailRow>
-		<DetailRow label="Moneda">{CURRENCY_LABEL[a.currency]}</DetailRow>
-	</DetailCard>
+	<Group>
+		<Row title="Nombre">
+			{#snippet trailing()}
+				<InlineText
+					label="Nombre"
+					value={values.name}
+					maxlength={NAME_MAX_LENGTH}
+					required
+					onsave={(name) => save({ name })}
+				>
+					{#snippet display()}{a.name}{/snippet}
+				</InlineText>
+			{/snippet}
+		</Row>
+		<Row
+			title={es.ui.iconColor.title}
+			onclick={() => (iconOpen = true)}
+			haspopup
+			chevron
+			error={iconError}
+		>
+			{#snippet trailing()}<Glyph
+					icon={toIconKey(a.icon)}
+					tone={toneOf(a.color)}
+					size="chip"
+				/>{/snippet}
+		</Row>
+		<Row title="Saldo inicial">
+			{#snippet trailing()}
+				<InlineText
+					label="Saldo inicial"
+					inputmode="decimal"
+					value={values.initialBalance}
+					onsave={(initialBalance) => save({ initialBalance })}
+				>
+					{#snippet display()}
+						<Amount cents={a.initialBalance} currency={a.currency} />
+					{/snippet}
+				</InlineText>
+			{/snippet}
+		</Row>
+		<Row title="Moneda">{#snippet trailing()}{CURRENCY_LABEL[a.currency]}{/snippet}</Row>
+	</Group>
+
+	<IconColorDrawer
+		bind:open={iconOpen}
+		icons={ACCOUNT_ICONS}
+		icon={toIconKey(a.icon)}
+		color={toSwatchKey(a.color) ?? 'green'}
+		onpick={async (pick) => (iconError = (await save(pick)) ?? '')}
+	/>
 
 	<DetailLifecycle
 		{path}

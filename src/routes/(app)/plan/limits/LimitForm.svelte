@@ -12,8 +12,8 @@
 	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import AmountInput from '#lib/components/AmountInput.svelte';
-	import DetailCard from '#lib/components/DetailCard.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import Group from '#lib/components/base/Group.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
@@ -56,7 +56,7 @@
 	scroll
 	style="--form-gap: var(--space-3); --form-pb: var(--space-3)"
 >
-	<DetailCard>
+	<Group>
 		<li class:bad={shown.categoryId}>
 			<OptionPicker
 				name="categoryId"
@@ -73,11 +73,11 @@
 				{/snippet}
 			</OptionPicker>
 		</li>
-	</DetailCard>
+	</Group>
 
 	<div class="field">
 		<span id="lcurrency-label" class="label">Moneda</span>
-		<SegmentedControl
+		<Segmented
 			name="currency"
 			options={currencyOptions}
 			bind:value={currency}

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { KIND_OPTIONS } from '#lib/movement.ts';
-	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
-	import DetailRow from '#lib/components/DetailRow.svelte';
+	import Sheet from '#lib/components/base/Sheet.svelte';
+	import { es } from '#lib/copy/es.ts';
+	import Row from '#lib/components/base/Row.svelte';
 	import OptionList from '#lib/components/pickers/OptionList.svelte';
 
 	/**
@@ -19,11 +20,11 @@
 	} = $props();
 
 	const KIND_HINT: Record<string, string> = {
-		outcome: 'Solo aparece al registrar gastos.',
-		income: 'Solo aparece al registrar ingresos.',
-		'': 'Aparece al registrar gastos e ingresos.'
+		outcome: es.categories.kind.hint.outcome,
+		income: es.categories.kind.hint.income,
+		'': es.categories.kind.hint.both
 	};
-	const KINDS = [...KIND_OPTIONS, { value: '', label: 'Ambos' }].map((k) => ({
+	const KINDS = [...KIND_OPTIONS, { value: '', label: es.categories.kind.both }].map((k) => ({
 		...k,
 		hint: KIND_HINT[k.value]
 	}));
@@ -33,9 +34,18 @@
 	let error = $state('');
 </script>
 
-<DetailRow label="Se usa para" onclick={() => (open = true)} {error}>{kindLabel}</DetailRow>
+{#snippet trailing()}{kindLabel}{/snippet}
 
-<BottomDrawer title="Se usa para" bind:open>
+<Row
+	title={es.categories.kind.title}
+	onclick={() => (open = true)}
+	haspopup
+	chevron
+	{error}
+	{trailing}
+/>
+
+<Sheet title={es.categories.kind.title} bind:open>
 	<OptionList
 		items={KINDS}
 		key={(k) => k.value}
@@ -48,4 +58,4 @@
 			error = (await save(k.value)) ?? '';
 		}}
 	/>
-</BottomDrawer>
+</Sheet>

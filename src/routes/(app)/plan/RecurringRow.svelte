@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { openShallow } from '#lib/open-shallow.ts';
-	import ListRow from '#lib/components/ListRow.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import { es } from '#lib/copy/es.ts';
 	import { dueTone, PLAN_CURRENCY, type RecurringStatus } from '#lib/plan.ts';
 	import { withWizard } from '#lib/plan-wizard.ts';
 	import type { CategoryIconKey, SwatchKey } from '#lib/appearance.ts';
 	import type { Currency } from '#lib/money.ts';
 
-	type Row = {
+	type Rule = {
 		id: string;
 		type: string;
 		description: string;
@@ -26,24 +27,23 @@
 	);
 
 	/** Outside the wizard a click opens the rule's drawer over the screen; in the wizard it links to the page. */
-	let { row, wizard }: { row: Row; wizard?: number } = $props();
+	let { row, wizard }: { row: Rule; wizard?: number } = $props();
 	const r = $derived(row);
 </script>
 
-{#snippet value()}
+{#snippet trailing()}
 	{#if r.reason}
-		<Money cents={r.amount} currency={r.currency} />
+		<Amount cents={r.amount} currency={r.currency} />
 	{:else}
-		<Money
+		<Amount
 			cents={r.type === 'income' ? r.amount : -r.amount}
 			currency={r.currency}
-			tone="flow"
-			direction={r.type === 'income' ? 'income' : 'outcome'}
+			tone={r.type === 'income' ? 'income' : 'expense'}
 		/>
 	{/if}
 	{#if r.currency === 'USD'}
 		<span class="approx">
-			{#if r.converted === null}Sin cotización{:else}≈ <Money
+			{#if r.converted === null}{es.plan.recurring.noRate}{:else}≈ <Amount
 					cents={r.converted}
 					currency={PLAN_CURRENCY}
 				/>{/if}
@@ -51,21 +51,18 @@
 	{/if}
 {/snippet}
 
-{#snippet meta()}Día {r.day} · {r.reason ?? r.accountName}{/snippet}
-
-<ListRow
+<Row
 	class="rule"
 	href={withWizard(resolve(`plan/recurring/${r.id}`), wizard)}
 	onclick={wizard ? undefined : (e) => openShallow(e, resolve(`plan/recurring/${r.id}`), 'rule')}
-	lead={{
-		icon: r.categoryIcon ?? undefined,
-		letter: r.categoryIcon ? undefined : r.description.charAt(0).toUpperCase(),
-		color: r.categoryColor
+	glyph={{
+		category:
+			r.categoryIcon || r.categoryColor ? { icon: r.categoryIcon, color: r.categoryColor } : null
 	}}
 	title={r.description}
-	{value}
+	{trailing}
 	status={r.reason ? undefined : { tone: dueTone(r.status!), label: r.label! }}
-	{meta}
+	subtitle={es.plan.recurring.meta(r.day, r.reason ?? r.accountName)}
 	dimmed={!!r.reason}
 />
 

@@ -19,7 +19,7 @@
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import GlyphNameHead from '#lib/components/GlyphNameHead.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
 
 	type Values = Partial<Record<'name' | 'color' | 'icon' | 'kind', string | null>>;
 	type Errors = Partial<Record<keyof Values, string>>;
@@ -91,7 +91,7 @@
 
 	<div class="kind">
 		<span id="category-kind-label" class="label">Se usa para</span>
-		<SegmentedControl
+		<Segmented
 			name="kind"
 			options={kindOptions}
 			bind:value={kind}

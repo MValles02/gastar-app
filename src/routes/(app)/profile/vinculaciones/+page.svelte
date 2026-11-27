@@ -1,8 +1,8 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
 	import { resolve } from '$app/paths';
-	import PageHeader from '#lib/components/PageHeader.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import DatePicker from '#lib/components/pickers/DatePicker.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { autosave } from '#lib/autosave.ts';
@@ -37,54 +37,51 @@
 	<title>Vinculaciones · Gastar</title>
 </svelte:head>
 
-<PageHeader
-	title="Vinculaciones"
-	back={{ href: resolve('profile'), label: 'Volver a Perfil', text: 'Perfil' }}
-/>
+<Header title="Vinculaciones" back={{ href: resolve('profile'), label: 'Volver a Perfil' }} />
 
 <div class="page">
 	<!-- A link that works shows its status as a pill; one still to set up shows the step instead. -->
 	{#snippet vincular()}<span class="val">Vincular</span>{/snippet}
 	{#snippet configurar()}<span class="val">Configurar</span>{/snippet}
 
-	<ListCard aria-label="Vinculaciones">
+	<Group aria-label="Vinculaciones">
 		{#if data.mp}
-			<ListRow
+			<Row
 				href={resolve('profile/mercado-pago')}
-				lead={{ icon: 'phone', color: null }}
+				glyph={{ icon: 'phone', tone: 'neutral' }}
 				title="Mercado Pago"
 				status={linkStatus(data.mp)}
-				value={linkStatus(data.mp) ? undefined : vincular}
+				trailing={linkStatus(data.mp) ? undefined : vincular}
 				chevron
 			/>
 		{/if}
 		{#if data.gmail !== undefined}
-			<ListRow
+			<Row
 				href={resolve('profile/gmail')}
-				lead={{ icon: 'mail', color: null }}
+				glyph={{ icon: 'mail', tone: 'neutral' }}
 				title="Gmail"
 				status={linkStatus(data.gmail)}
-				value={linkStatus(data.gmail) ? undefined : vincular}
+				trailing={linkStatus(data.gmail) ? undefined : vincular}
 				chevron
 			/>
 		{/if}
-		<ListRow
+		<Row
 			href={resolve('profile/galicia')}
-			lead={{ icon: 'card', color: null }}
+			glyph={{ icon: 'card', tone: 'neutral' }}
 			title="Banco Galicia"
 			status={data.galiciaReady ? { tone: 'ok', label: 'Configurado' } : undefined}
-			value={data.galiciaReady ? undefined : configurar}
+			trailing={data.galiciaReady ? undefined : configurar}
 			chevron
 		/>
-	</ListCard>
+	</Group>
 
 	<p class="hint">
 		Traé tus movimientos sin tipearlos. Lo que reconocemos se aprueba solo; el resto lo revisás vos.
 	</p>
 
 	{#if data.importFrom}
-		<ListCard aria-label="Importación">
-			<div role="listitem">
+		<Group aria-label="Importación">
+			<li role="listitem">
 				<form method="POST" action="?/importFrom" novalidate>
 					<fieldset disabled={data.running}>
 						<DatePicker
@@ -99,8 +96,8 @@
 					</fieldset>
 					<noscript><Button type="submit" variant="outline">Guardar fecha</Button></noscript>
 				</form>
-			</div>
-		</ListCard>
+			</li>
+		</Group>
 		{#if data.running}
 			<p class="hint">Hay una sincronización en curso. Podés cambiar la fecha cuando termine.</p>
 		{:else}

@@ -1,11 +1,11 @@
 <script lang="ts" generics="Key extends string">
-	import type { ComponentProps } from 'svelte';
 	import { NAME_MAX_LENGTH } from '#lib/constants.ts';
 	import type { SwatchKey } from '#lib/appearance.ts';
+	import type { IconName } from '#lib/components/Icon.svelte';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
-	import * as Field from '#lib/components/ui/field/index.js';
-	import { Input } from '#lib/components/ui/input/index.js';
-	import IconBadge from './IconBadge.svelte';
+	import { es } from '#lib/copy/es.ts';
+	import Field from '#lib/components/base/Field.svelte';
+	import Glyph from '#lib/components/base/Glyph.svelte';
 	import IconColorDrawer from './IconColorDrawer.svelte';
 
 	/**
@@ -41,27 +41,26 @@
 		<button
 			type="button"
 			class="glyph"
-			aria-label="Ícono y color"
+			aria-label={es.ui.iconColor.title}
 			aria-haspopup="dialog"
 			onclick={() => (glyphOpen = true)}
 		>
-			<IconBadge icon={icon as ComponentProps<typeof IconBadge>['icon']} {color} size="2.75rem" />
+			<Glyph icon={icon as IconName} tone={color} />
 		</button>
 	{/if}
-	<Field.Field class="flex-1">
-		<Field.Label for="name" class="visually-hidden">Nombre</Field.Label>
-		<Input
+	<div class="name">
+		<Field
 			id="name"
 			name="name"
+			label={es.ui.name}
 			{placeholder}
 			autocomplete="off"
 			maxlength={NAME_MAX_LENGTH}
-			aria-invalid={invalid ? 'true' : undefined}
-			aria-describedby={describedby}
-			class="h-11"
+			{invalid}
+			{describedby}
 			bind:value={name}
 		/>
-	</Field.Field>
+	</div>
 </div>
 <input type="hidden" name="icon" value={icon} />
 <input type="hidden" name="color" value={color} />
@@ -82,6 +81,20 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
+	}
+
+	.name {
+		flex: 1;
+		min-width: 0;
+	}
+
+	/* The name is labelled for assistive technology only; the capsule sits beside the glyph button. */
+	.name :global(.label) {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
 	}
 
 	.glyph {
