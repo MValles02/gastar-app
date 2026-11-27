@@ -483,6 +483,20 @@ There is no grey WebKit tap flash (`-webkit-tap-highlight-color: transparent` on
 
 A 3px `--primary` bar fixed at the top (`NavProgress`, below the safe area) appears only when a navigation's data takes longer than 150ms: a 40% segment sliding across in 1.1s on the page-transition curve, or a still full-width bar with reduced motion. It is gone before the page transition starts and is never part of its snapshots.
 
+## Enforcement
+
+`pnpm lint` (so CI) fails on these rules, all at error level (`eslint.config.js`, local rules in `eslint-rules/`):
+
+- **`gastar/no-arbitrary-tailwind`**: no `[...]` arbitrary values or properties and no default-palette colours (`bg-red-500`, `text-white`) in `class`/`*Class` attributes, `class:` directives and `cn`/`clsx`/`twMerge`/`tv`/`cva` arguments. `(--token)` shorthand and arbitrary variants (`data-[state=open]:`) are allowed. `src/lib/components/ui/**` (upstream shadcn structure) is exempt from this rule only.
+- **`gastar/no-raw-color`**: no hex or `rgb()`/`hsl()`/`oklch()`-style colours in strings, template strings, attributes or `<style>` under `src` (`.ts`, `.js`, `.svelte`). Colours live in `app.css` tokens.
+- **`svelte/no-inline-styles`** (`allowTransitions: true`): no `style=` or `style:`. To pass a value to a component's CSS, use a component CSS prop (`<X --ratio={x}>`).
+- **`no-restricted-imports`**: routes (`src/routes/**`) never import from `components/ui/`; they use the base components.
+- **`gastar/no-literal-text`**: no literal text in Svelte markup, text expressions or the `placeholder`, `title`, `alt`, `label` and `aria-*` text attributes; text comes from `src/lib/copy/es.ts`. Symbols, digits and punctuation pass.
+
+**Legacy allowlist.** Files not yet migrated are listed per rule in `eslint-legacy-allowlist.js` (rule off for those files only). Each phase removes the files it migrates; the last phase deletes the file. New files must comply and never go on the list.
+
+Allowlist size at phase 1 (files per rule): `no-arbitrary-tailwind` 10, `no-raw-color` 4, `no-inline-styles` 9, `no-restricted-imports` 28, `no-literal-text` 90.
+
 ## Do's and Don'ts
 
 ### Do:
