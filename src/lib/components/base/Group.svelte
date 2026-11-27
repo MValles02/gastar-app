@@ -40,6 +40,10 @@
 		box-shadow: var(--shadow-1);
 	}
 
+	.group > :global(li + li) {
+		border-top: 1px solid var(--border);
+	}
+
 	.group > :global(li.bad) {
 		box-shadow: inset 3px 0 0 var(--negative);
 	}

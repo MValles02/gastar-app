@@ -29,6 +29,7 @@
 	.search {
 		display: flex;
 		flex: 1;
+		flex-direction: row;
 		align-items: center;
 		gap: var(--space-2);
 		min-width: 0;
@@ -38,6 +39,7 @@
 		border-radius: var(--radius-pill);
 		background: var(--surface);
 		color: var(--text-muted);
+		font-size: var(--font-size-base);
 	}
 
 	.search:focus-within {

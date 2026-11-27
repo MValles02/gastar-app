@@ -161,6 +161,7 @@
 
 	.row {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-3);
 		position: relative;
@@ -207,7 +208,7 @@
 
 	.content {
 		display: flex;
-		flex: 1;
+		flex: 1 1 0;
 		flex-direction: column;
 		min-width: 0;
 		gap: var(--space-1);
@@ -221,11 +222,14 @@
 	}
 
 	.title {
+		display: block;
 		flex: 1;
 		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+		color: var(--text);
+		font-size: inherit;
 		font-weight: 500;
 	}
 
@@ -278,7 +282,7 @@
 	}
 
 	.footer {
-		flex-basis: 100%;
+		flex: 1 0 100%;
 		min-width: 0;
 	}
 

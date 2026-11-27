@@ -119,7 +119,8 @@
 	.opt {
 		position: relative;
 		display: flex;
-		flex: 1 1 0;
+		flex: 1 0 auto;
+		flex-direction: row;
 		align-items: center;
 		justify-content: center;
 		min-height: var(--size-lead);
@@ -131,7 +132,7 @@
 		font-weight: 500;
 		line-height: 1;
 		text-align: center;
-		overflow-wrap: anywhere;
+		white-space: nowrap;
 		cursor: pointer;
 		user-select: none;
 	}

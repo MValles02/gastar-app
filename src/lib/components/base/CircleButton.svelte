@@ -72,7 +72,6 @@
 	}
 
 	.circle[data-tone='ghost'] {
-		border-color: transparent;
 		background: transparent;
 	}
 
