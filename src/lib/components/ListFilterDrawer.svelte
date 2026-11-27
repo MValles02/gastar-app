@@ -3,7 +3,10 @@
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
 	import { listRowShown } from '#lib/list-filter.ts';
-	import FilterDrawer from '#lib/components/FilterDrawer.svelte';
+	import { replaceGoto } from '#lib/nav-stack.svelte.ts';
+	import { es } from '#lib/copy/es.ts';
+	import Sheet from '#lib/components/base/Sheet.svelte';
+	import Button from '#lib/components/base/Button.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import SwitchRow from '#lib/components/SwitchRow.svelte';
 
@@ -65,25 +68,50 @@
 		if (archived) sp.set('archived', '1');
 		return resolve(`${path}?${sp}` as '');
 	});
+
+	const apply = () => {
+		open = false;
+		void replaceGoto(href, { reset: false });
+	};
 </script>
 
-<FilterDrawer bind:open {count} {noun} {href} onclear={clear}>
-	{#if kindOptions}
-		<span id="kind-label" class="visually-hidden">Tipo</span>
-		<SegmentedControl name="kind" options={kindOptions} bind:value={kind} labelledby="kind-label" />
-	{/if}
-	<span id="currency-label" class="visually-hidden">Moneda</span>
-	<SegmentedControl
-		name="currency"
-		options={currencyOptions}
-		bind:value={currency}
-		labelledby="currency-label"
-	/>
-	<SwitchRow
-		id="archived"
-		name="archived"
-		value="1"
-		label="Mostrar archivadas"
-		bind:checked={archived}
-	/>
-</FilterDrawer>
+{#snippet footer()}
+	<Button variant="outline" onclick={clear}>{es.ui.clear}</Button>
+	<Button class="wide" onclick={apply}>{es.ui.showResults(count, noun)}</Button>
+{/snippet}
+
+<Sheet title={es.ui.filters} bind:open {footer}>
+	<div class="filters">
+		{#if kindOptions}
+			<span id="kind-label" class="visually-hidden">{es.ui.type}</span>
+			<SegmentedControl
+				name="kind"
+				options={kindOptions}
+				bind:value={kind}
+				labelledby="kind-label"
+			/>
+		{/if}
+		<span id="currency-label" class="visually-hidden">{es.ui.currency}</span>
+		<SegmentedControl
+			name="currency"
+			options={currencyOptions}
+			bind:value={currency}
+			labelledby="currency-label"
+		/>
+		<SwitchRow
+			id="archived"
+			name="archived"
+			value="1"
+			label={es.ui.showArchived}
+			bind:checked={archived}
+		/>
+	</div>
+</Sheet>
+
+<style>
+	.filters {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+</style>

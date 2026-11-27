@@ -39,6 +39,8 @@ export const POLL_MS = 300;
 
 /** vaul's close animation (TRANSITIONS.DURATION = 0.5s, not exported); bits-ui returns focus to the trigger as the content unmounts, before this ends. */
 export const DRAWER_CLOSE_MS = 500;
+/** The sheet's lift above the iOS keyboard (WAAPI duration). */
+export const SHEET_KEYBOARD_MS = 250;
 /** A navigation shows the progress bar only after this long. */
 export const NAV_PROGRESS_DELAY_MS = 150;
 /** A resting finger presses a row after PRESS_DELAY_MS; a quick tap flashes it for TAP_FLASH_MS. */

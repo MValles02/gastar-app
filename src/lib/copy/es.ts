@@ -73,6 +73,15 @@ const accounts = {
 } as const;
 
 const categories = {
+	kind: {
+		title: 'Se usa para',
+		both: 'Ambos',
+		hint: {
+			outcome: 'Solo aparece al registrar gastos.',
+			income: 'Solo aparece al registrar ingresos.',
+			both: 'Aparece al registrar gastos e ingresos.'
+		}
+	},
 	errors: {
 		notFound: 'Categoría no encontrada.',
 		duplicateName: 'Ya tenés una categoría con ese nombre.',
@@ -199,6 +208,13 @@ const ui = {
 	cancel: 'Cancelar',
 	done: 'Listo',
 	name: 'Nombre',
+	type: 'Tipo',
+	showArchived: 'Mostrar archivadas',
+	account: 'Cuenta',
+	category: 'Categoría',
+	accountsPlural: 'cuentas',
+	categoriesPlural: 'categorías',
+	movementNoun: ['movimiento', 'movimientos'] as const,
 	docTitle: (t: string) => `${t} · Gastar`
 } as const;
 

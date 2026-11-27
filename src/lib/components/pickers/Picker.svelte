@@ -5,13 +5,13 @@
 
 <script lang="ts">
 	import { tick, type Snippet } from 'svelte';
-	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
+	import Sheet from '#lib/components/base/Sheet.svelte';
 	import Row from '#lib/components/base/Row.svelte';
 
 	/**
 	 * The one picker shell: the 56px row (label left, value right, chevron) and the sheet it opens,
 	 * titled `title` with the drawer's close button. The sheet stacks over a drawer it is rendered in
-	 * (BottomDrawer reads that from context). The body gets `pick`, which sets the value, closes the
+	 * (Sheet reads that from context). The body gets `pick`, which sets the value, closes the
 	 * sheet, lets ancestors (a filter form) see a bubbling `change` from `changeFrom`, then focuses
 	 * the row again. Pickers that keep the sheet open (multi-select) just never call it.
 	 */
@@ -95,9 +95,9 @@
 		open = true;
 	}}
 />
-<BottomDrawer {title} {onclosed} bind:open>
+<Sheet {title} {onclosed} bind:open>
 	{@render children(pick)}
-</BottomDrawer>
+</Sheet>
 
 <style>
 	.placeholder {

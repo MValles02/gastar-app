@@ -1,10 +1,11 @@
 <script lang="ts" generics="Key extends string">
 	import type { ComponentProps } from 'svelte';
 	import { SWATCHES, type SwatchKey } from '#lib/appearance.ts';
-	import BottomDrawer from './BottomDrawer.svelte';
+	import Sheet from '#lib/components/base/Sheet.svelte';
+	import Button from '#lib/components/base/Button.svelte';
+	import { es } from '#lib/copy/es.ts';
 	import Icon from './Icon.svelte';
 	import Glyph from '#lib/components/base/Glyph.svelte';
-	import { Button } from '#lib/components/ui/button/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
 	import * as RadioGroup from '#lib/components/ui/radio-group/index.js';
 
@@ -46,13 +47,17 @@
 	}
 </script>
 
-<BottomDrawer title="Ícono y color" bind:open>
+<Sheet title={es.ui.iconColor.title} bind:open>
 	<div class="body">
 		<div class="preview">
 			<Glyph icon={glyph(stagedIcon)} tone={stagedColor} size="hero" />
 		</div>
 
-		<RadioGroup.Root bind:value={stagedIcon} aria-label="Ícono" class="grid grid-cols-6 gap-y-1">
+		<RadioGroup.Root
+			bind:value={stagedIcon}
+			aria-label={es.ui.iconColor.icon}
+			class="grid grid-cols-6 gap-y-1"
+		>
 			{#each icons as option (option.key)}
 				<Label class="relative flex cursor-pointer justify-center py-1">
 					<RadioGroup.Item
@@ -72,7 +77,7 @@
 		<!-- 8 per row; each cell is 44px tall (36px circle + padding) so the hit area stays a touch target. -->
 		<RadioGroup.Root
 			bind:value={stagedColor}
-			aria-label="Color"
+			aria-label={es.ui.iconColor.color}
 			class="grid w-full grid-cols-8 gap-x-2 gap-y-0.5 p-1"
 		>
 			{#each SWATCHES as option (option.key)}
@@ -82,29 +87,18 @@
 						aria-label={option.label}
 						class="absolute inset-0 size-full rounded-full border-0 opacity-0"
 					/>
-					<span
-						class="group-has-data-[state=checked]:shadow-[0_0_0_2px_var(--surface),0_0_0_4px_var(--tone)] group-has-focus-visible:outline-ring block aspect-square w-full bg-(--tone) max-w-9 rounded-full group-has-focus-visible:outline-2 group-has-focus-visible:outline-offset-[6px]"
-						data-tone={option.key}
-					></span>
+					<span class="dot" data-tone={option.key}></span>
 				</Label>
 			{/each}
 		</RadioGroup.Root>
 
 		<div class="actions">
-			<Button
-				type="button"
-				variant="outline"
-				class="h-auto min-h-[50px] min-w-0 flex-1 basis-0 whitespace-normal"
-				onclick={() => (open = false)}>Cancelar</Button
+			<Button variant="outline" class="action" onclick={() => (open = false)}>{es.ui.cancel}</Button
 			>
-			<Button
-				type="button"
-				class="h-auto min-h-[50px] min-w-0 flex-1 basis-0 whitespace-normal"
-				onclick={done}>Listo</Button
-			>
+			<Button class="action" onclick={done}>{es.ui.done}</Button>
 		</div>
 	</div>
-</BottomDrawer>
+</Sheet>
 
 <style>
 	.body {
@@ -121,5 +115,30 @@
 	.actions {
 		display: flex;
 		gap: var(--space-3);
+	}
+
+	.actions :global(.action) {
+		flex: 1 1 0;
+		min-width: 0;
+	}
+
+	.dot {
+		display: block;
+		aspect-ratio: 1;
+		width: 100%;
+		max-width: var(--size-lead);
+		border-radius: var(--radius-pill);
+		background: var(--tone);
+	}
+
+	:global([data-state='checked']) ~ .dot {
+		box-shadow:
+			0 0 0 2px var(--surface),
+			0 0 0 4px var(--tone);
+	}
+
+	:global(:focus-visible) ~ .dot {
+		outline: 2px solid var(--ring);
+		outline-offset: 6px;
 	}
 </style>

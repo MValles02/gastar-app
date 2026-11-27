@@ -159,7 +159,7 @@
 		position: static;
 	}
 
-	.sheet h2 {
+	.sheet :global(h2) {
 		font-size: var(--font-size-base);
 		font-weight: 600;
 		text-align: center;
