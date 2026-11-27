@@ -128,7 +128,7 @@ test('outcomes that do not repeat 3 months, or are linked or archived are not su
 		categoryId: ids.food
 	});
 	await page.goto('/plan');
-	const ruleId = await linkId(rule(page, 'Regla vinc sug e2e').locator('a[data-slot="item"]'));
+	const ruleId = await linkId(rule(page, 'Regla vinc sug e2e').getByRole('link'));
 	const linked = await addOutcomes(page, baseURL!, { description: 'Vinculado sug e2e' });
 	for (const id of linked) {
 		const res = await post(page, baseURL!, `/movements/${id}?/link`, { recurringId: ruleId });

@@ -16,7 +16,7 @@
 		type SavingsOption,
 		type SavingsUnit
 	} from '#lib/plan.ts';
-	import DetailCard from '#lib/components/DetailCard.svelte';
+	import Group from '#lib/components/base/Group.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import TextRow from '#lib/components/TextRow.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -152,7 +152,7 @@
 <!-- Autosave: a rows card of its own. Form: a plain row, since the setup wraps the options in a card. -->
 {#snippet otherFields(msg: string | undefined)}
 	{#if mode === 'autosave'}
-		<DetailCard><li class:bad={msg}>{@render otherField(msg)}</li></DetailCard>
+		<Group><li class:bad={msg}>{@render otherField(msg)}</li></Group>
 	{:else}
 		{@render otherField(msg)}
 	{/if}

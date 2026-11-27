@@ -85,6 +85,15 @@ const plan = {
 	errors: {
 		limitNotFound: 'Límite no encontrado.',
 		recurringNotFound: 'Movimiento fijo no encontrado.'
+	},
+	limits: {
+		meterLabel: (name: string) => `Límite de ${name}`,
+		meterValue: (spent: string, limit: string) => `${spent} de ${limit}`,
+		empty: 'Sin límites.'
+	},
+	recurring: {
+		noRate: 'Sin cotización',
+		meta: (day: number, detail: string) => `Día ${day} · ${detail}`
 	}
 } as const;
 

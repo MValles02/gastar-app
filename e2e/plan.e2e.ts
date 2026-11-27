@@ -31,7 +31,7 @@ test('a rule detail autosaves its amount with Deshacer, deactivates, activates a
 		});
 		await page.getByRole('button', { name: 'Guardar' }).click();
 		await expect(page).toHaveURL(/\/plan$/);
-		const href = await rule(page, description).locator('a[data-slot="item"]').getAttribute('href');
+		const href = await rule(page, description).getByRole('link').getAttribute('href');
 		expect(href).toMatch(/^\/plan\/recurring\/[0-9a-f-]{36}$/);
 		await gotoHydrated(page, href!);
 
@@ -136,6 +136,6 @@ test("another user's rule is a 404, and so is the old edit route", async ({
 	// A malformed id is a 404 too.
 	expect((await page.goto('/plan/recurring/x'))!.status()).toBe(404);
 	await page.goto('/plan');
-	const own = await linkId(page.locator('.rule a[data-slot="item"]').first());
+	const own = await linkId(page.locator('.rule').getByRole('link').first());
 	expect((await page.goto(`/plan/recurring/${own}/edit`))!.status()).toBe(404);
 });

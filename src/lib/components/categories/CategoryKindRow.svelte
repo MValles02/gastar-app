@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { KIND_OPTIONS } from '#lib/movement.ts';
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
-	import DetailRow from '#lib/components/DetailRow.svelte';
+	import Row from '#lib/components/base/Row.svelte';
 	import OptionList from '#lib/components/pickers/OptionList.svelte';
 
 	/**
@@ -33,7 +33,9 @@
 	let error = $state('');
 </script>
 
-<DetailRow label="Se usa para" onclick={() => (open = true)} {error}>{kindLabel}</DetailRow>
+{#snippet trailing()}{kindLabel}{/snippet}
+
+<Row title="Se usa para" onclick={() => (open = true)} haspopup chevron {error} {trailing} />
 
 <BottomDrawer title="Se usa para" bind:open>
 	<OptionList

@@ -7,9 +7,9 @@
 	import { dueTone } from '#lib/plan.ts';
 	import { withWizard } from '#lib/plan-wizard.ts';
 	import { patchShallow } from '#lib/open-shallow.ts';
-	import DetailCard from '#lib/components/DetailCard.svelte';
 	import DetailLifecycle from '#lib/components/DetailLifecycle.svelte';
-	import DetailRow from '#lib/components/DetailRow.svelte';
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
 	import DayOfMonthPicker from '#lib/components/pickers/DayOfMonthPicker.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
@@ -101,18 +101,20 @@
 			</p>{/if}
 	</div>
 
-	<DetailCard>
-		<DetailRow label="Descripción">
-			<InlineText
-				label="Descripción"
-				value={values.description}
-				maxlength={DESCRIPTION_MAX_LENGTH}
-				required
-				onsave={(next) => save('description', next)}
-			>
-				{#snippet display()}{r.description}{/snippet}
-			</InlineText>
-		</DetailRow>
+	<Group>
+		<Row title="Descripción">
+			{#snippet trailing()}
+				<InlineText
+					label="Descripción"
+					value={values.description}
+					maxlength={DESCRIPTION_MAX_LENGTH}
+					required
+					onsave={(next) => save('description', next)}
+				>
+					{#snippet display()}{r.description}{/snippet}
+				</InlineText>
+			{/snippet}
+		</Row>
 		<li>
 			<OptionPicker
 				name="accountId"
@@ -146,9 +148,9 @@
 			/>
 		</li>
 		{#if r.endsMonthLabel}
-			<DetailRow label="Última cuota">{r.endsMonthLabel}</DetailRow>
+			<Row title="Última cuota">{#snippet trailing()}{r.endsMonthLabel}{/snippet}</Row>
 		{/if}
-	</DetailCard>
+	</Group>
 
 	<DetailLifecycle
 		{path}

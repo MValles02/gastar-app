@@ -2,7 +2,7 @@
 	import { appear } from '#lib/motion.ts';
 	import type { Snippet } from 'svelte';
 	import { DESCRIPTION_MAX_LENGTH } from '#lib/constants.ts';
-	import DetailCard from './DetailCard.svelte';
+	import Group from '#lib/components/base/Group.svelte';
 
 	/**
 	 * The fields shared by the movement and recurring forms: a labelled Descripción input, then one card
@@ -51,14 +51,14 @@
 	{/if}
 </div>
 
-<DetailCard {outlineErrors}>
+<Group {outlineErrors}>
 	{@render account()}
 	{#if category}{@render category()}{/if}
 	{@render when()}
-</DetailCard>
+</Group>
 
 {#if extra}
-	<DetailCard>{@render extra()}</DetailCard>
+	<Group>{@render extra()}</Group>
 {/if}
 
 <style>

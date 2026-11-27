@@ -1,17 +1,19 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { CATEGORY_ICONS, toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
+	import { CATEGORY_ICONS, toCategoryIconKey, toneOf, toSwatchKey } from '#lib/appearance.ts';
 	import { autosaveChanged } from '#lib/autosave.ts';
 	import { NAME_MAX_LENGTH } from '#lib/constants.ts';
 	import { ARCHIVED_LABEL } from '#lib/movement.ts';
 	import CategoryKindRow from '#lib/components/categories/CategoryKindRow.svelte';
 	import CategoryMonthHero from '#lib/components/categories/CategoryMonthHero.svelte';
-	import DetailCard from '#lib/components/DetailCard.svelte';
 	import DetailLifecycle from '#lib/components/DetailLifecycle.svelte';
-	import DetailRow from '#lib/components/DetailRow.svelte';
-	import GlyphRow from '#lib/components/GlyphRow.svelte';
+	import IconColorDrawer from '#lib/components/IconColorDrawer.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
+	import Glyph from '#lib/components/base/Glyph.svelte';
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
 	import Status from '#lib/components/base/Status.svelte';
+	import { es } from '#lib/copy/es.ts';
 	import type { PageData } from './$types';
 
 	type Detail = Pick<PageData, 'category' | 'disabledKinds'>;
@@ -48,42 +50,60 @@
 
 	const save = (fields: Record<string, string>) =>
 		autosaveChanged<Detail>(`${path}?/update`, values, fields, onsaved);
+	let iconOpen = $state(false);
+	let iconError = $state('');
 </script>
 
 <div class="detail">
 	<CategoryMonthHero label={data.month.label} nets={data.nets} />
 
-	<DetailCard>
-		<DetailRow label="Nombre">
-			<InlineText
-				label="Nombre"
-				value={values.name}
-				maxlength={NAME_MAX_LENGTH}
-				required
-				onsave={(name) => save({ name })}
-			>
-				{#snippet display()}{c.name}{/snippet}
-			</InlineText>
-		</DetailRow>
-		<GlyphRow
-			icons={CATEGORY_ICONS}
-			icon={toCategoryIconKey(c.icon) ?? 'tag'}
-			badge={toCategoryIconKey(c.icon) ?? 'categories'}
-			color={toSwatchKey(c.color)}
-			{save}
-		/>
+	<Group>
+		<Row title="Nombre">
+			{#snippet trailing()}
+				<InlineText
+					label="Nombre"
+					value={values.name}
+					maxlength={NAME_MAX_LENGTH}
+					required
+					onsave={(name) => save({ name })}
+				>
+					{#snippet display()}{c.name}{/snippet}
+				</InlineText>
+			{/snippet}
+		</Row>
+		<Row
+			title={es.ui.iconColor.title}
+			onclick={() => (iconOpen = true)}
+			haspopup
+			chevron
+			error={iconError}
+		>
+			{#snippet trailing()}<Glyph
+					icon={toCategoryIconKey(c.icon) ?? 'categories'}
+					tone={toneOf(c.color)}
+					size="chip"
+				/>{/snippet}
+		</Row>
 		<CategoryKindRow
 			kind={values.kind}
 			disabled={detail.disabledKinds}
 			save={(kind) => save({ kind })}
 		/>
-		<DetailRow label="Estado"
-			><Status
-				tone={c.archived ? 'neutral' : 'ok'}
-				label={c.archived ? ARCHIVED_LABEL : 'Activa'}
-			/></DetailRow
-		>
-	</DetailCard>
+		<Row title="Estado">
+			{#snippet trailing()}<Status
+					tone={c.archived ? 'neutral' : 'ok'}
+					label={c.archived ? ARCHIVED_LABEL : 'Activa'}
+				/>{/snippet}
+		</Row>
+	</Group>
+
+	<IconColorDrawer
+		bind:open={iconOpen}
+		icons={CATEGORY_ICONS}
+		icon={toCategoryIconKey(c.icon) ?? 'tag'}
+		color={toSwatchKey(c.color) ?? 'green'}
+		onpick={async (pick) => (iconError = (await save(pick)) ?? '')}
+	/>
 
 	<DetailLifecycle
 		{path}

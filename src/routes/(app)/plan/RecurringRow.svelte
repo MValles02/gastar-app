@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { openShallow } from '#lib/open-shallow.ts';
-	import ListRow from '#lib/components/ListRow.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import { es } from '#lib/copy/es.ts';
 	import { dueTone, PLAN_CURRENCY, type RecurringStatus } from '#lib/plan.ts';
 	import { withWizard } from '#lib/plan-wizard.ts';
 	import type { CategoryIconKey, SwatchKey } from '#lib/appearance.ts';
 	import type { Currency } from '#lib/money.ts';
 
-	type Row = {
+	type Rule = {
 		id: string;
 		type: string;
 		description: string;
@@ -26,11 +27,11 @@
 	);
 
 	/** Outside the wizard a click opens the rule's drawer over the screen; in the wizard it links to the page. */
-	let { row, wizard }: { row: Row; wizard?: number } = $props();
+	let { row, wizard }: { row: Rule; wizard?: number } = $props();
 	const r = $derived(row);
 </script>
 
-{#snippet value()}
+{#snippet trailing()}
 	{#if r.reason}
 		<Amount cents={r.amount} currency={r.currency} />
 	{:else}
@@ -42,7 +43,7 @@
 	{/if}
 	{#if r.currency === 'USD'}
 		<span class="approx">
-			{#if r.converted === null}Sin cotización{:else}≈ <Amount
+			{#if r.converted === null}{es.plan.recurring.noRate}{:else}≈ <Amount
 					cents={r.converted}
 					currency={PLAN_CURRENCY}
 				/>{/if}
@@ -50,9 +51,7 @@
 	{/if}
 {/snippet}
 
-{#snippet meta()}Día {r.day} · {r.reason ?? r.accountName}{/snippet}
-
-<ListRow
+<Row
 	class="rule"
 	href={withWizard(resolve(`plan/recurring/${r.id}`), wizard)}
 	onclick={wizard ? undefined : (e) => openShallow(e, resolve(`plan/recurring/${r.id}`), 'rule')}
@@ -61,9 +60,9 @@
 			r.categoryIcon || r.categoryColor ? { icon: r.categoryIcon, color: r.categoryColor } : null
 	}}
 	title={r.description}
-	{value}
+	{trailing}
 	status={r.reason ? undefined : { tone: dueTone(r.status!), label: r.label! }}
-	{meta}
+	subtitle={es.plan.recurring.meta(r.day, r.reason ?? r.accountName)}
 	dimmed={!!r.reason}
 />
 

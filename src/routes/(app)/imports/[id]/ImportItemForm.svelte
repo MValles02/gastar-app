@@ -6,7 +6,7 @@
 	import { goto, refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import DetailCard from '#lib/components/DetailCard.svelte';
+	import Group from '#lib/components/base/Group.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import { formScreen } from '#lib/components/forms/form-enhance.ts';
 	import Amount from '#lib/components/base/Amount.svelte';
@@ -144,7 +144,7 @@
 			</div>
 		{/if}
 
-		<DetailCard>
+		<Group>
 			<li class:bad={errors.description}>
 				<TextRow
 					id="description"
@@ -224,7 +224,7 @@
 					</li>
 				{/if}
 			{/if}
-		</DetailCard>
+		</Group>
 
 		{#if data.rememberLabel}
 			<Field.Field orientation="horizontal">
