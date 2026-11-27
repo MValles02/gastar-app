@@ -9,7 +9,7 @@ export const FIELDS = ['name', 'color', 'icon', 'kind'] as const;
 export type CategoryData = {
 	name: string;
 	color: string;
-	icon: string | null;
+	icon: string;
 	kind: CategoryKind | null;
 };
 export type CategoryFormErrors = Partial<Record<keyof CategoryData, string>>;
@@ -29,7 +29,7 @@ export const toFormValues = (c: {
 	kind: string | null;
 }) => ({
 	name: c.name,
-	icon: toCategoryIconKey(c.icon) ?? '',
+	icon: toCategoryIconKey(c.icon) ?? 'tag',
 	color: toSwatchKey(c.color) ?? 'green',
 	kind: c.kind ?? ''
 });
@@ -44,9 +44,7 @@ export function parseCategoryForm(fd: FormData): CategoryFormResult {
 	const name = nameField(values.name);
 	if (name.error) errors.name = name.error;
 	if (!SWATCHES.some((s) => s.key === values.color)) errors.color = es.common.fields.pickColor;
-	// '' (or a missing field) means no icon.
-	if (values.icon !== '' && !CATEGORY_ICONS.some((i) => i.key === values.icon))
-		errors.icon = es.common.fields.pickIcon;
+	if (!CATEGORY_ICONS.some((i) => i.key === values.icon)) errors.icon = es.common.fields.pickIcon;
 	// '' (or a missing field) means both.
 	const kind = CATEGORY_KINDS.find((k) => k === values.kind) ?? null;
 	if (values.kind !== '' && !kind) errors.kind = 'Elegí un tipo.';
@@ -54,6 +52,6 @@ export function parseCategoryForm(fd: FormData): CategoryFormResult {
 	if (Object.keys(errors).length > 0) return { ok: false, values, errors };
 	return {
 		ok: true,
-		data: { name: name.value, color: values.color, icon: values.icon || null, kind }
+		data: { name: name.value, color: values.color, icon: values.icon, kind }
 	};
 }

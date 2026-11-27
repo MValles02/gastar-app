@@ -246,6 +246,13 @@
       "when": 1795412153509,
       "tag": "0034_drop_import_compat_views",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1795809351224,
+      "tag": "0035_backfill_icon_color",
+      "breakpoints": true
     }
   ]
 }
