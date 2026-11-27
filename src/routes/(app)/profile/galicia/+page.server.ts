@@ -1,21 +1,14 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { es } from '#lib/copy/es.ts';
 import { formFail } from '#lib/form.ts';
-import { isCurrency } from '#lib/money.ts';
+import { CURRENCY_NAME, isCurrency } from '#lib/money.ts';
 import { str } from '#lib/server/forms.ts';
 import { chooseGaliciaAccount } from '#lib/server/imports/cards.ts';
-import { ACCOUNT_ERRORS, currencyAccountOptions } from '#lib/server/imports/connections.ts';
+import { currencyAccountOptions } from '#lib/server/imports/connections.ts';
 import { getGaliciaConnection } from '#lib/server/imports/galicia/connection.ts';
 import { importStatement } from '#lib/server/imports/galicia/import.ts';
-import {
-	parseGaliciaStatement,
-	STATEMENT_ERRORS,
-	StatementError
-} from '#lib/server/imports/galicia/statement.ts';
-import {
-	checkStatementFile,
-	MISSING_ACCOUNT_ERRORS,
-	readStatementPdf
-} from '#lib/server/imports/galicia/upload.ts';
+import { parseGaliciaStatement, StatementError } from '#lib/server/imports/galicia/statement.ts';
+import { checkStatementFile, readStatementPdf } from '#lib/server/imports/galicia/upload.ts';
 import { pgErrorCode } from '#lib/server/db/errors.ts';
 import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import { requireUser } from '#lib/server/guards.ts';
@@ -40,11 +33,14 @@ export const actions: Actions = {
 	account: async ({ locals, request }) => {
 		const fd = await request.formData();
 		const currency = fd.get('currency');
-		if (!isCurrency(currency)) return formFail(400, { errors: { accountId: 'Elegí la cuenta.' } });
+		if (!isCurrency(currency))
+			return formFail(400, { errors: { accountId: es.common.fields.pickAccount } });
 		const accountId = str(fd, 'accountId');
 		// Credit alerts that waited for the Banco Galicia accounts become items now.
 		if (!(await chooseGaliciaAccount(requireUser(locals).id, currency, accountId))) {
-			return formFail(400, { errors: { accountId: ACCOUNT_ERRORS[currency] } });
+			return formFail(400, {
+				errors: { accountId: es.imports.accountIn(CURRENCY_NAME[currency]) }
+			});
 		}
 		return { currency, accountId };
 	},
@@ -53,7 +49,7 @@ export const actions: Actions = {
 	upload: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
 		if (isBlocked('statementUpload', userId)) {
-			return fail(429, { upload: 'Subiste muchos resúmenes seguidos. Probá en unos minutos.' });
+			return fail(429, { upload: es.profile.galicia.rateLimited });
 		}
 		const file = (await request.formData()).get('statement');
 		const fileError = checkStatementFile(file);
@@ -62,18 +58,19 @@ export const actions: Actions = {
 		record('statementUpload', userId);
 
 		const bytes = await readStatementPdf(file as File);
-		if (!bytes) return fail(400, { upload: STATEMENT_ERRORS.unreadable });
+		if (!bytes) return fail(400, { upload: es.profile.galicia.statement.unreadable });
 		let result;
 		try {
 			result = await importStatement(userId, await parseGaliciaStatement(bytes));
 		} catch (e) {
-			if (e instanceof StatementError) return fail(400, { upload: STATEMENT_ERRORS[e.code] });
+			if (e instanceof StatementError)
+				return fail(400, { upload: es.profile.galicia.statement[e.code] });
 			// Never log the statement itself: only that it failed and the DB code, if any.
 			console.error('[galicia] statement import failed', pgErrorCode(e) ?? 'unknown');
-			return fail(500, { upload: 'No se pudo importar el resumen. Probá de nuevo.' });
+			return fail(500, { upload: es.profile.galicia.importFailed });
 		}
 		if (!result.ok) {
-			return fail(400, { upload: MISSING_ACCOUNT_ERRORS[result.missing] });
+			return fail(400, { upload: es.profile.galicia.missingAccount[result.missing] });
 		}
 		redirect(303, importUploadHref(result.created, result.autoApproved));
 	}

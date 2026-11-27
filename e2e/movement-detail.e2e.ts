@@ -3,6 +3,7 @@
 // totals are read by other specs): each test creates its own ARS accounts "<desc> A"/"<desc> B" and
 // categories "<desc> C1"/"<desc> C2", plus a movement dated in the past, and removes them afterwards.
 import { expect, test, type Page } from '@playwright/test';
+import { es } from '../src/lib/copy/es';
 import {
 	createVia,
 	deleteMovements,
@@ -203,7 +204,7 @@ test('Deshacer restores a transfer account change that dropped the rate', async 
 	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toContainText(`${desc} B`);
 	await expect(drawer.getByRole('button', { name: /^Cotización/ })).toHaveCount(0);
 	await undo(page);
-	await expect(page.getByText('No se pudo deshacer.')).toHaveCount(0);
+	await expect(page.getByText(es.imports.errors.undoFailed)).toHaveCount(0);
 	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toContainText('Otra cuenta');
 	await expect(drawer.getByRole('button', { name: 'Cotización: 1.000' })).toBeVisible();
 });
@@ -295,7 +296,7 @@ test('Transferencia to Gasto asks for a category; Deshacer restores type, destin
 	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toHaveCount(0);
 
 	await undo(page);
-	await expect(page.getByText('No se pudo deshacer.')).toHaveCount(0);
+	await expect(page.getByText(es.imports.errors.undoFailed)).toHaveCount(0);
 	await expect(drawer.getByRole('button', { name: /^Tipo/ })).toContainText('Transferencia');
 	await expect(drawer.getByRole('button', { name: /^Hacia/ })).toContainText('Otra cuenta');
 	await expect(drawer.getByRole('button', { name: 'Cotización: 1.000' })).toBeVisible();
@@ -322,7 +323,7 @@ test('Deshacer restores an archived category or account the movement had; a norm
 	await expect(saved(page)).toBeVisible();
 	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C2`);
 	await undo(page);
-	await expect(page.getByText('No se pudo deshacer.')).toHaveCount(0);
+	await expect(page.getByText(es.imports.errors.undoFailed)).toHaveCount(0);
 	await expect(drawer.getByRole('button', { name: /^Categoría/ })).toContainText(`${desc} C1`);
 
 	await page.reload();
@@ -336,7 +337,7 @@ test('Deshacer restores an archived category or account the movement had; a norm
 	await expect(saved(page)).toBeVisible();
 	await expect(drawer.getByRole('button', { name: /^Cuenta/ })).toContainText(`${desc} B`);
 	await undo(page);
-	await expect(page.getByText('No se pudo deshacer.')).toHaveCount(0);
+	await expect(page.getByText(es.imports.errors.undoFailed)).toHaveCount(0);
 	await expect(drawer.getByRole('button', { name: /^Cuenta/ })).toContainText(`${desc} A`);
 
 	await page.reload();
@@ -360,10 +361,6 @@ test('Deshacer restores an archived category or account the movement had; a norm
 		return body.data as string;
 	};
 
-	expect(await update({ categoryId: fixture.c2 })).toContain(
-		'Esa categoría está archivada. Elegí otra.'
-	);
-	expect(await update({ accountId: fixture.B })).toContain(
-		'Esa cuenta está archivada. Elegí otra.'
-	);
+	expect(await update({ categoryId: fixture.c2 })).toContain(es.movements.errors.archivedCategory);
+	expect(await update({ accountId: fixture.B })).toContain(es.movements.errors.archivedAccount);
 });

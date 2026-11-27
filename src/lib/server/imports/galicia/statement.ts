@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { getDocumentProxy } from 'unpdf';
+import type { es } from '#lib/copy/es.ts';
 import { CURRENCIES, type Currency } from '#lib/money.ts';
 import { CARD_NETWORK, CARD_NETWORKS, type CardNetwork } from '#lib/imports.ts';
 import { STATEMENT_MAX_PAGES } from '#lib/server/constants.ts';
@@ -36,15 +37,8 @@ export type Statement = {
 	charges: Record<Currency, number>;
 };
 
-/** What the upload says for each way a statement can fail. */
-export const STATEMENT_ERRORS = {
-	unreadable: 'No pudimos leer el PDF. Subí el resumen tal como lo descargaste de Galicia.',
-	too_many_pages: 'El PDF tiene demasiadas páginas para ser un resumen.',
-	not_galicia: 'Ese PDF no es un resumen de tarjeta de Banco Galicia.',
-	unbalanced: 'El resumen no cuadra con el total; no se importó nada.'
-} as const;
-
-export type StatementErrorCode = keyof typeof STATEMENT_ERRORS;
+/** The ways a statement can fail; the upload says each in the catalogue. */
+export type StatementErrorCode = keyof typeof es.profile.galicia.statement;
 
 export class StatementError extends Error {
 	readonly code: StatementErrorCode;

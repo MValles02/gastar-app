@@ -1,7 +1,9 @@
+import { es } from '#lib/copy/es.ts';
 import { formFail } from '#lib/form.ts';
+import { CURRENCY_NAME } from '#lib/money.ts';
 import { accountOption } from '#lib/server/accounts/queries.ts';
 import { str } from '#lib/server/forms.ts';
-import { ACCOUNT_ERRORS, activeAccountsIn } from '#lib/server/imports/connections.ts';
+import { activeAccountsIn } from '#lib/server/imports/connections.ts';
 import { MP_LINK, mpConnection } from '#lib/server/imports/mercado-pago/oauth.ts';
 import { connectAction, disconnectAction, linkFlash } from '#lib/server/imports/oauth-link.ts';
 import { MP_CURRENCY, setReceivingAccount } from '#lib/server/imports/mercado-pago/settings.ts';
@@ -25,7 +27,9 @@ export const actions = linkActions(MP_LINK, {
 	account: async ({ locals, request }) => {
 		const accountId = str(await request.formData(), 'accountId');
 		if (!(await setReceivingAccount(requireUser(locals).id, accountId))) {
-			return formFail(400, { errors: { accountId: ACCOUNT_ERRORS[MP_CURRENCY] } });
+			return formFail(400, {
+				errors: { accountId: es.imports.accountIn(CURRENCY_NAME[MP_CURRENCY]) }
+			});
 		}
 		return { accountId };
 	},

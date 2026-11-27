@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { es } from '#lib/copy/es.ts';
 import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { editedForm, parseMovementForm } from '#lib/server/movements/form.ts';
@@ -52,14 +53,17 @@ export const actions: Actions = {
 		const recurringId = str(await request.formData(), 'recurringId');
 		const values = { recurringId };
 		if (recurringId && !isUuid(recurringId))
-			return formFail(400, { values, errors: { recurringId: 'Elegí un pago fijo válido.' } });
+			return formFail(400, {
+				values,
+				errors: { recurringId: es.movements.errors.recurringInvalid }
+			});
 		const result = await setMovementRule(userId, params.id, recurringId || null);
 		if (result === 'missing') notFound();
 		if (result === 'taken')
 			return formFail(400, {
 				values,
 				errors: {
-					recurringId: 'Ese pago fijo no está disponible o ya tiene un movimiento ese mes.'
+					recurringId: es.movements.errors.recurringTaken
 				}
 			});
 		return await savedSlice(userId, params.id);

@@ -1,11 +1,7 @@
+import { es } from '#lib/copy/es.ts';
 import { formFail } from '#lib/form.ts';
 import type { Actions, PageServerLoad } from './$types';
-import {
-	DELETE_REFERENCED_MESSAGE,
-	editedForm,
-	NOT_FOUND_MESSAGE,
-	parseAccountForm
-} from '#lib/server/accounts/form.ts';
+import { editedForm, parseAccountForm } from '#lib/server/accounts/form.ts';
 import {
 	deleteAccount,
 	isAccountReferenced,
@@ -16,7 +12,7 @@ import { accountDetail } from '#lib/server/accounts/view.ts';
 import { archiveActions, deleteUnlessReferenced, lifecycleState } from '#lib/server/lifecycle.ts';
 import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
 
-const guards = notFoundHelpers(NOT_FOUND_MESSAGE);
+const guards = notFoundHelpers(es.accounts.errors.notFound);
 const { notFound, requireId } = guards;
 
 /** The account as the detail shows it (what the load returns and `update` hands back). */
@@ -53,7 +49,7 @@ export const actions: Actions = {
 		{
 			isReferenced: isAccountReferenced,
 			remove: deleteAccount,
-			message: DELETE_REFERENCED_MESSAGE,
+			message: es.accounts.errors.deleteReferenced,
 			redirectTo: '/accounts'
 		},
 		guards

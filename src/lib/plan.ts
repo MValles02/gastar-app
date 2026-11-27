@@ -1,15 +1,9 @@
 /** Plan vocabulary shared by the server and the screens: statuses, their tones and labels, savings rules. */
 import { SAVINGS_PERCENT_MAX } from './constants';
+import { es } from './copy/es';
 import { formatPercentInput } from './locale';
 import type { MovementType } from './movement';
-import {
-	ARS_WHOLE_MESSAGE,
-	currencyStep,
-	formatAmountInput,
-	isWholeFor,
-	parseAmount,
-	type Currency
-} from './money';
+import { currencyStep, formatAmountInput, isWholeFor, parseAmount, type Currency } from './money';
 
 /** The plan is always in pesos; USD items convert at the plan rate. */
 export const PLAN_CURRENCY = 'ARS' as const;
@@ -188,7 +182,7 @@ export function readSavings(
 				: 'Ingresá un monto de ahorro válido.'
 		};
 	if (!percent && !isWholeFor(other.savings, currency))
-		return { ok: false, message: `Revisá “Monto a ahorrar”: ${ARS_WHOLE_MESSAGE}` };
+		return { ok: false, message: `Revisá “Monto a ahorrar”: ${es.common.amount.arsWhole}` };
 	return { ok: true, ...other };
 }
 

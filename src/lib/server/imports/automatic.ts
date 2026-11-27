@@ -1,3 +1,4 @@
+import { es } from '#lib/copy/es.ts';
 import type { SyncPhase } from '#lib/imports.ts';
 import { dayStart, localDay } from '../month';
 import { gmailConnection, gmailOauthEnabled, revokeGmail } from './gmail/oauth';
@@ -94,8 +95,6 @@ export async function syncNow(userId: string): Promise<boolean> {
 	return true;
 }
 
-const BUSY = 'Ya hay una sincronización en curso. Probá en unos minutos.';
-
 /**
  * Sets the "Importar desde" day of every automatic source. Moving it earlier fetches the gap: both leases are
  * taken first (a busy one cancels the change), the date is stored, then the syncs run in the background.
@@ -106,23 +105,23 @@ export async function changeImportFrom(
 	ymd: string
 ): Promise<{ ok: true } | { status: 400 | 409; error: string }> {
 	const from = dayStart(ymd);
-	if (!from || ymd > localDay(new Date())) return { status: 400, error: 'Elegí una fecha válida.' };
+	if (!from || ymd > localDay(new Date())) return { status: 400, error: es.imports.sync.badDate };
 	if (ymd < earliestImportDay()) {
-		return { status: 400, error: 'Podés traer hasta 12 meses para atrás.' };
+		return { status: 400, error: es.imports.sync.maxBackfill };
 	}
 	const { mp, gmail } = await sourceStatus(userId);
-	if (mp?.state === 'reconnect') return { status: 400, error: 'Reconectá Mercado Pago primero.' };
-	if (gmail?.state === 'reconnect') return { status: 400, error: 'Reconectá Gmail primero.' };
+	if (mp?.state === 'reconnect') return { status: 400, error: es.imports.sync.reconnectMp };
+	if (gmail?.state === 'reconnect') return { status: 400, error: es.imports.sync.reconnectGmail };
 	// Mercado Pago without a receiving account has nothing to fetch or trim: skipped.
 	const mpAccount = mp?.accountId;
 
 	if (ymd < (await getImportFromDay(userId))) {
 		const gmailLinked = gmail?.state === 'linked';
 		const lease = gmailLinked ? await acquireGmailSync(userId) : null;
-		if (gmailLinked && !lease) return { status: 409, error: BUSY };
+		if (gmailLinked && !lease) return { status: 409, error: es.imports.sync.busy };
 		if (mpAccount && !(await runMpSync(userId, { from, report: true, background: true }))) {
 			await lease?.release();
-			return { status: 409, error: BUSY };
+			return { status: 409, error: es.imports.sync.busy };
 		}
 		// Before the Gmail conversion, so its floor does not drop the backfilled alerts.
 		try {
@@ -137,7 +136,7 @@ export async function changeImportFrom(
 	}
 	// Trimming while a run holds a lease would let it re-insert what was just deleted.
 	const now = await sourceStatus(userId);
-	if (now.mp?.running || now.gmail?.running) return { status: 409, error: BUSY };
+	if (now.mp?.running || now.gmail?.running) return { status: 409, error: es.imports.sync.busy };
 	await setImportFrom(userId, from);
 	return { ok: true };
 }

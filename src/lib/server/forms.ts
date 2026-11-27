@@ -1,4 +1,5 @@
-import { ARS_WHOLE_MESSAGE, type Currency, isWholeFor } from '#lib/money.ts';
+import { es } from '#lib/copy/es.ts';
+import { type Currency, isWholeFor } from '#lib/money.ts';
 
 /** A posted text field; a missing or file field reads as ''. */
 export const str = (fd: FormData, key: string) => {
@@ -19,7 +20,7 @@ export const requiredText =
 	};
 
 export const amountFor = (currency: Currency) => (cents: number) =>
-	isWholeFor(cents, currency) ? undefined : ARS_WHOLE_MESSAGE;
+	isWholeFor(cents, currency) ? undefined : es.common.amount.arsWhole;
 
 /**
  * The form an edit action validates: the stored values (`toFormValues(row)`) with the posted

@@ -1,18 +1,16 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { es } from '#lib/copy/es.ts';
 import { auth, googleEnabled } from '#lib/server/auth.ts';
 import {
 	EMAIL_NOT_VERIFIED,
 	googleAction,
 	isApiError,
 	resendAction,
-	tooManyAttempts,
 	VERIFY_EMAIL_PATH
 } from '#lib/server/auth-forms.ts';
 import { str } from '#lib/server/forms.ts';
 import { isBlocked, record } from '#lib/server/rate-limit.ts';
 import type { Actions, PageServerLoad } from './$types';
-
-const BAD_CREDENTIALS = 'Email o contraseña incorrectos.';
 
 export const load: PageServerLoad = () => ({ googleEnabled });
 
@@ -25,10 +23,11 @@ export const actions: Actions = {
 
 		// Rate limit policy (b): count only failures.
 		if (isBlocked('signIn', ip)) {
-			return fail(429, { email, formError: tooManyAttempts('minuto') });
+			return fail(429, { email, formError: es.common.tooManyAttempts('minuto') });
 		}
 
-		if (!email || !password) return fail(400, { email, passwordError: BAD_CREDENTIALS });
+		if (!email || !password)
+			return fail(400, { email, passwordError: es.auth.login.badCredentials });
 
 		try {
 			await auth.api.signInEmail({
@@ -40,7 +39,7 @@ export const actions: Actions = {
 			if (isApiError(err, EMAIL_NOT_VERIFIED)) return { checkEmail: email };
 			if (!isApiError(err)) throw err;
 			record('signIn', ip);
-			return fail(400, { email, passwordError: BAD_CREDENTIALS });
+			return fail(400, { email, passwordError: es.auth.login.badCredentials });
 		}
 
 		redirect(303, '/');

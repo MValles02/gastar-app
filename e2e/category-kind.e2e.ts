@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { es } from '../src/lib/copy/es';
 import { login, NO_JS, noJsOption } from './helpers';
 
-const MISMATCH = 'Esa categoría es de ingresos. Elegí otra.';
+const MISMATCH = es.movements.errors.kindMismatch.income;
 
 test.describe('without JavaScript', () => {
 	test.use(NO_JS);

@@ -3,7 +3,8 @@
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { appear, fade } from '#lib/motion.ts';
 	import type { Currency } from '#lib/money.ts';
-	import { categoriesFor, MOVEMENT_MESSAGES, movementNeeds } from '#lib/movement.ts';
+	import { es } from '#lib/copy/es.ts';
+	import { categoriesFor, movementNeeds } from '#lib/movement.ts';
 	import { savedMovement } from '#lib/toast-flags.ts';
 	import { untrack, type ComponentProps } from 'svelte';
 	import Plus from '@lucide/svelte/icons/plus';
@@ -190,11 +191,11 @@
 	/** Drawer: posts only once every row has a value (same fields and messages as the server). */
 	function validate() {
 		const e: Errors = {};
-		if (!accountId) e.accountId = MOVEMENT_MESSAGES.account;
+		if (!accountId) e.accountId = es.movements.errors.account;
 		if (needs.destination) {
-			if (!destinationId) e.destinationAccountId = MOVEMENT_MESSAGES.destination;
-			if (needs.rate && !isValidRate(parseAmount(rate))) e.exchangeRate = MOVEMENT_MESSAGES.rate;
-		} else if (needs.category && !categoryId) e.categoryId = MOVEMENT_MESSAGES.category;
+			if (!destinationId) e.destinationAccountId = es.movements.errors.destination;
+			if (needs.rate && !isValidRate(parseAmount(rate))) e.exchangeRate = es.movements.errors.rate;
+		} else if (needs.category && !categoryId) e.categoryId = es.movements.errors.category;
 		if (Object.keys(e).length === 0) return true;
 		fieldErrors = e;
 		return false;

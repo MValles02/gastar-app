@@ -1,4 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { es } from '#lib/copy/es.ts';
 import { ALREADY_REVIEWED, UNMATCHED_FAILED } from '#lib/imports.ts';
 import type { Currency } from '#lib/money.ts';
 import { undoApprovalAction } from '#lib/server/imports/actions.ts';
@@ -35,8 +36,6 @@ function agoLabel(at: Date, now: Date): string {
 	if (min < 24 * 60) return `Hace ${Math.floor(min / 60)} h`;
 	return `Hace ${Math.floor(min / (24 * 60))} d`;
 }
-
-const APPROVE_FAILED = 'No se pudo aprobar.';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
@@ -161,18 +160,18 @@ export const actions: Actions = {
 	approveOne: async ({ locals, request }) => {
 		const userId = requireUser(locals).id;
 		const id = String((await request.formData()).get('id') ?? '');
-		if (!isUuid(id)) return fail(400, { message: APPROVE_FAILED });
+		if (!isUuid(id)) return fail(400, { message: es.imports.errors.approveFailed });
 		const item = await getImport(userId, id);
 		if (!item || item.status !== 'pending') return fail(409, { message: ALREADY_REVIEWED });
 		const ctx = await suggestionContext(userId);
 		try {
 			const out = await approveSuggestion(userId, item, ctx);
-			if (out === 'none') return fail(400, { message: 'Revisá este movimiento.' });
+			if (out === 'none') return fail(400, { message: es.imports.errors.review });
 			if (out === 'approved') return { approvedId: id };
 			return fail(409, { message: ALREADY_REVIEWED });
 		} catch (e) {
 			console.error('[imports] quick approve failed', pgErrorCode(e) ?? 'unknown');
-			return fail(400, { message: APPROVE_FAILED });
+			return fail(400, { message: es.imports.errors.approveFailed });
 		}
 	},
 
@@ -185,7 +184,7 @@ export const actions: Actions = {
 		if (!isUuid(id)) return fail(400, { message: UNMATCHED_FAILED.discard });
 		const result = await discardUnmatched(userId, id);
 		if (result === 'changed') {
-			return fail(409, { message: 'No se pudo descartar: el movimiento ya cambió.' });
+			return fail(409, { message: es.imports.errors.discardChanged });
 		}
 		if (result === 'stale') return fail(409, { message: UNMATCHED_FAILED.discard });
 		return { discardedId: id };

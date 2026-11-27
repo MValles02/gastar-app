@@ -1,4 +1,5 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
+import { es } from '#lib/copy/es.ts';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { dayStart } from '../../month';
@@ -22,16 +23,9 @@ const MAX_PAGES = 50;
 /** Stored in gmail_connections.last_error_code: a code only, never a message or payload. */
 type GmailSyncError = 'reconnect' | 'network' | 'api' | 'parse';
 
-/** What the inbox says after "No se pudo sincronizar Gmail" for each stored code. */
-const GMAIL_ERROR_LABELS: Record<string, string> = {
-	reconnect: 'hay que volver a vincular Gmail',
-	network: 'sin conexión con Gmail',
-	api: 'Gmail respondió con un error',
-	parse: 'algún mail de alertas de tarjeta no se pudo leer'
-};
-
 /** The inbox label of a stored code (an unknown code shows as is). */
-export const gmailErrorLabel = (code: string) => GMAIL_ERROR_LABELS[code] ?? code;
+export const gmailErrorLabel = (code: string) =>
+	(es.imports.gmailSyncError as Record<string, string>)[code] ?? code;
 
 class SyncError extends Error {
 	constructor(readonly code: GmailSyncError) {

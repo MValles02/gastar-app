@@ -1,7 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import { formFail } from '#lib/form.ts';
 import type { Actions } from './$types';
-import { DUPLICATE_NAME_MESSAGE, parseCategoryForm } from '#lib/server/categories/form.ts';
+import { es } from '#lib/copy/es.ts';
+import { parseCategoryForm } from '#lib/server/categories/form.ts';
 import { createCategory, writeIfNameFree } from '#lib/server/categories/queries.ts';
 import { requireUser } from '#lib/server/guards.ts';
 
@@ -15,7 +16,10 @@ export const actions: Actions = {
 			createCategory(userId, parsed.data)
 		);
 		if (!rows)
-			return formFail(400, { values: parsed.data, errors: { name: DUPLICATE_NAME_MESSAGE } });
+			return formFail(400, {
+				values: parsed.data,
+				errors: { name: es.categories.errors.duplicateName }
+			});
 		redirect(303, `/categories/${rows[0].id}`);
 	}
 };

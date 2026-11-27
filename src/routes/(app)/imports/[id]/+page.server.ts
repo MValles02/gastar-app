@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { CURRENCY_NAME } from '#lib/money.ts';
-import { MOVEMENT_MESSAGES as MSG } from '#lib/movement.ts';
+import { es } from '#lib/copy/es.ts';
 import { isUuid } from '#lib/server/db/util.ts';
 import { readFields } from '#lib/server/forms.ts';
 import { descriptionField, movementTypeOf } from '#lib/server/movements/form.ts';
@@ -21,7 +21,7 @@ import { notFoundHelpers, requireUser } from '#lib/server/guards.ts';
 import { importDoneHref } from '#lib/toast-flags.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-const { notFound, requireId } = notFoundHelpers('Movimiento no encontrado.');
+const { notFound, requireId } = notFoundHelpers(es.movements.errors.notFound);
 
 /** The user's item (404 for invalid, foreign and missing ids). */
 async function findItem(userId: string, id: string) {
@@ -111,15 +111,15 @@ export const actions: Actions = {
 
 		// The movement form's type and description checks, with the types this item can take.
 		const type = movementTypeOf(values.type, importTypes(item));
-		if (!type) errors.type = MSG.type;
+		if (!type) errors.type = es.movements.errors.type;
 		if (description.error) errors.description = description.error;
 
 		const { accounts } = await pickers(userId, item);
 		if (type === 'transfer') {
-			if (!isUuid(values.counterAccountId)) errors.counterAccountId = 'Elegí la cuenta.';
+			if (!isUuid(values.counterAccountId)) errors.counterAccountId = es.common.fields.pickAccount;
 			else if (!accounts.some((a) => a.id === values.counterAccountId))
 				errors.counterAccountId = `Elegí una cuenta en ${CURRENCY_NAME[item.currency]} que no esté archivada.`;
-		} else if (type && !isUuid(values.categoryId)) errors.categoryId = MSG.category;
+		} else if (type && !isUuid(values.categoryId)) errors.categoryId = es.movements.errors.category;
 		if (type && type !== 'transfer' && values.recurringId && !item.installments) {
 			const rules = await activeRuleItems(
 				userId,
@@ -127,7 +127,7 @@ export const actions: Actions = {
 				item.isCredit ? 'income' : 'outcome'
 			);
 			if (!rules.some((r) => r.id === values.recurringId))
-				errors.recurringId = 'Elegí un pago fijo válido.';
+				errors.recurringId = es.movements.errors.recurringInvalid;
 		}
 		if (Object.keys(errors).length > 0) return fail(400, { values, errors });
 

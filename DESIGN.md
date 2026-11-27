@@ -330,6 +330,14 @@ Motion explains a change (something appeared, moved or was replaced); it never d
 - **Bars:** `Meter` and the Reportes month bars are full-size fills slid by a transform inside a clipping track (`translateX` / `translateY`), so a change glides on the GPU and the rounded end keeps its shape.
 - **Reduced motion:** nothing moves; fades stay (100ms for `appear`, page transitions and the movement list's fade), the segmented thumb snaps, and the meter and bar fills jump.
 
+## Copy
+
+All user-facing text (es-AR) lives in one typed catalogue, `src/lib/copy/es.ts`; the server error messages are in it already and screen text moves in as each screen is restyled.
+
+- **Structure:** `es` is `as const`, grouped by area: `common` (`tooManyAttempts`, `fields`, `amount`), `auth`, `home`, `movements`, `accounts`, `categories`, `plan`, `reports`, `imports`, `profile`, `emails`. Errors sit under `<area>.errors`; sync, OAuth and Galicia upload messages under `imports` and `profile`. `Copy` is its type.
+- **Helpers:** `plural(n, one, other)` picks the word (singular only for 1) and `countOf(n, one, other)` gives "3 cuentas". Amounts arrive already formatted by `formatMoney` (`FormattedAmount`); the catalogue never formats.
+- **Imports:** `es.ts` imports only `../constants.ts` at runtime (limits in messages come from there) and types from `../money.ts`. App code imports `#lib/copy/es.ts`; the E2E specs import `../src/lib/copy/es` and assert the catalogue value instead of a literal, so rewording a message needs no spec edit.
+
 ## Components
 
 Shared components live in `src/lib/components/`.

@@ -1,17 +1,8 @@
 import { NAME_MAX_LENGTH } from '#lib/constants.ts';
-import { tooLongMessage } from '#lib/fields.ts';
-import {
-	AMOUNT_EXAMPLE,
-	CURRENCIES,
-	formatAmountInput,
-	parseAmount,
-	type Currency
-} from '#lib/money.ts';
+import { es } from '#lib/copy/es.ts';
+import { CURRENCIES, formatAmountInput, parseAmount, type Currency } from '#lib/money.ts';
 import { ACCOUNT_ICONS, SWATCHES, toIconKey, toSwatchKey } from '#lib/appearance.ts';
 import { amountFor, editFormData, readFields, requiredText } from '../forms';
-
-export const NOT_FOUND_MESSAGE = 'Cuenta no encontrada.';
-export const DELETE_REFERENCED_MESSAGE = 'Esta cuenta tiene movimientos. Podés archivarla.';
 
 export const FIELDS = ['name', 'currency', 'initialBalance', 'icon', 'color'] as const;
 /** The only fields `?/update` takes; the currency never changes there. */
@@ -32,8 +23,8 @@ export type AccountFormResult<D = AccountData> = { values: Record<string, string
 );
 
 const nameField = requiredText(NAME_MAX_LENGTH, {
-	empty: 'Ingresá un nombre.',
-	long: tooLongMessage('El nombre', NAME_MAX_LENGTH)
+	empty: es.common.fields.enterName,
+	long: es.common.fields.tooLong('El nombre', NAME_MAX_LENGTH)
 });
 
 export const toFormValues = (a: {
@@ -68,19 +59,20 @@ export function parseAccountForm(fd: FormData, mode: 'create' | 'edit'): Account
 	const currency = CURRENCIES.find((c) => c === values.currency);
 	// A locked currency control is disabled, so edit submits none: the stored currency stays.
 	const currencyOmitted = mode === 'edit' && values.currency === '';
-	if (!currency && !currencyOmitted) errors.currency = 'Elegí una moneda.';
+	if (!currency && !currencyOmitted) errors.currency = es.common.fields.pickCurrency;
 
 	const rawBalance = values.initialBalance.trim();
 	const initialBalance = rawBalance === '' ? 0 : parseAmount(rawBalance);
-	if (initialBalance === null) errors.initialBalance = `Ingresá un monto válido ${AMOUNT_EXAMPLE}.`;
+	if (initialBalance === null)
+		errors.initialBalance = `Ingresá un monto válido ${es.common.amount.example}.`;
 	// A locked currency is not submitted in edit mode; the edit action checks it against the account.
 	else if (currency) {
 		const whole = amountFor(currency)(initialBalance);
 		if (whole) errors.initialBalance = whole;
 	}
 
-	if (!ACCOUNT_ICONS.some((i) => i.key === values.icon)) errors.icon = 'Elegí un ícono.';
-	if (!SWATCHES.some((s) => s.key === values.color)) errors.color = 'Elegí un color.';
+	if (!ACCOUNT_ICONS.some((i) => i.key === values.icon)) errors.icon = es.common.fields.pickIcon;
+	if (!SWATCHES.some((s) => s.key === values.color)) errors.color = es.common.fields.pickColor;
 
 	if (initialBalance === null || Object.keys(errors).length > 0)
 		return { ok: false, values, errors };

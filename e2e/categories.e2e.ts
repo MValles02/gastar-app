@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { es } from '../src/lib/copy/es';
 import {
 	deleteMovements,
 	fillMovement,
@@ -10,7 +11,7 @@ import {
 } from './helpers';
 
 const DETAIL_RE = /\/categories\/[0-9a-f-]{36}$/;
-const LOCKED = 'Tiene movimientos, solo se puede cambiar a Ambos.';
+const LOCKED = es.categories.errors.kindLocked;
 
 /** Creates a category through the form (JS) and returns its detail path. */
 async function createCategory(page: Page, name: string, o: { kind?: string } = {}) {

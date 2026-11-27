@@ -3,9 +3,10 @@ import { canAccessOwn, userOwned } from '../access';
 import { db } from '../db';
 import { cardAlerts, importCards } from '../db/schema';
 import { convertWaitingAlerts } from './card-alerts';
-import { ACCOUNT_ERRORS, isActiveAccountIn } from './connections';
+import { isActiveAccountIn } from './connections';
 import { accountsFor, getGaliciaConnection, setGaliciaAccount } from './galicia/connection';
-import type { Currency } from '#lib/money.ts';
+import { es } from '#lib/copy/es.ts';
+import { CURRENCY_NAME, type Currency } from '#lib/money.ts';
 import { CARD_NETWORK, isCardNetwork } from '#lib/imports.ts';
 
 export type CardInput = {
@@ -135,9 +136,9 @@ export async function saveCard(
 	const { arsAccountId, usdAccountId } = input;
 	// A credit card's accounts are the Banco Galicia ones, so the pesos account is required for both types.
 	if (!arsAccountId || !(await isActiveAccountIn(userId, 'ARS', arsAccountId)))
-		errors.arsAccountId = ACCOUNT_ERRORS.ARS;
+		errors.arsAccountId = es.imports.accountIn(CURRENCY_NAME.ARS);
 	if (usdAccountId && !(await isActiveAccountIn(userId, 'USD', usdAccountId)))
-		errors.usdAccountId = ACCOUNT_ERRORS.USD;
+		errors.usdAccountId = es.imports.accountIn(CURRENCY_NAME.USD);
 	if (Object.keys(errors).length > 0) return { ok: false, errors };
 
 	const values = {

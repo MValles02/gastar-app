@@ -1,5 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import * as env from '$app/env/private';
+import { es } from '#lib/copy/es.ts';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { account, gmailConnections } from '../../db/schema';
@@ -190,10 +191,7 @@ export const GMAIL_LINK: OAuthLink<'scope'> = {
 	path: LINK_PATH,
 	cookie: 'gmail_oauth',
 	enabled: gmailOauthEnabled,
-	flashes: {
-		scope: 'Para vincular Gmail tenés que permitir que Gastar lea tus mails.',
-		exchange: 'Google no respondió. Probá de nuevo.'
-	},
+	flashes: es.profile.gmail.flashes,
 	limitStart: true,
 	start: startAuthorization,
 	exchange: exchangeCode,

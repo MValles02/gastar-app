@@ -1,6 +1,7 @@
 import { formFail } from '#lib/form.ts';
 import { formatAmountInput, parseAmount, type Currency } from '#lib/money.ts';
-import { MOVEMENT_MESSAGES as MSG, type MovementType, refError } from '#lib/movement.ts';
+import { es } from '#lib/copy/es.ts';
+import { type MovementType, refError } from '#lib/movement.ts';
 import { MAX_DAY_OF_MONTH } from '#lib/constants.ts';
 import { getAccount } from '../accounts/queries';
 import { getCategory } from '../categories/queries';
@@ -98,9 +99,9 @@ export function parseRecurringForm(fd: FormData): RecurringFormResult {
 	const { value: description, error: descriptionError } = descriptionField(values.description);
 	if (descriptionError) errors.description = descriptionError;
 	const amount = parseAmount(values.amount);
-	if (amount === null || amount <= 0) errors.amount = MSG.amount;
-	if (!isUuid(values.accountId)) errors.accountId = MSG.account;
-	if (!isUuid(values.categoryId)) errors.categoryId = MSG.category;
+	if (amount === null || amount <= 0) errors.amount = es.movements.errors.amount;
+	if (!isUuid(values.accountId)) errors.accountId = es.movements.errors.account;
+	if (!isUuid(values.categoryId)) errors.categoryId = es.movements.errors.category;
 	const day = Number(values.dayOfMonth);
 	if (!/^\d{1,2}$/.test(values.dayOfMonth) || day < 1 || day > MAX_DAY_OF_MONTH)
 		errors.dayOfMonth = `Elegí un día entre 1 y ${MAX_DAY_OF_MONTH}.`;

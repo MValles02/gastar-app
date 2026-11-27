@@ -1,5 +1,6 @@
 import { and, eq, isNotNull } from 'drizzle-orm';
 import * as env from '$app/env/private';
+import { es } from '#lib/copy/es.ts';
 import { canAccessOwn, userOwned } from '../../access';
 import { db } from '../../db';
 import { mpConnections, mpSyncState } from '../../db/schema';
@@ -127,7 +128,7 @@ export const MP_LINK: OAuthLink<never> = {
 	path: LINK_PATH,
 	cookie: 'mp_oauth',
 	enabled: mpOauthEnabled,
-	flashes: { exchange: 'Mercado Pago no respondió. Probá de nuevo.' },
+	flashes: es.profile.mercadoPago.flashes,
 	limitStart: true,
 	start: async (origin) => startAuthorization(origin),
 	exchange: exchangeCode,

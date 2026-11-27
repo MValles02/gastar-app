@@ -7,6 +7,7 @@ import {
 	type Page
 } from '@playwright/test';
 import postgres from 'postgres';
+import { es } from '../src/lib/copy/es';
 import {
 	DEFAULT_SEED_EMAIL,
 	DEFAULT_SEED_PASSWORD,
@@ -42,7 +43,7 @@ export const NO_JS = { javaScriptEnabled: false };
 /** A movement detail URL (no trailing path). */
 export const MOVEMENT_DETAIL_RE = /\/movements\/[0-9a-f-]{36}$/;
 
-export const WHOLE_PESOS_ERROR = 'Los montos en pesos van sin decimales.';
+export const WHOLE_PESOS_ERROR = es.common.amount.arsWhole;
 
 /** Today in the app time zone, as YYYY-MM-DD. */
 export const todayInAppTz = () => appDay(Date.now());

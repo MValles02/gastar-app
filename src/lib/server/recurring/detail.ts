@@ -1,4 +1,5 @@
 import { toIconKey } from '#lib/appearance.ts';
+import { es } from '#lib/copy/es.ts';
 import { cannotRegister, inactiveReason, isRecurringActive } from '#lib/plan.ts';
 import { notFoundHelpers } from '../guards';
 import { monthLabel } from '../month';
@@ -7,7 +8,7 @@ import { ruleDueThisMonth } from '../plan/month-plan';
 import { toFormValues } from './form';
 import { getRecurring } from './queries';
 
-const { notFound, requireId } = notFoundHelpers('Movimiento fijo no encontrado.');
+const { notFound, requireId } = notFoundHelpers(es.plan.errors.recurringNotFound);
 
 export async function findRule(userId: string, id: string) {
 	requireId(id);
