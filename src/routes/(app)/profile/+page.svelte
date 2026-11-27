@@ -71,31 +71,31 @@
 	<ListCard aria-label="Lo que administrás">
 		<ListRow
 			href={resolve('accounts')}
-			lead={{ icon: 'accounts', color: null }}
+			glyph={{ icon: 'accounts', tone: 'neutral' }}
 			title="Cuentas"
 			value={accountsCount}
 			chevron
 		/>
 		<ListRow
 			href={resolve('categories')}
-			lead={{ icon: 'categories', color: null }}
+			glyph={{ icon: 'categories', tone: 'neutral' }}
 			title="Categorías"
 			value={categoriesCount}
 			chevron
 		/>
 		<ListRow
 			href={resolve('profile/vinculaciones')}
-			lead={{ icon: 'phone', color: null }}
+			glyph={{ icon: 'phone', tone: 'neutral' }}
 			title="Vinculaciones"
 			chevron
 		/>
 	</ListCard>
 
 	<ListCard aria-label="Tu identidad">
-		<ListRow lead={{ icon: 'profile', color: null }} title="Nombre" value={nameValue} />
+		<ListRow glyph={{ icon: 'profile', tone: 'neutral' }} title="Nombre" value={nameValue} />
 		<ListRow
 			href={resolve('profile/password')}
-			lead={{ icon: 'lock', color: null }}
+			glyph={{ icon: 'lock', tone: 'neutral' }}
 			title={data.hasPassword ? 'Contraseña' : 'Crear contraseña'}
 			chevron
 			onclick={(e: MouseEvent) => openShallow(e, resolve('profile/password'), 'password')}
@@ -137,7 +137,7 @@
 
 	<form method="POST" action="/logout">
 		<ListCard aria-label="Sesión">
-			<ListRow submit lead={{ icon: 'logout', color: null }} title="Cerrar sesión" />
+			<ListRow submit glyph={{ icon: 'logout', tone: 'neutral' }} title="Cerrar sesión" />
 		</ListCard>
 	</form>
 

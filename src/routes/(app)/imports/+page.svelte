@@ -163,7 +163,7 @@
 			{#each data.unknownCards as c (c.network + c.last4)}
 				<ListRow
 					href={resolve(`profile/gmail/cards/${c.slug}`)}
-					lead={{ icon: 'card', color: null }}
+					glyph={{ icon: 'card', tone: 'neutral' }}
 					title="Tarjeta {cardNetworkName(c.network)} ••{c.last4}: elegí qué es"
 					chevron
 				/>

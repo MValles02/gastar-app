@@ -15,7 +15,7 @@
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import TabBand from '#lib/components/TabBand.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
-	import StatusPill from '#lib/components/StatusPill.svelte';
+	import Status from '#lib/components/base/Status.svelte';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
 	import { limitFlag } from '#lib/toast-flags.ts';
@@ -99,7 +99,7 @@
 					<div class="box">
 						<div class="top">
 							<CardEyebrow as="h2" id="summary-heading">Disponible</CardEyebrow>
-							<StatusPill tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
+							<Status tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
 						</div>
 						<Amount size="hero" as="p" cents={s.available} currency={PLAN_CURRENCY} />
 						<p class="per-day">

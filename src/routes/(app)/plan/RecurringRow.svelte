@@ -56,10 +56,9 @@
 	class="rule"
 	href={withWizard(resolve(`plan/recurring/${r.id}`), wizard)}
 	onclick={wizard ? undefined : (e) => openShallow(e, resolve(`plan/recurring/${r.id}`), 'rule')}
-	lead={{
-		icon: r.categoryIcon ?? undefined,
-		letter: r.categoryIcon ? undefined : r.description.charAt(0).toUpperCase(),
-		color: r.categoryColor
+	glyph={{
+		category:
+			r.categoryIcon || r.categoryColor ? { icon: r.categoryIcon, color: r.categoryColor } : null
 	}}
 	title={r.description}
 	{value}

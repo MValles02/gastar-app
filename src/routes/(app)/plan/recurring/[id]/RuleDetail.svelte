@@ -14,7 +14,7 @@
 	import InlineText from '#lib/components/InlineText.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
-	import StatusPill from '#lib/components/StatusPill.svelte';
+	import Status from '#lib/components/base/Status.svelte';
 	import type { PageData } from './$types';
 
 	/**
@@ -71,13 +71,13 @@
 		<p class="kind">
 			{income ? 'Ingreso fijo' : 'Pago fijo'}
 			{#if r.archived}
-				<StatusPill tone="neutral" label="Desactivado" />
+				<Status tone="neutral" label="Desactivado" />
 			{:else if r.cannotRegister}
-				<StatusPill tone="warning" label={r.inactiveReason ?? ''} />
+				<Status tone="warning" label={r.inactiveReason ?? ''} />
 			{:else if r.inactiveReason}
-				<StatusPill tone="neutral" label={r.inactiveReason} />
+				<Status tone="neutral" label={r.inactiveReason} />
 			{:else if r.thisMonth}
-				<StatusPill tone={dueTone(r.thisMonth.status)} label={r.thisMonth.label} />
+				<Status tone={dueTone(r.thisMonth.status)} label={r.thisMonth.label} />
 			{/if}
 		</p>
 		<div class="amount {r.type}">

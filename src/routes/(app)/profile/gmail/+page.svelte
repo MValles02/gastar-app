@@ -48,7 +48,7 @@
 			{#each data.cards as c (c.network + c.last4)}
 				<ListRow
 					href={resolve(`profile/gmail/cards/${c.slug}`)}
-					lead={{ icon: 'card', color: null }}
+					glyph={{ icon: 'card', tone: 'neutral' }}
 					title="{cardNetworkName(c.network)} ••{c.last4} · {c.type === 'debit'
 						? 'Débito'
 						: 'Crédito'}"

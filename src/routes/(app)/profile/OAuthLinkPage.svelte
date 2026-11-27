@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
-	import StatusPill from '#lib/components/StatusPill.svelte';
+	import Status from '#lib/components/base/Status.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 
@@ -62,7 +62,7 @@
 			<Card.Root>
 				<Card.Content class="state">
 					<h2 id="intro" class:pill={ok}>
-						{#if ok}<StatusPill tone="ok" label={title} />{:else}{title}{/if}
+						{#if ok}<Status tone="ok" label={title} />{:else}{title}{/if}
 					</h2>
 					{@render content()}
 					{#if action}

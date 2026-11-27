@@ -125,11 +125,7 @@
 						onclick={(e) =>
 							(e.target as Element).closest('a') && openShallow(e, resolve(href as ''), 'newRule')}
 					>
-						<ListRow
-							href={resolve(href as '')}
-							lead={{ letter: s.description.charAt(0).toUpperCase(), color: null }}
-							title={s.description}
-						>
+						<ListRow href={resolve(href as '')} glyph={{ category: null }} title={s.description}>
 							{#snippet value()}
 								<Amount cents={-s.amount} currency={s.currency} tone="expense" />
 							{/snippet}

@@ -4,7 +4,7 @@
 	import { refreshAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { autosave, submitAction } from '#lib/autosave.ts';
-	import IconBadge from '#lib/components/IconBadge.svelte';
+	import Glyph from '#lib/components/base/Glyph.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
@@ -130,7 +130,7 @@
 	>
 		<Card.Root class="py-0">
 			<label class="file" class:chosen={!!fileName}>
-				<IconBadge icon="file-up" color={null} neutral size="2.25rem" />
+				<Glyph icon="file-up" tone="neutral" />
 				<span class="name">{fileName || 'Elegir el PDF del resumen'}</span>
 				<input
 					type="file"

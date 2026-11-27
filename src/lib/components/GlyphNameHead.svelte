@@ -1,11 +1,11 @@
 <script lang="ts" generics="Key extends string">
-	import type { ComponentProps } from 'svelte';
 	import { NAME_MAX_LENGTH } from '#lib/constants.ts';
 	import type { SwatchKey } from '#lib/appearance.ts';
+	import type { IconName } from '#lib/components/Icon.svelte';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import * as Field from '#lib/components/ui/field/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
-	import IconBadge from './IconBadge.svelte';
+	import Glyph from '#lib/components/base/Glyph.svelte';
 	import IconColorDrawer from './IconColorDrawer.svelte';
 
 	/**
@@ -45,7 +45,7 @@
 			aria-haspopup="dialog"
 			onclick={() => (glyphOpen = true)}
 		>
-			<IconBadge icon={icon as ComponentProps<typeof IconBadge>['icon']} {color} size="2.75rem" />
+			<Glyph icon={icon as IconName} tone={color} />
 		</button>
 	{/if}
 	<Field.Field class="flex-1">

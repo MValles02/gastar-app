@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { ComponentProps } from 'svelte';
 	import Check from '@lucide/svelte/icons/check';
-	import type { SwatchKey } from '#lib/appearance.ts';
-	import IconBadge from '#lib/components/IconBadge.svelte';
+	import { toneOf, type SwatchKey } from '#lib/appearance.ts';
+	import Glyph from '#lib/components/base/Glyph.svelte';
+	import type { IconName } from '#lib/components/Icon.svelte';
 	import * as Item from '#lib/components/ui/item/index.js';
 	import { ARCHIVED_LABEL } from '#lib/movement.ts';
 	import Picker from './Picker.svelte';
@@ -25,7 +25,7 @@
 		items: {
 			id: string;
 			name: string;
-			icon: ComponentProps<typeof IconBadge>['icon'];
+			icon: IconName;
 			color: SwatchKey | null;
 			meta?: string;
 			archived?: boolean;
@@ -71,7 +71,7 @@
 							aria-pressed={on}
 							onclick={() => toggle(item.id)}
 						>
-							<Item.Media><IconBadge icon={item.icon} color={item.color} /></Item.Media>
+							<Item.Media><Glyph icon={item.icon} tone={toneOf(item.color)} /></Item.Media>
 							<Item.Content>
 								<Item.Title>{item.name}</Item.Title>
 								{#if item.archived}<Item.Description>{ARCHIVED_LABEL}</Item.Description>{/if}

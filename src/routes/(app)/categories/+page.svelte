@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Plus from '@lucide/svelte/icons/plus';
 	import { resolve } from '$app/paths';
-	import { swatchVar, toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
+	import { toneOf } from '#lib/appearance.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
@@ -9,7 +9,7 @@
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
-	import Meter from '#lib/components/Meter.svelte';
+	import Meter from '#lib/components/base/Meter.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
@@ -90,7 +90,6 @@
 					<SectionHeader id="group-{g.key}" title={g.label} variant="group" />
 					<ListCard>
 						{#each g.categories as c (c.id)}
-							{@const icon = toCategoryIconKey(c.icon) ?? ('categories' as const)}
 							{@const share = groupSpend > 0 ? spend(c.totals) / groupSpend : 0}
 							{#snippet value()}
 								<span class="totals">
@@ -105,15 +104,12 @@
 							{/snippet}
 							<!-- Share of the group's month spend: only categories with spending get a bar. -->
 							{#snippet meter()}
-								<Meter percent={share * 100} color={swatchVar(toSwatchKey(c.color))} />
+								<Meter percent={share * 100} tone={toneOf(c.color)} />
 							{/snippet}
 							<ListRow
 								href={resolve(`categories/${c.id}`)}
 								onclick={(e) => openShallow(e, resolve(`categories/${c.id}`), 'category')}
-								lead={{
-									icon,
-									color: toSwatchKey(c.color)
-								}}
+								glyph={{ category: { icon: c.icon, color: c.color } }}
 								title={c.name}
 								{value}
 								status={c.archivedAt ? { tone: 'neutral', label: ARCHIVED_LABEL } : undefined}

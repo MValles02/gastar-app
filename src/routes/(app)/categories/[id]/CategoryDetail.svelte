@@ -11,7 +11,7 @@
 	import DetailRow from '#lib/components/DetailRow.svelte';
 	import GlyphRow from '#lib/components/GlyphRow.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
-	import StatusPill from '#lib/components/StatusPill.svelte';
+	import Status from '#lib/components/base/Status.svelte';
 	import type { PageData } from './$types';
 
 	type Detail = Pick<PageData, 'category' | 'disabledKinds'>;
@@ -78,7 +78,7 @@
 			save={(kind) => save({ kind })}
 		/>
 		<DetailRow label="Estado"
-			><StatusPill
+			><Status
 				tone={c.archived ? 'neutral' : 'ok'}
 				label={c.archived ? ARCHIVED_LABEL : 'Activa'}
 			/></DetailRow

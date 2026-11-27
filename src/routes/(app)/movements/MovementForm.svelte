@@ -12,8 +12,9 @@
 	import AmountInput from '#lib/components/AmountInput.svelte';
 	import NewCategoryScreen from '../categories/new/NewCategoryScreen.svelte';
 	import type { CreatedCategory } from '#lib/components/categories/CategoryForm.svelte';
-	import { swatchVar } from '#lib/appearance.ts';
-	import IconBadge from '#lib/components/IconBadge.svelte';
+	import { swatchVar, toneOf } from '#lib/appearance.ts';
+	import Glyph from '#lib/components/base/Glyph.svelte';
+	import type { IconName } from '#lib/components/Icon.svelte';
 	import EntryFields from '#lib/components/EntryFields.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import { formScreen } from '#lib/components/forms/form-enhance.ts';
@@ -269,11 +270,7 @@
 						onclick={() => pickFrequent(c)}
 					>
 						<span class="pill">
-							<IconBadge
-								icon={c.icon as ComponentProps<typeof IconBadge>['icon']}
-								color={c.color ?? null}
-								size="1.5rem"
-							/>
+							<Glyph icon={c.icon as IconName} tone={toneOf(c.color ?? null)} size="chip" />
 							<span class="name">{c.name}</span>
 						</span>
 					</button>

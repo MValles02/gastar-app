@@ -1,14 +1,13 @@
 <script lang="ts">
-	import type { ComponentProps, Snippet } from 'svelte';
-	import type { SwatchKey } from '#lib/appearance.ts';
+	import type { Snippet } from 'svelte';
+	import Glyph, { type GlyphSpec } from '#lib/components/base/Glyph.svelte';
+	import Status from '#lib/components/base/Status.svelte';
 	import * as Item from '#lib/components/ui/item/index.js';
 	import type { StatusTone } from '#lib/plan.ts';
 	import Icon from './Icon.svelte';
-	import IconBadge from './IconBadge.svelte';
-	import StatusPill from './StatusPill.svelte';
 
 	/**
-	 * One row of a ListCard. Line 1: title and value (top-aligned); line 2: status pill and meta;
+	 * One row of a ListCard. Line 1: title and value (top-aligned); line 2: status and meta;
 	 * footer: full-width third line. A link (`href`), a submit button (`submit`) or a plain block.
 	 * `action`: the row's own controls at its right end (e.g. a quick "Aprobar"); with `href` the
 	 * title becomes the link, stretched over the row, so the controls can sit above it. `stacked`:
@@ -17,7 +16,7 @@
 	let {
 		href,
 		submit = false,
-		lead,
+		glyph,
 		title,
 		value,
 		status,
@@ -33,13 +32,7 @@
 		/** Already resolved. */
 		href?: string;
 		submit?: boolean;
-		lead?: {
-			icon?: ComponentProps<typeof Icon>['name'];
-			letter?: string;
-			color: SwatchKey | null;
-			/** Glyph-only CSS colour. */
-			glyph?: string;
-		};
+		glyph?: GlyphSpec;
 		title: string;
 		value?: Snippet;
 		status?: { tone: StatusTone; label: string };
@@ -56,16 +49,9 @@
 </script>
 
 {#snippet body()}
-	{#if lead}
+	{#if glyph}
 		<Item.Media class={dimmed ? 'opacity-50' : ''}>
-			<IconBadge
-				icon={lead.icon}
-				letter={lead.letter}
-				color={lead.color}
-				glyph={lead.glyph}
-				size="2.25rem"
-				neutral={lead.color === null}
-			/>
+			<Glyph {...glyph} />
 		</Item.Media>
 	{/if}
 	<Item.Content class="min-w-0">
@@ -81,14 +67,14 @@
 		</span>
 		{#if stacked}
 			{#if status}<span class="flex min-w-0"
-					><StatusPill tone={status.tone} label={status.label} /></span
+					><Status tone={status.tone} label={status.label} /></span
 				>{/if}
 			{#if meta}<Item.Description class="line-clamp-none flex min-w-0"
 					><span class="row-meta">{@render meta()}</span></Item.Description
 				>{/if}
 		{:else if status || meta}
 			<Item.Description class="line-clamp-none flex min-w-0 gap-2 items-center">
-				{#if status}<StatusPill tone={status.tone} label={status.label} />{/if}
+				{#if status}<Status tone={status.tone} label={status.label} />{/if}
 				{#if meta}<span class="row-meta">{@render meta()}</span>{/if}
 			</Item.Description>
 		{/if}

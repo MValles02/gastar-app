@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { swatchVar, toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
+	import { toneOf } from '#lib/appearance.ts';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
-	import Meter from '#lib/components/Meter.svelte';
+	import Meter from '#lib/components/base/Meter.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import { formatMoney, type Currency } from '#lib/money.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
@@ -52,7 +52,7 @@
 			{#snippet footer()}
 				<Meter
 					percent={Math.min(100, pct)}
-					color={l.over ? 'var(--negative)' : swatchVar(l.color)}
+					tone={l.over ? 'expense' : toneOf(l.color)}
 					label="Límite de {l.name}"
 					valueText="{formatMoney(l.spent, l.currency)} de {formatMoney(l.amount, l.currency)}"
 				/>
@@ -61,11 +61,7 @@
 			<div onclick={(e) => open(e, l.categoryId)}>
 				<ListRow
 					href={withWizard(resolve(`plan/limits/${l.categoryId}`), wizard)}
-					lead={{
-						icon: toCategoryIconKey(l.icon ?? null) ?? undefined,
-						letter: toCategoryIconKey(l.icon ?? null) ? undefined : l.name.charAt(0).toUpperCase(),
-						color: toSwatchKey(l.color)
-					}}
+					glyph={{ category: { icon: l.icon ?? null, color: l.color } }}
 					title={l.name}
 					{value}
 					{footer}

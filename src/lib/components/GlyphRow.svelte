@@ -1,9 +1,9 @@
 <script lang="ts" generics="Key extends string">
 	import type { ComponentProps } from 'svelte';
-	import type { SwatchKey } from '#lib/appearance.ts';
+	import { toneOf, type SwatchKey } from '#lib/appearance.ts';
 	import DetailRow from './DetailRow.svelte';
 	import Icon from './Icon.svelte';
-	import IconBadge from './IconBadge.svelte';
+	import Glyph from '#lib/components/base/Glyph.svelte';
 	import IconColorDrawer from './IconColorDrawer.svelte';
 
 	/**
@@ -29,7 +29,7 @@
 </script>
 
 <DetailRow label="Ícono y color" onclick={() => (open = true)} {error}>
-	<IconBadge icon={badge} {color} size="1.625rem" />
+	<Glyph icon={badge} tone={toneOf(color)} size="chip" />
 </DetailRow>
 
 <IconColorDrawer

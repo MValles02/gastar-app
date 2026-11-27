@@ -2,7 +2,6 @@
 	import { CURRENCY_OPTIONS } from '#lib/money.ts';
 	import Plus from '@lucide/svelte/icons/plus';
 	import { resolve } from '$app/paths';
-	import { toIconKey, toSwatchKey } from '#lib/appearance.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
@@ -81,7 +80,7 @@
 							<ListRow
 								href={resolve(`accounts/${a.id}`)}
 								onclick={(e) => openShallow(e, resolve(`accounts/${a.id}`), 'account')}
-								lead={{ icon: toIconKey(a.icon), color: toSwatchKey(a.color) }}
+								glyph={{ account: { icon: a.icon, color: a.color } }}
 								title={a.name}
 								{value}
 								status={a.archivedAt ? { tone: 'neutral', label: ARCHIVED_LABEL } : undefined}

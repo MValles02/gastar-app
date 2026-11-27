@@ -9,7 +9,7 @@
 	import EmailField from '#lib/components/EmailField.svelte';
 	import * as Field from '#lib/components/ui/field/index.js';
 	import GoogleButton from '#lib/components/GoogleButton.svelte';
-	import StatusPill from '#lib/components/StatusPill.svelte';
+	import Status from '#lib/components/base/Status.svelte';
 	import { appear } from '#lib/motion.ts';
 	import PasswordField from '#lib/components/PasswordField.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -48,7 +48,7 @@
 
 		{#if reset && !form}
 			<p class="note" role="status" in:appear>
-				<StatusPill tone="ok" label="Contraseña actualizada." />
+				<Status tone="ok" label="Contraseña actualizada." />
 			</p>
 		{/if}
 

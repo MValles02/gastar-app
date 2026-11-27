@@ -90,10 +90,7 @@
 <ListRow
 	{href}
 	onclick={open}
-	lead={{
-		letter: item.suggestion === null ? '?' : item.title.charAt(0).toUpperCase(),
-		color: null
-	}}
+	glyph={{ category: item.suggestion === null ? null : { icon: null, color: null } }}
 	title={item.title}
 	status={item.suggestion === null
 		? { tone: 'warning', label: 'No sabemos qué es' }

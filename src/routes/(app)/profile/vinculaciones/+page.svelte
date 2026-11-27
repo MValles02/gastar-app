@@ -51,7 +51,7 @@
 		{#if data.mp}
 			<ListRow
 				href={resolve('profile/mercado-pago')}
-				lead={{ icon: 'phone', color: null }}
+				glyph={{ icon: 'phone', tone: 'neutral' }}
 				title="Mercado Pago"
 				status={linkStatus(data.mp)}
 				value={linkStatus(data.mp) ? undefined : vincular}
@@ -61,7 +61,7 @@
 		{#if data.gmail !== undefined}
 			<ListRow
 				href={resolve('profile/gmail')}
-				lead={{ icon: 'mail', color: null }}
+				glyph={{ icon: 'mail', tone: 'neutral' }}
 				title="Gmail"
 				status={linkStatus(data.gmail)}
 				value={linkStatus(data.gmail) ? undefined : vincular}
@@ -70,7 +70,7 @@
 		{/if}
 		<ListRow
 			href={resolve('profile/galicia')}
-			lead={{ icon: 'card', color: null }}
+			glyph={{ icon: 'card', tone: 'neutral' }}
 			title="Banco Galicia"
 			status={data.galiciaReady ? { tone: 'ok', label: 'Configurado' } : undefined}
 			value={data.galiciaReady ? undefined : configurar}

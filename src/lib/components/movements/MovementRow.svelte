@@ -62,15 +62,14 @@
 	<ListRow
 		class={highlighted ? 'highlighted' : ''}
 		href={resolve(`movements/${m.id}`)}
-		lead={m.type === 'transfer'
-			? { icon: 'transfer', color: null, glyph: 'var(--transfer)' }
-			: m.categoryColor || m.categoryIcon
-				? {
-						icon: m.categoryIcon ?? undefined,
-						letter: m.categoryIcon ? undefined : m.description.charAt(0).toUpperCase(),
-						color: m.categoryColor
-					}
-				: { letter: m.description.charAt(0).toUpperCase(), color: null }}
+		glyph={m.type === 'transfer'
+			? { icon: 'transfer', tone: 'muted' }
+			: {
+					category:
+						(m.categoryName ?? m.categoryIcon ?? m.categoryColor)
+							? { icon: m.categoryIcon, color: m.categoryColor }
+							: null
+				}}
 		title={m.description}
 		status={m.categoryName && m.type !== 'transfer'
 			? { tone: 'neutral', label: m.categoryName }

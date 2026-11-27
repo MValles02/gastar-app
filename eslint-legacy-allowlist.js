@@ -20,9 +20,6 @@ export default {
 	],
 	'svelte/no-inline-styles': [
 		'src/lib/components/AmountInput.svelte',
-		'src/lib/components/IconBadge.svelte',
-		'src/lib/components/IconColorDrawer.svelte',
-		'src/lib/components/Meter.svelte',
 		'src/lib/components/PaceChart.svelte',
 		'src/lib/components/SegmentedControl.svelte',
 		'src/routes/(app)/movements/+page.svelte',

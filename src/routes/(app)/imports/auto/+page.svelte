@@ -76,7 +76,7 @@
 					</form>
 				{/snippet}
 				<ListRow
-					lead={{ letter: item.title.charAt(0).toUpperCase(), color: null }}
+					glyph={{ category: { icon: null, color: null } }}
 					title={item.title}
 					{meta}
 					action={side}

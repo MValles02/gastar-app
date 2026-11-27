@@ -12,7 +12,7 @@
 	import GlyphRow from '#lib/components/GlyphRow.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
-	import StatusPill from '#lib/components/StatusPill.svelte';
+	import Status from '#lib/components/base/Status.svelte';
 	import type { PageData } from './$types';
 
 	type Detail = Pick<PageData, 'account' | 'balance'>;
@@ -54,7 +54,7 @@
 <div class="detail">
 	<DetailHero cents={detail.balance} currency={a.currency} label="Saldo">
 		{#snippet top()}
-			{#if a.archived}<StatusPill tone="neutral" label={ARCHIVED_LABEL} />{/if}
+			{#if a.archived}<Status tone="neutral" label={ARCHIVED_LABEL} />{/if}
 		{/snippet}
 	</DetailHero>
 

@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { appear } from '#lib/motion.ts';
-	import { tick, type ComponentProps, type Snippet } from 'svelte';
-	import type { SwatchKey } from '#lib/appearance.ts';
-	import IconBadge from '#lib/components/IconBadge.svelte';
+	import { tick, type Snippet } from 'svelte';
+	import { toneOf, type SwatchKey } from '#lib/appearance.ts';
+	import Glyph from '#lib/components/base/Glyph.svelte';
+	import type { IconName } from '#lib/components/Icon.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import * as Item from '#lib/components/ui/item/index.js';
 	import type { Currency } from '#lib/money.ts';
@@ -14,7 +15,7 @@
 	type Item = {
 		id: string;
 		name: string;
-		icon: ComponentProps<typeof IconBadge>['icon'];
+		icon: IconName;
 		color: SwatchKey | null;
 		meta?: string;
 		archived?: boolean;
@@ -79,7 +80,7 @@
 </script>
 
 {#snippet option(item: Item)}
-	<IconBadge icon={item.icon} color={item.color} />
+	<Glyph icon={item.icon} tone={toneOf(item.color)} />
 	<span class="name">{item.name}</span>
 	{#if item.meta || item.archived}
 		<span class="meta">{meta(item)}</span>
@@ -88,7 +89,7 @@
 
 {#snippet current()}
 	{#if selected}
-		<IconBadge icon={selected.icon} color={selected.color} size="1.625rem" />
+		<Glyph icon={selected.icon} tone={toneOf(selected.color)} size="chip" />
 		<span class="name picked">{selected.name}</span>
 	{:else}
 		{placeholder}
@@ -96,7 +97,7 @@
 {/snippet}
 
 {#snippet badge(item: Item)}
-	<IconBadge icon={item.icon} color={item.color} size="1.875rem" />
+	<Glyph icon={item.icon} tone={toneOf(item.color)} />
 {/snippet}
 
 {#snippet balance(item: Item)}

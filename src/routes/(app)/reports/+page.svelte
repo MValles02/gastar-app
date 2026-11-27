@@ -9,7 +9,7 @@
 	import Amount from '#lib/components/base/Amount.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
-	import Meter from '#lib/components/Meter.svelte';
+	import Meter from '#lib/components/base/Meter.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
@@ -17,7 +17,7 @@
 	import { CURRENCY_NAME, formatMoney, signTone } from '#lib/money.ts';
 	import { markReplace } from '#lib/nav-stack.svelte.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
-	import { swatchVar, toSwatchKey } from '#lib/appearance.ts';
+	import { toneOf, type Tone } from '#lib/appearance.ts';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -29,8 +29,8 @@
 	// Spending is negated so Amount shows it as an outcome (red); zero stays neutral.
 	const neg = (c: number) => (c === 0 ? 0 : -c);
 	// The category's own swatch, as in the Categorías list (no colour = the badge default); "Otros" is neutral.
-	const sliceColor = (s: { id: string; color: string | null }) =>
-		s.id === 'other' ? 'var(--text-muted)' : swatchVar(s.color);
+	const sliceTone = (s: { id: string; color: string | null }): Tone =>
+		s.id === 'other' ? 'muted' : toneOf(s.color);
 </script>
 
 <svelte:head>
@@ -141,19 +141,15 @@
 								<Amount cents={s.amount} currency={data.currency} tone="expense" />
 							{/snippet}
 							{#snippet sliceFooter()}
-								<Meter percent={s.percent} color={sliceColor(s)} />
+								<Meter percent={s.percent} tone={sliceTone(s)} />
 							{/snippet}
 							<ListRow
 								href={s.id === 'other'
 									? undefined
 									: resolve(`categories/${s.id}?month=${data.nav.ym}`)}
-								lead={s.id === 'other'
-									? { icon: 'categories', color: null }
-									: {
-											icon: s.icon ?? undefined,
-											letter: s.icon ? undefined : s.name.charAt(0).toUpperCase(),
-											color: toSwatchKey(s.color)
-										}}
+								glyph={s.id === 'other'
+									? { icon: 'categories', tone: 'neutral' }
+									: { category: { icon: s.icon ?? null, color: s.color } }}
 								onclick={(e) =>
 									openShallow(e, resolve(`categories/${s.id}?month=${data.nav.ym}`), 'category')}
 								title={s.name}

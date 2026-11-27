@@ -3,7 +3,7 @@
 	import { SWATCHES, type SwatchKey } from '#lib/appearance.ts';
 	import BottomDrawer from './BottomDrawer.svelte';
 	import Icon from './Icon.svelte';
-	import IconBadge from './IconBadge.svelte';
+	import Glyph from '#lib/components/base/Glyph.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
 	import * as RadioGroup from '#lib/components/ui/radio-group/index.js';
@@ -49,7 +49,7 @@
 <BottomDrawer title="Ícono y color" bind:open>
 	<div class="body">
 		<div class="preview">
-			<IconBadge icon={glyph(stagedIcon)} color={stagedColor} size="4rem" />
+			<Glyph icon={glyph(stagedIcon)} tone={stagedColor} size="hero" />
 		</div>
 
 		<RadioGroup.Root bind:value={stagedIcon} aria-label="Ícono" class="grid grid-cols-6 gap-y-1">
@@ -63,7 +63,7 @@
 					<span
 						class="peer-focus-visible:outline-ring peer-data-[state=checked]:ring-foreground peer-data-[state=checked]:ring-offset-background rounded-full peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-offset-2 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4"
 					>
-						<IconBadge icon={glyph(option.key)} color={stagedColor} />
+						<Glyph icon={glyph(option.key)} tone={stagedColor} />
 					</span>
 				</Label>
 			{/each}
@@ -83,9 +83,8 @@
 						class="absolute inset-0 size-full rounded-full border-0 opacity-0"
 					/>
 					<span
-						class="group-has-data-[state=checked]:shadow-[0_0_0_2px_var(--surface),0_0_0_4px_var(--sw)] group-has-focus-visible:outline-ring block aspect-square w-full max-w-9 rounded-full group-has-focus-visible:outline-2 group-has-focus-visible:outline-offset-[6px]"
-						style:--sw="var(--swatch-{option.key})"
-						style:background="var(--sw)"
+						class="group-has-data-[state=checked]:shadow-[0_0_0_2px_var(--surface),0_0_0_4px_var(--tone)] group-has-focus-visible:outline-ring block aspect-square w-full bg-(--tone) max-w-9 rounded-full group-has-focus-visible:outline-2 group-has-focus-visible:outline-offset-[6px]"
+						data-tone={option.key}
 					></span>
 				</Label>
 			{/each}

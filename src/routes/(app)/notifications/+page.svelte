@@ -30,11 +30,9 @@
 				{#snippet message()}<p class="message">{n.message}</p>{/snippet}
 				<ListRow
 					href={n.href}
-					lead={n.kind === 'plan'
-						? { icon: 'plan', color: null }
-						: n.icon
-							? { icon: n.icon, color: n.color }
-							: { letter: n.name.charAt(0).toUpperCase(), color: n.color }}
+					glyph={n.kind === 'plan'
+						? { icon: 'plan', tone: 'neutral' }
+						: { category: { icon: n.icon, color: n.color } }}
 					title={n.name}
 					status={n.status}
 					footer={message}
