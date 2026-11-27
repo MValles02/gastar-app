@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { createAccount, submitLogin, signUpVerified, withDb } from './helpers';
+import { createAccount, gotoHydrated, submitLogin, signUpVerified, withDb } from './helpers';
 import { latestMail } from './outbox';
 
 // Google is the fake in e2e/fake-google.js: its /authorize page asks for the profile to answer with.
@@ -115,7 +115,7 @@ test('a Google-only user creates a password after confirming with Google and the
 	await continueWithGoogle(page, { email });
 	await expectHome(page);
 
-	await page.goto('/profile/password');
+	await gotoHydrated(page, '/profile/password');
 	await expect(page.getByRole('heading', { name: 'Crear contraseña' })).toBeVisible();
 	await ageSession(email);
 	await page.getByLabel('Contraseña nueva').fill(password);
@@ -130,9 +130,12 @@ test('a Google-only user creates a password after confirming with Google and the
 
 	await page.getByRole('button', { name: 'Confirmar con Google' }).click();
 	await answerGoogle(page, email);
-	await expect(page).toHaveURL(/\/profile\/password$/);
+	// The return URL is the drawer's: it opens over Perfil.
+	await expect(page).toHaveURL(/\/profile$/);
+	await expect(page.getByRole('dialog')).toBeVisible();
 	await page.getByLabel('Contraseña nueva').fill(password);
 	await page.getByRole('button', { name: 'Guardar' }).click();
+	await expect(page.getByRole('dialog')).toBeHidden();
 	await expect(page).toHaveURL(/\/profile$/);
 
 	await page.context().clearCookies();
@@ -150,7 +153,7 @@ test('a Google-only user deletes the account only after confirming with Google',
 	await createAccount(page, baseURL!, `Cuenta baja ${Date.now()}`, 'ARS');
 	const [{ id: userId }] = await withDb((sql) => sql`select id from "user" where email = ${email}`);
 
-	await page.goto('/profile/delete');
+	await gotoHydrated(page, '/profile/delete');
 	await expect(page.getByText(`Cuenta: ${email}`)).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Darme de baja' })).toBeEnabled();
 	await ageSession(email);
@@ -166,7 +169,8 @@ test('a Google-only user deletes the account only after confirming with Google',
 
 	await page.getByRole('button', { name: 'Confirmar con Google' }).click();
 	await answerGoogle(page, email);
-	await expect(page).toHaveURL(/\/profile\/delete$/);
+	await expect(page).toHaveURL(/\/profile$/);
+	await expect(page.getByRole('dialog')).toBeVisible();
 	await page.getByRole('button', { name: 'Darme de baja' }).click();
 	await expect(page).toHaveURL(/\/login/);
 

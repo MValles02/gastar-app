@@ -81,13 +81,15 @@ test.describe('account changes', () => {
 		await submitLogin(pageB, email, current);
 		await expect(pageB).toHaveURL(/\/$/);
 
-		// The direct URL is the page variant of the drawer: same form and server errors.
-		await page.goto('/profile/password');
+		// The direct URL opens the same drawer over Perfil: same form and server errors.
+		await gotoHydrated(page, '/profile/password');
 		await page.locator('#current-password').fill('incorrecta-123');
 		await page.locator('#new-password').fill(newPassword);
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 		await expect(page.getByText('La contraseña actual no es correcta.')).toBeVisible();
 
+		// Leave through Inicio: a reload of an entry that holds an open drawer restores it.
+		await gotoHydrated(page, '/');
 		await gotoHydrated(page, '/profile');
 		await page.getByRole('link', { name: 'Contraseña' }).click();
 		const drawer = page.getByRole('dialog', { name: 'Cambiar contraseña' });
@@ -124,15 +126,17 @@ test.describe('account changes', () => {
 		await signIn(page);
 
 		// Data in every table with a user FK that a fresh user can create cheaply.
-		await page.goto('/accounts/new');
+		await gotoHydrated(page, '/accounts/new');
 		await page.getByLabel('Nombre').fill('Cuenta borrar');
 		await page.getByLabel('Saldo inicial').fill('1.000');
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-		await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
-		await page.goto('/categories/new');
+		await expect(page.getByRole('dialog')).toBeHidden();
+		await expect(page).toHaveURL(/\/accounts$/);
+		await gotoHydrated(page, '/categories/new');
 		await page.locator('input[name="name"]').fill('Categoria borrar');
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-		await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
+		await expect(page.getByRole('dialog')).toBeHidden();
+		await expect(page).toHaveURL(/\/categories$/);
 		await fillMovement(page, {
 			type: 'Gasto',
 			amount: '100',
@@ -150,6 +154,7 @@ test.describe('account changes', () => {
 			category: 'Categoria borrar'
 		});
 		await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+		await expect(page.getByRole('dialog')).toBeHidden();
 		await expect(page).toHaveURL(/\/plan/);
 
 		await gotoHydrated(page, '/profile');

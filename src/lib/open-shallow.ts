@@ -1,5 +1,7 @@
 import { goto, preloadData, replaceState } from '$app/navigation';
 import { page } from '$app/state';
+import { toast } from 'svelte-sonner';
+import { es } from '#lib/copy/es.ts';
 
 /** A click the browser should handle itself (new tab, new window, non-primary button). */
 export const isModifiedClick = (e: MouseEvent) =>
@@ -30,8 +32,9 @@ export async function openShallow(
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- shallow goto keeps the current URL
 		else if (page.state[key]) goto('', { shallow: true, replace: true, state });
 	}
-	// eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass a resolved href
-	else await goto(href);
+	// eslint-disable-next-line svelte/no-navigation-without-resolve -- the server-validated redirect location
+	else if (result.type === 'redirect') await goto(result.location);
+	else toast.error(es.ui.openFailed);
 }
 
 /**

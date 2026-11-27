@@ -183,6 +183,8 @@ const profile = {
 const ui = {
 	close: 'Cerrar',
 	back: 'Volver',
+	/** Toast when a drawer could not be opened. */
+	openFailed: 'No se pudo abrir.',
 	search: 'Buscar',
 	filters: 'Filtros',
 	filter: 'Filtrar',

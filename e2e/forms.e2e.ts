@@ -1,5 +1,5 @@
-import { expect, test, type Locator } from '@playwright/test';
-import { login, OTHER_EMAIL, postDelete, undo, gotoHydrated, waitForHydration } from './helpers';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { idByName, login, OTHER_EMAIL, postDelete, undo, gotoHydrated } from './helpers';
 
 // Created accounts (detail URLs) are removed in afterEach. Runs as otro so the demo user's totals stay untouched.
 const createdAccounts: string[] = [];
@@ -8,32 +8,45 @@ test.afterEach(async ({ page, baseURL }) => {
 	for (const href of createdAccounts.splice(0)) await postDelete(page, baseURL!, href);
 });
 
-test('an account name autosaves, survives a reload and Deshacer restores it', async ({ page }) => {
-	await login(page, OTHER_EMAIL);
-	await page.goto('/accounts/new');
-	const name = `Forms ${Date.now()}`;
+/** Creates an account in the new-account drawer (it closes on /accounts). Returns the detail URL. */
+async function createAccountVia(page: Page, baseURL: string, name: string, balance?: string) {
+	await gotoHydrated(page, '/accounts/new');
 	await page.getByLabel('Nombre').fill(name);
+	if (balance) await page.getByLabel('Saldo inicial').fill(balance);
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
-	createdAccounts.push(page.url());
-	await waitForHydration(page);
+	await expect(page.getByRole('dialog')).toBeHidden();
+	await expect(page).toHaveURL(/\/accounts$/);
+	const url = `${baseURL}/accounts/${await idByName('financial_accounts', OTHER_EMAIL, name)}`;
+	createdAccounts.push(url);
+	return url;
+}
 
-	const h1 = page.getByRole('heading', { level: 1 });
+test('an account name autosaves, survives a reload and Deshacer restores it', async ({
+	page,
+	baseURL
+}) => {
+	await login(page, OTHER_EMAIL);
+	const name = `Forms ${Date.now()}`;
+	const url = await createAccountVia(page, baseURL!, name);
+	await gotoHydrated(page, url);
+
+	const nameButton = (n: string) =>
+		page.getByRole('dialog').getByRole('button', { name: `Nombre: ${n}` });
 	await page.getByRole('button', { name: `Nombre: ${name}` }).click();
 	await page.getByLabel('Nombre').fill(`${name} 2`);
 	await page.keyboard.press('Enter');
 	await expect(page.getByText('Cambio guardado.')).toBeVisible();
-	await page.reload();
-	await expect(h1).toHaveText(`${name} 2`);
-	await waitForHydration(page);
+	// A reload of the parent drops the drawer: reopen it from its URL.
+	await gotoHydrated(page, url);
+	await expect(nameButton(`${name} 2`)).toBeVisible();
 	await page.getByRole('button', { name: `Nombre: ${name} 2` }).click();
 	await page.getByLabel('Nombre').fill(name);
 	await page.keyboard.press('Enter');
 	await expect(page.getByText('Cambio guardado.')).toBeVisible();
 	await undo(page);
-	await expect(h1).toHaveText(`${name} 2`);
-	await page.reload();
-	await expect(h1).toHaveText(`${name} 2`);
+	await expect(nameButton(`${name} 2`)).toBeVisible();
+	await gotoHydrated(page, url);
+	await expect(nameButton(`${name} 2`)).toBeVisible();
 });
 
 test('an account with movements opens as a sheet without Eliminar and a crafted delete is rejected', async ({
@@ -56,18 +69,13 @@ test('an account with movements opens as a sheet without Eliminar and a crafted 
 	expect((await res.json()).type).toBe('failure');
 });
 
-test('an account without movements can be archived or deleted', async ({ page }) => {
+test('an account without movements can be archived or deleted', async ({ page, baseURL }) => {
 	await login(page, OTHER_EMAIL);
-	await page.goto('/accounts/new');
 	const name = `Forms acciones ${Date.now()}`;
-	await page.getByLabel('Nombre').fill(name);
-	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
-	const url = page.url();
-	createdAccounts.push(url);
+	const url = await createAccountVia(page, baseURL!, name);
 
-	await expect(page.getByRole('button', { name: 'Archivar' })).toBeVisible();
 	await gotoHydrated(page, url);
+	await expect(page.getByRole('button', { name: 'Archivar' })).toBeVisible();
 	await page.getByRole('button', { name: 'Eliminar' }).click();
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar' }).click();
 	await expect(page).toHaveURL(/\/accounts$/);
@@ -76,17 +84,12 @@ test('an account without movements can be archived or deleted', async ({ page })
 });
 
 test('archiving an account hides it from the new-movement picker and Desarchivar brings it back', async ({
-	page
+	page,
+	baseURL
 }) => {
 	await login(page, OTHER_EMAIL);
 	const name = `Forms archivo ${Date.now()}`;
-	await page.goto('/accounts/new');
-	await page.getByLabel('Nombre').fill(name);
-	await page.getByLabel('Saldo inicial').fill('1234');
-	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
-	const url = page.url();
-	createdAccounts.push(url);
+	const url = await createAccountVia(page, baseURL!, name, '1234');
 
 	/** How many times the new-movement account picker offers the account. */
 	const offered = async () => {
@@ -102,7 +105,7 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 	await page.getByRole('button', { name: 'Archivar' }).click();
 	await page.getByRole('alertdialog').getByRole('button', { name: 'Archivar' }).click();
 	await expect(page.getByText('No aparece al registrar movimientos.')).toBeVisible();
-	await expect(page).toHaveURL(url);
+	await expect(page).toHaveURL(/\/accounts$/);
 	expect(await offered()).toBe(0);
 	// Archived accounts stay listed but leave the group total, by exactly their balance. One page snapshot,
 	// so other workers moving this user's balances cannot skew the comparison.

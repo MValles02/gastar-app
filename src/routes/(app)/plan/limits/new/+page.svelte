@@ -1,8 +1,5 @@
 <script lang="ts">
-	import NewLimitScreen from './NewLimitScreen.svelte';
-	import type { ActionData, PageData } from './$types';
-
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	import DrawerRoute from '#lib/components/DrawerRoute.svelte';
 </script>
 
-<NewLimitScreen {data} {form} />
+<DrawerRoute />

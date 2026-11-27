@@ -71,11 +71,13 @@ test.beforeAll(async ({ browser, baseURL }) => {
 		ids.food = await create(page, '/categories/new', {
 			name: 'Comida sug e2e',
 			color: 'green',
+			icon: 'tag',
 			kind: 'outcome'
 		});
 		ids.both = await create(page, '/categories/new', {
 			name: 'Mixta sug e2e',
 			color: 'blue',
+			icon: 'tag',
 			kind: ''
 		});
 		cookies = await context.cookies();
@@ -91,6 +93,7 @@ test.beforeAll(async ({ browser, baseURL }) => {
 		const cat2 = await create(p2, '/categories/new', {
 			name: 'Ajena sug e2e',
 			color: 'green',
+			icon: 'tag',
 			kind: 'outcome'
 		});
 		await addOutcomes(p2, baseURL!, {
@@ -183,8 +186,11 @@ test("another user's repeated outcome is never suggested", async ({ page }) => {
 	await expect(row(page, 'Aislado sug e2e')).toHaveCount(0);
 
 	// The rule form with another user's suggestion id is empty.
-	await page.goto(`/plan/recurring/new?type=outcome&wizard=2&suggestion=${foreignSuggestionId}`);
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nuevo pago fijo');
+	await gotoHydrated(
+		page,
+		`/plan/recurring/new?type=outcome&wizard=2&suggestion=${foreignSuggestionId}`
+	);
+	await expect(page.getByRole('dialog', { name: 'Nuevo pago fijo' })).toBeVisible();
 	await expect(page.locator('input[name="description"]')).toHaveValue('');
 	await expect(page.locator('input[name="amount"]')).toHaveValue('');
 	await expect(page.getByRole('button', { name: /^Cuenta/ })).not.toContainText('Caja');

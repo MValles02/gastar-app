@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { visaStatement } from './galicia-pdf';
 import {
 	GALICIA_EMAIL,
+	gotoHydrated,
+	idByName,
 	login,
 	OTHER_EMAIL,
 	pick,
@@ -134,12 +136,14 @@ test('a statement that does not add up to its total is rejected with nothing wri
 
 test('a remembered merchant matches the same merchant with another reference code next month', async () => {
 	const category = `Servicios Galicia ${Date.now()}`;
-	await page.goto('/categories/new');
+	await gotoHydrated(page, '/categories/new');
 	await page.locator('input[name="name"]').fill(category);
-	await page.getByRole('radio', { name: 'Gastos' }).check({ force: true });
+	await page.getByRole('radio', { name: 'Gastos' }).check();
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
-	const categoryId = new URL(page.url()).pathname.split('/').pop()!;
+	// Saving closes the drawer: still on the list.
+	await expect(page.getByRole('dialog')).toBeHidden();
+	await expect(page).toHaveURL(/\/categories$/);
+	const categoryId = await idByName('categories', GALICIA_EMAIL, category);
 
 	await upload(
 		page,

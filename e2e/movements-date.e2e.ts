@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { es } from '../src/lib/copy/es';
-import { deleteMovements, login, NO_JS, noJsOption, unique } from './helpers';
+import { deleteMovements, idByName, login, post, postAction, SEED_EMAIL, unique } from './helpers';
 
 // Descriptions of movements this spec may have created; removed in afterEach.
 const created: string[] = [];
@@ -13,65 +13,49 @@ test.afterEach(async ({ page, baseURL }) => {
 	for (const prefix of created.splice(0)) await deleteMovements(page, baseURL!, prefix);
 });
 
-/** Creates a 1-peso outcome dated `date` through the no-JS form. */
-async function create(page: Page, description: string, date: string) {
-	await page.goto('/movements/new');
-	await page.locator('input[name="amount"]').fill('1');
-	await page.locator('input[name="description"]').fill(description);
-	await noJsOption(page, 'Cuenta', /Banco Galicia/).check({ force: true });
-	await noJsOption(page, 'Categoría', /Supermercado/).check({ force: true });
-	await page.locator('input[name="occurredAt"]').fill(date);
-	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page.getByText('Movimiento guardado.')).toBeVisible();
+/** The form of a 1-peso outcome on Banco Galicia / Supermercado dated `date`. */
+async function outcome(description: string, date: string) {
+	return {
+		type: 'outcome',
+		occurredAt: date,
+		description,
+		amount: '1',
+		accountId: await idByName('financial_accounts', SEED_EMAIL, 'Banco Galicia'),
+		categoryId: await idByName('categories', SEED_EMAIL, 'Supermercado')
+	};
 }
 
-// No JavaScript: the full page's native date input. With JavaScript: the Fecha row of the drawer.
-const dateOf = (page: Page) => page.locator('input[name="occurredAt"]');
+/** Creates a 1-peso outcome dated `date` through the form action. */
+async function create(page: Page, baseURL: string, description: string, date: string) {
+	const res = await post(page, baseURL, '/movements/new', await outcome(description, date));
+	expect(res.ok()).toBe(true);
+}
 
-test.describe('without JavaScript', () => {
-	test.use(NO_JS);
+test('a datetime is rejected and nothing is saved', async ({ page, baseURL }) => {
+	const desc = unique(created, 'Fecha hora');
+	const res = await postAction(
+		page,
+		baseURL!,
+		'/movements/new',
+		await outcome(desc, '2024-02-27T15:45')
+	);
+	const body = await res.json();
+	expect(body.status).toBe(400);
+	expect(body.data).toContain(es.movements.errors.date);
+	await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
+	await expect(page.getByText(desc)).toHaveCount(0);
+});
 
-	test('create stores the date', async ({ page }) => {
-		const desc = unique(created, 'Fecha crear');
-		await create(page, desc, '2024-02-29');
-		// Without date params the list shows this month only; `all=1` asks for every date.
-		await page.goto(`/movements?q=${encodeURIComponent(desc)}&all=1`);
-		await page.getByText(desc).click();
-		await expect(dateOf(page)).toHaveValue('2024-02-29');
-	});
-
-	test('a datetime is rejected and nothing is saved', async ({ page, baseURL }) => {
-		await page.goto('/movements/new');
-		const accountId = await noJsOption(page, 'Cuenta', /Banco Galicia/).getAttribute('value');
-		const categoryId = await noJsOption(page, 'Categoría', /Supermercado/).getAttribute('value');
-		const desc = unique(created, 'Fecha hora');
-		const res = await page.request.post('/movements/new', {
-			form: {
-				type: 'outcome',
-				occurredAt: '2024-02-27T15:45',
-				description: desc,
-				amount: '1',
-				accountId: accountId!,
-				categoryId: categoryId!
-			},
-			headers: { origin: baseURL!, accept: 'text/html' }
-		});
-		expect(res.status()).toBe(400);
-		expect(await res.text()).toContain(es.movements.errors.date);
-		await page.goto(`/movements?q=${encodeURIComponent(desc)}`);
-		await expect(page.getByText(desc)).toHaveCount(0);
-	});
-	test('the day heading totals the day outcomes', async ({ page }) => {
-		const prefix = unique(created, 'Total dia');
-		await create(page, `${prefix} a`, '2024-02-29');
-		await create(page, `${prefix} b`, '2024-02-29');
-		await page.goto(`/movements?q=${encodeURIComponent(prefix)}&all=1`);
-		await expect(
-			page
-				.locator('section', { has: page.getByRole('heading', { name: 'Jueves 29', exact: true }) })
-				.locator('.day-total')
-		).toContainText('$2');
-	});
+test('the day heading totals the day outcomes', async ({ page, baseURL }) => {
+	const prefix = unique(created, 'Total dia');
+	await create(page, baseURL!, `${prefix} a`, '2024-02-29');
+	await create(page, baseURL!, `${prefix} b`, '2024-02-29');
+	await page.goto(`/movements?q=${encodeURIComponent(prefix)}&all=1`);
+	await expect(
+		page
+			.locator('section', { has: page.getByRole('heading', { name: 'Jueves 29', exact: true }) })
+			.locator('.day-total')
+	).toContainText('$2');
 });
 
 test('a legacy non-midnight row uses its Buenos Aires date everywhere', async ({ page }) => {

@@ -3,6 +3,7 @@ import { es } from '../src/lib/copy/es';
 import {
 	deleteMovements,
 	findMovements,
+	idByName,
 	IMPORT_EMAIL,
 	login,
 	MOVEMENT_DETAIL_RE,
@@ -250,17 +251,21 @@ test('every MP call carries a token the fake issued, and no page shows it', asyn
 });
 
 test('approving a payment keeps its exact cents, time of day and moves the balance', async () => {
-	await page.goto('/categories/new');
+	const origin = new URL(page.url()).origin;
+	await gotoHydrated(page, '/categories/new');
 	await page.locator('input[name="name"]').fill(CATEGORY);
-	await page.getByRole('radio', { name: 'Ingresos' }).check({ force: true });
+	await page.getByRole('radio', { name: 'Ingresos' }).check();
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
-	categoryUrl = page.url();
-	await page.goto('/accounts/new');
+	// Saving closes the drawer: still on the list.
+	await expect(page.getByRole('dialog')).toBeHidden();
+	await expect(page).toHaveURL(/\/categories$/);
+	categoryUrl = `${origin}/categories/${await idByName('categories', IMPORT_EMAIL, CATEGORY)}`;
+	await gotoHydrated(page, '/accounts/new');
 	await page.getByLabel('Nombre').fill(SECOND);
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
-	secondUrl = page.url();
+	await expect(page.getByRole('dialog')).toBeHidden();
+	await expect(page).toHaveURL(/\/accounts$/);
+	secondUrl = `${origin}/accounts/${await idByName('financial_accounts', IMPORT_EMAIL, SECOND)}`;
 
 	const before = await balanceOf('Mercado Pago');
 	await openItem(page, 'FAKE AMIGA', '$1.235');
@@ -457,7 +462,7 @@ test('Deshacer of a quick approve fails and keeps everything when the movement w
 	const { movementId } = await amigaItem();
 	// Edit the new movement through the UI (the toast is gone once we leave the inbox).
 	const href = (await findMovements(page, AMIGA_DESC)).find((h) => h.endsWith(movementId!))!;
-	await page.goto(href);
+	await gotoHydrated(page, href);
 	await page.getByRole('button', { name: `Descripción: ${AMIGA_DESC}` }).click();
 	await page.getByRole('textbox', { name: 'Descripción' }).fill(`${AMIGA_DESC} editado`);
 	await page.keyboard.press('Enter');
@@ -472,7 +477,8 @@ test('Deshacer of a quick approve fails and keeps everything when the movement w
 		);
 	expect(await (await undo()).text()).toContain('"failure"');
 	// The edit remains and nothing was undone.
-	await page.reload();
+	// A reload of the parent drops the drawer: reopen it from its URL.
+	await gotoHydrated(page, href);
 	await expect(
 		page.getByRole('button', { name: `Descripción: ${AMIGA_DESC} editado` })
 	).toBeVisible();
@@ -658,13 +664,14 @@ test('a callback with a tampered state is rejected', async ({ browser }) => {
 });
 
 test('the receiving account must be an active ARS account of the user', async ({ browser }) => {
-	await page.goto('/accounts/new');
+	await gotoHydrated(page, '/accounts/new');
 	await page.getByLabel('Nombre').fill(`Cuenta USD ${sfx}`);
-	await page.getByRole('radio', { name: 'Dólares' }).check({ force: true });
+	await page.getByRole('radio', { name: 'Dólares' }).check();
 	await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-	await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}$/);
-	usdUrl = page.url();
-	const usdId = usdUrl.split('/').pop()!;
+	await expect(page.getByRole('dialog')).toBeHidden();
+	await expect(page).toHaveURL(/\/accounts$/);
+	const usdId = await idByName('financial_accounts', IMPORT_EMAIL, `Cuenta USD ${sfx}`);
+	usdUrl = `${new URL(page.url()).origin}/accounts/${usdId}`;
 
 	const { ctx, p } = await asUser(browser, OTHER_EMAIL);
 	await p.goto('/accounts');
