@@ -15,11 +15,11 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import RowPill from '#lib/components/RowPill.svelte';
+	import BaseButton from '#lib/components/base/Button.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import { formatDay } from '#lib/locale.ts';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import ImportRow from './ImportRow.svelte';
 	import type { PageData } from './$types';
 
@@ -106,10 +106,7 @@
 	<title>Importados · Gastar</title>
 </svelte:head>
 
-<PageHeader
-	title="Importados"
-	back={{ href: resolve(''), label: 'Volver al inicio', text: 'Inicio' }}
-/>
+<Header title="Importados" back={{ href: resolve(''), label: 'Volver al inicio' }} />
 
 <div class="page">
 	{#if data.done && !ready.current}<p role="status">{DONE_MESSAGES[data.done]}</p>{/if}
@@ -203,7 +200,7 @@
 										}}
 								>
 									<input type="hidden" name="id" value={item.id} />
-									<RowPill label={a.label} />
+									<BaseButton size="sm" type="submit" variant="outline">{a.label}</BaseButton>
 								</form>
 							{/each}
 						</span>

@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { resolve } from '$app/paths';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import Status from '#lib/components/base/Status.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -39,12 +39,11 @@
 	<title>{name} · Gastar</title>
 </svelte:head>
 
-<PageHeader
+<Header
 	title={name}
 	back={{
 		href: resolve('profile/vinculaciones'),
-		label: 'Volver a Vinculaciones',
-		text: 'Vinculaciones'
+		label: 'Volver a Vinculaciones'
 	}}
 />
 

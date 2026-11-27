@@ -11,7 +11,7 @@
 	import MonthNav from '#lib/components/MonthNav.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import Meter from '#lib/components/base/Meter.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import TabBand from '#lib/components/TabBand.svelte';
 	import { CURRENCY_NAME, formatMoney, signTone } from '#lib/money.ts';
 	import { markReplace } from '#lib/nav-stack.svelte.ts';
@@ -36,7 +36,7 @@
 	<title>Reportes · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Reportes" tone="primary" />
+<Header title="Reportes" tone="primary" />
 
 <TabBand overlap={data.hasCurrency && hasMovements}>
 	<CurrencyTabs value={data.currency} variant="pills" tone="primary" />

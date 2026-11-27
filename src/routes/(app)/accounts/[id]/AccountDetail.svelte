@@ -5,7 +5,7 @@
 	import { NAME_MAX_LENGTH } from '#lib/constants.ts';
 	import { CURRENCY_LABEL, formatAmountInput } from '#lib/money.ts';
 	import { ARCHIVED_LABEL } from '#lib/movement.ts';
-	import DetailHero from '#lib/components/DetailHero.svelte';
+	import Tile from '#lib/components/base/Tile.svelte';
 	import DetailLifecycle from '#lib/components/DetailLifecycle.svelte';
 	import IconColorDrawer from '#lib/components/IconColorDrawer.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
@@ -56,11 +56,12 @@
 </script>
 
 <div class="detail">
-	<DetailHero cents={detail.balance} currency={a.currency} label="Saldo">
+	<Tile align="center" caption="Saldo">
 		{#snippet top()}
 			{#if a.archived}<Status tone="neutral" label={ARCHIVED_LABEL} />{/if}
 		{/snippet}
-	</DetailHero>
+		<Amount size="hero" as="p" cents={detail.balance} currency={a.currency} />
+	</Tile>
 
 	<Group>
 		<Row title="Nombre">

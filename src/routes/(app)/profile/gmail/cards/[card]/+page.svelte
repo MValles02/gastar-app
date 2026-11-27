@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import type { ActionData, PageData } from './$types';
 
@@ -23,9 +23,9 @@
 	<title>Tarjeta {data.networkName} ••{data.last4} · Gastar</title>
 </svelte:head>
 
-<PageHeader
+<Header
 	title="{data.networkName} ••{data.last4}"
-	back={{ href: resolve('profile/gmail'), label: 'Volver a Gmail', text: 'Gmail' }}
+	back={{ href: resolve('profile/gmail'), label: 'Volver a Gmail' }}
 />
 
 <div class="page">

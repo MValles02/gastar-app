@@ -10,7 +10,7 @@
 <FormScreen
 	title="Movimiento"
 	headTitle={data.movement.description}
-	back={{ href: resolve('movements'), label: 'Volver a movimientos', text: 'Movimientos' }}
+	back={{ href: resolve('movements'), label: 'Volver a movimientos' }}
 	{onclose}
 	drawerProps={{ title: data.movement.description, hideTitle: true, bare: true }}
 >

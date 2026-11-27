@@ -2,7 +2,7 @@
 	import Group from '#lib/components/base/Group.svelte';
 	import Row from '#lib/components/base/Row.svelte';
 	import EmptyState from '#lib/components/EmptyState.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 
@@ -13,10 +13,7 @@
 	<title>Avisos · Gastar</title>
 </svelte:head>
 
-<PageHeader
-	title="Avisos"
-	back={{ href: resolve(''), label: 'Volver al inicio', text: 'Inicio' }}
-/>
+<Header title="Avisos" back={{ href: resolve(''), label: 'Volver al inicio' }} />
 
 <div class="page">
 	{#if data.items.length === 0}

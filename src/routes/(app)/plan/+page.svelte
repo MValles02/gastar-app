@@ -12,7 +12,7 @@
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import TabBand from '#lib/components/TabBand.svelte';
 	import Status from '#lib/components/base/Status.svelte';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
@@ -77,7 +77,7 @@
 	/>
 {/snippet}
 
-<PageHeader title="Plan" tone="primary" />
+<Header title="Plan" tone="primary" />
 
 <TabBand overlap={data.hasAccount}>
 	{#if !mounted.current}

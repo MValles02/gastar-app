@@ -2,7 +2,7 @@
 	import Group from '#lib/components/base/Group.svelte';
 	import Row from '#lib/components/base/Row.svelte';
 	import { resolve } from '$app/paths';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import DatePicker from '#lib/components/pickers/DatePicker.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { autosave } from '#lib/autosave.ts';
@@ -37,10 +37,7 @@
 	<title>Vinculaciones · Gastar</title>
 </svelte:head>
 
-<PageHeader
-	title="Vinculaciones"
-	back={{ href: resolve('profile'), label: 'Volver a Perfil', text: 'Perfil' }}
-/>
+<Header title="Vinculaciones" back={{ href: resolve('profile'), label: 'Volver a Perfil' }} />
 
 <div class="page">
 	<!-- A link that works shows its status as a pill; one still to set up shows the step instead. -->

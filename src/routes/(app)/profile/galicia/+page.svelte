@@ -8,7 +8,7 @@
 	import Glyph from '#lib/components/base/Glyph.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import type { Currency } from '#lib/money.ts';
 	import type { ActionData, PageData } from './$types';
@@ -52,12 +52,11 @@
 	<title>Banco Galicia · Gastar</title>
 </svelte:head>
 
-<PageHeader
+<Header
 	title="Banco Galicia"
 	back={{
 		href: resolve('profile/vinculaciones'),
-		label: 'Volver a Vinculaciones',
-		text: 'Vinculaciones'
+		label: 'Volver a Vinculaciones'
 	}}
 />
 

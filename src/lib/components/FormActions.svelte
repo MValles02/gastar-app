@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { Button } from '#lib/components/ui/button/index.js';
+	import Button from '#lib/components/base/Button.svelte';
 	import { upOnClick } from '#lib/nav-stack.svelte.ts';
 
 	/**
@@ -38,7 +38,7 @@
 		href={resolve(cancelHref as '')}
 		onclick={upOnClick(resolve(cancelHref as ''))}
 		variant="outline"
-		class="h-auto min-h-[50px] min-w-0 flex-1 basis-0 whitespace-normal">{cancelLabel}</Button
+		class="action">{cancelLabel}</Button
 	>
 {/snippet}
 
@@ -46,7 +46,7 @@
 	<Button
 		type="submit"
 		{form}
-		class="h-auto min-h-[50px] min-w-0 flex-1 basis-0 whitespace-normal"
+		class="action"
 		disabled={submitting}
 		aria-busy={submitting ? 'true' : undefined}
 	>
@@ -66,10 +66,7 @@
 		{#if primary}
 			<div class="half">{@render primary()}</div>
 		{:else if submitHref}
-			<Button
-				href={resolve(submitHref as '')}
-				class="h-auto min-h-[50px] min-w-0 flex-1 basis-0 whitespace-normal">{submitLabel}</Button
-			>
+			<Button href={resolve(submitHref as '')} class="action">{submitLabel}</Button>
 		{:else}
 			{@render submit()}
 		{/if}
@@ -84,6 +81,11 @@
 
 	.bar.stacked {
 		flex-direction: column;
+	}
+
+	.bar :global(.action) {
+		flex: 1 1 0;
+		min-width: 0;
 	}
 
 	.stacked > :global(a) {

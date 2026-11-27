@@ -15,7 +15,7 @@
 	import Amount from '#lib/components/base/Amount.svelte';
 	import MovementRow from '#lib/components/movements/MovementRow.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import TabBand from '#lib/components/TabBand.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
@@ -104,7 +104,7 @@
 	<title>Movimientos · Gastar</title>
 </svelte:head>
 
-<PageHeader title="Movimientos" tone="primary" bind:ref={header} />
+<Header title="Movimientos" tone="primary" bind:ref={header} />
 
 {#snippet fields(submit: () => void)}
 	<span id="type-label" class="visually-hidden">Tipo</span>

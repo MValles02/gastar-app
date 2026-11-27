@@ -20,7 +20,7 @@
 
 <FormScreen
 	title="Revisar movimiento"
-	back={{ href: resolve('imports'), label: 'Volver a Importados', text: 'Importados' }}
+	back={{ href: resolve('imports'), label: 'Volver a Importados' }}
 	{onclose}
 >
 	<ImportItemForm {data} {form} ondone={onclose ? done : undefined} />

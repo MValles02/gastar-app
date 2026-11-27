@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 
 	/**
-	 * The primary band under a `PageHeader tone="primary"` on the four tab screens: it holds the
+	 * The primary band under a `Header tone="primary"` on the four tab screens: it holds the
 	 * screen's top controls in `--on-primary` and, with an emerald backdrop above it, is what a
 	 * pull-to-refresh uncovers. `overlap` (default): the screen's first card overlaps its bottom
 	 * edge; pass false when the screen starts with something other than a card (a list, an empty

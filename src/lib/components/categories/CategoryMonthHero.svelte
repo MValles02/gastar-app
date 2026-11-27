@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Currency } from '#lib/money.ts';
-	import DetailHero from '#lib/components/DetailHero.svelte';
+	import Tile from '#lib/components/base/Tile.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import { signTone } from '#lib/money.ts';
 
@@ -10,7 +10,7 @@
 	const single = $derived(nets.length === 1 ? nets[0] : null);
 </script>
 
-<DetailHero ariaLabel="Resumen del mes" {label}>
+<Tile align="center" ariaLabel="Resumen del mes" caption={label}>
 	{#if single}
 		<Amount
 			size="hero"
@@ -33,7 +33,7 @@
 			{/each}
 		</dl>
 	{/if}
-</DetailHero>
+</Tile>
 
 <style>
 	.duo {

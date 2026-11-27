@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { ComponentProps, Snippet } from 'svelte';
 	import BottomDrawer from '#lib/components/BottomDrawer.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
+	import { es } from '#lib/copy/es.ts';
 	import { setFormScreen } from './form-enhance.ts';
 
 	/**
@@ -27,7 +28,7 @@
 		/** Page: X button in the header; also Cancelar's target. */
 		close?: { href: string; label?: string };
 		/** Page: "‹ Parent" link instead of the X (`close` wins). */
-		back?: { href: string; label: string; text: string };
+		back?: { href: string; label: string };
 		/** Set: render as a drawer (the (app) layout passes it); closes it. */
 		onclose?: () => void;
 		/** Drawer: the action redirected to `location`. */
@@ -58,7 +59,7 @@
 </script>
 
 <svelte:head>
-	{#if !onclose}<title>{headTitle ?? title} · Gastar</title>{/if}
+	{#if !onclose}<title>{es.ui.docTitle(headTitle ?? title)}</title>{/if}
 </svelte:head>
 
 {#if onclose}
@@ -66,6 +67,6 @@
 		{@render children()}
 	</BottomDrawer>
 {:else}
-	<PageHeader {title} close={close && { label: 'Cerrar', ...close }} {back} />
+	<Header {title} close={close && { label: es.ui.close, ...close }} {back} />
 	{@render children()}
 {/if}

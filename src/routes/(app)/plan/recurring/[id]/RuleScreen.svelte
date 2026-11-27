@@ -13,7 +13,7 @@
 <FormScreen
 	title="Plan"
 	headTitle={data.description}
-	back={{ href: resolve(back as ''), label: 'Volver al plan', text: 'Plan' }}
+	back={{ href: resolve(back as ''), label: 'Volver al plan' }}
 	{onclose}
 	drawerProps={{ title: data.description, hideTitle: true }}
 >

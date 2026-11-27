@@ -12,7 +12,7 @@
 	import { openShallow } from '#lib/open-shallow.ts';
 	import Meter from '#lib/components/base/Meter.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import {
 		CURRENCIES,
 		CURRENCY_OPTIONS,
@@ -54,9 +54,9 @@
 	<title>Categorías · Gastar</title>
 </svelte:head>
 
-<PageHeader
+<Header
 	title="Categorías"
-	back={{ href: resolve('profile'), label: 'Volver al perfil', text: 'Perfil' }}
+	back={{ href: resolve('profile'), label: 'Volver al perfil' }}
 	action={data.hasAnyCategory ? add : undefined}
 />
 

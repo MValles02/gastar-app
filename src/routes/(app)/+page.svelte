@@ -17,7 +17,7 @@
 	import MpPill from './MpPill.svelte';
 	import PaceChart from '#lib/components/PaceChart.svelte';
 	import UpcomingBills from './UpcomingBills.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import TabBand from '#lib/components/TabBand.svelte';
 	import Status from '#lib/components/base/Status.svelte';
 	import { PLAN_TONE } from '#lib/plan.ts';
@@ -32,7 +32,7 @@
 	<title>Gastar</title>
 </svelte:head>
 
-<PageHeader title="Hola, {data.header.firstName}" tone="primary" />
+<Header title="Hola, {data.header.firstName}" tone="primary" />
 
 <TabBand>
 	{#if data.hasAnyAccount}

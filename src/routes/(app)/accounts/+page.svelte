@@ -13,7 +13,7 @@
 	import { ARCHIVED_LABEL } from '#lib/movement.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import Amount from '#lib/components/base/Amount.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -35,9 +35,9 @@
 	<title>Cuentas · Gastar</title>
 </svelte:head>
 
-<PageHeader
+<Header
 	title="Cuentas"
-	back={{ href: resolve('profile'), label: 'Volver al perfil', text: 'Perfil' }}
+	back={{ href: resolve('profile'), label: 'Volver al perfil' }}
 	action={data.hasAnyAccount ? add : undefined}
 />
 

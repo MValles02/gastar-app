@@ -7,8 +7,8 @@
 	import { enhance } from '$app/forms';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
-	import PageHeader from '#lib/components/PageHeader.svelte';
-	import RowPill from '#lib/components/RowPill.svelte';
+	import Header from '#lib/components/base/Header.svelte';
+	import Button from '#lib/components/base/Button.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -26,9 +26,9 @@
 	<title>Aprobados automáticamente · Gastar</title>
 </svelte:head>
 
-<PageHeader
+<Header
 	title="Aprobados automáticamente"
-	back={{ href: resolve('imports'), label: 'Volver a Importados', text: 'Importados' }}
+	back={{ href: resolve('imports'), label: 'Volver a Importados' }}
 />
 
 <div class="page">
@@ -72,7 +72,9 @@
 							}}
 					>
 						<input type="hidden" name="id" value={item.id} />
-						<RowPill label="Deshacer" ariaLabel="Deshacer {item.title}" />
+						<Button size="sm" type="submit" variant="outline" aria-label="Deshacer {item.title}"
+							>Deshacer</Button
+						>
 					</form>
 				{/snippet}
 				<Row

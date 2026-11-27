@@ -5,7 +5,7 @@
 	import { enhance } from '$app/forms';
 	import { autosave } from '#lib/autosave.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
-	import PageHeader from '#lib/components/PageHeader.svelte';
+	import Header from '#lib/components/base/Header.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import InlineText from '#lib/components/InlineText.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
@@ -44,10 +44,7 @@
 	<title>Perfil · Gastar</title>
 </svelte:head>
 
-<PageHeader
-	title="Perfil"
-	back={{ href: resolve(''), label: 'Volver al inicio', text: 'Inicio' }}
-/>
+<Header title="Perfil" back={{ href: resolve(''), label: 'Volver al inicio' }} />
 
 <div class="page">
 	<section class="who" aria-label="Usuario">
