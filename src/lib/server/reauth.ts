@@ -1,4 +1,5 @@
 import { and, eq, isNotNull } from 'drizzle-orm';
+import { RECENT_SESSION_MS } from '#lib/server/constants.ts';
 import { db } from './db';
 import { account } from './db/schema';
 
@@ -19,9 +20,6 @@ export async function hasPassword(userId: string): Promise<boolean> {
 		.limit(1);
 	return rows.length > 0;
 }
-
-/** How long after signing in a password-less user may still create a password or delete the account. */
-export const RECENT_SESSION_MS = 5 * 60_000;
 
 function isRecentSession(session: { createdAt: Date | string } | null): boolean {
 	return !!session && Date.now() - new Date(session.createdAt).getTime() <= RECENT_SESSION_MS;

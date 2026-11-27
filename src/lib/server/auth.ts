@@ -1,4 +1,4 @@
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USER_NAME_MAX_LENGTH } from '#lib/fields.ts';
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USER_NAME_MAX_LENGTH } from '#lib/constants.ts';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { genericOAuth } from 'better-auth/plugins';
@@ -8,6 +8,7 @@ import * as env from '$app/env/private';
 import { existingAccount, resetPassword, verifyEmail } from './auth-emails';
 import { db } from './db';
 import { sendEmail } from './email';
+import { RESET_PASSWORD_TOKEN_TTL_S, VERIFY_EMAIL_TOKEN_TTL_S } from '#lib/server/constants.ts';
 import { BETTER_AUTH_RULES } from './rate-limit';
 import { GOOGLE_PROVIDER_ID } from './reauth';
 import { CLIENT_IP_HEADER } from './env-check';
@@ -19,9 +20,6 @@ const APP_ORIGIN = new URL(env.BETTER_AUTH_URL ?? DEV_BASE_URL).origin;
 
 // Better Auth takes seconds. The email copy in auth-emails.ts states the token lifetimes.
 const MINUTE = 60;
-const HOUR = 60 * MINUTE;
-const RESET_PASSWORD_TOKEN_TTL = HOUR;
-const VERIFY_EMAIL_TOKEN_TTL = 24 * HOUR;
 
 /** "Continuar con Google" is on only when both credentials are set (env-check.ts rejects just one). */
 export const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
@@ -57,7 +55,7 @@ export const auth = betterAuth({
 		requireEmailVerification: true,
 		minPasswordLength: PASSWORD_MIN_LENGTH,
 		maxPasswordLength: PASSWORD_MAX_LENGTH,
-		resetPasswordTokenExpiresIn: RESET_PASSWORD_TOKEN_TTL,
+		resetPasswordTokenExpiresIn: RESET_PASSWORD_TOKEN_TTL_S,
 		revokeSessionsOnPasswordReset: true,
 		sendResetPassword: async ({ user, url }) => {
 			// Not awaited on purpose: awaiting the send would make known emails slower than
@@ -79,7 +77,7 @@ export const auth = betterAuth({
 		sendOnSignUp: true,
 		sendOnSignIn: true,
 		autoSignInAfterVerification: true,
-		expiresIn: VERIFY_EMAIL_TOKEN_TTL,
+		expiresIn: VERIFY_EMAIL_TOKEN_TTL_S,
 		sendVerificationEmail: async ({ user, url }) => {
 			await sendEmail({ to: user.email, link: url, ...verifyEmail(user.name, url) });
 		}

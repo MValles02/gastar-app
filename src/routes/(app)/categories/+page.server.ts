@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { NAME_MAX_LENGTH } from '#lib/fields.ts';
+import { NAME_MAX_LENGTH } from '#lib/constants.ts';
 import { DEFAULT_CURRENCY } from '#lib/money.ts';
 import { CATEGORY_KINDS } from '#lib/movement.ts';
 import { parseListFilter } from '#lib/list-filter.ts';

@@ -1,5 +1,5 @@
 import { MIN_DAY } from '#lib/dates.ts';
-import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+import { DESCRIPTION_MAX_LENGTH } from '#lib/constants.ts';
 import {
 	type CategoryKind,
 	MOVEMENT_MESSAGES as MSG,

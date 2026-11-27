@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { autosave } from '#lib/autosave.ts';
-	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+	import { DESCRIPTION_MAX_LENGTH } from '#lib/constants.ts';
 	import { formatMoney, toCurrency } from '#lib/money.ts';
 	import { archived, categoriesFor } from '#lib/movement.ts';
 	import { dueTone } from '#lib/plan.ts';

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { getDocumentProxy } from 'unpdf';
 import { CURRENCIES, type Currency } from '#lib/money.ts';
 import { CARD_NETWORK, CARD_NETWORKS, type CardNetwork } from '#lib/imports.ts';
+import { STATEMENT_MAX_PAGES } from '#lib/server/constants.ts';
 
 // Parser for Banco Galicia credit-card statement PDFs (Visa and Mastercard). The PDF is read in
 // memory only; nothing here logs or returns the holder's name, address or account numbers.
@@ -53,7 +54,6 @@ export class StatementError extends Error {
 	}
 }
 
-const MAX_PAGES = 20;
 /** Deadline for PDF text extraction (loading + all pages); a crafted PDF cannot keep the server busy longer. */
 const PARSE_TIMEOUT_MS = 5000;
 const GALICIA_CUIT = '30-50000173-5';
@@ -115,7 +115,7 @@ async function readLines(bytes: Uint8Array): Promise<Line[]> {
 		throw new StatementError('unreadable');
 	}
 	try {
-		if (pdf.numPages > MAX_PAGES) throw new StatementError('too_many_pages');
+		if (pdf.numPages > STATEMENT_MAX_PAGES) throw new StatementError('too_many_pages');
 		const lines: Line[] = [];
 		for (let p = 1; p <= pdf.numPages; p++) {
 			const page = await within(pdf.getPage(p));

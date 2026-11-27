@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PASSWORD_MAX_LENGTH } from '#lib/fields.ts';
+	import { PASSWORD_MAX_LENGTH } from '#lib/constants.ts';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import GoogleReauth, { needsGoogleReauth } from '#lib/components/GoogleReauth.svelte';
 	import PasswordInput from '#lib/components/PasswordInput.svelte';

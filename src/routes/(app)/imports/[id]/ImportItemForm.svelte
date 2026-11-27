@@ -17,7 +17,7 @@
 	import * as Card from '#lib/components/ui/card/index.js';
 	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
 	import * as Field from '#lib/components/ui/field/index.js';
-	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+	import { DESCRIPTION_MAX_LENGTH } from '#lib/constants.ts';
 	import { categoriesFor } from '#lib/movement.ts';
 	import { importDoneOf, type ImportDone } from '#lib/toast-flags.ts';
 	import type { PageData } from './$types';

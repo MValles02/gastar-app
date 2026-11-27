@@ -1,6 +1,6 @@
 <script lang="ts" generics="Key extends string">
 	import type { ComponentProps } from 'svelte';
-	import { NAME_MAX_LENGTH } from '#lib/fields.ts';
+	import { NAME_MAX_LENGTH } from '#lib/constants.ts';
 	import type { SwatchKey } from '#lib/appearance.ts';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import * as Field from '#lib/components/ui/field/index.js';

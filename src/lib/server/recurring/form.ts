@@ -1,7 +1,7 @@
 import { formFail } from '#lib/form.ts';
 import { formatAmountInput, parseAmount, type Currency } from '#lib/money.ts';
 import { MOVEMENT_MESSAGES as MSG, type MovementType, refError } from '#lib/movement.ts';
-import { MAX_DAY_OF_MONTH } from '#lib/plan.ts';
+import { MAX_DAY_OF_MONTH } from '#lib/constants.ts';
 import { getAccount } from '../accounts/queries';
 import { getCategory } from '../categories/queries';
 import { isUuid } from '../db/util';

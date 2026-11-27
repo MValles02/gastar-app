@@ -1,4 +1,5 @@
-import { NAME_MAX_LENGTH, tooLongMessage } from '#lib/fields.ts';
+import { NAME_MAX_LENGTH } from '#lib/constants.ts';
+import { tooLongMessage } from '#lib/fields.ts';
 import {
 	AMOUNT_EXAMPLE,
 	CURRENCIES,

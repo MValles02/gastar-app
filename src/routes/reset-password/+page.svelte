@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { PASSWORD_MIN_LENGTH, PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
+	import { PASSWORD_MIN_LENGTH } from '#lib/constants.ts';
+	import { PASSWORD_MIN_MESSAGE } from '#lib/fields.ts';
 	import { resolve } from '$app/paths';
 	import AuthForm from '#lib/components/AuthForm.svelte';
 	import AuthPage from '#lib/components/AuthPage.svelte';

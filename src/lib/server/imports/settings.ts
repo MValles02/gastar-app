@@ -1,5 +1,6 @@
 import { and, eq, like, lt, min, or, isNull } from 'drizzle-orm';
 import { DAY_MS } from '#lib/dates.ts';
+import { DEFAULT_BACKFILL_DAYS, MAX_BACKFILL_DAYS } from '#lib/server/constants.ts';
 import { canAccessOwn, userOwned } from '../access';
 import { db } from '../db';
 import { importSettings, importItems } from '../db/schema';
@@ -8,15 +9,7 @@ import { ALERT_KEYS } from './keys';
 import { withMatchLock } from './match-lock';
 import { SOURCE } from '#lib/imports.ts';
 
-/** How far back "Importar desde" may reach. */
-const MAX_BACKFILL_DAYS = 365;
 export const earliestImportDay = () => localDay(new Date(Date.now() - MAX_BACKFILL_DAYS * DAY_MS));
-
-/** How far back a first sync reaches when the user has not chosen an "importar desde" day. */
-const DEFAULT_BACKFILL_DAYS = 30;
-
-/** How long an automatically approved item stays in the "approved automatically" list. */
-export const AUTO_APPROVED_DAYS = 30;
 
 /** First-sync start: the user's "importar desde" floor, else DEFAULT_BACKFILL_DAYS ago; null on a bad clock. */
 export function backfillStart(now: number, floor: Date | null): Date | null {

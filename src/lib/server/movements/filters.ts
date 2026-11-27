@@ -1,6 +1,7 @@
-import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+import { DESCRIPTION_MAX_LENGTH } from '#lib/constants.ts';
 import { FILTER_PARAMS, MOVEMENT_TYPES, type MovementType } from '#lib/movement.ts';
 import { CURRENCIES, type Currency } from '#lib/money.ts';
+import { MOVEMENTS_MAX_PAGE } from '#lib/server/constants.ts';
 import { isUuid } from '../db/util';
 import { localDay } from '../month';
 import { validDay } from './form';
@@ -8,7 +9,6 @@ import { summarizeMovements } from './queries';
 
 // A longer search term cannot match any description, so it is dropped.
 const QUERY_MAX_LENGTH = DESCRIPTION_MAX_LENGTH;
-const MAX_PAGE = 10000;
 
 export type MovementFilterQuery = {
 	q: string;
@@ -38,7 +38,7 @@ export function parseMovementFilters(sp: URLSearchParams) {
 		currency: CURRENCIES.find((c) => c === get('currency')) ?? ''
 	};
 	const n = Number(get('page'));
-	const page = Number.isSafeInteger(n) && n >= 1 && n <= MAX_PAGE ? n : 1;
+	const page = Number.isSafeInteger(n) && n >= 1 && n <= MOVEMENTS_MAX_PAGE ? n : 1;
 	const { account, category } = query;
 	const shown: Record<string, string> = Object.fromEntries(FILTER_PARAMS.map((k) => [k, query[k]]));
 	const activeCount =

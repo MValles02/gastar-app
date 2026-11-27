@@ -1,4 +1,5 @@
 /** Plan vocabulary shared by the server and the screens: statuses, their tones and labels, savings rules. */
+import { SAVINGS_PERCENT_MAX } from './constants';
 import { formatPercentInput } from './locale';
 import type { MovementType } from './movement';
 import {
@@ -12,9 +13,6 @@ import {
 
 /** The plan is always in pesos; USD items convert at the plan rate. */
 export const PLAN_CURRENCY = 'ARS' as const;
-
-/** Savings percent is stored as percent x 100 (1000 = 10 %), at most 100 %. */
-export const SAVINGS_PERCENT_MAX = 10000;
 
 /** Visual tone shared by every status pill. */
 export type StatusTone = 'ok' | 'warning' | 'bad' | 'neutral';
@@ -55,8 +53,6 @@ export function dueLabel(
 
 /** How far off a due day is, `n` days from today. */
 export const dueInLabel = (n: number) => (n === 0 ? 'hoy' : n === 1 ? 'mañana' : `en ${n} días`);
-
-export const MAX_DAY_OF_MONTH = 31;
 
 export type RuleState = {
 	archivedAt: Date | null;

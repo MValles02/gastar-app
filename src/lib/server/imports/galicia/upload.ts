@@ -1,7 +1,5 @@
 import type { Currency } from '#lib/money.ts';
-
-/** Upload cap; the real statements are well under 1 MB. BODY_SIZE_LIMIT (Dockerfile) sits above it. */
-export const MAX_STATEMENT_BYTES = 5 * 1024 * 1024;
+import { MAX_STATEMENT_BYTES } from '#lib/server/constants.ts';
 
 /** Shown when the statement has items in a currency whose Banco Galicia account is not chosen. */
 export const MISSING_ACCOUNT_ERRORS: Record<Currency, string> = {

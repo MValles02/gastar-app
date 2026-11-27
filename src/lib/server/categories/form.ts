@@ -1,4 +1,5 @@
-import { NAME_MAX_LENGTH, tooLongMessage } from '#lib/fields.ts';
+import { NAME_MAX_LENGTH } from '#lib/constants.ts';
+import { tooLongMessage } from '#lib/fields.ts';
 import { CATEGORY_ICONS, SWATCHES, toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
 import { CATEGORY_KINDS, type CategoryKind } from '#lib/movement.ts';
 import { editFormData, readFields, requiredText } from '../forms';

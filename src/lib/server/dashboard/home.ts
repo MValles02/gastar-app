@@ -1,5 +1,6 @@
 import { categoryLook, type CategoryIconKey, type SwatchKey } from '#lib/appearance.ts';
 import { CURRENCY_NAME, type Currency } from '#lib/money.ts';
+import { HOME_TOP_CATEGORIES } from '#lib/server/constants.ts';
 import { accountOriginSums, accountSummary, accountTransfersIn } from '../accounts/queries';
 import { hasAccounts, monthNet, totalBalance } from '../accounts/balance';
 import { rankSpending } from '../categories/spending';
@@ -10,12 +11,10 @@ import { hasAnyPlan } from '../plan/queries';
 import { currentMonth, dayHeading, localDay, monthLabel, monthRange } from '../month';
 import { planPace, planView, upcomingBills } from '../plan/month-plan';
 
-const TOP_CATEGORIES = 3;
-
 export function topCategories(
 	rows: { id: string; name: string; outcome: number; income: number }[]
 ): { id: string; name: string; net: number; share: number }[] {
-	const { top, total } = rankSpending(rows, TOP_CATEGORIES);
+	const { top, total } = rankSpending(rows, HOME_TOP_CATEGORIES);
 	return top.map((r) => ({ id: r.id, name: r.name, net: r.net, share: r.net / total }));
 }
 

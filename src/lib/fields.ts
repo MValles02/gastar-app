@@ -1,12 +1,11 @@
-import { PASSWORD_MIN_LENGTH } from '#lib/shared/runtime.js';
+import {
+	DESCRIPTION_MAX_LENGTH,
+	PASSWORD_MAX_LENGTH,
+	PASSWORD_MIN_LENGTH,
+	USER_NAME_MAX_LENGTH
+} from '#lib/constants.ts';
 
-/** Text-field limits and their messages, shared by server validation and the forms' maxlength/minlength attributes. */
-export const NAME_MAX_LENGTH = 40;
-export const DESCRIPTION_MAX_LENGTH = 60;
-export const USER_NAME_MAX_LENGTH = 80;
-
-export { PASSWORD_MIN_LENGTH };
-export const PASSWORD_MAX_LENGTH = 128;
+/** Text-field messages and validators; the limits are in constants.ts. */
 
 /** "La descripción puede tener hasta 60 caracteres." style message. */
 export const tooLongMessage = (subject: string, max: number) =>

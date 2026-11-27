@@ -21,7 +21,7 @@ import { MONTH_RE } from '../../dates';
 import { CARD_NETWORKS, CARD_TYPES, GALICIA_SOURCE, KIND, SOURCE } from '../../imports';
 import { CURRENCIES } from '../../money';
 import { MOVEMENT_TYPES, type CategoryKind } from '../../movement';
-import { MAX_DAY_OF_MONTH, SAVINGS_PERCENT_MAX } from '../../plan';
+import { MAX_DAY_OF_MONTH, SAVINGS_PERCENT_MAX } from '../../constants';
 
 const inList = (xs: readonly string[]) => sql.raw(xs.map((x) => `'${x}'`).join(', '));
 

@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { ACCOUNT_ICONS, toIconKey, toSwatchKey } from '#lib/appearance.ts';
 	import { autosaveChanged } from '#lib/autosave.ts';
-	import { NAME_MAX_LENGTH } from '#lib/fields.ts';
+	import { NAME_MAX_LENGTH } from '#lib/constants.ts';
 	import { CURRENCY_LABEL, formatAmountInput } from '#lib/money.ts';
 	import { ARCHIVED_LABEL } from '#lib/movement.ts';
 	import DetailCard from '#lib/components/DetailCard.svelte';

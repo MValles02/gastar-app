@@ -6,7 +6,7 @@
 	import { autosave } from '#lib/autosave.ts';
 	import { MIN_DAY } from '#lib/dates.ts';
 	import { CURRENCY_SYMBOL } from '#lib/money.ts';
-	import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+	import { DESCRIPTION_MAX_LENGTH } from '#lib/constants.ts';
 	import {
 		archived,
 		categoriesFor,

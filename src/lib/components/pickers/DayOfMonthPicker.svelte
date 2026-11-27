@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
-	import { MAX_DAY_OF_MONTH } from '#lib/plan.ts';
+	import { MAX_DAY_OF_MONTH } from '#lib/constants.ts';
 	import Picker from './Picker.svelte';
 
 	/**

@@ -6,14 +6,8 @@
 import type { AnimationConfig } from 'svelte/animate';
 import { quintOut } from 'svelte/easing';
 import { fade as svelteFade, fly } from 'svelte/transition';
+import { DUR_BASE, DUR_FAST, DUR_REDUCED } from '#lib/constants.ts';
 import { reducedMotion } from '#lib/swipe.ts';
-
-/** Mirrors `--dur-fast`, `--dur-base` and `--dur-slow`. */
-export const DUR_FAST = 120;
-export const DUR_BASE = 200;
-export const DUR_SLOW = 280;
-/** The reduced-motion fade, as in app.css. */
-const DUR_REDUCED = 100;
 /** `--ease-out`: cubic-bezier(0.23, 1, 0.32, 1) is the quintic ease-out. */
 export const easeOut = quintOut;
 

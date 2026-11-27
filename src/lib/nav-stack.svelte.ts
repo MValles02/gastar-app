@@ -1,6 +1,7 @@
 import type { ActionResult } from '$app/forms';
 /* eslint-disable svelte/prefer-svelte-reactivity -- URLs here are parsed and compared, never mutated or rendered */
 import { goto, refreshAll, type AfterNavigate, type OnNavigate } from '$app/navigation';
+import { POP_TIMEOUT_MS } from '#lib/constants.ts';
 import { isModifiedClick } from '#lib/open-shallow.ts';
 import { TOAST_FLAGS } from '#lib/toast-flags.ts';
 
@@ -24,8 +25,6 @@ let afterPop: (() => unknown) | null = null;
 /** A `history.go` from `navigateUp` has not landed yet: `index` is stale, so further ups are ignored. */
 let popping = false;
 let poppingTimer: ReturnType<typeof setTimeout> | undefined;
-/** No `popstate` by then means the traversal never started: stop blocking the up controls. */
-const POP_TIMEOUT_MS = 1000;
 
 /** The bottom-nav tabs in bar order (TabBar.svelte): a tab switch slides toward the target's side. */
 const TAB_PATHS = ['/', '/movements', '/plan', '/reports'];

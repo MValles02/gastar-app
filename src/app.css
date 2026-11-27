@@ -57,6 +57,24 @@
 	--text-sm: var(--font-size-sm);
 	--text-base: var(--font-size-base);
 	--text-lg: var(--font-size-lg);
+
+	/* Raw tokens from :root as Tailwind keys (size-control, px-gutter, gap-group, text-tone-income). */
+	--color-tone-income: var(--tone-income);
+	--color-tone-expense: var(--tone-expense);
+	--color-tone-neutral: var(--tone-neutral);
+	--spacing-glyph-chip: var(--size-glyph-chip);
+	--spacing-lead: var(--size-lead);
+	--spacing-hero: var(--size-hero);
+	--spacing-control: var(--size-control);
+	--spacing-field: var(--size-field);
+	--spacing-nav: var(--size-nav);
+	--spacing-icon-sm: var(--icon-sm);
+	--spacing-icon-md: var(--icon-md);
+	--spacing-icon-lg: var(--icon-lg);
+	--spacing-gutter: var(--space-gutter);
+	--spacing-group: var(--space-group);
+	--spacing-row-x: var(--space-row-x);
+	--spacing-row-y: var(--space-row-y);
 }
 
 @layer base {
@@ -244,34 +262,34 @@
 	--surface: light-dark(oklch(0.98 0.012 85), oklch(0.216 0.006 56.043));
 	--surface-raised: light-dark(oklch(0.98 0.012 85), oklch(0.216 0.006 56.043));
 	--muted: light-dark(oklch(0.925 0.022 82), oklch(0.268 0.007 34.298));
-	--text: light-dark(#221d17, oklch(0.985 0.001 106.423));
-	--text-muted: light-dark(#6b6257, oklch(0.709 0.01 56.259));
-	--border: light-dark(#e3dbcb, oklch(1 0 0 / 10%));
-	--border-strong: light-dark(#a69b8a, oklch(0.553 0.013 58.071));
-	--primary: light-dark(#0b7656, oklch(0.432 0.095 166.913));
+	--text: light-dark(oklch(0.2344 0.0136 72.15), oklch(0.985 0.001 106.423));
+	--text-muted: light-dark(oklch(0.5013 0.0205 72.86), oklch(0.709 0.01 56.259));
+	--border: light-dark(oklch(0.8934 0.0232 84.59), oklch(1 0 0 / 10%));
+	--border-strong: light-dark(oklch(0.6942 0.0274 78.84), oklch(0.553 0.013 58.071));
+	--primary: light-dark(oklch(0.5029 0.102 165.62), oklch(0.432 0.095 166.913));
 	/* Inline text links: primary in light; a lighter green in dark, where the primary fill is too dark for text. */
-	--link: light-dark(#0b7656, oklch(0.8 0.11 166));
+	--link: light-dark(oklch(0.5029 0.102 165.62), oklch(0.8 0.11 166));
 	--on-primary: light-dark(oklch(0.979 0.021 166.113), oklch(0.979 0.021 166.113));
-	--positive: light-dark(#2e6b34, #8bd68f);
-	--negative: light-dark(#c4140c, oklch(0.704 0.191 22.216));
+	--positive: light-dark(oklch(0.4731 0.1066 145.54), oklch(0.809 0.1238 145.55));
+	--negative: light-dark(oklch(0.5214 0.2052 29.32), oklch(0.704 0.191 22.216));
 	--warning: light-dark(oklch(0.555 0.163 48.998), oklch(0.879 0.169 91.605));
-	--transfer: light-dark(#2c5d8a, #8db8e6);
-	--swatch-green: light-dark(#2e6b34, #7fc79a);
-	--swatch-teal: light-dark(#1f6b66, #6cc4c0);
-	--swatch-sky: light-dark(#1e6380, #7cc3e0);
-	--swatch-blue: light-dark(#2c5d8a, #8db8e6);
-	--swatch-indigo: light-dark(#44508f, #a0abe6);
-	--swatch-violet: light-dark(#5a4a8a, #b3a3e6);
-	--swatch-plum: light-dark(#7a3d6b, #d99ac6);
-	--swatch-pink: light-dark(#9a3a5c, #eba0bb);
-	--swatch-red: light-dark(#9a3b2e, #f0a090);
-	--swatch-orange: light-dark(#b4561c, #f0b27a);
-	--swatch-amber: light-dark(#9a5a1f, #ecb36e);
-	--swatch-ochre: light-dark(#8a6d1a, #d9c46e);
-	--swatch-olive: light-dark(#5f6b1e, #bccb72);
-	--swatch-brown: light-dark(#6e4e36, #d0a98a);
-	--swatch-slate: light-dark(#4a5868, #a3b3c6);
-	--swatch-gray: light-dark(#5e5a54, #b8b3ab);
+	--transfer: light-dark(oklch(0.4661 0.0907 248.6), oklch(0.7685 0.0808 250.59));
+	--swatch-green: light-dark(oklch(0.4731 0.1066 145.54), oklch(0.7698 0.0974 155.88));
+	--swatch-teal: light-dark(oklch(0.4812 0.0726 188.69), oklch(0.7643 0.0853 191.69));
+	--swatch-sky: light-dark(oklch(0.4709 0.0813 230.38), oklch(0.7808 0.0823 225.91));
+	--swatch-blue: light-dark(oklch(0.4661 0.0907 248.6), oklch(0.7685 0.0808 250.59));
+	--swatch-indigo: light-dark(oklch(0.4525 0.1036 273.44), oklch(0.7542 0.0859 275.98));
+	--swatch-violet: light-dark(oklch(0.4555 0.1025 293.42), oklch(0.7534 0.0962 294.95));
+	--swatch-plum: light-dark(oklch(0.4537 0.1045 337.26), oklch(0.7604 0.0943 338.13));
+	--swatch-pink: light-dark(oklch(0.4915 0.1322 1.21), oklch(0.7864 0.0949 356.25));
+	--swatch-red: light-dark(oklch(0.482 0.1301 30.29), oklch(0.7807 0.0989 31.81));
+	--swatch-orange: light-dark(oklch(0.5608 0.1393 47.62), oklch(0.809 0.1022 62.68));
+	--swatch-amber: light-dark(oklch(0.5307 0.11 58.79), oklch(0.8048 0.1089 70.54));
+	--swatch-ochre: light-dark(oklch(0.5487 0.1025 88.11), oklch(0.8198 0.1093 95.99));
+	--swatch-olive: light-dark(oklch(0.5017 0.1008 117.85), oklch(0.8109 0.1151 116.88));
+	--swatch-brown: light-dark(oklch(0.4525 0.0565 57.6), oklch(0.7621 0.0625 60.14));
+	--swatch-slate: light-dark(oklch(0.4546 0.0316 251.94), oklch(0.7605 0.0326 252.75));
+	--swatch-gray: light-dark(oklch(0.4694 0.0108 78.22), oklch(0.7686 0.0126 79.77));
 
 	/* shadcn-svelte names, aliased to the tokens above. */
 	--background: var(--bg);
@@ -287,7 +305,7 @@
 	--accent: var(--muted);
 	--accent-foreground: var(--text);
 	--destructive: var(--negative);
-	--destructive-foreground: light-dark(#fff7f5, #1c1917);
+	--destructive-foreground: light-dark(oklch(0.9818 0.009 34.3), oklch(0.2161 0.0061 56.04));
 	--input: var(--border-strong);
 	--ring: var(--primary);
 
@@ -332,11 +350,33 @@
 	--font-size-input: 1rem;
 
 	--shadow-1:
-		0 1px 2px light-dark(rgb(0 0 0 / 0.03), rgb(0 0 0 / 0.2)),
-		0 6px 20px -8px light-dark(rgb(0 0 0 / 0.08), transparent);
+		0 1px 2px light-dark(oklch(0 0 0 / 0.03), oklch(0 0 0 / 0.2)),
+		0 6px 20px -8px light-dark(oklch(0 0 0 / 0.08), transparent);
 	--shadow-lift:
 		0 0 0 1px light-dark(transparent, var(--border)),
-		0 6px 16px light-dark(rgb(0 0 0 / 0.2), rgb(0 0 0 / 0.6));
+		0 6px 16px light-dark(oklch(0 0 0 / 0.2), oklch(0 0 0 / 0.6));
+
+	/* Size scale (rem = today's px at 16px). */
+	--size-glyph-chip: 1.25rem;
+	--size-lead: 2.25rem;
+	--size-hero: 3.5rem;
+	--size-control: var(--tap-target);
+	--size-field: 3.25rem;
+	--size-nav: 3.75rem;
+	--icon-sm: 1.125rem;
+	--icon-md: 1.375rem;
+	--icon-lg: 1.5rem;
+	/* Spacing roles: today's values ((app) layout gutter, page section gap, shadcn Item px-3 py-2.5). */
+	--space-gutter: var(--space-5);
+	--space-group: var(--space-5);
+	--space-row-x: var(--space-3);
+	--space-row-y: 0.625rem;
+	/* Money tones (light/dark come from the referenced tokens). */
+	--tone-income: var(--positive);
+	--tone-expense: var(--negative);
+	--tone-neutral: var(--text);
+	--dur-reduced: 100ms;
+	--shadow-swipe: -12px 0 24px -12px oklch(0 0 0 / 0.25);
 
 	color-scheme: light dark;
 }
@@ -502,7 +542,7 @@
 	::view-transition-group(*),
 	::view-transition-old(*),
 	::view-transition-new(*) {
-		animation-duration: 100ms;
+		animation-duration: var(--dur-reduced);
 		animation-timing-function: var(--ease-out);
 	}
 

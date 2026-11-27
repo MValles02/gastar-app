@@ -6,15 +6,14 @@ import {
 	listAccounts
 } from '#lib/server/accounts/queries.ts';
 import { accountList } from '#lib/server/accounts/view.ts';
+import { ACCOUNT_SEARCH_MAX_LENGTH } from '#lib/server/constants.ts';
 import { requireUser } from '#lib/server/guards.ts';
 import { parseListFilter } from '#lib/list-filter.ts';
-
-const SEARCH_MAX_LENGTH = 40;
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const userId = requireUser(locals).id;
 	const filters = parseListFilter(url.searchParams, {
-		qMax: SEARCH_MAX_LENGTH,
+		qMax: ACCOUNT_SEARCH_MAX_LENGTH,
 		currencyDefault: ''
 	});
 	const { q, archived, currency } = filters;

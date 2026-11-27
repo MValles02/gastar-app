@@ -1,5 +1,5 @@
 import { toCategoryIconKey, toSwatchKey } from '#lib/appearance.ts';
-import { DESCRIPTION_MAX_LENGTH } from '#lib/fields.ts';
+import { DESCRIPTION_MAX_LENGTH } from '#lib/constants.ts';
 import {
 	CURRENCIES,
 	formatAmountInput,
@@ -7,27 +7,21 @@ import {
 	roundToStep,
 	type Currency
 } from '#lib/money.ts';
+import { MAX_DAY_OF_MONTH } from '#lib/constants.ts';
 import {
 	dueInLabel,
 	dueLabel,
 	inactiveReason,
 	effectiveSavings,
 	isRecurringActive,
-	MAX_DAY_OF_MONTH,
 	PLAN_CURRENCY,
 	PLAN_STATUS_LABEL
 } from '#lib/plan.ts';
 import { listAccounts } from '../accounts/queries';
 import { listCategories } from '../categories/queries';
 import { memoPerRequest } from '../request-memo';
-import {
-	currentMonth,
-	HISTORY_MONTHS,
-	lastFullMonths,
-	localDay,
-	monthLabel,
-	monthRange
-} from '../month';
+import { HISTORY_MONTHS } from '#lib/server/constants.ts';
+import { currentMonth, lastFullMonths, localDay, monthLabel, monthRange } from '../month';
 import {
 	listRecurring,
 	paidRecurring,

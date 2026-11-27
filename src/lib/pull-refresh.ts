@@ -3,9 +3,7 @@ import { toast } from 'svelte-sonner';
 import {
 	DOMINANCE,
 	LOCK_PX,
-	RESET_SLACK_MS,
 	SPRING,
-	SPRING_MS,
 	dialogOpen,
 	isIOSStandalone,
 	ownsHorizontal,
@@ -13,6 +11,7 @@ import {
 	rubber,
 	unrubber
 } from '#lib/swipe.ts';
+import { MIN_SPIN_MS, RESET_SLACK_MS, SPRING_MS } from '#lib/constants.ts';
 
 /**
  * Pull-to-refresh for the installed iOS app, which (unlike Android's installed app and every
@@ -36,8 +35,6 @@ const THRESHOLD_PX = 72;
 const HOLD_PX = 56;
 /** The indicator's size: it starts sliding down once the gap is wider than it. */
 const INDICATOR_PX = 32;
-/** A refresh that resolves faster still shows the spinner this long, so it does not flash. */
-const MIN_SPIN_MS = 400;
 const INDICATOR = '[data-pull-indicator]';
 const ARROW = '[data-pull-arrow]';
 const STATUS = '[data-pull-status]';

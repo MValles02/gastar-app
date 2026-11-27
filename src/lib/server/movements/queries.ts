@@ -7,12 +7,10 @@ import { canAccessMovement, canAccessOwn, ownedDestination, userOwned } from '..
 import { categoryFields } from '../categories/queries';
 import { linkRuleFor, lockRules, unlinkRevert } from '../recurring/link';
 import { escapeLike } from '../db/util';
+import { MOVEMENTS_PAGE_SIZE, RECENT_MOVEMENTS_LIMIT } from '#lib/server/constants.ts';
 import { dayStart, nextDay } from '../month';
 import type { MovementFilterQuery } from './filters';
 import type { MovementRow } from './form';
-
-export const PAGE_SIZE = 50;
-const RECENT_LIMIT = 10;
 
 export function hasAnyMovement(userId: string) {
 	return exists(
@@ -144,11 +142,11 @@ function movementRowQuery(userId: string, query: MovementFilterQuery) {
 		.orderBy(desc(movements.occurredAt), desc(movements.createdAt), desc(movements.id));
 }
 
-/** Fetches PAGE_SIZE + 1 rows so the caller can tell whether there is a next page. */
+/** Fetches MOVEMENTS_PAGE_SIZE + 1 rows so the caller can tell whether there is a next page. */
 export function listMovements(userId: string, query: MovementFilterQuery, page: number) {
 	return movementRowQuery(userId, query)
-		.limit(PAGE_SIZE + 1)
-		.offset((page - 1) * PAGE_SIZE);
+		.limit(MOVEMENTS_PAGE_SIZE + 1)
+		.offset((page - 1) * MOVEMENTS_PAGE_SIZE);
 }
 
 export function recentMovements(userId: string, currency: Currency) {
@@ -160,7 +158,7 @@ export function recentMovements(userId: string, currency: Currency) {
 		account: [],
 		category: [],
 		currency
-	}).limit(RECENT_LIMIT);
+	}).limit(RECENT_MOVEMENTS_LIMIT);
 }
 
 /** Returns an array of 0 or 1 rows, like getAccount/getCategory. */

@@ -6,7 +6,8 @@ import { categories, financialAccounts, movements, recurringMovements } from '..
 import { appTz, inRange, localMonth, type Range } from '../db/sql';
 import { canAccessAccount, canAccessMovement, canAccessOwn, userOwned } from '../access';
 import { categoryFields } from '../categories/queries';
-import { currentMonth, HISTORY_MONTHS } from '../month';
+import { HISTORY_MONTHS } from '#lib/server/constants.ts';
+import { currentMonth } from '../month';
 import type { MovementRow } from '../movements/form';
 
 export const ownRule = (userId: string, id: string) =>
