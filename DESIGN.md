@@ -539,7 +539,7 @@ A 3px `--primary` bar fixed at the top (`NavProgress`, below the safe area) appe
 
 **Legacy allowlist.** Files not yet migrated are listed per rule in `eslint-legacy-allowlist.js` (rule off for those files only). Each phase removes the files it migrates; the last phase deletes the file. New files must comply and never go on the list.
 
-Allowlist size at phase 1 (files per rule): `no-arbitrary-tailwind` 10, `no-raw-color` 4, `no-inline-styles` 9, `no-restricted-imports` 28, `no-literal-text` 90.
+Allowlist size at phase 1 (files per rule): `no-arbitrary-tailwind` 10, `no-raw-color` 4, `no-inline-styles` 9, `no-restricted-imports` 28, `no-literal-text` 90 (141 total). After phase 2: 3, 3, 5, 28, 72 (111 total).
 
 ## Do's and Don'ts
 
