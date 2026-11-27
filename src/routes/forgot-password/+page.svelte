@@ -3,7 +3,8 @@
 	import AuthForm from '#lib/components/AuthForm.svelte';
 	import AuthPage from '#lib/components/AuthPage.svelte';
 	import CheckEmail from '#lib/components/CheckEmail.svelte';
-	import EmailField from '#lib/components/EmailField.svelte';
+	import Field from '#lib/components/base/Field.svelte';
+	import { es } from '#lib/copy/es.ts';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -25,7 +26,17 @@
 		description="Te mandamos un enlace por email."
 	>
 		<AuthForm action="?/request" submitLabel="Enviar enlace">
-			<EmailField value={initialEmail} error={form?.emailError} />
+			<Field
+				id="email"
+				name="email"
+				label={es.auth.fields.email}
+				type="email"
+				autocapitalize="none"
+				required
+				autocomplete="username"
+				value={initialEmail}
+				error={form?.emailError}
+			/>
 		</AuthForm>
 	</AuthPage>
 {/if}

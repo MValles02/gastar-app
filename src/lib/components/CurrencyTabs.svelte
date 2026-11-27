@@ -2,8 +2,9 @@
 	import { CURRENCIES, CURRENCY_OPTIONS, type Currency } from '#lib/money.ts';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
+	import { es } from '#lib/copy/es.ts';
 	import { replaceGoto } from '#lib/nav-stack.svelte.ts';
-	import SegmentedControl from './SegmentedControl.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
 
 	/**
 	 * ARS | USD switch saved in the `currency` cookie. Default: a radiogroup labelled ARS / USD (Plan,
@@ -57,7 +58,7 @@
 >
 	<input type="hidden" name="redirectTo" value={page.url.pathname + page.url.search} />
 	{#if variant === 'pills'}
-		<div role="group" aria-label="Moneda" class="pill-group">
+		<div role="group" aria-label={es.ui.currency} class="pill-group">
 			{#each pills as p (p.value)}
 				<button type="submit" name="currency" value={p.value} aria-pressed={value === p.value}>
 					<span class="pill">{p.label}</span>
@@ -65,8 +66,8 @@
 			{/each}
 		</div>
 	{:else}
-		<span id="currency-tabs-label" class="visually-hidden">Moneda</span>
-		<SegmentedControl
+		<span id="currency-tabs-label" class="visually-hidden">{es.ui.currency}</span>
+		<Segmented
 			name="currency"
 			{options}
 			bind:value={selected}

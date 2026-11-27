@@ -35,6 +35,7 @@ const common = {
 } as const;
 
 const auth = {
+	fields: { email: 'Email', password: 'Contraseña' },
 	login: { badCredentials: 'Email o contraseña incorrectos.' }
 } as const;
 

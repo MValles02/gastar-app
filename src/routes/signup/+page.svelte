@@ -7,11 +7,10 @@
 	import AuthTabs from '#lib/components/AuthTabs.svelte';
 	import CheckEmail from '#lib/components/CheckEmail.svelte';
 	import { rememberPendingEmail } from '#lib/pending-email.ts';
-	import EmailField from '#lib/components/EmailField.svelte';
+	import TextField from '#lib/components/base/Field.svelte';
 	import * as Field from '#lib/components/ui/field/index.js';
 	import GoogleButton from '#lib/components/GoogleButton.svelte';
 	import { Input } from '#lib/components/ui/input/index.js';
-	import PasswordField from '#lib/components/PasswordField.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { form, data }: { form: ActionData; data: PageData } = $props();
@@ -57,9 +56,24 @@
 				{/if}
 			</Field.Field>
 
-			<EmailField value={form?.email ?? ''} autocomplete="email" error={form?.errors?.email} />
+			<TextField
+				id="email"
+				name="email"
+				label={es.auth.fields.email}
+				type="email"
+				autocapitalize="none"
+				required
+				autocomplete="email"
+				value={form?.email ?? ''}
+				error={form?.errors?.email}
+			/>
 
-			<PasswordField
+			<TextField
+				id="password"
+				name="password"
+				label={es.auth.fields.password}
+				type="password"
+				required
 				bind:value={password}
 				autocomplete="new-password"
 				error={form?.errors?.password}

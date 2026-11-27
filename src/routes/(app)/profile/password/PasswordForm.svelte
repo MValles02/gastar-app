@@ -2,7 +2,7 @@
 	import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '#lib/constants.ts';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import GoogleReauth, { needsGoogleReauth } from '#lib/components/GoogleReauth.svelte';
-	import PasswordInput from '#lib/components/PasswordInput.svelte';
+	import Field from '#lib/components/base/Field.svelte';
 	import type { ReauthMode } from '#lib/server/reauth.ts';
 
 	type Errors = { current?: string; next?: string };
@@ -51,36 +51,30 @@
 		style="--form-gap: 0.875rem; --actions-mt: var(--space-2)"
 	>
 		{#if hasPassword}
-			<div class="field">
-				<label for="current-password">Contraseña actual</label>
-				<PasswordInput
-					outlined
-					id="current-password"
-					name="currentPassword"
-					bind:value={current}
-					autocomplete="current-password"
-					maxlength={PASSWORD_MAX_LENGTH}
-					invalid={!!shown.current}
-					describedby={shown.current ? 'current-error' : undefined}
-				/>
-				{#if shown.current}<p class="error" id="current-error" role="alert">{shown.current}</p>{/if}
-			</div>
-		{/if}
-		<div class="field">
-			<label for="new-password">Contraseña nueva</label>
-			<PasswordInput
-				outlined
-				id="new-password"
-				name="newPassword"
-				bind:value={next}
-				autocomplete="new-password"
-				minlength={PASSWORD_MIN_LENGTH}
+			<Field
+				id="current-password"
+				name="currentPassword"
+				label="Contraseña actual"
+				type="password"
+				bind:value={current}
+				autocomplete="current-password"
 				maxlength={PASSWORD_MAX_LENGTH}
-				invalid={!!shown.next}
-				describedby={shown.next ? 'next-error' : undefined}
+				error={shown.current}
+				errorId="current-error"
 			/>
-			{#if shown.next}<p class="error" id="next-error" role="alert">{shown.next}</p>{/if}
-		</div>
+		{/if}
+		<Field
+			id="new-password"
+			name="newPassword"
+			label="Contraseña nueva"
+			type="password"
+			bind:value={next}
+			autocomplete="new-password"
+			minlength={PASSWORD_MIN_LENGTH}
+			maxlength={PASSWORD_MAX_LENGTH}
+			error={shown.next}
+			errorId="next-error"
+		/>
 		<p class="hint">
 			Mínimo {PASSWORD_MIN_LENGTH} caracteres.{hasPassword ? ' Cerramos tus otras sesiones.' : ''}
 		</p>
@@ -94,18 +88,6 @@
 		flex-direction: column;
 		gap: var(--space-4);
 		padding: var(--space-1) var(--space-4) var(--space-4);
-	}
-
-	.field {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-	}
-
-	.field label {
-		font-size: 0.8125rem;
-		font-weight: 500;
-		color: var(--text-muted);
 	}
 
 	.hint {

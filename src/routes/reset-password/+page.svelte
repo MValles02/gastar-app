@@ -5,7 +5,7 @@
 	import AuthForm from '#lib/components/AuthForm.svelte';
 	import AuthPage from '#lib/components/AuthPage.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import PasswordField from '#lib/components/PasswordField.svelte';
+	import Field from '#lib/components/base/Field.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -35,7 +35,12 @@
 	<AuthPage backHref={resolve('login')} title="Nueva contraseña">
 		<AuthForm action="?/reset" submitLabel="Guardar contraseña" onupdated={() => (password = '')}>
 			<input type="hidden" name="token" value={data.token} />
-			<PasswordField
+			<Field
+				id="password"
+				name="password"
+				label={es.auth.fields.password}
+				type="password"
+				required
 				bind:value={password}
 				autocomplete="new-password"
 				minlength={PASSWORD_MIN_LENGTH}

@@ -4,7 +4,7 @@
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import Header from '#lib/components/base/Header.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -50,7 +50,7 @@
 		{:else}
 			<div class="field">
 				<span id="type-label" class="label">Tipo de tarjeta</span>
-				<SegmentedControl
+				<Segmented
 					name="type"
 					options={[
 						{ value: 'credit', label: 'Crédito' },

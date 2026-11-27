@@ -13,7 +13,7 @@
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import AmountInput from '#lib/components/AmountInput.svelte';
 	import Group from '#lib/components/base/Group.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 
 	type Picker = ComponentProps<typeof OptionPicker>['items'][number];
@@ -77,7 +77,7 @@
 
 	<div class="field">
 		<span id="lcurrency-label" class="label">Moneda</span>
-		<SegmentedControl
+		<Segmented
 			name="currency"
 			options={currencyOptions}
 			bind:value={currency}

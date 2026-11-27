@@ -10,7 +10,7 @@
 	import Button from '#lib/components/base/Button.svelte';
 	import DateRangePicker from '#lib/components/pickers/DateRangePicker.svelte';
 	import MultiPicker from '#lib/components/pickers/MultiPicker.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
 
 	type Picks = ComponentProps<typeof MultiPicker>['items'];
 
@@ -128,7 +128,7 @@
 <Sheet title={es.ui.filters} bind:open {footer}>
 	<div class="filters">
 		<span id="f-currency-label" class="visually-hidden">{es.ui.currency}</span>
-		<SegmentedControl
+		<Segmented
 			name="currency"
 			options={currencyOptions}
 			bind:value={() => (stagedAccounts.length ? lockedCurrency : currency), (v) => (currency = v)}
@@ -136,12 +136,7 @@
 			disabled={stagedAccounts.length > 0}
 		/>
 		<span id="f-type-label" class="visually-hidden">{es.ui.type}</span>
-		<SegmentedControl
-			name="type"
-			options={typeOptions}
-			bind:value={type}
-			labelledby="f-type-label"
-		/>
+		<Segmented name="type" options={typeOptions} bind:value={type} labelledby="f-type-label" />
 		<div class="group">
 			<DateRangePicker bind:from bind:to />
 			<MultiPicker

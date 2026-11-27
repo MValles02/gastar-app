@@ -17,7 +17,7 @@
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import Header from '#lib/components/base/Header.svelte';
 	import TabBand from '#lib/components/TabBand.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import type { PageData } from './$types';
 
@@ -108,7 +108,7 @@
 
 {#snippet fields(submit: () => void)}
 	<span id="type-label" class="visually-hidden">Tipo</span>
-	<SegmentedControl
+	<Segmented
 		name="type"
 		options={typeOptions}
 		bind:value={type}

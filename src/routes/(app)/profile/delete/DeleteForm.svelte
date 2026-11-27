@@ -2,7 +2,7 @@
 	import { PASSWORD_MAX_LENGTH } from '#lib/constants.ts';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import GoogleReauth, { needsGoogleReauth } from '#lib/components/GoogleReauth.svelte';
-	import PasswordInput from '#lib/components/PasswordInput.svelte';
+	import Field from '#lib/components/base/Field.svelte';
 	import type { ReauthMode } from '#lib/server/reauth.ts';
 
 	type Summary = { accounts: number; movements: number; categories: number; hasPlan: boolean };
@@ -86,21 +86,17 @@
 		{@render warn()}
 
 		{#if hasPassword}
-			<div class="field">
-				<label for="delete-password">Contraseña</label>
-				<PasswordInput
-					outlined
-					id="delete-password"
-					name="password"
-					bind:value={password}
-					autocomplete="current-password"
-					maxlength={PASSWORD_MAX_LENGTH}
-					required={false}
-					invalid={!!message}
-					describedby={message ? 'delete-error' : undefined}
-				/>
-				{#if message}<p class="error" id="delete-error" role="alert">{message}</p>{/if}
-			</div>
+			<Field
+				id="delete-password"
+				name="password"
+				label="Contraseña"
+				type="password"
+				bind:value={password}
+				autocomplete="current-password"
+				maxlength={PASSWORD_MAX_LENGTH}
+				error={message}
+				errorId="delete-error"
+			/>
 		{/if}
 
 		<p class="final">No se puede deshacer.</p>
@@ -119,23 +115,6 @@
 		padding-inline-start: var(--space-5);
 		list-style: disc;
 		color: var(--text-muted);
-	}
-
-	.field {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-	}
-
-	.field label {
-		font-size: 0.8125rem;
-		font-weight: 500;
-		color: var(--text-muted);
-	}
-
-	.error {
-		color: var(--negative);
-		font-size: var(--font-size-sm);
 	}
 
 	.final {

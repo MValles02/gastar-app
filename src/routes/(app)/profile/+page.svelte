@@ -8,7 +8,7 @@
 	import Header from '#lib/components/base/Header.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import InlineText from '#lib/components/InlineText.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { USER_NAME_MAX_LENGTH } from '#lib/constants.ts';
 	import { applyTheme, THEME_OPTIONS } from '#lib/theme.ts';
@@ -114,7 +114,7 @@
 			<div class="row">
 				<span id="theme-heading">Tema</span>
 				<div class="seg">
-					<SegmentedControl
+					<Segmented
 						name="theme"
 						options={THEME_OPTIONS}
 						bind:value={selected}

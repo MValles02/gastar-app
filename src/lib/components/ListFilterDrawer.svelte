@@ -7,8 +7,10 @@
 	import { es } from '#lib/copy/es.ts';
 	import Sheet from '#lib/components/base/Sheet.svelte';
 	import Button from '#lib/components/base/Button.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
-	import SwitchRow from '#lib/components/SwitchRow.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import Toggle from '#lib/components/base/Toggle.svelte';
 
 	type Option = { value: string; label: string };
 
@@ -84,27 +86,22 @@
 	<div class="filters">
 		{#if kindOptions}
 			<span id="kind-label" class="visually-hidden">{es.ui.type}</span>
-			<SegmentedControl
-				name="kind"
-				options={kindOptions}
-				bind:value={kind}
-				labelledby="kind-label"
-			/>
+			<Segmented name="kind" options={kindOptions} bind:value={kind} labelledby="kind-label" />
 		{/if}
 		<span id="currency-label" class="visually-hidden">{es.ui.currency}</span>
-		<SegmentedControl
+		<Segmented
 			name="currency"
 			options={currencyOptions}
 			bind:value={currency}
 			labelledby="currency-label"
 		/>
-		<SwitchRow
-			id="archived"
-			name="archived"
-			value="1"
-			label={es.ui.showArchived}
-			bind:checked={archived}
-		/>
+		<Group>
+			<Row title={es.ui.showArchived} labelFor="archived">
+				{#snippet trailing()}
+					<Toggle id="archived" name="archived" value="1" bind:checked={archived} />
+				{/snippet}
+			</Row>
+		</Group>
 	</div>
 </Sheet>
 

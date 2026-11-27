@@ -21,9 +21,10 @@
 	import CrossCurrencyRows from '#lib/components/movements/CrossCurrencyRows.svelte';
 	import DatePicker from '#lib/components/pickers/DatePicker.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
-	import SwitchRow from '#lib/components/SwitchRow.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
-	import TextRow from '#lib/components/TextRow.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import Toggle from '#lib/components/base/Toggle.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
+	import Field from '#lib/components/base/Field.svelte';
 	import {
 		convertInput,
 		CURRENCY_LABEL,
@@ -211,7 +212,11 @@
 
 {#snippet repeat()}
 	<li>
-		<SwitchRow id="repeat" name="repeat" label="Repetir todos los meses" checked={repeatChecked} />
+		<Row item={false} title="Repetir todos los meses" labelFor="repeat">
+			{#snippet trailing()}
+				<Toggle id="repeat" name="repeat" checked={repeatChecked} />
+			{/snippet}
+		</Row>
 	</li>
 {/snippet}
 
@@ -242,12 +247,7 @@
 
 		<div class="field" class:centered={drawer}>
 			<span id="type-label" class="visually-hidden">Tipo</span>
-			<SegmentedControl
-				name="type"
-				options={typeOptions}
-				bind:value={type}
-				labelledby="type-label"
-			/>
+			<Segmented name="type" options={typeOptions} bind:value={type} labelledby="type-label" />
 			{#if shown.type}<p class="error" role="alert" in:appear>{shown.type}</p>{/if}
 		</div>
 
@@ -326,7 +326,8 @@
 				{#if !mounted.current}
 					<li class:bad={shown.exchangeRate}>
 						<p class="hint pad">Solo para transferencias entre monedas distintas</p>
-						<TextRow
+						<Field
+							layout="row"
 							id="exchangeRate"
 							name="exchangeRate"
 							label="Cotización"

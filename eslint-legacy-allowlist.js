@@ -2,8 +2,6 @@
 export default {
 	'gastar/no-arbitrary-tailwind': [
 		'src/lib/components/AuthTabs.svelte',
-		'src/lib/components/PasswordInput.svelte',
-		'src/lib/components/SegmentedControl.svelte',
 		'src/lib/components/accounts/AccountForm.svelte',
 		'src/lib/components/pickers/DayOfMonthPicker.svelte'
 	],
@@ -16,7 +14,6 @@ export default {
 	'svelte/no-inline-styles': [
 		'src/lib/components/AmountInput.svelte',
 		'src/lib/components/PaceChart.svelte',
-		'src/lib/components/SegmentedControl.svelte',
 		'src/routes/(app)/movements/+page.svelte',
 		'src/routes/(app)/movements/MovementForm.svelte',
 		'src/routes/(app)/reports/+page.svelte'
@@ -57,17 +54,12 @@ export default {
 		'src/lib/components/AuthTabs.svelte',
 		'src/lib/components/CheckEmail.svelte',
 		'src/lib/components/ConfirmDialog.svelte',
-		'src/lib/components/CurrencyTabs.svelte',
 		'src/lib/components/DetailLifecycle.svelte',
-		'src/lib/components/EmailField.svelte',
 		'src/lib/components/EntryFields.svelte',
-		'src/lib/components/FilterBar.svelte',
 		'src/lib/components/FirstRunChecklist.svelte',
-		'src/lib/components/GlyphNameHead.svelte',
 		'src/lib/components/GoogleButton.svelte',
 		'src/lib/components/GoogleReauth.svelte',
 		'src/lib/components/NavProgress.svelte',
-		'src/lib/components/PasswordField.svelte',
 		'src/lib/components/TabBar.svelte',
 		'src/lib/components/Wordmark.svelte',
 		'src/lib/components/accounts/AccountForm.svelte',

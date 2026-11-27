@@ -17,8 +17,8 @@
 		type SavingsUnit
 	} from '#lib/plan.ts';
 	import Group from '#lib/components/base/Group.svelte';
-	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
-	import TextRow from '#lib/components/TextRow.svelte';
+	import Segmented from '#lib/components/base/Segmented.svelte';
+	import Field from '#lib/components/base/Field.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 
@@ -125,7 +125,8 @@
 </script>
 
 {#snippet otherField(msg: string | undefined)}
-	<TextRow
+	<Field
+		layout="row"
 		id="savings-value"
 		name={SAVINGS_FIELDS.value}
 		label="Ahorro"
@@ -138,15 +139,15 @@
 	>
 		{#snippet end()}
 			<span id="savings-unit-label" class="visually-hidden">Unidad</span>
-			<SegmentedControl
+			<Segmented
 				name={SAVINGS_FIELDS.unit}
 				options={units}
 				bind:value={unit}
 				labelledby="savings-unit-label"
-				class="flex-auto px-2 whitespace-nowrap"
+				fit
 			/>
 		{/snippet}
-	</TextRow>
+	</Field>
 {/snippet}
 
 <!-- Autosave: a rows card of its own. Form: a plain row, since the setup wraps the options in a card. -->

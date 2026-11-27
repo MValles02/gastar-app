@@ -13,7 +13,7 @@
 	import FormActions from '#lib/components/FormActions.svelte';
 	import ActionLink from '#lib/components/ActionLink.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
-	import SwitchRow from '#lib/components/SwitchRow.svelte';
+	import Toggle from '#lib/components/base/Toggle.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import { PLAN_CURRENCY } from '#lib/plan.ts';
 	import {
@@ -226,15 +226,13 @@
 			use:enhance={() => (input) => followRedirect(input)}
 			class="wizard"
 		>
-			<Card.Root class="gap-0 py-0">
-				<SwitchRow
-					id="repeat"
-					name="repeat"
-					label="Usar este plan todos los meses"
-					bind:checked={repeat}
-					describedby="repeat-note"
-				/>
-			</Card.Root>
+			<Group>
+				<Row title="Usar este plan todos los meses" labelFor="repeat">
+					{#snippet trailing()}
+						<Toggle id="repeat" name="repeat" bind:checked={repeat} describedby="repeat-note" />
+					{/snippet}
+				</Row>
+			</Group>
 			<p id="repeat-note" class="muted small">
 				{repeat
 					? 'El plan se repite cada mes con tus ingresos y pagos fijos.'
