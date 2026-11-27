@@ -11,8 +11,8 @@
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import Meter from '#lib/components/Meter.svelte';
-	import Money from '#lib/components/Money.svelte';
-	import HeroAmount from '#lib/components/HeroAmount.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
+	import { signTone } from '#lib/money.ts';
 	import MovementRow from '#lib/components/movements/MovementRow.svelte';
 	import MpPill from './MpPill.svelte';
 	import PaceChart from '#lib/components/PaceChart.svelte';
@@ -67,9 +67,9 @@
 								<CardEyebrow as="h2" id="summary-heading">Disponible</CardEyebrow>
 								<StatusPill tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
 							</div>
-							<HeroAmount class="available-amount" cents={s.available} currency="ARS" />
+							<Amount size="hero" as="p" cents={s.available} currency="ARS" />
 							<p class="muted per-day">
-								<Money cents={s.perDay} currency="ARS" /> por día · {s.daysLeft === 1
+								<Amount cents={s.perDay} currency="ARS" /> por día · {s.daysLeft === 1
 									? 'queda 1 día'
 									: `quedan ${s.daysLeft} días`}
 							</p>
@@ -87,23 +87,31 @@
 						<div class="cols">
 							<div class="col">
 								<span class="k">Saldo total</span>
-								<span class="am"><Money cents={data.balance} currency={data.currency} /></span>
+								<span class="am"><Amount cents={data.balance} currency={data.currency} /></span>
 							</div>
 							<div class="col">
 								<span class="k">Resultado del mes</span>
 								<span class="am net">
-									<Money cents={data.monthNet} currency={data.currency} tone="flow" />
+									<Amount
+										cents={data.monthNet}
+										currency={data.currency}
+										tone={signTone(data.monthNet)}
+									/>
 								</span>
 							</div>
 						</div>
 					{:else}
 						<div class="box" in:fade>
 							<CardEyebrow as="h2" id="summary-heading">Saldo total</CardEyebrow>
-							<HeroAmount cents={data.balance} currency={data.currency} />
+							<Amount size="hero" as="p" cents={data.balance} currency={data.currency} />
 							<p class="muted per-day">
 								Resultado del mes
 								<span class="net"
-									><Money cents={data.monthNet} currency={data.currency} tone="flow" /></span
+									><Amount
+										cents={data.monthNet}
+										currency={data.currency}
+										tone={signTone(data.monthNet)}
+									/></span
 								>
 							</p>
 							{#if data.plan?.endedMonthName}
@@ -136,11 +144,10 @@
 							{#each data.topCategories as cat (cat.id)}
 								{#snippet catValue()}
 									<span class="pct">{formatPercent(cat.share)}</span>
-									<Money
+									<Amount
 										cents={cat.net}
 										currency={data.currency}
-										tone="flow"
-										direction={cat.net < 0 ? 'income' : 'outcome'}
+										tone={cat.net < 0 ? 'income' : 'expense'}
 									/>
 								{/snippet}
 								{#snippet catFooter()}

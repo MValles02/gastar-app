@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import type { Currency } from '#lib/money.ts';
 	import * as Card from '#lib/components/ui/card/index.js';
-	import HeroAmount from './HeroAmount.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 
 	/**
 	 * Amount card of a detail page: centered amount with a muted label below, no icon.
@@ -36,7 +36,7 @@
 				{#if children}
 					{@render children()}
 				{:else if cents !== undefined && currency}
-					<HeroAmount {cents} {currency} />
+					<Amount size="hero" as="p" {cents} {currency} />
 				{/if}
 				{#if label}<p id={ariaLabel ? undefined : labelId} class="label">{label}</p>{/if}
 			</div>
@@ -54,7 +54,7 @@
 		text-align: center;
 	}
 
-	.detail-hero > :global(.hero-amount) {
+	.detail-hero > :global(.amount[data-size='hero']) {
 		align-self: stretch;
 		text-align: center;
 	}

@@ -53,7 +53,7 @@
 			aria-pressed={showPassword}
 			onclick={() => (showPassword = !showPassword)}
 		>
-			<Icon name={showPassword ? 'eye-off' : 'eye'} size="1.25rem" />
+			<Icon name={showPassword ? 'eye-off' : 'eye'} size="md" />
 			<span class="visually-hidden">
 				{showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
 			</span>

@@ -29,7 +29,7 @@
 			{#if backHref}
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass a resolved href -->
 				<a class="back" href={backHref}>
-					<Icon name="chevron-left" size="1.375rem" />Volver
+					<Icon name="chevron-left" size="md" />Volver
 				</a>
 			{/if}
 
@@ -37,7 +37,7 @@
 				<div class="brand"><Wordmark size="2.25rem" tone="primary" /></div>
 				<header>
 					{#if icon}
-						<span class="media" aria-hidden="true"><Icon name={icon} size="1.5rem" /></span>
+						<span class="media" aria-hidden="true"><Icon name={icon} size="lg" /></span>
 					{/if}
 					<h1>{title}</h1>
 					{#if typeof description === 'string'}

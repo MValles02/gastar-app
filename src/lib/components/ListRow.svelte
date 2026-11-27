@@ -97,7 +97,7 @@
 		<Item.Actions class="relative z-1 flex-col items-end gap-1">{@render action()}</Item.Actions>
 	{/if}
 	{#if chevron}
-		<Item.Actions><Icon name="chevron-right" size="1.25rem" /></Item.Actions>
+		<Item.Actions><Icon name="chevron-right" size="md" /></Item.Actions>
 	{/if}
 	{#if footer}<Item.Footer>{@render footer()}</Item.Footer>{/if}
 {/snippet}

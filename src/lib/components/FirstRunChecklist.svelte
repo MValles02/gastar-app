@@ -50,7 +50,7 @@
 				{#snippet body()}
 					<span class="num" class:primary={i === firstOpen && !locked} aria-hidden={!item.done}>
 						{#if item.done}
-							<Icon name="check" size="1rem" /><span class="visually-hidden">Hecho: </span>
+							<Icon name="check" size="sm" /><span class="visually-hidden">Hecho: </span>
 						{:else}
 							{i + 1}
 						{/if}
@@ -60,7 +60,7 @@
 						<span class="hint">{item.hint}</span>
 						{#if locked}<span class="visually-hidden">Primero creá una cuenta.</span>{/if}
 					</span>
-					{#if !item.done && !locked}<Icon name="chevron-right" size="1.25rem" />{/if}
+					{#if !item.done && !locked}<Icon name="chevron-right" size="md" />{/if}
 				{/snippet}
 				<li class:done={item.done} class:locked>
 					{#if item.done || locked}

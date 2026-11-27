@@ -11,7 +11,7 @@
 	import DetailRow from '#lib/components/DetailRow.svelte';
 	import GlyphRow from '#lib/components/GlyphRow.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import type { PageData } from './$types';
 
@@ -85,7 +85,7 @@
 				onsave={(initialBalance) => save({ initialBalance })}
 			>
 				{#snippet display()}
-					<Money cents={a.initialBalance} currency={a.currency} tone="stock" />
+					<Amount cents={a.initialBalance} currency={a.currency} />
 				{/snippet}
 			</InlineText>
 		</DetailRow>

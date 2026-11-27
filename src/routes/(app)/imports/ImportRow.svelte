@@ -4,7 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { submitAction } from '#lib/autosave.ts';
 	import ListRow from '#lib/components/ListRow.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import RowPill from '#lib/components/RowPill.svelte';
 	import { formatMoney, type Currency } from '#lib/money.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
@@ -53,11 +53,10 @@
 
 {#snippet side()}
 	<span class="amount">
-		<Money
+		<Amount
 			cents={item.amount}
 			currency={item.currency}
-			tone="flow"
-			direction={item.isCredit ? 'income' : 'outcome'}
+			tone={item.isCredit ? 'income' : 'expense'}
 		/>
 	</span>
 	{#if item.suggestion === null}

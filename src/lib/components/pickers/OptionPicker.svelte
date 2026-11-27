@@ -3,7 +3,7 @@
 	import { tick, type ComponentProps, type Snippet } from 'svelte';
 	import type { SwatchKey } from '#lib/appearance.ts';
 	import IconBadge from '#lib/components/IconBadge.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import * as Item from '#lib/components/ui/item/index.js';
 	import type { Currency } from '#lib/money.ts';
 	import { archived } from '#lib/movement.ts';
@@ -102,7 +102,7 @@
 {#snippet balance(item: Item)}
 	{#if item.balance !== undefined && item.currency}
 		<Item.Actions class="font-semibold tabular-nums">
-			<Money cents={item.balance} currency={item.currency} tone="stock" />
+			<Amount cents={item.balance} currency={item.currency} />
 		</Item.Actions>
 	{/if}
 {/snippet}

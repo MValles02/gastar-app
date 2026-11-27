@@ -73,7 +73,7 @@
 		{#if search}
 			<InputGroup.Root class="h-11 flex-1 rounded-xl">
 				<InputGroup.Addon>
-					<Icon name="search" size="1.25rem" />
+					<Icon name="search" size="md" />
 				</InputGroup.Addon>
 				<InputGroup.Input
 					type="search"

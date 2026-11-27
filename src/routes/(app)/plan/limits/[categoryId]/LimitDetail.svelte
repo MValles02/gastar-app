@@ -12,7 +12,7 @@
 	import IconBadge from '#lib/components/IconBadge.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
 	import Meter from '#lib/components/Meter.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import type { PageData } from './$types';
@@ -79,8 +79,8 @@
 			{:else if pace.fast}<StatusPill tone={PLAN_TONE.warn} label={PLAN_STATUS_LABEL.warn} />{/if}
 		</div>
 		<p class="of">
-			<span class="spent"><Money cents={spent} {currency} /></span> de
-			<Money cents={limit} {currency} />
+			<span class="spent"><Amount cents={spent} {currency} /></span> de
+			<Amount cents={limit} {currency} />
 		</p>
 		<Meter
 			percent={pct}
@@ -92,7 +92,7 @@
 
 	<div class="amount">
 		<InlineText label="Monto del límite" inputmode="decimal" value={amountText} onsave={save}>
-			{#snippet display()}<Money cents={limit} {currency} />{/snippet}
+			{#snippet display()}<Amount cents={limit} {currency} />{/snippet}
 		</InlineText>
 		{#if data.suggested > 0 && data.suggested !== limit}
 			<Button

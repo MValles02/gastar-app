@@ -12,7 +12,7 @@
 	import ActionLink from '#lib/components/ActionLink.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import SwitchRow from '#lib/components/SwitchRow.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
@@ -98,11 +98,10 @@
 			{#if data.active.length}
 				<p class="total">
 					<span>Total</span>
-					<Money
+					<Amount
 						cents={income ? data.total : -data.total}
 						currency={PLAN_CURRENCY}
-						tone="flow"
-						direction={income ? 'income' : 'outcome'}
+						tone={income ? 'income' : 'expense'}
 					/>
 				</p>
 			{/if}
@@ -132,7 +131,7 @@
 							title={s.description}
 						>
 							{#snippet value()}
-								<Money cents={-s.amount} currency={s.currency} tone="flow" direction="outcome" />
+								<Amount cents={-s.amount} currency={s.currency} tone="expense" />
 							{/snippet}
 							{#snippet meta()}Día {s.dayOfMonth} · {s.accountName}{/snippet}
 						</ListRow>
@@ -189,23 +188,23 @@
 				<div class="kv">
 					<dt>Ingresos</dt>
 					<dd>
-						<Money cents={s.income} currency={PLAN_CURRENCY} tone="flow" direction="income" />
+						<Amount cents={s.income} currency={PLAN_CURRENCY} tone="income" />
 					</dd>
 				</div>
 				<div class="kv">
 					<dt>Pagos fijos</dt>
 					<dd>
-						<Money cents={-s.bills} currency={PLAN_CURRENCY} tone="flow" direction="outcome" />
+						<Amount cents={-s.bills} currency={PLAN_CURRENCY} tone="expense" />
 					</dd>
 				</div>
 				<div class="kv">
 					<dt>Ahorro</dt>
-					<dd><Money cents={s.savings} currency={PLAN_CURRENCY} /></dd>
+					<dd><Amount cents={s.savings} currency={PLAN_CURRENCY} /></dd>
 				</div>
 				{#each s.limits as l (l.categoryId)}
 					<div class="kv">
 						<dt>Límite · {l.name}</dt>
-						<dd><Money cents={l.amount} currency={l.currency} /></dd>
+						<dd><Amount cents={l.amount} currency={l.currency} /></dd>
 					</div>
 				{:else}
 					<div class="kv">
@@ -215,11 +214,11 @@
 				{/each}
 				<div class="kv sum">
 					<dt>Para gastar</dt>
-					<dd><Money cents={s.forSpending} currency={PLAN_CURRENCY} /></dd>
+					<dd><Amount cents={s.forSpending} currency={PLAN_CURRENCY} /></dd>
 				</div>
 				<div class="kv">
 					<dt>Por día</dt>
-					<dd>≈ <Money cents={perDay} currency={PLAN_CURRENCY} /></dd>
+					<dd>≈ <Amount cents={perDay} currency={PLAN_CURRENCY} /></dd>
 				</div>
 			</dl>
 		</Card.Root>

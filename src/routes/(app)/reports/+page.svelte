@@ -6,16 +6,15 @@
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import MonthNav from '#lib/components/MonthNav.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import Meter from '#lib/components/Meter.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
-	import HeroAmount from '#lib/components/HeroAmount.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import TabBand from '#lib/components/TabBand.svelte';
-	import { CURRENCY_NAME, formatMoney } from '#lib/money.ts';
+	import { CURRENCY_NAME, formatMoney, signTone } from '#lib/money.ts';
 	import { markReplace } from '#lib/nav-stack.svelte.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import { swatchVar, toSwatchKey } from '#lib/appearance.ts';
@@ -27,7 +26,7 @@
 	const hasMovements = $derived(data.bars?.some((b) => b.income !== 0 || b.outcome !== 0) ?? false);
 
 	const money = (c: number) => formatMoney(c, data.currency);
-	// Spending is negated so Money shows it as an outcome (red); zero stays neutral.
+	// Spending is negated so Amount shows it as an outcome (red); zero stays neutral.
 	const neg = (c: number) => (c === 0 ? 0 : -c);
 	// The category's own swatch, as in the Categorías list (no colour = the badge default); "Otros" is neutral.
 	const sliceColor = (s: { id: string; color: string | null }) =>
@@ -68,28 +67,24 @@
 					<dl class="totals">
 						<div class="box">
 							<CardEyebrow as="dt">Resultado</CardEyebrow>
-							<HeroAmount as="dd" cents={data.net} currency={data.currency} tone="flow" />
+							<Amount
+								size="hero"
+								as="dd"
+								cents={data.net}
+								currency={data.currency}
+								tone={signTone(data.net)}
+							/>
 						</div>
 						<div class="kv">
 							<dt class="k">Ingresos</dt>
 							<dd class="am">
-								<Money
-									cents={data.income}
-									currency={data.currency}
-									tone="flow"
-									direction="income"
-								/>
+								<Amount cents={data.income} currency={data.currency} tone="income" />
 							</dd>
 						</div>
 						<div class="kv">
 							<dt class="k">Gastos</dt>
 							<dd class="am">
-								<Money
-									cents={neg(data.outcome)}
-									currency={data.currency}
-									tone="flow"
-									direction="outcome"
-								/>
+								<Amount cents={neg(data.outcome)} currency={data.currency} tone="expense" />
 							</dd>
 						</div>
 					</dl>
@@ -143,7 +138,7 @@
 						{#each data.slices as s (s.id)}
 							{#snippet sliceValue()}
 								<span class="pct">{s.percent}%</span>
-								<Money cents={s.amount} currency={data.currency} tone="flow" direction="outcome" />
+								<Amount cents={s.amount} currency={data.currency} tone="expense" />
 							{/snippet}
 							{#snippet sliceFooter()}
 								<Meter percent={s.percent} color={sliceColor(s)} />
@@ -181,7 +176,7 @@
 							<Card.Content>
 								<div class="fact-card">
 									<CardEyebrow>Por día</CardEyebrow>
-									<p class="fact"><Money cents={data.dailyAverage} currency={data.currency} /></p>
+									<p class="fact"><Amount cents={data.dailyAverage} currency={data.currency} /></p>
 									<p class="label">{data.days} {data.days === 1 ? 'día' : 'días'}</p>
 								</div>
 							</Card.Content>
@@ -193,13 +188,12 @@
 								<Card.Content>
 									<div class="fact-card">
 										<CardEyebrow>Gasto más grande</CardEyebrow>
-										<Icon name="chevron-right" size="1rem" />
+										<Icon name="chevron-right" size="sm" />
 										<p class="fact">
-											<Money
+											<Amount
 												cents={neg(data.biggest.amount)}
 												currency={data.currency}
-												tone="flow"
-												direction="outcome"
+												tone="expense"
 											/>
 										</p>
 										<p class="label">{data.biggest.description} · {data.biggest.date}</p>

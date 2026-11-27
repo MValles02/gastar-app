@@ -11,8 +11,7 @@
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
-	import Money from '#lib/components/Money.svelte';
-	import HeroAmount from '#lib/components/HeroAmount.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import TabBand from '#lib/components/TabBand.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
@@ -102,9 +101,9 @@
 							<CardEyebrow as="h2" id="summary-heading">Disponible</CardEyebrow>
 							<StatusPill tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
 						</div>
-						<HeroAmount cents={s.available} currency={PLAN_CURRENCY} />
+						<Amount size="hero" as="p" cents={s.available} currency={PLAN_CURRENCY} />
 						<p class="per-day">
-							<Money cents={s.perDay} currency={PLAN_CURRENCY} /> por día · {s.daysLeft === 1
+							<Amount cents={s.perDay} currency={PLAN_CURRENCY} /> por día · {s.daysLeft === 1
 								? 'queda 1 día'
 								: `quedan ${s.daysLeft} días`}
 						</p>
@@ -113,18 +112,13 @@
 						<div class="kv">
 							<dt>Ingresos</dt>
 							<dd>
-								<Money cents={s.income} currency={PLAN_CURRENCY} tone="flow" direction="income" />
+								<Amount cents={s.income} currency={PLAN_CURRENCY} tone="income" />
 							</dd>
 						</div>
 						<div class="kv">
 							<dt>Pagos fijos</dt>
 							<dd>
-								<Money
-									cents={-s.pendingBills}
-									currency={PLAN_CURRENCY}
-									tone="flow"
-									direction="outcome"
-								/>
+								<Amount cents={-s.pendingBills} currency={PLAN_CURRENCY} tone="expense" />
 							</dd>
 						</div>
 						<div class="kv link">
@@ -135,12 +129,12 @@
 									>Ahorro<span aria-hidden="true">&nbsp;›</span></a
 								>
 							</dt>
-							<dd><Money cents={s.savings} currency={PLAN_CURRENCY} /></dd>
+							<dd><Amount cents={s.savings} currency={PLAN_CURRENCY} /></dd>
 						</div>
 						<div class="kv">
 							<dt>Gastado</dt>
 							<dd>
-								<Money cents={-s.spent} currency={PLAN_CURRENCY} tone="flow" direction="outcome" />
+								<Amount cents={-s.spent} currency={PLAN_CURRENCY} tone="expense" />
 							</dd>
 						</div>
 					</dl>

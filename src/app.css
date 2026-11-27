@@ -377,6 +377,29 @@
 	--tone-neutral: var(--text);
 	--dur-reduced: 100ms;
 	--shadow-swipe: -12px 0 24px -12px oklch(0 0 0 / 0.25);
+	/* Tints: glyph background, status and positive pill, header and glass backgrounds (mix percentages). */
+	--tint-glyph: 20%;
+	--tint-soft: 14%;
+	--tint-header: 92%;
+	--tint-glass: 62%;
+	/* Component sizes: pill, meter, glyph icons, sheet. */
+	--size-pill: 2rem;
+	--size-meter: 0.375rem;
+	--size-glyph-icon-chip: 0.75rem;
+	--size-glyph-icon-hero: 1.75rem;
+	--size-sheet: 35rem;
+	--size-sheet-auto: 85dvh;
+	--size-sheet-tall: 92dvh;
+	/* Hero amount fit factor: Geist Mono advance per glyph with its tracking, plus a hair of margin. */
+	--hero-advance: 0.59;
+	--tracking-label: 0.06em;
+	/* Header and tab bar glass. */
+	--backdrop-header: blur(16px);
+	--backdrop-glass: blur(20px) saturate(180%);
+	--shadow-glass:
+		inset 0 0 0 1px light-dark(oklch(1 0 0 / 0.6), oklch(1 0 0 / 0.08)),
+		inset 0 1px 0 light-dark(oklch(1 0 0 / 0.9), oklch(1 0 0 / 0.12)),
+		0 10px 30px -10px light-dark(oklch(0.307 0.044 78.9 / 0.35), oklch(0 0 0 / 0.6));
 
 	color-scheme: light dark;
 }
@@ -397,6 +420,74 @@
 
 .amount {
 	font-variant-numeric: tabular-nums;
+}
+
+/* Tone map: data-tone picks --tone, components read var(--tone). */
+[data-tone='income'] {
+	--tone: var(--tone-income);
+}
+[data-tone='expense'] {
+	--tone: var(--tone-expense);
+}
+[data-tone='neutral'] {
+	--tone: var(--tone-neutral);
+}
+[data-tone='muted'] {
+	--tone: var(--text-muted);
+}
+[data-tone='warning'] {
+	--tone: var(--warning);
+}
+[data-tone='primary'] {
+	--tone: var(--primary);
+}
+[data-tone='green'] {
+	--tone: var(--swatch-green);
+}
+[data-tone='teal'] {
+	--tone: var(--swatch-teal);
+}
+[data-tone='sky'] {
+	--tone: var(--swatch-sky);
+}
+[data-tone='blue'] {
+	--tone: var(--swatch-blue);
+}
+[data-tone='indigo'] {
+	--tone: var(--swatch-indigo);
+}
+[data-tone='violet'] {
+	--tone: var(--swatch-violet);
+}
+[data-tone='plum'] {
+	--tone: var(--swatch-plum);
+}
+[data-tone='pink'] {
+	--tone: var(--swatch-pink);
+}
+[data-tone='red'] {
+	--tone: var(--swatch-red);
+}
+[data-tone='orange'] {
+	--tone: var(--swatch-orange);
+}
+[data-tone='amber'] {
+	--tone: var(--swatch-amber);
+}
+[data-tone='ochre'] {
+	--tone: var(--swatch-ochre);
+}
+[data-tone='olive'] {
+	--tone: var(--swatch-olive);
+}
+[data-tone='brown'] {
+	--tone: var(--swatch-brown);
+}
+[data-tone='slate'] {
+	--tone: var(--swatch-slate);
+}
+[data-tone='gray'] {
+	--tone: var(--swatch-gray);
 }
 
 .visually-hidden {

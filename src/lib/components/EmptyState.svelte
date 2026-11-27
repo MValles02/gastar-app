@@ -16,7 +16,7 @@
 
 <Empty.Root>
 	<Empty.Header>
-		<Empty.Media variant="icon"><Icon name={icon} size="1rem" /></Empty.Media>
+		<Empty.Media variant="icon"><Icon name={icon} size="sm" /></Empty.Media>
 		<Empty.Description>{description}</Empty.Description>
 	</Empty.Header>
 	{#if children}<Empty.Content>{@render children()}</Empty.Content>{/if}

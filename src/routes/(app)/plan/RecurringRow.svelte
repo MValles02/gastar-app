@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import ListRow from '#lib/components/ListRow.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import { dueTone, PLAN_CURRENCY, type RecurringStatus } from '#lib/plan.ts';
 	import { withWizard } from '#lib/plan-wizard.ts';
 	import type { CategoryIconKey, SwatchKey } from '#lib/appearance.ts';
@@ -32,18 +32,17 @@
 
 {#snippet value()}
 	{#if r.reason}
-		<Money cents={r.amount} currency={r.currency} />
+		<Amount cents={r.amount} currency={r.currency} />
 	{:else}
-		<Money
+		<Amount
 			cents={r.type === 'income' ? r.amount : -r.amount}
 			currency={r.currency}
-			tone="flow"
-			direction={r.type === 'income' ? 'income' : 'outcome'}
+			tone={r.type === 'income' ? 'income' : 'expense'}
 		/>
 	{/if}
 	{#if r.currency === 'USD'}
 		<span class="approx">
-			{#if r.converted === null}Sin cotización{:else}≈ <Money
+			{#if r.converted === null}Sin cotización{:else}≈ <Amount
 					cents={r.converted}
 					currency={PLAN_CURRENCY}
 				/>{/if}

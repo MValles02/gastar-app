@@ -5,7 +5,7 @@
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import Meter from '#lib/components/Meter.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import { formatMoney, type Currency } from '#lib/money.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import { limitPercent } from '#lib/plan.ts';
@@ -43,7 +43,7 @@
 			{@const pct = limitPercent(l.spent, l.amount)}
 			{#snippet value()}
 				<span class="inline"
-					><span class="pct" class:over={l.over}>{pct}%</span><Money
+					><span class="pct" class:over={l.over}>{pct}%</span><Amount
 						cents={l.spent}
 						currency={l.currency}
 					/></span

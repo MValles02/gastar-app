@@ -130,7 +130,7 @@ async function figures(page: Page) {
 	// Disponible is the hero amount of the summary card (signed).
 	const hero = await page
 		.getByRole('region', { name: /^Disponible$/ })
-		.locator('.hero-amount')
+		.locator(".amount[data-size='hero']")
 		.innerText();
 	out['Disponible'] = Number(hero.replace(/\D/g, '')) * (/[-−]/.test(hero) ? -1 : 1);
 	return out;

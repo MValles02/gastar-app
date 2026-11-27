@@ -10,10 +10,16 @@
 	import ListRow from '#lib/components/ListRow.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import Meter from '#lib/components/Meter.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
-	import { CURRENCIES, CURRENCY_OPTIONS, DEFAULT_CURRENCY, type Currency } from '#lib/money.ts';
+	import {
+		CURRENCIES,
+		CURRENCY_OPTIONS,
+		DEFAULT_CURRENCY,
+		type Currency,
+		signTone
+	} from '#lib/money.ts';
 	import { ARCHIVED_LABEL, KIND_OPTIONS } from '#lib/movement.ts';
 	import { activeListFilters } from '#lib/list-filter.ts';
 	import type { PageData } from './$types';
@@ -90,9 +96,9 @@
 								<span class="totals">
 									{#each shown(c.totals) as cur (cur)}
 										{#if c.totals[cur] === undefined}
-											<span class="zero"><Money cents={0} currency={cur} /></span>
+											<span class="zero"><Amount cents={0} currency={cur} /></span>
 										{:else}
-											<Money cents={c.totals[cur]} currency={cur} tone="flow" />
+											<Amount cents={c.totals[cur]} currency={cur} tone={signTone(c.totals[cur])} />
 										{/if}
 									{/each}
 								</span>

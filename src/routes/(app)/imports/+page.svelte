@@ -17,7 +17,7 @@
 	import ListRow from '#lib/components/ListRow.svelte';
 	import RowPill from '#lib/components/RowPill.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import { formatDay } from '#lib/locale.ts';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import ImportRow from './ImportRow.svelte';
@@ -178,7 +178,7 @@
 				{#each data.unmatched as item (item.id)}
 					{#snippet meta()}
 						{formatDay(item.day)} ·
-						<Money cents={item.amount} currency={item.currency} tone="flow" direction="outcome" />
+						<Amount cents={item.amount} currency={item.currency} tone="expense" />
 					{/snippet}
 					{#snippet choices()}
 						<span class="choices">

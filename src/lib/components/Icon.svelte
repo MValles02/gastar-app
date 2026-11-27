@@ -1,6 +1,37 @@
+<script module lang="ts">
+	import type { AccountIconKey, CategoryIconKey } from '#lib/appearance.ts';
+
+	export type IconName =
+		| AccountIconKey
+		| CategoryIconKey
+		| 'search'
+		| 'close'
+		| 'filters'
+		| 'home'
+		| 'accounts'
+		| 'plus'
+		| 'movements'
+		| 'categories'
+		| 'profile'
+		| 'chevron-left'
+		| 'chevron-right'
+		| 'transfer'
+		| 'plan'
+		| 'chart'
+		| 'bell'
+		| 'alert'
+		| 'logout'
+		| 'check'
+		| 'eye'
+		| 'eye-off'
+		| 'mail'
+		| 'clock'
+		| 'file-up'
+		| 'lock';
+</script>
+
 <script lang="ts">
 	import type { Component } from 'svelte';
-	import type { AccountIconKey, CategoryIconKey } from '#lib/appearance.ts';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import FileUp from '@lucide/svelte/icons/file-up';
@@ -40,42 +71,23 @@
 	import PiggyBank from '@lucide/svelte/icons/piggy-bank';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Search from '@lucide/svelte/icons/search';
+	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
+	import X from '@lucide/svelte/icons/x';
 	import Smartphone from '@lucide/svelte/icons/smartphone';
 	import Tag from '@lucide/svelte/icons/tag';
 	import User from '@lucide/svelte/icons/user';
 	import Vault from '@lucide/svelte/icons/vault';
 	import Wallet from '@lucide/svelte/icons/wallet';
 
-	type IconName =
-		| AccountIconKey
-		| CategoryIconKey
-		| 'search'
-		| 'home'
-		| 'accounts'
-		| 'plus'
-		| 'movements'
-		| 'categories'
-		| 'profile'
-		| 'chevron-left'
-		| 'chevron-right'
-		| 'transfer'
-		| 'plan'
-		| 'chart'
-		| 'bell'
-		| 'alert'
-		| 'logout'
-		| 'check'
-		| 'eye'
-		| 'eye-off'
-		| 'mail'
-		| 'clock'
-		| 'file-up'
-		| 'lock';
+	/** Lucide at stroke 1.75; `size` picks --icon-sm, --icon-md or --icon-lg (default lg). Classes spelled out so Tailwind sees them. */
+	let { name, size = 'lg' }: { name: IconName; size?: 'sm' | 'md' | 'lg' } = $props();
 
-	/** Lucide at stroke 1.75; `size` is a CSS length (1rem, 1.25rem or 1.5rem) or a percentage of the parent. */
-	let { name, size = '1.5rem' }: { name: IconName; size?: string } = $props();
+	const sizeClass = { sm: 'size-icon-sm', md: 'size-icon-md', lg: 'size-icon-lg' } as const;
 
-	const icons: Record<IconName, Component<{ size?: number | string; strokeWidth?: number }>> = {
+	const icons: Record<
+		IconName,
+		Component<{ class?: string; strokeWidth?: number; 'aria-hidden'?: 'true' }>
+	> = {
 		home: House,
 		accounts: Wallet,
 		plus: Plus,
@@ -99,6 +111,8 @@
 		lock: Lock,
 		tag: Tag,
 		search: Search,
+		close: X,
+		filters: SlidersHorizontal,
 		bank: Landmark,
 		wallet: Wallet,
 		cash: Banknote,
@@ -127,4 +141,4 @@
 	const Lucide = $derived(icons[name]);
 </script>
 
-<Lucide {size} strokeWidth={1.75} />
+<Lucide class={sizeClass[size]} strokeWidth={1.75} aria-hidden="true" />

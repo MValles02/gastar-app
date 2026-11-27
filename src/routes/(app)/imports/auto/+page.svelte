@@ -6,7 +6,7 @@
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import RowPill from '#lib/components/RowPill.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -50,11 +50,10 @@
 				{#snippet meta()}{item.target ? `${item.target} · ${item.date}` : item.date}{/snippet}
 				{#snippet side()}
 					<span class="amount">
-						<Money
+						<Amount
 							cents={item.amount}
 							currency={item.currency}
-							tone="flow"
-							direction={item.isCredit ? 'income' : 'outcome'}
+							tone={item.isCredit ? 'income' : 'expense'}
 						/>
 					</span>
 					<form

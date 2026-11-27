@@ -5,7 +5,7 @@
 	import { highlight } from '#lib/highlight.svelte.ts';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import ListRow from '#lib/components/ListRow.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 
 	let {
 		m,
@@ -37,10 +37,14 @@
 </script>
 
 {#snippet value()}
-	<Money cents={m.amount} currency={m.currency} tone="flow" direction={m.type} />
+	<Amount
+		cents={m.amount}
+		currency={m.currency}
+		tone={m.type === 'income' ? 'income' : m.type === 'outcome' ? 'expense' : 'neutral'}
+	/>
 	{#if m.secondary}
 		<span class="secondary"
-			><Money cents={m.secondary.cents} currency={m.secondary.currency} /></span
+			><Amount cents={m.secondary.cents} currency={m.secondary.currency} /></span
 		>
 	{/if}
 {/snippet}

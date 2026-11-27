@@ -12,7 +12,7 @@
 	import FilterBar from '#lib/components/FilterBar.svelte';
 	import ListCard from '#lib/components/ListCard.svelte';
 	import MovementFiltersDrawer from '#lib/components/movements/MovementFiltersDrawer.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import MovementRow from '#lib/components/movements/MovementRow.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
@@ -215,7 +215,7 @@
 												<span class="visually-hidden">Gastos del día: </span>
 												{#each g.spend as s, i (s.currency)}
 													{#if i > 0}{CURRENCY_SEP}{/if}
-													<Money cents={s.cents} currency={s.currency} />
+													<Amount cents={s.cents} currency={s.currency} />
 												{/each}
 											</span>
 										{/if}

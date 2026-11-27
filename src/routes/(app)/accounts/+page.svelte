@@ -12,7 +12,7 @@
 	import ListCard from '#lib/components/ListCard.svelte';
 	import ListRow from '#lib/components/ListRow.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import type { PageData } from './$types';
@@ -70,15 +70,13 @@
 				<section aria-labelledby="group-{g.currency}">
 					<SectionHeader id="group-{g.currency}" title={g.label} variant="group">
 						{#snippet aside()}
-							<span class="group-total"
-								><Money cents={g.total} currency={g.currency} tone="stock" /></span
-							>
+							<span class="group-total"><Amount cents={g.total} currency={g.currency} /></span>
 						{/snippet}
 					</SectionHeader>
 					<ListCard>
 						{#each g.accounts as a (a.id)}
 							{#snippet value()}
-								<Money cents={a.balance} currency={a.currency} tone="stock" />
+								<Amount cents={a.balance} currency={a.currency} />
 							{/snippet}
 							<ListRow
 								href={resolve(`accounts/${a.id}`)}

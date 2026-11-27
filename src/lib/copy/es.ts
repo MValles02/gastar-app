@@ -160,8 +160,42 @@ const profile = {
 	}
 } as const;
 
+/** Shared UI chrome (bases, headers, sheets). */
+const ui = {
+	close: 'Cerrar',
+	back: 'Volver',
+	search: 'Buscar',
+	filters: 'Filtros',
+	filter: 'Filtrar',
+	applyFilters: 'Aplicar filtros',
+	clear: 'Limpiar',
+	/** The filter sheet's primary button: "Ver 3 movimientos" (count null: no count yet). */
+	showResults: (count: number | null, noun: readonly [string, string]) =>
+		count === null ? `Ver ${noun[1]}` : `Ver ${count} ${count === 1 ? noun[0] : noun[1]}`,
+	month: 'Mes',
+	prevMonth: 'Mes anterior',
+	nextMonth: 'Mes siguiente',
+	alerts: 'Avisos',
+	alertsCount: (n: number) => `Avisos: ${n}`,
+	badgeOverflow: (max: number) => `${max}+`,
+	profile: 'Perfil',
+	mainNav: 'Navegación principal',
+	tabs: { home: 'Inicio', movements: 'Movimientos', plan: 'Plan', reports: 'Reportes' },
+	newMovement: 'Nuevo movimiento',
+	showPassword: 'Mostrar contraseña',
+	hidePassword: 'Ocultar contraseña',
+	currency: 'Moneda',
+	unknownCategory: '?',
+	iconColor: { title: 'Ícono y color', icon: 'Ícono', color: 'Color' },
+	cancel: 'Cancelar',
+	done: 'Listo',
+	name: 'Nombre',
+	docTitle: (t: string) => `${t} · Gastar`
+} as const;
+
 export const es = {
 	common,
+	ui,
 	auth,
 	home: {},
 	movements,

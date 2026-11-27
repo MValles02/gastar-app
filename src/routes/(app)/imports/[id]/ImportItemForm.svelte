@@ -9,7 +9,7 @@
 	import DetailCard from '#lib/components/DetailCard.svelte';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
 	import { formScreen } from '#lib/components/forms/form-enhance.ts';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
 	import TextRow from '#lib/components/TextRow.svelte';
@@ -99,18 +99,17 @@
 	<Card.Root role="region" aria-label="Movimiento a revisar" class="gap-1 px-4 py-3">
 		<p class="top">
 			<span class="amount">
-				<Money
+				<Amount
 					cents={item.amount}
 					currency={item.currency}
-					tone="flow"
-					direction={item.isCredit ? 'income' : 'outcome'}
+					tone={item.isCredit ? 'income' : 'expense'}
 				/>
 			</span>
 			<span class="date">{item.dateLabel}</span>
 		</p>
 		{#if item.cuotas}
 			<p class="cuotas">
-				{item.cuotas.n} cuotas de <Money cents={item.cuotas.amount} currency={item.currency} />
+				{item.cuotas.n} cuotas de <Amount cents={item.cuotas.amount} currency={item.currency} />
 			</p>
 		{/if}
 		<p class="original">{item.rawDescription}</p>

@@ -57,6 +57,10 @@ export function formatMoney(cents: number, currency: Currency): string {
 	return `${CURRENCY_SYMBOL[currency]}${int}${dec}`;
 }
 
+/** The money tone of a signed amount: green positive, red negative, neutral zero. */
+export const signTone = (cents: number) =>
+	cents > 0 ? 'income' : cents < 0 ? 'expense' : 'neutral';
+
 /** ARS amounts (and exchange rates, which are in ARS) are whole pesos; USD may have cents. */
 export const isWholeFor = (cents: number, currency: Currency) =>
 	cents % currencyStep(currency) === 0;

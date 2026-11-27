@@ -86,3 +86,9 @@ export function categoryLook(c: Stored, fallback: 'categories' | null = 'categor
 /** CSS colour for a category/account swatch; no colour falls back to the primary tone app-wide. */
 export const swatchVar = (c: string | null | undefined) =>
 	c ? `var(--swatch-${c})` : 'var(--primary)';
+
+/** What a component's `data-tone` can name: a money tone, a state tone or a swatch. */
+export type Tone = 'income' | 'expense' | 'neutral' | 'muted' | 'warning' | 'primary' | SwatchKey;
+
+/** A stored swatch as a tone; no (or unknown) colour falls back to primary, like `swatchVar`. */
+export const toneOf = (c: string | null | undefined): Tone => toSwatchKey(c ?? null) ?? 'primary';

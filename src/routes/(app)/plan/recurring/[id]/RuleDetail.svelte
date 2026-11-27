@@ -12,7 +12,7 @@
 	import DetailRow from '#lib/components/DetailRow.svelte';
 	import DayOfMonthPicker from '#lib/components/pickers/DayOfMonthPicker.svelte';
 	import InlineText from '#lib/components/InlineText.svelte';
-	import Money from '#lib/components/Money.svelte';
+	import Amount from '#lib/components/base/Amount.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import type { PageData } from './$types';
@@ -88,7 +88,11 @@
 				onsave={(next) => save('amount', next)}
 			>
 				{#snippet display()}
-					<Money cents={r.amount} {currency} tone="flow" direction={r.type} />
+					<Amount
+						cents={r.amount}
+						{currency}
+						tone={r.type === 'income' ? 'income' : r.type === 'outcome' ? 'expense' : 'neutral'}
+					/>
 				{/snippet}
 			</InlineText>
 		</div>
