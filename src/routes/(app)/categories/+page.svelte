@@ -1,4 +1,7 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import SectionLabel from '#lib/components/base/SectionLabel.svelte';
 	import Plus from '@lucide/svelte/icons/plus';
 	import { resolve } from '$app/paths';
 	import { toneOf } from '#lib/appearance.ts';
@@ -6,13 +9,10 @@
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
 	import ListFilterDrawer from '#lib/components/ListFilterDrawer.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import Meter from '#lib/components/base/Meter.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
-	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import {
 		CURRENCIES,
 		CURRENCY_OPTIONS,
@@ -87,8 +87,8 @@
 			{#each data.groups as g (g.key)}
 				{@const groupSpend = g.categories.reduce((sum, c) => sum + spend(c.totals), 0)}
 				<section aria-labelledby="group-{g.key}">
-					<SectionHeader id="group-{g.key}" title={g.label} variant="group" />
-					<ListCard>
+					<SectionLabel id="group-{g.key}" text={g.label} />
+					<Group>
 						{#each g.categories as c (c.id)}
 							{@const share = groupSpend > 0 ? spend(c.totals) / groupSpend : 0}
 							{#snippet value()}
@@ -106,18 +106,18 @@
 							{#snippet meter()}
 								<Meter percent={share * 100} tone={toneOf(c.color)} />
 							{/snippet}
-							<ListRow
+							<Row
 								href={resolve(`categories/${c.id}`)}
 								onclick={(e) => openShallow(e, resolve(`categories/${c.id}`), 'category')}
 								glyph={{ category: { icon: c.icon, color: c.color } }}
 								title={c.name}
-								{value}
+								trailing={value}
 								status={c.archivedAt ? { tone: 'neutral', label: ARCHIVED_LABEL } : undefined}
 								footer={share > 0 ? meter : undefined}
 								dimmed={!!c.archivedAt}
 							/>
 						{/each}
-					</ListCard>
+					</Group>
 				</section>
 			{/each}
 		{/if}

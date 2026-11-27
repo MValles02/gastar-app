@@ -1,7 +1,7 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
 	import { resolve } from '$app/paths';
 	import FormShell from '#lib/components/forms/FormShell.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import SegmentedControl from '#lib/components/SegmentedControl.svelte';
@@ -63,8 +63,8 @@
 			</div>
 		{/if}
 
-		<ListCard aria-label="Cuentas">
-			<div role="listitem">
+		<Group aria-label="Cuentas">
+			<li role="listitem">
 				<OptionPicker
 					name="arsAccountId"
 					legend="Cuenta en pesos"
@@ -81,8 +81,8 @@
 						</p>
 					{/snippet}
 				</OptionPicker>
-			</div>
-			<div role="listitem">
+			</li>
+			<li role="listitem">
 				<OptionPicker
 					name="usdAccountId"
 					legend="Cuenta en dólares"
@@ -99,8 +99,8 @@
 						</p>
 					{/snippet}
 				</OptionPicker>
-			</div>
-		</ListCard>
+			</li>
+		</Group>
 		<p class="hint">La cuenta en dólares solo hace falta si comprás en dólares.</p>
 	</FormShell>
 </div>

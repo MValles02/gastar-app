@@ -1,7 +1,7 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
 	import { resolve } from '$app/paths';
 	import { autosave, submitAction } from '#lib/autosave.ts';
-	import ListCard from '#lib/components/ListCard.svelte';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { refreshAll } from '$app/navigation';
@@ -51,8 +51,8 @@
 	{#snippet linked()}
 		<p class="lead">Tu cuenta de Mercado Pago está vinculada.</p>
 
-		<ListCard aria-label="Ajustes">
-			<div role="listitem">
+		<Group aria-label="Ajustes">
+			<li role="listitem">
 				<form method="POST" action="?/account">
 					<OptionPicker
 						name="accountId"
@@ -72,8 +72,8 @@
 					</OptionPicker>
 					<noscript><Button type="submit" variant="outline">Guardar</Button></noscript>
 				</form>
-			</div>
-		</ListCard>
+			</li>
+		</Group>
 		{#if data.connection?.accountId}
 			<p class="hint">
 				La fecha desde la que se importa está en <a href={resolve('profile/vinculaciones')}

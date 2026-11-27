@@ -503,7 +503,7 @@
 }
 
 /*
- * Pressed rows: a link or button Item (ListRow, OptionPicker rows) fills muted while pressed, the
+ * Pressed rows: a link or button Item (Row, OptionPicker rows) fills muted while pressed, the
  * touch counterpart of its hover fill. On touch the fill follows `data-pressed` (src/lib/press.ts),
  * which waits for a resting finger and drops on any scroll or swipe, like a native iOS list; plain
  * :active is for mouse pointers only, since iOS applies it before it knows the touch is a scroll.

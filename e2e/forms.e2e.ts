@@ -108,7 +108,7 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 	// so other workers moving this user's balances cannot skew the comparison.
 	await page.goto('/accounts?archived=1');
 	const group = page.locator('section[aria-labelledby="group-ARS"]');
-	const rows = group.locator('a:has(.row-amount)');
+	const rows = group.locator('a:has(.amount)');
 	const cents = async (l: Locator) =>
 		Math.round(
 			Number(
@@ -121,8 +121,8 @@ test('archiving an account hides it from the new-movement picker and Desarchivar
 		);
 	const mine = rows.filter({ hasText: name });
 	await expect(mine).toHaveCount(1);
-	expect(await cents(mine.locator('.row-amount'))).toBe(123400);
-	const active = rows.filter({ hasNotText: 'Archivada' }).locator('.row-amount');
+	expect(await cents(mine.locator('.amount'))).toBe(123400);
+	const active = rows.filter({ hasNotText: 'Archivada' }).locator('.amount');
 	let sum = 0;
 	for (const amount of await active.all()) sum += await cents(amount);
 	expect(await cents(group.locator('.group-total'))).toBe(sum);

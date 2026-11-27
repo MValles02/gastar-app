@@ -21,13 +21,18 @@
 	} = $props();
 </script>
 
-<div class="section-label" class:has-action={!!action}>
+{#if aside || action}
+	<div class="section-label" class:has-action={!!action}>
+		<svelte:element this={as} {id} class="text">{text}</svelte:element>
+		{#if aside}{@render aside()}{/if}
+		{#if action}<span class="action"
+				><ActionLink href={action.href} label={action.label} onclick={action.onclick} /></span
+			>{/if}
+	</div>
+{:else}
+	<!-- Alone (a card's eyebrow): no wrapper, so a `dt` stays a direct child of its `dl`. -->
 	<svelte:element this={as} {id} class="text">{text}</svelte:element>
-	{#if aside}{@render aside()}{/if}
-	{#if action}<span class="action"
-			><ActionLink href={action.href} label={action.label} onclick={action.onclick} /></span
-		>{/if}
-</div>
+{/if}
 
 <style>
 	.section-label {

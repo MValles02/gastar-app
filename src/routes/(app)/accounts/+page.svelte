@@ -1,4 +1,7 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import SectionLabel from '#lib/components/base/SectionLabel.svelte';
 	import { CURRENCY_OPTIONS } from '#lib/money.ts';
 	import Plus from '@lucide/svelte/icons/plus';
 	import { resolve } from '$app/paths';
@@ -8,12 +11,9 @@
 	import ListFilterDrawer from '#lib/components/ListFilterDrawer.svelte';
 	import { activeListFilters } from '#lib/list-filter.ts';
 	import { ARCHIVED_LABEL } from '#lib/movement.ts';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
 	import { openShallow } from '#lib/open-shallow.ts';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
-	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -67,27 +67,27 @@
 			<!-- Balances are totalled per currency group, never across currencies. -->
 			{#each data.groups as g (g.currency)}
 				<section aria-labelledby="group-{g.currency}">
-					<SectionHeader id="group-{g.currency}" title={g.label} variant="group">
+					<SectionLabel id="group-{g.currency}" text={g.label}>
 						{#snippet aside()}
 							<span class="group-total"><Amount cents={g.total} currency={g.currency} /></span>
 						{/snippet}
-					</SectionHeader>
-					<ListCard>
+					</SectionLabel>
+					<Group>
 						{#each g.accounts as a (a.id)}
 							{#snippet value()}
 								<Amount cents={a.balance} currency={a.currency} />
 							{/snippet}
-							<ListRow
+							<Row
 								href={resolve(`accounts/${a.id}`)}
 								onclick={(e) => openShallow(e, resolve(`accounts/${a.id}`), 'account')}
 								glyph={{ account: { icon: a.icon, color: a.color } }}
 								title={a.name}
-								{value}
+								trailing={value}
 								status={a.archivedAt ? { tone: 'neutral', label: ARCHIVED_LABEL } : undefined}
 								dimmed={!!a.archivedAt}
 							/>
 						{/each}
-					</ListCard>
+					</Group>
 				</section>
 			{/each}
 		{/if}

@@ -1,9 +1,9 @@
 <script lang="ts">
+	import Row from '#lib/components/base/Row.svelte';
 	import { toast } from 'svelte-sonner';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { submitAction } from '#lib/autosave.ts';
-	import ListRow from '#lib/components/ListRow.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import RowPill from '#lib/components/RowPill.svelte';
 	import { formatMoney, type Currency } from '#lib/money.ts';
@@ -87,7 +87,7 @@
 	{/if}
 {/snippet}
 
-<ListRow
+<Row
 	{href}
 	onclick={open}
 	glyph={{ category: item.suggestion === null ? null : { icon: null, color: null } }}
@@ -95,7 +95,7 @@
 	status={item.suggestion === null
 		? { tone: 'warning', label: 'No sabemos qué es' }
 		: { tone: 'ok', label: `${item.suggestion} · sugerido` }}
-	meta={meta ? metaLine : undefined}
+	subtitle={meta ? metaLine : undefined}
 	stacked
 	action={side}
 />

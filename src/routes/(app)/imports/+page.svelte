@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
@@ -13,8 +15,6 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
 	import RowPill from '#lib/components/RowPill.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import Amount from '#lib/components/base/Amount.svelte';
@@ -159,22 +159,22 @@
 	{/if}
 
 	{#if data.unknownCards.length > 0}
-		<ListCard aria-label="Tarjetas por definir">
+		<Group aria-label="Tarjetas por definir">
 			{#each data.unknownCards as c (c.network + c.last4)}
-				<ListRow
+				<Row
 					href={resolve(`profile/gmail/cards/${c.slug}`)}
 					glyph={{ icon: 'card', tone: 'neutral' }}
 					title="Tarjeta {cardNetworkName(c.network)} ••{c.last4}: elegí qué es"
 					chevron
 				/>
 			{/each}
-		</ListCard>
+		</Group>
 	{/if}
 
 	{#if data.unmatched.length > 0}
 		<section aria-labelledby="unmatched-title">
 			<h2 id="unmatched-title">No apareció en el resumen</h2>
-			<ListCard>
+			<Group>
 				{#each data.unmatched as item (item.id)}
 					{#snippet meta()}
 						{formatDay(item.day)} ·
@@ -208,9 +208,9 @@
 							{/each}
 						</span>
 					{/snippet}
-					<ListRow title={item.title} {meta} action={choices} />
+					<Row title={item.title} subtitle={meta} action={choices} />
 				{/each}
-			</ListCard>
+			</Group>
 		</section>
 	{/if}
 
@@ -246,11 +246,11 @@
 			{#each data.groups as g (g.day)}
 				<section aria-labelledby="day-{g.day}">
 					<h2 id="day-{g.day}">{g.heading}</h2>
-					<ListCard>
+					<Group>
 						{#each g.items as item (item.id)}
 							<ImportRow {item} />
 						{/each}
-					</ListCard>
+					</Group>
 				</section>
 			{/each}
 		</div>

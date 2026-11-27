@@ -29,7 +29,7 @@ test.describe.configure({ mode: 'serial' });
 
 let page: Page;
 
-const rows = () => page.locator('[data-slot="item-group"] [role="listitem"]');
+const rows = () => page.locator('[role="list"] > [role="listitem"]');
 const fake = (path: string, body?: unknown) =>
 	fetch(FAKE_MP.url + path, {
 		method: body === undefined ? 'GET' : 'POST',
@@ -729,7 +729,7 @@ test('another user links their own account and sees only their own inbox', async
 			p.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/imports')),
 			p.getByRole('button', { name: 'Sincronizar' }).click()
 		]);
-		const theirs = p.locator('[data-slot="item-group"] [role="listitem"]');
+		const theirs = p.locator('[role="list"] > [role="listitem"]');
 		// Their own full import (the fake serves the same payments), not the importer's current inbox.
 		await expect(theirs).toHaveCount(8, { timeout: SYNC_WAIT.timeout });
 		expect((await p.goto(`/imports/${pendingId}`))!.status()).toBe(404);
@@ -754,7 +754,7 @@ async function otherSync(browser: Browser, expected: RegExp) {
 			await p.reload();
 			await expect(p.getByRole('status')).toHaveText(expected);
 		}).toPass(SYNC_WAIT);
-		return await p.locator('[data-slot="item-group"] [role="listitem"]').count();
+		return await p.locator('[role="list"] > [role="listitem"]').count();
 	} finally {
 		await p.request.post('/dev/mp-reset', { headers: { origin } });
 		await ctx.close();

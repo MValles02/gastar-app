@@ -463,7 +463,7 @@ export const reviewDrawer = (page: Page) =>
 /** Opens the review drawer of the pending /imports item whose list row contains all `texts`. */
 export async function openItem(page: Page, ...texts: string[]) {
 	await gotoHydrated(page, '/imports');
-	let row = page.locator('[data-slot="item-group"] [role="listitem"]');
+	let row = page.locator('[role="list"] > [role="listitem"]');
 	for (const t of texts) row = row.filter({ hasText: t });
 	await row.getByRole('link').first().click();
 	await expect(reviewDrawer(page)).toBeVisible();

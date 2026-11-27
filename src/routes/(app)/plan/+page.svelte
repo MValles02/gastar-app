@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import SectionLabel from '#lib/components/base/SectionLabel.svelte';
 	import { formatMoney, RATE_CURRENCY } from '#lib/money.ts';
 	import { toast } from 'svelte-sonner';
 	import { afterNavigate } from '$app/navigation';
@@ -7,14 +9,11 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import ActionLink from '#lib/components/ActionLink.svelte';
-	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import TabBand from '#lib/components/TabBand.svelte';
-	import SectionHeader from '#lib/components/SectionHeader.svelte';
 	import Status from '#lib/components/base/Status.svelte';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { stripFlags } from '#lib/nav-stack.svelte.ts';
@@ -98,7 +97,7 @@
 				<Card.Root class="gap-0 overflow-hidden py-0">
 					<div class="box">
 						<div class="top">
-							<CardEyebrow as="h2" id="summary-heading">Disponible</CardEyebrow>
+							<SectionLabel as="h2" id="summary-heading" text="Disponible" />
 							<Status tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
 						</div>
 						<Amount size="hero" as="p" cents={s.available} currency={PLAN_CURRENCY} />
@@ -153,7 +152,7 @@
 			{/if}
 
 			<section aria-labelledby="limits-heading">
-				<SectionHeader id="limits-heading" title="Límites por categoría" aside={addLimit} />
+				<SectionLabel id="limits-heading" text="Límites por categoría" aside={addLimit} />
 				<LimitList limits={s.limits} />
 			</section>
 		{:else}
@@ -173,22 +172,22 @@
 
 		{#if data.plan.summary || data.incomes.length || data.outcomes.length || data.inactive.length}
 			<section aria-labelledby="income-heading">
-				<SectionHeader id="income-heading" title="Ingresos fijos" aside={addIncome} />
+				<SectionLabel id="income-heading" text="Ingresos fijos" aside={addIncome} />
 				{#if data.incomes.length}
-					<ListCard>
+					<Group>
 						{#each data.incomes as r (r.id)}<RecurringRow row={r} />{/each}
-					</ListCard>
+					</Group>
 				{:else}
 					<EmptyState icon="plan" description="Sin ingresos fijos." />
 				{/if}
 			</section>
 
 			<section aria-labelledby="outcome-heading">
-				<SectionHeader id="outcome-heading" title="Pagos fijos pendientes" aside={addOutcome} />
+				<SectionLabel id="outcome-heading" text="Pagos fijos pendientes" aside={addOutcome} />
 				{#if data.outcomes.length}
-					<ListCard>
+					<Group>
 						{#each data.outcomes as r (r.id)}<RecurringRow row={r} />{/each}
-					</ListCard>
+					</Group>
 				{:else}
 					<EmptyState icon="plan" description="Sin pagos fijos." />
 				{/if}
@@ -196,10 +195,10 @@
 
 			{#if data.inactive.length}
 				<section aria-labelledby="inactive-heading">
-					<SectionHeader id="inactive-heading" title="Inactivos" />
-					<ListCard>
+					<SectionLabel id="inactive-heading" text="Inactivos" />
+					<Group>
 						{#each data.inactive as r (r.id)}<RecurringRow row={r} />{/each}
-					</ListCard>
+					</Group>
 				</section>
 			{/if}
 		{/if}

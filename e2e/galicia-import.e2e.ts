@@ -151,7 +151,7 @@ test('a remembered merchant matches the same merchant with another reference cod
 	await expect(page).toHaveURL(/\/imports/);
 	await waitForHydration(page);
 	await page
-		.locator('[data-slot="item-group"] [role="listitem"]')
+		.locator('[role="list"] > [role="listitem"]')
 		.filter({ hasText: 'MOVISTAR DA' })
 		.getByRole('link')
 		.click();

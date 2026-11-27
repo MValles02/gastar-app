@@ -1,4 +1,7 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import SectionLabel from '#lib/components/base/SectionLabel.svelte';
 	import { resolve } from '$app/paths';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
@@ -7,11 +10,7 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import MonthNav from '#lib/components/MonthNav.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
 	import Meter from '#lib/components/base/Meter.svelte';
-	import SectionHeader from '#lib/components/SectionHeader.svelte';
-	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import TabBand from '#lib/components/TabBand.svelte';
 	import { CURRENCY_NAME, formatMoney, signTone } from '#lib/money.ts';
@@ -66,7 +65,7 @@
 				<Card.Root class="gap-0 overflow-hidden py-0">
 					<dl class="totals">
 						<div class="box">
-							<CardEyebrow as="dt">Resultado</CardEyebrow>
+							<SectionLabel as="dt" text="Resultado" />
 							<Amount
 								size="hero"
 								as="dd"
@@ -92,7 +91,7 @@
 			</section>
 
 			<section aria-labelledby="flow-heading">
-				<SectionHeader id="flow-heading" title="Últimos 6 meses" />
+				<SectionLabel id="flow-heading" text="Últimos 6 meses" />
 				<Card.Root>
 					<Card.Content>
 						<ul class="bars">
@@ -128,13 +127,13 @@
 			</section>
 
 			<section aria-labelledby="cat-heading">
-				<SectionHeader id="cat-heading" title="Gastos por categoría" />
+				<SectionLabel id="cat-heading" text="Gastos por categoría" />
 				{#if data.slices.length === 0}
 					<Card.Root class="gap-0 overflow-hidden py-0">
 						<p class="empty-card">No hay gastos.</p>
 					</Card.Root>
 				{:else}
-					<ListCard>
+					<Group>
 						{#each data.slices as s (s.id)}
 							{#snippet sliceValue()}
 								<span class="pct">{s.percent}%</span>
@@ -143,7 +142,7 @@
 							{#snippet sliceFooter()}
 								<Meter percent={s.percent} tone={sliceTone(s)} />
 							{/snippet}
-							<ListRow
+							<Row
 								href={s.id === 'other'
 									? undefined
 									: resolve(`categories/${s.id}?month=${data.nav.ym}`)}
@@ -153,11 +152,11 @@
 								onclick={(e) =>
 									openShallow(e, resolve(`categories/${s.id}?month=${data.nav.ym}`), 'category')}
 								title={s.name}
-								value={sliceValue}
+								trailing={sliceValue}
 								footer={sliceFooter}
 							/>
 						{/each}
-					</ListCard>
+					</Group>
 				{/if}
 			</section>
 
@@ -171,7 +170,7 @@
 						<Card.Root>
 							<Card.Content>
 								<div class="fact-card">
-									<CardEyebrow>Por día</CardEyebrow>
+									<SectionLabel as="p" text="Por día" />
 									<p class="fact"><Amount cents={data.dailyAverage} currency={data.currency} /></p>
 									<p class="label">{data.days} {data.days === 1 ? 'día' : 'días'}</p>
 								</div>
@@ -183,7 +182,7 @@
 							<Card.Root>
 								<Card.Content>
 									<div class="fact-card">
-										<CardEyebrow>Gasto más grande</CardEyebrow>
+										<SectionLabel as="p" text="Gasto más grande" />
 										<Icon name="chevron-right" size="sm" />
 										<p class="fact">
 											<Amount

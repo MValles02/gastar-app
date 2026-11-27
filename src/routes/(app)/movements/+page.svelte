@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
 	import { resolve } from '$app/paths';
 	import { navigating, page } from '$app/state';
 	import { untrack } from 'svelte';
@@ -10,7 +11,6 @@
 	import DateRangePicker from '#lib/components/pickers/DateRangePicker.svelte';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import FilterBar from '#lib/components/FilterBar.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
 	import MovementFiltersDrawer from '#lib/components/movements/MovementFiltersDrawer.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import MovementRow from '#lib/components/movements/MovementRow.svelte';
@@ -220,13 +220,13 @@
 											</span>
 										{/if}
 									</div>
-									<ListCard class="relative">
+									<Group class="relative">
 										{#each g.items as m (m.id)}
 											<div data-slide animate:slide in:fade={{ skip: !inPlace }}>
 												<MovementRow {m} />
 											</div>
 										{/each}
-									</ListCard>
+									</Group>
 								</section>
 							{/each}
 						</section>

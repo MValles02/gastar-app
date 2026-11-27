@@ -1,4 +1,7 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
+	import SectionLabel from '#lib/components/base/SectionLabel.svelte';
 	import { formatPercent } from '#lib/locale.ts';
 	import { resolve } from '$app/paths';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -7,9 +10,6 @@
 	import CurrencyTabs from '#lib/components/CurrencyTabs.svelte';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import FirstRunChecklist from '#lib/components/FirstRunChecklist.svelte';
-	import CardEyebrow from '#lib/components/CardEyebrow.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
 	import Meter from '#lib/components/base/Meter.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import { signTone } from '#lib/money.ts';
@@ -64,7 +64,7 @@
 						{@const s = data.plan.summary}
 						<div class="box" in:fade>
 							<div class="top">
-								<CardEyebrow as="h2" id="summary-heading">Disponible</CardEyebrow>
+								<SectionLabel as="h2" id="summary-heading" text="Disponible" />
 								<Status tone={PLAN_TONE[s.status]} label={data.plan.statusLabel} />
 							</div>
 							<Amount size="hero" as="p" cents={s.available} currency="ARS" />
@@ -102,7 +102,7 @@
 						</div>
 					{:else}
 						<div class="box" in:fade>
-							<CardEyebrow as="h2" id="summary-heading">Saldo total</CardEyebrow>
+							<SectionLabel as="h2" id="summary-heading" text="Saldo total" />
 							<Amount size="hero" as="p" cents={data.balance} currency={data.currency} />
 							<p class="muted per-day">
 								Resultado del mes
@@ -140,7 +140,7 @@
 							<Card.Content><p class="muted inline-empty" in:fade>No hay gastos.</p></Card.Content>
 						</Card.Root>
 					{:else}
-						<ListCard>
+						<Group>
 							{#each data.topCategories as cat (cat.id)}
 								{#snippet catValue()}
 									<span class="pct">{formatPercent(cat.share)}</span>
@@ -153,14 +153,14 @@
 								{#snippet catFooter()}
 									<Meter percent={cat.share * 100} tone={toneOf(cat.color)} />
 								{/snippet}
-								<ListRow
+								<Row
 									glyph={{ category: { icon: cat.icon, color: cat.color } }}
 									title={cat.name}
-									value={catValue}
+									trailing={catValue}
 									footer={catFooter}
 								/>
 							{/each}
-						</ListCard>
+						</Group>
 					{/if}
 				</section>
 			{/if}
@@ -181,11 +181,11 @@
 						</Card.Content>
 					</Card.Root>
 				{:else}
-					<ListCard>
+					<Group>
 						{#each data.recent as m (m.id)}
 							<MovementRow {m} date={m.dateLabel} />
 						{/each}
-					</ListCard>
+					</Group>
 				{/if}
 			</section>
 		{/if}

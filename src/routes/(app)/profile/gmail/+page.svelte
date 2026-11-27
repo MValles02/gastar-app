@@ -1,8 +1,8 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
 	import { resolve } from '$app/paths';
 	import { cardNetworkName } from '#lib/imports.ts';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
 	import OAuthLinkPage from '../OAuthLinkPage.svelte';
 	import type { PageData } from './$types';
 
@@ -44,9 +44,9 @@
 	{/snippet}
 
 	{#if data.cards.length > 0}
-		<ListCard aria-label="Tarjetas">
+		<Group aria-label="Tarjetas">
 			{#each data.cards as c (c.network + c.last4)}
-				<ListRow
+				<Row
 					href={resolve(`profile/gmail/cards/${c.slug}`)}
 					glyph={{ icon: 'card', tone: 'neutral' }}
 					title="{cardNetworkName(c.network)} ••{c.last4} · {c.type === 'debit'
@@ -55,6 +55,6 @@
 					chevron
 				/>
 			{/each}
-		</ListCard>
+		</Group>
 	{/if}
 </OAuthLinkPage>

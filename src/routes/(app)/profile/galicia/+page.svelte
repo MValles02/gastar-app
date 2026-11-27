@@ -1,11 +1,11 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import { refreshAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { autosave, submitAction } from '#lib/autosave.ts';
 	import Glyph from '#lib/components/base/Glyph.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import OptionPicker from '#lib/components/pickers/OptionPicker.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
@@ -67,8 +67,8 @@
 		cuenta para revisar; los impuestos, en uno solo.
 	</p>
 
-	<ListCard aria-label="Cuentas">
-		<div role="listitem">
+	<Group aria-label="Cuentas">
+		<li role="listitem">
 			<form method="POST" action="?/account">
 				<input type="hidden" name="currency" value="ARS" />
 				<OptionPicker
@@ -89,8 +89,8 @@
 				</OptionPicker>
 				<noscript><Button type="submit" variant="outline">Guardar</Button></noscript>
 			</form>
-		</div>
-		<div role="listitem">
+		</li>
+		<li role="listitem">
 			<form method="POST" action="?/account">
 				<input type="hidden" name="currency" value="USD" />
 				<OptionPicker
@@ -111,8 +111,8 @@
 				</OptionPicker>
 				<noscript><Button type="submit" variant="outline">Guardar</Button></noscript>
 			</form>
-		</div>
-	</ListCard>
+		</li>
+	</Group>
 	<p class="hint">Solo hace falta si el resumen tiene consumos en dólares.</p>
 
 	<form

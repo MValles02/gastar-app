@@ -1,11 +1,11 @@
 <script lang="ts">
+	import Group from '#lib/components/base/Group.svelte';
+	import Row from '#lib/components/base/Row.svelte';
 	import { hydrated } from '#lib/hydrated.svelte.ts';
 	import { toast } from 'svelte-sonner';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import EmptyState from '#lib/components/EmptyState.svelte';
-	import ListCard from '#lib/components/ListCard.svelte';
-	import ListRow from '#lib/components/ListRow.svelte';
 	import Amount from '#lib/components/base/Amount.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import RowPill from '#lib/components/RowPill.svelte';
@@ -45,7 +45,7 @@
 			description="Nada aprobado automáticamente en los últimos 30 días."
 		/>
 	{:else}
-		<ListCard aria-label="Aprobados automáticamente">
+		<Group aria-label="Aprobados automáticamente">
 			{#each data.items as item (item.id)}
 				{#snippet meta()}{item.target ? `${item.target} · ${item.date}` : item.date}{/snippet}
 				{#snippet side()}
@@ -75,14 +75,14 @@
 						<RowPill label="Deshacer" ariaLabel="Deshacer {item.title}" />
 					</form>
 				{/snippet}
-				<ListRow
+				<Row
 					glyph={{ category: { icon: null, color: null } }}
 					title={item.title}
-					{meta}
+					subtitle={meta}
 					action={side}
 				/>
 			{/each}
-		</ListCard>
+		</Group>
 	{/if}
 </div>
 

@@ -1,8 +1,8 @@
 <script lang="ts">
+	import SectionLabel from '#lib/components/base/SectionLabel.svelte';
 	import { resolve } from '$app/paths';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import { openShallow } from '#lib/open-shallow.ts';
-	import CardEyebrow from './CardEyebrow.svelte';
 	import Icon from './Icon.svelte';
 
 	/** "Empezá en 3 pasos" on Inicio; each step's done state comes from the user's existing data. */
@@ -42,7 +42,7 @@
 <section aria-labelledby="first-run-heading">
 	<Card.Root class="gap-0 overflow-hidden py-0">
 		<div class="head">
-			<CardEyebrow as="h2" id="first-run-heading">Empezá en 3 pasos</CardEyebrow>
+			<SectionLabel as="h2" id="first-run-heading" text="Empezá en 3 pasos" />
 		</div>
 		<ol>
 			{#each items as item, i (item.title)}
